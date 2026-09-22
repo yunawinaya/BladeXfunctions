@@ -2448,27 +2448,26 @@
         "name": "Map Packing Item IDs",
         "script": {
           "type": "javascript",
-          "code": "const src = {{workflowparams:allData.created_source}} || '';\n\n// Web / Mobile already compute packing + weight in the form (SOchangeItem /\n// SOonChangeUOM). Internal Trading gets them from POsaveWorkflow's Build SO\n// Payload. Everything else lands here with the fields empty.\nconst skip = src == 'Web' || src == 'Mobile' || src == 'Internal Trading';\n\nconst entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:code_node_rPqQy5CD.data.table}};\nconst lines = (entry && entry.table_so) || [];\n\nconst itemIDs = skip ? [] : [...new Set(lines.filter(l => l.item_name).map(l => l.item_name))];\n\nreturn { itemIDs: itemIDs, needsPacking: !skip && itemIDs.length > 0 };"
+          "code": "const src = {{workflowparams:allData.created_source}} || '';\n\n// Web / Mobile already compute packing + weight in the form (SOchangeItem /\n// SOonChangeUOM). Internal Trading gets them from POsaveWorkflow's Build SO\n// Payload. Everything else lands here with the fields empty.\nconst skip = src == 'Web' || src == 'Mobile' || src == 'Internal Trading';\n\nconst entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:code_node_rPqQy5CD.data.table}};\nconst lines = (entry && entry.table_so) || [];\n\n// Digits only: these ids are interpolated into Get Packing Item Data's SQL.\nconst itemIDs = skip\n  ? []\n  : [...new Set(lines.filter(l => l.item_name).map(l => String(l.item_name)))].filter(\n      (id) => /^[0-9]+$/.test(id)\n    );\n\nreturn {\n  itemIdCsv: itemIDs.join(','),\n  organizationId: String((entry && entry.organization_id) || ''),\n  needsPacking: !skip && itemIDs.length > 0\n};\n"
         },
         "response_json": [
           {
-            "key": "pkitmids",
-            "name": "itemIDs",
-            "title": "Item IDs",
+            "key": "pkitmcsv",
+            "name": "itemIdCsv",
+            "title": "Item ID CSV",
             "description": "",
-            "bsonType": "array",
-            "isExpand": true,
-            "children": [
-              {
-                "key": "pkitmid1",
-                "name": "items",
-                "title": "ID",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false,
-                "isArrayItem": true
-              }
-            ]
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "pkitmorg",
+            "name": "organizationId",
+            "title": "Organization ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
           },
           {
             "key": "pkneedpk",
@@ -2506,41 +2505,58 @@
           },
           "blocks": [
             {
-              "id": "search_node_PkItems",
-              "type": "search-node",
+              "id": "sql_node_PkItems",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
-                      {
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "level": 1,
-                        "children": [
-                          {
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{node:code_node_PkItemIDs.data.itemIDs}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Primary Key ID",
-                            "operatorLabel": "In"
-                          }
-                        ]
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 200,
+                "database_id": "",
+                "sql": "",
+                "params": {},
                 "title": "Get Packing Item Data",
                 "isValidator": true,
                 "nodeName": "Get Packing Item Data",
-                "name": "Get Packing Item Data"
+                "name": "Get Packing Item Data",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(i.id AS CHAR) AS id,\n       CAST(i.net_weight AS CHAR) AS net_weight,\n       COALESCE(pd.packing_detail_json, '[]') AS packing_detail_json,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                      'base_qty', u.base_qty))\n           FROM item_mji552rc_sub u\n           WHERE u.Item_id = i.id\n             AND u.is_deleted = 0\n       ), '[]') AS uom_conversion_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_PkItemIDs.data.itemIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0\n AND (i.organization_id = '{{node:code_node_PkItemIDs.data.organizationId}}'\n      OR '{{node:code_node_PkItemIDs.data.organizationId}}' = '')\nLEFT JOIN (\n    SELECT p.Item_id AS iid,\n           JSON_ARRAYAGG(JSON_OBJECT(\n               'uom_id', CAST(p.uom_id AS CHAR),\n               'quantity', p.quantity,\n               'packing_uom_id', CAST(p.packing_uom_id AS CHAR))) AS packing_detail_json\n    FROM item_vabbbwt2_sub p\n    JOIN JSON_TABLE(CONCAT('[', '{{node:code_node_PkItemIDs.data.itemIdCsv}}', ']'),\n                    '$[*]' COLUMNS (mid BIGINT PATH '$')) s2\n      ON s2.mid = p.Item_id\n    WHERE p.is_deleted = 0\n    GROUP BY p.Item_id\n) pd ON pd.iid = i.id"
+                },
+                "response_json": [
+                  {
+                    "key": "pki1id00",
+                    "name": "id",
+                    "title": "Item ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pki2netw",
+                    "name": "net_weight",
+                    "title": "Net Weight",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pki3pkjs",
+                    "name": "packing_detail_json",
+                    "title": "Packing Detail JSON",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pki4umjs",
+                    "name": "uom_conversion_json",
+                    "title": "UOM Conversion JSON",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
               },
               "blocks": []
             }
@@ -2569,7 +2585,7 @@
         "name": "Fillback Header Fields",
         "script": {
           "type": "javascript",
-          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:workflow_node_yxaOreDk.data.needApproval}} == 'Yes' ? {{node:workflow_node_yxaOreDk.data.data}} : {{node:code_node_rPqQy5CD.data.table}};\n\n// --- Packing + weight (mirrors SOchangeItem.buildPackingWeightData) ---\n// Only populated for created_source outside Web / Mobile / Internal Trading;\n// otherwise the gated search node never ran and this resolves to null.\nconst packingItemsRaw = {{node:search_node_PkItems.data.data}};\nconst packingItems = Array.isArray(packingItemsRaw) ? packingItemsRaw : (packingItemsRaw ? [packingItemsRaw] : []);\nconst needsPacking = packingItems.length > 0;\n\n// --- Authoritative line counters ---\n// planned_qty and delivered_qty are owned by the delivery and the picking plan, not by\n// this page. table_so is written as one whole array, so spreading the browser's copy\n// puts a stale tab's numbers back over whatever they wrote. Take them from the SO as\n// stored, overlaid with whatever the cascade just left behind.\nconst prevSoRaw = {{node:get_node_rvjWbHBF.data.data}};\nconst prevSo = Array.isArray(prevSoRaw) ? prevSoRaw[0] || null : prevSoRaw || null;\nconst cascadeCounters = {{node:workflow_node_CascadeA.data.soLineCounters}};\n\nconst flattenSo = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst storedCounters = {};\nflattenSo(prevSo && prevSo.table_so).forEach((r) => {\n  if (r && r.id) storedCounters[String(r.id)] = r;\n});\nconst cascadedCounters = {};\n(Array.isArray(cascadeCounters) ? cascadeCounters : []).forEach((r) => {\n  if (r && r.id) cascadedCounters[String(r.id)] = r;\n});\n\n// Both maps are empty on Add / Clone / Draft, where a row carries no id and nothing has\n// been planned or delivered yet.\nconst lineCounters = (soLineItem) => {\n  const key = soLineItem.id ? String(soLineItem.id) : \"\";\n  const cascaded = key ? cascadedCounters[key] : null;\n  const stored = key ? storedCounters[key] : null;\n  const pick = (field) =>\n    cascaded ? Number(cascaded[field]) || 0 : stored ? Number(stored[field]) || 0 : 0;\n  return { delivered: pick(\"delivered_qty\"), planned: pick(\"planned_qty\") };\n};\n\n// Owned by the MES production workflows, which write straight onto the line:\n// CONFIRM_PROD_ORDER sets production_planned_qty, WO_SAVE sets it and production_status.\n// so_quantity is only the starting point for a line nothing has ever planned against.\nconst productionFields = (soLineItem, storedMap) => {\n  const stored = soLineItem.id ? storedMap[String(soLineItem.id)] : null;\n  const planned = stored ? stored.production_planned_qty : soLineItem.production_planned_qty;\n  const status = stored ? stored.production_status : soLineItem.production_status;\n  const neverSet = planned === null || planned === undefined || planned === '';\n  return {\n    planned: parseFloat((neverSet ? soLineItem.so_quantity : planned) || 0).toFixed(3),\n    status: !status ? \"Not Created\" : status\n  };\n};\n\nconst round3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;\nconst getPackingDetail = (tpd, uom) => (!Array.isArray(tpd) || !tpd.length || !uom) ? null : (tpd.find((c) => c.uom_id === uom) || null);\nconst getBaseQty = (tuc, uom) => {\n  if (!Array.isArray(tuc) || !tuc.length || !uom) return 1;\n  const c = tuc.find((x) => x.alt_uom_id === uom);\n  return c && c.base_qty ? c.base_qty : 1;\n};\nconst buildPackingWeightData = (item, uom, soQuantity) => {\n  const pd = getPackingDetail(item.table_packing_detail, uom);\n  const packingConversion = (pd && pd.quantity) || 1;\n  const weightConversion = round3((Number(item.net_weight) || 0) * getBaseQty(item.table_uom_conversion, uom));\n  const qty = Number(soQuantity) || 0;\n  return {\n    packing_uom: (pd && pd.packing_uom_id) || '',\n    packing_conversion: parseFloat(packingConversion || 0).toFixed(3),\n    packing_qty: (packingConversion ? round3(qty / packingConversion) : 0).toFixed(3),\n    weight_conversion: weightConversion.toFixed(3),\n    net_weight: round3(qty * weightConversion).toFixed(3)\n  };\n};\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  plant_id: entry.plant_name || \"\",\n  customer_id: entry.customer_name || \"\",\n  payment_term_id: entry.so_payment_term || \"\",\n  sales_person_id: entry.so_sales_person || \"\",\n  billing_state_id: entry.billing_address_state || \"\",\n  billing_country_id: entry.billing_address_country || \"\",\n  shipping_state_id: entry.shipping_address_state || \"\",\n  shipping_country_id: entry.shipping_address_country || \"\",\n  area_id: entry.so_area_id || \"\",\n  organization_id: entry.organization_id,\n  access_group: entry.access_group || [],\n  agent_user_id: entry.so_agent_user_id || '',\n};\n\nconst formatLine = (soLineItem) => {\n  const counters = lineCounters(soLineItem);\n  const production = productionFields(soLineItem, storedCounters);\n  const formattedItem = {\n    // Copy all existing properties\n    ...soLineItem,\n\n    // Apply number formatting to numeric fields\n    unrestricted_qty: parseFloat(soLineItem.unrestricted_qty || 0).toFixed(3),\n    base_unrestricted_qty: parseFloat(soLineItem.base_unrestricted_qty || 0).toFixed(3),\n    so_quantity: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    so_item_price: parseFloat(soLineItem.so_item_price || 0).toFixed(4),\n    so_gross: parseFloat(soLineItem.so_gross || 0).toFixed(4),\n    so_discount: parseFloat(soLineItem.so_discount || 0).toFixed(4),\n    so_discount_amount: parseFloat(soLineItem.so_discount_amount || 0).toFixed(4),\n    so_tax_amount: parseFloat(soLineItem.so_tax_amount || 0).toFixed(4),\n    min_price: parseFloat(soLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(soLineItem.max_price || 0).toFixed(4),\n    so_amount: parseFloat(soLineItem.so_amount || 0).toFixed(4),\n    production_planned_qty: production.planned,\n    production_status: production.status,\n    // toFixed strings: both columns are decimal(_, 3) and a raw float trips multipleOf.\n    delivered_qty: counters.delivered.toFixed(3),\n    planned_qty: counters.planned.toFixed(3),\n    // Clamped: over-delivery tolerance drives this negative, which the column rejects.\n    outstanding_quantity: Math.max(0, parseFloat(soLineItem.so_quantity || 0) - counters.delivered).toFixed(3),\n\n    so_shipping_date: soLineItem.so_shipping_date ?? entry.so_shipping_date,\n  };\n\n  if (needsPacking && soLineItem.item_name) {\n    const itemData = packingItems.find((d) => String(d.id) === String(soLineItem.item_name));\n    if (itemData) {\n      Object.assign(formattedItem, buildPackingWeightData(itemData, soLineItem.so_item_uom, soLineItem.so_quantity));\n    }\n  }\n\n  return formattedItem;\n};\n\nfor (const [index, soLineItem] of entry.table_so.entries()) {\n  const lineStatus =\n    !soLineItem.line_status ||\n    soLineItem.line_status === '' ||\n    soLineItem.line_status === 'Draft'\n      ? entry.so_status === 'Processing' ? 'Issued' : entry.so_status\n      : soLineItem.line_status;\n\n  const formattedItem = {\n    ...formatLine(soLineItem),\n    ...commonFields,\n    line_index: index + 1,\n    line_status: lineStatus,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(soLineItem.children) && {\n      children: soLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n        line_status: lineStatus,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.need_cl = ''\n\nentry.production_status = !entry.production_status || entry.production_status === '' ? 'Not Created' : entry.production_status;\n\nentry.si_status = !entry.si_status || entry.si_status === '' ? 'Not Created' : entry.si_status;\nentry.so_total_gross = parseFloat(entry.so_total_gross || 0).toFixed(4);\nentry.so_total_discount = parseFloat(entry.so_total_discount || 0).toFixed(4);\nentry.so_total_tax = parseFloat(entry.so_total_tax || 0).toFixed(4);\nentry.so_total = parseFloat(entry.so_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\n\nentry.table_so = updatedLineItem;\n\nreturn { entry };\n"
+          "code": "let updatedLineItem = [];\nlet entry = {{workflowparams:allData.so_status}} == 'Draft' ? {{node:code_node_hVnUCBf3.data.entry}} : {{node:workflow_node_yxaOreDk.data.needApproval}} == 'Yes' ? {{node:workflow_node_yxaOreDk.data.data}} : {{node:code_node_rPqQy5CD.data.table}};\n\n// --- Packing + weight (mirrors SOchangeItem.buildPackingWeightData) ---\n// Only populated for created_source outside Web / Mobile / Internal Trading;\n// otherwise the gated SQL node never ran and this resolves to null.\nconst packingRowsRaw = {{node:sql_node_PkItems.data}};\nconst packingRows = Array.isArray(packingRowsRaw) ? packingRowsRaw : (packingRowsRaw ? [packingRowsRaw] : []);\n// Get Packing Item Data hands back the two subforms as JSON_ARRAYAGG strings, so rebuild\n// the shape buildPackingWeightData expects.\nconst parseSubform = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst packingItems = packingRows.map((r) => ({\n  id: r.id,\n  net_weight: r.net_weight,\n  table_packing_detail: parseSubform(r.packing_detail_json),\n  table_uom_conversion: parseSubform(r.uom_conversion_json)\n}));\nconst needsPacking = packingItems.length > 0;\n\n// --- Authoritative line counters ---\n// planned_qty and delivered_qty are owned by the delivery and the picking plan, not by\n// this page. table_so is written as one whole array, so spreading the browser's copy\n// puts a stale tab's numbers back over whatever they wrote. Take them from the SO as\n// stored, overlaid with whatever the cascade just left behind.\nconst prevSoRaw = {{node:get_node_rvjWbHBF.data.data}};\nconst prevSo = Array.isArray(prevSoRaw) ? prevSoRaw[0] || null : prevSoRaw || null;\nconst cascadeCounters = {{node:workflow_node_CascadeA.data.soLineCounters}};\n\nconst flattenSo = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap((r) =>\n    [r].concat(Array.isArray(r && r.children) ? r.children : [])\n  );\nconst storedCounters = {};\nflattenSo(prevSo && prevSo.table_so).forEach((r) => {\n  if (r && r.id) storedCounters[String(r.id)] = r;\n});\nconst cascadedCounters = {};\n(Array.isArray(cascadeCounters) ? cascadeCounters : []).forEach((r) => {\n  if (r && r.id) cascadedCounters[String(r.id)] = r;\n});\n\n// Both maps are empty on Add / Clone / Draft, where a row carries no id and nothing has\n// been planned or delivered yet.\nconst lineCounters = (soLineItem) => {\n  const key = soLineItem.id ? String(soLineItem.id) : \"\";\n  const cascaded = key ? cascadedCounters[key] : null;\n  const stored = key ? storedCounters[key] : null;\n  const pick = (field) =>\n    cascaded ? Number(cascaded[field]) || 0 : stored ? Number(stored[field]) || 0 : 0;\n  return { delivered: pick(\"delivered_qty\"), planned: pick(\"planned_qty\") };\n};\n\n// Owned by the MES production workflows, which write straight onto the line:\n// CONFIRM_PROD_ORDER sets production_planned_qty, WO_SAVE sets it and production_status.\n// so_quantity is only the starting point for a line nothing has ever planned against.\nconst productionFields = (soLineItem, storedMap) => {\n  const stored = soLineItem.id ? storedMap[String(soLineItem.id)] : null;\n  const planned = stored ? stored.production_planned_qty : soLineItem.production_planned_qty;\n  const status = stored ? stored.production_status : soLineItem.production_status;\n  const neverSet = planned === null || planned === undefined || planned === '';\n  return {\n    planned: parseFloat((neverSet ? soLineItem.so_quantity : planned) || 0).toFixed(3),\n    status: !status ? \"Not Created\" : status\n  };\n};\n\nconst round3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;\nconst getPackingDetail = (tpd, uom) => (!Array.isArray(tpd) || !tpd.length || !uom) ? null : (tpd.find((c) => String(c.uom_id) === String(uom)) || null);\nconst getBaseQty = (tuc, uom) => {\n  if (!Array.isArray(tuc) || !tuc.length || !uom) return 1;\n  const c = tuc.find((x) => String(x.alt_uom_id) === String(uom));\n  return c && c.base_qty ? c.base_qty : 1;\n};\nconst buildPackingWeightData = (item, uom, soQuantity) => {\n  const pd = getPackingDetail(item.table_packing_detail, uom);\n  const packingConversion = (pd && pd.quantity) || 1;\n  const weightConversion = round3((Number(item.net_weight) || 0) * getBaseQty(item.table_uom_conversion, uom));\n  const qty = Number(soQuantity) || 0;\n  return {\n    packing_uom: (pd && pd.packing_uom_id) || '',\n    packing_conversion: parseFloat(packingConversion || 0).toFixed(3),\n    packing_qty: (packingConversion ? round3(qty / packingConversion) : 0).toFixed(3),\n    weight_conversion: weightConversion.toFixed(3),\n    net_weight: round3(qty * weightConversion).toFixed(3)\n  };\n};\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  plant_id: entry.plant_name || \"\",\n  customer_id: entry.customer_name || \"\",\n  payment_term_id: entry.so_payment_term || \"\",\n  sales_person_id: entry.so_sales_person || \"\",\n  billing_state_id: entry.billing_address_state || \"\",\n  billing_country_id: entry.billing_address_country || \"\",\n  shipping_state_id: entry.shipping_address_state || \"\",\n  shipping_country_id: entry.shipping_address_country || \"\",\n  area_id: entry.so_area_id || \"\",\n  organization_id: entry.organization_id,\n  access_group: entry.access_group || [],\n  agent_user_id: entry.so_agent_user_id || '',\n};\n\nconst formatLine = (soLineItem) => {\n  const counters = lineCounters(soLineItem);\n  const production = productionFields(soLineItem, storedCounters);\n  const formattedItem = {\n    // Copy all existing properties\n    ...soLineItem,\n\n    // Apply number formatting to numeric fields\n    unrestricted_qty: parseFloat(soLineItem.unrestricted_qty || 0).toFixed(3),\n    base_unrestricted_qty: parseFloat(soLineItem.base_unrestricted_qty || 0).toFixed(3),\n    so_quantity: parseFloat(soLineItem.so_quantity || 0).toFixed(3),\n    so_item_price: parseFloat(soLineItem.so_item_price || 0).toFixed(4),\n    so_gross: parseFloat(soLineItem.so_gross || 0).toFixed(4),\n    so_discount: parseFloat(soLineItem.so_discount || 0).toFixed(4),\n    so_discount_amount: parseFloat(soLineItem.so_discount_amount || 0).toFixed(4),\n    so_tax_amount: parseFloat(soLineItem.so_tax_amount || 0).toFixed(4),\n    min_price: parseFloat(soLineItem.min_price || 0).toFixed(4),\n    max_price: parseFloat(soLineItem.max_price || 0).toFixed(4),\n    so_amount: parseFloat(soLineItem.so_amount || 0).toFixed(4),\n    production_planned_qty: production.planned,\n    production_status: production.status,\n    // toFixed strings: both columns are decimal(_, 3) and a raw float trips multipleOf.\n    delivered_qty: counters.delivered.toFixed(3),\n    planned_qty: counters.planned.toFixed(3),\n    // Clamped: over-delivery tolerance drives this negative, which the column rejects.\n    outstanding_quantity: Math.max(0, parseFloat(soLineItem.so_quantity || 0) - counters.delivered).toFixed(3),\n\n    so_shipping_date: soLineItem.so_shipping_date ?? entry.so_shipping_date,\n  };\n\n  if (needsPacking && soLineItem.item_name) {\n    const itemData = packingItems.find((d) => String(d.id) === String(soLineItem.item_name));\n    if (itemData) {\n      Object.assign(formattedItem, buildPackingWeightData(itemData, soLineItem.so_item_uom, soLineItem.so_quantity));\n    }\n  }\n\n  return formattedItem;\n};\n\nfor (const [index, soLineItem] of entry.table_so.entries()) {\n  const lineStatus =\n    !soLineItem.line_status ||\n    soLineItem.line_status === '' ||\n    soLineItem.line_status === 'Draft'\n      ? entry.so_status === 'Processing' ? 'Issued' : entry.so_status\n      : soLineItem.line_status;\n\n  const formattedItem = {\n    ...formatLine(soLineItem),\n    ...commonFields,\n    line_index: index + 1,\n    line_status: lineStatus,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(soLineItem.children) && {\n      children: soLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n        line_status: lineStatus,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.need_cl = ''\n\nentry.production_status = !entry.production_status || entry.production_status === '' ? 'Not Created' : entry.production_status;\n\nentry.si_status = !entry.si_status || entry.si_status === '' ? 'Not Created' : entry.si_status;\nentry.so_total_gross = parseFloat(entry.so_total_gross || 0).toFixed(4);\nentry.so_total_discount = parseFloat(entry.so_total_discount || 0).toFixed(4);\nentry.so_total_tax = parseFloat(entry.so_total_tax || 0).toFixed(4);\nentry.so_total = parseFloat(entry.so_total || 0).toFixed(4);\nentry.myr_total_amount = parseFloat(entry.myr_total_amount || 0).toFixed(4);\n\n\nentry.table_so = updatedLineItem;\n\nreturn { entry };\n"
         },
         "response_json": [
           {
