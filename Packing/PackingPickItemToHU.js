@@ -54,6 +54,66 @@
       return;
     }
 
+    // Picked-qty per source row, read back from the GD. PackingRecomputeSource
+    // overwrites a row's own picked_qty with how much has been PACKED, so the row
+    // itself no longer says whether the warehouse ever picked the goods.
+    // Keyed like gudzrvMQ's srcKey: gd_line_id | bin_location | batch_no.
+    const srcKey = (lineId, bin, batch) =>
+      String(lineId == null ? "" : lineId) +
+      "|" +
+      String(bin == null ? "" : bin) +
+      "|" +
+      String(batch == null ? "" : batch);
+
+    const pickedMap = {};
+    if (data.gd_id) {
+      const gdRes = await db.collection("goods_delivery").doc(data.gd_id).get();
+      const gd = gdRes?.data?.[0];
+      // table_gd is a tree: an item bundle is one parent row with its real lines
+      // under `children`.
+      const gdLines = (
+        gd && Array.isArray(gd.table_gd) ? gd.table_gd : []
+      ).flatMap((row) => [
+        row,
+        ...(Array.isArray(row.children) ? row.children : []),
+      ]);
+      const parseJsonSafe = (s) => {
+        try {
+          return s ? JSON.parse(s) : [];
+        } catch (e) {
+          return [];
+        }
+      };
+      for (const line of gdLines) {
+        if (!line.material_id) continue;
+        const picked = parseJsonSafe(line.picked_temp_qty_data);
+        // picked_temp_qty_data is only written when allow_full_picking is on. In
+        // the single-Picking flow a line is either fully picked or not picked at
+        // all, and picking_status is what says which.
+        const entries =
+          Array.isArray(picked) && picked.length > 0
+            ? picked
+            : line.picking_status === "Completed"
+              ? parseJsonSafe(line.temp_qty_data)
+              : [];
+        for (const e of entries) {
+          // HU-bound allocations live in table_hu_source, which is gated
+          // separately on hu_status.
+          if (e.handling_unit_id) continue;
+          const k = srcKey(line.id, e.location_id, e.batch_id);
+          pickedMap[k] = (pickedMap[k] || 0) + (Number(e.gd_quantity) || 0);
+        }
+      }
+    }
+
+    // picked_qty is what PackingRecomputeSource just wrote: already packed.
+    const packableOf = (row) =>
+      Math.max(
+        0,
+        (pickedMap[srcKey(row.gd_line_id, row.bin_location, row.batch_no)] || 0) -
+          (Number(row.picked_qty) || 0),
+      );
+
     const qtyToPick = Number(sourceRow.qty_to_pick) || 0;
     const remaining = Number(sourceRow.remaining_qty) || 0;
     if (qtyToPick <= 0) {
@@ -63,6 +123,15 @@
     if (qtyToPick > remaining) {
       this.$message.warning(
         `Quantity (${qtyToPick}) exceeds remaining (${remaining}).`,
+      );
+      return;
+    }
+    const packable = packableOf(sourceRow);
+    if (qtyToPick > packable) {
+      this.$message.warning(
+        packable <= 0
+          ? "This item hasn't been picked from upstream yet. Wait for the corresponding Picking to complete."
+          : `Quantity (${qtyToPick}) exceeds the picked quantity still available (${packable}).`,
       );
       return;
     }
