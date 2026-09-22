@@ -6,8 +6,8 @@
 // allowed to sit on a project of its own, independently of the header.
 //
 // Bound to the header Project's onChange only. Unlike Sales Order there is no
-// onRowAdd to wire: the components table is locked to the BOM, so rows only
-// arrive via the explosion, which seeds project_id itself.
+// onRowAdd to wire: every path that creates a component row -- the BOM explosion,
+// the item picker on a manually added row, and Batch Add -- seeds project_id.
 
 (async () => {
   const isBlank = (value) =>

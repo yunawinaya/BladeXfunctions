@@ -382,9 +382,31 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
   }
 };
 
+// The BOM is a template: once the table has been edited away from what the last
+// explosion produced, re-scaling it would silently throw those edits away.
+const componentsWereEdited = (currentRows, bomRows) => {
+  if (currentRows.length !== bomRows.length) return true;
+
+  const bomItems = bomRows.map((row) => String(row.item_selection)).sort();
+  const currentItems = currentRows
+    .map((row) => String(row.item_selection))
+    .sort();
+  if (bomItems.some((id, i) => id !== currentItems[i])) return true;
+
+  // Anything the system allocated itself ends up equal to the demand it derived;
+  // a typed quantity or a manual re-pick does not.
+  return currentRows.some(
+    (row) =>
+      Math.abs(
+        (parseFloat(row.total_quantity) || 0) -
+          (parseFloat(row.requested_qty) || 0)
+      ) > 0.0000001
+  );
+};
+
 (async () => {
   try {
-    const { value, fieldModel } = arguments[0];
+    const { value, rescale } = arguments[0];
 
     if (!value) {
       clearComponents();
@@ -395,24 +417,10 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     const allData = this.getValues();
     const plantId = allData.issuing_operation_faci;
 
-    // triggerEvent (the item_qty re-scale path) supplies no fieldModel.
-    let parentItem = fieldModel?.item;
-    if (!parentItem) {
-      const parentRes = await fetchByIds(
-        "item",
-        [value],
-        "material_name,material_desc,based_uom"
-      );
-      parentItem = (parentRes.data || [])[0];
-    }
-
-    this.setData({
-      item_name: parentItem?.material_name || "",
-      item_desc: parentItem?.material_desc || "",
-      item_uom: parentItem?.based_uom || "",
-    });
-
-    const [bomRes, parentBinRes, plantDefaults] = await Promise.all([
+    // The header picker's datasource is bill_of_materials, so fieldModel.item is a
+    // BOM row and never carries material_name -- the Item is always resolved by id.
+    // One fetch serves both the header fields and the default-bin lookup.
+    const [bomRes, parentItemRes, plantDefaults] = await Promise.all([
       db
         .collection("bill_of_materials")
         .where({
@@ -422,27 +430,51 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
           is_active: 1,
         })
         .get(),
-      fetchByIds("item", [value], "table_default_bin"),
-      fetchPlantDefaults(plantId),
+      fetchByIds(
+        "item",
+        [value],
+        "material_name,material_desc,based_uom,table_default_bin"
+      ),
+      rescale
+        ? Promise.resolve({ storageLocation: null, binLocation: null })
+        : fetchPlantDefaults(plantId),
     ]);
 
-    // Always overwritten, so a previous item's default bin cannot stick.
-    const parentDefaultBin = getItemDefaultBin(
-      (parentBinRes.data || [])[0]?.table_default_bin,
-      plantId
-    );
+    const parentItem = (parentItemRes.data || [])[0];
+
     this.setData({
-      storage_location_id:
-        parentDefaultBin?.storageLocation ||
-        plantDefaults.storageLocation ||
-        "",
-      location_id:
-        parentDefaultBin?.binLocation || plantDefaults.binLocation || "",
+      item_name: parentItem?.material_name || "",
+      item_desc: parentItem?.material_desc || "",
+      item_uom: parentItem?.based_uom || "",
     });
+
+    // The receiving bin is only re-stamped when the assembled item changes: on a
+    // re-scale it is already right, and re-stamping would discard a chosen bin.
+    if (!rescale) {
+      // Always overwritten, so a previous item's default bin cannot stick.
+      const parentDefaultBin = getItemDefaultBin(
+        parentItem?.table_default_bin,
+        plantId
+      );
+      this.setData({
+        storage_location_id:
+          parentDefaultBin?.storageLocation ||
+          plantDefaults.storageLocation ||
+          "",
+        location_id:
+          parentDefaultBin?.binLocation || plantDefaults.binLocation || "",
+      });
+    }
+
+    // A re-scale never clears the table: the components may be the user's own by
+    // now, and losing them to a BOM that went inactive would be silent data loss.
+    const clearOnFailure = () => {
+      if (!rescale) this.setData({ stock_movement: [] });
+    };
 
     const boms = bomRes.data || [];
     if (boms.length === 0) {
-      this.setData({ stock_movement: [] });
+      clearOnFailure();
       this.$message.warning(
         "No active Bill of Materials found for this item. Create a BOM before assembling it."
       );
@@ -476,7 +508,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     );
 
     if (subMaterials.length === 0) {
-      this.setData({ stock_movement: [] });
+      clearOnFailure();
       this.$message.warning(
         `BOM ${bom.parent_mat_bom_version} has no consumable sub materials.`
       );
@@ -521,7 +553,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     const bomBaseQty = parseFloat(bom.parent_mat_base_quantity) || 0;
 
     if (bomBaseQty <= 0) {
-      this.setData({ stock_movement: [] });
+      clearOnFailure();
       this.$message.error(
         `BOM ${bom.parent_mat_bom_version} has a base quantity of 0 and cannot be scaled.`
       );
@@ -562,8 +594,8 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
         quantity_uom: sub.sub_material_qty_uom || item?.based_uom || "",
         uom_options: JSON.stringify(rowUoms),
         item_remark: sub.sub_material_remark || "",
-        // Seeded here because the locked table has no onRowAdd for
-        // onChange_project to hook, unlike the Sales Order line table.
+        // Seeded here rather than via onRowAdd: an exploded row never passes
+        // through the item picker that seeds a manually added one.
         project_id: allData.project_id || "",
         organization_id: organizationId,
         issuing_plant: plantId,
@@ -574,6 +606,28 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
         stock_summary: "",
       };
     });
+
+    // Only the item_qty path asks: changing the assembled item makes the previous
+    // components meaningless, so that always rebuilds.
+    if (rescale && componentsWereEdited(allData.stock_movement || [], rows)) {
+      const keep = await this.$confirm(
+        `The BOM components have been changed since they were loaded. Please choose one: <br><br>
+        <strong>Re-scale:</strong> Rebuild the table from the BOM at the new quantity, discarding those changes.<br>
+        <strong>Keep:</strong> Leave the components exactly as they are.`,
+        "Quantity Changed",
+        {
+          confirmButtonText: "Re-scale",
+          cancelButtonText: "Keep",
+          dangerouslyUseHTMLString: true,
+          type: "warning",
+        }
+      ).then(
+        () => false,
+        () => true
+      );
+
+      if (keep) return;
+    }
 
     await this.setData({ stock_movement: rows });
 

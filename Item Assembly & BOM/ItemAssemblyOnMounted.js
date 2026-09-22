@@ -35,6 +35,33 @@ const EDIT_DISABLED_FIELDS = [
   "remarks_3",
 ];
 
+// Locking the components table is not enough on its own: this.disabled leaves the
+// toolbar's Add / Batch Add buttons and the per-row delete action clickable, so
+// they are taken out of the DOM as well. Same approach as MSI's editDisabledField.
+const lockComponentsTable = () => {
+  this.disabled(["stock_movement"], true);
+
+  setTimeout(() => {
+    const styleId = "ia-hide-row-actions";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        .fm-virtual-table__row-cell .scope-action { display: none !important; }
+        .fm-virtual-table__row-cell .scope-index { display: flex !important; }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const toolbarButtons = document.querySelectorAll(
+      ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link"
+    );
+    toolbarButtons.forEach((button) => {
+      button.style.display = "none";
+    });
+  }, 500);
+};
+
 // Mirrors MSI: a plant-level login can only issue from its own plant, so the
 // field is fixed to it and locked; an org-level login picks one.
 const setPlant = (organizationId, pageStatus) => {
@@ -104,7 +131,7 @@ const setPlant = (organizationId, pageStatus) => {
 
         if (status === "Completed") {
           this.display(["button_post"]);
-          this.disabled(["stock_movement"], true);
+          lockComponentsTable();
         } else if (status === "Draft") {
           this.display([
             "button_draft",
@@ -112,13 +139,17 @@ const setPlant = (organizationId, pageStatus) => {
             "comp_post_button",
           ]);
         } else {
+          // Fully Posted and anything else past Draft: the stock has already
+          // moved, so the components must not be editable either.
           this.display(["button_completed", "comp_post_button"]);
+          lockComponentsTable();
         }
         break;
 
       case "View":
         showStatusHTML(status);
-        this.disabled(EDIT_DISABLED_FIELDS.concat(["stock_movement"]), true);
+        this.disabled(EDIT_DISABLED_FIELDS, true);
+        lockComponentsTable();
         break;
     }
   } catch (error) {

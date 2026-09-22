@@ -85,6 +85,15 @@ const findFieldMessage = (obj) => {
     let errorMessage = "";
     if (error && typeof error === "object") {
       errorMessage = findFieldMessage(error) || "An error occurred";
+      // findFieldMessage bottoms out at obj.toString(), which is the useless
+      // "[object Object]" for a rejected response or a thrown validator.
+      if (errorMessage === "[object Object]") {
+        errorMessage =
+          error.message ||
+          error.msg ||
+          JSON.stringify(error) ||
+          "An error occurred";
+      }
     } else {
       errorMessage = error;
     }

@@ -4,12 +4,12 @@
 > **Scope:** Full parity with the desktop form and list page. That covers creating, editing and saving as Draft, completing (inventory moves), reverting a Completed assembly back to Draft, and deleting. BOM maintenance is **out of scope**; this guide covers only the BOM rules that Item Assembly *reads*.
 > **Assumes:** You already know the HU concepts from the MSI / GD / RO mobile guides. The component-picking half of this screen is a port of Misc Issue.
 > **Source files covered (all under `Item Assembly & BOM/`):**
-> - **Client scripts:** `ItemAssemblyOnMounted.js`, `ItemAssemblyOnChangePlant.js`, `ItemAssemblyOnChangeProject.js`, `ItemAssemblyOnChangeItem.js`, `ItemAssemblyOnChangeItemQty.js`, `ItemAssemblyConfirmDialog.js`, `ItemAssemblyOnChangeDialogUOM.js`, `ItemAssemblyOnChangeSelectHU.js`, `ItemAssemblyOnChangeSMQuantity.js`, `ItemAssemblyOnChangeCategory.js`, `ItemAssemblySearchSN.js`, `ItemAssemblyResetSN.js`, `ItemAssemblySaveAsDraft.js`, `ItemAssemblySaveAsCompleted.js`, `ItemAssemblyListDelete.js`, `ItemAssemblyListRevertCompleted.js`.
-> - **Scripts embedded only in `ItemAssemblyFullJSON.json`:** the Transfer Stock dialog opener, the numbering-rule `onChange`, and the dialog quantity validator.
+> - **Client scripts:** `ItemAssemblyOnMounted.js`, `ItemAssemblyOnChangePlant.js`, `ItemAssemblyOnChangeProject.js`, `ItemAssemblyOnChangeItem.js`, `ItemAssemblyOnChangeItemQty.js`, `ItemAssemblyOnChangeComponentItem.js`, `ItemAssemblyAllocateLine.js`, `ItemAssemblyBatchAddItem.js`, `ItemAssemblyConfirmDialog.js`, `ItemAssemblyOnChangeDialogUOM.js`, `ItemAssemblyOnChangeSelectHU.js`, `ItemAssemblyOnChangeSMQuantity.js`, `ItemAssemblyOnChangeCategory.js`, `ItemAssemblySearchSN.js`, `ItemAssemblyResetSN.js`, `ItemAssemblySaveAsDraft.js`, `ItemAssemblySaveAsCompleted.js`, `ItemAssemblyListDelete.js`, `ItemAssemblyListRevertCompleted.js`.
+> - **Scripts embedded only in `ItemAssemblyFullJSON.json`:** the Transfer Stock dialog opener, the Batch Add opener, the numbering-rule `onChange`, the dialog quantity validator, and `onClick_saveAsCompletedPost`.
 > - **Workflows:** `ItemAssemblySaveWorkflow.json` (`IA_SAVE`) and `RevertCompletedIA/IArevertCompletedWorkflow.json` (`IA_REVERT`).
 >
 > Every client script and every save-workflow code node is reproduced verbatim in [Part 15](#part-15--full-source-appendix).
-> **Deployment state (2026-09-14):** both workflows, the form and the list page are enabled on **dev**. Prod is not released.
+> **Deployment state (2026-09-22):** both workflows, the form and the list page are enabled on **dev**. Prod is not released. The changes described here (editable component table, Add / Batch Add / delete, relaxed `code_validate`) are **in the repo and not yet deployed**.
 
 ---
 
@@ -22,11 +22,11 @@ The screen is two existing modules glued together:
 | Part of the screen | Behaves like | Direction |
 |---|---|---|
 | **Header** (assembled item, quantity, storage location, bin, batch) | **one Misc Receipt line** | assembled item goes **IN** |
-| **BOM Components table** (`stock_movement`) | **a Misc Issue** — same Transfer Stock dialog, same `temp_qty_data` picks | components go **OUT** |
+| **BOM Components table** (`stock_movement`) | **a Misc Issue** — same Transfer Stock dialog, same `temp_qty_data` picks, and now the same Add / Batch Add / delete row entry | components go **OUT** |
 
 > **Trust the workflow.** Mobile **never** writes inventory, balances, movements, costing, batches or HU contents. It builds the header plus component lines, including the per-line pick JSON, and calls **one** save workflow (`IA_SAVE` `2098335576774463489`). The server re-validates, moves the stock and computes the cost. Your job is to:
-> 1. explode the BOM correctly;
-> 2. stage correct picks that add up exactly to what the BOM requires;
+> 1. explode the BOM correctly, as a **starting point** the user may then edit;
+> 2. stage picks that add up exactly to each line's own quantity;
 > 3. handle the response codes.
 
 ---
@@ -89,8 +89,8 @@ flowchart TD
 |---|---|
 | **Assembled item** | Header `item_id`. The finished good produced and received **IN**. |
 | **Component line** | One row of `stock_movement`. One BOM sub-material consumed **OUT**. |
-| **`requested_qty`** | What the BOM requires for this line at the header quantity. Derived and read-only. See [Part 6](#part-6--bom-explosion). |
-| **`total_quantity`** | What has actually been allocated from stock. At Completed it **must equal** `requested_qty` within 0.0005. |
+| **`requested_qty`** | What the BOM *asked for* on this line at the header quantity. Derived, hidden, `0` on a manually added row. **Not a gate** — kept only as the reference the completion-time variance warning is measured against. See [Part 6](#part-6--bom-explosion). |
+| **`total_quantity`** | What is actually consumed. Typed by the user, or written by the auto-allocator and the Transfer Stock dialog. At Completed it **must equal the sum of that line's picks** within 0.0005. |
 | **Pick** | One allocation, meaning "take `sm_quantity` from this balance row / bin / batch / HU". A line's picks live in `temp_qty_data` as a **JSON string**. |
 | **Loose stock** | Stock in a bin that is not inside a handling unit. |
 | **HU stock** | Stock inside a handling unit (`handling_unit.table_hu_items`). An HU pick carries `handling_unit_id`. |
@@ -135,7 +135,7 @@ flowchart TD
 |---|:---:|:---:|
 | Format quantities, stamp line `organization_id` / `issuing_plant` / `line_index` | ✓ | ✓ |
 | Required-field check (400) | ✓ | ✓ |
-| Assembly validation: qty > 0, lines present, every line allocated, allocated = requested, manual batch present (401) | ✗ | ✓ |
+| Assembly validation: qty > 0, lines present, every line allocated, line qty = sum of its own picks, manual batch present (401) | ✗ | ✓ |
 | Idempotency guard: refuse if DB status is Completed / Fully Posted (409). **Edit only** | ✗ | ✓ |
 | Pre-flight inventory check of every pick (402) | ✗ | ✓ |
 | Resolve / generate batch for the assembled item | ✗ | ✓ |
@@ -183,19 +183,21 @@ flowchart TD
 
 ### 3b. Component line — `stock_movement[]`
 
-The table is **locked to the BOM**: `isAdd: false`, `isDelete: false`, and `item_selection` is disabled. Rows only come from the BOM explosion. To change the rows, change `item_id` or `item_qty`.
+**The BOM is a template, not a contract.** The explosion seeds this table, and after that the user owns it: `isAdd: true`, `isDelete: true`, `item_selection` and `total_quantity` are both editable. Rows can be added one at a time, added in bulk through the shared **Batch Add** picker, repointed at a different item, or deleted. Mobile must offer the same.
+
+The one invariant that survives: **a line's `total_quantity` must equal the sum of its own picks.** Everything else about the BOM is advisory. Typing a quantity therefore has to re-pick the line (see [Part 7](#part-7--auto-allocation)) — never write a quantity without writing the picks that back it.
 
 | Column | Label | Shown | Editable | Meaning |
 |---|---|:---:|:---:|---|
-| `item_selection` | Item Code | ✓ | ✗ | Component Item id (`bom_material_code`) |
+| `item_selection` | Item Code | ✓ | ✓ | Component Item id. `bom_material_code` on an exploded row; any active Item on a row the user added |
 | `item_name` | Item Name | ✓ | ✗ | `sub_material_name` \|\| Item `material_name` |
 | `item_desc` | Item Description | ✓ | ✗ | `sub_material_desc` \|\| Item `material_desc` |
 | `transfer_stock` | Transfer Stock | ✓ | link | "Select Stock": opens the dialog ([Part 8](#part-8--transfer-stock-dialog)) |
-| `requested_qty` | Requested Quantity | hidden on desktop | ✗ | BOM requirement. **Mobile should show it** next to `total_quantity` |
-| `total_quantity` | Total quantity | ✓ | ✗ | Allocated sum of picks |
+| `requested_qty` | Requested Quantity | hidden | ✗ | What the BOM asked for; `0` on an added row. Not a gate — keep sending it back unchanged so the variance warning stays meaningful |
+| `total_quantity` | Total quantity | ✓ | ✓ (disabled while header `item_qty` is 0) | The quantity consumed. Must equal the sum of `temp_qty_data` |
 | `quantity_uom` | Quantity UOM | ✓ | ✗ | `sub_material_qty_uom` \|\| Item `based_uom` |
 | `stock_summary` | Stock Summary | ✓ | ✗ | Pick description text |
-| `item_remark`, `item_remark_2`, `item_remark_3` | Remark 1–3 | ✓ | ✓ | seeded from `sub_material_remark` |
+| `item_remark`, `item_remark_2`, `item_remark_3` | Remark 1–3 | ✓ | ✓ | seeded from `sub_material_remark`; empty on an added row |
 | `project_id` | Project | ✓ | ✓ | seeded from header |
 | `temp_qty_data` | — | hidden | — | **JSON string**, array of picks (3c). **This is what the server consumes.** |
 | `temp_hu_data` | — | hidden | — | JSON string of picked HU rows (3d) |
@@ -310,7 +312,7 @@ On Edit and View the plant is locked by the status rules below.
 | **Add / Clone** | Draft | editable (set `organization_id`, `issued_by = nickname`, `item_assembly_date = today`) | per `setPlant` | **Save as Draft**, **Complete** |
 | **Edit, Draft** | Draft | **editable** | editable | Save as Draft, Complete |
 | **Edit, Completed** | Completed | locked | **locked** | none (Post is unbound) |
-| **Edit, other** (Issued / Fully Posted) | that status | locked | desktop leaves it enabled — **lock it on mobile** | none useful (a save returns 409 for Fully Posted) |
+| **Edit, other** (Issued / Fully Posted) | that status | locked | **locked** | none useful (a save returns 409 for Fully Posted) |
 | **View** | status | locked | locked | none |
 
 Fields locked when status ≠ Draft (`EDIT_DISABLED_FIELDS`):
@@ -323,6 +325,8 @@ remarks, remarks_2, remarks_3
 ```
 
 Status badge colours on desktop: Draft = grey, Issued = teal, Completed = green, Fully Posted = green.
+
+> **Locking the table means more than disabling it.** On desktop, `this.disabled(["stock_movement"], true)` greys the cells but leaves the **Add** and **Batch Add** toolbar buttons and the per-row delete action live, so `lockComponentsTable()` also hides them in the DOM. On mobile, hide the equivalent affordances rather than relying on a disabled state.
 
 ---
 
@@ -351,11 +355,22 @@ Query cost: when the item's bin wins, the `bin_location` lookup is skipped. On i
 
 ### BOM Item Code change
 
-Triggers the BOM explosion ([Part 6](#part-6--bom-explosion)) and re-runs the **receiving location chain** for the newly chosen item. The chain is stamped **before** the explosion's early returns (no active BOM / no consumable sub-materials / BOM base quantity 0), so an aborted explosion still leaves a correct receiving bin. If the value is cleared, clear `item_name`, `item_desc`, `item_uom` and `stock_movement`.
+Always rebuilds. A different product's components are meaningless, so the explosion runs unconditionally, with no prompt. It also re-runs the **receiving location chain** for the newly chosen item. The chain is stamped **before** the explosion's early returns (no active BOM / no consumable sub-materials / BOM base quantity 0), so an aborted explosion still leaves a correct receiving bin. If the value is cleared, clear `item_name`, `item_desc`, `item_uom` and `stock_movement`.
 
 ### Quantity change (`ItemAssemblyOnChangeItemQty.js`)
 
-If `item_id` is set, re-run the **whole** explosion plus auto-allocation. **Every line's picks are rebuilt from scratch**, so manual Transfer Stock picks are discarded.
+Re-fires the explosion with a `rescale` flag. Because the components may now be the user's own, the explosion **asks before overwriting them**:
+
+1. Derive the BOM rows at the new `item_qty` as usual.
+2. Decide whether the table has been edited: the `item_selection` set differs from the BOM's, **or** any row's `total_quantity` differs from its `requested_qty`.
+3. Not edited → re-scale silently, exactly as before.
+4. Edited → prompt. **Re-scale** rebuilds from the BOM and discards the edits; **Keep** returns without touching the table.
+
+**`total_quantity` is disabled while `item_qty` is 0**, because allocating against a zero header would only re-pick every line to nothing. On desktop that rule is **declarative, not imperative**: the column carries `options.disabled = "{{{{value:item_qty}} <= 0}}"`. That matters — an imperative `this.disabled` call is lost the moment the explosion replaces the whole `stock_movement` array, so the column would silently re-enable. Bind it to the header value on mobile too, rather than toggling it from a handler.
+
+On the `rescale` path the header is left alone: the assembled item has not changed, so its name and receiving bin are already right, and re-stamping the default bin would throw away a bin the user chose. The two lookups that feed it are skipped as well. An unusable BOM on this path (gone inactive, no consumable sub-materials, base quantity 0) **warns without clearing the table** — the rows may no longer be the BOM's to delete.
+
+> A line the auto-allocator could not fill completely reads as "edited", because its `total_quantity` is below `requested_qty`. That is a deliberate false positive: asking is the right move there too.
 
 ### Project change (`ItemAssemblyOnChangeProject.js`)
 
@@ -370,6 +385,15 @@ If `item_id` is set, re-run the **whole** explosion plus auto-allocation. **Ever
 ## Part 6 — BOM Explosion
 
 Source: `ItemAssemblyOnChangeItem.js`. The whole explosion plus allocation costs a **fixed** number of queries, however many sub-materials the BOM has. Keep that budget on mobile: every lookup is one batched `in` query.
+
+### Step 0 — the assembled item's own fields
+
+**The header picker's datasource is `bill_of_materials`, not `Item`.** Its `value` is
+`parent_material_code.id`, so the change event's `fieldModel.item` is a **BOM row** and never
+carries `material_name` / `material_desc` / `based_uom`. Always resolve the assembled Item by id
+before filling `item_name`, `item_desc` and `item_uom` — reading them off the field model leaves
+all three blank. The same fetch also returns `table_default_bin` for the receiving-bin chain, so
+it costs one query, not two.
 
 ### Step 1 — assembled item
 
@@ -433,6 +457,22 @@ if (item.serial_number_management === 1) requested_qty = Math.ceil(requested_qty
 
 If no plant is selected yet, show the warning **"Select a Plant to auto-allocate stock for these components."** and stop. Otherwise go straight to [Part 7](#part-7--auto-allocation).
 
+### Step 7 — after the explosion, the table is the user's
+
+The rows above are a starting point. Mobile must let the user:
+
+| Action | Desktop | What the row needs |
+|---|---|---|
+| **Change a quantity** | type into `total_quantity` | re-pick the line — see [Part 7](#part-7--auto-allocation) |
+| **Change a line's item** | the Item Code cell (`onAfterUpdate_item`) | fill `item_name`, `item_desc`, `quantity_uom`, `uom_options`; seed `organization_id`, `issuing_plant`, `project_id`; set `requested_qty = 0`; clear `total_quantity`, `balance_id`, `temp_qty_data`, `temp_hu_data`, `stock_summary` |
+| **Add one row** | the table's **Add** button, then pick an item | as above |
+| **Add many rows** | **Batch Add** → shared picker page `1983386084789420033` → `onConfirm_batchAddItem` with `arguments[0].itemArray` | one row per selected item, same field set, `requested_qty: 0`, no picks |
+| **Delete a row** | the row's delete action | nothing — the server re-stamps `line_index` in `code_fillback` |
+
+`requested_qty` stays at `0` on every added row. That is what marks it as "not from the BOM" for the variance warning at completion ([Part 9](#part-9--save-workflow-contract-ia_save)).
+
+Any active Item may be chosen — the picker filters on `is_active = 1` and nothing else. A component that carries no inventory will simply fail validation at Complete, because a line with no picks is a 401.
+
 ---
 
 ## Part 7 — Auto-Allocation
@@ -487,6 +527,20 @@ DETAILS:
 ```
 
 5. If any line is short, show the warning **"Not enough loose stock for: {name} ({remaining}), …. Open Transfer Stock on those lines to pick from handling units."**
+
+### Single-line re-allocation — typing a quantity
+
+`ItemAssemblyAllocateLine.js` (`onChange_componentQty`) runs the **same rules**, scoped to one row and one material. This is what keeps "the quantity always has real picks behind it" true when the user edits a number by hand. Port it as a function, not a copy of the batch allocator.
+
+Differences from the batch pass:
+
+1. **Bail out when nothing changed.** If the typed value already equals `Σ sm_quantity` over the row's `temp_qty_data`, return. This is also what stops the write from looping back through its own change event — guard re-entrancy explicitly as well (desktop parks a flag on `this.models`).
+2. **Serialized components refuse.** Restore `total_quantity` to the picked total and tell the user to use Transfer Stock. Serials are never auto-picked.
+3. **Deduct sibling lines' staged picks.** Other rows of the same material hold picks in `temp_qty_data` that are not in the DB yet, so `unrestricted_qty` still counts them as free. Subtract them per `material|bin|batch` key, skipping picks that carry a `handling_unit_id` (those come out of the HU pool, which is already removed).
+4. **Loose only.** The re-pick clears `temp_hu_data`: a handling unit staged earlier on that row is no longer part of the allocation and must be re-picked in the dialog.
+5. **Short of stock** → allocate what exists, set `total_quantity` to what was actually allocated (never to what was typed), and warn.
+
+Fetch plan: one parallel burst (`item`, `item_balance`, `item_batch_balance`, `handling_unit_atu7sreg_sub`, `on_reserved_gd` — both balance collections are issued together rather than waiting to learn which one applies), then `handling_unit`, then `bin_location` / `batch` / `unit_of_measurement` for the summary.
 
 ---
 
@@ -565,11 +619,9 @@ Run in this order and stop at the first failure. **The dialog stays open with th
 1. If dialog UOM ≠ line UOM, convert loose and HU quantities to the line UOM.
 2. **HU rows:** for item rows with `sm_quantity > 0`, fail when `sm_quantity > item_quantity`: **"HU {handling_no}: sm quantity ({x}) exceeds available ({y})."**
 3. **Loose rows:** for rows with `sm_quantity > 0`, check the category bucket (as in 8d, but also accepting `In Transit` → `intransit_qty`). Messages: **"Quantity in {category} is not enough."** / **"Invalid category type"**.
-4. **Exact-match gate.** Let `totalCombined = Σ loose sm_quantity + Σ HU sm_quantity`. If `requested_qty > 0` and `|round3(totalCombined − requested_qty)| > 0.0005`, fail with:
-   **"Allocated {total} {uom} but {requested} {uom} is required (over|short by {diff}). Adjust the quantities before confirming."**
-   Lines with `requested_qty` 0 are not gated.
+4. **No BOM gate.** There is no longer any check that the allocation matches `requested_qty` — whatever is picked here becomes the quantity consumed. Let `totalCombined = Σ loose sm_quantity + Σ HU sm_quantity`.
 5. **Duplicate serials** across all lines, keyed `serial|location|batch`. Fail with **"Duplicate serial numbers detected in the same location/batch combination: …"**.
-6. **Write the line:**
+6. **Write the line in one update** — `total_quantity` lands together with the picks, never before them, or the line briefly holds a total its temp data does not back and the quantity-change handler will re-pick it:
    - `total_quantity = totalCombined`
    - `temp_qty_data = JSON.stringify([...loose rows with sm_quantity > 0 (dialog_* dates renamed), ...HU picks in balance shape])`
    - `temp_hu_data = JSON.stringify(HU item rows with sm_quantity > 0)`
@@ -707,12 +759,27 @@ runWorkflow("2098335576774463489", { allData: data, saveAs: "Draft" | "Completed
 |---|---|
 | stored status is Completed | `This Item Assembly is already Completed and cannot be saved again.` |
 | `item_qty` ≤ 0 | `Quantity must be greater than zero.` |
-| no lines | `No BOM components to consume. Choose an item that has an active Bill of Materials.` |
+| no lines | `There are no components to consume. Add at least one component line.` |
 | a line has no pick with `sm_quantity > 0` | `Line {n} ({name}): no stock has been allocated.` |
-| `|total_quantity − requested_qty| > 0.0005` | `Line {n} ({name}): allocated {a} but {r} is required.` |
+| `total_quantity` ≤ 0 | `Line {n} ({name}): quantity must be greater than zero.` |
+| `|total_quantity − Σ picks[].sm_quantity| > 0.0005` | `Line {n} ({name}): the quantity does not match the allocated stock. Re-enter the quantity or re-pick it.` |
 | assembled item is batch-managed, `batch_number_genaration === 'Manual Input'`, and `batch_no` empty or `'-'` | `This item is batch managed with manual numbering, so a Batch No is required.` |
 
 > **Mobile callout.** Mirror the 401 rules on the client before calling, so the user sees problems early. The server remains the authority.
+
+> **`requested_qty` is not checked by the server, and `IA_SAVE` never queries `bill_of_materials`.** The line rule is `total_quantity` against that line's own picks. Sending a `requested_qty` that disagrees with the BOM is legitimate — it is how "consume less / consume more" is expressed.
+
+### BOM variance warning (Completed only)
+
+Before calling `IA_SAVE` with `saveAs: "Completed"`, the desktop re-reads the assembled item's BOM once (same default / highest-`V` selection as [Part 6](#part-6--bom-explosion)) and diffs it against the lines:
+
+| Condition | Reported as |
+|---|---|
+| line's `item_selection` is not a consumable BOM sub-material | `Added: {name} ({total_quantity})` |
+| it is, and `|total_quantity − requested_qty| > 0.0005` | `Changed: {name} {requested} → {allocated}` |
+| a consumable BOM sub-material has no line | `Removed: {name}` |
+
+No differences → save silently, **no dialog**. Differences → confirm (**Complete** / **Cancel**) listing them. It never blocks, and Draft saves never ask.
 
 ---
 
@@ -888,25 +955,28 @@ A Completed assembly with **no** live movements (its save failed before the issu
 
 **Header**
 - [ ] Plant change clears storage location, bin and **all lines**, then re-runs the receiving location chain (assembled item's `table_default_bin` for the plant, else the `Common` plant default).
-- [ ] Item or quantity change re-runs explosion + auto-allocation (manual picks are discarded — warn the user) and re-stamps the receiving bin — **always overwritten**, so a previous item's bin cannot stick.
+- [ ] Item change always re-runs explosion + auto-allocation and re-stamps the receiving bin — **always overwritten**, so a previous item's bin cannot stick.
+- [ ] Quantity change re-runs explosion + auto-allocation, but **prompts first when the table has been edited** (Re-scale / Keep), and leaves the header bin alone.
 - [ ] Project cascade with Overwrite / Keep; clearing the header never wipes lines.
 
 **BOM explosion**
 - [ ] Active BOMs for the item in the org. Default first, else highest `V<n>`.
 - [ ] Exclude `consume_type === "REF"`. Guard base quantity 0.
-- [ ] `requested_qty = round3(item_qty / base × qty × (1 + wastage/100))`, `ceil` if serialized.
-- [ ] Lines are not user-addable or deletable.
+- [ ] `requested_qty = round3(item_qty / base × qty × (1 + wastage/100))`, `ceil` if serialized. It is a reference value, never a gate.
+- [ ] Lines **are** addable (one at a time and in bulk), editable and deletable. Added rows carry `requested_qty: 0`.
 
 **Allocation**
 - [ ] Auto: loose Unrestricted only, **component's own default bin first** then oldest `create_time`, HU-held minus HU reservations deducted, in-place deduction across lines, serialized skipped.
 - [ ] Dialog: balance collection by serial / batch / loose; loose + HU (ALLOW_SPLIT); deduct other lines' HU picks; re-hydrate from `temp_qty_data` / `temp_hu_data`.
-- [ ] Confirm gate: **loose + HU total == `requested_qty` (±0.0005)**, bucket checks, HU ≤ available, no duplicate serials.
-- [ ] Write `total_quantity`, `temp_qty_data` (JSON string), `temp_hu_data` (JSON string), `stock_summary`.
+- [ ] Typed quantity re-picks that one line: bail out when it already matches the picks, refuse on serialized items, deduct sibling lines' staged picks, clear `temp_hu_data`, never write a typed number the picks do not back.
+- [ ] Confirm gate: bucket checks, HU ≤ available, no duplicate serials. **No `requested_qty` match.**
+- [ ] Write `total_quantity`, `temp_qty_data` (JSON string), `temp_hu_data` (JSON string), `stock_summary` — all in one update.
 
 **Save**
 - [ ] Strip `sm_item_balance`. Send `{ allData, saveAs: "Draft" | "Completed", pageStatus: "Add" | "Edit" }`.
 - [ ] `stock_movement_no_type` as a **number**; `-9999` for manual.
 - [ ] Pre-validate the 401 rules on the client.
+- [ ] On Completed, diff the lines against the BOM and show the non-blocking variance warning first.
 - [ ] **Disable the Save buttons while the call is in flight** (Add has no server-side double-submit guard).
 - [ ] After the first successful Add, switch to Edit with the returned `id`.
 - [ ] Handle 200 / 400 / 401 / 402 / 409 (Part 9). On a 400 from the Completed path, reload the record.
@@ -919,7 +989,7 @@ A Completed assembly with **no** live movements (its save failed before the issu
 
 ## Part 14 — Edge Cases, Gotchas and Known Gaps
 
-Each item below was checked against the source on 2026-09-14.
+Each item below was checked against the source on 2026-09-22.
 
 ### Server behaviour you must design around
 
@@ -930,25 +1000,27 @@ Each item below was checked against the source on 2026-09-14.
 5. **Serialized components.** The dialog lets users pick serial numbers, but `IA_SAVE` **never passes `serial_number`** to `SUBTRACT_INVENTORY`, and auto-allocation skips serialized items. Serial-level deduction is not guaranteed. Treat serialized components as unverified until tested on dev.
 6. **HU unload result is unchecked.** If the unload silently fails, the HU still shows the stock. A later Revert then loads it back on top, over-filling the HU.
 7. **Pass `null`, never `""`, for nullable pick fields** (`batch_id`, `location_id`, dates, `handling_unit_id`). The server already normalises this. If you ever build picks for another workflow, keep the rule: `SUBTRACT_INVENTORY` throws on `""`.
+8. **Nothing re-derives the components server-side.** `IA_SAVE` never reads `bill_of_materials`, so a client that ships wrong quantities is believed. The only line-level defence is `total_quantity == Σ picks`, which catches a quantity written without its picks but not a deliberately wrong pick set. Keep the client honest.
 
 ### Desktop gaps — decide deliberately, don't copy blindly
 
-8. **`batch_no` is hidden on desktop**, yet the server requires it for a batch-managed assembled item with Manual Input batch numbering (401). `manufacturing_date` / `expired_date` are also hidden but feed batch generation and the receipt. Recommendation: show `batch_no` when the assembled item has `item_batch_management === 1 && batch_number_genaration === "Manual Input"`, and show both dates for any batch-managed assembled item.
-9. **`requested_qty` is hidden on desktop.** Show it on mobile; it is what the user must match.
-10. **UOM conversion inconsistency** in the dialog (Part 8e). Don't port it.
-11. **BOM Item Code picker lists BOM rows**, not items. An item with several BOM versions appears several times, and inactive BOMs are listed too (explosion then warns). Consider de-duplicating by `parent_material_code` and filtering `is_active = 1`.
-12. **Project datasource filter** compares `organization_id_1` against a form field that doesn't exist. Filter projects by the real `organization_id` on mobile.
-13. **List Status filter** offers `Draft`, `Created`, `Completed`. `Created` is not an IA status, and `Issued` / `Fully Posted` are missing. The status pill set has no `Fully Posted` style either. Use the real set: Draft, Issued, Completed, Fully Posted.
-14. **List Edit button** has a hidden expression `posted_status.dict_key == 'Pending Post'`. `posted_status` is a plain string, so it never hides. Use the status matrix (Part 4) instead.
-15. **Legacy statuses.** On desktop an `Issued` / `Fully Posted` record opened in Edit still shows the Completed button with the components table enabled. Lock it on mobile.
-16. **Plant change wipes lines without asking** (Part 5). Add a confirm on mobile.
+9. **The `sm_quantity` validator can fire for a row the dialog's grid no longer has.** `rule.field.split(".")[2]` indexes `sm_item_balance.table_item_balance` directly, and an out-of-range index used to throw `Cannot read properties of undefined (reading 'material_id')`. A thrown validator rejects `this.validate()` for the **whole form**, so the save died before `IA_SAVE` was ever called, reporting only `[object Object]`. It now `callback()`s out when the row is missing. If you port that validator, keep the guard — and never let a validator throw.
+10. **`batch_no` is hidden on desktop**, yet the server requires it for a batch-managed assembled item with Manual Input batch numbering (401). `manufacturing_date` / `expired_date` are also hidden but feed batch generation and the receipt. Recommendation: show `batch_no` when the assembled item has `item_batch_management === 1 && batch_number_genaration === "Manual Input"`, and show both dates for any batch-managed assembled item.
+11. **`requested_qty` is hidden on desktop and is no longer a target.** Showing it on mobile is optional and easy to misread as a requirement. If you do show it, label it as what the BOM asked for, not as what must be matched.
+12. **UOM conversion inconsistency** in the dialog (Part 8e). Don't port it.
+13. **BOM Item Code picker lists BOM rows**, not items. An item with several BOM versions appears several times, and inactive BOMs are listed too (explosion then warns). Consider de-duplicating by `parent_material_code` and filtering `is_active = 1`.
+14. **Project datasource filter** compares `organization_id_1` against a form field that doesn't exist. Filter projects by the real `organization_id` on mobile.
+15. **List Status filter** offers `Draft`, `Created`, `Completed`. `Created` is not an IA status, and `Issued` / `Fully Posted` are missing. The status pill set has no `Fully Posted` style either. Use the real set: Draft, Issued, Completed, Fully Posted.
+16. **List Edit button** has a hidden expression `posted_status.dict_key == 'Pending Post'`. `posted_status` is a plain string, so it never hides. Use the status matrix (Part 4) instead.
+17. **Legacy statuses.** On desktop an `Issued` / `Fully Posted` record opened in Edit still shows the Completed button, but the components table is now locked there too (`lockComponentsTable`). A save would return 409 for `Fully Posted` anyway.
+18. **Plant change wipes lines without asking** (Part 5), and now that rows can be the user's own, that loses more than it used to. Add a confirm on mobile.
 
 ### Revert limitations
 
-17. Components come back as a **new** FIFO layer at their average cost, not into the original layers. The value is exact; the layer order is not.
-18. If `ADD_INVENTORY` succeeds but the HU load then fails, a rerun treats that row as done and does **not** retry the load.
-19. `Item.last_transaction_date` is not restored.
-20. A receipt at unit cost 0 reverses correctly, but the `IA-R` audit movement is stamped with the FIFO / WA price (`SUBTRACT` treats 0 as absent).
+19. Components come back as a **new** FIFO layer at their average cost, not into the original layers. The value is exact; the layer order is not.
+20. If `ADD_INVENTORY` succeeds but the HU load then fails, a rerun treats that row as done and does **not** retry the load.
+21. `Item.last_transaction_date` is not restored.
+22. A receipt at unit cost 0 reverses correctly, but the `IA-R` audit movement is stamped with the FIFO / WA price (`SUBTRACT` treats 0 as absent).
 
 ---
 
@@ -999,6 +1071,33 @@ const EDIT_DISABLED_FIELDS = [
   "remarks_2",
   "remarks_3",
 ];
+
+// Locking the components table is not enough on its own: this.disabled leaves the
+// toolbar's Add / Batch Add buttons and the per-row delete action clickable, so
+// they are taken out of the DOM as well. Same approach as MSI's editDisabledField.
+const lockComponentsTable = () => {
+  this.disabled(["stock_movement"], true);
+
+  setTimeout(() => {
+    const styleId = "ia-hide-row-actions";
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement("style");
+      style.id = styleId;
+      style.textContent = `
+        .fm-virtual-table__row-cell .scope-action { display: none !important; }
+        .fm-virtual-table__row-cell .scope-index { display: flex !important; }
+      `;
+      document.head.appendChild(style);
+    }
+
+    const toolbarButtons = document.querySelectorAll(
+      ".el-row .el-col.el-col-12.el-col-xs-24 .el-button.el-button--primary.el-button--default.is-link"
+    );
+    toolbarButtons.forEach((button) => {
+      button.style.display = "none";
+    });
+  }, 500);
+};
 
 // Mirrors MSI: a plant-level login can only issue from its own plant, so the
 // field is fixed to it and locked; an org-level login picks one.
@@ -1069,7 +1168,7 @@ const setPlant = (organizationId, pageStatus) => {
 
         if (status === "Completed") {
           this.display(["button_post"]);
-          this.disabled(["stock_movement"], true);
+          lockComponentsTable();
         } else if (status === "Draft") {
           this.display([
             "button_draft",
@@ -1077,13 +1176,17 @@ const setPlant = (organizationId, pageStatus) => {
             "comp_post_button",
           ]);
         } else {
+          // Fully Posted and anything else past Draft: the stock has already
+          // moved, so the components must not be editable either.
           this.display(["button_completed", "comp_post_button"]);
+          lockComponentsTable();
         }
         break;
 
       case "View":
         showStatusHTML(status);
-        this.disabled(EDIT_DISABLED_FIELDS.concat(["stock_movement"]), true);
+        this.disabled(EDIT_DISABLED_FIELDS, true);
+        lockComponentsTable();
         break;
     }
   } catch (error) {
@@ -1246,8 +1349,8 @@ Project cascade.
 // allowed to sit on a project of its own, independently of the header.
 //
 // Bound to the header Project's onChange only. Unlike Sales Order there is no
-// onRowAdd to wire: the components table is locked to the BOM, so rows only
-// arrive via the explosion, which seeds project_id itself.
+// onRowAdd to wire: every path that creates a component row -- the BOM explosion,
+// the item picker on a manually added row, and Batch Add -- seeds project_id.
 
 (async () => {
   const isBlank = (value) =>
@@ -1312,11 +1415,13 @@ Project cascade.
 Quantity change — re-run explosion.
 
 ```js
-// Component quantities are derived from item_qty, so a change has to re-scale
-// them. Re-running the explosion keeps one copy of the formula.
+// BOM component quantities are derived from item_qty, so a change has to re-scale
+// them. The rescale flag tells the explosion to ask first when the components have
+// been edited away from what it last produced.
+
 const itemId = this.getValue("item_id");
 if (itemId) {
-  this.triggerEvent("onChange_assembledItem", { value: itemId });
+  this.triggerEvent("onChange_assembledItem", { value: itemId, rescale: true });
 }
 ```
 
@@ -1709,9 +1814,31 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
   }
 };
 
+// The BOM is a template: once the table has been edited away from what the last
+// explosion produced, re-scaling it would silently throw those edits away.
+const componentsWereEdited = (currentRows, bomRows) => {
+  if (currentRows.length !== bomRows.length) return true;
+
+  const bomItems = bomRows.map((row) => String(row.item_selection)).sort();
+  const currentItems = currentRows
+    .map((row) => String(row.item_selection))
+    .sort();
+  if (bomItems.some((id, i) => id !== currentItems[i])) return true;
+
+  // Anything the system allocated itself ends up equal to the demand it derived;
+  // a typed quantity or a manual re-pick does not.
+  return currentRows.some(
+    (row) =>
+      Math.abs(
+        (parseFloat(row.total_quantity) || 0) -
+          (parseFloat(row.requested_qty) || 0)
+      ) > 0.0000001
+  );
+};
+
 (async () => {
   try {
-    const { value, fieldModel } = arguments[0];
+    const { value, rescale } = arguments[0];
 
     if (!value) {
       clearComponents();
@@ -1722,24 +1849,10 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     const allData = this.getValues();
     const plantId = allData.issuing_operation_faci;
 
-    // triggerEvent (the item_qty re-scale path) supplies no fieldModel.
-    let parentItem = fieldModel?.item;
-    if (!parentItem) {
-      const parentRes = await fetchByIds(
-        "item",
-        [value],
-        "material_name,material_desc,based_uom"
-      );
-      parentItem = (parentRes.data || [])[0];
-    }
-
-    this.setData({
-      item_name: parentItem?.material_name || "",
-      item_desc: parentItem?.material_desc || "",
-      item_uom: parentItem?.based_uom || "",
-    });
-
-    const [bomRes, parentBinRes, plantDefaults] = await Promise.all([
+    // The header picker's datasource is bill_of_materials, so fieldModel.item is a
+    // BOM row and never carries material_name -- the Item is always resolved by id.
+    // One fetch serves both the header fields and the default-bin lookup.
+    const [bomRes, parentItemRes, plantDefaults] = await Promise.all([
       db
         .collection("bill_of_materials")
         .where({
@@ -1749,27 +1862,51 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
           is_active: 1,
         })
         .get(),
-      fetchByIds("item", [value], "table_default_bin"),
-      fetchPlantDefaults(plantId),
+      fetchByIds(
+        "item",
+        [value],
+        "material_name,material_desc,based_uom,table_default_bin"
+      ),
+      rescale
+        ? Promise.resolve({ storageLocation: null, binLocation: null })
+        : fetchPlantDefaults(plantId),
     ]);
 
-    // Always overwritten, so a previous item's default bin cannot stick.
-    const parentDefaultBin = getItemDefaultBin(
-      (parentBinRes.data || [])[0]?.table_default_bin,
-      plantId
-    );
+    const parentItem = (parentItemRes.data || [])[0];
+
     this.setData({
-      storage_location_id:
-        parentDefaultBin?.storageLocation ||
-        plantDefaults.storageLocation ||
-        "",
-      location_id:
-        parentDefaultBin?.binLocation || plantDefaults.binLocation || "",
+      item_name: parentItem?.material_name || "",
+      item_desc: parentItem?.material_desc || "",
+      item_uom: parentItem?.based_uom || "",
     });
+
+    // The receiving bin is only re-stamped when the assembled item changes: on a
+    // re-scale it is already right, and re-stamping would discard a chosen bin.
+    if (!rescale) {
+      // Always overwritten, so a previous item's default bin cannot stick.
+      const parentDefaultBin = getItemDefaultBin(
+        parentItem?.table_default_bin,
+        plantId
+      );
+      this.setData({
+        storage_location_id:
+          parentDefaultBin?.storageLocation ||
+          plantDefaults.storageLocation ||
+          "",
+        location_id:
+          parentDefaultBin?.binLocation || plantDefaults.binLocation || "",
+      });
+    }
+
+    // A re-scale never clears the table: the components may be the user's own by
+    // now, and losing them to a BOM that went inactive would be silent data loss.
+    const clearOnFailure = () => {
+      if (!rescale) this.setData({ stock_movement: [] });
+    };
 
     const boms = bomRes.data || [];
     if (boms.length === 0) {
-      this.setData({ stock_movement: [] });
+      clearOnFailure();
       this.$message.warning(
         "No active Bill of Materials found for this item. Create a BOM before assembling it."
       );
@@ -1803,7 +1940,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     );
 
     if (subMaterials.length === 0) {
-      this.setData({ stock_movement: [] });
+      clearOnFailure();
       this.$message.warning(
         `BOM ${bom.parent_mat_bom_version} has no consumable sub materials.`
       );
@@ -1848,7 +1985,7 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     const bomBaseQty = parseFloat(bom.parent_mat_base_quantity) || 0;
 
     if (bomBaseQty <= 0) {
-      this.setData({ stock_movement: [] });
+      clearOnFailure();
       this.$message.error(
         `BOM ${bom.parent_mat_bom_version} has a base quantity of 0 and cannot be scaled.`
       );
@@ -1889,8 +2026,8 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
         quantity_uom: sub.sub_material_qty_uom || item?.based_uom || "",
         uom_options: JSON.stringify(rowUoms),
         item_remark: sub.sub_material_remark || "",
-        // Seeded here because the locked table has no onRowAdd for
-        // onChange_project to hook, unlike the Sales Order line table.
+        // Seeded here rather than via onRowAdd: an exploded row never passes
+        // through the item picker that seeds a manually added one.
         project_id: allData.project_id || "",
         organization_id: organizationId,
         issuing_plant: plantId,
@@ -1901,6 +2038,28 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
         stock_summary: "",
       };
     });
+
+    // Only the item_qty path asks: changing the assembled item makes the previous
+    // components meaningless, so that always rebuilds.
+    if (rescale && componentsWereEdited(allData.stock_movement || [], rows)) {
+      const keep = await this.$confirm(
+        `The BOM components have been changed since they were loaded. Please choose one: <br><br>
+        <strong>Re-scale:</strong> Rebuild the table from the BOM at the new quantity, discarding those changes.<br>
+        <strong>Keep:</strong> Leave the components exactly as they are.`,
+        "Quantity Changed",
+        {
+          confirmButtonText: "Re-scale",
+          cancelButtonText: "Keep",
+          dangerouslyUseHTMLString: true,
+          type: "warning",
+        }
+      ).then(
+        () => false,
+        () => true
+      );
+
+      if (keep) return;
+    }
 
     await this.setData({ stock_movement: rows });
 
@@ -1928,6 +2087,613 @@ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
     this.$message.error(error.message || "Failed to load the Bill of Materials");
   }
 })();
+```
+
+#### `ItemAssemblyOnChangeComponentItem.js`
+
+Item Code on a component row — fills the item fields and clears the previous picks. Bound to `stock_movement.item_selection.onChange` (`onAfterUpdate_item`). Only reachable on rows the user added; exploded rows arrive with these fields already filled.
+
+```js
+// Item Code on a manually added component row. Mirrors MSI's onAfterUpdate_item,
+// with the UOM options resolved in one batched query rather than one per UOM.
+//
+// requested_qty is left at 0: the row carries no BOM demand, which is also what
+// marks it as added when the BOM variance is reported at completion.
+
+const clearRow = (rowIndex, extra) =>
+  this.setData(
+    Object.assign(
+      {
+        [`stock_movement.${rowIndex}.requested_qty`]: 0,
+        [`stock_movement.${rowIndex}.total_quantity`]: 0,
+        [`stock_movement.${rowIndex}.balance_id`]: "",
+        [`stock_movement.${rowIndex}.temp_qty_data`]: "",
+        [`stock_movement.${rowIndex}.temp_hu_data`]: "",
+        [`stock_movement.${rowIndex}.stock_summary`]: "",
+      },
+      extra
+    )
+  );
+
+(async () => {
+  try {
+    const rowIndex = arguments[0].rowIndex;
+    const value = arguments[0].value;
+
+    if (!value) {
+      await clearRow(rowIndex, {
+        [`stock_movement.${rowIndex}.item_name`]: "",
+        [`stock_movement.${rowIndex}.item_desc`]: "",
+        [`stock_movement.${rowIndex}.quantity_uom`]: "",
+        [`stock_movement.${rowIndex}.uom_options`]: "",
+      });
+      return;
+    }
+
+    const itemData = arguments[0]?.fieldModel?.item;
+    if (!itemData) {
+      // The table re-renders without a fieldModel on a plain refresh; restore the
+      // UOM options every row already carries so no select goes blank.
+      const lines = this.getValue("stock_movement") || [];
+      lines.forEach((line, idx) => {
+        let options = [];
+        try {
+          options = JSON.parse(line.uom_options || "[]");
+        } catch (e) {}
+        this.setOptionData([`stock_movement.${idx}.quantity_uom`], options);
+      });
+      return;
+    }
+
+    const allData = this.getValues();
+
+    const uomIds = [
+      itemData.based_uom,
+      ...(itemData.table_uom_conversion || []).map((conv) => conv.alt_uom_id),
+    ]
+      .filter(Boolean)
+      .filter((id, i, arr) => arr.indexOf(id) === i);
+
+    const uomRes = uomIds.length
+      ? await db
+          .collection("unit_of_measurement")
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [
+                { prop: "id", operator: "in", value: uomIds },
+                { prop: "is_deleted", operator: "equal", value: 0 },
+              ],
+            },
+          ])
+          .get()
+          .catch(() => ({ data: [] }))
+      : { data: [] };
+
+    const uomOptions = uomRes.data || [];
+
+    await clearRow(rowIndex, {
+      [`stock_movement.${rowIndex}.item_name`]: itemData.material_name || "",
+      [`stock_movement.${rowIndex}.item_desc`]: itemData.material_desc || "",
+      [`stock_movement.${rowIndex}.quantity_uom`]: itemData.based_uom || "",
+      [`stock_movement.${rowIndex}.uom_options`]: JSON.stringify(uomOptions),
+      // Seeded here the same way the explosion seeds its rows, so an added line
+      // reaches the save workflow with the same columns filled.
+      [`stock_movement.${rowIndex}.organization_id`]: allData.organization_id,
+      [`stock_movement.${rowIndex}.issuing_plant`]:
+        allData.issuing_operation_faci || "",
+      [`stock_movement.${rowIndex}.project_id`]: allData.project_id || "",
+    });
+
+    this.setOptionData([`stock_movement.${rowIndex}.quantity_uom`], uomOptions);
+  } catch (error) {
+    console.error("Error loading the component item:", error);
+    this.$message.error(error.message || "Failed to load the item");
+  }
+})();
+```
+
+#### `ItemAssemblyAllocateLine.js`
+
+Quantity typed on a component row — re-picks that line from loose stock so the number is always backed by real allocations. Bound to `stock_movement.total_quantity.onChange` (`onChange_componentQty`).
+
+```js
+// Typing a quantity on a component line re-picks that line from loose stock, so
+// the number on the row always has real allocations behind it. The rules are the
+// ones autoAllocate applies during the BOM explosion, scoped to one row.
+//
+// Fetch budget: one parallel burst for the item and every stock source, then one
+// round trip for handling units and one for the bin / batch names on the summary.
+
+const q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));
+
+const getOrganizationId = () => {
+  let organizationId = this.getVarGlobal("deptParentId");
+  if (organizationId === "0") {
+    organizationId = this.getVarSystem("deptIds").split(",")[0];
+  }
+  return organizationId;
+};
+
+const parsePicks = (raw) => {
+  try {
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (e) {
+    return [];
+  }
+};
+
+const sumPicks = (picks) =>
+  picks.reduce((sum, pick) => sum + (parseFloat(pick.sm_quantity) || 0), 0);
+
+const fetchByIds = (collection, ids, fields) => {
+  let query = db.collection(collection);
+  if (fields) query = query.field(fields);
+  return query
+    .filter([
+      {
+        type: "branch",
+        operator: "all",
+        children: [
+          { prop: "id", operator: "in", value: ids },
+          { prop: "is_deleted", operator: "equal", value: 0 },
+        ],
+      },
+    ])
+    .get()
+    .catch((error) => {
+      console.error(`Error fetching ${collection}:`, error);
+      return { data: [] };
+    });
+};
+
+const fetchBalances = (collection, materialId, plantId, organizationId) =>
+  db
+    .collection(collection)
+    .filter([
+      {
+        type: "branch",
+        operator: "all",
+        children: [
+          { prop: "material_id", operator: "in", value: [materialId] },
+          { prop: "plant_id", operator: "equal", value: plantId },
+          { prop: "organization_id", operator: "equal", value: organizationId },
+          { prop: "is_deleted", operator: "equal", value: 0 },
+        ],
+      },
+    ])
+    .get()
+    .catch((error) => {
+      console.error(`Error fetching ${collection}:`, error);
+      return { data: [] };
+    });
+
+// Item master default bin for this plant. A row without a bin is treated as
+// unconfigured so we never sort on a blank.
+const getItemDefaultBin = (tableDefaultBin, plantId) => {
+  if (!plantId || !Array.isArray(tableDefaultBin)) return null;
+  const matchingBin = tableDefaultBin.find(
+    (bin) => bin.plant_id === plantId && bin.bin_location
+  );
+  return matchingBin ? matchingBin.bin_location : null;
+};
+
+(async () => {
+  const rowIndex = arguments[0].rowIndex;
+
+  try {
+    const requested = q8(arguments[0].value);
+    const allData = this.getValues();
+    const row = (allData.stock_movement || [])[rowIndex];
+    if (!row || !row.item_selection) return;
+
+    const currentPicks = parsePicks(row.temp_qty_data);
+    const pickedTotal = q8(sumPicks(currentPicks));
+
+    // The picks already add up to what was typed -- this is our own write coming
+    // back round, or the same number entered again.
+    if (Math.abs(pickedTotal - requested) <= 0.0000001) return;
+
+    // setData below re-enters this handler; this.models is the form-wide bag the
+    // stock dialog already uses for its own cross-call state.
+    if (this.models["ia_allocating_line"] === rowIndex) return;
+
+    const organizationId = getOrganizationId();
+    const plantId = allData.issuing_operation_faci;
+    const materialId = row.item_selection;
+
+    if (!plantId) {
+      this.$message.warning("Select a Plant before entering quantities.");
+      return;
+    }
+
+    this.models["ia_allocating_line"] = rowIndex;
+
+    const [itemRes, looseRes, batchRes, huSubRes, reservationRes] =
+      await Promise.all([
+        fetchByIds(
+          "item",
+          [materialId],
+          "material_name,serial_number_management,item_batch_management,table_default_bin"
+        ),
+        fetchBalances("item_balance", materialId, plantId, organizationId),
+        fetchBalances("item_batch_balance", materialId, plantId, organizationId),
+        db
+          .collection("handling_unit_atu7sreg_sub")
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [
+                { prop: "material_id", operator: "in", value: [materialId] },
+                { prop: "is_deleted", operator: "equal", value: 0 },
+              ],
+            },
+          ])
+          .get()
+          .catch(() => ({ data: [] })),
+        db
+          .collection("on_reserved_gd")
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [
+                { prop: "material_id", operator: "in", value: [materialId] },
+                { prop: "plant_id", operator: "equal", value: plantId },
+                {
+                  prop: "organization_id",
+                  operator: "equal",
+                  value: organizationId,
+                },
+                { prop: "is_deleted", operator: "equal", value: 0 },
+              ],
+            },
+          ])
+          .get()
+          .catch(() => ({ data: [] })),
+      ]);
+
+    const item = (itemRes.data || [])[0];
+
+    // A serialized component can only be picked serial by serial, so the typed
+    // number is restored and the user is sent to the dialog.
+    if (item?.serial_number_management === 1) {
+      await this.setData({
+        [`stock_movement.${rowIndex}.total_quantity`]: pickedTotal,
+      });
+      this.$message.warning(
+        `${row.item_name || "This component"} is serialized. Use Transfer Stock to pick the serial numbers.`
+      );
+      return;
+    }
+
+    const balanceRows =
+      item?.item_batch_management === 1
+        ? batchRes.data || []
+        : looseRes.data || [];
+
+    // An Allocated reservation against an HU is logically Reserved, so that
+    // portion never sat in unrestricted_qty and must not be deducted twice.
+    const huReservedMap = new Map();
+    (reservationRes.data || [])
+      .filter((r) => parseFloat(r.open_qty || 0) > 0 && r.status === "Allocated")
+      .forEach((r) => {
+        if (!r.handling_unit_id) return;
+        const key = `${r.handling_unit_id}|${r.batch_id || ""}`;
+        huReservedMap.set(
+          key,
+          (huReservedMap.get(key) || 0) + parseFloat(r.open_qty || 0)
+        );
+      });
+
+    const huIds = [
+      ...new Set(
+        (huSubRes.data || []).map((sub) => sub.handling_unit_id).filter(Boolean)
+      ),
+    ];
+    const huRes = huIds.length
+      ? await fetchByIds("handling_unit", huIds)
+      : { data: [] };
+
+    const huQtyMap = new Map();
+    (huRes.data || []).forEach((hu) => {
+      (hu.table_hu_items || [])
+        .filter((huItem) => huItem.is_deleted !== 1)
+        .filter((huItem) => String(huItem.material_id) === String(materialId))
+        .forEach((huItem) => {
+          const locationId = huItem.location_id || hu.location_id;
+          const reservedKey = `${hu.id}|${huItem.batch_id || ""}`;
+          const qty = Math.max(
+            0,
+            (parseFloat(huItem.quantity) || 0) -
+              (huReservedMap.get(reservedKey) || 0)
+          );
+          if (qty <= 0) return;
+          const key = `${huItem.material_id}|${locationId}|${
+            huItem.batch_id || "no_batch"
+          }`;
+          huQtyMap.set(key, (huQtyMap.get(key) || 0) + qty);
+        });
+    });
+
+    // Sibling lines' picks are staged in temp_qty_data and not yet in the DB, so
+    // unrestricted_qty still counts them as free. Only loose picks are deducted
+    // here -- HU-held picks come out of the HU pool already removed above.
+    const siblingStaged = new Map();
+    (allData.stock_movement || []).forEach((line, idx) => {
+      if (idx === rowIndex) return;
+      if (String(line.item_selection) !== String(materialId)) return;
+      parsePicks(line.temp_qty_data)
+        .filter((pick) => !pick.handling_unit_id)
+        .forEach((pick) => {
+          const key = `${pick.material_id}|${pick.location_id}|${
+            pick.batch_id || "no_batch"
+          }`;
+          siblingStaged.set(
+            key,
+            (siblingStaged.get(key) || 0) + (parseFloat(pick.sm_quantity) || 0)
+          );
+        });
+    });
+
+    const preferredBin = getItemDefaultBin(item?.table_default_bin, plantId);
+
+    // unrestricted_qty is already net of Allocated loose reservations, so only
+    // HU-held stock and sibling staging have to come off here.
+    const candidates = balanceRows
+      .map((balance) => {
+        const key = `${balance.material_id}|${balance.location_id}|${
+          balance.batch_id || "no_batch"
+        }`;
+        return {
+          balance,
+          available: Math.max(
+            0,
+            (parseFloat(balance.unrestricted_qty) || 0) -
+              (huQtyMap.get(key) || 0) -
+              (siblingStaged.get(key) || 0)
+          ),
+        };
+      })
+      .filter((candidate) => candidate.available > 0)
+      .sort((a, b) => {
+        const byBin =
+          (b.balance.location_id === preferredBin ? 1 : 0) -
+          (a.balance.location_id === preferredBin ? 1 : 0);
+        return byBin !== 0
+          ? byBin
+          : String(a.balance.create_time || "").localeCompare(
+              String(b.balance.create_time || "")
+            );
+      });
+
+    let remaining = Math.max(0, requested);
+    const picks = [];
+
+    for (const candidate of candidates) {
+      if (remaining <= 0) break;
+      const take = q8(Math.min(candidate.available, remaining));
+      if (take <= 0) continue;
+      remaining = q8(remaining - take);
+
+      const balance = candidate.balance;
+      picks.push({
+        material_id: balance.material_id,
+        location_id: balance.location_id,
+        storage_location_id: balance.storage_location_id || null,
+        batch_id: balance.batch_id || null,
+        balance_id: balance.id,
+        sm_quantity: take,
+        category: "Unrestricted",
+        plant_id: plantId,
+        organization_id: organizationId,
+        is_deleted: 0,
+        expired_date: balance.expired_date || null,
+        manufacturing_date: balance.manufacturing_date || null,
+        unrestricted_qty: parseFloat(balance.unrestricted_qty) || 0,
+        balance_quantity: parseFloat(balance.balance_quantity) || 0,
+      });
+    }
+
+    const allocated = q8(sumPicks(picks));
+
+    let summary = "";
+    if (picks.length > 0) {
+      const binIds = [
+        ...new Set(picks.map((pick) => pick.location_id).filter(Boolean)),
+      ];
+      const batchIds = [
+        ...new Set(picks.map((pick) => pick.batch_id).filter(Boolean)),
+      ];
+
+      const [binRes, batchNameRes, uomRes] = await Promise.all([
+        binIds.length
+          ? fetchByIds("bin_location", binIds, "bin_location_combine")
+          : Promise.resolve({ data: [] }),
+        batchIds.length
+          ? fetchByIds("batch", batchIds, "batch_number")
+          : Promise.resolve({ data: [] }),
+        row.quantity_uom
+          ? fetchByIds("unit_of_measurement", [row.quantity_uom], "uom_name")
+          : Promise.resolve({ data: [] }),
+      ]);
+
+      const binMap = new Map(
+        (binRes.data || []).map((bin) => [bin.id, bin.bin_location_combine])
+      );
+      const batchMap = new Map(
+        (batchNameRes.data || []).map((batch) => [batch.id, batch.batch_number])
+      );
+      const uomName = (uomRes.data || [])[0]?.uom_name || "";
+
+      // Same shape onConfirm_Stock writes, so a manual re-pick reads identically.
+      const details = picks
+        .map((pick, i) => {
+          const binName = binMap.get(pick.location_id) || pick.location_id;
+          let line = `${i + 1}. ${binName}: ${pick.sm_quantity} ${uomName} (UNR)`;
+          if (pick.batch_id) {
+            line += `\n[${batchMap.get(pick.batch_id) || pick.batch_id}]`;
+          }
+          return line;
+        })
+        .join("\n");
+
+      summary = `Total: ${allocated} ${uomName}\n\nDETAILS:\n${details}`;
+    }
+
+    // The re-pick is loose-only, so any handling unit staged earlier on this row
+    // is no longer part of the allocation.
+    await this.setData({
+      [`stock_movement.${rowIndex}.total_quantity`]: allocated,
+      [`stock_movement.${rowIndex}.temp_qty_data`]: picks.length
+        ? JSON.stringify(picks)
+        : "",
+      [`stock_movement.${rowIndex}.temp_hu_data`]: "",
+      [`stock_movement.${rowIndex}.stock_summary`]: summary,
+    });
+
+    if (remaining > 0) {
+      this.$message.warning(
+        `Only ${allocated} of ${requested} available as loose stock for ${
+          row.item_name || item?.material_name || "this component"
+        }. Open Transfer Stock to pick from handling units.`
+      );
+    }
+  } catch (error) {
+    console.error("Error allocating the component line:", error);
+    this.$message.error(error.message || "Failed to allocate this component");
+  } finally {
+    this.models["ia_allocating_line"] = undefined;
+  }
+})();
+```
+
+#### `ItemAssemblyBatchAddItem.js`
+
+Confirm of the shared Batch Add picker. The handler name `onConfirm_batchAddItem` is the callback convention that page uses — MSI, MSR, SA, LOT, PT and CAT all expose it under exactly that name.
+
+```js
+// Confirm of the shared Batch Add picker (page 1983386084789420033). The handler
+// name is the callback convention that page uses -- MSI, MSR, SA, LOT, PT and CAT
+// all expose it under exactly this name.
+//
+// Rows arrive with no quantity: requested_qty stays 0 because they carry no BOM
+// demand, and the user types a quantity next, which allocates the line.
+
+(async () => {
+  try {
+    const currentItemArray = arguments[0].itemArray || [];
+
+    if (currentItemArray.length === 0) {
+      this.$alert("Please select at least one item.", "Error", {
+        confirmButtonText: "OK",
+        type: "error",
+      });
+      return;
+    }
+
+    const allData = this.getValues();
+    const existingLines = allData.stock_movement || [];
+
+    // Every selected item's UOMs resolved in one query rather than one per item.
+    const uomIds = [
+      ...new Set(
+        currentItemArray
+          .flatMap((item) => [
+            item.based_uom,
+            ...(item.table_uom_conversion || []).map((conv) => conv.alt_uom_id),
+          ])
+          .filter(Boolean)
+      ),
+    ];
+
+    const uomRes = uomIds.length
+      ? await db
+          .collection("unit_of_measurement")
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [
+                { prop: "id", operator: "in", value: uomIds },
+                { prop: "is_deleted", operator: "equal", value: 0 },
+              ],
+            },
+          ])
+          .get()
+          .catch(() => ({ data: [] }))
+      : { data: [] };
+
+    const uomMap = new Map((uomRes.data || []).map((uom) => [uom.id, uom]));
+
+    const newRows = currentItemArray.map((item, index) => {
+      const rowUoms = [
+        item.based_uom,
+        ...(item.table_uom_conversion || []).map((conv) => conv.alt_uom_id),
+      ]
+        .filter(Boolean)
+        .filter((id, i, arr) => arr.indexOf(id) === i)
+        .map((id) => uomMap.get(id))
+        .filter(Boolean);
+
+      return {
+        item_selection: item.id,
+        item_name: item.material_name || "",
+        item_desc: item.material_desc || "",
+        requested_qty: 0,
+        total_quantity: 0,
+        quantity_uom: item.based_uom || "",
+        uom_options: JSON.stringify(rowUoms),
+        item_remark: "",
+        project_id: allData.project_id || "",
+        organization_id: allData.organization_id,
+        issuing_plant: allData.issuing_operation_faci || "",
+        line_index: existingLines.length + index + 1,
+        balance_id: "",
+        temp_qty_data: "",
+        temp_hu_data: "",
+        stock_summary: "",
+      };
+    });
+
+    await this.setData({
+      stock_movement: [...existingLines, ...newRows],
+    });
+
+    newRows.forEach((row, index) => {
+      let options = [];
+      try {
+        options = JSON.parse(row.uom_options);
+      } catch (e) {}
+      this.setOptionData(
+        [`stock_movement.${existingLines.length + index}.quantity_uom`],
+        options
+      );
+    });
+
+    this.closeDialog("dialog_item_selection");
+  } catch (error) {
+    console.error("Error adding the selected items:", error);
+    this.$message.error(error.message || "Failed to add the selected items");
+  }
+})();
+```
+
+#### Inline: `onRowBatchAdd_item` (Batch Add toolbar button)
+
+Opens the shared item picker page as a dialog. Its Confirm calls `onConfirm_batchAddItem` above.
+
+```js
+this.toView({
+  target: '1983386084789420033',
+  targetType: 'Page',
+  mode: 'dialog',
+  type: 'edit',
+  title: 'Batch Add'
+});
 ```
 
 ### 15b. Transfer Stock dialog
@@ -2141,28 +2907,9 @@ Dialog Confirm — gates and write-back.
   );
   const totalCombined = totalSmQuantity + totalHuQuantity;
 
-  // An assembly consumes exactly what the BOM calls for, so the allocation has
-  // to match requested_qty. Returning here leaves the dialog open with the
-  // entered quantities intact so they can be adjusted rather than re-entered.
-  const requestedQty =
-    parseFloat(allData.stock_movement[rowIndex]?.requested_qty) || 0;
-
-  if (requestedQty > 0) {
-    // Quantities are 3dp; the epsilon only absorbs float noise.
-    const difference = parseFloat((totalCombined - requestedQty).toFixed(3));
-    if (Math.abs(difference) > 0.0005) {
-      this.$message.error(
-        `Allocated ${totalCombined} ${gdUOM} but ${requestedQty} ${gdUOM} is required ` +
-          `(${difference > 0 ? "over" : "short"} by ${Math.abs(difference)}). ` +
-          `Adjust the quantities before confirming.`
-      );
-      return;
-    }
-  }
-
-  this.setData({
-    [`stock_movement.${rowIndex}.total_quantity`]: totalCombined,
-  });
+  // The BOM is a template, not a contract: whatever is picked here becomes the
+  // quantity consumed. total_quantity is written with the picks below rather than
+  // here, so the line never holds a total its temp data does not back.
 
   const rowsToUpdate = processedTemporaryData.filter(
     (item) => (item.sm_quantity || 0) > 0,
@@ -2431,6 +3178,7 @@ Dialog Confirm — gates and write-back.
   const combinedTempQty = [...cleanedLooseTempData, ...huAsBalanceRowsBase];
 
   this.setData({
+    [`stock_movement.${rowIndex}.total_quantity`]: totalCombined,
     [`stock_movement.${rowIndex}.temp_qty_data`]:
       JSON.stringify(combinedTempQty),
     [`stock_movement.${rowIndex}.temp_hu_data`]: JSON.stringify(filteredHuData),
@@ -3523,11 +4271,19 @@ Embedded in `ItemAssemblyFullJSON.json` on `sm_item_balance.table_item_balance.s
 
 ```js
 const data = this.getValues();
-const stockMovement = data.stock_movement;
-const rowIndex = data.sm_item_balance.row_index;
+const stockMovement = data.stock_movement || [];
+const rowIndex = data.sm_item_balance?.row_index;
 const fieldParts = rule.field.split(".");
 const index = fieldParts[2];
-const row = data.sm_item_balance.table_item_balance[index];
+// The rule stays registered for rows the dialog's grid no longer has, so this
+// lookup can miss. Throwing here rejects this.validate() for the WHOLE form and
+// the save dies with an unreadable "[object Object]" -- there is simply nothing
+// to check when the row is gone.
+const row = data.sm_item_balance?.table_item_balance?.[index];
+if (!row) {
+  callback();
+  return;
+}
 const materialId = row.material_id;
 const balanceId = row.balance_id;
 const locationId = row.location_id;
@@ -3713,6 +4469,15 @@ const findFieldMessage = (obj) => {
     let errorMessage = "";
     if (error && typeof error === "object") {
       errorMessage = findFieldMessage(error) || "An error occurred";
+      // findFieldMessage bottoms out at obj.toString(), which is the useless
+      // "[object Object]" for a rejected response or a thrown validator.
+      if (errorMessage === "[object Object]") {
+        errorMessage =
+          error.message ||
+          error.msg ||
+          JSON.stringify(error) ||
+          "An error occurred";
+      }
     } else {
       errorMessage = error;
     }
@@ -3763,16 +4528,106 @@ const findFieldMessage = (obj) => {
   return null;
 };
 
+// The BOM seeds the component table but does not bind it, so the two can legitimately
+// differ by completion. This reports the difference once and never blocks the save.
+const confirmBomVariance = async (data) => {
+  if (!data.item_id) return true;
+
+  let organizationId = this.getVarGlobal("deptParentId");
+  if (organizationId === "0") {
+    organizationId = this.getVarSystem("deptIds").split(",")[0];
+  }
+
+  const bomRes = await db
+    .collection("bill_of_materials")
+    .where({
+      parent_material_code: data.item_id,
+      organization_id: organizationId,
+      is_deleted: 0,
+      is_active: 1,
+    })
+    .get()
+    .catch(() => ({ data: [] }));
+
+  const boms = bomRes.data || [];
+  if (boms.length === 0) return true;
+
+  // Same selection rule as the explosion: default wins, otherwise highest V-number.
+  const versionOf = (bom) => {
+    const match = /^V(\d+)$/.exec(
+      String(bom.parent_mat_bom_version || "").trim(),
+    );
+    return match ? parseInt(match[1], 10) : 0;
+  };
+  boms.sort((a, b) => {
+    const byDefault =
+      (b.parent_mat_is_default === 1 ? 1 : 0) -
+      (a.parent_mat_is_default === 1 ? 1 : 0);
+    return byDefault !== 0 ? byDefault : versionOf(b) - versionOf(a);
+  });
+  const bom = boms[0];
+
+  const bomSubs = (bom.subform_sub_material || []).filter(
+    (sub) => sub.bom_material_code && sub.consume_type !== "REF",
+  );
+  const bomItems = new Set(bomSubs.map((sub) => String(sub.bom_material_code)));
+
+  const lines = data.stock_movement || [];
+  const lineItems = new Set(lines.map((line) => String(line.item_selection)));
+
+  const differences = [];
+
+  lines.forEach((line) => {
+    const label = line.item_name || line.item_selection;
+    const allocated = parseFloat(line.total_quantity) || 0;
+    const required = parseFloat(line.requested_qty) || 0;
+
+    if (!bomItems.has(String(line.item_selection))) {
+      differences.push(`Added: ${label} (${allocated})`);
+    } else if (Math.abs(allocated - required) > 0.0005) {
+      differences.push(`Changed: ${label} ${required} \u2192 ${allocated}`);
+    }
+  });
+
+  bomSubs.forEach((sub) => {
+    if (!lineItems.has(String(sub.bom_material_code))) {
+      differences.push(
+        `Removed: ${sub.sub_material_name || sub.bom_material_code}`,
+      );
+    }
+  });
+
+  if (differences.length === 0) return true;
+
+  return this.$confirm(
+    `These components differ from BOM ${bom.parent_mat_bom_version}:<br><br>` +
+      differences.map((line) => `\u2022 ${line}`).join("<br>") +
+      "<br><br>Complete the assembly with these components?",
+    "Components Differ From The BOM",
+    {
+      confirmButtonText: "Complete",
+      cancelButtonText: "Cancel",
+      dangerouslyUseHTMLString: true,
+      type: "warning",
+    },
+  ).then(
+    () => true,
+    () => false,
+  );
+};
+
 (async () => {
   try {
     await this.validate();
-
-    this.showLoading("Completing Item Assembly...");
 
     const rawData = this.getValues();
     // sm_item_balance is the stock dialog's model, not a column on the table.
     const { sm_item_balance, ...data } = rawData;
     const pageStatus = data.page_status;
+
+    if (!(await confirmBomVariance(data))) return;
+
+    this.showLoading("Completing Item Assembly...");
 
     let workflowResult;
 
@@ -3814,6 +4669,15 @@ const findFieldMessage = (obj) => {
     let errorMessage = "";
     if (error && typeof error === "object") {
       errorMessage = findFieldMessage(error) || "An error occurred";
+      // findFieldMessage bottoms out at obj.toString(), which is the useless
+      // "[object Object]" for a rejected response or a thrown validator.
+      if (errorMessage === "[object Object]") {
+        errorMessage =
+          error.message ||
+          error.msg ||
+          JSON.stringify(error) ||
+          "An error occurred";
+      }
     } else {
       errorMessage = error;
     }
@@ -4224,6 +5088,9 @@ return { itemIds: ids.filter(function (v, i, a) { return a.indexOf(v) === i; }) 
 #### `code_validate` — Validate Assembly
 
 ```js
+// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps
+// every client-configured scale intact while killing float residue.
+const q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));
 const entry = {{node:code_fillback.data.allData}};
 const storedStatus = {{node:code_fillback.data.storedStatus}};
 const items = {{node:search_items.data.data}} || [];
@@ -4231,7 +5098,6 @@ const items = {{node:search_items.data.data}} || [];
 const itemMap = {};
 items.forEach(function (it) { itemMap[String(it.id)] = it; });
 
-const round3 = function (v) { return Math.round((parseFloat(v) || 0) * 1000) / 1000; };
 
 let message = '';
 
@@ -4240,21 +5106,20 @@ if (storedStatus === 'Completed') {
   message = 'This Item Assembly is already Completed and cannot be saved again.';
 }
 
-const itemQty = round3(entry.item_qty);
+const itemQty = q8(entry.item_qty);
 if (!message && itemQty <= 0) {
   message = 'Quantity must be greater than zero.';
 }
 
 const lines = entry.stock_movement || [];
 if (!message && lines.length === 0) {
-  message = 'No BOM components to consume. Choose an item that has an active Bill of Materials.';
+  message = 'There are no components to consume. Add at least one component line.';
 }
 
 for (let i = 0; i < lines.length && !message; i++) {
   const line = lines[i];
   const label = line.item_name || line.item_selection;
-  const requested = round3(line.requested_qty);
-  const allocated = round3(line.total_quantity);
+  const allocated = q8(line.total_quantity);
 
   let picks = [];
   try {
@@ -4262,13 +5127,19 @@ for (let i = 0; i < lines.length && !message; i++) {
   } catch (e) {
     picks = [];
   }
-  picks = picks.filter(function (p) { return round3(p.sm_quantity) > 0; });
+  picks = picks.filter(function (p) { return q8(p.sm_quantity) > 0; });
 
+  // The BOM is a template, so requested_qty is no longer a gate: a line may consume
+  // more or less than the BOM called for. What still has to hold is that the
+  // quantity claimed is backed by real picks, or the issue leg would move nothing.
   if (picks.length === 0) {
     message = 'Line ' + (i + 1) + ' (' + label + '): no stock has been allocated.';
-  } else if (Math.abs(allocated - requested) > 0.0005) {
-    message = 'Line ' + (i + 1) + ' (' + label + '): allocated ' + allocated +
-      ' but ' + requested + ' is required.';
+  } else if (allocated <= 0) {
+    message = 'Line ' + (i + 1) + ' (' + label + '): quantity must be greater than zero.';
+  } else if (Math.abs(allocated - q8(picks.reduce(function (sum, p) {
+    return sum + (parseFloat(p.sm_quantity) || 0);
+  }, 0))) > 0.0005) {
+    message = 'Line ' + (i + 1) + ' (' + label + '): the quantity does not match the allocated stock. Re-enter the quantity or re-pick it.';
   }
 }
 

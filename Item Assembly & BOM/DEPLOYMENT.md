@@ -189,16 +189,36 @@ purpose — it is deprecated and hidden.
 
 ## The two quantities on a BOM Components line
 
-- `requested_qty` — what the BOM requires. Read-only, derived as
+- `requested_qty` — what the BOM asked for. Hidden, derived as
   `(item_qty / parent_mat_base_quantity) × sub_material_qty × (1 + wastage/100)`,
-  rounded up for serialized components. Re-derived whenever `item_id` or
-  `item_qty` changes.
-- `total_quantity` — what was actually allocated from stock. Written by the
-  auto-allocator and by the Transfer Stock dialog.
+  rounded up for serialized components, `0` on a manually added row. **It is not a
+  gate anywhere** — it is kept as the reference the completion-time variance
+  warning is measured against, and so the rule can be tightened again later.
+- `total_quantity` — what is actually consumed. Typed in the grid, or written by
+  the auto-allocator and the Transfer Stock dialog.
 
-The components table is locked to the BOM (`isAdd: false`, `isDelete: false`,
-`item_selection` disabled): the only way to change it is to change the BOM or
-`item_qty`.
+**The BOM is a template, not a contract.** It seeds the table when the assembled
+item or the quantity changes; after that the user may type a different quantity,
+repoint a line at another item, add rows (**Add** / **Batch Add**, the shared
+picker page `1983386084789420033` that MSI/MSR/SA/LOT/PT/CAT also use) or delete
+them. The single invariant that survives is that a line's quantity must be backed
+by real picks — enforced client-side by re-allocating the line whenever the
+quantity is typed, and server-side in `code_validate`.
+
+Consequences worth knowing:
+
+- Typing a quantity re-picks the line from **loose stock only** and clears
+  `temp_hu_data`. A handling-unit pick has to be re-made in Transfer Stock.
+- A serialized component refuses a typed quantity and sends the user to the
+  dialog — serials cannot be auto-picked.
+- Changing `item_qty` after the table has been edited prompts (*Re-scale* /
+  *Keep*) instead of silently rebuilding. Changing `item_id` always rebuilds.
+- Completing with components that differ from the BOM shows a non-blocking
+  warning listing what was added, removed or changed. No difference, no dialog.
+- `Completed`, `Fully Posted` and View lock the table. `this.disabled` alone does
+  **not** remove the Add / Batch Add buttons or the per-row delete, so
+  `lockComponentsTable()` in `ItemAssemblyOnMounted.js` hides them in the DOM as
+  well — the same approach MSI's `editDisabledField` uses.
 
 ## The save workflow
 
@@ -219,9 +239,14 @@ re-read it for the real document number → issue leg → cost roll-up → recei
 a generated number lands on `batch_no`, not just on the inventory movement.
 
 **Validation, with distinct return codes** so the client can tell them apart:
-400 required fields / inventory-engine failure, **401** allocation mismatch,
-empty picks, zero quantity or a missing manual batch, **402** inventory shortfall
-found by the pre-flight check, **409** already Completed.
+400 required fields / inventory-engine failure, **401** empty picks, a line
+quantity that does not match its own picks, zero quantity or a missing manual
+batch, **402** inventory shortfall found by the pre-flight check, **409** already
+Completed.
+
+`code_validate` does **not** re-derive anything from the BOM — `IA_SAVE` never
+queries `bill_of_materials` at all. Its line check is `total_quantity` against the
+sum of `temp_qty_data`, which is what the issue leg actually replays.
 
 **Costing reads the movements back, it does not trust SUBTRACT's response.**
 `SUBTRACT_INVENTORY` has **two** success returns: `return_node_LbWU1lZh` carries
@@ -343,24 +368,33 @@ The header Project pushes down onto the component lines, following
 carrying a *different* project prompt Overwrite / Keep, and clearing the header
 never wipes the lines.
 
-Sales Order wires the same handler to its line table's `onRowAdd`. That hook does
-not exist here because the components table is locked to the BOM, so the BOM
-explosion seeds `project_id` on the rows it creates instead.
+Sales Order wires the same handler to its line table's `onRowAdd`. That hook is
+still unused here: every path that creates a component row seeds `project_id`
+itself — the BOM explosion, the item picker on a manually added row, and Batch
+Add.
 
 ## Component line behaviour
 
-**Two quantities.** `requested_qty` is what the BOM calls for (read-only,
-re-derived from `item_qty`); `total_quantity` is what was actually allocated.
+**Two quantities.** `requested_qty` is what the BOM asked for (hidden, re-derived
+from `item_qty`, `0` on an added row); `total_quantity` is what is consumed.
 
-**The Transfer Stock dialog now gates on the difference.** Confirm is refused
-unless the allocated total equals `requested_qty`, naming the shortfall or excess.
-The guard returns *before* any `setData` and before `closeDialog`, so the dialog
-stays open with the entered quantities intact and they can be adjusted rather
-than re-entered. A row with `requested_qty` of 0 is not gated.
+**The Transfer Stock dialog does not gate on the difference.** Whatever is picked
+becomes the quantity. `total_quantity` is written in the *same* `setData` as the
+picks, never before them, so the line never holds a total its `temp_qty_data` does
+not back — which matters because typing a quantity re-picks the line.
+
+**Typing a quantity re-allocates that line** (`ItemAssemblyAllocateLine.js`). It
+applies the auto-allocator's rules to one row: loose Unrestricted stock, the
+component's own default bin first then oldest, HU-held stock and sibling lines'
+staged picks deducted. It bails out when the typed value already matches the
+picks (which is also what stops it re-entering through its own change event),
+refuses on serialized components, and clears `temp_hu_data` because the re-pick is
+loose-only.
 
 Auto-allocation can still leave a line short — it reports the shortfall rather
-than blocking — and the dialog is where that gets resolved. Final enforcement at
-Complete belongs to the deferred save pipeline.
+than blocking — and the dialog is where that gets resolved. Final enforcement is
+`code_validate`: every line needs picks, a quantity above zero, and a quantity
+equal to the sum of its own picks.
 
 **`stock_summary` shows names, not ids.** Bin (`bin_location_combine`), batch
 (`batch_number`) and UOM (`uom_name`) are all resolved, batched across every line
