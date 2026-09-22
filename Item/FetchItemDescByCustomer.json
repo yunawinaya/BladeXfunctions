@@ -44,40 +44,85 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
-      "id": "get_node_9kQx2Vt7",
-      "type": "get-node",
+      "id": "code_node_CibItemIDs",
+      "type": "code-node",
       "data": {
-        "table_id": {
-          "source": "Item:Table:1901546842240438273",
-          "rules": {
-            "collectionId": "1901546842240438273",
-            "list": [
-              {
-                "id": 1785312440101,
-                "parentId": 1785312440100,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{workflowparams:item_id}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Item ID",
+        "isValidator": true,
+        "nodeName": "Map Item ID",
+        "name": "Map Item ID",
+        "script": {
+          "type": "javascript",
+          "code": "const rawItemId = {{workflowparams:item_id}};\n\n// This workflow is called with a scalar id; tolerate an array form too.\nlet requested = [];\nif (Array.isArray(rawItemId)) requested = rawItemId;\nelse if (rawItemId != null && rawItemId !== \"\") requested = [rawItemId];\n\n// Digits only: these ids are interpolated into Get Item's SQL.\nconst itemIDs = [...new Set(requested.map((v) => String(v == null ? \"\" : v).trim()))].filter(\n  (id) => /^[0-9]+$/.test(id)\n);\n\nreturn { itemIdCsv: itemIDs.join(',') };\n"
         },
-        "condition": {},
+        "response_json": [
+          {
+            "key": "cibitmcs",
+            "name": "itemIdCsv",
+            "title": "Item ID CSV",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_ItemBinds",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
         "title": "Get Item",
         "isValidator": true,
         "nodeName": "Get Item",
-        "name": "Get Item"
+        "name": "Get Item",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(i.id AS CHAR) AS id,\n       i.material_desc,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(JSON_OBJECT(\n                      'customer_id', CAST(b.customer_id AS CHAR),\n                      'item_desc', b.item_desc))\n           FROM item_l1gn7kim_sub b\n           WHERE b.Item_id = i.id\n             AND b.is_deleted = 0\n       ), '[]') AS cust_item_bind_json\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_CibItemIDs.data.itemIdCsv}}', ']'),\n                '$[*]' COLUMNS (mid BIGINT PATH '$')) sel\nJOIN item i\n  ON i.id = sel.mid\n AND i.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "cb1id000",
+            "name": "id",
+            "title": "Item ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cb2mdesc",
+            "name": "material_desc",
+            "title": "Material Desc",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cb3bndjs",
+            "name": "cust_item_bind_json",
+            "title": "Cust Item Bind JSON",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
       },
       "blocks": []
     },
@@ -94,7 +139,7 @@
         "name": "Build Descriptions",
         "script": {
           "type": "javascript",
-          "code": "const res = {{node:get_node_9kQx2Vt7.data}};\nconst customerId = {{workflowparams:customer_id}};\n\n// get-node data is a single object when count===1, an array otherwise.\nconst toArray = (r) => {\n  if (!r || !r.count || r.count <= 0) return [];\n  const dd = r.data;\n  if (Array.isArray(dd)) return dd;\n  if (dd && typeof dd === \"object\") return [dd];\n  return [];\n};\n\nconst items = toArray(res);\nconst item = items.length > 0 ? items[0] : null;\nif (!item) return { descriptions: [] };\n\n// table_cust_item_bind is a subform array stored on the Item record itself --\n// it has no collection of its own, so this single fetch is all the data access\n// needed. Bind rows store the Customer's primary id; compare as trimmed strings.\nconst wanted = customerId == null ? \"\" : String(customerId).trim();\nconst binds = Array.isArray(item.table_cust_item_bind) ? item.table_cust_item_bind : [];\n\nconst descriptions = [];\nfor (const row of binds) {\n  if (!row) continue;\n  const rowCust = row.customer_id == null ? \"\" : String(row.customer_id).trim();\n  if (!wanted || rowCust !== wanted) continue;\n  const d = row.item_desc == null ? \"\" : String(row.item_desc).trim();\n  // One customer may have several rows; skip blanks and duplicates.\n  if (d && descriptions.indexOf(d) === -1) descriptions.push(d);\n}\n\n// No customer-specific description -> fall back to the item's own description.\nif (descriptions.length === 0) {\n  const fallback = item.material_desc == null ? \"\" : String(item.material_desc).trim();\n  if (fallback) descriptions.push(fallback);\n}\n\nreturn { descriptions };"
+          "code": "const rows = {{node:sql_node_ItemBinds.data}} || [];\nconst customerId = {{workflowparams:customer_id}};\n\n// sql-node rows sit at .data, and a single row comes back bare rather than in an array.\nconst items = Array.isArray(rows) ? rows : (rows ? [rows] : []);\nconst row0 = items.length > 0 ? items[0] : null;\nif (!row0) return { descriptions: [] };\n\n// Get Item returns table_cust_item_bind as a JSON_ARRAYAGG string.\nconst parseBinds = (v) => {\n  if (Array.isArray(v)) return v;\n  if (!v) return [];\n  try { const p = JSON.parse(v); return Array.isArray(p) ? p : []; } catch (e) { return []; }\n};\nconst item = { ...row0, table_cust_item_bind: parseBinds(row0.cust_item_bind_json) };\n\n// table_cust_item_bind is a subform array stored on the Item record itself --\n// it has no collection of its own, so this single fetch is all the data access\n// needed. Bind rows store the Customer's primary id; compare as trimmed strings.\nconst wanted = customerId == null ? \"\" : String(customerId).trim();\nconst binds = Array.isArray(item.table_cust_item_bind) ? item.table_cust_item_bind : [];\n\nconst descriptions = [];\nfor (const row of binds) {\n  if (!row) continue;\n  const rowCust = row.customer_id == null ? \"\" : String(row.customer_id).trim();\n  if (!wanted || rowCust !== wanted) continue;\n  const d = row.item_desc == null ? \"\" : String(row.item_desc).trim();\n  // One customer may have several rows; skip blanks and duplicates.\n  if (d && descriptions.indexOf(d) === -1) descriptions.push(d);\n}\n\n// No customer-specific description -> fall back to the item's own description.\nif (descriptions.length === 0) {\n  const fallback = item.material_desc == null ? \"\" : String(item.material_desc).trim();\n  if (fallback) descriptions.push(fallback);\n}\n\nreturn { descriptions };"
         },
         "response_json": [
           {
@@ -152,7 +197,10 @@
     {
       "id": "end",
       "type": "end-node",
-      "data": { "isValidator": true, "title": "End Node" },
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
       "blocks": []
     }
   ],
