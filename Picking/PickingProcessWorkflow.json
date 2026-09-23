@@ -4102,7 +4102,7 @@
                                   "prop": "needCL",
                                   "operator": "",
                                   "valueType": "value",
-                                  "value": "required",
+                                  "value": "auto",
                                   "valueLabel": "",
                                   "propLabel": "needCL"
                                 },
@@ -4313,6 +4313,14 @@
                                   "value": "Edit",
                                   "valueLabel": "",
                                   "propLabel": "pageStatus"
+                                },
+                                {
+                                  "prop": "needCL",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "auto",
+                                  "valueLabel": "",
+                                  "propLabel": "needCL"
                                 },
                                 {
                                   "prop": "isPicking",

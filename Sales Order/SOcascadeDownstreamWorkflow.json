@@ -1957,6 +1957,14 @@
                   "valueLabel": ""
                 },
                 {
+                  "prop": "needCL",
+                  "operator": "",
+                  "valueType": "value",
+                  "value": "auto",
+                  "valueLabel": "",
+                  "propLabel": "needCL"
+                },
+                {
                   "prop": "continueZero",
                   "propLabel": "continueZero",
                   "operator": "",
@@ -1994,7 +2002,7 @@
             "name": "Collect GD Result",
             "script": {
               "type": "javascript",
-              "code": "const raw = {{node:get_cd_res_gd.data}};\nlet results = [];\nif (raw) { results = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(results)) results = [];\n\n// Never test for \"400\": PPheadWorkflow's item-not-found return carries no response_value\n// at all, so a failure can arrive as an empty code.\nconst code = String({{node:wf_cd_gd.data.code}} || \"\");\nresults.push({\n  doc: \"GD\",\n  doc_no: {{node:loop_cd_gd.gd_no}} || \"\",\n  code: code,\n  ok: code === \"200\" ? 1 : 0,\n  // 413 is GD asking whether to reverse quantities already picked. It returns BEFORE its\n  // own write, so this is a question to relay, not a failure to report.\n  confirm: code === \"413\" ? 1 : 0,\n  message: {{node:wf_cd_gd.data.message}} || \"\",\n  note: {{node:wf_cd_gd.data.pickingReversalNote}} || \"\"\n});\n\nreturn { results: results };\n"
+              "code": "const raw = {{node:get_cd_res_gd.data}};\nlet results = [];\nif (raw) { results = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(results)) results = [];\n\n// Never test for \"400\": PPheadWorkflow's item-not-found return carries no response_value\n// at all, so a failure can arrive as an empty code.\nconst code = String({{node:wf_cd_gd.data.code}} || \"\");\nresults.push({\n  doc: \"GD\",\n  doc_no: {{node:loop_cd_gd.gd_no}} || \"\",\n  code: code,\n  ok: code === \"200\" ? 1 : 0,\n  // 413 is GD asking whether to reverse quantities already picked. It returns BEFORE its\n  // own write, so this is a question to relay, not a failure to report.\n  confirm: code === \"413\" ? 1 : 0,\n  message: {{node:wf_cd_gd.data.message}} || \"\",\n  note: {{node:wf_cd_gd.data.pickingReversalNote}} || \"\",\n  // Non-blocking: the credit limit came back as an Override and, with no operator in a\n  // cascade, the delivery was saved anyway. Reported, not failed.\n  clNote: {{node:wf_cd_gd.data.creditLimitNote}} || \"\"\n});\n\nreturn { results: results };\n"
             },
             "response_json": [
               {

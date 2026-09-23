@@ -1980,6 +1980,14 @@
                                               "valueLabel": ""
                                             },
                                             {
+                                              "prop": "needCL",
+                                              "operator": "",
+                                              "valueType": "value",
+                                              "value": "auto",
+                                              "valueLabel": "",
+                                              "propLabel": "needCL"
+                                            },
+                                            {
                                               "prop": "isPicking",
                                               "propLabel": "isPicking",
                                               "operator": "",
@@ -2013,7 +2021,7 @@
                                         "condition_type": "Expression",
                                         "expression": {
                                           "type": "javascript",
-                                          "code": "'{{node:workflow_node_tAWfF7CE.data.code}}' == '400'"
+                                          "code": "'{{node:workflow_node_tAWfF7CE.data.code}}' == '400' || '{{node:workflow_node_tAWfF7CE.data.code}}' == '402' || '{{node:workflow_node_tAWfF7CE.data.code}}' == '403'"
                                         }
                                       },
                                       "blocks": [

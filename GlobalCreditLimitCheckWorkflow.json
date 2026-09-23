@@ -1,0 +1,263 @@
+{
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "get_node_GerIauhj",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Customer:Table:1902779099617804290",
+          "rules": {
+            "collectionId": "1902779099617804290",
+            "list": [
+              {
+                "id": 1763346992243,
+                "parentId": 1763346992241,
+                "isTop": true,
+                "prop": "id",
+                "operator": "numberEqual",
+                "valueType": "field",
+                "value": "{{workflowparams:customer_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Customer Data",
+        "isValidator": true,
+        "nodeName": "Get One",
+        "name": "Get One"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_hL2EnU0g",
+      "type": "if",
+      "data": {
+        "title": "IF Customer Data",
+        "isValidator": true,
+        "nodeName": "IF Customer Data",
+        "name": "IF Customer Data",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1736695973613,
+              "parentId": 1736695973612,
+              "isTop": true,
+              "operator": "",
+              "valueType": "value",
+              "value": "",
+              "type": "leaf",
+              "level": 1,
+              "valueLabel": "",
+              "propLabel": "返回数据"
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "{{node:get_node_GerIauhj.data.count}} > 0"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_SAAW9695",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "code_node_F3445jkq",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Credit Limit Check",
+                "isValidator": true,
+                "nodeName": "Credit Limit Check",
+                "name": "Credit Limit Check",
+                "script": {
+                  "type": "javascript",
+                  "code": "const customerData = {{node:get_node_GerIauhj.data.data}};\n\nconst controlTypes = customerData.control_type_list;\n\nconst outstandingAmount =\n  parseFloat(customerData.outstanding_balance || 0) || 0;\nconst overdueAmount =\n  parseFloat(customerData.overdue_inv_total_amount || 0) || 0;\nconst overdueLimit = parseFloat(customerData.overdue_limit || 0) || 0;\nconst creditLimit =\n  parseFloat(customerData.customer_credit_limit || 0) || 0;\nconst sqtTotal = parseFloat({{workflowparams:total}} || 0) || 0;\nconst revisedOutstandingAmount = outstandingAmount + sqtTotal;\n\n// Helper function to add messages with calculated values\nconst formatMessage = (message, values = {}) => {\n  let formattedMessage = message;\n\n  if (values.creditLimit !== undefined) {\n    formattedMessage += `<br><strong>Total Allowed Credit: ${values.creditLimit}</strong>`;\n  }\n  if (values.totalCredit !== undefined) {\n    formattedMessage += `<br><strong>Total Credit: ${values.totalCredit}</strong>`;\n  }\n  if (values.overdueLimit !== undefined) {\n    formattedMessage += `<br><strong>Total Allowed Overdue: ${values.overdueLimit}</strong>`;\n  }\n  if (values.totalOverdue !== undefined) {\n    formattedMessage += `<br><strong>Total Overdue: ${values.totalOverdue}</strong>`;\n  }\n\n  return formattedMessage;\n};\n\n// Helper function to determine popup and create message\nconst determineMessage = (popupNumber, isBlock) => {\n  const popupConfigs = {\n    1: {\n      alert: \"Alert: Credit Limit Exceeded - Review Required\",\n      text: \"The customer has exceeded the allowed credit limit.\",\n      showCredit: true,\n      showOverdue: false,\n      buttonText:\n        \"Please review the credit limit or adjust the order amount before issuing the \" +\n        {{workflowparams:document_type}} +\n        \".\",\n    },\n    2: {\n      alert: \"Alert: Overdue Limit Exceeded - Review Required\",\n      text: \"The customer has exceeded the allowed overdue limit.\",\n      showCredit: false,\n      showOverdue: true,\n      buttonText: \"Please review overdue invoices before proceeding.\",\n    },\n    3: {\n      alert:\n        \"Alert: Credit Limit and Overdue Limit Exceeded - Review Required\",\n      text: \"The customer has exceeded both credit limit and overdue limit.\",\n      showCredit: true,\n      showOverdue: true,\n      buttonText: \"Please review both limits before proceeding.\",\n    },\n    4: {\n      alert: \"Alert: Overdue Limit Exceeded - Review Required\",\n      text: \"The customer has exceeded the allowed overdue limit.\",\n      showCredit: false,\n      showOverdue: true,\n      buttonText: \"Please confirm if you want to save it.\",\n    },\n    5: {\n      alert: \"Alert: Credit Limit Exceeded - Review Required\",\n      text: \"The customer has exceeded the allowed credit limit.\",\n      showCredit: true,\n      showOverdue: false,\n      buttonText: \"Please confirm if you want to save it.\",\n    },\n    6: {\n      alert: \"Customer Account Suspended\",\n      text: \"This order cannot be processed at this time due to the customer's suspended account status.\",\n      showCredit: false,\n      showOverdue: false,\n      buttonText: null,\n    },\n    7: {\n      alert:\n        \"Alert: Credit Limit and Overdue Limit Exceeded - Review Required\",\n      text: \"The customer has exceeded both credit limit and overdue limit.\",\n      showCredit: true,\n      showOverdue: true,\n      buttonText: \"Please confirm if you want to save it.\",\n    },\n  };\n\n  const config = popupConfigs[popupNumber];\n  if (!config) return null;\n\n  let prefix = isBlock ? \"Block - \" : \"Override - \";\n  let fullMessage = `${prefix}<span style=\"color: red;\">${config.alert}.</span><br><br>${config.text}<br>`;\n\n  if (config.showCredit) {\n    fullMessage = formatMessage(fullMessage, {\n      creditLimit,\n      totalCredit: revisedOutstandingAmount,\n    });\n  }\n\n  if (config.showOverdue) {\n    fullMessage = formatMessage(fullMessage, {\n      overdueLimit,\n      totalOverdue: overdueAmount,\n    });\n  }\n\n  if (config.buttonText) {\n    fullMessage += ` <br>${config.buttonText}`;\n  }\n\n  return fullMessage;\n};\n\n// Check if control types exist\nif (controlTypes && Array.isArray(controlTypes)) {\n  // Define control type behaviors\n  const controlTypeChecks = {\n    0: () => {\n      const message = formatMessage(\n        \"Control Type 0: Ignoring all credit/overdue checks. Allowed to proceed.\",\n        {\n          creditLimit,\n          totalCredit: revisedOutstandingAmount,\n          overdueLimit,\n          totalOverdue: overdueAmount,\n        }\n      );\n      return { result: 'success', message };\n    },\n    1: () => {\n      if (overdueAmount > overdueLimit) {\n        const message = determineMessage(2, true);\n        return { result: 'failed', message };\n      }\n      const message = formatMessage(\n        \"Control Type 1: Overdue limit check passed.\",\n        {\n          overdueLimit,\n          totalOverdue: overdueAmount,\n        }\n      );\n      return { result: 'success', message };\n    },\n    2: () => {\n      if (overdueAmount > overdueLimit) {\n        const message = determineMessage(4, false);\n        return { result: 'failed', message };\n      }\n      const message = formatMessage(\n        \"Control Type 2: Overdue limit check passed.\",\n        {\n          overdueLimit,\n          totalOverdue: overdueAmount,\n        }\n      );\n      return { result: 'success', message };\n    },\n    3: () => {\n      if (revisedOutstandingAmount > creditLimit) {\n        const message = determineMessage(1, true);\n        return { result: 'failed', message };\n      }\n      const message = formatMessage(\n        \"Control Type 3: Credit limit check passed.\",\n        {\n          creditLimit,\n          totalCredit: revisedOutstandingAmount,\n        }\n      );\n      return { result: 'success', message };\n    },\n    4: () => {\n      const creditExceeded = revisedOutstandingAmount > creditLimit;\n      const overdueExceeded = overdueAmount > overdueLimit;\n\n      if (creditExceeded && overdueExceeded) {\n        const message = determineMessage(3, true);\n        return { result: 'failed', message };\n      } else if (creditExceeded) {\n        const message = determineMessage(1, true);\n        return { result: 'failed', message };\n      } else if (overdueExceeded) {\n        const message = determineMessage(2, true);\n        return { result: 'failed', message };\n      }\n\n      const message = formatMessage(\n        \"Control Type 4: Both credit and overdue limits check passed.\",\n        {\n          creditLimit,\n          totalCredit: revisedOutstandingAmount,\n          overdueLimit,\n          totalOverdue: overdueAmount,\n        }\n      );\n      return { result: 'success', message };\n    },\n    5: () => {\n      const creditExceeded = revisedOutstandingAmount > creditLimit;\n      const overdueExceeded = overdueAmount > overdueLimit;\n\n      if (creditExceeded) {\n        if (overdueExceeded) {\n          const message = determineMessage(3, true);\n          return { result: 'failed', message };\n        } else {\n          const message = determineMessage(1, true);\n          return { result: 'failed', message };\n        }\n      } else if (overdueExceeded) {\n        const message = determineMessage(4, false);\n        return { result: 'failed', message };\n      }\n\n      const message = formatMessage(\"Control Type 5: All checks passed.\", {\n        creditLimit,\n        totalCredit: revisedOutstandingAmount,\n        overdueLimit,\n        totalOverdue: overdueAmount,\n      });\n      return { result: 'success', message };\n    },\n    6: () => {\n      if (revisedOutstandingAmount > creditLimit) {\n        const message = determineMessage(5, false);\n        return { result: 'failed', message };\n      }\n\n      const message = formatMessage(\n        \"Control Type 6: Credit limit check passed.\",\n        {\n          creditLimit,\n          totalCredit: revisedOutstandingAmount,\n        }\n      );\n      return { result: 'success', message };\n    },\n    7: () => {\n      const creditExceeded = revisedOutstandingAmount > creditLimit;\n      const overdueExceeded = overdueAmount > overdueLimit;\n\n      if (overdueExceeded) {\n        const message = determineMessage(2, true);\n        return { result: 'failed', message };\n      } else if (creditExceeded) {\n        const message = determineMessage(5, false);\n        return { result: 'failed', message };\n      }\n\n      const message = formatMessage(\"Control Type 7: All checks passed.\", {\n        creditLimit,\n        totalCredit: revisedOutstandingAmount,\n        overdueLimit,\n        totalOverdue: overdueAmount,\n      });\n      return { result: 'success', message };\n    },\n    8: () => {\n      const creditExceeded = revisedOutstandingAmount > creditLimit;\n      const overdueExceeded = overdueAmount > overdueLimit;\n\n      if (creditExceeded && overdueExceeded) {\n        const message = determineMessage(7, false);\n        return { result: 'failed', message };\n      } else if (creditExceeded) {\n        const message = determineMessage(5, false);\n        return { result: 'failed', message };\n      } else if (overdueExceeded) {\n        const message = determineMessage(4, false);\n        return { result: 'failed', message };\n      }\n\n      const message = formatMessage(\"Control Type 8: All checks passed.\", {\n        creditLimit,\n        totalCredit: revisedOutstandingAmount,\n        overdueLimit,\n        totalOverdue: overdueAmount,\n      });\n      return { result: 'success', message };\n    },\n    9: () => {\n      const message = determineMessage(6, true);\n      return { result: 'failed', message };\n    },\n  };\n\n  // Get applicable control types for document\n  const applicableControls = controlTypes\n    .filter((ct) => ct.document_type === {{workflowparams:document_type}})\n    .map((ct) => {\n      const checkResult = controlTypeChecks[ct.control_type]\n        ? controlTypeChecks[ct.control_type]()\n        : {\n            result: 'success',\n            message: formatMessage(\n              `Control Type ${ct.control_type}: Applied default behavior.`,\n              {\n                creditLimit,\n                totalCredit: revisedOutstandingAmount,\n                overdueLimit,\n                totalOverdue: overdueAmount,\n              }\n            ),\n          };\n      return {\n        ...checkResult,\n        control_type: ct.control_type,\n      };\n    });\n\n  // If no applicable controls found\n  if (applicableControls.length === 0) {\n    const message = formatMessage(\n      \"No control type defined for \" +\n        {{workflowparams:document_type}} +\n        \" document type. Proceeding with order.\",\n      {\n        creditLimit,\n        totalCredit: revisedOutstandingAmount,\n        overdueLimit,\n        totalOverdue: overdueAmount,\n      }\n    );\n    return {\n      result: 'success',\n      message: message,\n    };\n  }\n\n  // Sort by priority: blocks first, then overrides, then successes\n  const priorityOrder = {\n    block: 1, // Block has highest priority\n    override: 2, // Then override\n    success: 3, // Then success\n  };\n\n  // Convert result types to priority keys\n  const getPriorityKey = (result, message) => {\n    if (result === 'failed') {\n      return message.includes(\"Block - \") ? \"block\" : \"override\";\n    }\n    return \"success\";\n  };\n\n  applicableControls.forEach((control) => {\n    control.priorityKey = getPriorityKey(control.result, control.message);\n  });\n\n  applicableControls.sort(\n    (a, b) => priorityOrder[a.priorityKey] - priorityOrder[b.priorityKey]\n  );\n\n  // Return the highest priority result (first in sorted array)\n  return applicableControls[0];\n} else {\n  // No control types defined - allow with informational message\n  const message = formatMessage(\n    \"No control type defined for customer. Proceeding with order.\",\n    {\n      creditLimit,\n      totalCredit: revisedOutstandingAmount,\n      overdueLimit,\n      totalOverdue: overdueAmount,\n    }\n  );\n  return {\n    result: 'success',\n    message: message,\n  };\n}"
+                },
+                "response_json": [
+                  {
+                    "key": "dpc4vtxu",
+                    "name": "result",
+                    "title": "result",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "f9it1el8",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_vnViX6AE",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": [
+            {
+              "id": "return_node_IwvB9Mt9",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Error",
+                "isValidator": true,
+                "nodeName": "Return Error",
+                "name": "Return Error",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "Customer Not Found",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "failed",
+                      "valueLabel": "",
+                      "propLabel": "result"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "return_node_k6IsNbCp",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_F3445jkq.data.message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "result",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_F3445jkq.data.result}}",
+              "valueLabel": "",
+              "propLabel": "result"
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "oeqqxmru",
+      "name": "customer_id",
+      "title": "Customer ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "zl5npnzg",
+      "name": "total",
+      "title": "Total Amount",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "drqoaane",
+      "name": "document_type",
+      "title": "Document Type",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "sswqyp0t",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ctwccztr",
+      "name": "result",
+      "title": "result",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ]
+}

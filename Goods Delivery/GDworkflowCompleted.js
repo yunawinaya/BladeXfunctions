@@ -5,7 +5,11 @@ const closeDialog = () => {
   }
 };
 
-const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
+// Every confirmation the workflow can ask for is carried in one object. Threading
+// them individually meant a retry after one prompt dropped the answer to another --
+// force-complete the picking and the retry arrived with continueZero cleared, asking
+// about zero quantities again, whose own retry then cleared isForceComplete.
+const runGDWorkflow = async (data, ctx) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
       "2017151544868491265",
@@ -13,9 +17,9 @@ const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
         allData: data,
         saveAs: "Completed",
         pageStatus: data.page_status,
-        needCL: needCL,
-        isForceComplete: isForceComplete,
-        continueZero: continueZero,
+        needCL: ctx.needCL,
+        isForceComplete: ctx.isForceComplete,
+        continueZero: ctx.continueZero,
         auto_gr_confirmed: data.auto_gr_confirmed || "",
         auto_gr_skip: data.auto_gr_skip || "",
         // Kept on `data` (not as locals) so they survive the retry recursion below: a 401/403/406
@@ -35,7 +39,7 @@ const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
   });
 };
 
-const handleWorkflowResult = async (workflowResult, data) => {
+const handleWorkflowResult = async (workflowResult, data, ctx) => {
   if (!workflowResult || !workflowResult.data) {
     this.hideLoading();
     this.models["_data"] = {
@@ -67,8 +71,9 @@ const handleWorkflowResult = async (workflowResult, data) => {
 
       // User clicked Proceed - re-run workflow with continueZero = "Yes"
       this.showLoading("Saving Goods Delivery as Completed...");
-      const retryResult = await runGDWorkflow(data, "required", "", "Yes");
-      await handleWorkflowResult(retryResult, data);
+      const next = { ...ctx, continueZero: "Yes" };
+      const retryResult = await runGDWorkflow(data, next);
+      await handleWorkflowResult(retryResult, data, next);
     } catch (e) {
       console.log("User clicked Cancel or closed the dialog");
       this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
@@ -129,10 +134,11 @@ const handleWorkflowResult = async (workflowResult, data) => {
         dangerouslyUseHTMLString: true,
       });
 
-      // User clicked Proceed - re-run workflow with need_cl = "not required"
+      // User clicked Proceed - re-run workflow with needCL = "not required"
       this.showLoading("Saving Goods Delivery as Completed...");
-      const retryResult = await runGDWorkflow(data, "not required", "", "");
-      await handleWorkflowResult(retryResult, data);
+      const next = { ...ctx, needCL: "not required" };
+      const retryResult = await runGDWorkflow(data, next);
+      await handleWorkflowResult(retryResult, data, next);
     } catch (e) {
       console.log("User clicked Cancel or closed the dialog");
       this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
@@ -176,8 +182,9 @@ const handleWorkflowResult = async (workflowResult, data) => {
 
       // User clicked Proceed - re-run workflow with isForceComplete = "Yes"
       this.showLoading("Saving Goods Delivery as Completed...");
-      const retryResult = await runGDWorkflow(data, "", "Yes", "");
-      await handleWorkflowResult(retryResult, data);
+      const next = { ...ctx, isForceComplete: "Yes" };
+      const retryResult = await runGDWorkflow(data, next);
+      await handleWorkflowResult(retryResult, data, next);
     } catch (e) {
       console.log("User clicked Cancel or closed the dialog");
       this.models["_data"] = { ...this.models["_data"], is_processing: 0 };
@@ -215,8 +222,8 @@ const handleWorkflowResult = async (workflowResult, data) => {
     }
 
     this.showLoading("Saving Goods Delivery as Completed...");
-    const retryResult = await runGDWorkflow(data, "required", "", "");
-    await handleWorkflowResult(retryResult, data);
+    const retryResult = await runGDWorkflow(data, ctx);
+    await handleWorkflowResult(retryResult, data, ctx);
     return;
   }
 
@@ -285,8 +292,8 @@ const handleWorkflowResult = async (workflowResult, data) => {
     }
 
     this.showLoading("Saving Goods Delivery as Completed...");
-    const retryResult = await runGDWorkflow(data, "required", "", "");
-    await handleWorkflowResult(retryResult, data);
+    const retryResult = await runGDWorkflow(data, ctx);
+    await handleWorkflowResult(retryResult, data, ctx);
     return;
   }
 
@@ -375,8 +382,9 @@ const handleWorkflowResult = async (workflowResult, data) => {
     this.showLoading("Saving Goods Delivery as Completed...");
     console.log("data", data);
 
-    const workflowResult = await runGDWorkflow(data, "required", "", "");
-    await handleWorkflowResult(workflowResult, data);
+    const ctx = { needCL: "required", isForceComplete: "", continueZero: "" };
+    const workflowResult = await runGDWorkflow(data, ctx);
+    await handleWorkflowResult(workflowResult, data, ctx);
   } catch (error) {
     this.hideLoading();
     this.models["_data"] = {

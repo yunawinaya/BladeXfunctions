@@ -1,4 +1,8 @@
-const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
+// Every confirmation the workflow can ask for is carried in one object. Threading them
+// individually meant a retry after one gate dropped the answer to another -- and with no
+// user in the loop to break the cycle, a delivery that needs both continueZero and
+// isForceComplete bounced 401 -> 406 -> 401 forever.
+const runGDWorkflow = async (data, ctx) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
       "2017151544868491265",
@@ -6,9 +10,9 @@ const runGDWorkflow = async (data, needCL, isForceComplete, continueZero) => {
         allData: data,
         saveAs: "Completed",
         pageStatus: "Edit",
-        needCL: needCL,
-        isForceComplete: isForceComplete,
-        continueZero: continueZero,
+        needCL: ctx.needCL,
+        isForceComplete: ctx.isForceComplete,
+        continueZero: ctx.continueZero,
         // Auto-GR / auto-SI decisions are carried on the data object so they persist across
         // the 401/403/406 inline retries below (mirrors the GD form client).
         auto_gr_confirmed: data.auto_gr_confirmed || "",
@@ -41,6 +45,7 @@ const handleWorkflowResult = async (
   gdData,
   pendingGR,
   pendingSI,
+  ctx,
 ) => {
   if (!workflowResult || !workflowResult.data) {
     return {
@@ -57,8 +62,16 @@ const handleWorkflowResult = async (
     console.log(
       `GD ${gdItem.delivery_no}: Zero quantity warning, auto-proceeding`,
     );
-    const retryResult = await runGDWorkflow(gdData, "required", "", "Yes");
-    return handleWorkflowResult(retryResult, gdItem, gdData, pendingGR, pendingSI);
+    const next = { ...ctx, continueZero: "Yes" };
+    const retryResult = await runGDWorkflow(gdData, next);
+    return handleWorkflowResult(
+      retryResult,
+      gdItem,
+      gdData,
+      pendingGR,
+      pendingSI,
+      next,
+    );
   }
 
   // Handle 402 - Credit limit block
@@ -80,8 +93,16 @@ const handleWorkflowResult = async (
     console.log(
       `GD ${gdItem.delivery_no}: Credit limit override, auto-proceeding`,
     );
-    const retryResult = await runGDWorkflow(gdData, "not required", "", "");
-    return handleWorkflowResult(retryResult, gdItem, gdData, pendingGR, pendingSI);
+    const next = { ...ctx, needCL: "not required" };
+    const retryResult = await runGDWorkflow(gdData, next);
+    return handleWorkflowResult(
+      retryResult,
+      gdItem,
+      gdData,
+      pendingGR,
+      pendingSI,
+      next,
+    );
   }
 
   // Handle 405 - Must save as Created first (shouldn't happen for bulk)
@@ -98,8 +119,16 @@ const handleWorkflowResult = async (
     console.log(
       `GD ${gdItem.delivery_no}: Force complete picking, auto-proceeding`,
     );
-    const retryResult = await runGDWorkflow(gdData, "", "Yes", "");
-    return handleWorkflowResult(retryResult, gdItem, gdData, pendingGR, pendingSI);
+    const next = { ...ctx, isForceComplete: "Yes" };
+    const retryResult = await runGDWorkflow(gdData, next);
+    return handleWorkflowResult(
+      retryResult,
+      gdItem,
+      gdData,
+      pendingGR,
+      pendingSI,
+      next,
+    );
   }
 
   // Handle 407 - Packing not completed
@@ -115,13 +144,20 @@ const handleWorkflowResult = async (
   // prompt (phase 1). The GD is NOT completed yet (the gate returns before save).
   if (resultCode === "408" || resultCode === 408) {
     if (pendingGR) {
-      pendingGR.push({ gdItem, gdData });
+      pendingGR.push({ gdItem, gdData, ctx });
       return null; // deferred — handled in phase 2
     }
     // No batch context (defensive) — complete without auto-GR.
     gdData.auto_gr_skip = true;
-    const retryResult = await runGDWorkflow(gdData, "required", "", "");
-    return handleWorkflowResult(retryResult, gdItem, gdData, null, pendingSI);
+    const retryResult = await runGDWorkflow(gdData, ctx);
+    return handleWorkflowResult(
+      retryResult,
+      gdItem,
+      gdData,
+      null,
+      pendingSI,
+      ctx,
+    );
   }
 
   // Handle 409 - Internal trading: GD does not fully complete the linked SO
@@ -152,13 +188,13 @@ const handleWorkflowResult = async (
   // The GD is NOT completed yet (the gate returns before save), same as 408.
   if (resultCode === "412" || resultCode === 412) {
     if (pendingSI) {
-      pendingSI.push({ gdItem, gdData });
+      pendingSI.push({ gdItem, gdData, ctx });
       return null; // deferred — handled in the auto-SI phase
     }
     // No batch context (defensive) — complete without an invoice.
     gdData.auto_si_skip = true;
-    const retryResult = await runGDWorkflow(gdData, "required", "", "");
-    return handleWorkflowResult(retryResult, gdItem, gdData, null, null);
+    const retryResult = await runGDWorkflow(gdData, ctx);
+    return handleWorkflowResult(retryResult, gdItem, gdData, null, null, ctx);
   }
 
   // Handle 411 - GD completed, but the auto Sales Invoice failed (non-blocking)
@@ -279,13 +315,19 @@ const handleWorkflowResult = async (
 
       try {
         const gdData = data.data[0];
-        const workflowResult = await runGDWorkflow(gdData, "required", "", "");
+        const ctx = {
+          needCL: "required",
+          isForceComplete: "",
+          continueZero: "",
+        };
+        const workflowResult = await runGDWorkflow(gdData, ctx);
         const result = await handleWorkflowResult(
           workflowResult,
           gdItem,
           gdData,
           pendingGR,
           pendingSI,
+          ctx,
         );
         if (result) results.push(result);
       } catch (error) {
@@ -325,18 +367,14 @@ const handleWorkflowResult = async (
           p.gdData.auto_gr_skip = true;
         }
         try {
-          const workflowResult = await runGDWorkflow(
-            p.gdData,
-            "required",
-            "",
-            "",
-          );
+          const workflowResult = await runGDWorkflow(p.gdData, p.ctx);
           const result = await handleWorkflowResult(
             workflowResult,
             p.gdItem,
             p.gdData,
             null,
             pendingSI,
+            p.ctx,
           );
           if (result) results.push(result);
         } catch (error) {
@@ -374,18 +412,14 @@ const handleWorkflowResult = async (
           p.gdData.auto_si_skip = true;
         }
         try {
-          const workflowResult = await runGDWorkflow(
-            p.gdData,
-            "required",
-            "",
-            "",
-          );
+          const workflowResult = await runGDWorkflow(p.gdData, p.ctx);
           const result = await handleWorkflowResult(
             workflowResult,
             p.gdItem,
             p.gdData,
             null,
             null,
+            p.ctx,
           );
           if (result) results.push(result);
         } catch (error) {

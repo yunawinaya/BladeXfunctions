@@ -114,7 +114,7 @@ const handleWorkflowResult = async (workflowResult, data, ctx) => {
 
       // User clicked Proceed - re-run workflow with continueZero = "Yes"
       this.showLoading("Saving Goods Delivery as Created...");
-      const next = { ...ctx, needCL: "required", continueZero: "Yes" };
+      const next = { ...ctx, continueZero: "Yes" };
       const retryResult = await runGDWorkflow(data, next);
       await handleWorkflowResult(retryResult, data, next);
     } catch (e) {
