@@ -1,6 +1,4 @@
 // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
-const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
-
 // ===========================================================================
 // ITEM BUNDLES
 // ---------------------------------------------------------------------------
@@ -263,27 +261,31 @@ const createTableGdWithBaseUOM = async (allItems) => {
     const pickedQty = parseFloat(item.pickedQty) || 0; // to_qty (8)
     const alreadyDelivered = parseFloat(item.deliveredQty) || 0; // gd_delivered_qty from PP (5 after first GD)
     const reservedByOthers = parseFloat(item.reservedQty) || 0; // reserved_qty stamped by other in-flight GD-Created docs
-    const remainingToDeliver = roundQty(
-      pickedQty - alreadyDelivered - reservedByOthers,
-    ); // claimable = picked - delivered - reserved
-    const undeliveredQty = roundQty(soOrderedQty - pickedQty); // 10 - 8 = 2
+    const remainingToDeliver = pickedQty - alreadyDelivered - reservedByOthers; // claimable = picked - delivered - reserved
+    const undeliveredQty = soOrderedQty - pickedQty; // 10 - 8 = 2
 
     // If serialized, convert to base UOM
     if (itemData?.serial_number_management === 1) {
-      const soOrderedQtyBase = roundQty(
-        convertToBaseUOM(soOrderedQty, item.altUOM, itemData),
+      const soOrderedQtyBase = convertToBaseUOM(
+        soOrderedQty,
+        item.altUOM,
+        itemData,
       );
-      const pickedQtyBase = roundQty(
-        convertToBaseUOM(pickedQty, item.altUOM, itemData),
+      const pickedQtyBase = convertToBaseUOM(pickedQty, item.altUOM, itemData);
+      const alreadyDeliveredBase = convertToBaseUOM(
+        alreadyDelivered,
+        item.altUOM,
+        itemData,
       );
-      const alreadyDeliveredBase = roundQty(
-        convertToBaseUOM(alreadyDelivered, item.altUOM, itemData),
+      const remainingToDeliverBase = convertToBaseUOM(
+        remainingToDeliver,
+        item.altUOM,
+        itemData,
       );
-      const remainingToDeliverBase = roundQty(
-        convertToBaseUOM(remainingToDeliver, item.altUOM, itemData),
-      );
-      const undeliveredQtyBase = roundQty(
-        convertToBaseUOM(undeliveredQty, item.altUOM, itemData),
+      const undeliveredQtyBase = convertToBaseUOM(
+        undeliveredQty,
+        item.altUOM,
+        itemData,
       );
 
       return {
@@ -342,8 +344,10 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_order_uom_id: item.altUOM,
         good_delivery_uom_id: item.altUOM,
         base_uom_id: item.baseUOM,
-        base_qty: roundQty(
-          convertToBaseUOM(remainingToDeliver, item.altUOM, itemData || {}),
+        base_qty: convertToBaseUOM(
+          remainingToDeliver,
+          item.altUOM,
+          itemData || {},
         ), // gd_qty in base UOM
         unit_price: item.unit_price || 0,
         total_price: item.total_price || 0,
@@ -712,9 +716,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
           }
 
           const groupKey = `${record.to_line_id}|${record.item_code}`;
-          const remainingQty = roundQty(
-            storeOutQty - deliveredQty - reservedQty,
-          );
+          const remainingQty = storeOutQty - deliveredQty - reservedQty;
           const batchId = record.batch_no || record.target_batch;
 
           const tempEntry = {
@@ -766,13 +768,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
             // Existing group - merge
             console.log("pickingRecord (merging into group)", record);
             const existing = groupedItemsDoc.get(groupKey);
-            existing.pickedQty = roundQty(existing.pickedQty + storeOutQty);
-            existing.deliveredQty = roundQty(
-              existing.deliveredQty + deliveredQty,
-            );
-            existing.reservedQty = roundQty(
-              (existing.reservedQty || 0) + reservedQty,
-            );
+            existing.pickedQty = existing.pickedQty + storeOutQty;
+            existing.deliveredQty = existing.deliveredQty + deliveredQty;
+            existing.reservedQty = (existing.reservedQty || 0) + reservedQty;
             existing.tempEntries.push(tempEntry);
             existing.locationBatchInfo.push({
               locationId: record.target_location,
@@ -840,7 +838,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         const itemId = pickingItem.item?.id || "";
         const groupKey = `${ppLineId}|${itemId}`;
 
-        const remainingQty = roundQty(storeOutQty - deliveredQty - reservedQty);
+        const remainingQty = storeOutQty - deliveredQty - reservedQty;
         const batchId = pickingItem.batch_no;
 
         const tempEntry = {
@@ -892,13 +890,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
           // Existing group - merge
           console.log("pickingItem (merging into group)", pickingItem);
           const existing = groupedItemsItem.get(groupKey);
-          existing.pickedQty = roundQty(existing.pickedQty + storeOutQty);
-          existing.deliveredQty = roundQty(
-            existing.deliveredQty + deliveredQty,
-          );
-          existing.reservedQty = roundQty(
-            (existing.reservedQty || 0) + reservedQty,
-          );
+          existing.pickedQty = existing.pickedQty + storeOutQty;
+          existing.deliveredQty = existing.deliveredQty + deliveredQty;
+          existing.reservedQty = (existing.reservedQty || 0) + reservedQty;
           existing.tempEntries.push(tempEntry);
           existing.locationBatchInfo.push({
             locationId: pickingItem.location_id,
@@ -1015,10 +1009,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
   // ==========================================================================
   if (soBundleParentOf.size > 0) {
     const outstandingOf = (line) =>
-      roundQty(
-        (parseFloat(line?.so_quantity) || 0) -
-          (parseFloat(line?.delivered_qty) || 0),
-      );
+      (parseFloat(line?.so_quantity) || 0) -
+      (parseFloat(line?.delivered_qty) || 0);
 
     const bundlesFrom = (parentLine, children) => {
       const parentOutstanding = outstandingOf(parentLine);
@@ -1037,7 +1029,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
         ratio = ratio === null ? childRatio : Math.min(ratio, childRatio);
       }
 
-      return ratio === null ? 0 : roundQty(parentOutstanding * ratio);
+      return ratio === null ? 0 : parentOutstanding * ratio;
     };
 
     const grouped = [];
@@ -1097,7 +1089,7 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
       // createTableGdWithBaseUOM works the line out as picked - delivered -
       // reserved, so the bundle count is carried in the same shape.
-      entry.pickedQty = roundQty(entry.deliveredQty + bundles);
+      entry.pickedQty = entry.deliveredQty + bundles;
 
       console.log("item bundle line", entry.item_bundle_id, {
         bundles,

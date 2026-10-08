@@ -1,11 +1,9 @@
 (async () => {
   // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
-  const roundQty = (value) => Math.round((parseFloat(value) || 0) * 1000) / 1000;
-
-  // Extract input parameters
+    // Extract input parameters
   const data = this.getValues();
   const { rowIndex } = arguments[0];
-  const quantity = roundQty(data.table_gd[rowIndex].gd_qty);
+  const quantity = data.table_gd[rowIndex].gd_qty;
   const isSelectPicking = data.is_select_picking;
 
   // Retrieve values from context
@@ -18,8 +16,8 @@
   const organizationId = data.organization_id;
 
   // Calculate undelivered quantity
-  const undeliveredQty = roundQty(orderedQty - initialDeliveredQty);
-  const totalDeliveredQty = roundQty(quantity + initialDeliveredQty);
+  const undeliveredQty = orderedQty - initialDeliveredQty;
+  const totalDeliveredQty = quantity + initialDeliveredQty;
 
   // ==========================================================================
   // ITEM BUNDLES
@@ -123,7 +121,7 @@
 
     // A bundle carries no tolerance of its own, so the most that can be
     // delivered is whatever is still outstanding on the bundle line.
-    let effectiveQty = roundQty(Math.max(0, quantity));
+    let effectiveQty = Math.max(0, quantity);
 
     if (effectiveQty > undeliveredQty) {
       effectiveQty = undeliveredQty;
@@ -138,16 +136,14 @@
     const ratio = undeliveredQty > 0 ? effectiveQty / undeliveredQty : 0;
 
     const childOutstanding = (child) =>
-      roundQty(
-        (parseFloat(child.gd_order_quantity) || 0) -
-          (parseFloat(child.gd_initial_delivered_qty) || 0),
-      );
+      ((parseFloat(child.gd_order_quantity) || 0) -
+          (parseFloat(child.gd_initial_delivered_qty) || 0));
 
     // An item cannot be delivered beyond what it still has outstanding,
     // whatever the ratio works out to.
     const childQty = (child) => {
       const outstanding = childOutstanding(child);
-      const delivered = roundQty(outstanding * ratio);
+      const delivered = outstanding * ratio;
       return delivered > outstanding ? outstanding : delivered;
     };
 
@@ -163,12 +159,12 @@
 
       return {
         gd_qty: delivered,
-        gd_delivered_qty: roundQty(already + delivered),
-        gd_undelivered_qty: roundQty(ordered - already - delivered),
+        gd_delivered_qty: (already + delivered),
+        gd_undelivered_qty: (ordered - already - delivered),
         packing_qty: packingConversion
-          ? roundQty(delivered / packingConversion)
+          ? (delivered / packingConversion)
           : 0,
-        net_weight: roundQty(delivered * weightConversion),
+        net_weight: (delivered * weightConversion),
       };
     };
 
@@ -222,9 +218,9 @@
     const weightConversion = parseFloat(line.weight_conversion) || 0;
     this.setData({
       [`table_gd.${rowIndex}.packing_qty`]: packingConversion
-        ? roundQty(qty / packingConversion)
+        ? (qty / packingConversion)
         : 0,
-      [`table_gd.${rowIndex}.net_weight`]: roundQty(qty * weightConversion),
+      [`table_gd.${rowIndex}.net_weight`]: (qty * weightConversion),
     });
   };
   recalcPackingWeight(quantity);
@@ -265,9 +261,9 @@
       const baseQtyFactorGDPP = getBaseQtyFactorGDPP(uomId, itemDataGDPP);
 
       // Calculate total to_quantity (ceiling from PP)
-      const totalToQuantity = roundQty(tempDataArray.reduce((sum, item) => {
+      const totalToQuantity = tempDataArray.reduce((sum, item) => {
         return sum + parseFloat(item.to_quantity || 0);
-      }, 0));
+      }, 0);
 
       // Validate: quantity cannot exceed total to_quantity
       if (quantity > totalToQuantity) {
@@ -289,7 +285,7 @@
       const updatedTempData = tempDataArray.map((item) => {
         const itemToQty = parseFloat(item.to_quantity || 0);
         const proportion = itemToQty / totalToQuantity;
-        const newGdQty = roundQty(quantity * proportion);
+        const newGdQty = quantity * proportion;
 
         return {
           ...item,
@@ -392,10 +388,10 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          roundQty(orderedQty - totalDeliveredQty),
+          (orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify(updatedTempData),
-        [`table_gd.${rowIndex}.base_qty`]: roundQty(quantity * baseQtyFactorGDPP),
+        [`table_gd.${rowIndex}.base_qty`]: (quantity * baseQtyFactorGDPP),
       });
 
       console.log(
@@ -469,7 +465,7 @@
     this.setData({
       [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
       [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-        roundQty(orderedQty - totalDeliveredQty),
+        (orderedQty - totalDeliveredQty),
       [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}`,
     });
     return;
@@ -500,7 +496,7 @@
       return conv?.base_qty || 1;
     };
     const baseQtyFactor = getBaseQtyFactor(uomId, itemData);
-    const baseQtyValue = roundQty(quantity * baseQtyFactor);
+    const baseQtyValue = quantity * baseQtyFactor;
 
     // Check if HUs exist for this material — if so, skip auto allocation
     // and let the user use the inventory dialog instead
@@ -521,7 +517,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          roundQty(orderedQty - totalDeliveredQty),
+          (orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
       });
       return;
@@ -551,7 +547,7 @@
           );
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
-            [`table_gd.${rowIndex}.gd_undelivered_qty`]: roundQty(orderedQty - totalDeliveredQty),
+            [`table_gd.${rowIndex}.gd_undelivered_qty`]: (orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
           });
           return;
@@ -645,7 +641,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              roundQty(orderedQty - totalDeliveredQty),
+              (orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog for serialized items with quantity > 1`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]", // Clear any existing temp data
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
@@ -655,7 +651,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              roundQty(orderedQty - totalDeliveredQty),
+              (orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
           });
         }
@@ -671,7 +667,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              roundQty(orderedQty - totalDeliveredQty),
+              (orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.view_stock`]: `Total: ${quantity} ${uomName}\n\nPlease use allocation dialog to select serial number`,
             [`table_gd.${rowIndex}.temp_qty_data`]: "[]",
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
@@ -680,7 +676,7 @@
           this.setData({
             [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
             [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-              roundQty(orderedQty - totalDeliveredQty),
+              (orderedQty - totalDeliveredQty),
             [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
           });
         }
@@ -723,7 +719,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          roundQty(orderedQty - totalDeliveredQty),
+          (orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
         [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,
@@ -854,7 +850,7 @@
       this.setData({
         [`table_gd.${rowIndex}.gd_delivered_qty`]: totalDeliveredQty,
         [`table_gd.${rowIndex}.gd_undelivered_qty`]:
-          roundQty(orderedQty - totalDeliveredQty),
+          (orderedQty - totalDeliveredQty),
         [`table_gd.${rowIndex}.view_stock`]: summary,
         [`table_gd.${rowIndex}.temp_qty_data`]: JSON.stringify([temporaryData]),
         [`table_gd.${rowIndex}.base_qty`]: baseQtyValue,

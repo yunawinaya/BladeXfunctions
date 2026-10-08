@@ -1,3 +1,74 @@
+// A cash sale is billed the moment its order is issued -- the order raises its
+// own receivable -- so invoicing its delivery bills the customer a second time.
+// A delivery made only against cash orders is taken out of the selection here;
+// one that mixes cash and credit orders goes through, and GD_Convert_SI drops
+// its cash lines ("5. Map SI Data").
+//
+// A reference arrives as a bare id or as the expanded record, and a delivery's
+// order list as an array or as the JSON string it is stored as.
+const refIdList = (refs) => {
+  let list = refs;
+  if (typeof list === "string") {
+    try {
+      list = JSON.parse(list);
+    } catch (error) {
+      list = [list];
+    }
+  }
+  return (Array.isArray(list) ? list : [list])
+    .map((ref) => (ref && typeof ref === "object" ? ref.id : ref))
+    .filter(Boolean)
+    .map(String);
+};
+
+const fetchCashOnlyGDIds = async (selectedRecords) => {
+  const gdIds = [...new Set(selectedRecords.map((r) => String(r.id)))];
+
+  // Read back rather than taken off the list rows, which only carry the
+  // columns the view shows.
+  const gdRes = await db
+    .collection("goods_delivery")
+    .filter([
+      {
+        type: "branch",
+        operator: "all",
+        children: [{ prop: "id", operator: "in", value: gdIds }],
+      },
+    ])
+    .get();
+
+  const soIdsByGD = new Map(
+    (gdRes?.data || []).map((gd) => [String(gd.id), refIdList(gd.so_id)]),
+  );
+
+  const soIds = [...new Set([...soIdsByGD.values()].flat())];
+  if (soIds.length === 0) return new Set();
+
+  const soRes = await db
+    .collection("sales_order")
+    .filter([
+      {
+        type: "branch",
+        operator: "all",
+        children: [
+          { prop: "id", operator: "in", value: soIds },
+          { prop: "so_type", operator: "equal", value: "Cash" },
+        ],
+      },
+    ])
+    .get();
+
+  const cashSOIds = new Set((soRes?.data || []).map((so) => String(so.id)));
+  console.log("cash sales order ids in selection:", [...cashSOIds]);
+
+  return new Set(
+    gdIds.filter((gdId) => {
+      const ids = soIdsByGD.get(gdId) || [];
+      return ids.length > 0 && ids.every((id) => cashSOIds.has(id));
+    }),
+  );
+};
+
 // autoPi: "" (not decided yet) | "confirmed" | "skip". Once decided it is threaded through the
 // 401/403 retries below so the user is never asked the same question twice.
 const handleConvertSI = async (
@@ -165,6 +236,35 @@ const handleConvertSI = async (
     let isMultiple = "single";
 
     if (selectedRecords && selectedRecords.length > 0) {
+      const cashOnlyGDIds = await fetchCashOnlyGDIds(selectedRecords);
+
+      if (cashOnlyGDIds.size > 0) {
+        const cashOnlyGDs = selectedRecords.filter((r) =>
+          cashOnlyGDIds.has(String(r.id)),
+        );
+        console.log(
+          "cash sales goods deliveries removed:",
+          cashOnlyGDs.map((r) => r.delivery_no),
+        );
+
+        selectedRecords = selectedRecords.filter(
+          (r) => !cashOnlyGDIds.has(String(r.id)),
+        );
+
+        await this.$alert(
+          `Goods Delivery ${cashOnlyGDs
+            .map((r) => r.delivery_no)
+            .join(", ")} is cash sales. Cash sales cannot create Sales Invoice.`,
+          "Cash Sales Detected",
+          {
+            confirmButtonText: "OK",
+            type: "error",
+          },
+        );
+
+        if (selectedRecords.length === 0) return;
+      }
+
       await this.$confirm(
         `Would you like to convert these into 'Draft' or 'Completed' sales invoices?<br><br>`,
         "Confirm Conversion",

@@ -453,12 +453,12 @@ const fetchDeliveredQuantity = async () => {
       const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
       const orderQty = soLine ? soLine.so_quantity || 0 : 0;
       const maxDeliverableQty =
-        Math.round((orderQty - totalDeliveredQuantity) * 1000) / 1000;
+        (orderQty - totalDeliveredQuantity);
       return {
         ...item,
         gd_undelivered_qty: Math.max(
           0,
-          Math.round((maxDeliverableQty - item.gd_qty) * 1000) / 1000,
+          (maxDeliverableQty - item.gd_qty),
         ),
         gd_initial_delivered_qty: totalDeliveredQuantity,
       };
@@ -561,7 +561,7 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
             altUOM: item.altUOM == null ? "" : item.altUOM.toString(),
           }));
           console.log("all item mounted convert", allItems);
-          await this.triggerEvent("func_processGDLineItem", {
+          await this.triggerEvent("gdV2_func_processGDLineItem", {
             allItems: allItems,
           });
         }
@@ -589,7 +589,7 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
               altUOM: item.altUOM == null ? "" : item.altUOM.toString(),
             }));
             console.log("all item mounted convert", allItem);
-            await this.triggerEvent("func_processGDLineItem", {
+            await this.triggerEvent("gdV2_func_processGDLineItem", {
               allItems: allItem,
             });
           }

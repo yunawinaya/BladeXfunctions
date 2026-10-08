@@ -21,10 +21,7 @@ const resolveRow = (rows, key) => {
 
 (async () => {
   // FIX: Helper function to round quantities to 3 decimal places to avoid floating-point precision issues
-  const roundQty = (value) =>
-    Math.round((parseFloat(value) || 0) * 1000) / 1000;
-
-  const data = this.getValues();
+    const data = this.getValues();
   const temporaryData = data.gd_item_balance.table_item_balance;
   const huData = data.gd_item_balance.table_hu || [];
   const rowKey = data.gd_item_balance.row_index;
@@ -122,9 +119,9 @@ const resolveRow = (rows, key) => {
       if (fromConv && fromConv.base_qty) baseQty = qty * fromConv.base_qty;
     }
     // base → dialog UOM
-    if (currentDialogUOM === baseUOM) return roundQty(baseQty);
+    if (currentDialogUOM === baseUOM) return baseQty;
     const toConv = tableUOM.find((c) => c.alt_uom_id === currentDialogUOM);
-    if (toConv && toConv.base_qty) return roundQty(baseQty / toConv.base_qty);
+    if (toConv && toConv.base_qty) return baseQty / toConv.base_qty;
     return qty;
   };
 
@@ -146,35 +143,29 @@ const resolveRow = (rows, key) => {
   }
 
   // Calculate total quantity from all rows with gd_quantity > 0
-  const balanceTotal = roundQty(
-    temporaryData.reduce((sum, item) => {
-      return (
-        sum + (item.gd_quantity > 0 ? parseFloat(item.gd_quantity || 0) : 0)
-      );
-    }, 0),
-  );
+  const balanceTotal = temporaryData.reduce((sum, item) => {
+      return sum + (item.gd_quantity > 0 ? parseFloat(item.gd_quantity || 0) : 0);
+    }, 0);
 
   // Filter HU item rows with deliver_quantity > 0
   const filteredHuData = huData.filter(
     (item) => item.row_type === "item" && parseFloat(item.deliver_quantity) > 0,
   );
 
-  const totalHuQuantity = roundQty(
-    filteredHuData.reduce(
+  const totalHuQuantity = filteredHuData.reduce(
       (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
       0,
-    ),
-  );
+    );
 
-  const totalDialogQuantity = roundQty(balanceTotal + totalHuQuantity);
-  const totalDeliveredQty = roundQty(initialDeliveredQty + totalDialogQuantity);
+  const totalDialogQuantity = balanceTotal + totalHuQuantity;
+  const totalDeliveredQty = initialDeliveredQty + totalDialogQuantity;
 
   // For NO_SPLIT: validate tolerance — no over-pick allowed beyond delivery tolerance
   // For FULL_HU_PICK: skip — whole-HU excess is inherent, tracked in temp_excess_data
   if (splitPolicy === "NO_SPLIT" && materialId) {
     const tolerance = getOverDeliveryTolerance(itemData, goodDeliveryUOM);
-    const maxAllowed = roundQty(gd_order_quantity * (1 + tolerance / 100));
-    const remainingCapacity = roundQty(maxAllowed - initialDeliveredQty);
+    const maxAllowed = gd_order_quantity * (1 + tolerance / 100);
+    const remainingCapacity = maxAllowed - initialDeliveredQty;
 
     if (totalDialogQuantity > remainingCapacity) {
       alert(
@@ -277,8 +268,8 @@ const resolveRow = (rows, key) => {
         const unrestricted_field = item.unrestricted_qty;
         const reserved_field = item.reserved_qty || 0;
         const availableQty = soLineItemId
-          ? roundQty(unrestricted_field + reserved_field)
-          : roundQty(unrestricted_field);
+          ? (unrestricted_field + reserved_field)
+          : unrestricted_field;
 
         if (availableQty < quantity) {
           console.log(
@@ -300,8 +291,8 @@ const resolveRow = (rows, key) => {
         // With SO: reserved_qty is SO-specific, so unrestricted + reserved = total available
         // Without SO: only check unrestricted (reserved belongs to other documents)
         const availableQty = soLineItemId
-          ? roundQty(unrestricted_field + reserved_field)
-          : roundQty(unrestricted_field);
+          ? (unrestricted_field + reserved_field)
+          : unrestricted_field;
 
         if (availableQty < quantity) {
           console.log(
@@ -390,7 +381,7 @@ const resolveRow = (rows, key) => {
           (conv) => conv.alt_uom_id === toUOM,
         );
         if (toConversion && toConversion.base_qty) {
-          return Math.round((baseQty / toConversion.base_qty) * 1000) / 1000;
+          return baseQty / toConversion.base_qty;
         }
       }
 
@@ -453,14 +444,12 @@ const resolveRow = (rows, key) => {
   // quantities are summed the same way the confirmed gd_qty is worked out
   // further down, so the two sides of this comparison are in the same unit.
   if (targetRow.item_bundle_id && targetRow.material_id) {
-    const requiredQty = roundQty(targetRow.gd_qty);
-    const pickedQty = roundQty(
-      filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0) +
+    const requiredQty = targetRow.gd_qty;
+    const pickedQty = filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0) +
         filteredHuData.reduce(
           (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
           0,
-        ),
-    );
+        );
 
     if (pickedQty !== requiredQty) {
       console.log("Validation failed: item bundle must be picked in full", {
@@ -547,9 +536,7 @@ const resolveRow = (rows, key) => {
       return map;
     }, {});
 
-    const totalQty = roundQty(
-      filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0),
-    );
+    const totalQty = filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0);
 
     const hasHuAllocation = filteredHuData && filteredHuData.length > 0;
     const sectionLabel = hasHuAllocation ? "LOOSE STOCK" : "DETAILS";
@@ -600,7 +587,7 @@ const resolveRow = (rows, key) => {
 
   if (filteredHuData.length > 0) {
     // Grand total at top when both loose stock and HU exist
-    const grandTotal = roundQty(balanceTotal + totalHuQuantity);
+    const grandTotal = balanceTotal + totalHuQuantity;
     formattedString += `Total: ${grandTotal} ${gdUOM}\n\n`;
 
     // Loose stock section (only if there are balance allocations)
@@ -688,14 +675,12 @@ const resolveRow = (rows, key) => {
     const gdQty = parseFloat(targetRow.gd_qty || 0);
 
     // 1. Over-pick excess: current material picked more than GD line needs
-    const currentMaterialHuTotal = roundQty(
-      filteredHuData
+    const currentMaterialHuTotal = filteredHuData
         .filter((item) => item.material_id === materialId)
-        .reduce((sum, item) => sum + parseFloat(item.deliver_quantity || 0), 0),
-    );
+        .reduce((sum, item) => sum + parseFloat(item.deliver_quantity || 0), 0);
 
     if (currentMaterialHuTotal > gdQty && gdQty > 0) {
-      const excessQty = roundQty(currentMaterialHuTotal - gdQty);
+      const excessQty = currentMaterialHuTotal - gdQty;
       // Get the HU info for the excess record
       const huItems = filteredHuData.filter(
         (item) => item.material_id === materialId,
@@ -791,9 +776,7 @@ const resolveRow = (rows, key) => {
       for (const lineInfo of matchingLines) {
         if (remainingHuQty <= 0) break;
 
-        const allocQty = roundQty(
-          Math.min(remainingHuQty, lineInfo.remainingNeed),
-        );
+        const allocQty = Math.min(remainingHuQty, lineInfo.remainingNeed);
         if (allocQty <= 0) continue;
 
         // Initialize accumulator from original snapshot on first access
@@ -862,7 +845,7 @@ const resolveRow = (rows, key) => {
           handling_no: huItem.handling_no || "",
           material_id: huItem.material_id,
           material_name: huItem.material_name || "",
-          quantity: roundQty(remainingHuQty),
+          quantity: remainingHuQty,
           batch_id: huItem.batch_id || null,
           location_id: huItem.location_id,
           reason: "over_pick",
@@ -894,13 +877,11 @@ const resolveRow = (rows, key) => {
   console.log("Row key:", rowKey);
 
   // Sum up all gd_quantity values from filtered data + HU deliver quantities
-  const totalGdQuantity = roundQty(
-    filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0) +
+  const totalGdQuantity = filteredData.reduce((sum, item) => sum + (item.gd_quantity || 0), 0) +
       filteredHuData.reduce(
         (sum, item) => sum + parseFloat(item.deliver_quantity || 0),
         0,
-      ),
-  );
+      );
   console.log("Total GD quantity (balance + HU):", totalGdQuantity);
 
   // Get the initial delivered quantity from the table_gd
@@ -908,7 +889,7 @@ const resolveRow = (rows, key) => {
     parseFloat(targetRow.gd_initial_delivered_qty) || 0;
   console.log("Initial delivered quantity:", initialDeliveredQty2);
 
-  const deliveredQty = roundQty(initialDeliveredQty2 + totalGdQuantity);
+  const deliveredQty = initialDeliveredQty2 + totalGdQuantity;
   console.log("Final delivered quantity:", deliveredQty);
 
   // Calculate price per item for the current row
@@ -939,17 +920,13 @@ const resolveRow = (rows, key) => {
   this.setData({
     [`table_gd.${rowKey}.gd_delivered_qty`]: deliveredQty,
     [`table_gd.${rowKey}.gd_qty`]: totalGdQuantity,
-    [`table_gd.${rowKey}.base_qty`]: roundQty(
-      convertToBaseUOM(totalGdQuantity, goodDeliveryUOM),
-    ),
+    [`table_gd.${rowKey}.base_qty`]: (convertToBaseUOM(totalGdQuantity, goodDeliveryUOM)),
     [`table_gd.${rowKey}.gd_price`]: currentRowPrice,
     [`table_gd.${rowKey}.price_per_item`]: pricePerItem,
     [`table_gd.${rowKey}.packing_qty`]: packingConversion
-      ? roundQty(totalGdQuantity / packingConversion)
+      ? (totalGdQuantity / packingConversion)
       : 0,
-    [`table_gd.${rowKey}.net_weight`]: roundQty(
-      totalGdQuantity * weightConversion,
-    ),
+    [`table_gd.${rowKey}.net_weight`]: (totalGdQuantity * weightConversion),
     error_message: "", // Clear any error message
   });
 
@@ -989,7 +966,7 @@ const resolveRow = (rows, key) => {
 
   // Update the grand total
   this.setData({
-    [`gd_total`]: roundQty(newTotal),
+    [`gd_total`]: newTotal,
   });
 
   this.models["previous_material_uom"] = undefined;

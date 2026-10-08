@@ -74,7 +74,7 @@ const resolvePackingConversion = async (rowIndex, packingUom, fieldModel) => {
     );
 
     const packingQty = packingConversion
-      ? Math.round((gdQty / packingConversion) * 1000) / 1000
+      ? (gdQty / packingConversion)
       : 0;
 
     this.setData({

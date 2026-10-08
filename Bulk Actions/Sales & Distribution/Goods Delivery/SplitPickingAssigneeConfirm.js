@@ -22,6 +22,128 @@ const getPickingNoType = async (organizationId) => {
   }
 };
 
+// Carry the GD's delivery method + details onto each picking, mirroring the
+// Map Picking Data node in gdPicking_workflow.json. GD and Picking name some
+// fields differently, so Company Truck / Shipping values are remapped into
+// Picking's ct_* / ss_* fields. Header remarks already travel on the group.
+const DELIVERY_FIELD_KEYS = [
+  "delivery_method", "delivery_method_text", "area_id",
+  "driver_name", "ic_no", "driver_contact_no", "sp_vehicle_no", "pickup_date", "validity_of_collection",
+  "courier_company", "shipping_date", "tracking_number", "est_arrival_date", "freight_charges",
+  "ct_driver_name", "ct_driver_contact_no", "ct_ic_no", "vehicle_no", "est_delivery_date", "delivery_cost",
+  "shipping_company", "ss_shipping_date", "ss_freight_charges", "shipping_method", "ss_est_arrival_date", "ss_tracking_number",
+  "tpt_vehicle_number", "tpt_transport_name", "tpt_ic_no", "tpt_driver_contact_no", "tpt_driver_name",
+  "di_shipping_method", "di_driver_name", "di_ic_no", "di_driver_contact_no", "di_shipping_company", "di_transport_name", "di_vehicle_number", "di_est_delivery_date", "di_est_arrival_date", "di_pickup_date", "di_validity_of_collection", "di_tracking_number", "di_freight_charges",
+];
+
+const buildDeliveryFields = (gd) => {
+  const fields = {};
+  for (const k of DELIVERY_FIELD_KEYS) fields[k] = "";
+  if (!gd) return fields;
+
+  const method = gd.gd_delivery_method || "";
+  fields.delivery_method = method;
+  fields.delivery_method_text = gd.delivery_method_text || method;
+  fields.area_id = gd.gd_area_id || "";
+
+  // Consolidated Delivery Info block. GD and Picking share these column names,
+  // so no remap is needed and they copy straight across.
+  fields.di_shipping_method = gd.di_shipping_method ?? "";
+  fields.di_driver_name = gd.di_driver_name ?? "";
+  fields.di_ic_no = gd.di_ic_no ?? "";
+  fields.di_driver_contact_no = gd.di_driver_contact_no ?? "";
+  fields.di_shipping_company = gd.di_shipping_company ?? "";
+  fields.di_transport_name = gd.di_transport_name ?? "";
+  fields.di_vehicle_number = gd.di_vehicle_number ?? "";
+  fields.di_est_delivery_date = gd.di_est_delivery_date ?? "";
+  fields.di_est_arrival_date = gd.di_est_arrival_date ?? "";
+  fields.di_pickup_date = gd.di_pickup_date ?? "";
+  fields.di_validity_of_collection = gd.di_validity_of_collection ?? "";
+  fields.di_tracking_number = gd.di_tracking_number ?? "";
+  fields.di_freight_charges = gd.di_freight_charges ?? "";
+
+  switch (method) {
+    case "Self Pickup":
+      fields.driver_name = gd.driver_name ?? "";
+      fields.ic_no = gd.ic_no ?? "";
+      fields.driver_contact_no = gd.driver_contact_no ?? "";
+      fields.sp_vehicle_no = gd.sp_vehicle_no ?? "";
+      fields.pickup_date = gd.pickup_date ?? "";
+      fields.validity_of_collection = gd.validity_of_collection ?? "";
+      break;
+    case "Courier Service":
+      fields.courier_company = gd.courier_company ?? "";
+      fields.shipping_date = gd.shipping_date ?? "";
+      fields.tracking_number = gd.tracking_number ?? "";
+      fields.est_arrival_date = gd.est_arrival_date ?? "";
+      fields.freight_charges = gd.freight_charges ?? "";
+      break;
+    case "Company Truck":
+      fields.ct_driver_name = gd.driver_name ?? "";
+      fields.ct_driver_contact_no = gd.driver_contact_no ?? "";
+      fields.ct_ic_no = gd.ic_no ?? "";
+      fields.vehicle_no = gd.vehicle_no ?? "";
+      fields.est_delivery_date = gd.est_delivery_date ?? "";
+      fields.delivery_cost = gd.delivery_cost ?? "";
+      break;
+    case "Shipping Service":
+      fields.shipping_company = gd.shipping_company ?? "";
+      fields.ss_shipping_date = gd.shipping_date ?? "";
+      fields.ss_freight_charges = gd.freight_charges ?? "";
+      fields.shipping_method = gd.shipping_method ?? "";
+      fields.ss_est_arrival_date = gd.est_arrival_date ?? "";
+      fields.ss_tracking_number = gd.tracking_number ?? "";
+      break;
+    case "3rd Party Transporter":
+      fields.tpt_vehicle_number = gd.tpt_vehicle_number ?? "";
+      fields.tpt_transport_name = gd.tpt_transport_name ?? "";
+      fields.tpt_ic_no = gd.tpt_ic_no ?? "";
+      fields.tpt_driver_contact_no = gd.tpt_driver_contact_no ?? "";
+      fields.tpt_driver_name = gd.tpt_driver_name ?? "";
+      break;
+  }
+  return fields;
+};
+
+// The groups in split_state carry only GD ids, not the header delivery fields,
+// so the first GD of every group -- the one its delivery details are taken
+// from -- is fetched here, keyed by id.
+const getSourceGds = async (groups) => {
+  const gdById = {};
+  const gdIds = [
+    ...new Set(
+      groups
+        .map((g) => (Array.isArray(g.gd_ids) ? g.gd_ids.filter(Boolean)[0] : null))
+        .filter(Boolean)
+        .map(String),
+    ),
+  ];
+  if (gdIds.length === 0) return gdById;
+
+  try {
+    const res = await db
+      .collection("goods_delivery")
+      .filter([
+        {
+          type: "branch",
+          operator: "all",
+          children: [
+            {
+              prop: "id",
+              operator: "in",
+              value: gdIds,
+            },
+          ],
+        },
+      ])
+      .get();
+    for (const gd of res?.data || []) gdById[String(gd.id)] = gd;
+  } catch (err) {
+    console.error("Error reading goods deliveries for delivery fields:", err);
+  }
+  return gdById;
+};
+
 // Build N picking payloads (one per group) and run PickingLoopWorkflow with
 // arrayData. The workflow handles: prefix generation (to_id auto-fill),
 // required-field validation, the actual transfer_order add, and the GD
@@ -35,6 +157,7 @@ const finalize = async (
   listComponentId,
 ) => {
   const pickingNoType = await getPickingNoType(organizationId);
+  const gdById = await getSourceGds(groups);
   const nowMysql = new Date().toISOString().slice(0, 19).replace("T", " ");
   const createdBy =
     typeof this !== "undefined" && this.getVarGlobal
@@ -43,6 +166,11 @@ const finalize = async (
 
   const arrayData = groups.map((group, i) => {
     const assignee = assignees[i] || [];
+    // A group spanning several GDs takes its delivery details from the first.
+    const firstGdId = Array.isArray(group.gd_ids)
+      ? group.gd_ids.filter(Boolean)[0]
+      : null;
+    const sourceGd = firstGdId ? gdById[String(firstGdId)] : null;
     return {
       to_status: "Created",
       to_id: "",
@@ -66,6 +194,7 @@ const finalize = async (
       remarks: group.remarks || "",
       remarks_2: group.remarks_2 || "",
       remarks_3: group.remarks_3 || "",
+      ...buildDeliveryFields(sourceGd),
       to_no: [],
       table_picking_records: [],
       is_processing: 0,

@@ -117,7 +117,7 @@
         return baseQty;
       }
 
-      return Math.round((baseQty / uomConversion.base_qty) * 1000) / 1000;
+      return baseQty / uomConversion.base_qty;
     };
 
     const processItemBalanceData = (
@@ -405,7 +405,7 @@
               row.row_type === "item" &&
               row.handling_unit_id === alloc.handling_unit_id &&
               row.material_id === (alloc.material_id || "") &&
-              (row.batch_id || "") === (alloc.batch_id || ""),
+              (row.batch_id || "") === alloc.batch_id || "",
           );
           if (huItem) {
             huItem.deliver_quantity = alloc.gd_quantity || 0;
@@ -602,7 +602,7 @@
               (a) =>
                 a.handling_unit_id === hu.id &&
                 a.material_id === huItem.material_id &&
-                (a.batch_id || "") === (huItem.batch_id || ""),
+                (a.batch_id || "") === huItem.batch_id || "",
             );
             if (otherLineAlloc) {
               displayQty = Math.max(
@@ -618,7 +618,7 @@
                   r.handling_unit_id === hu.id &&
                   String(r.material_id || "") ===
                     String(huItem.material_id || "") &&
-                  (r.batch_id || "") === (huItem.batch_id || ""),
+                  (r.batch_id || "") === huItem.batch_id || "",
               )
               .reduce((sum, r) => sum + parseFloat(r.open_qty || 0), 0);
             if (crossGdReserved > 0) {
@@ -650,7 +650,7 @@
           }
 
           // Update header with sum of visible item quantities (after deductions)
-          headerRow.item_quantity = Math.round(headerItemTotal * 1000) / 1000;
+          headerRow.item_quantity = headerItemTotal;
         }
 
         // Remove header rows that have no item rows (fully reserved HU)
@@ -676,7 +676,7 @@
               row.row_type === "item" &&
               row.handling_unit_id === tempItem.handling_unit_id &&
               row.material_id === tempItem.material_id &&
-              (row.batch_id || "") === (tempItem.batch_id || ""),
+              (row.batch_id || "") === tempItem.batch_id || "",
           );
           if (match) {
             match.deliver_quantity = tempItem.deliver_quantity || 0;
@@ -1227,11 +1227,9 @@
           if (r.status === "Pending") return true;
           if (r.status === "Allocated") {
             // Only include Allocated from THIS GD (current document)
-            return (
-              gdStatus === "Created" &&
+            return gdStatus === "Created" &&
               currentDocId &&
-              r.doc_id === currentDocId
-            );
+              r.doc_id === currentDocId;
           }
           return false;
         });
@@ -1246,10 +1244,8 @@
             const matchingPending = soLineReservedData.filter((r) => {
               const locationMatch = r.bin_location === balance.location_id;
               if (itemData.item_batch_management === 1) {
-                return (
-                  locationMatch &&
-                  (r.batch_id || "") === (balance.batch_id || "")
-                );
+                return locationMatch &&
+                  (r.batch_id || "") === balance.batch_id || "";
               }
               return locationMatch;
             });
@@ -1279,7 +1275,7 @@
                 }
               }
               balance.reserved_qty =
-                Math.round(pendingQtyDisplay * 1000) / 1000;
+                pendingQtyDisplay;
             } else {
               balance.reserved_qty = 0;
             }
@@ -1341,7 +1337,7 @@
             currentData.gd_item_balance?.table_item_balance || [];
 
           // Build GD line material IDs for NO_SPLIT filtering
-          const lineMaterials = (currentData.table_gd || [])
+          const lineMaterials = currentData.table_gd || []
             .map((line) => line.material_id)
             .filter(Boolean);
 

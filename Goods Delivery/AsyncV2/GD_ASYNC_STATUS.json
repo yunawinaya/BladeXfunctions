@@ -1,0 +1,2159 @@
+{
+  "request_json": [
+    {
+      "key": "q4fpv23b",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "the organization (digits) of the job",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "3kulefdn",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "the gd_async_job id (digits); or empty and idempotency_key",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "4mablsha",
+      "name": "idempotency_key",
+      "title": "idempotency_key",
+      "description": "the key the form submitted with (when the job id is not known: a failed submit instance, a refresh)",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "0ko3f0s3",
+      "name": "status_route",
+      "title": "status_route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "09acg8sv",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "1jphi4zr",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wjylo9a6",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "jdgnkeda",
+      "name": "idempotency_key",
+      "title": "idempotency_key",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ubk6p1pn",
+      "name": "correlation_id",
+      "title": "correlation_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "s02jt8de",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ukcjlebq",
+      "name": "ux_state",
+      "title": "ux_state",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "iihcyrz8",
+      "name": "ux_label",
+      "title": "ux_label",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "0zo0d11c",
+      "name": "progress_percent",
+      "title": "progress_percent",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "rsuiiviq",
+      "name": "progress_message",
+      "title": "progress_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ggt0pbcb",
+      "name": "gd_id",
+      "title": "gd_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "cmlznbts",
+      "name": "gd_no",
+      "title": "gd_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "jaqtyvdq",
+      "name": "last_update",
+      "title": "last_update",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "rg3xj5je",
+      "name": "review_reference",
+      "title": "review_reference",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ids76t4t",
+      "name": "error_code",
+      "title": "error_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "5qhkoig3",
+      "name": "error_message",
+      "title": "error_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "lrpkkmrb",
+      "name": "line_errors",
+      "title": "line_errors",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "zegz6y71",
+      "name": "retry_allowed",
+      "title": "retry_allowed",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "nq11fmkp",
+      "name": "new_attempt_allowed",
+      "title": "new_attempt_allowed",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "xloiatoc",
+      "name": "cancel_hint",
+      "title": "cancel_hint",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "dobruxfi",
+      "name": "terminal",
+      "title": "terminal",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "yhlnrejo",
+      "name": "mutation_possible",
+      "title": "mutation_possible",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "mh7iuopy",
+      "name": "inventory_status",
+      "title": "inventory_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "j9k9smzg",
+      "name": "cancel_requested",
+      "title": "cancel_requested",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "mblte1pq",
+      "name": "required_confirmations",
+      "title": "required_confirmations",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "6eoztoo8",
+      "name": "required_confirmation_hash",
+      "title": "required_confirmation_hash",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "gveqyv7m",
+      "name": "checked_at",
+      "title": "checked_at",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "q1aybahn",
+      "name": "evidence",
+      "title": "evidence",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "title": "Start Node",
+        "isValidator": true,
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_vN1fxmgo",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: organization, job id or idempotency key, session tenant",
+        "isValidator": true,
+        "nodeName": "Guard: organization, job id or idempotency key, session tenant",
+        "name": "Guard: organization, job id or idempotency key, session tenant",
+        "script": {
+          "type": "javascript",
+          "code": "// GD_ASYNC_STATUS - Guard\n// Generated by scripts/build-gd-async-ux.mjs from scripts/lib/gd-async-ux.mjs - edit there (Task 10).\nconst UXC = {\"ux_of_job\":{\"QUEUED\":\"QUEUED\",\"VALIDATING\":\"PREPARING\",\"AWAITING_CONFIRMATION\":\"PREPARING\",\"CALCULATING\":\"PREPARING\",\"READY_TO_COMMIT\":\"PREPARING\",\"COMMITTING_GD\":\"PUBLISHING\",\"RECONCILING_GD\":\"PUBLISHING\",\"GD_COMMITTED\":\"CREATED\",\"CREATING_PICKING\":\"CREATED\",\"PICKING_RETRYING\":\"CREATED\",\"PICKING_READY\":\"CREATED\",\"COMPLETED\":\"CREATED\",\"FAILED\":\"REJECTED\",\"CANCELLED\":\"REJECTED\",\"REQUIRES_REVIEW\":\"REQUIRES_REVIEW\"},\"labels\":{\"QUEUED\":\"Queued\",\"PREPARING\":\"Preparing\",\"PUBLISHING\":\"Publishing\",\"CREATED\":\"Created\",\"REJECTED\":\"Rejected\",\"REQUIRES_REVIEW\":\"Requires review\"},\"display\":{\"QUEUED\":\"Queued for processing\",\"VALIDATING\":\"Validating\",\"AWAITING_CONFIRMATION\":\"Conditions changed; confirmation needed\",\"CALCULATING\":\"Checking stock and allocation\",\"READY_TO_COMMIT\":\"Ready to publish\",\"COMMITTING_GD\":\"Publishing Goods Delivery\",\"RECONCILING_GD\":\"GD {gd_no} created; finishing publication\",\"GD_COMMITTED\":\"GD {gd_no} created\",\"CREATING_PICKING\":\"GD {gd_no} created; creating Picking\",\"PICKING_RETRYING\":\"GD {gd_no} created; Picking retrying\",\"PICKING_READY\":\"GD {gd_no} created; Picking {picking_no} ready\",\"COMPLETED\":\"GD {gd_no} created; processing complete\",\"FAILED\":\"Not created; correct the highlighted lines\",\"CANCELLED\":\"Cancelled before publishing\",\"REQUIRES_REVIEW\":\"Under review (ref {review_reference}); do not retry\"},\"pre_commit\":[\"QUEUED\",\"VALIDATING\",\"AWAITING_CONFIRMATION\",\"CALCULATING\",\"READY_TO_COMMIT\"],\"cancellable\":[\"QUEUED\",\"VALIDATING\",\"AWAITING_CONFIRMATION\",\"CALCULATING\",\"READY_TO_COMMIT\"],\"post_commit\":[\"GD_COMMITTED\",\"CREATING_PICKING\",\"PICKING_RETRYING\",\"PICKING_READY\",\"COMPLETED\"],\"terminal\":[\"COMPLETED\",\"FAILED\",\"CANCELLED\",\"REQUIRES_REVIEW\"],\"retry_codes\":[\"GD_TRANSIENT_DEADLOCK\",\"GD_TRANSIENT_LOCK_TIMEOUT\",\"GD_TRANSIENT_CONNECTIVITY\",\"GD_TRANSIENT_RETRIES_EXHAUSTED\",\"GD_INVENTORY_RETRYABLE_REJECTION\"],\"uncertain_ops\":[\"MUTATING\",\"VERIFYING\",\"REQUIRES_REVIEW\"],\"claim_prefix\":\"W0_CLAIM_\",\"rclaim_prefix\":\"R0_CLAIM_\",\"cancel_owner_prefix\":\"CAN|\",\"lease_minutes\":10,\"stock_chunk\":50,\"max_lines\":500,\"poll\":{\"first_ms\":2000,\"factor\":1.5,\"max_ms\":10000,\"budget_ms\":600000},\"key_prefix\":\"GDF\",\"header_fields\":[\"plant_id\",\"customer_name\",\"currency_code\",\"so_no\",\"pp_no\",\"so_id\",\"gd_billing_address\",\"gd_shipping_address\",\"delivery_no\",\"gd_contact_name\",\"contact_number\",\"email_address\",\"gd_delivery_method\",\"delivery_date\",\"document_description\",\"assigned_to\",\"organization_id\",\"gd_created_by\",\"acc_integration_type\",\"reference_type\",\"gd_ref_doc\",\"last_sync_date\",\"customer_credit_limit\",\"overdue_limit\",\"outstanding_balance\",\"overdue_inv_total_amount\",\"is_accurate\",\"driver_name\",\"ic_no\",\"driver_contact_no\",\"vehicle_no\",\"pickup_date\",\"validity_of_collection\",\"courier_company\",\"shipping_date\",\"freight_charges\",\"tracking_number\",\"est_arrival_date\",\"est_delivery_date\",\"delivery_cost\",\"shipping_company\",\"shipping_method\",\"tpt_vehicle_number\",\"tpt_transport_name\",\"tpt_ic_no\",\"tpt_driver_contact_no\",\"select_vehicle_id\",\"gd_vehicle_type\",\"gd_vehicle_capacity\",\"gd_vehicle_cap_uom\",\"select_driver_id\",\"gd_driver_contact\",\"gd_driver_ic\",\"gd_total\",\"order_tnc\",\"order_payment_details\",\"order_delivery_term\",\"order_remark\",\"order_remark2\",\"order_remark3\",\"order_remark4\",\"order_remark5\",\"picking_status\",\"billing_address_name\",\"billing_address_phone\",\"billing_address_line_1\",\"billing_address_line_2\",\"billing_address_line_3\",\"billing_address_line_4\",\"billing_address_city\",\"billing_postal_code\",\"billing_address_state\",\"billing_address_country\",\"billing_attention\",\"billing_address_fax\",\"billing_address_code\",\"shipping_address_code\",\"shipping_address_fax\",\"shipping_address_name\",\"shipping_address_phone\",\"shipping_address_line_1\",\"shipping_address_line_2\",\"shipping_address_line_3\",\"shipping_address_line_4\",\"shipping_address_city\",\"shipping_postal_code\",\"shipping_address_state\",\"shipping_address_country\",\"shipping_attention\",\"delivery_no_type\",\"to_no\",\"is_select_picking\",\"pp_id\",\"sp_vehicle_no\",\"gd_area_id\",\"tpt_driver_name\",\"di_shipping_method\",\"di_driver_name\",\"di_ic_no\",\"di_driver_contact_no\",\"di_shipping_company\",\"di_transport_name\",\"di_vehicle_number\",\"di_est_delivery_date\",\"di_est_arrival_date\",\"di_pickup_date\",\"di_validity_of_collection\",\"di_tracking_number\",\"di_freight_charges\",\"project_id\",\"sales_person\"],\"cancel_message\":\"Saving has started; cancellation is no longer possible\",\"mismatch_message\":\"Save outcome requires review\"};\nconst statusGuard = function statusGuard(input) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const inp = input || {};\n  const tenantId = s(inp.systemTenantId);\n  const organizationId = s(inp.organizationId);\n  const jobId = s(inp.jobId);\n  const key = s(inp.idempotencyKey);\n  const base = { route: \"REJECT\", tenantId: \"0\", organizationId: \"0\", jobIdSql: \"0\", keySql: \"NONE\", jobId: jobId, idempotencyKey: key, result_code: \"\", result_message: \"\" };\n  const bad = (why) => Object.assign({}, base, { result_code: \"GD_INVALID_DATA\", result_message: why });\n  if (!/^[0-9]{1,20}$/.test(tenantId)) return bad(\"no session tenant\");\n  if (!/^[0-9]{1,19}$/.test(organizationId)) return bad(\"organization_id: digits\");\n  if (jobId && !/^[0-9]{1,20}$/.test(jobId)) return bad(\"job_id: digits\");\n  if (!jobId && !/^[A-Za-z0-9:_-]{16,128}$/.test(key)) return bad(\"job_id or idempotency_key (16-128 of A-Z a-z 0-9 : _ -) is required\");\n  return Object.assign({}, base, { route: \"CONTINUE\", tenantId: tenantId, organizationId: organizationId, jobIdSql: jobId || \"0\", keySql: jobId ? \"NONE\" : key });\n};\nconst res = statusGuard({ organizationId: [{{workflowparams:organization_id}}][0], jobId: [{{workflowparams:job_id}}][0], idempotencyKey: [{{workflowparams:idempotency_key}}][0], systemTenantId: [{{system:tenantId}}][0] });\nconsole.log(\"status guard\", JSON.stringify({ route: res.route, job: res.jobIdSql, key: res.keySql }));\nreturn res;\n"
+        },
+        "response_json": [
+          {
+            "key": "n69bsyfs",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "3j6m8do2",
+            "name": "tenantId",
+            "title": "tenantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "phexchcw",
+            "name": "organizationId",
+            "title": "organizationId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "unm5zxtg",
+            "name": "jobIdSql",
+            "title": "jobIdSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bz8yr9tw",
+            "name": "keySql",
+            "title": "keySql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cbam9kq4",
+            "name": "jobId",
+            "title": "jobId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "dw7eiwff",
+            "name": "idempotencyKey",
+            "title": "idempotencyKey",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6h8cxxo0",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "b1fvjpph",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_J9h3A27R",
+      "type": "if",
+      "data": {
+        "title": "IF the input is invalid: answer, read nothing",
+        "isValidator": true,
+        "nodeName": "IF the input is invalid: answer, read nothing",
+        "name": "IF the input is invalid: answer, read nothing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1796000000000,
+              "parentId": 1796000000001,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_vN1fxmgo.data.route}}' == 'REJECT'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_KJUWgf9u",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "code_node_R3jUcfb8",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Evidence REJECTED_INPUT",
+                "isValidator": true,
+                "nodeName": "Evidence REJECTED_INPUT",
+                "name": "Evidence REJECTED_INPUT",
+                "script": {
+                  "type": "javascript",
+                  "code": "// GD_ASYNC_STATUS - Evidence (REJECTED_INPUT)\n// Generated by scripts/build-gd-async-ux.mjs from scripts/lib/gd-async-ux.mjs - edit there (Task 10).\nconst UXC = {\"ux_of_job\":{\"QUEUED\":\"QUEUED\",\"VALIDATING\":\"PREPARING\",\"AWAITING_CONFIRMATION\":\"PREPARING\",\"CALCULATING\":\"PREPARING\",\"READY_TO_COMMIT\":\"PREPARING\",\"COMMITTING_GD\":\"PUBLISHING\",\"RECONCILING_GD\":\"PUBLISHING\",\"GD_COMMITTED\":\"CREATED\",\"CREATING_PICKING\":\"CREATED\",\"PICKING_RETRYING\":\"CREATED\",\"PICKING_READY\":\"CREATED\",\"COMPLETED\":\"CREATED\",\"FAILED\":\"REJECTED\",\"CANCELLED\":\"REJECTED\",\"REQUIRES_REVIEW\":\"REQUIRES_REVIEW\"},\"labels\":{\"QUEUED\":\"Queued\",\"PREPARING\":\"Preparing\",\"PUBLISHING\":\"Publishing\",\"CREATED\":\"Created\",\"REJECTED\":\"Rejected\",\"REQUIRES_REVIEW\":\"Requires review\"},\"display\":{\"QUEUED\":\"Queued for processing\",\"VALIDATING\":\"Validating\",\"AWAITING_CONFIRMATION\":\"Conditions changed; confirmation needed\",\"CALCULATING\":\"Checking stock and allocation\",\"READY_TO_COMMIT\":\"Ready to publish\",\"COMMITTING_GD\":\"Publishing Goods Delivery\",\"RECONCILING_GD\":\"GD {gd_no} created; finishing publication\",\"GD_COMMITTED\":\"GD {gd_no} created\",\"CREATING_PICKING\":\"GD {gd_no} created; creating Picking\",\"PICKING_RETRYING\":\"GD {gd_no} created; Picking retrying\",\"PICKING_READY\":\"GD {gd_no} created; Picking {picking_no} ready\",\"COMPLETED\":\"GD {gd_no} created; processing complete\",\"FAILED\":\"Not created; correct the highlighted lines\",\"CANCELLED\":\"Cancelled before publishing\",\"REQUIRES_REVIEW\":\"Under review (ref {review_reference}); do not retry\"},\"pre_commit\":[\"QUEUED\",\"VALIDATING\",\"AWAITING_CONFIRMATION\",\"CALCULATING\",\"READY_TO_COMMIT\"],\"cancellable\":[\"QUEUED\",\"VALIDATING\",\"AWAITING_CONFIRMATION\",\"CALCULATING\",\"READY_TO_COMMIT\"],\"post_commit\":[\"GD_COMMITTED\",\"CREATING_PICKING\",\"PICKING_RETRYING\",\"PICKING_READY\",\"COMPLETED\"],\"terminal\":[\"COMPLETED\",\"FAILED\",\"CANCELLED\",\"REQUIRES_REVIEW\"],\"retry_codes\":[\"GD_TRANSIENT_DEADLOCK\",\"GD_TRANSIENT_LOCK_TIMEOUT\",\"GD_TRANSIENT_CONNECTIVITY\",\"GD_TRANSIENT_RETRIES_EXHAUSTED\",\"GD_INVENTORY_RETRYABLE_REJECTION\"],\"uncertain_ops\":[\"MUTATING\",\"VERIFYING\",\"REQUIRES_REVIEW\"],\"claim_prefix\":\"W0_CLAIM_\",\"rclaim_prefix\":\"R0_CLAIM_\",\"cancel_owner_prefix\":\"CAN|\",\"lease_minutes\":10,\"stock_chunk\":50,\"max_lines\":500,\"poll\":{\"first_ms\":2000,\"factor\":1.5,\"max_ms\":10000,\"budget_ms\":600000},\"key_prefix\":\"GDF\",\"header_fields\":[\"plant_id\",\"customer_name\",\"currency_code\",\"so_no\",\"pp_no\",\"so_id\",\"gd_billing_address\",\"gd_shipping_address\",\"delivery_no\",\"gd_contact_name\",\"contact_number\",\"email_address\",\"gd_delivery_method\",\"delivery_date\",\"document_description\",\"assigned_to\",\"organization_id\",\"gd_created_by\",\"acc_integration_type\",\"reference_type\",\"gd_ref_doc\",\"last_sync_date\",\"customer_credit_limit\",\"overdue_limit\",\"outstanding_balance\",\"overdue_inv_total_amount\",\"is_accurate\",\"driver_name\",\"ic_no\",\"driver_contact_no\",\"vehicle_no\",\"pickup_date\",\"validity_of_collection\",\"courier_company\",\"shipping_date\",\"freight_charges\",\"tracking_number\",\"est_arrival_date\",\"est_delivery_date\",\"delivery_cost\",\"shipping_company\",\"shipping_method\",\"tpt_vehicle_number\",\"tpt_transport_name\",\"tpt_ic_no\",\"tpt_driver_contact_no\",\"select_vehicle_id\",\"gd_vehicle_type\",\"gd_vehicle_capacity\",\"gd_vehicle_cap_uom\",\"select_driver_id\",\"gd_driver_contact\",\"gd_driver_ic\",\"gd_total\",\"order_tnc\",\"order_payment_details\",\"order_delivery_term\",\"order_remark\",\"order_remark2\",\"order_remark3\",\"order_remark4\",\"order_remark5\",\"picking_status\",\"billing_address_name\",\"billing_address_phone\",\"billing_address_line_1\",\"billing_address_line_2\",\"billing_address_line_3\",\"billing_address_line_4\",\"billing_address_city\",\"billing_postal_code\",\"billing_address_state\",\"billing_address_country\",\"billing_attention\",\"billing_address_fax\",\"billing_address_code\",\"shipping_address_code\",\"shipping_address_fax\",\"shipping_address_name\",\"shipping_address_phone\",\"shipping_address_line_1\",\"shipping_address_line_2\",\"shipping_address_line_3\",\"shipping_address_line_4\",\"shipping_address_city\",\"shipping_postal_code\",\"shipping_address_state\",\"shipping_address_country\",\"shipping_attention\",\"delivery_no_type\",\"to_no\",\"is_select_picking\",\"pp_id\",\"sp_vehicle_no\",\"gd_area_id\",\"tpt_driver_name\",\"di_shipping_method\",\"di_driver_name\",\"di_ic_no\",\"di_driver_contact_no\",\"di_shipping_company\",\"di_transport_name\",\"di_vehicle_number\",\"di_est_delivery_date\",\"di_est_arrival_date\",\"di_pickup_date\",\"di_validity_of_collection\",\"di_tracking_number\",\"di_freight_charges\",\"project_id\",\"sales_person\"],\"cancel_message\":\"Saving has started; cancellation is no longer possible\",\"mismatch_message\":\"Save outcome requires review\"};\nconst uxStateOf = function uxStateOf(jobStatus, gdStatus) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const st = s(jobStatus);\n  const ux = UXC.ux_of_job[st] || \"\";\n  if (!ux) return { state: \"REQUIRES_REVIEW\", label: UXC.labels.REQUIRES_REVIEW, mismatch: \"unknown job state \" + (st || \"(empty)\") };\n  if (ux === \"CREATED\" && s(gdStatus) !== \"Created\") return { state: \"REQUIRES_REVIEW\", label: UXC.labels.REQUIRES_REVIEW, mismatch: \"the job is \" + st + \" but the delivery is \" + (s(gdStatus) || \"not readable\") };\n  return { state: ux, label: UXC.labels[ux], mismatch: \"\" };\n};\nconst statusDecide = function statusDecide(guard, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) : \"\";\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const out = { route: \"NOT_FOUND\", result_code: \"\", result_message: \"\", job_id: \"\", idempotency_key: s(guard.idempotencyKey), correlation_id: \"\", job_status: \"\", ux_state: \"\", ux_label: \"\", progress_percent: \"\", progress_message: \"\", gd_id: \"\", gd_no: \"\", last_update: \"\", review_reference: \"\", error_code: \"\", error_message: \"\", line_errors: \"[]\", retry_allowed: \"NO\", new_attempt_allowed: \"NO\", cancel_hint: \"NO\", terminal: \"NO\", mutation_possible: \"NO\", inventory_status: \"\", cancel_requested: \"0\", required_confirmations: \"[]\", required_confirmation_hash: \"\", checked_at: dbNow };\n  if (guard.route !== \"CONTINUE\") return Object.assign(out, { route: \"REJECT\", result_code: guard.result_code, result_message: guard.result_message });\n  if (!job) return Object.assign(out, { result_code: \"GD_INVALID_DATA\", result_message: \"no live job \" + (guard.jobId ? \"with id \" + guard.jobId : \"with key \" + guard.idempotencyKey) + \" in organization \" + guard.organizationId });\n  const status = s(job.job_status);\n  const gdStatus = s(job.gd_status);\n  let details = {};\n  try {\n    const d = typeof job.error_details === \"string\" ? JSON.parse(job.error_details || \"{}\") : job.error_details || {};\n    details = d && typeof d === \"object\" && !Array.isArray(d) ? d : {};\n  } catch (e) {\n    details = {};\n  }\n  const lineErrors = Array.isArray(details.line_errors) ? details.line_errors.slice(0, 500) : [];\n  const p3 = s(job.p3_status);\n  const opsOpen = Number(job.ops_open) || 0;\n  const opsUncertain = Number(job.ops_uncertain) || 0;\n  const stepsAfterP0 = Number(job.steps_after_p0) || 0;\n  // the inventory may have run: a P3 step row that is not a recorded clean failure, or any operation of the job\n  // that is not REJECTED (contract clean_failure_gate)\n  const mutation = (p3 !== \"\" && p3 !== \"FAILED\") || opsOpen > 0 || opsUncertain > 0;\n  const ux = uxStateOf(status, gdStatus);\n  let state = ux.state;\n  let code = s(job.error_code);\n  let resultCode = \"\";\n  // a FAILED / CANCELLED job answers its fixed display text: a publish that failed after COMMITTING_GD began leaves\n  // progress_message at \"Publishing Goods Delivery\" (dev run 10101 A5, J8 GD_INVENTORY_REJECTED); the detail is error_message\n  let message = status === \"FAILED\" || status === \"CANCELLED\" ? UXC.display[status] : s(job.progress_message) || UXC.display[status] || status;\n  let ref = s(details.review_reference) || (p3 === \"REQUIRES_REVIEW\" ? s(job.p3_ref) : \"\") || s(job.op_review_ref);\n  if (ux.mismatch) {\n    code = resultCode = \"GD_RECONCILIATION_MISMATCH\";\n    message = UXC.mismatch_message + \": \" + ux.mismatch;\n  }\n  // a FAILED / CANCELLED job whose facts say stock may have moved, or whose delivery is still live, is not a clean\n  // rejection (the reconcile's I1 contradiction): it is shown as under review, never as retryable\n  if (state === \"REJECTED\" && (mutation || gdStatus !== \"\")) {\n    state = \"REQUIRES_REVIEW\";\n    code = resultCode = \"GD_RECONCILIATION_MISMATCH\";\n    message = UXC.mismatch_message + \": the job is \" + status + \" but \" + (gdStatus !== \"\" ? \"its delivery is \" + gdStatus : \"an inventory operation of it is \" + (s(job.op_status) || \"not rejected\"));\n  }\n  if (state === \"REQUIRES_REVIEW\" && !ref) ref = \"JOB|\" + s(job.id);\n  if (state !== \"REQUIRES_REVIEW\") ref = \"\";\n  const showGdNo = gdStatus === \"Created\" && (state === \"CREATED\" || state === \"REQUIRES_REVIEW\");\n  const retry = status === \"FAILED\" && state === \"REJECTED\" && !mutation && UXC.retry_codes.indexOf(s(job.error_code)) >= 0;\n  const newAttempt = (status === \"FAILED\" || status === \"CANCELLED\") && state === \"REJECTED\" && !mutation;\n  const cancelHint = UXC.cancellable.indexOf(status) >= 0 && state !== \"REQUIRES_REVIEW\" && !mutation && stepsAfterP0 === 0 && s(job.gd_id) === \"\" && String(job.cancel_requested) !== \"1\";\n  const terminal = UXC.terminal.indexOf(status) >= 0;\n  return Object.assign(out, {\n    route: \"FOUND\",\n    result_code: resultCode,\n    result_message: message,\n    job_id: s(job.id),\n    idempotency_key: s(job.idempotency_key),\n    correlation_id: s(job.correlation_id),\n    job_status: status,\n    ux_state: state,\n    ux_label: UXC.labels[state],\n    progress_percent: s(job.progress_percent),\n    progress_message: s(job.progress_message),\n    gd_id: showGdNo ? s(job.gd_id) : \"\",\n    gd_no: showGdNo ? s(job.gd_live_no) || s(job.gd_no) : \"\",\n    last_update: s(job.update_time) || s(job.finished_at),\n    review_reference: ref,\n    error_code: code,\n    error_message: s(job.error_message),\n    line_errors: JSON.stringify(lineErrors),\n    retry_allowed: retry ? \"YES\" : \"NO\",\n    new_attempt_allowed: newAttempt ? \"YES\" : \"NO\",\n    cancel_hint: cancelHint ? \"YES\" : \"NO\",\n    terminal: terminal ? \"YES\" : \"NO\",\n    mutation_possible: mutation ? \"YES\" : \"NO\",\n    inventory_status: s(job.op_status),\n    cancel_requested: String(job.cancel_requested) === \"1\" ? \"1\" : \"0\",\n    required_confirmations: JSON.stringify(Array.isArray(details.required_confirmations) ? details.required_confirmations : []),\n    required_confirmation_hash: status === \"AWAITING_CONFIRMATION\" ? s(details.required_confirmation_hash) : \"\",\n  });\n};\n// The engine stores only nodes whose output a later node references (docs/lowcode/inventory-operation-v2/evidence/engine-probe-run-2026-09-30.md F11): this node references the\n// decision node of every step of its path (their route fields), and the return node returns it.\nconst T = (v) => String(v === undefined || v === null ? \"\" : v).replace(/^\"([\\s\\S]*)\"$/, \"$1\").trim();\nconst steps = {};\nsteps.guard = T([{{node:code_node_vN1fxmgo.data.route}}][0]);\nconst r = statusDecide([{{node:code_node_vN1fxmgo.data}}][0], []);\nconst evidence = { v: 1, workflow: \"GD_ASYNC_STATUS\", path: \"REJECTED_INPUT\", steps: steps };\nconst res = { status_route: r.route };\n[\"result_code\",\"result_message\",\"job_id\",\"idempotency_key\",\"correlation_id\",\"job_status\",\"ux_state\",\"ux_label\",\"progress_percent\",\"progress_message\",\"gd_id\",\"gd_no\",\"last_update\",\"review_reference\",\"error_code\",\"error_message\",\"line_errors\",\"retry_allowed\",\"new_attempt_allowed\",\"cancel_hint\",\"terminal\",\"mutation_possible\",\"inventory_status\",\"cancel_requested\",\"required_confirmations\",\"required_confirmation_hash\",\"checked_at\"].forEach(function (k) { res[k] = r[k] === undefined || r[k] === null ? \"\" : String(r[k]); });\nres.evidence = JSON.stringify(evidence);\nreturn res;\n"
+                },
+                "response_json": [
+                  {
+                    "key": "raqwa8ni",
+                    "name": "status_route",
+                    "title": "status_route",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "6h8cxxo0",
+                    "name": "result_code",
+                    "title": "result_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "b1fvjpph",
+                    "name": "result_message",
+                    "title": "result_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "7t9km7ec",
+                    "name": "job_id",
+                    "title": "job_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "mtxkucba",
+                    "name": "idempotency_key",
+                    "title": "idempotency_key",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "1q5gh5eh",
+                    "name": "correlation_id",
+                    "title": "correlation_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "qtps6nt3",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "bsjynr2z",
+                    "name": "ux_state",
+                    "title": "ux_state",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kbqhpkyq",
+                    "name": "ux_label",
+                    "title": "ux_label",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "qkyzb6dq",
+                    "name": "progress_percent",
+                    "title": "progress_percent",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "776skarr",
+                    "name": "progress_message",
+                    "title": "progress_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "qtkhxqng",
+                    "name": "gd_id",
+                    "title": "gd_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "jsxfzobq",
+                    "name": "gd_no",
+                    "title": "gd_no",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "dxn91dkq",
+                    "name": "last_update",
+                    "title": "last_update",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fvavures",
+                    "name": "review_reference",
+                    "title": "review_reference",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "owgmig7x",
+                    "name": "error_code",
+                    "title": "error_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hfz9xcjz",
+                    "name": "error_message",
+                    "title": "error_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "lpyrxnne",
+                    "name": "line_errors",
+                    "title": "line_errors",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sr5exi1l",
+                    "name": "retry_allowed",
+                    "title": "retry_allowed",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "bxrmmnrb",
+                    "name": "new_attempt_allowed",
+                    "title": "new_attempt_allowed",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "uqsh1dpm",
+                    "name": "cancel_hint",
+                    "title": "cancel_hint",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "m7l12lfe",
+                    "name": "terminal",
+                    "title": "terminal",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "szvydchz",
+                    "name": "mutation_possible",
+                    "title": "mutation_possible",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "3gc1klvm",
+                    "name": "inventory_status",
+                    "title": "inventory_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fxpzlmw9",
+                    "name": "cancel_requested",
+                    "title": "cancel_requested",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "vmg4c0so",
+                    "name": "required_confirmations",
+                    "title": "required_confirmations",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "welac89v",
+                    "name": "required_confirmation_hash",
+                    "title": "required_confirmation_hash",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "3wnkt4pt",
+                    "name": "checked_at",
+                    "title": "checked_at",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "stppwadt",
+                    "name": "evidence",
+                    "title": "evidence",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_node_HsMbRV3w",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return (rejected input)",
+                "isValidator": true,
+                "nodeName": "Return (rejected input)",
+                "name": "Return (rejected input)",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "status_route",
+                      "propLabel": "status_route",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.status_route}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_code",
+                      "propLabel": "result_code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.result_code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_message",
+                      "propLabel": "result_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.result_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_id",
+                      "propLabel": "job_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.job_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "idempotency_key",
+                      "propLabel": "idempotency_key",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.idempotency_key}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "correlation_id",
+                      "propLabel": "correlation_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.correlation_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_status",
+                      "propLabel": "job_status",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.job_status}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "ux_state",
+                      "propLabel": "ux_state",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.ux_state}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "ux_label",
+                      "propLabel": "ux_label",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.ux_label}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "progress_percent",
+                      "propLabel": "progress_percent",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.progress_percent}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "progress_message",
+                      "propLabel": "progress_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.progress_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "gd_id",
+                      "propLabel": "gd_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.gd_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "gd_no",
+                      "propLabel": "gd_no",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.gd_no}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "last_update",
+                      "propLabel": "last_update",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.last_update}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "review_reference",
+                      "propLabel": "review_reference",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.review_reference}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "error_code",
+                      "propLabel": "error_code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.error_code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "error_message",
+                      "propLabel": "error_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.error_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "line_errors",
+                      "propLabel": "line_errors",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.line_errors}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "retry_allowed",
+                      "propLabel": "retry_allowed",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.retry_allowed}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "new_attempt_allowed",
+                      "propLabel": "new_attempt_allowed",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.new_attempt_allowed}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "cancel_hint",
+                      "propLabel": "cancel_hint",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.cancel_hint}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "terminal",
+                      "propLabel": "terminal",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.terminal}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "mutation_possible",
+                      "propLabel": "mutation_possible",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.mutation_possible}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "inventory_status",
+                      "propLabel": "inventory_status",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.inventory_status}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "cancel_requested",
+                      "propLabel": "cancel_requested",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.cancel_requested}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_confirmations",
+                      "propLabel": "required_confirmations",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.required_confirmations}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "required_confirmation_hash",
+                      "propLabel": "required_confirmation_hash",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.required_confirmation_hash}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "checked_at",
+                      "propLabel": "checked_at",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.checked_at}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "evidence",
+                      "propLabel": "evidence",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_R3jUcfb8.data.evidence}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_h5SZFbl0",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_vFMbzh2Y",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Read: the job (by id or key) + the P3 step row, the publish steps after P0, the job's inventory operations, the delivery by gd_id (+ DB clock) - SELECT only",
+        "isValidator": true,
+        "nodeName": "Read: the job (by id or key) + the P3 step row, the publish steps after P0, the job's inventory operations, the delivery by gd_id (+ DB clock) - SELECT only",
+        "name": "Read: the job (by id or key) + the P3 step row, the publish steps after P0, the job's inventory operations, the delivery by gd_id (+ DB clock) - SELECT only",
+        "script": {
+          "type": "sql",
+          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.organization_id,\n       j.idempotency_key,\n       j.correlation_id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       j.cancel_requested,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       CAST(j.gd_id AS CHAR) AS gd_id,\n       j.gd_no,\n       DATE_FORMAT(j.update_time, '%Y-%m-%d %H:%i:%s') AS update_time,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       p3.step_status AS p3_status,\n       p3.result_ref AS p3_ref,\n       (SELECT COUNT(*) FROM gd_publish_step st\n         WHERE st.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n           AND st.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n           AND st.is_deleted = 0\n           AND st.step_name IN ('P1_GD_HEADER', 'P2_GD_STRUCTURE', 'P3_INVENTORY_APPLY', 'P6_PUBLICATION_BARRIER', 'P7A_OUTBOX_BLOCKED', 'P7B_GD_CREATED', 'P7B_SO_PROJECTION', 'P7C_OUTBOX_READY', 'P7D_JOB_COMMITTED')) AS steps_after_p0,\n       (SELECT COUNT(*) FROM inventory_operation op\n         WHERE op.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n           AND op.organization_id = '{{node:code_node_vN1fxmgo.data.organizationId}}'\n           AND op.source_job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n           AND op.is_deleted = 0\n           AND op.operation_status <> 'REJECTED') AS ops_open,\n       (SELECT COUNT(*) FROM inventory_operation op\n         WHERE op.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n           AND op.organization_id = '{{node:code_node_vN1fxmgo.data.organizationId}}'\n           AND op.source_job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n           AND op.is_deleted = 0\n           AND op.operation_status IN ('MUTATING', 'VERIFYING', 'REQUIRES_REVIEW')) AS ops_uncertain,\n       (SELECT o2.operation_status FROM inventory_operation o2\n         WHERE o2.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n           AND o2.organization_id = '{{node:code_node_vN1fxmgo.data.organizationId}}'\n           AND o2.id = (SELECT MAX(op.id) FROM inventory_operation op\n                         WHERE op.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n                           AND op.organization_id = '{{node:code_node_vN1fxmgo.data.organizationId}}'\n                           AND op.source_job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n                           AND op.is_deleted = 0)) AS op_status,\n       (SELECT o2.review_reference FROM inventory_operation o2\n         WHERE o2.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n           AND o2.organization_id = '{{node:code_node_vN1fxmgo.data.organizationId}}'\n           AND o2.id = (SELECT MAX(op.id) FROM inventory_operation op\n                         WHERE op.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n                           AND op.organization_id = '{{node:code_node_vN1fxmgo.data.organizationId}}'\n                           AND op.source_job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n                           AND op.is_deleted = 0)) AS op_review_ref,\n       g.gd_status AS gd_status,\n       g.delivery_no AS gd_live_no\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n   AND j.organization_id = '{{node:code_node_vN1fxmgo.data.organizationId}}'\n   AND j.is_deleted = 0\n   AND (j.id = {{node:code_node_vN1fxmgo.data.jobIdSql}} OR j.idempotency_key = '{{node:code_node_vN1fxmgo.data.keySql}}')\n  LEFT JOIN gd_publish_step p3\n    ON p3.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n   AND p3.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n   AND p3.step_name = 'P3_INVENTORY_APPLY'\n   AND p3.is_deleted = 0\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = '{{node:code_node_vN1fxmgo.data.tenantId}}'\n   AND g.id = CAST(j.gd_id AS UNSIGNED)\n   AND g.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "uqhlt1pp",
+            "name": "db_now",
+            "title": "db_now",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "keqhfzpn",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cfs4oet7",
+            "name": "organization_id",
+            "title": "organization_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "mtxkucba",
+            "name": "idempotency_key",
+            "title": "idempotency_key",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1q5gh5eh",
+            "name": "correlation_id",
+            "title": "correlation_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qtps6nt3",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qkyzb6dq",
+            "name": "progress_percent",
+            "title": "progress_percent",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "776skarr",
+            "name": "progress_message",
+            "title": "progress_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "t4mdglqp",
+            "name": "attempt_count",
+            "title": "attempt_count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fxpzlmw9",
+            "name": "cancel_requested",
+            "title": "cancel_requested",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hynczu4d",
+            "name": "row_version",
+            "title": "row_version",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "owgmig7x",
+            "name": "error_code",
+            "title": "error_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hfz9xcjz",
+            "name": "error_message",
+            "title": "error_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kztuhr0t",
+            "name": "error_details",
+            "title": "error_details",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qtkhxqng",
+            "name": "gd_id",
+            "title": "gd_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "jsxfzobq",
+            "name": "gd_no",
+            "title": "gd_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "41rm9z8v",
+            "name": "update_time",
+            "title": "update_time",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "usyaghou",
+            "name": "finished_at",
+            "title": "finished_at",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gfa1d5ke",
+            "name": "lease_live",
+            "title": "lease_live",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6ldm4uze",
+            "name": "p3_status",
+            "title": "p3_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vwxuiryp",
+            "name": "p3_ref",
+            "title": "p3_ref",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kkfiyof1",
+            "name": "steps_after_p0",
+            "title": "steps_after_p0",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "jv7nlewz",
+            "name": "ops_open",
+            "title": "ops_open",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "e5wdwcsy",
+            "name": "ops_uncertain",
+            "title": "ops_uncertain",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "yxofblcf",
+            "name": "op_status",
+            "title": "op_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "meazrp0l",
+            "name": "op_review_ref",
+            "title": "op_review_ref",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hvhnp0ie",
+            "name": "gd_status",
+            "title": "gd_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "dufcbgdb",
+            "name": "gd_live_no",
+            "title": "gd_live_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_MR2QlQjf",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Decide: the six user-visible states (QUEUED / PREPARING / PUBLISHING / CREATED / REJECTED / REQUIRES_REVIEW), GD number only when Created, review reference, stable line errors, Retry / new attempt / cancel from facts",
+        "isValidator": true,
+        "nodeName": "Decide: the six user-visible states (QUEUED / PREPARING / PUBLISHING / CREATED / REJECTED / REQUIRES_REVIEW), GD number only when Created, review reference, stable line errors, Retry / new attempt / cancel from facts",
+        "name": "Decide: the six user-visible states (QUEUED / PREPARING / PUBLISHING / CREATED / REJECTED / REQUIRES_REVIEW), GD number only when Created, review reference, stable line errors, Retry / new attempt / cancel from facts",
+        "script": {
+          "type": "javascript",
+          "code": "// GD_ASYNC_STATUS - Decide\n// Generated by scripts/build-gd-async-ux.mjs from scripts/lib/gd-async-ux.mjs - edit there (Task 10).\nconst UXC = {\"ux_of_job\":{\"QUEUED\":\"QUEUED\",\"VALIDATING\":\"PREPARING\",\"AWAITING_CONFIRMATION\":\"PREPARING\",\"CALCULATING\":\"PREPARING\",\"READY_TO_COMMIT\":\"PREPARING\",\"COMMITTING_GD\":\"PUBLISHING\",\"RECONCILING_GD\":\"PUBLISHING\",\"GD_COMMITTED\":\"CREATED\",\"CREATING_PICKING\":\"CREATED\",\"PICKING_RETRYING\":\"CREATED\",\"PICKING_READY\":\"CREATED\",\"COMPLETED\":\"CREATED\",\"FAILED\":\"REJECTED\",\"CANCELLED\":\"REJECTED\",\"REQUIRES_REVIEW\":\"REQUIRES_REVIEW\"},\"labels\":{\"QUEUED\":\"Queued\",\"PREPARING\":\"Preparing\",\"PUBLISHING\":\"Publishing\",\"CREATED\":\"Created\",\"REJECTED\":\"Rejected\",\"REQUIRES_REVIEW\":\"Requires review\"},\"display\":{\"QUEUED\":\"Queued for processing\",\"VALIDATING\":\"Validating\",\"AWAITING_CONFIRMATION\":\"Conditions changed; confirmation needed\",\"CALCULATING\":\"Checking stock and allocation\",\"READY_TO_COMMIT\":\"Ready to publish\",\"COMMITTING_GD\":\"Publishing Goods Delivery\",\"RECONCILING_GD\":\"GD {gd_no} created; finishing publication\",\"GD_COMMITTED\":\"GD {gd_no} created\",\"CREATING_PICKING\":\"GD {gd_no} created; creating Picking\",\"PICKING_RETRYING\":\"GD {gd_no} created; Picking retrying\",\"PICKING_READY\":\"GD {gd_no} created; Picking {picking_no} ready\",\"COMPLETED\":\"GD {gd_no} created; processing complete\",\"FAILED\":\"Not created; correct the highlighted lines\",\"CANCELLED\":\"Cancelled before publishing\",\"REQUIRES_REVIEW\":\"Under review (ref {review_reference}); do not retry\"},\"pre_commit\":[\"QUEUED\",\"VALIDATING\",\"AWAITING_CONFIRMATION\",\"CALCULATING\",\"READY_TO_COMMIT\"],\"cancellable\":[\"QUEUED\",\"VALIDATING\",\"AWAITING_CONFIRMATION\",\"CALCULATING\",\"READY_TO_COMMIT\"],\"post_commit\":[\"GD_COMMITTED\",\"CREATING_PICKING\",\"PICKING_RETRYING\",\"PICKING_READY\",\"COMPLETED\"],\"terminal\":[\"COMPLETED\",\"FAILED\",\"CANCELLED\",\"REQUIRES_REVIEW\"],\"retry_codes\":[\"GD_TRANSIENT_DEADLOCK\",\"GD_TRANSIENT_LOCK_TIMEOUT\",\"GD_TRANSIENT_CONNECTIVITY\",\"GD_TRANSIENT_RETRIES_EXHAUSTED\",\"GD_INVENTORY_RETRYABLE_REJECTION\"],\"uncertain_ops\":[\"MUTATING\",\"VERIFYING\",\"REQUIRES_REVIEW\"],\"claim_prefix\":\"W0_CLAIM_\",\"rclaim_prefix\":\"R0_CLAIM_\",\"cancel_owner_prefix\":\"CAN|\",\"lease_minutes\":10,\"stock_chunk\":50,\"max_lines\":500,\"poll\":{\"first_ms\":2000,\"factor\":1.5,\"max_ms\":10000,\"budget_ms\":600000},\"key_prefix\":\"GDF\",\"header_fields\":[\"plant_id\",\"customer_name\",\"currency_code\",\"so_no\",\"pp_no\",\"so_id\",\"gd_billing_address\",\"gd_shipping_address\",\"delivery_no\",\"gd_contact_name\",\"contact_number\",\"email_address\",\"gd_delivery_method\",\"delivery_date\",\"document_description\",\"assigned_to\",\"organization_id\",\"gd_created_by\",\"acc_integration_type\",\"reference_type\",\"gd_ref_doc\",\"last_sync_date\",\"customer_credit_limit\",\"overdue_limit\",\"outstanding_balance\",\"overdue_inv_total_amount\",\"is_accurate\",\"driver_name\",\"ic_no\",\"driver_contact_no\",\"vehicle_no\",\"pickup_date\",\"validity_of_collection\",\"courier_company\",\"shipping_date\",\"freight_charges\",\"tracking_number\",\"est_arrival_date\",\"est_delivery_date\",\"delivery_cost\",\"shipping_company\",\"shipping_method\",\"tpt_vehicle_number\",\"tpt_transport_name\",\"tpt_ic_no\",\"tpt_driver_contact_no\",\"select_vehicle_id\",\"gd_vehicle_type\",\"gd_vehicle_capacity\",\"gd_vehicle_cap_uom\",\"select_driver_id\",\"gd_driver_contact\",\"gd_driver_ic\",\"gd_total\",\"order_tnc\",\"order_payment_details\",\"order_delivery_term\",\"order_remark\",\"order_remark2\",\"order_remark3\",\"order_remark4\",\"order_remark5\",\"picking_status\",\"billing_address_name\",\"billing_address_phone\",\"billing_address_line_1\",\"billing_address_line_2\",\"billing_address_line_3\",\"billing_address_line_4\",\"billing_address_city\",\"billing_postal_code\",\"billing_address_state\",\"billing_address_country\",\"billing_attention\",\"billing_address_fax\",\"billing_address_code\",\"shipping_address_code\",\"shipping_address_fax\",\"shipping_address_name\",\"shipping_address_phone\",\"shipping_address_line_1\",\"shipping_address_line_2\",\"shipping_address_line_3\",\"shipping_address_line_4\",\"shipping_address_city\",\"shipping_postal_code\",\"shipping_address_state\",\"shipping_address_country\",\"shipping_attention\",\"delivery_no_type\",\"to_no\",\"is_select_picking\",\"pp_id\",\"sp_vehicle_no\",\"gd_area_id\",\"tpt_driver_name\",\"di_shipping_method\",\"di_driver_name\",\"di_ic_no\",\"di_driver_contact_no\",\"di_shipping_company\",\"di_transport_name\",\"di_vehicle_number\",\"di_est_delivery_date\",\"di_est_arrival_date\",\"di_pickup_date\",\"di_validity_of_collection\",\"di_tracking_number\",\"di_freight_charges\",\"project_id\",\"sales_person\"],\"cancel_message\":\"Saving has started; cancellation is no longer possible\",\"mismatch_message\":\"Save outcome requires review\"};\nconst uxStateOf = function uxStateOf(jobStatus, gdStatus) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const st = s(jobStatus);\n  const ux = UXC.ux_of_job[st] || \"\";\n  if (!ux) return { state: \"REQUIRES_REVIEW\", label: UXC.labels.REQUIRES_REVIEW, mismatch: \"unknown job state \" + (st || \"(empty)\") };\n  if (ux === \"CREATED\" && s(gdStatus) !== \"Created\") return { state: \"REQUIRES_REVIEW\", label: UXC.labels.REQUIRES_REVIEW, mismatch: \"the job is \" + st + \" but the delivery is \" + (s(gdStatus) || \"not readable\") };\n  return { state: ux, label: UXC.labels[ux], mismatch: \"\" };\n};\nconst statusDecide = function statusDecide(guard, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) : \"\";\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const out = { route: \"NOT_FOUND\", result_code: \"\", result_message: \"\", job_id: \"\", idempotency_key: s(guard.idempotencyKey), correlation_id: \"\", job_status: \"\", ux_state: \"\", ux_label: \"\", progress_percent: \"\", progress_message: \"\", gd_id: \"\", gd_no: \"\", last_update: \"\", review_reference: \"\", error_code: \"\", error_message: \"\", line_errors: \"[]\", retry_allowed: \"NO\", new_attempt_allowed: \"NO\", cancel_hint: \"NO\", terminal: \"NO\", mutation_possible: \"NO\", inventory_status: \"\", cancel_requested: \"0\", required_confirmations: \"[]\", required_confirmation_hash: \"\", checked_at: dbNow };\n  if (guard.route !== \"CONTINUE\") return Object.assign(out, { route: \"REJECT\", result_code: guard.result_code, result_message: guard.result_message });\n  if (!job) return Object.assign(out, { result_code: \"GD_INVALID_DATA\", result_message: \"no live job \" + (guard.jobId ? \"with id \" + guard.jobId : \"with key \" + guard.idempotencyKey) + \" in organization \" + guard.organizationId });\n  const status = s(job.job_status);\n  const gdStatus = s(job.gd_status);\n  let details = {};\n  try {\n    const d = typeof job.error_details === \"string\" ? JSON.parse(job.error_details || \"{}\") : job.error_details || {};\n    details = d && typeof d === \"object\" && !Array.isArray(d) ? d : {};\n  } catch (e) {\n    details = {};\n  }\n  const lineErrors = Array.isArray(details.line_errors) ? details.line_errors.slice(0, 500) : [];\n  const p3 = s(job.p3_status);\n  const opsOpen = Number(job.ops_open) || 0;\n  const opsUncertain = Number(job.ops_uncertain) || 0;\n  const stepsAfterP0 = Number(job.steps_after_p0) || 0;\n  // the inventory may have run: a P3 step row that is not a recorded clean failure, or any operation of the job\n  // that is not REJECTED (contract clean_failure_gate)\n  const mutation = (p3 !== \"\" && p3 !== \"FAILED\") || opsOpen > 0 || opsUncertain > 0;\n  const ux = uxStateOf(status, gdStatus);\n  let state = ux.state;\n  let code = s(job.error_code);\n  let resultCode = \"\";\n  // a FAILED / CANCELLED job answers its fixed display text: a publish that failed after COMMITTING_GD began leaves\n  // progress_message at \"Publishing Goods Delivery\" (dev run 10101 A5, J8 GD_INVENTORY_REJECTED); the detail is error_message\n  let message = status === \"FAILED\" || status === \"CANCELLED\" ? UXC.display[status] : s(job.progress_message) || UXC.display[status] || status;\n  let ref = s(details.review_reference) || (p3 === \"REQUIRES_REVIEW\" ? s(job.p3_ref) : \"\") || s(job.op_review_ref);\n  if (ux.mismatch) {\n    code = resultCode = \"GD_RECONCILIATION_MISMATCH\";\n    message = UXC.mismatch_message + \": \" + ux.mismatch;\n  }\n  // a FAILED / CANCELLED job whose facts say stock may have moved, or whose delivery is still live, is not a clean\n  // rejection (the reconcile's I1 contradiction): it is shown as under review, never as retryable\n  if (state === \"REJECTED\" && (mutation || gdStatus !== \"\")) {\n    state = \"REQUIRES_REVIEW\";\n    code = resultCode = \"GD_RECONCILIATION_MISMATCH\";\n    message = UXC.mismatch_message + \": the job is \" + status + \" but \" + (gdStatus !== \"\" ? \"its delivery is \" + gdStatus : \"an inventory operation of it is \" + (s(job.op_status) || \"not rejected\"));\n  }\n  if (state === \"REQUIRES_REVIEW\" && !ref) ref = \"JOB|\" + s(job.id);\n  if (state !== \"REQUIRES_REVIEW\") ref = \"\";\n  const showGdNo = gdStatus === \"Created\" && (state === \"CREATED\" || state === \"REQUIRES_REVIEW\");\n  const retry = status === \"FAILED\" && state === \"REJECTED\" && !mutation && UXC.retry_codes.indexOf(s(job.error_code)) >= 0;\n  const newAttempt = (status === \"FAILED\" || status === \"CANCELLED\") && state === \"REJECTED\" && !mutation;\n  const cancelHint = UXC.cancellable.indexOf(status) >= 0 && state !== \"REQUIRES_REVIEW\" && !mutation && stepsAfterP0 === 0 && s(job.gd_id) === \"\" && String(job.cancel_requested) !== \"1\";\n  const terminal = UXC.terminal.indexOf(status) >= 0;\n  return Object.assign(out, {\n    route: \"FOUND\",\n    result_code: resultCode,\n    result_message: message,\n    job_id: s(job.id),\n    idempotency_key: s(job.idempotency_key),\n    correlation_id: s(job.correlation_id),\n    job_status: status,\n    ux_state: state,\n    ux_label: UXC.labels[state],\n    progress_percent: s(job.progress_percent),\n    progress_message: s(job.progress_message),\n    gd_id: showGdNo ? s(job.gd_id) : \"\",\n    gd_no: showGdNo ? s(job.gd_live_no) || s(job.gd_no) : \"\",\n    last_update: s(job.update_time) || s(job.finished_at),\n    review_reference: ref,\n    error_code: code,\n    error_message: s(job.error_message),\n    line_errors: JSON.stringify(lineErrors),\n    retry_allowed: retry ? \"YES\" : \"NO\",\n    new_attempt_allowed: newAttempt ? \"YES\" : \"NO\",\n    cancel_hint: cancelHint ? \"YES\" : \"NO\",\n    terminal: terminal ? \"YES\" : \"NO\",\n    mutation_possible: mutation ? \"YES\" : \"NO\",\n    inventory_status: s(job.op_status),\n    cancel_requested: String(job.cancel_requested) === \"1\" ? \"1\" : \"0\",\n    required_confirmations: JSON.stringify(Array.isArray(details.required_confirmations) ? details.required_confirmations : []),\n    required_confirmation_hash: status === \"AWAITING_CONFIRMATION\" ? s(details.required_confirmation_hash) : \"\",\n  });\n};\nconst res = statusDecide([{{node:code_node_vN1fxmgo.data}}][0], [{{node:sql_node_vFMbzh2Y.data}}][0]);\nconsole.log(\"status decide\", JSON.stringify({ route: res.route, job: res.job_id, status: res.job_status, ux: res.ux_state, retry: res.retry_allowed, cancel: res.cancel_hint }));\nreturn res;\n"
+        },
+        "response_json": [
+          {
+            "key": "n69bsyfs",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6h8cxxo0",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "b1fvjpph",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "7t9km7ec",
+            "name": "job_id",
+            "title": "job_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "mtxkucba",
+            "name": "idempotency_key",
+            "title": "idempotency_key",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1q5gh5eh",
+            "name": "correlation_id",
+            "title": "correlation_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qtps6nt3",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bsjynr2z",
+            "name": "ux_state",
+            "title": "ux_state",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kbqhpkyq",
+            "name": "ux_label",
+            "title": "ux_label",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qkyzb6dq",
+            "name": "progress_percent",
+            "title": "progress_percent",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "776skarr",
+            "name": "progress_message",
+            "title": "progress_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qtkhxqng",
+            "name": "gd_id",
+            "title": "gd_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "jsxfzobq",
+            "name": "gd_no",
+            "title": "gd_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "dxn91dkq",
+            "name": "last_update",
+            "title": "last_update",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fvavures",
+            "name": "review_reference",
+            "title": "review_reference",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "owgmig7x",
+            "name": "error_code",
+            "title": "error_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hfz9xcjz",
+            "name": "error_message",
+            "title": "error_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "lpyrxnne",
+            "name": "line_errors",
+            "title": "line_errors",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sr5exi1l",
+            "name": "retry_allowed",
+            "title": "retry_allowed",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bxrmmnrb",
+            "name": "new_attempt_allowed",
+            "title": "new_attempt_allowed",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "uqsh1dpm",
+            "name": "cancel_hint",
+            "title": "cancel_hint",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "m7l12lfe",
+            "name": "terminal",
+            "title": "terminal",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "szvydchz",
+            "name": "mutation_possible",
+            "title": "mutation_possible",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "3gc1klvm",
+            "name": "inventory_status",
+            "title": "inventory_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fxpzlmw9",
+            "name": "cancel_requested",
+            "title": "cancel_requested",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vmg4c0so",
+            "name": "required_confirmations",
+            "title": "required_confirmations",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "welac89v",
+            "name": "required_confirmation_hash",
+            "title": "required_confirmation_hash",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "3wnkt4pt",
+            "name": "checked_at",
+            "title": "checked_at",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_LpwicZ8I",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Evidence DONE",
+        "isValidator": true,
+        "nodeName": "Evidence DONE",
+        "name": "Evidence DONE",
+        "script": {
+          "type": "javascript",
+          "code": "// GD_ASYNC_STATUS - Evidence (DONE)\n// Generated by scripts/build-gd-async-ux.mjs from scripts/lib/gd-async-ux.mjs - edit there (Task 10).\nconst UXC = {\"ux_of_job\":{\"QUEUED\":\"QUEUED\",\"VALIDATING\":\"PREPARING\",\"AWAITING_CONFIRMATION\":\"PREPARING\",\"CALCULATING\":\"PREPARING\",\"READY_TO_COMMIT\":\"PREPARING\",\"COMMITTING_GD\":\"PUBLISHING\",\"RECONCILING_GD\":\"PUBLISHING\",\"GD_COMMITTED\":\"CREATED\",\"CREATING_PICKING\":\"CREATED\",\"PICKING_RETRYING\":\"CREATED\",\"PICKING_READY\":\"CREATED\",\"COMPLETED\":\"CREATED\",\"FAILED\":\"REJECTED\",\"CANCELLED\":\"REJECTED\",\"REQUIRES_REVIEW\":\"REQUIRES_REVIEW\"},\"labels\":{\"QUEUED\":\"Queued\",\"PREPARING\":\"Preparing\",\"PUBLISHING\":\"Publishing\",\"CREATED\":\"Created\",\"REJECTED\":\"Rejected\",\"REQUIRES_REVIEW\":\"Requires review\"},\"display\":{\"QUEUED\":\"Queued for processing\",\"VALIDATING\":\"Validating\",\"AWAITING_CONFIRMATION\":\"Conditions changed; confirmation needed\",\"CALCULATING\":\"Checking stock and allocation\",\"READY_TO_COMMIT\":\"Ready to publish\",\"COMMITTING_GD\":\"Publishing Goods Delivery\",\"RECONCILING_GD\":\"GD {gd_no} created; finishing publication\",\"GD_COMMITTED\":\"GD {gd_no} created\",\"CREATING_PICKING\":\"GD {gd_no} created; creating Picking\",\"PICKING_RETRYING\":\"GD {gd_no} created; Picking retrying\",\"PICKING_READY\":\"GD {gd_no} created; Picking {picking_no} ready\",\"COMPLETED\":\"GD {gd_no} created; processing complete\",\"FAILED\":\"Not created; correct the highlighted lines\",\"CANCELLED\":\"Cancelled before publishing\",\"REQUIRES_REVIEW\":\"Under review (ref {review_reference}); do not retry\"},\"pre_commit\":[\"QUEUED\",\"VALIDATING\",\"AWAITING_CONFIRMATION\",\"CALCULATING\",\"READY_TO_COMMIT\"],\"cancellable\":[\"QUEUED\",\"VALIDATING\",\"AWAITING_CONFIRMATION\",\"CALCULATING\",\"READY_TO_COMMIT\"],\"post_commit\":[\"GD_COMMITTED\",\"CREATING_PICKING\",\"PICKING_RETRYING\",\"PICKING_READY\",\"COMPLETED\"],\"terminal\":[\"COMPLETED\",\"FAILED\",\"CANCELLED\",\"REQUIRES_REVIEW\"],\"retry_codes\":[\"GD_TRANSIENT_DEADLOCK\",\"GD_TRANSIENT_LOCK_TIMEOUT\",\"GD_TRANSIENT_CONNECTIVITY\",\"GD_TRANSIENT_RETRIES_EXHAUSTED\",\"GD_INVENTORY_RETRYABLE_REJECTION\"],\"uncertain_ops\":[\"MUTATING\",\"VERIFYING\",\"REQUIRES_REVIEW\"],\"claim_prefix\":\"W0_CLAIM_\",\"rclaim_prefix\":\"R0_CLAIM_\",\"cancel_owner_prefix\":\"CAN|\",\"lease_minutes\":10,\"stock_chunk\":50,\"max_lines\":500,\"poll\":{\"first_ms\":2000,\"factor\":1.5,\"max_ms\":10000,\"budget_ms\":600000},\"key_prefix\":\"GDF\",\"header_fields\":[\"plant_id\",\"customer_name\",\"currency_code\",\"so_no\",\"pp_no\",\"so_id\",\"gd_billing_address\",\"gd_shipping_address\",\"delivery_no\",\"gd_contact_name\",\"contact_number\",\"email_address\",\"gd_delivery_method\",\"delivery_date\",\"document_description\",\"assigned_to\",\"organization_id\",\"gd_created_by\",\"acc_integration_type\",\"reference_type\",\"gd_ref_doc\",\"last_sync_date\",\"customer_credit_limit\",\"overdue_limit\",\"outstanding_balance\",\"overdue_inv_total_amount\",\"is_accurate\",\"driver_name\",\"ic_no\",\"driver_contact_no\",\"vehicle_no\",\"pickup_date\",\"validity_of_collection\",\"courier_company\",\"shipping_date\",\"freight_charges\",\"tracking_number\",\"est_arrival_date\",\"est_delivery_date\",\"delivery_cost\",\"shipping_company\",\"shipping_method\",\"tpt_vehicle_number\",\"tpt_transport_name\",\"tpt_ic_no\",\"tpt_driver_contact_no\",\"select_vehicle_id\",\"gd_vehicle_type\",\"gd_vehicle_capacity\",\"gd_vehicle_cap_uom\",\"select_driver_id\",\"gd_driver_contact\",\"gd_driver_ic\",\"gd_total\",\"order_tnc\",\"order_payment_details\",\"order_delivery_term\",\"order_remark\",\"order_remark2\",\"order_remark3\",\"order_remark4\",\"order_remark5\",\"picking_status\",\"billing_address_name\",\"billing_address_phone\",\"billing_address_line_1\",\"billing_address_line_2\",\"billing_address_line_3\",\"billing_address_line_4\",\"billing_address_city\",\"billing_postal_code\",\"billing_address_state\",\"billing_address_country\",\"billing_attention\",\"billing_address_fax\",\"billing_address_code\",\"shipping_address_code\",\"shipping_address_fax\",\"shipping_address_name\",\"shipping_address_phone\",\"shipping_address_line_1\",\"shipping_address_line_2\",\"shipping_address_line_3\",\"shipping_address_line_4\",\"shipping_address_city\",\"shipping_postal_code\",\"shipping_address_state\",\"shipping_address_country\",\"shipping_attention\",\"delivery_no_type\",\"to_no\",\"is_select_picking\",\"pp_id\",\"sp_vehicle_no\",\"gd_area_id\",\"tpt_driver_name\",\"di_shipping_method\",\"di_driver_name\",\"di_ic_no\",\"di_driver_contact_no\",\"di_shipping_company\",\"di_transport_name\",\"di_vehicle_number\",\"di_est_delivery_date\",\"di_est_arrival_date\",\"di_pickup_date\",\"di_validity_of_collection\",\"di_tracking_number\",\"di_freight_charges\",\"project_id\",\"sales_person\"],\"cancel_message\":\"Saving has started; cancellation is no longer possible\",\"mismatch_message\":\"Save outcome requires review\"};\nconst uxStateOf = function uxStateOf(jobStatus, gdStatus) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const st = s(jobStatus);\n  const ux = UXC.ux_of_job[st] || \"\";\n  if (!ux) return { state: \"REQUIRES_REVIEW\", label: UXC.labels.REQUIRES_REVIEW, mismatch: \"unknown job state \" + (st || \"(empty)\") };\n  if (ux === \"CREATED\" && s(gdStatus) !== \"Created\") return { state: \"REQUIRES_REVIEW\", label: UXC.labels.REQUIRES_REVIEW, mismatch: \"the job is \" + st + \" but the delivery is \" + (s(gdStatus) || \"not readable\") };\n  return { state: ux, label: UXC.labels[ux], mismatch: \"\" };\n};\nconst statusDecide = function statusDecide(guard, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) : \"\";\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const out = { route: \"NOT_FOUND\", result_code: \"\", result_message: \"\", job_id: \"\", idempotency_key: s(guard.idempotencyKey), correlation_id: \"\", job_status: \"\", ux_state: \"\", ux_label: \"\", progress_percent: \"\", progress_message: \"\", gd_id: \"\", gd_no: \"\", last_update: \"\", review_reference: \"\", error_code: \"\", error_message: \"\", line_errors: \"[]\", retry_allowed: \"NO\", new_attempt_allowed: \"NO\", cancel_hint: \"NO\", terminal: \"NO\", mutation_possible: \"NO\", inventory_status: \"\", cancel_requested: \"0\", required_confirmations: \"[]\", required_confirmation_hash: \"\", checked_at: dbNow };\n  if (guard.route !== \"CONTINUE\") return Object.assign(out, { route: \"REJECT\", result_code: guard.result_code, result_message: guard.result_message });\n  if (!job) return Object.assign(out, { result_code: \"GD_INVALID_DATA\", result_message: \"no live job \" + (guard.jobId ? \"with id \" + guard.jobId : \"with key \" + guard.idempotencyKey) + \" in organization \" + guard.organizationId });\n  const status = s(job.job_status);\n  const gdStatus = s(job.gd_status);\n  let details = {};\n  try {\n    const d = typeof job.error_details === \"string\" ? JSON.parse(job.error_details || \"{}\") : job.error_details || {};\n    details = d && typeof d === \"object\" && !Array.isArray(d) ? d : {};\n  } catch (e) {\n    details = {};\n  }\n  const lineErrors = Array.isArray(details.line_errors) ? details.line_errors.slice(0, 500) : [];\n  const p3 = s(job.p3_status);\n  const opsOpen = Number(job.ops_open) || 0;\n  const opsUncertain = Number(job.ops_uncertain) || 0;\n  const stepsAfterP0 = Number(job.steps_after_p0) || 0;\n  // the inventory may have run: a P3 step row that is not a recorded clean failure, or any operation of the job\n  // that is not REJECTED (contract clean_failure_gate)\n  const mutation = (p3 !== \"\" && p3 !== \"FAILED\") || opsOpen > 0 || opsUncertain > 0;\n  const ux = uxStateOf(status, gdStatus);\n  let state = ux.state;\n  let code = s(job.error_code);\n  let resultCode = \"\";\n  // a FAILED / CANCELLED job answers its fixed display text: a publish that failed after COMMITTING_GD began leaves\n  // progress_message at \"Publishing Goods Delivery\" (dev run 10101 A5, J8 GD_INVENTORY_REJECTED); the detail is error_message\n  let message = status === \"FAILED\" || status === \"CANCELLED\" ? UXC.display[status] : s(job.progress_message) || UXC.display[status] || status;\n  let ref = s(details.review_reference) || (p3 === \"REQUIRES_REVIEW\" ? s(job.p3_ref) : \"\") || s(job.op_review_ref);\n  if (ux.mismatch) {\n    code = resultCode = \"GD_RECONCILIATION_MISMATCH\";\n    message = UXC.mismatch_message + \": \" + ux.mismatch;\n  }\n  // a FAILED / CANCELLED job whose facts say stock may have moved, or whose delivery is still live, is not a clean\n  // rejection (the reconcile's I1 contradiction): it is shown as under review, never as retryable\n  if (state === \"REJECTED\" && (mutation || gdStatus !== \"\")) {\n    state = \"REQUIRES_REVIEW\";\n    code = resultCode = \"GD_RECONCILIATION_MISMATCH\";\n    message = UXC.mismatch_message + \": the job is \" + status + \" but \" + (gdStatus !== \"\" ? \"its delivery is \" + gdStatus : \"an inventory operation of it is \" + (s(job.op_status) || \"not rejected\"));\n  }\n  if (state === \"REQUIRES_REVIEW\" && !ref) ref = \"JOB|\" + s(job.id);\n  if (state !== \"REQUIRES_REVIEW\") ref = \"\";\n  const showGdNo = gdStatus === \"Created\" && (state === \"CREATED\" || state === \"REQUIRES_REVIEW\");\n  const retry = status === \"FAILED\" && state === \"REJECTED\" && !mutation && UXC.retry_codes.indexOf(s(job.error_code)) >= 0;\n  const newAttempt = (status === \"FAILED\" || status === \"CANCELLED\") && state === \"REJECTED\" && !mutation;\n  const cancelHint = UXC.cancellable.indexOf(status) >= 0 && state !== \"REQUIRES_REVIEW\" && !mutation && stepsAfterP0 === 0 && s(job.gd_id) === \"\" && String(job.cancel_requested) !== \"1\";\n  const terminal = UXC.terminal.indexOf(status) >= 0;\n  return Object.assign(out, {\n    route: \"FOUND\",\n    result_code: resultCode,\n    result_message: message,\n    job_id: s(job.id),\n    idempotency_key: s(job.idempotency_key),\n    correlation_id: s(job.correlation_id),\n    job_status: status,\n    ux_state: state,\n    ux_label: UXC.labels[state],\n    progress_percent: s(job.progress_percent),\n    progress_message: s(job.progress_message),\n    gd_id: showGdNo ? s(job.gd_id) : \"\",\n    gd_no: showGdNo ? s(job.gd_live_no) || s(job.gd_no) : \"\",\n    last_update: s(job.update_time) || s(job.finished_at),\n    review_reference: ref,\n    error_code: code,\n    error_message: s(job.error_message),\n    line_errors: JSON.stringify(lineErrors),\n    retry_allowed: retry ? \"YES\" : \"NO\",\n    new_attempt_allowed: newAttempt ? \"YES\" : \"NO\",\n    cancel_hint: cancelHint ? \"YES\" : \"NO\",\n    terminal: terminal ? \"YES\" : \"NO\",\n    mutation_possible: mutation ? \"YES\" : \"NO\",\n    inventory_status: s(job.op_status),\n    cancel_requested: String(job.cancel_requested) === \"1\" ? \"1\" : \"0\",\n    required_confirmations: JSON.stringify(Array.isArray(details.required_confirmations) ? details.required_confirmations : []),\n    required_confirmation_hash: status === \"AWAITING_CONFIRMATION\" ? s(details.required_confirmation_hash) : \"\",\n  });\n};\n// The engine stores only nodes whose output a later node references (docs/lowcode/inventory-operation-v2/evidence/engine-probe-run-2026-09-30.md F11): this node references the\n// decision node of every step of its path (their route fields), and the return node returns it.\nconst T = (v) => String(v === undefined || v === null ? \"\" : v).replace(/^\"([\\s\\S]*)\"$/, \"$1\").trim();\nconst steps = {};\nsteps.guard = T([{{node:code_node_vN1fxmgo.data.route}}][0]);\nsteps.decide = T([{{node:code_node_MR2QlQjf.data.route}}][0]);\nconst r = [{{node:code_node_MR2QlQjf.data}}][0];\nconst evidence = { v: 1, workflow: \"GD_ASYNC_STATUS\", path: \"DONE\", steps: steps };\nconst res = { status_route: r.route };\n[\"result_code\",\"result_message\",\"job_id\",\"idempotency_key\",\"correlation_id\",\"job_status\",\"ux_state\",\"ux_label\",\"progress_percent\",\"progress_message\",\"gd_id\",\"gd_no\",\"last_update\",\"review_reference\",\"error_code\",\"error_message\",\"line_errors\",\"retry_allowed\",\"new_attempt_allowed\",\"cancel_hint\",\"terminal\",\"mutation_possible\",\"inventory_status\",\"cancel_requested\",\"required_confirmations\",\"required_confirmation_hash\",\"checked_at\"].forEach(function (k) { res[k] = r[k] === undefined || r[k] === null ? \"\" : String(r[k]); });\nres.evidence = JSON.stringify(evidence);\nreturn res;\n"
+        },
+        "response_json": [
+          {
+            "key": "raqwa8ni",
+            "name": "status_route",
+            "title": "status_route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6h8cxxo0",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "b1fvjpph",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "7t9km7ec",
+            "name": "job_id",
+            "title": "job_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "mtxkucba",
+            "name": "idempotency_key",
+            "title": "idempotency_key",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1q5gh5eh",
+            "name": "correlation_id",
+            "title": "correlation_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qtps6nt3",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bsjynr2z",
+            "name": "ux_state",
+            "title": "ux_state",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kbqhpkyq",
+            "name": "ux_label",
+            "title": "ux_label",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qkyzb6dq",
+            "name": "progress_percent",
+            "title": "progress_percent",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "776skarr",
+            "name": "progress_message",
+            "title": "progress_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qtkhxqng",
+            "name": "gd_id",
+            "title": "gd_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "jsxfzobq",
+            "name": "gd_no",
+            "title": "gd_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "dxn91dkq",
+            "name": "last_update",
+            "title": "last_update",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fvavures",
+            "name": "review_reference",
+            "title": "review_reference",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "owgmig7x",
+            "name": "error_code",
+            "title": "error_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hfz9xcjz",
+            "name": "error_message",
+            "title": "error_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "lpyrxnne",
+            "name": "line_errors",
+            "title": "line_errors",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sr5exi1l",
+            "name": "retry_allowed",
+            "title": "retry_allowed",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bxrmmnrb",
+            "name": "new_attempt_allowed",
+            "title": "new_attempt_allowed",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "uqsh1dpm",
+            "name": "cancel_hint",
+            "title": "cancel_hint",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "m7l12lfe",
+            "name": "terminal",
+            "title": "terminal",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "szvydchz",
+            "name": "mutation_possible",
+            "title": "mutation_possible",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "3gc1klvm",
+            "name": "inventory_status",
+            "title": "inventory_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fxpzlmw9",
+            "name": "cancel_requested",
+            "title": "cancel_requested",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vmg4c0so",
+            "name": "required_confirmations",
+            "title": "required_confirmations",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "welac89v",
+            "name": "required_confirmation_hash",
+            "title": "required_confirmation_hash",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "3wnkt4pt",
+            "name": "checked_at",
+            "title": "checked_at",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "stppwadt",
+            "name": "evidence",
+            "title": "evidence",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_MFYLZ5ix",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return the status",
+        "isValidator": true,
+        "nodeName": "Return the status",
+        "name": "Return the status",
+        "response_value": {
+          "list": [
+            {
+              "prop": "status_route",
+              "propLabel": "status_route",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.status_route}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "result_code",
+              "propLabel": "result_code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.result_code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "result_message",
+              "propLabel": "result_message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.result_message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "job_id",
+              "propLabel": "job_id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.job_id}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "idempotency_key",
+              "propLabel": "idempotency_key",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.idempotency_key}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "correlation_id",
+              "propLabel": "correlation_id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.correlation_id}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "job_status",
+              "propLabel": "job_status",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.job_status}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "ux_state",
+              "propLabel": "ux_state",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.ux_state}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "ux_label",
+              "propLabel": "ux_label",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.ux_label}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "progress_percent",
+              "propLabel": "progress_percent",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.progress_percent}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "progress_message",
+              "propLabel": "progress_message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.progress_message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "gd_id",
+              "propLabel": "gd_id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.gd_id}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "gd_no",
+              "propLabel": "gd_no",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.gd_no}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "last_update",
+              "propLabel": "last_update",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.last_update}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "review_reference",
+              "propLabel": "review_reference",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.review_reference}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "error_code",
+              "propLabel": "error_code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.error_code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "error_message",
+              "propLabel": "error_message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.error_message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "line_errors",
+              "propLabel": "line_errors",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.line_errors}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "retry_allowed",
+              "propLabel": "retry_allowed",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.retry_allowed}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "new_attempt_allowed",
+              "propLabel": "new_attempt_allowed",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.new_attempt_allowed}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "cancel_hint",
+              "propLabel": "cancel_hint",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.cancel_hint}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "terminal",
+              "propLabel": "terminal",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.terminal}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "mutation_possible",
+              "propLabel": "mutation_possible",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.mutation_possible}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "inventory_status",
+              "propLabel": "inventory_status",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.inventory_status}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "cancel_requested",
+              "propLabel": "cancel_requested",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.cancel_requested}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "required_confirmations",
+              "propLabel": "required_confirmations",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.required_confirmations}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "required_confirmation_hash",
+              "propLabel": "required_confirmation_hash",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.required_confirmation_hash}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "checked_at",
+              "propLabel": "checked_at",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.checked_at}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "evidence",
+              "propLabel": "evidence",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_LpwicZ8I.data.evidence}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "title": "End Node",
+        "isValidator": true,
+        "nodeName": "End Node",
+        "name": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

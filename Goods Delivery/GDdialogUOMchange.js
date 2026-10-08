@@ -68,7 +68,7 @@ const resolveRow = (rows, key) => {
       return baseQty;
     }
 
-    return Math.round(baseQty / uomConversion.base_qty * 1000) / 1000;
+    return baseQty / uomConversion.base_qty;
   };
 
   const convertQuantityFromTo = (

@@ -5157,12 +5157,13 @@
                                                   "modelName": "",
                                                   "list": [
                                                     {
-                                                      "prop": "to_status",
+                                                      "prop": "id",
                                                       "valueType": "field",
-                                                      "value": "{{node:code_node_UiubQSk5.data.pickingData.to_status}}",
+                                                      "value": "{{node:code_node_UiubQSk5.data.pickingData.id}}",
                                                       "operator": "",
                                                       "valueLabel": "",
-                                                      "propLabel": "Transfer Order Status"
+                                                      "propLabel": "主键ID",
+                                                      "is_negative_number": false
                                                     },
                                                     {
                                                       "prop": "table_picking_items",
@@ -5170,7 +5171,19 @@
                                                       "valueType": "field",
                                                       "value": "{{node:code_node_UiubQSk5.data.pickingData.table_picking_items}}",
                                                       "valueLabel": "",
-                                                      "propLabel": "Picking Items"
+                                                      "propLabel": "Picking Items",
+                                                      "is_negative_number": false
+                                                    },
+                                                    {
+                                                      "prop": "to_status",
+                                                      "operator": "",
+                                                      "valueType": "field",
+                                                      "value": "{{node:code_node_UiubQSk5.data.pickingData.to_status}}",
+                                                      "is_negative_number": false,
+                                                      "valueLabel": "",
+                                                      "propLabel": "Transfer Order Status",
+                                                      "operatorLabel": "",
+                                                      "valueTypeLabel": ""
                                                     }
                                                   ]
                                                 }

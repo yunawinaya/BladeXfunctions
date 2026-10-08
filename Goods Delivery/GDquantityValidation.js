@@ -1,23 +1,45 @@
+// The dialog carries the fm_key of the row it was opened on. A subform row is
+// identified by its key, not by where it sits, so the row is found by walking
+// the tree -- an item under an item bundle is not a row of table_gd at all, it
+// sits under its parent's children and no index can reach it.
+//
+// The trailing lookup by position is only for a row the platform has not given
+// a key to yet; a keyed row never reaches it.
+const resolveRow = (rows, key) => {
+  for (const row of rows || []) {
+    if (row && String(row.fm_key) === String(key)) return row;
+
+    const children = Array.isArray(row && row.children) ? row.children : [];
+
+    for (const child of children) {
+      if (child && String(child.fm_key) === String(key)) return child;
+    }
+  }
+
+  return (rows || [])[key] || null;
+};
+
 (async () => {
   try {
     const data = this.getValues();
     const fieldParts = rule.field.split(".");
     const index = fieldParts[2];
-    const rowIndex = data.gd_item_balance.row_index;
+    const rowKey = data.gd_item_balance.row_index;
+    const targetRow = resolveRow(data.table_gd, rowKey) || {};
     const isSelectPicking = data.is_select_picking;
 
-    const materialId = data.table_gd[rowIndex].material_id;
-    const gdLineUOM = data.table_gd[rowIndex].gd_order_uom_id;
+    const materialId = targetRow.material_id;
+    const gdLineUOM = targetRow.gd_order_uom_id;
     const dialogUOM =
       data.gd_item_balance.current_table_uom ||
       data.gd_item_balance.material_uom ||
       gdLineUOM;
 
     const rawOrderQty = parseFloat(
-      data.table_gd[rowIndex].gd_order_quantity || 0,
+      targetRow.gd_order_quantity || 0,
     );
     const rawInitialDeliveredQty = parseFloat(
-      data.table_gd[rowIndex].gd_initial_delivered_qty || 0,
+      targetRow.gd_initial_delivered_qty || 0,
     );
 
     // Calculate total EXCLUDING the current row being validated
@@ -61,13 +83,6 @@
       if (resItem.data && resItem.data[0]) {
         const itemData = resItem.data[0];
 
-        // over_delivery_tolerance now lives per-UOM inside table_uom_conversion,
-        // keyed by alt_uom_id. Look it up by the GD line's order UOM (base UOM is
-        // guaranteed to be row 0, so this resolves for base and alternate UOMs).
-        const getOverDeliveryTolerance = (item, uomId) =>
-          ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) ||
-            {}).over_delivery_tolerance || 0;
-
         // Convert GD line quantities to dialog UOM for accurate comparison
         const convertQtyToDialogUOM = (qty) => {
           if (!qty || gdLineUOM === dialogUOM) return qty;
@@ -81,10 +96,10 @@
               baseQty = qty * fromConv.base_qty;
           }
           // base → dialog UOM
-          if (dialogUOM === baseUOM) return Math.round(baseQty * 1000) / 1000;
+          if (dialogUOM === baseUOM) return baseQty;
           const toConv = tableUOM.find((c) => c.alt_uom_id === dialogUOM);
           if (toConv && toConv.base_qty)
-            return Math.round((baseQty / toConv.base_qty) * 1000) / 1000;
+            return baseQty / toConv.base_qty;
           return qty;
         };
 
@@ -95,9 +110,7 @@
         const gd_delivered_qty = initialDeliveredQty + totalWithNewValue;
 
         const orderLimit =
-          (gd_order_quantity *
-            (100 + getOverDeliveryTolerance(itemData, gdLineUOM))) /
-          100;
+          (gd_order_quantity * (100 + (((itemData.table_uom_conversion || []).find((c) => c.alt_uom_id === gdLineUOM) || {}).over_delivery_tolerance || 0))) / 100;
 
         // GDPP mode: Validate against to_quantity (picked qty from PP)
         if (isSelectPicking === 1) {
@@ -112,7 +125,7 @@
           // Regular GD mode: Validate against balance quantities
           console.log("Regular GD mode validation - checking against balance");
 
-          const soLineItemId = data.table_gd[rowIndex].so_line_item_id;
+          const soLineItemId = targetRow.so_line_item_id;
           // With SO: reserved_qty shows SO-line-specific reserved (unrestricted + reserved = total available)
           // Without SO: only check unrestricted (reserved belongs to other documents)
           const availableQty = soLineItemId
