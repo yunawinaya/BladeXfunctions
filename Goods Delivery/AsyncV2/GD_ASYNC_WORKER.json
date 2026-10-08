@@ -6211,6 +6211,410 @@
           ]
         },
         {
+          "id": "sql_node_PKjob001",
+          "type": "sql-node",
+          "data": {
+            "database_id": "",
+            "sql": "",
+            "params": {},
+            "title": "The job after both publish calls (the Picking decision; read in the loop body)",
+            "isValidator": true,
+            "nodeName": "The job after both publish calls (the Picking decision; read in the loop body)",
+            "name": "The job after both publish calls (the Picking decision; read in the loop body)",
+            "script": {
+              "type": "sql",
+              "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       CAST(j.gd_id AS CHAR) AS gd_id,\n       j.gd_no,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at,\n       j.is_deleted,\n       CAST(p3.id AS CHAR) AS p3_id,\n       p3.step_status AS p3_status,\n       p3.attempt_count AS p3_attempt,\n       p3.inventory_operation_id AS p3_op,\n       p3.result_ref AS p3_ref,\n       (SELECT g.gd_status FROM goods_delivery g\n         WHERE g.tenant_id = '{{node:code_node_1OvNTk9G.data.tenantId}}'\n           AND g.gd_dockey = CONCAT('JOB|', '{{node:code_node_Qo8Suk1M.data.jobId}}')\n           AND g.is_deleted = 0\n         LIMIT 1) AS gd_status\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_1OvNTk9G.data.tenantId}}'\n   AND j.id = {{node:code_node_Qo8Suk1M.data.jobId}}\n  LEFT JOIN gd_publish_step p3\n    ON p3.tenant_id = '{{node:code_node_1OvNTk9G.data.tenantId}}'\n   AND p3.job_id = '{{node:code_node_Qo8Suk1M.data.jobId}}'\n   AND p3.step_name = 'P3_INVENTORY_APPLY'\n   AND p3.is_deleted = 0"
+            },
+            "response_json": [
+              {
+                "key": "sc2pjrfn",
+                "name": "db_now",
+                "title": "db_now",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "tn0h3bzx",
+                "name": "id",
+                "title": "id",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "ops2dmf9",
+                "name": "job_status",
+                "title": "job_status",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "sz533daw",
+                "name": "progress_message",
+                "title": "progress_message",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "e5ev7eui",
+                "name": "next_attempt_at",
+                "title": "next_attempt_at",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "wdfhsmqk",
+                "name": "lease_owner",
+                "title": "lease_owner",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "framgb71",
+                "name": "lease_expires_at",
+                "title": "lease_expires_at",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "be7f1gc1",
+                "name": "error_code",
+                "title": "error_code",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "jlu1etsw",
+                "name": "error_message",
+                "title": "error_message",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "hxcpm3tr",
+                "name": "error_details",
+                "title": "error_details",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "ibp9gra3",
+                "name": "gd_id",
+                "title": "gd_id",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "q6ovh8st",
+                "name": "gd_no",
+                "title": "gd_no",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "csd6ecwg",
+                "name": "finished_at",
+                "title": "finished_at",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "a2e04nxj",
+                "name": "p3_id",
+                "title": "p3_id",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "qnj00jnt",
+                "name": "p3_status",
+                "title": "p3_status",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "6dimi3xp",
+                "name": "p3_op",
+                "title": "p3_op",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "ticrslde",
+                "name": "p3_ref",
+                "title": "p3_ref",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "82aplr33",
+                "name": "gd_status",
+                "title": "gd_status",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "empkp3uy",
+                "name": "progress_percent",
+                "title": "progress_percent",
+                "description": "",
+                "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "rb43c04m",
+                "name": "attempt_count",
+                "title": "attempt_count",
+                "description": "",
+                "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "53nvqjpi",
+                "name": "lease_live",
+                "title": "lease_live",
+                "description": "",
+                "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "kzvtifs3",
+                "name": "row_version",
+                "title": "row_version",
+                "description": "",
+                "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "fnqm9hl2",
+                "name": "is_deleted",
+                "title": "is_deleted",
+                "description": "",
+                "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "2rrn0lqy",
+                "name": "p3_attempt",
+                "title": "p3_attempt",
+                "description": "",
+                "bsonType": "int",
+                "isExpand": false,
+                "children": []
+              }
+            ]
+          },
+          "blocks": []
+        },
+        {
+          "id": "code_node_PKdec001",
+          "type": "code-node",
+          "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Picking: the job committed in this iteration -> its GD_COMMITTED event",
+            "isValidator": true,
+            "nodeName": "Picking: the job committed in this iteration -> its GD_COMMITTED event",
+            "name": "Picking: the job committed in this iteration -> its GD_COMMITTED event",
+            "script": {
+              "type": "javascript",
+              "code": "// GD_ASYNC_WORKER - Picking: a job this iteration published and committed (GD Created) -> GD_PICKING_OUTBOX_CONSUMER for its\n// event. Only after this run's own publish call: a job skipped here may be another worker's, and a second consumer run\n// on the same event dies on the consumer's claim gate. A consumer that fails leaves the event READY for its schedule.\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst guard = [{{node:code_node_1OvNTk9G.data}}][0] || {};\nconst mid = [{{node:code_node_7UMUXQpd.data}}][0] || {};\nconst rows = [{{node:sql_node_PKjob001.data}}][0];\nconst job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\nconst gdId = job ? s(job.gd_id) : \"\";\nlet why = \"\";\nif (s(guard.route) !== \"CONTINUE\") why = \"guard \" + s(guard.route);\nelse if (s(mid.route) !== \"PUBLISH\") why = \"no publish call in this iteration\";\nelse if (!job || String(job.is_deleted) !== \"0\") why = \"job row not found\";\nelse if (s(job.job_status) !== \"GD_COMMITTED\") why = \"job is \" + s(job.job_status);\nelse if (s(job.gd_status) !== \"Created\") why = \"delivery is \" + (s(job.gd_status) || \"missing\");\nelse if (!/^[0-9]{1,20}$/.test(gdId) || gdId === \"0\") why = \"job has no gd_id\";\nconst call = why === \"\";\nconsole.log(\"worker picking\", JSON.stringify({ job: s(mid.jobId), call: call, why: why }));\nreturn { route: call ? \"PICK\" : \"END\", eventId: call ? \"GD_COMMITTED|\" + gdId + \"|1\" : \"\", jobId: job ? s(job.id) : s(mid.jobId), gdId: gdId, jobStatus: job ? s(job.job_status) : \"\", result_message: call ? \"picking for GD \" + gdId : why };\n"
+            },
+            "response_json": [
+              {
+                "key": "ahkz023w",
+                "name": "route",
+                "title": "route",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "eqtzu88r",
+                "name": "eventId",
+                "title": "eventId",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "9vu50zhu",
+                "name": "jobId",
+                "title": "jobId",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "11u16c9c",
+                "name": "gdId",
+                "title": "gdId",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "nrwtrn7a",
+                "name": "jobStatus",
+                "title": "jobStatus",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "mkzkb5jn",
+                "name": "result_message",
+                "title": "result_message",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              }
+            ]
+          },
+          "blocks": []
+        },
+        {
+          "id": "if_PKcall001",
+          "type": "if",
+          "data": {
+            "title": "IF this iteration committed the delivery: create its Picking",
+            "isValidator": true,
+            "nodeName": "IF this iteration committed the delivery: create its Picking",
+            "name": "IF this iteration committed the delivery: create its Picking",
+            "condition_type": "Expression",
+            "filter": {
+              "list": [
+                {
+                  "id": 1794000000068,
+                  "parentId": 1794000000069,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "type": "javascript",
+              "code": "'{{node:code_node_PKdec001.data.route}}' == 'PICK'"
+            }
+          },
+          "blocks": [
+            {
+              "id": "ifBlock_PKtrue01",
+              "type": "ifBlock",
+              "data": { "title": "true" },
+              "blocks": [
+                {
+                  "id": "workflow_node_PKcons01",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "GD_PICKING_OUTBOX_CONSUMER (this job's GD_COMMITTED event -> Picking)",
+                    "isValidator": true,
+                    "nodeName": "GD_PICKING_OUTBOX_CONSUMER (this job's GD_COMMITTED event -> Picking)",
+                    "name": "GD_PICKING_OUTBOX_CONSUMER (this job's GD_COMMITTED event -> Picking)",
+                    "workflow": {
+                      "source": "GD_PICKING_OUTBOX_CONSUMER:Workflow:2105134245397041153",
+                      "rules": {
+                        "collectionId": "2105134245397041153",
+                        "list": [
+                          {
+                            "id": 1794000000070,
+                            "parentId": 1794000000071,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "event_id",
+                          "propLabel": "event_id",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_node_PKdec001.data.eventId}}",
+                          "valueLabel": ""
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "ifBlock_PKfals01",
+              "type": "ifBlock",
+              "data": { "title": "false" },
+              "blocks": []
+            }
+          ]
+        },
+        {
           "id": "set_cache_node_dv5GX4FO",
           "type": "set-cache-node",
           "data": {

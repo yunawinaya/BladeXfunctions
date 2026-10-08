@@ -2459,7 +2459,7 @@
         "name": "Set-based read 0: what the old save's auto allocation reads (picking setup, item, balance rows in id order, bins, units, batches, handling units, pending reservations) for the lines with no Select Stock",
         "script": {
           "type": "sql",
-          "code": "SELECT 'SETUP' AS kind, CAST(CAST(ps.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(ps.picking_mode AS CHAR) AS v1, CAST(ps.default_strategy_id AS CHAR) AS v2, CAST(ps.split_policy AS CHAR) AS v3, CAST(ps.picking_after AS CHAR) AS v4, CAST(CAST(ps.picking_required AS CHAR) AS CHAR) AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM (SELECT p.id, p.picking_mode, p.default_strategy_id, p.split_policy, p.picking_after, p.picking_required\n          FROM picking_setup p\n         WHERE p.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND p.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND p.is_deleted = 0\n         ORDER BY p.id LIMIT 1) ps\nUNION ALL\nSELECT 'ITEM' AS kind, CAST(CAST(i.id AS CHAR) AS CHAR) AS id, CAST(CAST(i.id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, CAST(i.material_code AS CHAR) AS v1, CAST(CAST(i.item_batch_management AS CHAR) AS CHAR) AS v2, CAST(CAST(i.stock_control AS CHAR) AS CHAR) AS v3, CAST(CAST(i.show_delivery AS CHAR) AS CHAR) AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, CAST(CAST(COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('alt_uom_id', CAST(u.alt_uom_id AS CHAR), 'base_qty', u.base_qty)) FROM item_mji552rc_sub u WHERE u.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND u.Item_id = i.id AND u.is_deleted = 0), '[]') AS CHAR) AS CHAR) AS j1, CAST(CAST(COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('plant_id', CAST(db.plant_id AS CHAR), 'bin_location', CAST(db.bin_location AS CHAR))) FROM item_wu520fpw_sub db WHERE db.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND db.Item_id = i.id AND db.is_deleted = 0), '[]') AS CHAR) AS CHAR) AS j2, 0 AS n\n  FROM item i\n WHERE i.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND i.id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) AND i.is_deleted = 0\nUNION ALL\nSELECT 'CNT' AS kind, '' AS id, CAST(CAST(c.material_id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, 'item_balance' AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(*) AS n\n  FROM item_balance c\n WHERE c.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND c.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND c.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND c.is_deleted = 0 AND c.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}})\n GROUP BY c.material_id\nUNION ALL\nSELECT 'CNT' AS kind, '' AS id, CAST(CAST(c.material_id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, 'item_batch_balance' AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(*) AS n\n  FROM item_batch_balance c\n WHERE c.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND c.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND c.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND c.is_deleted = 0 AND c.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}})\n GROUP BY c.material_id\nUNION ALL\nSELECT 'IBAL' AS kind, CAST(CAST(b.id AS CHAR) AS CHAR) AS id, CAST(CAST(b.material_id AS CHAR) AS CHAR) AS material_id, CAST(CAST(b.location_id AS CHAR) AS CHAR) AS location_id, '' AS batch_id, '' AS v1, '' AS v2, '' AS v3, '' AS v4, CAST(CAST(b.unrestricted_qty AS CHAR) AS CHAR) AS q1, CAST(CAST(b.reserved_qty AS CHAR) AS CHAR) AS q2, CAST(CAST(b.balance_quantity AS CHAR) AS CHAR) AS q3, CAST(LEFT(DATE_FORMAT(b.create_time, '%Y-%m-%d %H:%i:%s.%f'), 23) AS CHAR) AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM item_balance b\n WHERE b.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND b.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND b.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND b.is_deleted = 0 AND b.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) AND b.unrestricted_qty > 0\n   AND b.material_id IN (SELECT c.material_id FROM item_balance c WHERE c.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND c.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND c.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND c.is_deleted = 0 AND c.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) GROUP BY c.material_id HAVING COUNT(*) < 500)\nUNION ALL\nSELECT 'BBAL' AS kind, CAST(CAST(b.id AS CHAR) AS CHAR) AS id, CAST(CAST(b.material_id AS CHAR) AS CHAR) AS material_id, CAST(CAST(b.location_id AS CHAR) AS CHAR) AS location_id, CAST(CAST(b.batch_id AS CHAR) AS CHAR) AS batch_id, '' AS v1, '' AS v2, '' AS v3, '' AS v4, CAST(CAST(b.unrestricted_qty AS CHAR) AS CHAR) AS q1, CAST(CAST(b.reserved_qty AS CHAR) AS CHAR) AS q2, CAST(CAST(b.balance_quantity AS CHAR) AS CHAR) AS q3, CAST(LEFT(DATE_FORMAT(b.create_time, '%Y-%m-%d %H:%i:%s.%f'), 23) AS CHAR) AS t1, CAST(DATE_FORMAT(b.expired_date, '%Y-%m-%d %H:%i:%s') AS CHAR) AS t2, CAST(DATE_FORMAT(b.manufacturing_date, '%Y-%m-%d %H:%i:%s') AS CHAR) AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM item_batch_balance b\n WHERE b.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND b.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND b.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND b.is_deleted = 0 AND b.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) AND b.unrestricted_qty > 0\n   AND b.material_id IN (SELECT c.material_id FROM item_batch_balance c WHERE c.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND c.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND c.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND c.is_deleted = 0 AND c.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) GROUP BY c.material_id HAVING COUNT(*) < 500)\nUNION ALL\nSELECT 'BIN' AS kind, CAST(CAST(x.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(x.bin_location_combine AS CHAR) AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM (SELECT bl.id, bl.bin_location_combine\n          FROM bin_location bl\n         WHERE bl.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND bl.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND bl.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND bl.is_deleted = 0\n         ORDER BY bl.id LIMIT 500) x\nUNION ALL\nSELECT 'UOM' AS kind, CAST(CAST(u.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(u.uom_name AS CHAR) AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM unit_of_measurement u\n WHERE u.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND u.id IN ({{node:code_node_FniXEIuQ.data.autoUomIdsSql}}) AND u.is_deleted = 0\nUNION ALL\nSELECT 'BATCH' AS kind, CAST(CAST(bt.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(bt.batch_number AS CHAR) AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM batch bt\n WHERE bt.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND bt.is_deleted = 0\n   AND bt.id IN (SELECT b.batch_id FROM item_batch_balance b WHERE b.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND b.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND b.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND b.is_deleted = 0 AND b.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) AND b.unrestricted_qty > 0)\nUNION ALL\nSELECT 'HU' AS kind, '' AS id, CAST(CAST(hi.material_id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, '' AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(DISTINCT h.id) AS n\n  FROM handling_unit h\n  JOIN handling_unit_atu7sreg_sub hi\n    ON hi.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND hi.handling_unit_id = h.id AND hi.is_deleted = 0\n WHERE h.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND h.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND h.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND h.is_deleted = 0 AND (h.packing_id IS NULL OR h.packing_id = '') AND hi.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}})\n GROUP BY hi.material_id\nUNION ALL\nSELECT 'HURES' AS kind, '' AS id, CAST(CAST(r.material_id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, '' AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(*) AS n\n  FROM on_reserved_gd r\n WHERE r.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND r.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND r.is_deleted = 0 AND r.status = 'Allocated' AND r.handling_unit_id IS NOT NULL AND r.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}})\n GROUP BY r.material_id\nUNION ALL\nSELECT 'PEND' AS kind, '' AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(CAST(r.parent_line_id AS CHAR) AS CHAR) AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(*) AS n\n  FROM on_reserved_gd r\n WHERE r.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND r.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND r.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND r.is_deleted = 0 AND r.status = 'Pending' AND r.parent_line_id IN ({{node:code_node_FniXEIuQ.data.soLineIdsQuoted}})\n GROUP BY r.parent_line_id\nUNION ALL\nSELECT 'LINK' AS kind, CAST(CAST(dl.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(dl.target_doc_id AS CHAR) AS v1, CAST(dl.buyer_org_id AS CHAR) AS v2, CAST(dl.seller_org_id AS CHAR) AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM document_linkage dl\n WHERE dl.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND dl.is_deleted = 0 AND dl.target_doc_type = 'Sales Order' AND dl.link_status = 'Linked'\n   AND CAST(dl.target_doc_id AS UNSIGNED) IN ({{node:code_node_FniXEIuQ.data.soIdsSql}})\nUNION ALL\nSELECT 'ITS' AS kind, CAST(CAST(its.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, '' AS v1, CAST(CAST(its.buyer_org_id AS CHAR) AS CHAR) AS v2, CAST(CAST(its.seller_org_id AS CHAR) AS CHAR) AS v3, '' AS v4, CAST(CAST(its.auto_create_gr AS CHAR) AS CHAR) AS q1, CAST(CAST(its.skip_picking AS CHAR) AS CHAR) AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM internal_trading_setup its\n WHERE its.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND its.is_deleted = 0 AND its.is_active = 1\n   AND (its.buyer_org_id, its.seller_org_id) IN (SELECT CAST(dl.buyer_org_id AS UNSIGNED), CAST(dl.seller_org_id AS UNSIGNED)\n                                                    FROM document_linkage dl\n                                                   WHERE dl.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND dl.is_deleted = 0 AND dl.target_doc_type = 'Sales Order' AND dl.link_status = 'Linked'\n                                                     AND CAST(dl.target_doc_id AS UNSIGNED) IN ({{node:code_node_FniXEIuQ.data.soIdsSql}}))"
+          "code": "SELECT 'SETUP' AS kind, CAST(CAST(ps.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(ps.picking_mode AS CHAR) AS v1, CAST(ps.default_strategy_id AS CHAR) AS v2, CAST(ps.split_policy AS CHAR) AS v3, CAST(ps.picking_after AS CHAR) AS v4, CAST(CAST(ps.picking_required AS CHAR) AS CHAR) AS q1, CAST(ps.full_cl_check AS CHAR) AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM (SELECT p.id, p.picking_mode, p.default_strategy_id, p.split_policy, p.picking_after, p.picking_required, p.full_cl_check\n          FROM picking_setup p\n         WHERE p.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND p.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND p.is_deleted = 0\n         ORDER BY p.id LIMIT 1) ps\nUNION ALL\nSELECT 'ITEM' AS kind, CAST(CAST(i.id AS CHAR) AS CHAR) AS id, CAST(CAST(i.id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, CAST(i.material_code AS CHAR) AS v1, CAST(CAST(i.item_batch_management AS CHAR) AS CHAR) AS v2, CAST(CAST(i.stock_control AS CHAR) AS CHAR) AS v3, CAST(CAST(i.show_delivery AS CHAR) AS CHAR) AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, CAST(CAST(COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('alt_uom_id', CAST(u.alt_uom_id AS CHAR), 'base_qty', u.base_qty)) FROM item_mji552rc_sub u WHERE u.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND u.Item_id = i.id AND u.is_deleted = 0), '[]') AS CHAR) AS CHAR) AS j1, CAST(CAST(COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('plant_id', CAST(db.plant_id AS CHAR), 'bin_location', CAST(db.bin_location AS CHAR))) FROM item_wu520fpw_sub db WHERE db.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND db.Item_id = i.id AND db.is_deleted = 0), '[]') AS CHAR) AS CHAR) AS j2, 0 AS n\n  FROM item i\n WHERE i.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND i.id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) AND i.is_deleted = 0\nUNION ALL\nSELECT 'CNT' AS kind, '' AS id, CAST(CAST(c.material_id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, 'item_balance' AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(*) AS n\n  FROM item_balance c\n WHERE c.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND c.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND c.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND c.is_deleted = 0 AND c.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}})\n GROUP BY c.material_id\nUNION ALL\nSELECT 'CNT' AS kind, '' AS id, CAST(CAST(c.material_id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, 'item_batch_balance' AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(*) AS n\n  FROM item_batch_balance c\n WHERE c.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND c.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND c.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND c.is_deleted = 0 AND c.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}})\n GROUP BY c.material_id\nUNION ALL\nSELECT 'IBAL' AS kind, CAST(CAST(b.id AS CHAR) AS CHAR) AS id, CAST(CAST(b.material_id AS CHAR) AS CHAR) AS material_id, CAST(CAST(b.location_id AS CHAR) AS CHAR) AS location_id, '' AS batch_id, '' AS v1, '' AS v2, '' AS v3, '' AS v4, CAST(CAST(b.unrestricted_qty AS CHAR) AS CHAR) AS q1, CAST(CAST(b.reserved_qty AS CHAR) AS CHAR) AS q2, CAST(CAST(b.balance_quantity AS CHAR) AS CHAR) AS q3, CAST(LEFT(DATE_FORMAT(b.create_time, '%Y-%m-%d %H:%i:%s.%f'), 23) AS CHAR) AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM item_balance b\n WHERE b.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND b.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND b.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND b.is_deleted = 0 AND b.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) AND b.unrestricted_qty > 0\n   AND b.material_id IN (SELECT c.material_id FROM item_balance c WHERE c.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND c.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND c.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND c.is_deleted = 0 AND c.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) GROUP BY c.material_id HAVING COUNT(*) < 500)\nUNION ALL\nSELECT 'BBAL' AS kind, CAST(CAST(b.id AS CHAR) AS CHAR) AS id, CAST(CAST(b.material_id AS CHAR) AS CHAR) AS material_id, CAST(CAST(b.location_id AS CHAR) AS CHAR) AS location_id, CAST(CAST(b.batch_id AS CHAR) AS CHAR) AS batch_id, '' AS v1, '' AS v2, '' AS v3, '' AS v4, CAST(CAST(b.unrestricted_qty AS CHAR) AS CHAR) AS q1, CAST(CAST(b.reserved_qty AS CHAR) AS CHAR) AS q2, CAST(CAST(b.balance_quantity AS CHAR) AS CHAR) AS q3, CAST(LEFT(DATE_FORMAT(b.create_time, '%Y-%m-%d %H:%i:%s.%f'), 23) AS CHAR) AS t1, CAST(DATE_FORMAT(b.expired_date, '%Y-%m-%d %H:%i:%s') AS CHAR) AS t2, CAST(DATE_FORMAT(b.manufacturing_date, '%Y-%m-%d %H:%i:%s') AS CHAR) AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM item_batch_balance b\n WHERE b.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND b.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND b.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND b.is_deleted = 0 AND b.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) AND b.unrestricted_qty > 0\n   AND b.material_id IN (SELECT c.material_id FROM item_batch_balance c WHERE c.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND c.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND c.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND c.is_deleted = 0 AND c.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) GROUP BY c.material_id HAVING COUNT(*) < 500)\nUNION ALL\nSELECT 'BIN' AS kind, CAST(CAST(x.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(x.bin_location_combine AS CHAR) AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM (SELECT bl.id, bl.bin_location_combine\n          FROM bin_location bl\n         WHERE bl.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND bl.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND bl.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND bl.is_deleted = 0\n         ORDER BY bl.id LIMIT 500) x\nUNION ALL\nSELECT 'UOM' AS kind, CAST(CAST(u.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(u.uom_name AS CHAR) AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM unit_of_measurement u\n WHERE u.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND u.id IN ({{node:code_node_FniXEIuQ.data.autoUomIdsSql}}) AND u.is_deleted = 0\nUNION ALL\nSELECT 'BATCH' AS kind, CAST(CAST(bt.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(bt.batch_number AS CHAR) AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM batch bt\n WHERE bt.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND bt.is_deleted = 0\n   AND bt.id IN (SELECT b.batch_id FROM item_batch_balance b WHERE b.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND b.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND b.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND b.is_deleted = 0 AND b.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}}) AND b.unrestricted_qty > 0)\nUNION ALL\nSELECT 'HU' AS kind, '' AS id, CAST(CAST(hi.material_id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, '' AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(DISTINCT h.id) AS n\n  FROM handling_unit h\n  JOIN handling_unit_atu7sreg_sub hi\n    ON hi.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND hi.handling_unit_id = h.id AND hi.is_deleted = 0\n WHERE h.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND h.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND h.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND h.is_deleted = 0 AND (h.packing_id IS NULL OR h.packing_id = '') AND hi.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}})\n GROUP BY hi.material_id\nUNION ALL\nSELECT 'HURES' AS kind, '' AS id, CAST(CAST(r.material_id AS CHAR) AS CHAR) AS material_id, '' AS location_id, '' AS batch_id, '' AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(*) AS n\n  FROM on_reserved_gd r\n WHERE r.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND r.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND r.is_deleted = 0 AND r.status = 'Allocated' AND r.handling_unit_id IS NOT NULL AND r.material_id IN ({{node:code_node_FniXEIuQ.data.autoMaterialIdsSql}})\n GROUP BY r.material_id\nUNION ALL\nSELECT 'PEND' AS kind, '' AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(CAST(r.parent_line_id AS CHAR) AS CHAR) AS v1, '' AS v2, '' AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, COUNT(*) AS n\n  FROM on_reserved_gd r\n WHERE r.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND r.organization_id = '{{node:code_node_FniXEIuQ.data.organizationId}}' AND r.plant_id = {{node:code_node_FniXEIuQ.data.plantId}} AND r.is_deleted = 0 AND r.status = 'Pending' AND r.parent_line_id IN ({{node:code_node_FniXEIuQ.data.soLineIdsQuoted}})\n GROUP BY r.parent_line_id\nUNION ALL\nSELECT 'LINK' AS kind, CAST(CAST(dl.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, CAST(dl.target_doc_id AS CHAR) AS v1, CAST(dl.buyer_org_id AS CHAR) AS v2, CAST(dl.seller_org_id AS CHAR) AS v3, '' AS v4, '' AS q1, '' AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM document_linkage dl\n WHERE dl.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND dl.is_deleted = 0 AND dl.target_doc_type = 'Sales Order' AND dl.link_status = 'Linked'\n   AND CAST(dl.target_doc_id AS UNSIGNED) IN ({{node:code_node_FniXEIuQ.data.soIdsSql}})\nUNION ALL\nSELECT 'ITS' AS kind, CAST(CAST(its.id AS CHAR) AS CHAR) AS id, '' AS material_id, '' AS location_id, '' AS batch_id, '' AS v1, CAST(CAST(its.buyer_org_id AS CHAR) AS CHAR) AS v2, CAST(CAST(its.seller_org_id AS CHAR) AS CHAR) AS v3, '' AS v4, CAST(CAST(its.auto_create_gr AS CHAR) AS CHAR) AS q1, CAST(CAST(its.skip_picking AS CHAR) AS CHAR) AS q2, '' AS q3, '' AS t1, '' AS t2, '' AS t3, '' AS j1, '' AS j2, 0 AS n\n  FROM internal_trading_setup its\n WHERE its.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND its.is_deleted = 0 AND its.is_active = 1\n   AND (its.buyer_org_id, its.seller_org_id) IN (SELECT CAST(dl.buyer_org_id AS UNSIGNED), CAST(dl.seller_org_id AS UNSIGNED)\n                                                    FROM document_linkage dl\n                                                   WHERE dl.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}' AND dl.is_deleted = 0 AND dl.target_doc_type = 'Sales Order' AND dl.link_status = 'Linked'\n                                                     AND CAST(dl.target_doc_id AS UNSIGNED) IN ({{node:code_node_FniXEIuQ.data.soIdsSql}}))"
         },
         "response_json": [
           {
@@ -3936,6 +3936,742 @@
         ]
       },
       "blocks": []
+    },
+    {
+      "id": "code_node_CLplan00",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Credit check plan: full_cl_check, the delivery total (old save's Created stage gate)",
+        "isValidator": true,
+        "nodeName": "Credit check plan: full_cl_check, the delivery total (old save's Created stage gate)",
+        "name": "Credit check plan: full_cl_check, the delivery total (old save's Created stage gate)",
+        "script": {
+          "type": "javascript",
+          "code": "// GD_BULK_PREPARE - Credit check plan: the old Created save's stage gate (GOODS_DELIVERY code_node_IyJHrBst) - only when\n// picking_setup.full_cl_check = 1 and the delivery is otherwise valid; total = the delivery's gd_total\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (v) => (Array.isArray(v) ? v : v ? [v] : []).filter((r) => r);\nconst parse = [{{node:code_node_FniXEIuQ.data}}][0] || {};\nconst route = [{{node:code_node_J5T1G2s9.data.route}}][0];\nconst setup = list([{{node:sql_node_rCfSqwDY.data}}][0]).filter((r) => s(r.kind) === \"SETUP\")[0] || null;\nconst header = parse.header || {};\nlet gdTotal = 0;\nfor (const line of Array.isArray(parse.lines) ? parse.lines : []) {\n  // top-level rows only: a bundle's items are lines of their own here (L<i>.<j>) and the bundle row carries the total\n  if (!line || s(line.stable_line_key).indexOf(\".\") !== -1) continue;\n  const raw = line.raw || {};\n  const oq = parseFloat(raw.gd_order_quantity) || 0;\n  const gq = parseFloat(raw.gd_qty !== undefined ? raw.gd_qty : line.quantity) || 0;\n  if (oq > 0 && gq > 0) gdTotal += ((parseFloat(raw.total_price) || 0) / oq) * gq;\n}\nconst customerId = s(Array.isArray(header.customer_name) ? header.customer_name[0] : header.customer_name);\nlet why = \"\";\nif (s(route) !== \"OK\") why = \"validation \" + s(route);\nelse if (!setup || s(setup.q2) !== \"1\") why = \"full_cl_check is off\";\nelse if (s(header.acc_integration_type) === \"No Accounting\") why = \"No Accounting\";\nelse if (!customerId) why = \"no customer\";\nconst need = why === \"\";\nconsole.log(\"prepare credit plan\", JSON.stringify({ need: need, total: gdTotal, why: why }));\nreturn { needCL: need ? \"YES\" : \"NO\", customerId: customerId, total: Number(gdTotal.toFixed(8)), result_message: need ? \"credit check, total \" + gdTotal.toFixed(8) : why };\n"
+        },
+        "response_json": [
+          {
+            "key": "sc2pjrfn",
+            "name": "needCL",
+            "title": "needCL",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "tn0h3bzx",
+            "name": "customerId",
+            "title": "customerId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ops2dmf9",
+            "name": "total",
+            "title": "total",
+            "description": "",
+            "bsonType": "number",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sz533daw",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_CLneed000",
+      "type": "if",
+      "data": {
+        "title": "IF the credit limit is checked (full_cl_check = 1, delivery valid)",
+        "isValidator": true,
+        "nodeName": "IF the credit limit is checked (full_cl_check = 1, delivery valid)",
+        "name": "IF the credit limit is checked (full_cl_check = 1, delivery valid)",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1793000000036,
+              "parentId": 1793000000037,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CLplan00.data.needCL}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_CLndTr00",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "workflow_node_CLchk000",
+              "type": "workflow-node",
+              "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "CREDIT_LIMIT_CHECK (customer, the delivery total)",
+                "isValidator": true,
+                "nodeName": "CREDIT_LIMIT_CHECK (customer, the delivery total)",
+                "name": "CREDIT_LIMIT_CHECK (customer, the delivery total)",
+                "workflow": {
+                  "source": "CREDIT_LIMIT_CHECK:Workflow:1990247316342333442",
+                  "rules": {
+                    "collectionId": "1990247316342333442",
+                    "list": [
+                      {
+                        "id": 1793000000038,
+                        "parentId": 1793000000039,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                  "list": [
+                    {
+                      "prop": "customer_id",
+                      "propLabel": "Customer ID",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_CLplan00.data.customerId}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "total",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CLplan00.data.total}}",
+                      "valueLabel": "",
+                      "propLabel": "Total Amount"
+                    },
+                    {
+                      "prop": "document_type",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "Goods Delivery",
+                      "valueLabel": "",
+                      "propLabel": "Document Type"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_CLdec000",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Credit check decision: Block -> job FAILED, Override passes",
+                "isValidator": true,
+                "nodeName": "Credit check decision: Block -> job FAILED, Override passes",
+                "name": "Credit check decision: Block -> job FAILED, Override passes",
+                "script": {
+                  "type": "javascript",
+                  "code": "// GD_BULK_PREPARE - Credit check decision: a Block fails the job (GD_CREDIT_LIMIT_BLOCKED); an Override passes, as for\n// the old save's headless callers (\"auto\": code_node_60Bp11jY / code_cl_auto_note) - nobody is there to confirm\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst parse = [{{node:code_node_FniXEIuQ.data}}][0] || {};\nconst result = [{{node:workflow_node_CLchk000.data.result}}][0];\nconst message = [{{node:workflow_node_CLchk000.data.message}}][0];\nconst blocked = s(result) === \"failed\" && s(message).indexOf(\"Block - \") !== -1;\nconst base = (Array.isArray(parse.jobRows) ? parse.jobRows : [])[0] || {};\nconst msg = s(message).replace(\"Block - \", \"\") || \"credit limit exceeded\";\n// the row Finish would write for a FAILED job: VALIDATING wrote row_version + 1, the final state is + 2\nconst jobRows = blocked ? [Object.assign({}, base, { job_status: \"FAILED\", progress_message: \"Not created; credit limit blocked\", row_version: (Number(parse.rowVersion) || 0) + 2, error_code: \"GD_CREDIT_LIMIT_BLOCKED\", error_message: msg, error_details: JSON.stringify({ line_errors: [{ line_no: null, stable_line_key: \"\", field: \"credit_limit\", code: \"GD_CREDIT_LIMIT_BLOCKED\", message: msg }] }), finished_at: s(parse.dbNow) })] : [];\nconsole.log(\"prepare credit decision\", JSON.stringify({ result: s(result), blocked: blocked, message: s(message) }));\nreturn { blocked: blocked ? \"YES\" : \"NO\", jobRows: jobRows, result_code: blocked ? \"GD_CREDIT_LIMIT_BLOCKED\" : \"\", result_message: blocked ? msg : s(message) ? \"passes: \" + s(message) : \"within the credit limit\", job_status: blocked ? \"FAILED\" : \"\" };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "e5ev7eui",
+                    "name": "blocked",
+                    "title": "blocked",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "wdfhsmqk",
+                    "name": "jobRows",
+                    "title": "jobRows",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "framgb71",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "be7f1gc1",
+                    "name": "result_code",
+                    "title": "result_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "jlu1etsw",
+                    "name": "result_message",
+                    "title": "result_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hxcpm3tr",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_CLblok000",
+              "type": "if",
+              "data": {
+                "title": "IF the credit limit blocks: job FAILED",
+                "isValidator": true,
+                "nodeName": "IF the credit limit blocks: job FAILED",
+                "name": "IF the credit limit blocks: job FAILED",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1793000000040,
+                      "parentId": 1793000000041,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_CLdec000.data.blocked}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_CLblkTr0",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "update_node_CLfail00",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "GD Async Job:Table:2104845286495150081",
+                          "rules": {
+                            "collectionId": "2104845286495150081",
+                            "list": [
+                              {
+                                "id": 1793000000042,
+                                "parentId": 1793000000043,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_CLdec000.data.jobRows.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Job FAILED: credit limit blocked (GD_CREDIT_LIMIT_BLOCKED)",
+                        "isValidator": true,
+                        "nodeName": "Job FAILED: credit limit blocked (GD_CREDIT_LIMIT_BLOCKED)",
+                        "name": "Job FAILED: credit limit blocked (GD_CREDIT_LIMIT_BLOCKED)",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.id}}",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "job_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.job_status}}",
+                              "valueLabel": "",
+                              "propLabel": "job_status"
+                            },
+                            {
+                              "prop": "progress_percent",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.progress_percent}}",
+                              "valueLabel": "",
+                              "propLabel": "progress_percent"
+                            },
+                            {
+                              "prop": "progress_message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.progress_message}}",
+                              "valueLabel": "",
+                              "propLabel": "progress_message"
+                            },
+                            {
+                              "prop": "attempt_count",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.attempt_count}}",
+                              "valueLabel": "",
+                              "propLabel": "attempt_count"
+                            },
+                            {
+                              "prop": "next_attempt_at",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.next_attempt_at}}",
+                              "valueLabel": "",
+                              "propLabel": "next_attempt_at"
+                            },
+                            {
+                              "prop": "lease_owner",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.lease_owner}}",
+                              "valueLabel": "",
+                              "propLabel": "lease_owner"
+                            },
+                            {
+                              "prop": "lease_expires_at",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.lease_expires_at}}",
+                              "valueLabel": "",
+                              "propLabel": "lease_expires_at"
+                            },
+                            {
+                              "prop": "row_version",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.row_version}}",
+                              "valueLabel": "",
+                              "propLabel": "row_version"
+                            },
+                            {
+                              "prop": "error_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.error_code}}",
+                              "valueLabel": "",
+                              "propLabel": "error_code"
+                            },
+                            {
+                              "prop": "error_message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.error_message}}",
+                              "valueLabel": "",
+                              "propLabel": "error_message"
+                            },
+                            {
+                              "prop": "error_details",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.error_details}}",
+                              "valueLabel": "",
+                              "propLabel": "error_details"
+                            },
+                            {
+                              "prop": "gd_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.gd_id}}",
+                              "valueLabel": "",
+                              "propLabel": "gd_id"
+                            },
+                            {
+                              "prop": "gd_no",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.gd_no}}",
+                              "valueLabel": "",
+                              "propLabel": "gd_no"
+                            },
+                            {
+                              "prop": "started_at",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.started_at}}",
+                              "valueLabel": "",
+                              "propLabel": "started_at"
+                            },
+                            {
+                              "prop": "gd_committed_at",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.gd_committed_at}}",
+                              "valueLabel": "",
+                              "propLabel": "gd_committed_at"
+                            },
+                            {
+                              "prop": "finished_at",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CLdec000.data.jobRows.finished_at}}",
+                              "valueLabel": "",
+                              "propLabel": "finished_at"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "sql_node_CLback00",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "Read-back: the job",
+                        "isValidator": true,
+                        "nodeName": "Read-back: the job",
+                        "name": "Read-back: the job",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.row_version,\n       j.error_code,\n       j.line_count,\n       LENGTH(j.prepared_payload) AS prepared_len,\n       (SELECT COUNT(*) FROM gd_bulk_line_stage st\n         WHERE st.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}'\n           AND st.job_id = '{{node:code_node_kYqf0Zfd.data.jobId}}'\n           AND st.is_deleted = 0) AS stage_count\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_kYqf0Zfd.data.tenantId}}'\n   AND j.id = {{node:code_node_kYqf0Zfd.data.jobId}}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "empkp3uy",
+                            "name": "id",
+                            "title": "id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "rb43c04m",
+                            "name": "job_status",
+                            "title": "job_status",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "53nvqjpi",
+                            "name": "row_version",
+                            "title": "row_version",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "kzvtifs3",
+                            "name": "error_code",
+                            "title": "error_code",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fnqm9hl2",
+                            "name": "line_count",
+                            "title": "line_count",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "2rrn0lqy",
+                            "name": "prepared_len",
+                            "title": "prepared_len",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "ahkz023w",
+                            "name": "stage_count",
+                            "title": "stage_count",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_CLevid00",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Evidence FAILED_CREDIT_LIMIT",
+                        "isValidator": true,
+                        "nodeName": "Evidence FAILED_CREDIT_LIMIT",
+                        "name": "Evidence FAILED_CREDIT_LIMIT",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// GD_BULK_PREPARE - Evidence (FAILED_CREDIT_LIMIT): the job read back after the FAILED write\nconst T = (v) => String(v === undefined || v === null ? \"\" : v).replace(/^\"([\\s\\S]*)\"$/, \"$1\").trim();\nconst steps = {};\nsteps.guard = T([{{node:code_node_kYqf0Zfd.data.route}}][0]);\nsteps.parse = T([{{node:code_node_FniXEIuQ.data.route}}][0]);\nsteps.validate = T([{{node:code_node_J5T1G2s9.data.route}}][0]);\nsteps.credit = T([{{node:code_node_CLdec000.data.blocked}}][0]);\nconst dec = [{{node:code_node_CLdec000.data}}][0] || {};\nconst back = [{{node:sql_node_CLback00.data}}][0];\nconst job = (Array.isArray(back) ? back : back ? [back] : [])[0] || {};\nconst s = (v) => (v === undefined || v === null ? \"\" : typeof v === \"object\" ? JSON.stringify(v) : String(v));\nconst evidence = { v: 1, workflow: \"GD_BULK_PREPARE\", path: \"FAILED_CREDIT_LIMIT\", steps: steps };\nreturn {\n  job_id: s(job.id),\n  job_status: s(job.job_status),\n  result_code: s(dec.result_code),\n  result_message: s(dec.result_message),\n  line_count: s(job.line_count),\n  effect_count: \"0\",\n  stage_count: s(job.stage_count),\n  evidence: JSON.stringify(evidence),\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "ibp9gra3",
+                            "name": "job_id",
+                            "title": "job_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "q6ovh8st",
+                            "name": "job_status",
+                            "title": "job_status",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "csd6ecwg",
+                            "name": "result_code",
+                            "title": "result_code",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "a2e04nxj",
+                            "name": "result_message",
+                            "title": "result_message",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "qnj00jnt",
+                            "name": "line_count",
+                            "title": "line_count",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "6dimi3xp",
+                            "name": "effect_count",
+                            "title": "effect_count",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "ticrslde",
+                            "name": "stage_count",
+                            "title": "stage_count",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "82aplr33",
+                            "name": "evidence",
+                            "title": "evidence",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "return_node_CLret000",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return FAILED (credit limit)",
+                        "isValidator": true,
+                        "nodeName": "Return FAILED (credit limit)",
+                        "name": "Return FAILED (credit limit)",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "job_id",
+                              "propLabel": "job_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLevid00.data.job_id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "job_status",
+                              "propLabel": "job_status",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLevid00.data.job_status}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "result_code",
+                              "propLabel": "result_code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLevid00.data.result_code}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "result_message",
+                              "propLabel": "result_message",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLevid00.data.result_message}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "line_count",
+                              "propLabel": "line_count",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLevid00.data.line_count}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "effect_count",
+                              "propLabel": "effect_count",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLevid00.data.effect_count}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "stage_count",
+                              "propLabel": "stage_count",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLevid00.data.stage_count}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "evidence",
+                              "propLabel": "evidence",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLevid00.data.evidence}}",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_CLblkFa0",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_CLndFa00",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "condition_or_node_zncLKDFR",

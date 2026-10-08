@@ -25,6 +25,14 @@
       "bsonType": "any",
       "isExpand": false,
       "children": []
+    },
+    {
+      "key": "2rrn0lqy",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "optional: used only when there is no user session (e.g. a Quartz run); digits only",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "response_json": [],
@@ -52,7 +60,7 @@
         "name": "Define current redis key",
         "script": {
           "type": "javascript",
-          "code": "const date = new Date({{system:now}});\nconst orgID = {{global:firstLvDeptId}};\nconst tenantID = {{system:tenantId}};\n\nconst yyyyMMddHH = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}${String(date.getHours()).padStart(2, '0')}`;\n\nreturn {\n  redis_key: `auto_reorder:${tenantID}:${orgID}:${yyyyMMddHH}`\n}"
+          "code": "const date = new Date({{system:now}});\n// the session's organization always wins; organization_id (digits only) is used only without a user session (Quartz)\nconst orgSession = [{{global:firstLvDeptId}}][0];\nconst orgParam = String([{{workflowparams:organization_id}}][0] ?? \"\");\nconst orgID = orgSession !== undefined && orgSession !== null && String(orgSession) !== \"\" ? orgSession : /^[0-9]{1,20}$/.test(orgParam) ? orgParam : orgSession;\nconst tenantID = {{system:tenantId}};\n\nconst yyyyMMddHH = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}${String(date.getHours()).padStart(2, '0')}`;\n\nreturn {\n  redis_key: `auto_reorder:${tenantID}:${orgID}:${yyyyMMddHH}`\n}"
         },
         "response_json": [
           {
