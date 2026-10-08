@@ -1,0 +1,4460 @@
+{
+ "request_json": [
+  {
+   "key": "w76tegsj",
+   "name": "arrayData",
+   "title": "arrayData",
+   "description": "",
+   "bsonType": "array",
+   "isExpand": true,
+   "children": [
+    {
+     "key": "sm0droir",
+     "name": "items",
+     "title": "",
+     "description": "",
+     "bsonType": "any",
+     "isExpand": false,
+     "isArrayItem": true,
+     "children": []
+    }
+   ]
+  },
+  {
+   "key": "44e3x5fk",
+   "name": "saveAs",
+   "title": "saveAs",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "oxorop3l",
+   "name": "pageStatus",
+   "title": "pageStatus",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "j41na9bk",
+   "name": "isForceComplete",
+   "title": "isForceComplete",
+   "description": "",
+   "bsonType": "int",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "b31329it",
+   "name": "confirmed_by",
+   "title": "confirmed_by",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "response_json": [
+  {
+   "key": "anmhn03r",
+   "name": "code",
+   "title": "code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "qewz36jh",
+   "name": "message",
+   "title": "message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node",
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_uPSc7Syb",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Unique Index",
+    "isValidator": true,
+    "nodeName": "Unique Index",
+    "name": "Unique Index",
+    "script": {
+     "type": "javascript",
+     "code": "const arrayData = {{workflowparams:arrayData}};\nconst allData = arrayData[0];\nconst unique = `${allData.created_by || \"\"}_${Date.now()}`;\n\nreturn {\n  unique\n};"
+    },
+    "response_json": [
+     {
+      "key": "nfgua2wj",
+      "name": "unique",
+      "title": "unique",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "set_cache_node_9l7wsMOX",
+   "type": "set-cache-node",
+   "data": {
+    "cache_key": "",
+    "cache_value": "",
+    "expire_time": 3600,
+    "title": "Set Index",
+    "isValidator": true,
+    "nodeName": "Set Index",
+    "name": "Set Index",
+    "custom_wkbocgni": {
+     "type": "javascript",
+     "code": "0"
+    },
+    "redis_key": "index_{{node:code_node_uPSc7Syb.data.unique}}"
+   },
+   "blocks": []
+  },
+  {
+   "id": "loop_BIfi18oK",
+   "type": "loop",
+   "data": {
+    "title": "Loop arrayData",
+    "isValidator": true,
+    "nodeName": "Loop arrayData",
+    "name": "Loop arrayData",
+    "loopType": "Var",
+    "loopSeletSource": {
+     "datasource": {
+      "rules": {
+       "collectionId": "",
+       "list": [
+        {
+         "id": 1723795236686,
+         "parentId": 1723795236685,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      }
+     },
+     "auto_refresh": 1,
+     "auto_refresh_debounce": 100,
+     "options": [],
+     "props": {
+      "value": "",
+      "label": "",
+      "image": "",
+      "icon": "",
+      "explain": ""
+     },
+     "remote": false,
+     "remoteType": "datasource"
+    },
+    "loopSeletVar": {
+     "type": "markdown",
+     "code": "{{workflowparams:arrayData}}"
+    }
+   },
+   "blocks": [
+    {
+     "id": "get_cache_node_hGFbHnzQ",
+     "type": "get-cache-node",
+     "data": {
+      "cache_key": "",
+      "title": "Get Index",
+      "isValidator": true,
+      "nodeName": "Get Index",
+      "name": "Get Index",
+      "redis_key": "index_{{node:code_node_uPSc7Syb.data.unique}}"
+     },
+     "blocks": []
+    },
+    {
+     "id": "code_node_hjAwTKzF",
+     "type": "code-node",
+     "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Data Preparation",
+      "isValidator": true,
+      "nodeName": "Data Preparation",
+      "name": "Data Preparation",
+      "script": {
+       "type": "javascript",
+       "code": "const arrayData = {{workflowparams:arrayData}}\nconst currentIndexRaw = {{node:get_cache_node_hGFbHnzQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isForceComplete = {{workflowparams:isForceComplete}}\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// Validation: For saveAs \"Completed\", at least one item must have picked_qty > 0\nif (saveAs === \"Completed\" && !isForceComplete && isForceComplete !== 1) {\n  const hasPickedQty = data.table_picking_items && data.table_picking_items.length > 0 &&\n    data.table_picking_items.some(item => item.picked_qty > 0);\n  \n  if (!hasPickedQty) {\n    invalidMessage = \"Cannot complete picking. At least one item must have picked quantity greater than 0.\";\n  }\n\n  if (data.to_status === \"Cancelled\") {\n    invalidMessage = \"Picking is cancelled. Unable to process picking.\"\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\")\n    ) {\n      data.to_id = \"draft\";\n    }\n  } else {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\" ||\n        data.to_status === \"Draft\")\n    ) {\n      data.to_id = \"issued\";\n    }\n  }\n}\n\n// Cancel of a Created picking: flag to_id so the document number can be reused\nif (\n  saveAs === \"Cancelled\" &&\n  data.to_status === \"Created\" &&\n  typeof data.to_id === \"string\" &&\n  data.to_id &&\n  !data.to_id.endsWith(\"-Cancelled\")\n) {\n  data.to_id = data.to_id + \"-Cancelled\";\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\n// Interpolated into sql_node_LockGate, and arrayData is caller-supplied.\n// Picking ids are snowflake bigints, so digits-only is exact, not a guess;\n// \"0\" matches no row, which fails closed as \"under processing\".\nconst lockId = /^[0-9]+$/.test(String(data.id || \"\")) ? String(data.id) : \"0\";\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  lockId,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}\n"
+      },
+      "response_json": [
+       {
+        "key": "o1a0ftmf",
+        "name": "data",
+        "title": "data",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "73c0qmkf",
+        "name": "nextIndex",
+        "title": "nextIndex",
+        "description": "",
+        "bsonType": "int",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "td90tsd6",
+        "name": "updatedStatus",
+        "title": "updatedStatus",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false
+       },
+       {
+        "key": "awd4h2lt",
+        "name": "invalidMessage",
+        "title": "invalidMessage",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false
+       },
+       {
+        "key": "5y8yd4jk",
+        "name": "isInvalid",
+        "title": "isInvalid",
+        "description": "",
+        "bsonType": "int",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "dp6lockid",
+        "name": "lockId",
+        "title": "lockId",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       }
+      ]
+     },
+     "blocks": []
+    },
+    {
+     "id": "if_tNNSBWyU",
+     "type": "if",
+     "data": {
+      "title": "IF Invalid",
+      "isValidator": true,
+      "nodeName": "IF Invalid",
+      "name": "IF Invalid",
+      "condition_type": "ConditionRule",
+      "expression": {
+       "type": "javascript",
+       "code": ""
+      },
+      "filter": {
+       "list": [
+        {
+         "id": 1736695973613,
+         "parentId": 1736695973612,
+         "isTop": true,
+         "prop": "node.code_node_hjAwTKzF.data.isInvalid",
+         "operator": "numberEqual",
+         "valueType": "value",
+         "value": 1,
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "isInvalid",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      }
+     },
+     "blocks": [
+      {
+       "id": "if_block__cjFmiA8",
+       "type": "ifBlock",
+       "data": {
+        "title": "true"
+       },
+       "blocks": [
+        {
+         "id": "return_node_RAigIr20",
+         "type": "return-node",
+         "data": {
+          "return_data": {},
+          "status_code": 200,
+          "title": "Return Data",
+          "isValidator": true,
+          "nodeName": "Return Data",
+          "name": "Return Data",
+          "response_value": {
+           "list": [
+            {
+             "prop": "code",
+             "propLabel": "code",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "value",
+             "valueTypeLabel": "",
+             "value": "400",
+             "valueLabel": ""
+            },
+            {
+             "prop": "message",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.invalidMessage}}",
+             "valueLabel": "",
+             "propLabel": "message"
+            }
+           ]
+          },
+          "return_raw_data": 0
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "if_block_bEZViAUZ",
+       "type": "ifBlock",
+       "data": {
+        "title": "false"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_DPhDsPkx",
+     "type": "if",
+     "data": {
+      "title": "IF Edit",
+      "isValidator": true,
+      "nodeName": "IF Edit",
+      "name": "IF Edit",
+      "condition_type": "ConditionRule",
+      "expression": {
+       "type": "javascript",
+       "code": ""
+      },
+      "filter": {
+       "list": [
+        {
+         "id": 1736695973613,
+         "parentId": 1736695973612,
+         "isTop": true,
+         "prop": "workflowparams.pageStatus",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "Edit",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "pageStatus",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      }
+     },
+     "blocks": [
+      {
+       "id": "if_block_j_oVWfwQ",
+       "type": "ifBlock",
+       "data": {
+        "title": "true"
+       },
+       "blocks": [
+        {
+         "id": "sql_node_LockGate",
+         "type": "sql-node",
+         "data": {
+          "database_id": "",
+          "sql": "",
+          "params": {},
+          "title": "Get Updated Picking Data",
+          "isValidator": true,
+          "nodeName": "Get Updated Picking Data",
+          "name": "Get Updated Picking Data",
+          "script": {
+           "type": "sql",
+           "code": "SELECT id,\n       to_status,\n       COALESCE(is_processing, 0) AS is_processing,\n       TIMESTAMPDIFF(\n           SECOND,\n           update_time,\n           CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')\n       ) AS lock_age_sec\nFROM transfer_order\nWHERE id = '{{node:code_node_hjAwTKzF.data.lockId}}'\n  AND is_deleted = 0\nLIMIT 1"
+          },
+          "response_json": [
+           {
+            "key": "lg1id000",
+            "name": "id",
+            "title": "Picking ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "lg2sts00",
+            "name": "to_status",
+            "title": "Picking Status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "lg3proc0",
+            "name": "is_processing",
+            "title": "Is Processing",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "lg4age00",
+            "name": "lock_age_sec",
+            "title": "Lock Age Seconds",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_node_LockDecide",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Lock Decision",
+          "isValidator": true,
+          "nodeName": "Lock Decision",
+          "name": "Lock Decision",
+          "script": {
+           "type": "javascript",
+           "code": "const rows = {{node:sql_node_LockGate.data}} || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst row = list[0];\n\n// A crashed run can never release the mutex in-flow, so a lock this old is\n// treated as abandoned and taken over.\nconst STALE_SEC = 900;\n\n// 0 = free, take the lock   1 = held by a live run   2 = already Completed\nlet lockState = 1;\nlet staleRecovered = 0;\n\nif (row && row.id) {\n  if (row.to_status === \"Completed\") {\n    lockState = 2;\n  } else if (Number(row.is_processing) === 1) {\n    const age = Number(row.lock_age_sec);\n    // A negative or unparseable age means the clock assumption is off; stay\n    // locked rather than risk stealing a lock from a run still in progress.\n    if (isFinite(age) && age > STALE_SEC) {\n      lockState = 0;\n      staleRecovered = 1;\n    }\n  } else {\n    lockState = 0;\n  }\n}\n\nreturn {\n  lockState,\n  staleRecovered\n}\n"
+          },
+          "response_json": [
+           {
+            "key": "ld1state",
+            "name": "lockState",
+            "title": "lockState",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "ld2stale",
+            "name": "staleRecovered",
+            "title": "staleRecovered",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "condition_or_2BM2eewK",
+         "type": "condition-or-node",
+         "data": {
+          "title": "Condition",
+          "filter": {
+           "list": []
+          },
+          "expression": {
+           "code": ""
+          },
+          "displayContent": "sdk.form.setCondition"
+         },
+         "blocks": [
+          {
+           "id": "condition_or_node_item_hTnm95kh",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "IF isProcessing",
+            "filter": {
+             "list": [
+              {
+               "id": 1773914670079,
+               "parentId": 1773914670078,
+               "isTop": true,
+               "prop": "node.code_node_LockDecide.data.lockState",
+               "operator": "numberEqual",
+               "valueType": "value",
+               "value": 1,
+               "type": "leaf",
+               "level": 1,
+               "propLabel": "lockState",
+               "valueLabel": "",
+               "operatorLabel": "Equal"
+              }
+             ]
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "IF isProcessing",
+            "name": "IF isProcessing",
+            "condition_type": "ConditionRule"
+           },
+           "blocks": [
+            {
+             "id": "return_node_I0dTCQCY",
+             "type": "return-node",
+             "data": {
+              "return_data": {},
+              "status_code": 200,
+              "title": "Return Data",
+              "isValidator": true,
+              "nodeName": "Return Data",
+              "name": "Return Data",
+              "response_value": {
+               "list": [
+                {
+                 "prop": "code",
+                 "propLabel": "code",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "value",
+                 "valueTypeLabel": "",
+                 "value": "400",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "message",
+                 "operator": "",
+                 "valueType": "value",
+                 "value": "The current picking is under processing",
+                 "valueLabel": "",
+                 "propLabel": "message"
+                }
+               ]
+              },
+              "return_raw_data": 0
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "condition_or_item_Jo399j6h",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "IF already Completed",
+            "filter": {
+             "list": [
+              {
+               "id": 1772179778531,
+               "parentId": 1772179778530,
+               "isTop": true,
+               "prop": "node.code_node_LockDecide.data.lockState",
+               "operator": "numberEqual",
+               "valueType": "value",
+               "value": 2,
+               "type": "leaf",
+               "level": 1,
+               "propLabel": "lockState",
+               "valueLabel": "",
+               "operatorLabel": "Equal"
+              }
+             ]
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "__index": 2,
+            "isDefault": false,
+            "isValidator": true,
+            "nodeName": "IF already Completed",
+            "name": "IF already Completed",
+            "condition_type": "ConditionRule"
+           },
+           "blocks": [
+            {
+             "id": "return_node_yYCzg8lz",
+             "type": "return-node",
+             "data": {
+              "return_data": {},
+              "status_code": 200,
+              "title": "Return Data",
+              "isValidator": true,
+              "nodeName": "Return Data",
+              "name": "Return Data",
+              "response_value": {
+               "list": [
+                {
+                 "prop": "code",
+                 "propLabel": "code",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "value",
+                 "valueTypeLabel": "",
+                 "value": "400",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "message",
+                 "operator": "",
+                 "valueType": "value",
+                 "value": "The current picking is already Completed",
+                 "valueLabel": "",
+                 "propLabel": "message"
+                }
+               ]
+              },
+              "return_raw_data": 0
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "condition_or_node_item_xpw2hikK",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "Valid",
+            "isDefault": true,
+            "filter": {
+             "list": []
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.otherCondition"
+           },
+           "blocks": [
+            {
+             "id": "update_node_QvZ8RAFW",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "Transfer Order Picking:Table:1935556443668959233",
+               "rules": {
+                "collectionId": "1935556443668959233",
+                "list": [
+                 {
+                  "id": 1772179693343,
+                  "parentId": 1773914362837,
+                  "isTop": true,
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "主键ID",
+                  "valueLabel": "",
+                  "operatorLabel": "In"
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Update Picking Processing",
+              "isValidator": true,
+              "nodeName": "Update Picking Processing",
+              "name": "Update Picking Processing",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "is_processing",
+                 "valueType": "value",
+                 "value": 1,
+                 "operator": "",
+                 "valueLabel": "",
+                 "propLabel": "Is Processing"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "if_block_TVs2Gx1B",
+       "type": "ifBlock",
+       "data": {
+        "title": "false"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "code_node_jZbs5DDd",
+     "type": "code-node",
+     "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Required Fields",
+      "isValidator": true,
+      "nodeName": "Required Fields",
+      "name": "Required Fields",
+      "script": {
+       "type": "javascript",
+       "code": "return {\n  required_fields: JSON.stringify([\n      { name: \"plant_id\", label: \"Plant\" },\n      { name: \"to_id\", label: \"Transfer Order No\" },\n      { name: \"ref_doc_type\", label: \"Reference Document Type\" },\n      {\n        name: \"table_picking_items\",\n        label: \"Picking Items\",\n        isArray: true,\n        arrayType: \"object\",\n        arrayFields: [],\n      },\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_node_hjAwTKzF.data.data.plant_id}},\n    to_id: {{node:code_node_hjAwTKzF.data.data.to_id}},\n    ref_doc_type: {{node:code_node_hjAwTKzF.data.data.ref_doc_type}},\n    table_picking_items: {{node:code_node_hjAwTKzF.data.data.table_picking_items}},\n  })\n}"
+      },
+      "response_json": [
+       {
+        "key": "iomd4yaj",
+        "name": "required_fields",
+        "title": "",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false
+       },
+       {
+        "key": "z59j2g2u",
+        "name": "data",
+        "title": "",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false
+       }
+      ]
+     },
+     "blocks": []
+    },
+    {
+     "id": "workflow_node_evjnM0GP",
+     "type": "workflow-node",
+     "data": {
+      "workflow_id": "",
+      "workflow_name": "",
+      "input_params": {},
+      "title": "Check Required Workflow",
+      "isValidator": true,
+      "nodeName": "Check Required Workflow",
+      "name": "Check Required Workflow",
+      "workflow": {
+       "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+       "rules": {
+        "collectionId": "1988831880511062018",
+        "list": [
+         {
+          "id": 1763010683443,
+          "parentId": 1763010683442,
+          "isTop": true,
+          "prop": "",
+          "operator": "",
+          "valueType": "",
+          "value": "",
+          "type": "leaf",
+          "level": 1
+         }
+        ]
+       }
+      },
+      "remote": true,
+      "remoteType": "innerdatasource",
+      "body_params": {
+       "list": [
+        {
+         "prop": "entry",
+         "propLabel": "entry",
+         "operator": "",
+         "operatorLabel": "",
+         "valueType": "field",
+         "valueTypeLabel": "",
+         "value": "{{node:code_node_jZbs5DDd.data.data}}",
+         "valueLabel": ""
+        },
+        {
+         "prop": "required_fields",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_jZbs5DDd.data.required_fields}}",
+         "valueLabel": "",
+         "propLabel": "required_fields"
+        }
+       ]
+      }
+     },
+     "blocks": []
+    },
+    {
+     "id": "if_4E6dJynF",
+     "type": "if",
+     "data": {
+      "title": "IF Validation Failed",
+      "isValidator": true,
+      "nodeName": "IF Validation Failed",
+      "name": "IF Validation Failed",
+      "condition_type": "Expression",
+      "filter": {
+       "list": [
+        {
+         "id": 1736695973613,
+         "parentId": 1736695973612,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "type": "javascript",
+       "code": "'{{node:workflow_node_evjnM0GP.data.data.status}}' == 'Failed'"
+      }
+     },
+     "blocks": [
+      {
+       "id": "ifBlock_WwiaxBCM",
+       "type": "ifBlock",
+       "data": {
+        "title": "true"
+       },
+       "blocks": [
+        {
+         "id": "if_ReleaseLockVF",
+         "type": "if",
+         "data": {
+          "title": "IF Edit",
+          "isValidator": true,
+          "nodeName": "IF Edit",
+          "name": "IF Edit",
+          "condition_type": "ConditionRule",
+          "expression": {
+           "type": "javascript",
+           "code": ""
+          },
+          "filter": {
+           "list": [
+            {
+             "id": 1736695973613,
+             "parentId": 1736695973612,
+             "isTop": true,
+             "prop": "workflowparams.pageStatus",
+             "operator": "equal",
+             "valueType": "value",
+             "value": "Edit",
+             "type": "leaf",
+             "level": 1,
+             "propLabel": "pageStatus",
+             "valueLabel": "",
+             "operatorLabel": "Equal"
+            }
+           ]
+          }
+         },
+         "blocks": [
+          {
+           "id": "if_block_ReleaseLockVFTrue",
+           "type": "ifBlock",
+           "data": {
+            "title": "true"
+           },
+           "blocks": [
+            {
+             "id": "update_node_ReleaseLockVF",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "Transfer Order Picking:Table:1935556443668959233",
+               "rules": {
+                "collectionId": "1935556443668959233",
+                "list": [
+                 {
+                  "id": 1772179693343,
+                  "parentId": 1772179693342,
+                  "isTop": true,
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "主键ID",
+                  "valueLabel": "",
+                  "operatorLabel": "In"
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Release Picking Lock",
+              "isValidator": true,
+              "nodeName": "Release Picking Lock",
+              "name": "Release Picking Lock",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "is_processing",
+                 "valueType": "value",
+                 "value": 0,
+                 "operator": "",
+                 "valueLabel": "",
+                 "propLabel": "Is Processing"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "if_block_ReleaseLockVFFalse",
+           "type": "ifBlock",
+           "data": {
+            "title": "false"
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "return_node_cIY3Ta84",
+         "type": "return-node",
+         "data": {
+          "return_data": {},
+          "status_code": 200,
+          "title": "Return Data",
+          "isValidator": true,
+          "nodeName": "Return Data",
+          "name": "Return Data",
+          "response_value": {
+           "list": [
+            {
+             "prop": "code",
+             "propLabel": "code",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "value",
+             "valueTypeLabel": "",
+             "value": "400",
+             "valueLabel": ""
+            },
+            {
+             "prop": "message",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:workflow_node_evjnM0GP.data.data.message}}",
+             "valueLabel": "",
+             "propLabel": "message"
+            }
+           ]
+          },
+          "return_raw_data": 0
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "ifBlock_Yua5biY8",
+       "type": "ifBlock",
+       "data": {
+        "title": "false"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "code_node_NcJczWCQ",
+     "type": "code-node",
+     "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "title": "Table Picking",
+      "isValidator": true,
+      "nodeName": "Table Picking",
+      "name": "Table Picking",
+      "script": {
+       "type": "javascript",
+       "code": "let data = {{node:code_node_hjAwTKzF.data.data}} || {}\n\n// 8dp is the maximum configurable column precision, and every Transfer Order Picking\n// quantity column is precision 8, so rounding there keeps the client's scale and kills\n// float residue (232.85000000000002 -> 232.85).\n// NOTE: the maps below are an ALLOW-LIST — any decimal column left out reaches the\n// add/update node as a raw float. Add every new decimal column here.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// UOM conversion factors, not quantities: a missing/zero factor means \"same UOM\",\n// so they default to 1 rather than 0.\nconst formatFactor = (value) => {\n  const n = parseFloat(value);\n  return !n ? 1 : q8(n);\n};\n// Format qty fields in table_picking_items\nif (data.table_picking_items && data.table_picking_items.length > 0) {\n  data.table_picking_items = data.table_picking_items.map(item => ({\n    ...item,\n    qty_to_pick: q8(item.qty_to_pick),\n    pending_process_qty: q8(item.pending_process_qty),\n    picked_qty: q8(item.picked_qty),\n    to_pick_alt: q8(item.to_pick_alt),\n    pending_alt: q8(item.pending_alt),\n    order_base_qty: formatFactor(item.order_base_qty),\n    picking_base_qty: formatFactor(item.picking_base_qty),\n    packing_qty: q8(item.packing_qty),\n    net_weight: q8(item.net_weight),\n  }));\n}\n// Format qty fields in table_picking_records if exists\nif (data.table_picking_records && data.table_picking_records.length > 0) {\n  data.table_picking_records = data.table_picking_records.map(item => ({\n    ...item,\n    qty_to_pick: q8(item.qty_to_pick),\n    picked_qty: q8(item.picked_qty),\n    store_out_qty: q8(item.store_out_qty),\n    picked_qty_alt: q8(item.picked_qty_alt),\n  }));\n}\n\nreturn {\n  data\n}"
+      },
+      "response_json": [
+       {
+        "key": "sqlq1gvr",
+        "name": "data",
+        "title": "data",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "children": []
+       }
+      ]
+     },
+     "blocks": []
+    },
+    {
+     "id": "if_Spnc9fHR",
+     "type": "if",
+     "data": {
+      "title": "IF Add",
+      "isValidator": true,
+      "nodeName": "IF Add",
+      "name": "IF Add",
+      "condition_type": "ConditionRule",
+      "expression": {
+       "type": "javascript",
+       "code": ""
+      },
+      "filter": {
+       "list": [
+        {
+         "id": 1736695973613,
+         "parentId": 1736695973612,
+         "isTop": true,
+         "prop": "workflowparams.pageStatus",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "Add",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "pageStatus",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      }
+     },
+     "blocks": [
+      {
+       "id": "if_block_cIsY2k6T",
+       "type": "ifBlock",
+       "data": {
+        "title": "true"
+       },
+       "blocks": [
+        {
+         "id": "add_node_j6HU6pFP",
+         "type": "add-node",
+         "data": {
+          "table_id": {
+           "source": "Transfer Order Picking:Table:1935556443668959233",
+           "rules": {
+            "collectionId": "1935556443668959233",
+            "list": [
+             {
+              "id": 1770691125196,
+              "parentId": 1770691125195,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "fields": [],
+          "title": "Add Picking",
+          "isValidator": true,
+          "nodeName": "Add Picking",
+          "name": "Add Picking",
+          "props": {
+           "modelName": "",
+           "list": [
+            {
+             "prop": "to_status",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.updatedStatus}}",
+             "operator": "",
+             "valueLabel": "",
+             "propLabel": "Transfer Order Status"
+            },
+            {
+             "prop": "plant_id",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.plant_id}}",
+             "valueLabel": "",
+             "propLabel": "Plant"
+            },
+            {
+             "prop": "to_id",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.to_id}}",
+             "valueLabel": "",
+             "propLabel": "Transfer Order No"
+            },
+            {
+             "prop": "to_id_type",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.to_id_type}}",
+             "valueLabel": "",
+             "propLabel": "规则"
+            },
+            {
+             "prop": "movement_type",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.movement_type}}",
+             "valueLabel": "",
+             "propLabel": "Movement Type"
+            },
+            {
+             "prop": "ref_doc_type",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ref_doc_type}}",
+             "valueLabel": "",
+             "propLabel": "Reference Doc Type"
+            },
+            {
+             "prop": "gd_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.gd_no}}",
+             "valueLabel": "",
+             "propLabel": "Reference Doc No"
+            },
+            {
+             "prop": "so_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.so_no}}",
+             "valueLabel": "",
+             "propLabel": "Sales Order Number"
+            },
+            {
+             "prop": "customer_id",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.customer_id}}",
+             "valueLabel": "",
+             "propLabel": "Customer Name"
+            },
+            {
+             "prop": "assigned_to",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.assigned_to}}",
+             "valueLabel": "",
+             "propLabel": "Assigned To"
+            },
+            {
+             "prop": "created_at",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.created_at}}",
+             "valueLabel": "",
+             "propLabel": "Created At"
+            },
+            {
+             "prop": "created_by",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.created_by}}",
+             "valueLabel": "",
+             "propLabel": "Created By"
+            },
+            {
+             "prop": "organization_id",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.organization_id}}",
+             "valueLabel": "",
+             "propLabel": "Organization"
+            },
+            {
+             "prop": "ref_doc",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ref_doc}}",
+             "valueLabel": "",
+             "propLabel": "Reference Document"
+            },
+            {
+             "prop": "table_picking_items",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_NcJczWCQ.data.data.table_picking_items}}",
+             "valueLabel": "",
+             "propLabel": "Picking Items"
+            },
+            {
+             "prop": "delivery_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.delivery_no}}",
+             "valueLabel": "",
+             "propLabel": "Reference Doc No"
+            },
+            {
+             "prop": "remarks",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.remarks}}",
+             "valueLabel": "",
+             "propLabel": "Remarks"
+            },
+            {
+             "prop": "remarks_2",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.remarks_2}}",
+             "valueLabel": "",
+             "propLabel": "Remark 2"
+            },
+            {
+             "prop": "remarks_3",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.remarks_3}}",
+             "valueLabel": "",
+             "propLabel": "Remark 3"
+            },
+            {
+             "prop": "to_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.to_no}}",
+             "valueLabel": "",
+             "propLabel": "Reference TO No"
+            },
+            {
+             "prop": "table_picking_records",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_NcJczWCQ.data.data.table_picking_records}}",
+             "valueLabel": "",
+             "propLabel": "Picking Items"
+            },
+            {
+             "prop": "to_validity_period",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.to_validity_period}}",
+             "valueLabel": "",
+             "propLabel": "Validity Period"
+            },
+            {
+             "prop": "is_processing",
+             "operator": "",
+             "valueType": "value",
+             "value": 0,
+             "valueLabel": "",
+             "propLabel": "Is Processing"
+            },
+            {
+             "prop": "delivery_method",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.delivery_method}}",
+             "valueLabel": "",
+             "propLabel": "Delivery Method"
+            },
+            {
+             "prop": "delivery_method_text",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.delivery_method_text}}",
+             "valueLabel": "",
+             "propLabel": "Delivery Method Text"
+            },
+            {
+             "prop": "area_id",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.area_id}}",
+             "valueLabel": "",
+             "propLabel": "Area"
+            },
+            {
+             "prop": "area_name",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.area_name}}",
+             "valueLabel": "",
+             "propLabel": "Area / Zone"
+            },
+            {
+             "prop": "driver_name",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.driver_name}}",
+             "valueLabel": "",
+             "propLabel": "Driver Name"
+            },
+            {
+             "prop": "ic_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ic_no}}",
+             "valueLabel": "",
+             "propLabel": "IC No"
+            },
+            {
+             "prop": "driver_contact_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.driver_contact_no}}",
+             "valueLabel": "",
+             "propLabel": "Driver Contact No"
+            },
+            {
+             "prop": "sp_vehicle_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.sp_vehicle_no}}",
+             "valueLabel": "",
+             "propLabel": "Vehicle No"
+            },
+            {
+             "prop": "pickup_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.pickup_date}}",
+             "valueLabel": "",
+             "propLabel": "Pickup Date"
+            },
+            {
+             "prop": "validity_of_collection",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.validity_of_collection}}",
+             "valueLabel": "",
+             "propLabel": "Validity of Collection"
+            },
+            {
+             "prop": "courier_company",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.courier_company}}",
+             "valueLabel": "",
+             "propLabel": "Courier Company"
+            },
+            {
+             "prop": "shipping_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.shipping_date}}",
+             "valueLabel": "",
+             "propLabel": "Shipping Date"
+            },
+            {
+             "prop": "tracking_number",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.tracking_number}}",
+             "valueLabel": "",
+             "propLabel": "Tracking Number"
+            },
+            {
+             "prop": "est_arrival_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.est_arrival_date}}",
+             "valueLabel": "",
+             "propLabel": "Est Arrival Date"
+            },
+            {
+             "prop": "freight_charges",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.freight_charges}}",
+             "valueLabel": "",
+             "propLabel": "Freight Charges"
+            },
+            {
+             "prop": "ct_driver_name",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ct_driver_name}}",
+             "valueLabel": "",
+             "propLabel": "CT Driver Name"
+            },
+            {
+             "prop": "ct_driver_contact_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ct_driver_contact_no}}",
+             "valueLabel": "",
+             "propLabel": "CT Driver Contact No"
+            },
+            {
+             "prop": "ct_ic_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ct_ic_no}}",
+             "valueLabel": "",
+             "propLabel": "CT IC No"
+            },
+            {
+             "prop": "vehicle_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.vehicle_no}}",
+             "valueLabel": "",
+             "propLabel": "Vehicle No (CT)"
+            },
+            {
+             "prop": "est_delivery_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.est_delivery_date}}",
+             "valueLabel": "",
+             "propLabel": "Est Delivery Date"
+            },
+            {
+             "prop": "delivery_cost",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.delivery_cost}}",
+             "valueLabel": "",
+             "propLabel": "Delivery Cost"
+            },
+            {
+             "prop": "shipping_company",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.shipping_company}}",
+             "valueLabel": "",
+             "propLabel": "Shipping Company"
+            },
+            {
+             "prop": "ss_shipping_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ss_shipping_date}}",
+             "valueLabel": "",
+             "propLabel": "SS Shipping Date"
+            },
+            {
+             "prop": "ss_freight_charges",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ss_freight_charges}}",
+             "valueLabel": "",
+             "propLabel": "SS Freight Charges"
+            },
+            {
+             "prop": "shipping_method",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.shipping_method}}",
+             "valueLabel": "",
+             "propLabel": "Shipping Method"
+            },
+            {
+             "prop": "ss_est_arrival_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ss_est_arrival_date}}",
+             "valueLabel": "",
+             "propLabel": "SS Est Arrival Date"
+            },
+            {
+             "prop": "ss_tracking_number",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.ss_tracking_number}}",
+             "valueLabel": "",
+             "propLabel": "SS Tracking Number"
+            },
+            {
+             "prop": "tpt_vehicle_number",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.tpt_vehicle_number}}",
+             "valueLabel": "",
+             "propLabel": "TPT Vehicle Number"
+            },
+            {
+             "prop": "tpt_transport_name",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.tpt_transport_name}}",
+             "valueLabel": "",
+             "propLabel": "TPT Transport Name"
+            },
+            {
+             "prop": "tpt_ic_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.tpt_ic_no}}",
+             "valueLabel": "",
+             "propLabel": "TPT IC No"
+            },
+            {
+             "prop": "tpt_driver_contact_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.tpt_driver_contact_no}}",
+             "valueLabel": "",
+             "propLabel": "TPT Driver Contact No"
+            },
+            {
+             "prop": "tpt_driver_name",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.tpt_driver_name}}",
+             "valueLabel": "",
+             "propLabel": "TPT Driver Name"
+            },
+            {
+             "prop": "di_shipping_method",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_shipping_method}}",
+             "valueLabel": "",
+             "propLabel": "Shipping Method"
+            },
+            {
+             "prop": "di_driver_name",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_driver_name}}",
+             "valueLabel": "",
+             "propLabel": "Driver Name"
+            },
+            {
+             "prop": "di_ic_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_ic_no}}",
+             "valueLabel": "",
+             "propLabel": "IC No"
+            },
+            {
+             "prop": "di_driver_contact_no",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_driver_contact_no}}",
+             "valueLabel": "",
+             "propLabel": "Driver Contact No"
+            },
+            {
+             "prop": "di_shipping_company",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_shipping_company}}",
+             "valueLabel": "",
+             "propLabel": "Shipping Company"
+            },
+            {
+             "prop": "di_transport_name",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_transport_name}}",
+             "valueLabel": "",
+             "propLabel": "Transport Name"
+            },
+            {
+             "prop": "di_vehicle_number",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_vehicle_number}}",
+             "valueLabel": "",
+             "propLabel": "Vehicle Number"
+            },
+            {
+             "prop": "di_est_delivery_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_est_delivery_date}}",
+             "valueLabel": "",
+             "propLabel": "Est Delivery Date"
+            },
+            {
+             "prop": "di_est_arrival_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_est_arrival_date}}",
+             "valueLabel": "",
+             "propLabel": "Est Arrival Date"
+            },
+            {
+             "prop": "di_pickup_date",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_pickup_date}}",
+             "valueLabel": "",
+             "propLabel": "Pickup Date"
+            },
+            {
+             "prop": "di_validity_of_collection",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_validity_of_collection}}",
+             "valueLabel": "",
+             "propLabel": "Validity of Collection"
+            },
+            {
+             "prop": "di_tracking_number",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_tracking_number}}",
+             "valueLabel": "",
+             "propLabel": "Tracking Number"
+            },
+            {
+             "prop": "di_freight_charges",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.di_freight_charges}}",
+             "valueLabel": "",
+             "propLabel": "Freight Charges"
+            },
+            {
+             "prop": "project_id",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{node:code_node_hjAwTKzF.data.data.project_id}}",
+             "valueLabel": "",
+             "propLabel": "Project"
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "search_node_OmBi3hyy",
+         "type": "search-node",
+         "data": {
+          "table_id": {
+           "source": "transfer_order_jz8m9w3h_sub:Table:1939915130724524033",
+           "rules": {
+            "collectionId": "1939915130724524033",
+            "list": [
+             {
+              "id": 1770696526927,
+              "parentId": 1770696526926,
+              "isTop": true,
+              "prop": "transfer_order_id.id",
+              "operator": "in",
+              "valueType": "field",
+              "value": "{{node:add_node_j6HU6pFP.data.id}}",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "主键ID",
+              "valueLabel": "",
+              "operatorLabel": "In"
+             }
+            ]
+           }
+          },
+          "condition": {},
+          "limit": 100,
+          "title": "Get Table Picking",
+          "isValidator": true,
+          "nodeName": "Get Table Picking",
+          "name": "Get Table Picking"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "if_block_fWkk9fiM",
+       "type": "ifBlock",
+       "data": {
+        "title": "false"
+       },
+       "blocks": [
+        {
+         "id": "if_QbTxMHXx",
+         "type": "if",
+         "data": {
+          "title": "IF !Completed",
+          "isValidator": true,
+          "nodeName": "IF !Completed",
+          "name": "IF !Completed",
+          "condition_type": "ConditionRule",
+          "expression": {
+           "type": "javascript",
+           "code": ""
+          },
+          "filter": {
+           "list": [
+            {
+             "id": 1736695973613,
+             "parentId": 1736695973612,
+             "isTop": true,
+             "prop": "workflowparams.saveAs",
+             "operator": "notEqual",
+             "valueType": "value",
+             "value": "Completed",
+             "type": "leaf",
+             "level": 1,
+             "propLabel": "saveAs",
+             "valueLabel": "",
+             "operatorLabel": "Not Equal"
+            }
+           ]
+          }
+         },
+         "blocks": [
+          {
+           "id": "if_block_XbgX4rRV",
+           "type": "ifBlock",
+           "data": {
+            "title": "true"
+           },
+           "blocks": [
+            {
+             "id": "update_node_LKW2Upgf",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "Transfer Order Picking:Table:1935556443668959233",
+               "rules": {
+                "collectionId": "1935556443668959233",
+                "list": [
+                 {
+                  "id": 1770695847353,
+                  "parentId": 1770695847352,
+                  "isTop": true,
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "主键ID",
+                  "valueLabel": "",
+                  "operatorLabel": "In"
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Update Picking",
+              "isValidator": true,
+              "nodeName": "Update Picking",
+              "name": "Update Picking",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "valueType": "field",
+                 "value": "{{workflowparams:saveAs}}",
+                 "operator": "",
+                 "valueLabel": "",
+                 "propLabel": "Transfer Order Status",
+                 "prop": "to_status"
+                },
+                {
+                 "prop": "plant_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.plant_id}}",
+                 "valueLabel": "",
+                 "propLabel": "Plant"
+                },
+                {
+                 "prop": "to_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.to_id}}",
+                 "valueLabel": "",
+                 "propLabel": "Transfer Order No"
+                },
+                {
+                 "prop": "to_id_type",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.to_id_type}}",
+                 "valueLabel": "",
+                 "propLabel": "规则"
+                },
+                {
+                 "prop": "movement_type",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.movement_type}}",
+                 "valueLabel": "",
+                 "propLabel": "Movement Type"
+                },
+                {
+                 "prop": "ref_doc_type",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ref_doc_type}}",
+                 "valueLabel": "",
+                 "propLabel": "Reference Doc Type"
+                },
+                {
+                 "prop": "gd_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.gd_no}}",
+                 "valueLabel": "",
+                 "propLabel": "Reference Doc No"
+                },
+                {
+                 "prop": "to_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.to_no}}",
+                 "valueLabel": "",
+                 "propLabel": "Reference TO No"
+                },
+                {
+                 "prop": "delivery_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.delivery_no}}",
+                 "valueLabel": "",
+                 "propLabel": "Reference Doc No"
+                },
+                {
+                 "prop": "so_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.so_no}}",
+                 "valueLabel": "",
+                 "propLabel": "Sales Order Number"
+                },
+                {
+                 "prop": "customer_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.customer_id}}",
+                 "valueLabel": "",
+                 "propLabel": "Customer Name"
+                },
+                {
+                 "prop": "to_validity_period",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.to_validity_period}}",
+                 "valueLabel": "",
+                 "propLabel": "Validity Period"
+                },
+                {
+                 "prop": "assigned_to",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.assigned_to}}",
+                 "valueLabel": "",
+                 "propLabel": "Assigned To"
+                },
+                {
+                 "prop": "created_at",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.created_at}}",
+                 "valueLabel": "",
+                 "propLabel": "Created At"
+                },
+                {
+                 "prop": "created_by",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.created_by}}",
+                 "valueLabel": "",
+                 "propLabel": "Created By"
+                },
+                {
+                 "prop": "organization_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.organization_id}}",
+                 "valueLabel": "",
+                 "propLabel": "Organization"
+                },
+                {
+                 "prop": "ref_doc",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ref_doc}}",
+                 "valueLabel": "",
+                 "propLabel": "Reference Document"
+                },
+                {
+                 "prop": "table_picking_items",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_NcJczWCQ.data.data.table_picking_items}}",
+                 "valueLabel": "",
+                 "propLabel": "Picking Items"
+                },
+                {
+                 "prop": "table_picking_records",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_NcJczWCQ.data.data.table_picking_records}}",
+                 "valueLabel": "",
+                 "propLabel": "Picking Items"
+                },
+                {
+                 "prop": "remarks",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.remarks}}",
+                 "valueLabel": "",
+                 "propLabel": "Remarks"
+                },
+                {
+                 "prop": "remarks_2",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.remarks_2}}",
+                 "valueLabel": "",
+                 "propLabel": "Remark 2"
+                },
+                {
+                 "prop": "remarks_3",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.remarks_3}}",
+                 "valueLabel": "",
+                 "propLabel": "Remark 3"
+                },
+                {
+                 "prop": "delivery_method",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.delivery_method}}",
+                 "valueLabel": "",
+                 "propLabel": "Delivery Method"
+                },
+                {
+                 "prop": "delivery_method_text",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.delivery_method_text}}",
+                 "valueLabel": "",
+                 "propLabel": "Delivery Method Text"
+                },
+                {
+                 "prop": "area_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.area_id}}",
+                 "valueLabel": "",
+                 "propLabel": "Area"
+                },
+                {
+                 "prop": "area_name",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.area_name}}",
+                 "valueLabel": "",
+                 "propLabel": "Area / Zone"
+                },
+                {
+                 "prop": "driver_name",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.driver_name}}",
+                 "valueLabel": "",
+                 "propLabel": "Driver Name"
+                },
+                {
+                 "prop": "ic_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ic_no}}",
+                 "valueLabel": "",
+                 "propLabel": "IC No"
+                },
+                {
+                 "prop": "driver_contact_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.driver_contact_no}}",
+                 "valueLabel": "",
+                 "propLabel": "Driver Contact No"
+                },
+                {
+                 "prop": "sp_vehicle_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.sp_vehicle_no}}",
+                 "valueLabel": "",
+                 "propLabel": "Vehicle No"
+                },
+                {
+                 "prop": "pickup_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.pickup_date}}",
+                 "valueLabel": "",
+                 "propLabel": "Pickup Date"
+                },
+                {
+                 "prop": "validity_of_collection",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.validity_of_collection}}",
+                 "valueLabel": "",
+                 "propLabel": "Validity of Collection"
+                },
+                {
+                 "prop": "courier_company",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.courier_company}}",
+                 "valueLabel": "",
+                 "propLabel": "Courier Company"
+                },
+                {
+                 "prop": "shipping_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.shipping_date}}",
+                 "valueLabel": "",
+                 "propLabel": "Shipping Date"
+                },
+                {
+                 "prop": "tracking_number",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.tracking_number}}",
+                 "valueLabel": "",
+                 "propLabel": "Tracking Number"
+                },
+                {
+                 "prop": "est_arrival_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.est_arrival_date}}",
+                 "valueLabel": "",
+                 "propLabel": "Est Arrival Date"
+                },
+                {
+                 "prop": "freight_charges",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.freight_charges}}",
+                 "valueLabel": "",
+                 "propLabel": "Freight Charges"
+                },
+                {
+                 "prop": "ct_driver_name",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ct_driver_name}}",
+                 "valueLabel": "",
+                 "propLabel": "CT Driver Name"
+                },
+                {
+                 "prop": "ct_driver_contact_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ct_driver_contact_no}}",
+                 "valueLabel": "",
+                 "propLabel": "CT Driver Contact No"
+                },
+                {
+                 "prop": "ct_ic_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ct_ic_no}}",
+                 "valueLabel": "",
+                 "propLabel": "CT IC No"
+                },
+                {
+                 "prop": "vehicle_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.vehicle_no}}",
+                 "valueLabel": "",
+                 "propLabel": "Vehicle No (CT)"
+                },
+                {
+                 "prop": "est_delivery_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.est_delivery_date}}",
+                 "valueLabel": "",
+                 "propLabel": "Est Delivery Date"
+                },
+                {
+                 "prop": "delivery_cost",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.delivery_cost}}",
+                 "valueLabel": "",
+                 "propLabel": "Delivery Cost"
+                },
+                {
+                 "prop": "shipping_company",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.shipping_company}}",
+                 "valueLabel": "",
+                 "propLabel": "Shipping Company"
+                },
+                {
+                 "prop": "ss_shipping_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ss_shipping_date}}",
+                 "valueLabel": "",
+                 "propLabel": "SS Shipping Date"
+                },
+                {
+                 "prop": "ss_freight_charges",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ss_freight_charges}}",
+                 "valueLabel": "",
+                 "propLabel": "SS Freight Charges"
+                },
+                {
+                 "prop": "shipping_method",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.shipping_method}}",
+                 "valueLabel": "",
+                 "propLabel": "Shipping Method"
+                },
+                {
+                 "prop": "ss_est_arrival_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ss_est_arrival_date}}",
+                 "valueLabel": "",
+                 "propLabel": "SS Est Arrival Date"
+                },
+                {
+                 "prop": "ss_tracking_number",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.ss_tracking_number}}",
+                 "valueLabel": "",
+                 "propLabel": "SS Tracking Number"
+                },
+                {
+                 "prop": "tpt_vehicle_number",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.tpt_vehicle_number}}",
+                 "valueLabel": "",
+                 "propLabel": "TPT Vehicle Number"
+                },
+                {
+                 "prop": "tpt_transport_name",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.tpt_transport_name}}",
+                 "valueLabel": "",
+                 "propLabel": "TPT Transport Name"
+                },
+                {
+                 "prop": "tpt_ic_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.tpt_ic_no}}",
+                 "valueLabel": "",
+                 "propLabel": "TPT IC No"
+                },
+                {
+                 "prop": "tpt_driver_contact_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.tpt_driver_contact_no}}",
+                 "valueLabel": "",
+                 "propLabel": "TPT Driver Contact No"
+                },
+                {
+                 "prop": "tpt_driver_name",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.tpt_driver_name}}",
+                 "valueLabel": "",
+                 "propLabel": "TPT Driver Name"
+                },
+                {
+                 "prop": "di_shipping_method",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_shipping_method}}",
+                 "valueLabel": "",
+                 "propLabel": "Shipping Method"
+                },
+                {
+                 "prop": "di_driver_name",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_driver_name}}",
+                 "valueLabel": "",
+                 "propLabel": "Driver Name"
+                },
+                {
+                 "prop": "di_ic_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_ic_no}}",
+                 "valueLabel": "",
+                 "propLabel": "IC No"
+                },
+                {
+                 "prop": "di_driver_contact_no",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_driver_contact_no}}",
+                 "valueLabel": "",
+                 "propLabel": "Driver Contact No"
+                },
+                {
+                 "prop": "di_shipping_company",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_shipping_company}}",
+                 "valueLabel": "",
+                 "propLabel": "Shipping Company"
+                },
+                {
+                 "prop": "di_transport_name",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_transport_name}}",
+                 "valueLabel": "",
+                 "propLabel": "Transport Name"
+                },
+                {
+                 "prop": "di_vehicle_number",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_vehicle_number}}",
+                 "valueLabel": "",
+                 "propLabel": "Vehicle Number"
+                },
+                {
+                 "prop": "di_est_delivery_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_est_delivery_date}}",
+                 "valueLabel": "",
+                 "propLabel": "Est Delivery Date"
+                },
+                {
+                 "prop": "di_est_arrival_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_est_arrival_date}}",
+                 "valueLabel": "",
+                 "propLabel": "Est Arrival Date"
+                },
+                {
+                 "prop": "di_pickup_date",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_pickup_date}}",
+                 "valueLabel": "",
+                 "propLabel": "Pickup Date"
+                },
+                {
+                 "prop": "di_validity_of_collection",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_validity_of_collection}}",
+                 "valueLabel": "",
+                 "propLabel": "Validity of Collection"
+                },
+                {
+                 "prop": "di_tracking_number",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_tracking_number}}",
+                 "valueLabel": "",
+                 "propLabel": "Tracking Number"
+                },
+                {
+                 "prop": "di_freight_charges",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.di_freight_charges}}",
+                 "valueLabel": "",
+                 "propLabel": "Freight Charges"
+                },
+                {
+                 "prop": "project_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_hjAwTKzF.data.data.project_id}}",
+                 "valueLabel": "",
+                 "propLabel": "Project"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            },
+            {
+             "id": "get_node_xPyPMAKx",
+             "type": "get-node",
+             "data": {
+              "table_id": {
+               "source": "Transfer Order Picking:Table:1935556443668959233",
+               "rules": {
+                "collectionId": "1935556443668959233",
+                "list": [
+                 {
+                  "id": 1770698709769,
+                  "parentId": 1770698709768,
+                  "isTop": true,
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "主键ID",
+                  "valueLabel": "",
+                  "operatorLabel": "In"
+                 }
+                ]
+               }
+              },
+              "condition": {},
+              "title": "Get Picking",
+              "isValidator": true,
+              "nodeName": "Get Picking",
+              "name": "Get Picking"
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "if_block_vyOtoK-I",
+           "type": "ifBlock",
+           "data": {
+            "title": "false"
+           },
+           "blocks": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "condition_or_F7anGZ6o",
+     "type": "condition-or-node",
+     "data": {
+      "title": "Condition",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition"
+     },
+     "blocks": [
+      {
+       "id": "condition_or_node_item_8sBfj8F5",
+       "type": "condition-or-node-item",
+       "data": {
+        "title": "Completed",
+        "filter": {
+         "list": [
+          {
+           "id": 1770698203207,
+           "parentId": 1770698203206,
+           "isTop": true,
+           "prop": "workflowparams.saveAs",
+           "operator": "equal",
+           "valueType": "value",
+           "value": "Completed",
+           "type": "leaf",
+           "level": 1,
+           "propLabel": "saveAs",
+           "valueLabel": "",
+           "operatorLabel": "Equal"
+          }
+         ]
+        },
+        "expression": {
+         "code": ""
+        },
+        "displayContent": "sdk.form.setCondition",
+        "isValidator": true,
+        "nodeName": "Completed",
+        "name": "Completed",
+        "condition_type": "ConditionRule"
+       },
+       "blocks": [
+        {
+         "id": "code_node_owIpFo5i",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Picking Data to Complete",
+          "isValidator": true,
+          "nodeName": "Picking Data to Complete",
+          "name": "Picking Data to Complete",
+          "script": {
+           "type": "javascript",
+           "code": "const pageStatus = {{workflowparams:pageStatus}}\n\nlet pickingData = {{node:code_node_hjAwTKzF.data.data}}\n  \nif (pageStatus === 'Add') {\n  const rawData = {{node:add_node_j6HU6pFP.data}}\n  pickingData = rawData[0]\n  pickingData.table_picking_items = {{node:search_node_OmBi3hyy.data.data}}\n}\n\nreturn {\n  pickingData\n}"
+          },
+          "response_json": [
+           {
+            "key": "38egf0xr",
+            "name": "pickingData",
+            "title": "pickingData",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "workflow_node_vaDwx6nr",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "Run Picking Workflow",
+          "isValidator": true,
+          "nodeName": "Run Picking Workflow",
+          "name": "Run Picking Workflow",
+          "workflow": {
+           "source": "PICKING:Workflow:2020683258347081730",
+           "rules": {
+            "collectionId": "2020683258347081730",
+            "list": [
+             {
+              "id": 1723795236686,
+              "parentId": 1723795236685,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "allData",
+             "propLabel": "allData",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:code_node_owIpFo5i.data.pickingData}}",
+             "valueLabel": ""
+            },
+            {
+             "prop": "isForceComplete",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{workflowparams:isForceComplete}}",
+             "valueLabel": "",
+             "propLabel": "isForceComplete"
+            },
+            {
+             "prop": "confirmed_by",
+             "operator": "",
+             "valueType": "field",
+             "value": "{{workflowparams:confirmed_by}}",
+             "valueLabel": "",
+             "propLabel": "confirmed_by"
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "if_4Ixau7QB",
+         "type": "if",
+         "data": {
+          "title": "IF Error",
+          "isValidator": true,
+          "nodeName": "IF Error",
+          "name": "IF Error",
+          "condition_type": "Expression",
+          "expression": {
+           "type": "javascript",
+           "code": "'{{node:workflow_node_vaDwx6nr.data.code}}' != '200'"
+          }
+         },
+         "blocks": [
+          {
+           "id": "if_block_bcvndzht",
+           "type": "ifBlock",
+           "data": {
+            "title": "true"
+           },
+           "blocks": [
+            {
+             "id": "if_ReleaseLockErr",
+             "type": "if",
+             "data": {
+              "title": "IF Edit",
+              "isValidator": true,
+              "nodeName": "IF Edit",
+              "name": "IF Edit",
+              "condition_type": "ConditionRule",
+              "expression": {
+               "type": "javascript",
+               "code": ""
+              },
+              "filter": {
+               "list": [
+                {
+                 "id": 1736695973613,
+                 "parentId": 1736695973612,
+                 "isTop": true,
+                 "prop": "workflowparams.pageStatus",
+                 "operator": "equal",
+                 "valueType": "value",
+                 "value": "Edit",
+                 "type": "leaf",
+                 "level": 1,
+                 "propLabel": "pageStatus",
+                 "valueLabel": "",
+                 "operatorLabel": "Equal"
+                }
+               ]
+              }
+             },
+             "blocks": [
+              {
+               "id": "if_block_ReleaseLockErrTrue",
+               "type": "ifBlock",
+               "data": {
+                "title": "true"
+               },
+               "blocks": [
+                {
+                 "id": "update_node_ReleaseLockErr",
+                 "type": "update-node",
+                 "data": {
+                  "table_id": {
+                   "source": "Transfer Order Picking:Table:1935556443668959233",
+                   "rules": {
+                    "collectionId": "1935556443668959233",
+                    "list": [
+                     {
+                      "id": 1772179693343,
+                      "parentId": 1772179693342,
+                      "isTop": true,
+                      "prop": "id",
+                      "operator": "in",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "主键ID",
+                      "valueLabel": "",
+                      "operatorLabel": "In"
+                     }
+                    ]
+                   }
+                  },
+                  "fields": [],
+                  "condition": {},
+                  "title": "Release Picking Lock",
+                  "isValidator": true,
+                  "nodeName": "Release Picking Lock",
+                  "name": "Release Picking Lock",
+                  "props": {
+                   "modelName": "",
+                   "list": [
+                    {
+                     "prop": "is_processing",
+                     "valueType": "value",
+                     "value": 0,
+                     "operator": "",
+                     "valueLabel": "",
+                     "propLabel": "Is Processing"
+                    }
+                   ]
+                  }
+                 },
+                 "blocks": []
+                }
+               ]
+              },
+              {
+               "id": "if_block_ReleaseLockErrFalse",
+               "type": "ifBlock",
+               "data": {
+                "title": "false"
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "return_node_yurHh8d6",
+             "type": "return-node",
+             "data": {
+              "return_data": {},
+              "status_code": 200,
+              "title": "Return Data",
+              "isValidator": true,
+              "nodeName": "Return Data",
+              "name": "Return Data",
+              "response_value": {
+               "list": [
+                {
+                 "prop": "code",
+                 "propLabel": "code",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:workflow_node_vaDwx6nr.data.code}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "message",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:workflow_node_vaDwx6nr.data.message}}",
+                 "valueLabel": "",
+                 "propLabel": "message"
+                }
+               ]
+              },
+              "return_raw_data": 0
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "if_block_GQ2o9cQP",
+           "type": "ifBlock",
+           "data": {
+            "title": "false"
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "set_cache_node_PickMsg",
+         "type": "set-cache-node",
+         "data": {
+          "cache_key": "",
+          "cache_value": "",
+          "expire_time": 3600,
+          "title": "Set Picking Message",
+          "isValidator": true,
+          "nodeName": "Set Picking Message",
+          "name": "Set Picking Message",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:workflow_node_vaDwx6nr.data.message}}"
+          },
+          "redis_key": "pickMsg_{{node:code_node_uPSc7Syb.data.unique}}"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "condition_or_item_KHa6wzi8",
+       "type": "condition-or-node-item",
+       "data": {
+        "title": "Created",
+        "filter": {
+         "list": [
+          {
+           "id": 1770698208086,
+           "parentId": 1770698208085,
+           "isTop": true,
+           "prop": "workflowparams.saveAs",
+           "operator": "equal",
+           "valueType": "value",
+           "value": "Created",
+           "type": "leaf",
+           "level": 1,
+           "propLabel": "saveAs",
+           "valueLabel": "",
+           "operatorLabel": "Equal"
+          }
+         ]
+        },
+        "expression": {
+         "code": ""
+        },
+        "displayContent": "sdk.form.setCondition",
+        "__index": 2,
+        "isDefault": false,
+        "isValidator": true,
+        "nodeName": "Created",
+        "name": "Created",
+        "condition_type": "ConditionRule"
+       },
+       "blocks": [
+        {
+         "id": "code_node_1HuvfKMv",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Picking Data to Create",
+          "isValidator": true,
+          "nodeName": "Picking Data to Create",
+          "name": "Picking Data to Create",
+          "script": {
+           "type": "javascript",
+           "code": "const pageStatus = {{workflowparams:pageStatus}}\n\nlet pickingData = {{node:code_node_hjAwTKzF.data.data}}\n  \nif (pageStatus === 'Add') {\n  const rawData = {{node:add_node_j6HU6pFP.data}}\n  pickingData = rawData[0]\n  pickingData.table_picking_items = {{node:search_node_OmBi3hyy.data.data}}\n} else {\n  pickingData = {{node:get_node_xPyPMAKx.data.data}}\n}\n\nconst isPickingPlan = pickingData.ref_doc_type === \"Picking Plan\" ? 1 : 0;\n\n// The two branches above return DIFFERENT shapes. Add reads the SUB-table\n// (transfer_order_jz8m9w3h_sub), which comes back FLAT -- a bundle's items are\n// already top-level rows. Edit reads the MASTER (Transfer Order Picking), whose\n// subform comes back NESTED, so the items hang off the bundle row and the filters\n// below saw only that row: the component GD/PP lines never got stamped on a re-save.\n// Flattening makes Edit behave like Add. A document with no bundles is unaffected.\nconst flattenPickingRows = (rows) =>\n  (rows || []).flatMap((row) => {\n    const { children, ...rest } = row || {};\n    return [rest, ...(Array.isArray(children) ? children : [])];\n  });\n\npickingData.table_picking_items = flattenPickingRows(\n  pickingData.table_picking_items\n);\n\nconst gdIds = pickingData.table_picking_items.filter((item) => item.line_status !== \"Cancelled\").map((item) => item.gd_id);\n\nconst toIds = pickingData.table_picking_items.filter((item) => item.line_status !== \"Cancelled\").map((item) => item.to_id);\n\nconst filteredPickingItems = pickingData.table_picking_items.filter((item) => item.line_status !== \"Cancelled\",);\n\nreturn {\n  gdIds,\n  toIds,\n  filteredPickingItems,\n  isPickingPlan,\n}"
+          },
+          "response_json": [
+           {
+            "key": "38egf0xr",
+            "name": "gdIds",
+            "title": "gdIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "c1l2csll",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "ke2x8tjd",
+            "name": "filteredPickingItems",
+            "title": "filteredPickingItems",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "fgeemn2w",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "w7s3vv46",
+            "name": "toIds",
+            "title": "toIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "rytrv3ig",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "xutbdnck",
+            "name": "isPickingPlan",
+            "title": "isPickingPlan",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "if_tOacmhkB",
+         "type": "if",
+         "data": {
+          "title": "IF Picking Plan",
+          "isValidator": true,
+          "nodeName": "IF Picking Plan",
+          "name": "IF Picking Plan",
+          "condition_type": "ConditionRule",
+          "expression": {
+           "type": "javascript",
+           "code": ""
+          },
+          "filter": {
+           "list": [
+            {
+             "id": 1736695973613,
+             "parentId": 1736695973612,
+             "isTop": true,
+             "prop": "node.code_node_1HuvfKMv.data.isPickingPlan",
+             "operator": "numberEqual",
+             "valueType": "value",
+             "value": 1,
+             "type": "leaf",
+             "level": 1,
+             "propLabel": "isPickingPlan",
+             "valueLabel": "",
+             "operatorLabel": "Equal"
+            }
+           ]
+          }
+         },
+         "blocks": [
+          {
+           "id": "if_block_zwVUQ-ta",
+           "type": "ifBlock",
+           "data": {
+            "title": "true"
+           },
+           "blocks": [
+            {
+             "id": "update_node_BnFKmzTB",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "Picking Plan:Table:1982744224777474050",
+               "rules": {
+                "collectionId": "1982744224777474050",
+                "list": [
+                 {
+                  "id": 1772510528308,
+                  "parentId": 1772510528309,
+                  "isTop": true,
+                  "type": "branch",
+                  "operator": "all",
+                  "prop": "",
+                  "valueType": "",
+                  "value": "",
+                  "level": 1,
+                  "children": [
+                   {
+                    "id": 1770879430849,
+                    "parentId": 1772510528308,
+                    "isTop": false,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_node_1HuvfKMv.data.toIds}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                   },
+                   {
+                    "id": 1772510719259,
+                    "isTop": false,
+                    "parentId": 1772510528308,
+                    "type": "branch",
+                    "operator": "any",
+                    "level": 2,
+                    "children": [
+                     {
+                      "id": 1772510528310,
+                      "parentId": 1772510719259,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Not Created",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                     },
+                     {
+                      "id": 1772510719260,
+                      "parentId": 1772510719259,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Cancelled",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                     },
+                     {
+                      "id": 1772510745569,
+                      "parentId": 1772510719259,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "isNull",
+                      "valueType": "value",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Is Null"
+                     },
+                     {
+                      "id": 1772510745570,
+                      "parentId": 1772510719259,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "isEmpty",
+                      "valueType": "value",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Is Empty"
+                     }
+                    ]
+                   }
+                  ]
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Update PP",
+              "isValidator": true,
+              "nodeName": "Update PP",
+              "name": "Update PP",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "id",
+                 "valueType": "field",
+                 "value": "{{node:code_node_1HuvfKMv.data.toIds}}",
+                 "operator": "",
+                 "valueLabel": "",
+                 "propLabel": "主键ID"
+                },
+                {
+                 "prop": "picking_status",
+                 "operator": "",
+                 "valueType": "value",
+                 "value": "Created",
+                 "valueLabel": "",
+                 "propLabel": "Picking Status"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            },
+            {
+             "id": "update_node_WU2OsGIZ",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "(Picking Plan):Table:1983062532297117697",
+               "rules": {
+                "collectionId": "1983062532297117697",
+                "list": [
+                 {
+                  "id": 1772594200318,
+                  "parentId": 1772594200319,
+                  "isTop": true,
+                  "type": "branch",
+                  "operator": "all",
+                  "prop": "",
+                  "valueType": "",
+                  "value": "",
+                  "level": 1,
+                  "children": [
+                   {
+                    "id": 1770879479846,
+                    "parentId": 1772594200318,
+                    "isTop": false,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_node_1HuvfKMv.data.filteredPickingItems.to_line_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                   },
+                   {
+                    "id": 1772594200321,
+                    "isTop": false,
+                    "parentId": 1772594200318,
+                    "type": "branch",
+                    "operator": "any",
+                    "level": 2,
+                    "children": [
+                     {
+                      "id": 1772594200320,
+                      "parentId": 1772594200321,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "'Not Created'",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Line Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                     },
+                     {
+                      "id": 1772594200322,
+                      "parentId": 1772594200321,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "'Cancelled'",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Line Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                     },
+                     {
+                      "id": 1772594200325,
+                      "parentId": 1772594200321,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "isNull",
+                      "valueType": "value",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Line Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Is Null"
+                     },
+                     {
+                      "id": 1772594200326,
+                      "parentId": 1772594200321,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "isEmpty",
+                      "valueType": "value",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Line Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Is Empty"
+                     }
+                    ]
+                   }
+                  ]
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Update PP Table",
+              "isValidator": true,
+              "nodeName": "Update PP Table",
+              "name": "Update PP Table",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "id",
+                 "valueType": "field",
+                 "value": "{{node:code_node_1HuvfKMv.data.filteredPickingItems.to_line_id}}",
+                 "operator": "",
+                 "valueLabel": "",
+                 "propLabel": "主键ID"
+                },
+                {
+                 "prop": "picking_status",
+                 "operator": "",
+                 "valueType": "value",
+                 "value": "Created",
+                 "valueLabel": "",
+                 "propLabel": "Line Picking Status"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "if_block_rUGZXsnZ",
+           "type": "ifBlock",
+           "data": {
+            "title": "false"
+           },
+           "blocks": [
+            {
+             "id": "update_node_g7Juvu0X",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "Goods Delivery:Table:1902054888473481218",
+               "rules": {
+                "collectionId": "1902054888473481218",
+                "list": [
+                 {
+                  "id": 1772706323818,
+                  "parentId": 1772706323819,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "all",
+                  "valueType": "",
+                  "value": "",
+                  "type": "branch",
+                  "level": 1,
+                  "children": [
+                   {
+                    "id": 1770699004988,
+                    "parentId": 1772706323818,
+                    "isTop": false,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_node_1HuvfKMv.data.gdIds}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                   },
+                   {
+                    "id": 1772706323821,
+                    "isTop": false,
+                    "parentId": 1772706323818,
+                    "type": "branch",
+                    "operator": "any",
+                    "level": 2,
+                    "children": [
+                     {
+                      "id": 1772706323820,
+                      "parentId": 1772706323821,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Not Created",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                     },
+                     {
+                      "id": 1772706323822,
+                      "parentId": 1772706323821,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "Cancelled",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                     },
+                     {
+                      "id": 1772706323823,
+                      "parentId": 1772706323821,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "isEmpty",
+                      "valueType": "value",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Is Empty"
+                     },
+                     {
+                      "id": 1772706323824,
+                      "parentId": 1772706323821,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "isNull",
+                      "valueType": "value",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Is Null"
+                     }
+                    ]
+                   }
+                  ]
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Update GD",
+              "isValidator": true,
+              "nodeName": "Update GD",
+              "name": "Update GD",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "id",
+                 "valueType": "field",
+                 "value": "{{node:code_node_1HuvfKMv.data.gdIds}}",
+                 "operator": "",
+                 "valueLabel": "",
+                 "propLabel": "主键ID"
+                },
+                {
+                 "prop": "picking_status",
+                 "operator": "",
+                 "valueType": "value",
+                 "value": "Created",
+                 "valueLabel": "",
+                 "propLabel": "Picking Status"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            },
+            {
+             "id": "update_node_CfTrqcLh",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "goods_delivery_fwii8mvb_sub:Table:1939904186426433537",
+               "rules": {
+                "collectionId": "1939904186426433537",
+                "list": [
+                 {
+                  "id": 1772594284373,
+                  "parentId": 1772594284374,
+                  "isTop": true,
+                  "type": "branch",
+                  "operator": "all",
+                  "prop": "",
+                  "valueType": "",
+                  "value": "",
+                  "level": 1,
+                  "children": [
+                   {
+                    "id": 1770699071984,
+                    "parentId": 1772594284373,
+                    "isTop": false,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_node_1HuvfKMv.data.filteredPickingItems.gd_line_id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                   },
+                   {
+                    "id": 1772594284377,
+                    "isTop": false,
+                    "parentId": 1772594284373,
+                    "type": "branch",
+                    "operator": "any",
+                    "level": 2,
+                    "children": [
+                     {
+                      "id": 1772594284375,
+                      "parentId": 1772594284377,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "'Not Created'",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Line Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                     },
+                     {
+                      "id": 1772594284378,
+                      "parentId": 1772594284377,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "'Cancelled'",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Line Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                     },
+                     {
+                      "id": 1772594284379,
+                      "parentId": 1772594284377,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "isNull",
+                      "valueType": "value",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Line Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Is Null"
+                     },
+                     {
+                      "id": 1772594284380,
+                      "parentId": 1772594284377,
+                      "isTop": false,
+                      "prop": "picking_status",
+                      "operator": "isEmpty",
+                      "valueType": "value",
+                      "type": "leaf",
+                      "level": 3,
+                      "propLabel": "Line Picking Status",
+                      "valueLabel": "",
+                      "operatorLabel": "Is Empty"
+                     }
+                    ]
+                   }
+                  ]
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Update GD Table",
+              "isValidator": true,
+              "nodeName": "Update GD Table",
+              "name": "Update GD Table",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "id",
+                 "valueType": "field",
+                 "value": "{{node:code_node_1HuvfKMv.data.filteredPickingItems.gd_line_id}}",
+                 "operator": "",
+                 "valueLabel": "",
+                 "propLabel": "主键ID"
+                },
+                {
+                 "prop": "picking_status",
+                 "operator": "",
+                 "valueType": "value",
+                 "value": "Created",
+                 "valueLabel": "",
+                 "propLabel": "Line Picking Status"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "condition_or_item_CancelPick",
+       "type": "condition-or-node-item",
+       "data": {
+        "title": "Cancelled",
+        "filter": {
+         "list": [
+          {
+           "id": 1770698208087,
+           "parentId": 1770698208085,
+           "isTop": true,
+           "prop": "workflowparams.saveAs",
+           "operator": "equal",
+           "valueType": "value",
+           "value": "Cancelled",
+           "type": "leaf",
+           "level": 1,
+           "propLabel": "saveAs",
+           "valueLabel": "",
+           "operatorLabel": "Equal"
+          }
+         ]
+        },
+        "expression": {
+         "code": ""
+        },
+        "displayContent": "sdk.form.setCondition",
+        "__index": 3,
+        "isDefault": false,
+        "isValidator": true,
+        "nodeName": "Cancelled",
+        "name": "Cancelled",
+        "condition_type": "ConditionRule"
+       },
+       "blocks": [
+        {
+         "id": "code_node_CancelPrep",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "title": "Picking Data to Cancel",
+          "isValidator": true,
+          "nodeName": "Picking Data to Cancel",
+          "name": "Picking Data to Cancel",
+          "script": {
+           "type": "javascript",
+           "code": "const pickingData = {{node:code_node_hjAwTKzF.data.data}} || {};\nconst isCreated = pickingData.to_status === \"Created\" ? 1 : 0;\nconst isPickingPlan = pickingData.ref_doc_type === \"Picking Plan\" ? 1 : 0;\nconst currentPickingId = pickingData.id;\n// table_picking_items is a TREE: an item bundle is ONE row with the items under it\n// as `children`. The SOURCE lines that this Picking actually stamped are the items'\n// -- the bundle row carries the bundle's own gd_line_id/to_line_id and nothing is\n// ever picked against it. Reading the top level alone collected ONLY that row, so\n// cancelling left every component line stuck at its picked status (unre-pickable)\n// while resetting a line the Picking never touched.\nconst flattenPickingRows = (rows) =>\n  (rows || []).flatMap((row) => {\n    const { children, ...rest } = row || {};\n    return [rest, ...(Array.isArray(children) ? children : [])];\n  });\n\nconst isBundleRow = (r) => Boolean(r && r.item_bundle_id) && !r.item_code;\n\nconst items = flattenPickingRows(pickingData.table_picking_items).filter(\n  (i) => i.line_status !== \"Cancelled\" && !isBundleRow(i)\n);\nconst uniq = (a) => [...new Set(a.filter((v) => v !== null && v !== undefined && v !== \"\"))];\nconst gdIds = isCreated ? uniq(items.map((i) => i.gd_id)) : [];\nconst gdLineIds = isCreated ? uniq(items.map((i) => i.gd_line_id)) : [];\nconst toIds = isCreated ? uniq(items.map((i) => i.to_id)) : [];\nconst toLineIds = isCreated ? uniq(items.map((i) => i.to_line_id)) : [];\n\nreturn { isCreated, isPickingPlan, currentPickingId, gdIds, gdLineIds, toIds, toLineIds };"
+          },
+          "response_json": [
+           {
+            "key": "cp_isc",
+            "name": "isCreated",
+            "title": "isCreated",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+           },
+           {
+            "key": "cp_ipp",
+            "name": "isPickingPlan",
+            "title": "isPickingPlan",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+           },
+           {
+            "key": "cp_cpid",
+            "name": "currentPickingId",
+            "title": "currentPickingId",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+           },
+           {
+            "key": "cp_gd",
+            "name": "gdIds",
+            "title": "gdIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "cp_gd_i",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "cp_gdl",
+            "name": "gdLineIds",
+            "title": "gdLineIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "cp_gdl_i",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "cp_to",
+            "name": "toIds",
+            "title": "toIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "cp_to_i",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "cp_tol",
+            "name": "toLineIds",
+            "title": "toLineIds",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "cp_tol_i",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "if_CancelGate",
+         "type": "if",
+         "data": {
+          "title": "IF Created",
+          "isValidator": true,
+          "nodeName": "IF Created",
+          "name": "IF Created",
+          "condition_type": "ConditionRule",
+          "expression": {
+           "type": "javascript",
+           "code": ""
+          },
+          "filter": {
+           "list": [
+            {
+             "id": 1736695973700,
+             "parentId": 1736695973701,
+             "isTop": true,
+             "prop": "node.code_node_CancelPrep.data.isCreated",
+             "operator": "numberEqual",
+             "valueType": "value",
+             "value": 1,
+             "type": "leaf",
+             "level": 1,
+             "propLabel": "isCreated",
+             "valueLabel": "",
+             "operatorLabel": "Equal"
+            }
+           ]
+          }
+         },
+         "blocks": [
+          {
+           "id": "ifBlock_CancelGateTrue",
+           "type": "ifBlock",
+           "data": {
+            "title": "true"
+           },
+           "blocks": [
+            {
+             "id": "if_CancelPP",
+             "type": "if",
+             "data": {
+              "title": "IF Picking Plan",
+              "isValidator": true,
+              "nodeName": "IF Picking Plan",
+              "name": "IF Picking Plan",
+              "condition_type": "ConditionRule",
+              "expression": {
+               "type": "javascript",
+               "code": ""
+              },
+              "filter": {
+               "list": [
+                {
+                 "id": 1736695973710,
+                 "parentId": 1736695973711,
+                 "isTop": true,
+                 "prop": "node.code_node_CancelPrep.data.isPickingPlan",
+                 "operator": "numberEqual",
+                 "valueType": "value",
+                 "value": 1,
+                 "type": "leaf",
+                 "level": 1,
+                 "propLabel": "isPickingPlan",
+                 "valueLabel": "",
+                 "operatorLabel": "Equal"
+                }
+               ]
+              }
+             },
+             "blocks": [
+              {
+               "id": "ifBlock_CancelPPTrue",
+               "type": "ifBlock",
+               "data": {
+                "title": "true"
+               },
+               "blocks": [
+                {
+                 "id": "search_node_OtherPP",
+                 "type": "search-node",
+                 "data": {
+                  "table_id": {
+                   "source": "transfer_order_jz8m9w3h_sub:Table:1939915130724524033",
+                   "rules": {
+                    "collectionId": "1939915130724524033",
+                    "list": [
+                     {
+                      "id": 1773914570690,
+                      "parentId": 1773914570691,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "all",
+                      "valueType": "",
+                      "value": "",
+                      "type": "branch",
+                      "level": 1,
+                      "children": [
+                       {
+                        "id": 1773914570692,
+                        "parentId": 1773914570690,
+                        "isTop": false,
+                        "prop": "to_id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CancelPrep.data.toIds}}",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "to_id",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       },
+                       {
+                        "id": 1773914570693,
+                        "parentId": 1773914570690,
+                        "isTop": false,
+                        "prop": "transfer_order_id.to_status",
+                        "operator": "equal",
+                        "valueType": "value",
+                        "value": "Created",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "Transfer Order Status",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  },
+                  "condition": {},
+                  "limit": 1000,
+                  "title": "Get Other PP Pickings",
+                  "isValidator": true,
+                  "nodeName": "Get Other PP Pickings",
+                  "name": "Get Other PP Pickings"
+                 },
+                 "blocks": []
+                },
+                {
+                 "id": "code_node_CancelPPReset",
+                 "type": "code-node",
+                 "data": {
+                  "language": "javascript",
+                  "code": "",
+                  "timeout": 30000,
+                  "title": "Compute PP Reset",
+                  "isValidator": true,
+                  "nodeName": "Compute PP Reset",
+                  "name": "Compute PP Reset",
+                  "script": {
+                   "type": "javascript",
+                   "code": "const currentPickingId = {{node:code_node_CancelPrep.data.currentPickingId}};\nconst toIds = {{node:code_node_CancelPrep.data.toIds}};\nconst toLineIds = {{node:code_node_CancelPrep.data.toLineIds}};\nconst raw = {{node:search_node_OtherPP.data.data}};\nconst rows = Array.isArray(raw) ? raw : (raw ? [raw] : []);\nconst others = rows.filter((r) => r.transfer_order_id !== currentPickingId && r.line_status !== \"Cancelled\");\nconst otherHeaders = new Set(others.map((r) => r.to_id));\nconst otherLines = new Set(others.map((r) => r.to_line_id));\nconst headersToReset = toIds.filter((id) => !otherHeaders.has(id));\nconst linesToReset = toLineIds.filter((id) => !otherLines.has(id));\n\nreturn {\n  headersToReset: headersToReset.length ? headersToReset : [\"__none__\"],\n  linesToReset: linesToReset.length ? linesToReset : [\"__none__\"]\n};"
+                  },
+                  "response_json": [
+                   {
+                    "key": "ppr_h",
+                    "name": "headersToReset",
+                    "title": "headersToReset",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                     {
+                      "key": "ppr_h_i",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                     }
+                    ]
+                   },
+                   {
+                    "key": "ppr_l",
+                    "name": "linesToReset",
+                    "title": "linesToReset",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                     {
+                      "key": "ppr_l_i",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                     }
+                    ]
+                   }
+                  ]
+                 },
+                 "blocks": []
+                },
+                {
+                 "id": "update_node_ResetPPTable",
+                 "type": "update-node",
+                 "data": {
+                  "table_id": {
+                   "source": "(Picking Plan):Table:1983062532297117697",
+                   "rules": {
+                    "collectionId": "1983062532297117697",
+                    "list": [
+                     {
+                      "id": 1772594200400,
+                      "parentId": 1772594200401,
+                      "isTop": true,
+                      "type": "branch",
+                      "operator": "all",
+                      "prop": "",
+                      "valueType": "",
+                      "value": "",
+                      "level": 1,
+                      "children": [
+                       {
+                        "id": 1772594200402,
+                        "parentId": 1772594200400,
+                        "isTop": false,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CancelPPReset.data.linesToReset}}",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       },
+                       {
+                        "id": 1772594200403,
+                        "parentId": 1772594200400,
+                        "isTop": false,
+                        "prop": "picking_status",
+                        "operator": "equal",
+                        "valueType": "value",
+                        "value": "Created",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "Line Picking Status",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  },
+                  "fields": [],
+                  "condition": {},
+                  "title": "Reset PP Table",
+                  "isValidator": true,
+                  "nodeName": "Reset PP Table",
+                  "name": "Reset PP Table",
+                  "props": {
+                   "modelName": "",
+                   "list": [
+                    {
+                     "prop": "picking_status",
+                     "operator": "",
+                     "valueType": "value",
+                     "value": "Not Created",
+                     "valueLabel": "",
+                     "propLabel": "Line Picking Status"
+                    }
+                   ]
+                  }
+                 },
+                 "blocks": []
+                },
+                {
+                 "id": "update_node_ResetPP",
+                 "type": "update-node",
+                 "data": {
+                  "table_id": {
+                   "source": "Picking Plan:Table:1982744224777474050",
+                   "rules": {
+                    "collectionId": "1982744224777474050",
+                    "list": [
+                     {
+                      "id": 1772510528400,
+                      "parentId": 1772510528401,
+                      "isTop": true,
+                      "type": "branch",
+                      "operator": "all",
+                      "prop": "",
+                      "valueType": "",
+                      "value": "",
+                      "level": 1,
+                      "children": [
+                       {
+                        "id": 1772510528402,
+                        "parentId": 1772510528400,
+                        "isTop": false,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CancelPPReset.data.headersToReset}}",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       },
+                       {
+                        "id": 1772510528403,
+                        "parentId": 1772510528400,
+                        "isTop": false,
+                        "prop": "picking_status",
+                        "operator": "equal",
+                        "valueType": "value",
+                        "value": "Created",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "Picking Status",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  },
+                  "fields": [],
+                  "condition": {},
+                  "title": "Reset PP",
+                  "isValidator": true,
+                  "nodeName": "Reset PP",
+                  "name": "Reset PP",
+                  "props": {
+                   "modelName": "",
+                   "list": [
+                    {
+                     "prop": "picking_status",
+                     "operator": "",
+                     "valueType": "value",
+                     "value": "Not Created",
+                     "valueLabel": "",
+                     "propLabel": "Picking Status"
+                    }
+                   ]
+                  }
+                 },
+                 "blocks": []
+                }
+               ]
+              },
+              {
+               "id": "ifBlock_CancelPPFalse",
+               "type": "ifBlock",
+               "data": {
+                "title": "false"
+               },
+               "blocks": [
+                {
+                 "id": "search_node_OtherGD",
+                 "type": "search-node",
+                 "data": {
+                  "table_id": {
+                   "source": "transfer_order_jz8m9w3h_sub:Table:1939915130724524033",
+                   "rules": {
+                    "collectionId": "1939915130724524033",
+                    "list": [
+                     {
+                      "id": 1773914570700,
+                      "parentId": 1773914570701,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "all",
+                      "valueType": "",
+                      "value": "",
+                      "type": "branch",
+                      "level": 1,
+                      "children": [
+                       {
+                        "id": 1773914570702,
+                        "parentId": 1773914570700,
+                        "isTop": false,
+                        "prop": "gd_id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CancelPrep.data.gdIds}}",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "gd_id",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       },
+                       {
+                        "id": 1773914570703,
+                        "parentId": 1773914570700,
+                        "isTop": false,
+                        "prop": "transfer_order_id.to_status",
+                        "operator": "equal",
+                        "valueType": "value",
+                        "value": "Created",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "Transfer Order Status",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  },
+                  "condition": {},
+                  "limit": 1000,
+                  "title": "Get Other GD Pickings",
+                  "isValidator": true,
+                  "nodeName": "Get Other GD Pickings",
+                  "name": "Get Other GD Pickings"
+                 },
+                 "blocks": []
+                },
+                {
+                 "id": "code_node_CancelGDReset",
+                 "type": "code-node",
+                 "data": {
+                  "language": "javascript",
+                  "code": "",
+                  "timeout": 30000,
+                  "title": "Compute GD Reset",
+                  "isValidator": true,
+                  "nodeName": "Compute GD Reset",
+                  "name": "Compute GD Reset",
+                  "script": {
+                   "type": "javascript",
+                   "code": "const currentPickingId = {{node:code_node_CancelPrep.data.currentPickingId}};\nconst gdIds = {{node:code_node_CancelPrep.data.gdIds}};\nconst gdLineIds = {{node:code_node_CancelPrep.data.gdLineIds}};\nconst raw = {{node:search_node_OtherGD.data.data}};\nconst rows = Array.isArray(raw) ? raw : (raw ? [raw] : []);\nconst others = rows.filter((r) => r.transfer_order_id !== currentPickingId && r.line_status !== \"Cancelled\");\nconst otherHeaders = new Set(others.map((r) => r.gd_id));\nconst otherLines = new Set(others.map((r) => r.gd_line_id));\nconst headersToReset = gdIds.filter((id) => !otherHeaders.has(id));\nconst linesToReset = gdLineIds.filter((id) => !otherLines.has(id));\n\nreturn {\n  headersToReset: headersToReset.length ? headersToReset : [\"__none__\"],\n  linesToReset: linesToReset.length ? linesToReset : [\"__none__\"]\n};"
+                  },
+                  "response_json": [
+                   {
+                    "key": "gdr_h",
+                    "name": "headersToReset",
+                    "title": "headersToReset",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                     {
+                      "key": "gdr_h_i",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                     }
+                    ]
+                   },
+                   {
+                    "key": "gdr_l",
+                    "name": "linesToReset",
+                    "title": "linesToReset",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                     {
+                      "key": "gdr_l_i",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                     }
+                    ]
+                   }
+                  ]
+                 },
+                 "blocks": []
+                },
+                {
+                 "id": "update_node_ResetGDTable",
+                 "type": "update-node",
+                 "data": {
+                  "table_id": {
+                   "source": "goods_delivery_fwii8mvb_sub:Table:1939904186426433537",
+                   "rules": {
+                    "collectionId": "1939904186426433537",
+                    "list": [
+                     {
+                      "id": 1772594284400,
+                      "parentId": 1772594284401,
+                      "isTop": true,
+                      "type": "branch",
+                      "operator": "all",
+                      "prop": "",
+                      "valueType": "",
+                      "value": "",
+                      "level": 1,
+                      "children": [
+                       {
+                        "id": 1772594284402,
+                        "parentId": 1772594284400,
+                        "isTop": false,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CancelGDReset.data.linesToReset}}",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       },
+                       {
+                        "id": 1772594284403,
+                        "parentId": 1772594284400,
+                        "isTop": false,
+                        "prop": "picking_status",
+                        "operator": "equal",
+                        "valueType": "value",
+                        "value": "Created",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "Line Picking Status",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  },
+                  "fields": [],
+                  "condition": {},
+                  "title": "Reset GD Table",
+                  "isValidator": true,
+                  "nodeName": "Reset GD Table",
+                  "name": "Reset GD Table",
+                  "props": {
+                   "modelName": "",
+                   "list": [
+                    {
+                     "prop": "picking_status",
+                     "operator": "",
+                     "valueType": "value",
+                     "value": "Not Created",
+                     "valueLabel": "",
+                     "propLabel": "Line Picking Status"
+                    }
+                   ]
+                  }
+                 },
+                 "blocks": []
+                },
+                {
+                 "id": "update_node_ResetGD",
+                 "type": "update-node",
+                 "data": {
+                  "table_id": {
+                   "source": "Goods Delivery:Table:1902054888473481218",
+                   "rules": {
+                    "collectionId": "1902054888473481218",
+                    "list": [
+                     {
+                      "id": 1772706323900,
+                      "parentId": 1772706323901,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "all",
+                      "valueType": "",
+                      "value": "",
+                      "type": "branch",
+                      "level": 1,
+                      "children": [
+                       {
+                        "id": 1772706323902,
+                        "parentId": 1772706323900,
+                        "isTop": false,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CancelGDReset.data.headersToReset}}",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       },
+                       {
+                        "id": 1772706323903,
+                        "parentId": 1772706323900,
+                        "isTop": false,
+                        "prop": "picking_status",
+                        "operator": "equal",
+                        "valueType": "value",
+                        "value": "Created",
+                        "type": "leaf",
+                        "level": 2,
+                        "propLabel": "Picking Status",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                       }
+                      ]
+                     }
+                    ]
+                   }
+                  },
+                  "fields": [],
+                  "condition": {},
+                  "title": "Reset GD",
+                  "isValidator": true,
+                  "nodeName": "Reset GD",
+                  "name": "Reset GD",
+                  "props": {
+                   "modelName": "",
+                   "list": [
+                    {
+                     "prop": "picking_status",
+                     "operator": "",
+                     "valueType": "value",
+                     "value": "Not Created",
+                     "valueLabel": "",
+                     "propLabel": "Picking Status"
+                    }
+                   ]
+                  }
+                 },
+                 "blocks": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "ifBlock_CancelGateFalse",
+           "type": "ifBlock",
+           "data": {
+            "title": "false"
+           },
+           "blocks": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "condition_or_node_item_TXnLVmDw",
+       "type": "condition-or-node-item",
+       "data": {
+        "title": "Draft",
+        "isDefault": true,
+        "filter": {
+         "list": []
+        },
+        "expression": {
+         "code": ""
+        },
+        "displayContent": "sdk.form.otherCondition"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_nUE0BNtz",
+     "type": "if",
+     "data": {
+      "title": "IF Edit",
+      "isValidator": true,
+      "nodeName": "IF Edit",
+      "name": "IF Edit",
+      "condition_type": "ConditionRule",
+      "expression": {
+       "type": "javascript",
+       "code": ""
+      },
+      "filter": {
+       "list": [
+        {
+         "id": 1736695973613,
+         "parentId": 1736695973612,
+         "isTop": true,
+         "prop": "workflowparams.pageStatus",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "Edit",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "pageStatus",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      }
+     },
+     "blocks": [
+      {
+       "id": "if_block_0lLmn5oa",
+       "type": "ifBlock",
+       "data": {
+        "title": "true"
+       },
+       "blocks": [
+        {
+         "id": "update_node_y9ZhwG0a",
+         "type": "update-node",
+         "data": {
+          "table_id": {
+           "source": "Transfer Order Picking:Table:1935556443668959233",
+           "rules": {
+            "collectionId": "1935556443668959233",
+            "list": [
+             {
+              "id": 1772179693343,
+              "parentId": 1772179693342,
+              "isTop": true,
+              "prop": "id",
+              "operator": "in",
+              "valueType": "field",
+              "value": "{{node:code_node_hjAwTKzF.data.data.id}}",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "主键ID",
+              "valueLabel": "",
+              "operatorLabel": "In"
+             }
+            ]
+           }
+          },
+          "fields": [],
+          "condition": {},
+          "title": "Update Picking Processing",
+          "isValidator": true,
+          "nodeName": "Update Picking Processing",
+          "name": "Update Picking Processing",
+          "props": {
+           "modelName": "",
+           "list": [
+            {
+             "prop": "is_processing",
+             "valueType": "value",
+             "value": 0,
+             "operator": "",
+             "valueLabel": "",
+             "propLabel": "Is Processing"
+            }
+           ]
+          }
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "if_block_00qk2AHv",
+       "type": "ifBlock",
+       "data": {
+        "title": "false"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "set_cache_node_lcepBS7X",
+     "type": "set-cache-node",
+     "data": {
+      "cache_key": "",
+      "cache_value": "",
+      "expire_time": 3600,
+      "title": "Set nextIndex",
+      "isValidator": true,
+      "nodeName": "Set nextIndex",
+      "name": "Set nextIndex",
+      "custom_wkbocgni": {
+       "type": "javascript",
+       "code": "{{node:code_node_hjAwTKzF.data.nextIndex}}"
+      },
+      "redis_key": "index_{{node:code_node_uPSc7Syb.data.unique}}"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "get_cache_node_PickMsg",
+   "type": "get-cache-node",
+   "data": {
+    "cache_key": "",
+    "title": "Get Picking Message",
+    "isValidator": true,
+    "nodeName": "Get Picking Message",
+    "name": "Get Picking Message",
+    "redis_key": "pickMsg_{{node:code_node_uPSc7Syb.data.unique}}"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_FinalMsg",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Final Message",
+    "isValidator": true,
+    "nodeName": "Final Message",
+    "name": "Final Message",
+    "script": {
+     "type": "javascript",
+     "code": "// The Completed branch stashes the Picking workflow's message so the clamp note\n// survives out here. A Draft / Created / Cancelled save never runs that branch,\n// so the cache is empty and the plain success line stands.\nconst cached = [{{node:get_cache_node_PickMsg.data}}][0];\n\nconst message =\n  typeof cached === \"string\" && cached.trim() !== \"\"\n    ? cached\n    : \"Picking processed successfully\";\n\nreturn { message }\n"
+    },
+    "response_json": [
+     {
+      "key": "fm1msg00",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_node_kbpuCvnr",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return Data",
+    "isValidator": true,
+    "nodeName": "Return Data",
+    "name": "Return Data",
+    "response_value": {
+     "list": [
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "value",
+       "valueTypeLabel": "",
+       "value": "200",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_FinalMsg.data.message}}",
+       "valueLabel": "",
+       "propLabel": "message"
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

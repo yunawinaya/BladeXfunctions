@@ -1,0 +1,699 @@
+{
+ "request_json": [],
+ "response_json": [
+  {
+   "key": "f5fan1ah",
+   "name": "code",
+   "title": "code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "k5wrexjc",
+   "name": "message",
+   "title": "message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node",
+    "nodeName": "Start Node",
+    "name": "Start Node",
+    "run_filter": {
+     "list": [
+      {
+       "id": 1762307767523,
+       "parentId": 1762307767522,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "search_node_RpRule",
+   "type": "search-node",
+   "data": {
+    "table_id": {
+     "source": "流水号规则表:Table:1994006139209117697",
+     "rules": {
+      "collectionId": "1994006139209117697",
+      "list": [
+       {
+        "id": 1770688051288,
+        "parentId": 1770688051289,
+        "isTop": true,
+        "type": "branch",
+        "operator": "all",
+        "prop": "",
+        "valueType": "",
+        "value": "",
+        "level": 1,
+        "children": [
+         {
+          "id": 1770687959813,
+          "parentId": 1770688051288,
+          "isTop": false,
+          "prop": "business_type",
+          "operator": "equal",
+          "valueType": "value",
+          "value": "Packing",
+          "type": "leaf",
+          "level": 2,
+          "propLabel": "Document Type",
+          "valueLabel": "",
+          "operatorLabel": "Equal"
+         },
+         {
+          "id": 1770688051290,
+          "parentId": 1770688051288,
+          "isTop": false,
+          "prop": "department_id",
+          "operator": "numberEqual",
+          "valueType": "field",
+          "type": "leaf",
+          "level": 2,
+          "propLabel": "Organization ID",
+          "valueLabel": "",
+          "operatorLabel": "Equal",
+          "value": "{{global:firstLvDeptId}}"
+         }
+        ]
+       }
+      ]
+     }
+    },
+    "condition": {},
+    "limit": 10,
+    "title": "Get LSH Packing Rule",
+    "isValidator": true,
+    "nodeName": "Get LSH Packing Rule",
+    "name": "Get LSH Packing Rule"
+   },
+   "blocks": []
+  },
+  {
+   "id": "search_node_RpExisting",
+   "type": "search-node",
+   "data": {
+    "table_id": {
+     "source": "Packing:Table:1993515601863524353",
+     "rules": {
+      "collectionId": "1993515601863524353",
+      "list": [
+       {
+        "id": 700940853499,
+        "parentId": 700940853500,
+        "isTop": true,
+        "type": "branch",
+        "operator": "all",
+        "prop": "",
+        "valueType": "",
+        "value": "",
+        "level": 1,
+        "children": [
+         {
+          "id": 490212066740,
+          "parentId": 700940853499,
+          "isTop": false,
+          "prop": "organization_id",
+          "operator": "equal",
+          "valueType": "value",
+          "value": "1996787068457861121",
+          "type": "leaf",
+          "level": 2,
+          "propLabel": "Organization ID",
+          "valueLabel": "",
+          "operatorLabel": "Equal"
+         },
+         {
+          "id": 35699794698,
+          "parentId": 700940853499,
+          "isTop": false,
+          "type": "branch",
+          "operator": "any",
+          "prop": "",
+          "valueType": "",
+          "value": "",
+          "level": 2,
+          "children": [
+           {
+            "id": 471651932083,
+            "parentId": 35699794698,
+            "isTop": false,
+            "prop": "gd_id",
+            "operator": "equal",
+            "valueType": "value",
+            "value": "2108074151607668738",
+            "type": "leaf",
+            "level": 3,
+            "propLabel": "Goods Delivery No",
+            "valueLabel": "",
+            "operatorLabel": "Equal"
+           },
+           {
+            "id": 665782756883,
+            "parentId": 35699794698,
+            "isTop": false,
+            "prop": "gd_id",
+            "operator": "equal",
+            "valueType": "value",
+            "value": "2108074166921072642",
+            "type": "leaf",
+            "level": 3,
+            "propLabel": "Goods Delivery No",
+            "valueLabel": "",
+            "operatorLabel": "Equal"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     }
+    },
+    "condition": {},
+    "limit": 10,
+    "title": "Get Existing Packing",
+    "isValidator": true,
+    "nodeName": "Get Existing Packing",
+    "name": "Get Existing Packing"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_RpPlan",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Plan Repair",
+    "isValidator": true,
+    "nodeName": "Plan Repair",
+    "name": "Plan Repair",
+    "script": {
+     "type": "javascript",
+     "code": "// The Packings PICKING run 2108089351207522305 (PI-20261008-1026) failed to create, as code_node_gudzrvMQ built them.\nconst recorded = [{\"plant_id\": \"1996821057533001730\", \"organization_id\": \"1996787068457861121\", \"packing_mode\": \"Detail\", \"created_by\": \"vivian\", \"created_at\": \"2026-10-08\", \"gd_id\": \"2108074166921072642\", \"gd_no\": \"GD-2610-43\", \"so_id\": [\"2108072726001491974\"], \"so_no\": \"SO2610-0136\", \"to_id\": \"2108079837720743937\", \"customer_id\": [\"2092459115963097160\"], \"billing_address\": \"BILLING | 012-5129128 Lee\\n\\nBilling Address\\n32, Jalan Helang Siput 1,\\nTaman Sinar Suria, Kepong Baru,\\n52100 Kuala Lumpur.\", \"shipping_address\": \"SHIPPING | 012-5129128 Lee\\n\\nShipping Address\\n32, Jalan Helang Siput 1,\\nTaman Sinar Suria, Kepong Baru,\\n52100 Kuala Lumpur.\", \"remarks\": \"\", \"remarks_2\": \"\", \"remarks_3\": \"\", \"di_shipping_method\": \"2098216190387298305\", \"di_driver_name\": \"2092904615866667009\", \"di_ic_no\": \"\", \"di_driver_contact_no\": \"\", \"di_shipping_company\": \"\", \"di_transport_name\": \"\", \"di_vehicle_number\": \"2098231832347807745\", \"di_est_delivery_date\": \"\", \"di_est_arrival_date\": \"\", \"di_pickup_date\": \"\", \"di_validity_of_collection\": \"\", \"di_tracking_number\": \"\", \"di_freight_charges\": 0.0, \"table_item_source\": [{\"item_id\": \"2092499030897729575\", \"item_code\": \"2092499030897729575\", \"item_name\": \"Margarine 马芝琳 蓝斧牌 BLUE AXE - 18kg/ctn\", \"item_desc\": \"(HALAL)\", \"item_uom\": \"2092460418772639785\", \"batch_no\": \"2102794295508602881\", \"bin_location\": \"2079771323965509634\", \"total_quantity\": 3.0, \"picked_qty\": 3.0, \"remaining_qty\": 0.0, \"qty_to_pick\": 0.0, \"line_status\": \"Fully Picked\", \"remark\": \"\", \"remark_2\": \"\", \"remark_3\": \"\", \"so_id\": \"2108072726001491974\", \"so_no\": \"SO2610-0136\", \"so_line_id\": \"2108072794322509825\", \"gd_id\": \"2108074166921072642\", \"gd_no\": \"GD-2610-43\", \"gd_line_id\": \"2108074167109816323\", \"to_id\": \"2108079837720743937\", \"to_line_id\": \"\"}], \"table_hu_source\": []}, {\"plant_id\": \"1996821057533001730\", \"organization_id\": \"1996787068457861121\", \"packing_mode\": \"Detail\", \"created_by\": \"vivian\", \"created_at\": \"2026-10-08\", \"gd_id\": \"2108074151607668738\", \"gd_no\": \"GD-2610-42\", \"so_id\": [\"2108072726001491973\"], \"so_no\": \"SO2610-0135\", \"to_id\": \"2108079837720743937\", \"customer_id\": [\"2092459241876103194\"], \"billing_address\": \"BILLING | 03-61858355\\n\\nBilling Address\\n43, Jalan 31/10 A,\\nTaman Perindustrian IKS Mukim Batu,\\n68100 Batu Caves, Selangor.\", \"shipping_address\": \"SHIPPING | 03-61858355\\n\\nShipping Address\\n59, Jalan 31/10 A,\\nTaman Perindustrian IKS Mukim Batu,\\n68100 Batu Caves, Selangor.\", \"remarks\": \"\", \"remarks_2\": \"送货前, 需要联系收货部 03-67348809\", \"remarks_3\": \"\", \"di_shipping_method\": \"2098216190387298305\", \"di_driver_name\": \"2092904615866667009\", \"di_ic_no\": \"\", \"di_driver_contact_no\": \"\", \"di_shipping_company\": \"\", \"di_transport_name\": \"\", \"di_vehicle_number\": \"2098231832347807745\", \"di_est_delivery_date\": \"\", \"di_est_arrival_date\": \"\", \"di_pickup_date\": \"\", \"di_validity_of_collection\": \"\", \"di_tracking_number\": \"\", \"di_freight_charges\": 0.0, \"table_item_source\": [{\"item_id\": \"2092497532511985684\", \"item_code\": \"2092497532511985684\", \"item_name\": \"Rice Vermicelli 米粉 TWENTY-TWENTY - 3.5kg/pkt\", \"item_desc\": \"Bihun\", \"item_uom\": \"2092460418772639769\", \"batch_no\": \"2102795344722137089\", \"bin_location\": \"2079771323965509634\", \"total_quantity\": 20.0, \"picked_qty\": 20.0, \"remaining_qty\": 0.0, \"qty_to_pick\": 0.0, \"line_status\": \"Fully Picked\", \"remark\": \"\", \"remark_2\": \"\", \"remark_3\": \"\", \"so_id\": \"2108072726001491973\", \"so_no\": \"SO2610-0135\", \"so_line_id\": \"2108072730648780801\", \"gd_id\": \"2108074151607668738\", \"gd_no\": \"GD-2610-42\", \"gd_line_id\": \"2108074151758663682\", \"to_id\": \"2108079837720743937\", \"to_line_id\": \"\"}], \"table_hu_source\": []}];\nconst RULE_ID = \"2048857875989835777\";\nconst asList = (v) => (Array.isArray(v) ? v : v ? [v] : []);\nconst ruleOk = asList({{node:search_node_RpRule.data.data}}).some((r) => String(r.id) === RULE_ID);\nconst taken = new Set(asList({{node:search_node_RpExisting.data.data}}).map((p) => String(p.gd_id)));\nconst toCreate = recorded.filter((p) => !taken.has(String(p.gd_id)));\nconst go = ruleOk && toCreate.length > 0 ? 1 : 0;\nconst message = !ruleOk\n  ? \"Not an LSH session (the LSH Packing serial rule is not visible), nothing was written.\"\n  : toCreate.length === 0\n    ? \"GD-2610-42 and GD-2610-43 already have a Packing, nothing was written.\"\n    : \"Packing created for \" + toCreate.map((p) => p.gd_no).join(\", \");\nreturn { toCreate, go, ruleId: RULE_ID, code: ruleOk ? \"200\" : \"400\", message };\n"
+    },
+    "response_json": [
+     {
+      "key": "rpplan_tc",
+      "name": "toCreate",
+      "title": "toCreate",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "rpplan_tc_item",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "RpPlan01",
+      "name": "go",
+      "title": "go",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false
+     },
+     {
+      "key": "RpPlan02",
+      "name": "ruleId",
+      "title": "ruleId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+     },
+     {
+      "key": "RpPlan03",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+     },
+     {
+      "key": "RpPlan04",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_RpGo",
+   "type": "if",
+   "data": {
+    "title": "IF go",
+    "isValidator": true,
+    "nodeName": "IF go",
+    "name": "IF go",
+    "condition_type": "ConditionRule",
+    "expression": {
+     "type": "javascript",
+     "code": ""
+    },
+    "filter": {
+     "list": [
+      {
+       "id": 52240366872,
+       "parentId": 63473025684,
+       "isTop": true,
+       "prop": "node.code_node_RpPlan.data.go",
+       "operator": "numberEqual",
+       "valueType": "value",
+       "value": 1,
+       "type": "leaf",
+       "level": 1,
+       "propLabel": "go",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_RpGo_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "add_node_RpPacking",
+       "type": "add-node",
+       "data": {
+        "table_id": {
+         "source": "Packing:Table:1993515601863524353",
+         "rules": {
+          "collectionId": "1993515601863524353",
+          "list": [
+           {
+            "id": 1773729848125,
+            "parentId": 1773729848124,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "title": "Add Packing Data",
+        "isValidator": true,
+        "nodeName": "Add Packing Data",
+        "name": "Add Packing Data",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "packing_status",
+           "valueType": "value",
+           "value": "Created",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Packing Status"
+          },
+          {
+           "prop": "plant_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.plant_id}}",
+           "valueLabel": "",
+           "propLabel": "Plant"
+          },
+          {
+           "prop": "packing_no",
+           "operator": "",
+           "valueType": "value",
+           "value": "'issued'",
+           "valueLabel": "",
+           "propLabel": "Packing No"
+          },
+          {
+           "prop": "packing_no_type",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.ruleId}}",
+           "valueLabel": "",
+           "propLabel": "规则"
+          },
+          {
+           "prop": "so_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.so_id}}",
+           "valueLabel": "",
+           "propLabel": "Sales Order No"
+          },
+          {
+           "prop": "so_no",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.so_no}}",
+           "valueLabel": "",
+           "propLabel": "Sales Order No"
+          },
+          {
+           "prop": "gd_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.gd_id}}",
+           "valueLabel": "",
+           "propLabel": "Goods Delivery No"
+          },
+          {
+           "prop": "to_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.to_id}}",
+           "valueLabel": "",
+           "propLabel": "PP ID"
+          },
+          {
+           "prop": "gd_no",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.gd_no}}",
+           "valueLabel": "",
+           "propLabel": "Goods Delivery No"
+          },
+          {
+           "prop": "customer_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.customer_id}}",
+           "valueLabel": "",
+           "propLabel": "Customer Name"
+          },
+          {
+           "prop": "organization_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.organization_id}}",
+           "valueLabel": "",
+           "propLabel": "Organization"
+          },
+          {
+           "prop": "packing_mode",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.packing_mode}}",
+           "valueLabel": "",
+           "propLabel": "Packing Mode"
+          },
+          {
+           "prop": "created_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.created_at}}",
+           "valueLabel": "",
+           "propLabel": "Created At"
+          },
+          {
+           "prop": "created_by",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.created_by}}",
+           "valueLabel": "",
+           "propLabel": "Created By"
+          },
+          {
+           "prop": "remarks",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.remarks}}",
+           "valueLabel": "",
+           "propLabel": "Remarks"
+          },
+          {
+           "prop": "remarks_2",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.remarks_2}}",
+           "valueLabel": "",
+           "propLabel": "Remarks 2"
+          },
+          {
+           "prop": "remarks_3",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.remarks_3}}",
+           "valueLabel": "",
+           "propLabel": "Remarks 3"
+          },
+          {
+           "prop": "table_item_source",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.table_item_source}}",
+           "valueLabel": "",
+           "propLabel": "Items (source)"
+          },
+          {
+           "prop": "table_hu_source",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.table_hu_source}}",
+           "valueLabel": "",
+           "propLabel": "HU Source"
+          },
+          {
+           "prop": "di_shipping_method",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_shipping_method}}",
+           "valueLabel": "",
+           "propLabel": "Shipping Method"
+          },
+          {
+           "prop": "di_driver_name",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_driver_name}}",
+           "valueLabel": "",
+           "propLabel": "Driver Name"
+          },
+          {
+           "prop": "di_ic_no",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_ic_no}}",
+           "valueLabel": "",
+           "propLabel": "IC No"
+          },
+          {
+           "prop": "di_driver_contact_no",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_driver_contact_no}}",
+           "valueLabel": "",
+           "propLabel": "Driver Contact No"
+          },
+          {
+           "prop": "di_shipping_company",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_shipping_company}}",
+           "valueLabel": "",
+           "propLabel": "Shipping Company"
+          },
+          {
+           "prop": "di_transport_name",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_transport_name}}",
+           "valueLabel": "",
+           "propLabel": "Transport Name"
+          },
+          {
+           "prop": "di_vehicle_number",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_vehicle_number}}",
+           "valueLabel": "",
+           "propLabel": "Vehicle Number"
+          },
+          {
+           "prop": "di_est_delivery_date",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_est_delivery_date}}",
+           "valueLabel": "",
+           "propLabel": "Est Delivery Date"
+          },
+          {
+           "prop": "di_est_arrival_date",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_est_arrival_date}}",
+           "valueLabel": "",
+           "propLabel": "Est Arrival Date"
+          },
+          {
+           "prop": "di_pickup_date",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_pickup_date}}",
+           "valueLabel": "",
+           "propLabel": "Pickup Date"
+          },
+          {
+           "prop": "di_validity_of_collection",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_validity_of_collection}}",
+           "valueLabel": "",
+           "propLabel": "Validity of Collection"
+          },
+          {
+           "prop": "di_tracking_number",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_tracking_number}}",
+           "valueLabel": "",
+           "propLabel": "Tracking Number"
+          },
+          {
+           "prop": "di_freight_charges",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.toCreate.di_freight_charges}}",
+           "valueLabel": "",
+           "propLabel": "Freight Charges"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_RpDone",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RpPlan.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RpPlan.data.message}}",
+           "valueLabel": "",
+           "propLabel": "message"
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_RpGo_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "return_node_RpSkip",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return Data",
+    "isValidator": true,
+    "nodeName": "Return Data",
+    "name": "Return Data",
+    "response_value": {
+     "list": [
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RpPlan.data.code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RpPlan.data.message}}",
+       "valueLabel": "",
+       "propLabel": "message"
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

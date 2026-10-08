@@ -356,13 +356,21 @@
                 "name": "2-2-1. Existing SI Err Msg",
                 "script": {
                   "type": "javascript",
-                  "code": "return {\n  message: 'Selected Goods Delivery(s) already has existing Sales Invoice and cannot be converted.'\n}"
+                  "code": "// Callers that predate `source` omit it, so if_dup_auto reads this flag, never the raw param.\nconst source = {{workflowparams:source}};\n\nreturn {\n  message: 'Selected Goods Delivery(s) already has existing Sales Invoice and cannot be converted.',\n  isAuto: source === 'auto' ? '1' : '0'\n}"
                 },
                 "response_json": [
                   {
                     "key": "rb1d06kw",
                     "name": "message",
                     "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "hf522215",
+                    "name": "isAuto",
+                    "title": "isAuto",
                     "description": "",
                     "bsonType": "string",
                     "isExpand": false
@@ -382,7 +390,7 @@
                 "condition_type": "Expression",
                 "expression": {
                   "type": "javascript",
-                  "code": "'{{workflowparams:source}}' == 'auto'"
+                  "code": "'{{node:code_node_6JxbETDC.data.isAuto}}' == '1'"
                 }
               },
               "blocks": [

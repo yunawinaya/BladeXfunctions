@@ -212,6 +212,121 @@
           "data": { "title": "true" },
           "blocks": [
             {
+              "id": "code_node_PkStoredPrep",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Stored Packing Check",
+                "isValidator": true,
+                "nodeName": "Stored Packing Check",
+                "name": "Stored Packing Check",
+                "script": {
+                  "type": "javascript",
+                  "code": "const entry = {{workflowparams:entry}} || {};\nconst saveAs = {{workflowparams:saveAs}};\n\nreturn {\n  checkStored: saveAs === \"Completed\" && entry.id ? \"1\" : \"0\",\n  packingId: entry.id ? String(entry.id) : \"0\",\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "edPrep00",
+                    "name": "checkStored",
+                    "title": "checkStored",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "edPrep01",
+                    "name": "packingId",
+                    "title": "packingId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_PkStored",
+              "type": "if",
+              "data": {
+                "title": "IF Completing Saved Packing",
+                "isValidator": true,
+                "nodeName": "IF Completing Saved Packing",
+                "name": "IF Completing Saved Packing",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 624515973054,
+                      "parentId": 0,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_PkStoredPrep.data.checkStored}}' == '1'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_PkStored_t",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "get_node_PkStored",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Packing:Table:1993515601863524353",
+                          "rules": {
+                            "collectionId": "1993515601863524353",
+                            "list": [
+                              {
+                                "id": 96650458420,
+                                "parentId": 96650458421,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_PkStoredPrep.data.packingId}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Get Stored Packing",
+                        "isValidator": true,
+                        "nodeName": "Get Stored Packing",
+                        "name": "Get Stored Packing"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_PkStored_f",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "code_node_7u6VSG8X",
               "type": "code-node",
               "data": {
@@ -224,7 +339,7 @@
                 "name": "fillbackHeaderFields",
                 "script": {
                   "type": "javascript",
-                  "code": "let entry = {{workflowparams:entry}};\nconst saveAs = {{workflowparams:saveAs}};\n\nfor (const huLineItem of entry.table_hu || []) {\n  huLineItem.plant_id = entry.plant_id || null;\n  huLineItem.customer_id = entry.customer_id || [];\n  huLineItem.organization_id = entry.organization_id;\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"draft\";\n  }\n} else {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"issued\";\n  }\n}\n\n// di_freight_charges is decimal(65,2) and this workflow has no formatNumber\n// node, so round it here \u2014 a raw float can fail the multipleOf check.\nconst freight = entry.di_freight_charges;\n\nreturn {\n  table_hu: entry.table_hu || [],\n  packing_no: entry.packing_no,\n  di_freight_charges:\n    freight === null || freight === undefined || freight === \"\"\n      ? null\n      : parseFloat(freight).toFixed(2),\n};\n"
+                  "code": "let entry = {{workflowparams:entry}};\nconst saveAs = {{workflowparams:saveAs}};\n\n// Two devices completing their own HUs on one Packing: keep the rows the first one saved.\nconst storedRaw = {{node:get_node_PkStored.data.data}};\nconst stored = (Array.isArray(storedRaw) ? storedRaw[0] : storedRaw) || null;\nif (saveAs === \"Completed\" && stored && stored.packing_status === \"Completed\") {\n  const incoming = new Set((entry.table_hu || []).map((r) => String(r.handling_unit_id || \"\")));\n  const kept = (stored.table_hu || []).filter(\n    (r) => r.handling_unit_id && !incoming.has(String(r.handling_unit_id)),\n  );\n  entry.table_hu = kept.concat(entry.table_hu || []);\n}\n\nfor (const huLineItem of entry.table_hu || []) {\n  huLineItem.plant_id = entry.plant_id || null;\n  huLineItem.customer_id = entry.customer_id || [];\n  huLineItem.organization_id = entry.organization_id;\n}\n\nif (saveAs === \"Draft\") {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"draft\";\n  }\n} else {\n  if (\n    entry.packing_no_type !== -9999 &&\n    (!entry.packing_no || entry.packing_no === null || entry.packing_no === \"\")\n  ) {\n    entry.packing_no = \"issued\";\n  }\n}\n\n// di_freight_charges is decimal(65,2) and this workflow has no formatNumber\n// node, so round it here — a raw float can fail the multipleOf check.\nconst freight = entry.di_freight_charges;\n\nreturn {\n  table_hu: entry.table_hu || [],\n  packing_no: entry.packing_no,\n  di_freight_charges:\n    freight === null || freight === undefined || freight === \"\"\n      ? null\n      : parseFloat(freight).toFixed(2),\n};\n"
                 },
                 "response_json": [
                   {
@@ -418,7 +533,7 @@
                         "name": "Validate Fully Picked",
                         "script": {
                           "type": "javascript",
-                          "code": "// Blocks Save as Completed while any GD line is still unpicked. A Sales-Order\n// based packing has no GD, so an empty fetch passes -- there is nothing to check.\nconst raw = {{node:get_node_PkPickGd.data.data}};\nconst gd = Array.isArray(raw) ? raw[0] : raw;\n\nif (!gd || !Array.isArray(gd.table_gd)) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\n// table_gd is a tree: a bundle is ONE parent row with its real lines under\n// `children`, and that parent carries no material_id. Read flat, a bundle's\n// lines are never checked at all.\nconst lines = gd.table_gd.flatMap(function (row) {\n  return [row].concat(Array.isArray(row.children) ? row.children : []);\n});\n\nconst errors = [];\nfor (const line of lines) {\n  if (!line.material_id) continue;\n  if (line.picking_status === \"Cancelled\") continue;\n  if ((parseFloat(line.gd_qty) || 0) <= 0) continue;\n  // picking_status is the source of truth in BOTH flows: normal picking sets it\n  // Completed once the line is fully picked, and under allow_full_picking it only\n  // reaches Completed when cumulative picked_qty >= gd_qty across sibling\n  // Pickings. The picked_qty scalar is written ONLY when allow_full_picking is\n  // on, so gating on that would falsely block every normal-flow packing.\n  if (line.picking_status !== \"Completed\") {\n    errors.push(\n      (line.material_name || line.material_id) +\n        \" (\" + (line.picking_status || \"Open\") + \")\"\n    );\n  }\n}\n\nif (errors.length === 0) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\nconst preview = errors.slice(0, 3).join(\"; \");\nconst suffix = errors.length > 3 ? \" (+\" + (errors.length - 3) + \" more)\" : \"\";\nreturn {\n  notPicked: 1,\n  pickedMessage:\n    \"Cannot complete packing: these Goods Delivery lines are not fully picked - \" +\n    preview + suffix + \". Pickings still pending.\",\n};\n"
+                          "code": "// Blocks Save as Completed while any GD line is still unpicked. A Sales-Order\n// based packing has no GD, so an empty fetch passes -- there is nothing to check.\nconst raw = {{node:get_node_PkPickGd.data.data}};\nconst gd = Array.isArray(raw) ? raw[0] : raw;\n\nif (gd && gd.gd_status === \"Cancelled\") {\n  return {\n    notPicked: 1,\n    pickedMessage: \"Cannot complete packing: Goods Delivery \" + (gd.delivery_no || \"\") + \" is Cancelled.\",\n  };\n}\n\nif (!gd || !Array.isArray(gd.table_gd)) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\n// table_gd is a tree: a bundle is ONE parent row with its real lines under\n// `children`, and that parent carries no material_id. Read flat, a bundle's\n// lines are never checked at all.\nconst lines = gd.table_gd.flatMap(function (row) {\n  return [row].concat(Array.isArray(row.children) ? row.children : []);\n});\n\nconst errors = [];\nfor (const line of lines) {\n  if (!line.material_id) continue;\n  if (line.picking_status === \"Cancelled\") continue;\n  if ((parseFloat(line.gd_qty) || 0) <= 0) continue;\n  // picking_status is the source of truth in BOTH flows: normal picking sets it\n  // Completed once the line is fully picked, and under allow_full_picking it only\n  // reaches Completed when cumulative picked_qty >= gd_qty across sibling\n  // Pickings. The picked_qty scalar is written ONLY when allow_full_picking is\n  // on, so gating on that would falsely block every normal-flow packing.\n  if (line.picking_status !== \"Completed\") {\n    errors.push(\n      (line.material_name || line.material_id) +\n        \" (\" + (line.picking_status || \"Open\") + \")\"\n    );\n  }\n}\n\nif (errors.length === 0) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\nconst preview = errors.slice(0, 3).join(\"; \");\nconst suffix = errors.length > 3 ? \" (+\" + (errors.length - 3) + \" more)\" : \"\";\nreturn {\n  notPicked: 1,\n  pickedMessage:\n    \"Cannot complete packing: these Goods Delivery lines are not fully picked - \" +\n    preview + suffix + \". Pickings still pending.\",\n};\n"
                         },
                         "response_json": [
                           {
@@ -1855,7 +1970,7 @@
                                 "name": "Prepare GD Data",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const entry = {{workflowparams:entry}};\nconst gdData = {{node:get_node_nqe6SJFz.data.data}} || null;\n\nreturn {\n  shouldCallGdWorkflow: (gdData && gdData.id) ? 1 : 0,\n  gdData,\n};\n"
+                                  "code": "const entry = {{workflowparams:entry}};\nconst gdData = {{node:get_node_nqe6SJFz.data.data}} || null;\n\nreturn {\n  // The call re-saves the GD as Created, which would revert a Cancelled or Completed GD.\n  shouldCallGdWorkflow: (gdData && gdData.id && gdData.gd_status === \"Created\") ? 1 : 0,\n  gdData,\n};\n"
                                 },
                                 "response_json": [
                                   {

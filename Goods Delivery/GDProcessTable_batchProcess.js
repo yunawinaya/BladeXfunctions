@@ -1,3 +1,6 @@
+// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps
+// every client-configured scale intact while killing float residue.
+const q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));
 /**
  * GDProcessTable_batchProcess.js
  *
@@ -37,6 +40,64 @@ const {
   isLoadingBay
 } = batchData;
 
+// --- reservations speak the unit they were RAISED in ---------------------------
+// reserved_qty / open_qty / delivered_qty on on_reserved_gd are counted in the
+// delivery line's ORDER uom, with item_uom recording which one. When that uom
+// changes, every "wanted vs already reserved" comparison below compares 10 BOX
+// against 10 UNIT: the delta comes out zero, no inventory movement is raised, and the
+// line silently keeps only the base quantity of the OLD unit. Restating the rows once,
+// here, where they are read, leaves all the arithmetic downstream speaking one unit.
+const _uomFactor = (item, uomId) => {
+  if (!item || !uomId) return 0;
+  if (String(item.based_uom) === String(uomId)) return 1;
+  const rows = Array.isArray(item.table_uom_conversion) ? item.table_uom_conversion : [];
+  const conv = rows.find((c) => String(c.alt_uom_id) === String(uomId));
+  return conv && parseFloat(conv.base_qty) ? parseFloat(conv.base_qty) : 0;
+};
+const _itemByIdForUom = {};
+for (const it of allItemsData || []) {
+  if (it && it.id) _itemByIdForUom[String(it.id)] = it;
+}
+const _lineNowByKey = {};
+for (const processed of processedTableData || []) {
+  if (!processed || !processed.material_uom) continue;
+  const now = {
+    uom: String(processed.material_uom),
+    materialId: String(processed.material_id || "")
+  };
+  const lineId = String(
+    (isGDPP === 1
+      ? processed.picking_plan_line_id || processed.doc_line_id
+      : processed.doc_line_id) || ""
+  );
+  if (lineId) _lineNowByKey["L:" + lineId] = now;
+  if (processed.parent_line_id) {
+    _lineNowByKey["P:" + String(processed.parent_line_id)] = now;
+  }
+}
+const _restateReserved = (rec, now) => {
+  if (!rec || !now || !rec.item_uom || String(rec.item_uom) === now.uom) return;
+  const item = _itemByIdForUom[String(rec.material_id || now.materialId)];
+  const from = _uomFactor(item, rec.item_uom);
+  const to = _uomFactor(item, now.uom);
+  if (!from || !to) return;   // unknown conversion: leave the row exactly as it is
+  const ratio = from / to;
+  const scale = (v) => q8((parseFloat(v) || 0) * ratio);
+  rec.reserved_qty = scale(rec.reserved_qty);
+  rec.open_qty = scale(rec.open_qty);
+  rec.delivered_qty = scale(rec.delivered_qty);
+  rec.item_uom = now.uom;
+  rec._uomRestated = 1;   // the sweep below still owes this row an item_uom write
+};
+for (const rec of allAllocatedData || []) {
+  if (!rec || String(rec.target_gd_id || "") !== String(docId)) continue;
+  _restateReserved(rec, _lineNowByKey["L:" + String(rec.doc_line_id || "")]);
+}
+for (const rec of allPendingData || []) {
+  if (!rec) continue;
+  _restateReserved(rec, _lineNowByKey["P:" + String(rec.parent_line_id || "")]);
+}
+
 // GDPP-Created is a no-inventory middle state: skip on_reserved_gd writes and
 // stock movements entirely. The picking-record reserved_qty stamp is handled
 // downstream by the existing pickings-update branch (now reserved-aware).
@@ -75,7 +136,6 @@ for (const item of allItemsData) {
 }
 
 // Helper functions
-const roundQty = (value) => parseFloat(parseFloat(value || 0).toFixed(3));
 
 // Qty already delivered out of each Picking Plan line, keyed by line + source bin.
 // Completion restamps a delivered PP reservation onto the GD, so the Allocated
@@ -88,13 +148,13 @@ const _ppPickingRecords = Array.isArray(_ppPickingRaw)
   : (_ppPickingRaw ? [_ppPickingRaw] : []);
 const ppDeliveredByLine = new Map();
 for (const rec of _ppPickingRecords) {
-  const deliveredQty = roundQty(rec.delivered_qty || 0);
+  const deliveredQty = q8(rec.delivered_qty || 0);
   const lineKey = String(rec.to_line_id || "");
   if (deliveredQty <= 0 || !lineKey) continue;
   const binKey = String(rec.source_bin || rec.target_location || "");
   if (!ppDeliveredByLine.has(lineKey)) ppDeliveredByLine.set(lineKey, new Map());
   const bins = ppDeliveredByLine.get(lineKey);
-  bins.set(binKey, roundQty((bins.get(binKey) || 0) + deliveredQty));
+  bins.set(binKey, q8((bins.get(binKey) || 0) + deliveredQty));
 }
 
 // Filter itemData to only include fields needed by inventory workflow
@@ -211,7 +271,7 @@ const cleanupOrphanedAllocations = () => {
       const invKey = `${orphanedRecord.material_id}|${orphanedRecord.batch_id || ""}|${orphanedRecord.bin_location || ""}|${orphanedRecord.doc_line_id || ""}|${orphanedRecord.handling_unit_id || ""}`;
       const existingMovement = inventoryMovementMap.get(invKey);
       if (existingMovement) {
-        existingMovement.quantity = roundQty(existingMovement.quantity + releaseQty);
+        existingMovement.quantity = q8(existingMovement.quantity + releaseQty);
       } else {
         inventoryMovementMap.set(invKey, {
           material_id: orphanedRecord.material_id,
@@ -238,7 +298,7 @@ const cleanupOrphanedAllocations = () => {
 
       if (existingPending) {
         const accumulatedQty = pendingMergeAccumulator.get(existingPending.id) || 0;
-        pendingMergeAccumulator.set(existingPending.id, roundQty(accumulatedQty + releaseQty));
+        pendingMergeAccumulator.set(existingPending.id, q8(accumulatedQty + releaseQty));
 
         recordsToUpdate.push({
           id: orphanedRecord.id,
@@ -266,8 +326,8 @@ const cleanupOrphanedAllocations = () => {
     if (existingPending) {
       recordsToUpdate.push({
         id: pendingId,
-        reserved_qty: roundQty(existingPending.reserved_qty + accumulatedQty),
-        open_qty: roundQty(existingPending.open_qty + accumulatedQty),
+        reserved_qty: q8(existingPending.reserved_qty + accumulatedQty),
+        open_qty: q8(existingPending.open_qty + accumulatedQty),
         status: "Pending",
       });
     }
@@ -347,9 +407,42 @@ const detectBinHuMigrations = () => {
       String(r.bin_location || "") === String(e.binLocation || "") &&
       String(r.handling_unit_id || "") === String(e.handlingUnitId || "");
 
-    const unmatchedOld = oldRecs.filter((r) => !newEntries.some((e) => tupleMatch(r, e)));
-    const unmatchedNew = newEntries.filter((e) => !oldRecs.some((r) => tupleMatch(r, e)));
-    if (unmatchedOld.length === 0 || unmatchedNew.length === 0) continue;
+    // A float residue left at the old bin (4.09e-14 on DO-FG2610-012) is not stock there.
+    const liveNew = newEntries.filter((e) => q8(e.group.totalQty || 0) > 0);
+    const unmatchedNew = liveNew.filter((e) => !oldRecs.some((r) => tupleMatch(r, e)));
+    if (unmatchedNew.length === 0) continue;
+
+    // What each old record can give up: all of it when its bin/HU holds nothing now, else
+    // the surplus over what its bin/HU still holds. Fully-vacated records go first, as before.
+    const tupleKey = (bin, hu) => String(bin || "") + "|" + String(hu || "");
+    const newAtTuple = new Map();
+    for (const e of liveNew) {
+      const k = tupleKey(e.binLocation, e.handlingUnitId);
+      newAtTuple.set(k, q8((newAtTuple.get(k) || 0) + q8(e.group.totalQty || 0)));
+    }
+    const oldAtTuple = new Map();
+    for (const r of oldRecs) {
+      const k = tupleKey(r.bin_location, r.handling_unit_id);
+      if (!oldAtTuple.has(k)) oldAtTuple.set(k, []);
+      oldAtTuple.get(k).push(r);
+    }
+    const migratable = new Map();
+    const unmatchedOld = [];
+    const surplusOld = [];
+    for (const [k, recs] of oldAtTuple) {
+      const held = newAtTuple.get(k) || 0;
+      let surplus = q8(recs.reduce((s, r) => s + q8(r.reserved_qty || 0), 0) - held);
+      for (const r of recs) {
+        if (surplus <= 0) break;
+        const give = q8(Math.min(q8(r.reserved_qty || 0), surplus));
+        if (give <= 0) continue;
+        migratable.set(r, give);
+        (held > 0 ? surplusOld : unmatchedOld).push(r);
+        surplus = q8(surplus - give);
+      }
+    }
+    const sourceRecs = unmatchedOld.concat(surplusOld);
+    if (sourceRecs.length === 0) continue;
 
     // Track how much of each new entry's qty is still unconsumed by migration.
     // Greedy pairing: for each unmatched old record, siphon qty into unmatched
@@ -357,20 +450,20 @@ const detectBinHuMigrations = () => {
     // entry falls through to processCreatedAllocation's fresh-alloc path.
     const newRemaining = new Map();
     for (const e of unmatchedNew) {
-      newRemaining.set(e, roundQty(e.group.totalQty || 0));
+      newRemaining.set(e, q8(e.group.totalQty || 0));
     }
 
-    for (const oldRec of unmatchedOld) {
-      let oldRemaining = roundQty(oldRec.reserved_qty || 0);
+    for (const oldRec of sourceRecs) {
+      let oldRemaining = migratable.get(oldRec) || 0;
       for (const entry of unmatchedNew) {
         if (oldRemaining <= 0) break;
         const avail = newRemaining.get(entry) || 0;
         if (avail <= 0) continue;
-        const migrateQty = roundQty(Math.min(oldRemaining, avail));
+        const migrateQty = q8(Math.min(oldRemaining, avail));
         if (migrateQty <= 0) continue;
 
         // Reduce or Cancel the old record.
-        const newOldQty = roundQty((oldRec.reserved_qty || 0) - migrateQty);
+        const newOldQty = q8((oldRec.reserved_qty || 0) - migrateQty);
         if (newOldQty <= 0) {
           recordsToUpdate.push({
             id: oldRec.id,
@@ -439,8 +532,8 @@ const detectBinHuMigrations = () => {
           doc_line_id: oldRec.doc_line_id || "",
         });
 
-        oldRemaining = roundQty(oldRemaining - migrateQty);
-        const remainingOnEntry = roundQty(avail - migrateQty);
+        oldRemaining = q8(oldRemaining - migrateQty);
+        const remainingOnEntry = q8(avail - migrateQty);
         newRemaining.set(entry, remainingOnEntry);
         if (remainingOnEntry <= 0) {
           // Main loop will skip this group — pre-step fully handled it.
@@ -513,7 +606,7 @@ const processCreatedAllocation = (params) => {
   // If we have existing allocated records, handle updates
   if (matchedOldRecords.length > 0) {
     const oldQty = matchedOldRecords.reduce((sum, r) => sum + (r.reserved_qty || 0), 0);
-    const netChange = roundQty(quantity - oldQty);
+    const netChange = q8(quantity - oldQty);
 
     if (netChange === 0) {
       return {
@@ -561,14 +654,14 @@ const processCreatedAllocation = (params) => {
               status: "Cancelled",
               target_gd_id: null,
             });
-            unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
+            unrestrictedQtyToAdd = q8(unrestrictedQtyToAdd + releaseFromThisRecord);
           } else {
             const existingPending = findExistingPendingToMerge(oldRecord.doc_type);
             if (existingPending) {
               recordsToUpdate.push({
                 ...existingPending,
-                reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThisRecord),
-                open_qty: roundQty(existingPending.open_qty + releaseFromThisRecord),
+                reserved_qty: q8(existingPending.reserved_qty + releaseFromThisRecord),
+                open_qty: q8(existingPending.open_qty + releaseFromThisRecord),
                 status: "Pending",
               });
               recordsToUpdate.push({
@@ -594,8 +687,8 @@ const processCreatedAllocation = (params) => {
         } else {
           recordsToUpdate.push({
             ...oldRecord,
-            reserved_qty: roundQty(oldRecord.reserved_qty - releaseFromThisRecord),
-            open_qty: roundQty(oldRecord.reserved_qty - releaseFromThisRecord),
+            reserved_qty: q8(oldRecord.reserved_qty - releaseFromThisRecord),
+            open_qty: q8(oldRecord.reserved_qty - releaseFromThisRecord),
             status: "Allocated",
             target_gd_id: docId,
           });
@@ -610,14 +703,14 @@ const processCreatedAllocation = (params) => {
               source_reserved_id: oldRecord.id,
               target_gd_id: null,
             });
-            unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
+            unrestrictedQtyToAdd = q8(unrestrictedQtyToAdd + releaseFromThisRecord);
           } else {
             const existingPending = findExistingPendingToMerge(oldRecord.doc_type);
             if (existingPending) {
               recordsToUpdate.push({
                 ...existingPending,
-                reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThisRecord),
-                open_qty: roundQty(existingPending.open_qty + releaseFromThisRecord),
+                reserved_qty: q8(existingPending.reserved_qty + releaseFromThisRecord),
+                open_qty: q8(existingPending.open_qty + releaseFromThisRecord),
                 status: "Pending",
               });
             } else {
@@ -637,7 +730,7 @@ const processCreatedAllocation = (params) => {
           }
         }
 
-        remainingQtyToRelease = roundQty(remainingQtyToRelease - releaseFromThisRecord);
+        remainingQtyToRelease = q8(remainingQtyToRelease - releaseFromThisRecord);
       }
 
       const inventoryMovements = [];
@@ -750,7 +843,7 @@ const allocateFromPending = (qtyToAllocate, pendingData, params, allocDocType) =
         });
       }
       // Remainder is handled post-loop via pendingConsumed map
-      remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
+      remainingQtyToAllocate = q8(remainingQtyToAllocate - allocateQty);
     }
   }
 
@@ -790,7 +883,7 @@ const allocateFromPending = (qtyToAllocate, pendingData, params, allocDocType) =
           target_gd_id: docId,
         });
       }
-      remainingQtyToAllocate = roundQty(remainingQtyToAllocate - allocateQty);
+      remainingQtyToAllocate = q8(remainingQtyToAllocate - allocateQty);
     }
   }
 
@@ -917,7 +1010,7 @@ const processDeliveredAllocation = (params) => {
     if (quantity <= totalAllocatedQty) {
       // Delivery from allocated - may need to release excess
       let remainingQtyToDeliver = quantity;
-      let remainingQtyToRelease = roundQty(totalAllocatedQty - quantity);
+      let remainingQtyToRelease = q8(totalAllocatedQty - quantity);
       let unrestrictedQtyToAdd = 0;
 
       const sortedAllocatedRecords = [...matchedAllocatedRecords].sort(
@@ -950,7 +1043,7 @@ const processDeliveredAllocation = (params) => {
               ...allocatedRecord,
               reserved_qty: allocatedRecord.reserved_qty,
               open_qty: 0,
-              delivered_qty: roundQty((allocatedRecord.delivered_qty || 0) + deliverFromThisRecord),
+              delivered_qty: q8((allocatedRecord.delivered_qty || 0) + deliverFromThisRecord),
               status: "Delivered",
               doc_id: isFromPP ? docId : allocatedRecord.doc_id,
               doc_no: isFromPP ? docNo : allocatedRecord.doc_no,
@@ -972,7 +1065,7 @@ const processDeliveredAllocation = (params) => {
               target_gd_id: isFromPP ? docId : allocatedRecord.target_gd_id,
             });
 
-            const remainderQty = roundQty(recordQty - deliverFromThisRecord);
+            const remainderQty = q8(recordQty - deliverFromThisRecord);
             if (isFromPP) {
               const { _id, id, ...recordWithoutId } = allocatedRecord;
               recordsToCreate.push({
@@ -994,7 +1087,7 @@ const processDeliveredAllocation = (params) => {
                 source_reserved_id: allocatedRecord.id,
                 target_gd_id: null,
               });
-              unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + remainderQty);
+              unrestrictedQtyToAdd = q8(unrestrictedQtyToAdd + remainderQty);
             } else {
               const existingPending = findExistingPendingToMerge(
                 allocatedRecord.doc_type,
@@ -1003,8 +1096,8 @@ const processDeliveredAllocation = (params) => {
               if (existingPending) {
                 recordsToUpdate.push({
                   ...existingPending,
-                  reserved_qty: roundQty(existingPending.reserved_qty + remainderQty),
-                  open_qty: roundQty(existingPending.open_qty + remainderQty),
+                  reserved_qty: q8(existingPending.reserved_qty + remainderQty),
+                  open_qty: q8(existingPending.open_qty + remainderQty),
                   status: "Pending",
                 });
               } else {
@@ -1025,8 +1118,8 @@ const processDeliveredAllocation = (params) => {
             }
           }
 
-          remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverFromThisRecord);
-          reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverFromThisRecord);
+          remainingQtyToDeliver = q8(remainingQtyToDeliver - deliverFromThisRecord);
+          reservedQtyToSubtract = q8(reservedQtyToSubtract + deliverFromThisRecord);
         } else if (remainingQtyToRelease > 0) {
           // Release excess allocation
           const releaseFromThisRecord = Math.min(recordQty, remainingQtyToRelease);
@@ -1044,7 +1137,7 @@ const processDeliveredAllocation = (params) => {
                 status: "Cancelled",
                 target_gd_id: null,
               });
-              unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
+              unrestrictedQtyToAdd = q8(unrestrictedQtyToAdd + releaseFromThisRecord);
             } else {
               const existingPending = findExistingPendingToMerge(
                 allocatedRecord.doc_type,
@@ -1053,8 +1146,8 @@ const processDeliveredAllocation = (params) => {
               if (existingPending) {
                 recordsToUpdate.push({
                   ...existingPending,
-                  reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThisRecord),
-                  open_qty: roundQty(existingPending.open_qty + releaseFromThisRecord),
+                  reserved_qty: q8(existingPending.reserved_qty + releaseFromThisRecord),
+                  open_qty: q8(existingPending.open_qty + releaseFromThisRecord),
                   status: "Pending",
                 });
                 recordsToUpdate.push({
@@ -1083,8 +1176,8 @@ const processDeliveredAllocation = (params) => {
             } else if (isFromUnrestricted) {
               recordsToUpdate.push({
                 ...allocatedRecord,
-                reserved_qty: roundQty(recordQty - releaseFromThisRecord),
-                open_qty: roundQty(recordQty - releaseFromThisRecord),
+                reserved_qty: q8(recordQty - releaseFromThisRecord),
+                open_qty: q8(recordQty - releaseFromThisRecord),
                 status: "Allocated",
               });
 
@@ -1098,13 +1191,13 @@ const processDeliveredAllocation = (params) => {
                 source_reserved_id: allocatedRecord.id,
                 target_gd_id: null,
               });
-              unrestrictedQtyToAdd = roundQty(unrestrictedQtyToAdd + releaseFromThisRecord);
+              unrestrictedQtyToAdd = q8(unrestrictedQtyToAdd + releaseFromThisRecord);
             } else {
               // SO/Production: Reduce record and create pending
               recordsToUpdate.push({
                 ...allocatedRecord,
-                reserved_qty: roundQty(recordQty - releaseFromThisRecord),
-                open_qty: roundQty(recordQty - releaseFromThisRecord),
+                reserved_qty: q8(recordQty - releaseFromThisRecord),
+                open_qty: q8(recordQty - releaseFromThisRecord),
                 status: "Allocated",
               });
 
@@ -1116,8 +1209,8 @@ const processDeliveredAllocation = (params) => {
               if (existingPending) {
                 recordsToUpdate.push({
                   ...existingPending,
-                  reserved_qty: roundQty(existingPending.reserved_qty + releaseFromThisRecord),
-                  open_qty: roundQty(existingPending.open_qty + releaseFromThisRecord),
+                  reserved_qty: q8(existingPending.reserved_qty + releaseFromThisRecord),
+                  open_qty: q8(existingPending.open_qty + releaseFromThisRecord),
                   status: "Pending",
                 });
               } else {
@@ -1137,7 +1230,7 @@ const processDeliveredAllocation = (params) => {
               }
             }
           }
-          remainingQtyToRelease = roundQty(remainingQtyToRelease - releaseFromThisRecord);
+          remainingQtyToRelease = q8(remainingQtyToRelease - releaseFromThisRecord);
         }
       }
 
@@ -1186,7 +1279,7 @@ const processDeliveredAllocation = (params) => {
       recordsToUpdate.push({
         ...allocatedRecord,
         open_qty: 0,
-        delivered_qty: roundQty((allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty),
+        delivered_qty: q8((allocatedRecord.delivered_qty || 0) + allocatedRecord.open_qty),
         status: "Delivered",
         doc_id: isFromPP ? docId : allocatedRecord.doc_id,
         doc_no: isFromPP ? docNo : allocatedRecord.doc_no,
@@ -1198,7 +1291,7 @@ const processDeliveredAllocation = (params) => {
     reservedQtyToSubtract = totalAllocatedQty;
 
     // Allocate additional from pending
-    let additionalQtyNeeded = roundQty(quantity - totalAllocatedQty);
+    let additionalQtyNeeded = q8(quantity - totalAllocatedQty);
     const pendingProdData = relevantPendingData.filter((item) => {
       if (item.doc_type !== "Production") return false;
       if (parentLineId) {
@@ -1251,8 +1344,8 @@ const processDeliveredAllocation = (params) => {
             target_gd_id: docId,
           });
         }
-        reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverQty);
-        additionalQtyNeeded = roundQty(additionalQtyNeeded - deliverQty);
+        reservedQtyToSubtract = q8(reservedQtyToSubtract + deliverQty);
+        additionalQtyNeeded = q8(additionalQtyNeeded - deliverQty);
       }
     }
 
@@ -1293,8 +1386,8 @@ const processDeliveredAllocation = (params) => {
             target_gd_id: docId,
           });
         }
-        reservedQtyToSubtract = roundQty(reservedQtyToSubtract + deliverQty);
-        additionalQtyNeeded = roundQty(additionalQtyNeeded - deliverQty);
+        reservedQtyToSubtract = q8(reservedQtyToSubtract + deliverQty);
+        additionalQtyNeeded = q8(additionalQtyNeeded - deliverQty);
       }
     }
 
@@ -1401,8 +1494,8 @@ const processDeliveredAllocation = (params) => {
           target_gd_id: docId,
         });
       }
-      reservedQty = roundQty(reservedQty + deliverQty);
-      remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverQty);
+      reservedQty = q8(reservedQty + deliverQty);
+      remainingQtyToDeliver = q8(remainingQtyToDeliver - deliverQty);
     }
   }
 
@@ -1443,8 +1536,8 @@ const processDeliveredAllocation = (params) => {
           target_gd_id: docId,
         });
       }
-      reservedQty = roundQty(reservedQty + deliverQty);
-      remainingQtyToDeliver = roundQty(remainingQtyToDeliver - deliverQty);
+      reservedQty = q8(reservedQty + deliverQty);
+      remainingQtyToDeliver = q8(remainingQtyToDeliver - deliverQty);
     }
   }
 
@@ -1502,12 +1595,12 @@ const pendingConsumed = new Map(); // pendingId -> qty consumed so far
 
 const getPendingAvailableQty = (pendingRecord) => {
   const consumed = pendingConsumed.get(pendingRecord.id) || 0;
-  return roundQty(pendingRecord.open_qty - consumed);
+  return q8(pendingRecord.open_qty - consumed);
 };
 
 const markPendingConsumed = (pendingId, qty) => {
   const prev = pendingConsumed.get(pendingId) || 0;
-  pendingConsumed.set(pendingId, roundQty(prev + qty));
+  pendingConsumed.set(pendingId, q8(prev + qty));
 };
 
 // Collect all results
@@ -1566,10 +1659,10 @@ for (const processed of processedTableData) {
       try {
         const excessData = JSON.parse(tempExcessStr);
         for (const excess of excessData) {
-          const excessQty = roundQty(parseFloat(excess.quantity));
+          const excessQty = q8(parseFloat(excess.quantity));
           if (excessQty <= 0) continue;
           const key = `${excess.location_id || ""}|${excess.batch_id || ""}|${excess.handling_unit_id || ""}`;
-          excessByKey[key] = roundQty((excessByKey[key] || 0) + excessQty);
+          excessByKey[key] = q8((excessByKey[key] || 0) + excessQty);
         }
       } catch (e) {
         console.error("Error parsing temp_excess_data for line " + processed.tableIndex + ":", e);
@@ -1581,13 +1674,13 @@ for (const processed of processedTableData) {
     const group = groupedTempData[groupKey];
     // Pre-step migrated this group's full qty; skip fresh alloc for it.
     if (group._fullyMigrated) continue;
-    let quantity = roundQty(group.totalQty);
+    let quantity = q8(group.totalQty);
 
     if (saveAs === "Completed") {
       const groupExcessKey = `${group.location_id || ""}|${group.batch_id || ""}|${group.handling_unit_id || ""}`;
       const groupExcess = excessByKey[groupExcessKey] || 0;
       if (groupExcess > 0) {
-        quantity = roundQty(Math.max(0, quantity - groupExcess));
+        quantity = q8(Math.max(0, quantity - groupExcess));
       }
     }
 
@@ -1598,14 +1691,14 @@ for (const processed of processedTableData) {
       const ppBinKey = String(group.location_id || "");
       let ppDeduct = Math.min(quantity, ppDeliveredBins.get(ppBinKey) || 0);
       if (ppDeduct > 0) {
-        ppDeliveredBins.set(ppBinKey, roundQty((ppDeliveredBins.get(ppBinKey) || 0) - ppDeduct));
+        ppDeliveredBins.set(ppBinKey, q8((ppDeliveredBins.get(ppBinKey) || 0) - ppDeduct));
       }
-      const ppSpill = Math.min(roundQty(quantity - ppDeduct), ppDeliveredBins.get("") || 0);
+      const ppSpill = Math.min(q8(quantity - ppDeduct), ppDeliveredBins.get("") || 0);
       if (ppSpill > 0) {
-        ppDeliveredBins.set("", roundQty((ppDeliveredBins.get("") || 0) - ppSpill));
-        ppDeduct = roundQty(ppDeduct + ppSpill);
+        ppDeliveredBins.set("", q8((ppDeliveredBins.get("") || 0) - ppSpill));
+        ppDeduct = q8(ppDeduct + ppSpill);
       }
-      quantity = roundQty(Math.max(0, quantity - ppDeduct));
+      quantity = q8(Math.max(0, quantity - ppDeduct));
     }
 
     const params = {
@@ -1691,7 +1784,7 @@ for (const [pendingId, consumedQty] of pendingConsumed.entries()) {
   const originalPending = allPendingData.find((r) => String(r.id) === String(pendingId));
   if (!originalPending) continue;
 
-  const remainderQty = roundQty(originalPending.open_qty - consumedQty);
+  const remainderQty = q8(originalPending.open_qty - consumedQty);
   if (remainderQty > 0) {
     const { _id, id, ...withoutId } = originalPending;
     allRecordsToCreate.push({
@@ -1707,6 +1800,69 @@ for (const [pendingId, consumedQty] of pendingConsumed.entries()) {
       target_gd_id: null,
     });
   }
+}
+
+// --- keep the reservation's unit in step with the delivery line ---------------
+// item_uom is stamped only when a reservation is CREATED, and the update node never
+// carried the column -- so a line whose order UOM changed left every existing row
+// claiming the old unit. GD_funcProcessGDLineItem and the MSI/PRT dialogs convert
+// open_qty to base THROUGH that stamp, so a stale one under-reads the reservation by
+// the whole conversion ratio. The quantities are already right; only the label moves.
+//
+// Now that the update node writes item_uom, EVERY update record must carry it -- one
+// that omitted it would blank the stamp on a row it was only touching for a quantity.
+// Both existing-record collections are indexed so the prior value is always available.
+const _priorReservedById = {};
+for (const rec of (allAllocatedData || []).concat(allPendingData || [])) {
+  if (rec && rec.id) _priorReservedById[String(rec.id)] = rec;
+}
+const _lineUomByLine = {};
+for (const processed of processedTableData || []) {
+  const lineId = String((processed && processed.item && processed.item.id) || "");
+  if (lineId && processed.material_uom) {
+    _lineUomByLine[lineId] = String(processed.material_uom);
+  }
+}
+const _reservedUomFor = (rowUpd, prior) => {
+  const lineId = String(
+    (rowUpd && rowUpd.doc_line_id) || (prior && prior.doc_line_id) || ""
+  );
+  return (
+    _lineUomByLine[lineId] ||
+    String((prior && prior.item_uom) || (rowUpd && rowUpd.item_uom) || "")
+  );
+};
+for (const rowUpd of allRecordsToUpdate) {
+  if (!rowUpd || !rowUpd.id) continue;
+  const u = _reservedUomFor(rowUpd, _priorReservedById[String(rowUpd.id)]);
+  if (u) rowUpd.item_uom = u;
+}
+// A line whose unit moved but whose allocation did not produces no update of its own,
+// so raise one that restates the unit and passes every other column through unchanged.
+const _hasUpdate = {};
+for (const rowUpd of allRecordsToUpdate) {
+  if (rowUpd && rowUpd.id) _hasUpdate[String(rowUpd.id)] = 1;
+}
+for (const rec of allAllocatedData || []) {
+  if (!rec || !rec.id || _hasUpdate[String(rec.id)]) continue;
+  const want = _lineUomByLine[String(rec.doc_line_id || "")];
+  if (!want) continue;
+  // A row the restatement above already moved in memory now MATCHES the line, so the
+  // plain comparison would skip it and leave the stored stamp stale.
+  if (String(rec.item_uom || "") === want && !rec._uomRestated) continue;
+  allRecordsToUpdate.push({
+    id: rec.id,
+    target_gd_id: rec.target_gd_id,
+    status: rec.status,
+    reserved_qty: rec.reserved_qty,
+    open_qty: rec.open_qty,
+    delivered_qty: rec.delivered_qty,
+    doc_no: rec.doc_no,
+    doc_id: rec.doc_id,
+    doc_line_id: rec.doc_line_id,
+    source_reserved_id: rec.source_reserved_id,
+    item_uom: want
+  });
 }
 
 // Deduplicate records by ID (keep last update for each ID)
@@ -1730,3 +1886,4 @@ return {
   huUpdatesLength: allHuUpdates.length,
   message: `Batch processing complete: ${deduplicatedRecordsToUpdate.length} updates, ${allRecordsToCreate.length} creates, ${allInventoryMovements.length} movements, ${allHuUpdates.length} HU updates`
 };
+

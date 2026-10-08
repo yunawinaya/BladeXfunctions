@@ -446,7 +446,7 @@
                     "name": "Lock Decision",
                     "script": {
                       "type": "javascript",
-                      "code": "const rows = {{node:sql_node_LockGate.data}} || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst row = list[0];\n\n// A crashed run can never release the mutex in-flow, so a lock this old is\n// treated as abandoned and taken over.\nconst STALE_SEC = 900;\n\n// 0 = free, take the lock   1 = held by a live run   2 = already Completed\nlet lockState = 1;\nlet staleRecovered = 0;\n\nif (row && row.id) {\n  if (row.to_status === \"Completed\") {\n    lockState = 2;\n  } else if (Number(row.is_processing) === 1) {\n    const age = Number(row.lock_age_sec);\n    // A negative or unparseable age means the clock assumption is off; stay\n    // locked rather than risk stealing a lock from a run still in progress.\n    if (isFinite(age) && age > STALE_SEC) {\n      lockState = 0;\n      staleRecovered = 1;\n    }\n  } else {\n    lockState = 0;\n  }\n}\n\nreturn {\n  lockState,\n  staleRecovered\n}\n"
+                      "code": "const rows = {{node:sql_node_LockGate.data}} || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst row = list[0];\n\n// A crashed run can never release the mutex in-flow, so a lock this old is\n// treated as abandoned and taken over.\nconst STALE_SEC = 900;\n\n// 0 = free, take the lock   1 = held by a live run   2 = already Completed   3 = Cancelled\nlet lockState = 1;\nlet staleRecovered = 0;\n\nif (row && row.id) {\n  if (row.to_status === \"Completed\") {\n    lockState = 2;\n  } else if (row.to_status === \"Cancelled\") {\n    // A device holding a stale copy must not complete a Picking its GD cancel already closed.\n    lockState = 3;\n  } else if (Number(row.is_processing) === 1) {\n    const age = Number(row.lock_age_sec);\n    // A negative or unparseable age means the clock assumption is off; stay\n    // locked rather than risk stealing a lock from a run still in progress.\n    if (isFinite(age) && age > STALE_SEC) {\n      lockState = 0;\n      staleRecovered = 1;\n    }\n  } else {\n    lockState = 0;\n  }\n}\n\nreturn {\n  lockState,\n  staleRecovered\n}\n"
                     },
                     "response_json": [
                       {
@@ -610,6 +610,77 @@
                                   "operator": "",
                                   "valueType": "value",
                                   "value": "The current picking is already Completed",
+                                  "valueLabel": "",
+                                  "propLabel": "message"
+                                }
+                              ]
+                            },
+                            "return_raw_data": 0
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "condition_or_item_LockCancelled",
+                      "type": "condition-or-node-item",
+                      "data": {
+                        "title": "IF Cancelled",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1791000000001,
+                              "parentId": 1791000000000,
+                              "isTop": true,
+                              "prop": "node.code_node_LockDecide.data.lockState",
+                              "operator": "numberEqual",
+                              "valueType": "value",
+                              "value": 3,
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "lockState",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
+                        },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition",
+                        "__index": 3,
+                        "isDefault": false,
+                        "isValidator": true,
+                        "nodeName": "IF Cancelled",
+                        "name": "IF Cancelled",
+                        "condition_type": "ConditionRule"
+                      },
+                      "blocks": [
+                        {
+                          "id": "return_node_LockCancelled",
+                          "type": "return-node",
+                          "data": {
+                            "return_data": {},
+                            "status_code": 200,
+                            "title": "Return Data",
+                            "isValidator": true,
+                            "nodeName": "Return Data",
+                            "name": "Return Data",
+                            "response_value": {
+                              "list": [
+                                {
+                                  "prop": "code",
+                                  "propLabel": "code",
+                                  "operator": "",
+                                  "operatorLabel": "",
+                                  "valueType": "value",
+                                  "valueTypeLabel": "",
+                                  "value": "400",
+                                  "valueLabel": ""
+                                },
+                                {
+                                  "prop": "message",
+                                  "operator": "",
+                                  "valueType": "value",
+                                  "value": "The current picking has been cancelled",
                                   "valueLabel": "",
                                   "propLabel": "message"
                                 }
