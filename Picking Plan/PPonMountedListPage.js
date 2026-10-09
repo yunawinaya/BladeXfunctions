@@ -1,3 +1,21 @@
+const url = new URL(window.location.href);
+const type = url.searchParams.get("type");
+const id = url.searchParams.get("id");
+
+if (type && id) {
+  this.toView({
+    title: type.charAt(0).toUpperCase() + type.slice(1),
+    target: "1935556443668959233", //table id for picking
+    targetType: "Table",
+    mode: "drawer",
+    ...(type === "view" ? { viewMode: "disabled" } : {}),
+    type: type,
+    data: {
+      id: id,
+    },
+  });
+}
+
 (async () => {
   try {
     let organizationId = this.getVarGlobal("deptParentId");
@@ -25,8 +43,8 @@
         this.hide("custom_41s73hyl");
       }
     } else {
-      this.display("tabs_picking");
-      this.hide("custom_41s73hyl");
+      this.hide("tabs_picking");
+      this.display("custom_41s73hyl");
     }
   } catch (error) {
     console.error("Error in PPonMountedListPage:", error);
