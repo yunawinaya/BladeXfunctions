@@ -261,7 +261,11 @@ const setPlant = async (organizationId) => {
   this.setData({
     organization_id: organizationId,
     ...(!hasPlant ? { plant_id: plantId } : {}),
-    delivery_date: new Date().toISOString().replace("T", " "),
+    // Local wall-clock: the column stores the time as typed; toISOString() alone is UTC (8h early).
+    delivery_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " "),
     gd_created_by: this.getVarGlobal("nickname"),
   });
 };
