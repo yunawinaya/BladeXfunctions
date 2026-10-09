@@ -1,0 +1,691 @@
+const showStatusHTML = (status) => {
+  console.log("status", status);
+  switch (status) {
+    case "Draft":
+      this.display(["draft_status"]);
+      break;
+    case "Created":
+      this.display(["created_status"]);
+      break;
+    case "Completed":
+      this.display(["completed_status"]);
+      break;
+    case "Cancelled":
+      this.display(["cancel_status"]);
+      break;
+    default:
+      break;
+  }
+};
+
+const disabledField = async (
+  status,
+  pickingStatus,
+  pickingSetup,
+  data,
+  packingRequired,
+) => {
+  if (status === "Completed") {
+    this.disabled(
+      [
+        "gd_status",
+        "so_id",
+        "so_no",
+        "fake_so_id",
+        "gd_billing_name",
+        "gd_billing_cp",
+        "gd_billing_address",
+        "gd_shipping_address",
+        "delivery_no",
+        "gd_ref_doc",
+        "customer_name",
+        "gd_contact_name",
+        "contact_number",
+        "email_address",
+        "document_description",
+        "plant_id",
+        "organization_id",
+        "gd_delivery_method",
+        "delivery_date",
+        "driver_name",
+        "driver_contact_no",
+        "validity_of_collection",
+        "sp_vehicle_no",
+        "pickup_date",
+        "courier_company",
+        "shipping_date",
+        "freight_charges",
+        "tracking_number",
+        "est_arrival_date",
+        "driver_cost",
+        "est_delivery_date",
+        "shipping_company",
+        "shipping_method",
+        "order_remark",
+        "billing_address_line_1",
+        "billing_address_line_2",
+        "billing_address_line_3",
+        "billing_address_line_4",
+        "billing_address_city",
+        "billing_address_state",
+        "billing_address_country",
+        "billing_postal_code",
+        "shipping_address_line_1",
+        "shipping_address_line_2",
+        "shipping_address_line_3",
+        "shipping_address_line_4",
+        "shipping_address_city",
+        "shipping_address_state",
+        "shipping_address_country",
+        "shipping_postal_code",
+        "gd_item_balance.table_item_balance",
+        "select_vehicle_id",
+        "select_driver_id",
+        "order_tnc",
+        "order_payment_details",
+        "order_delivery_term",
+        "order_remark",
+        "order_remark2",
+        "order_remark3",
+        "order_remark4",
+        "order_remark5",
+      ],
+      true,
+    );
+
+    // Disable table rows
+    await disableTableRows();
+
+    // Hide buttons and links
+    this.hide([
+      "link_billing_address",
+      "link_shipping_address",
+      "button_save_as_draft",
+      "button_save_as_created",
+      "button_save_as_completed",
+    ]);
+  } else {
+    if (status === "Created") {
+      this.hide(["button_save_as_draft"]);
+
+      // A delivery whose Picking has started used to lose Save as Created outright,
+      // leaving Save as Completed as the only way out. The workflow now reconciles
+      // the Picking instead, so the button stays -- except for the shapes the
+      // reconcile deliberately does not cover. The workflow blocks all of these too,
+      // so a stale page still gets a clean error rather than diverging silently.
+      const setup = pickingSetup || {};
+      const isSelectPicking =
+        (data && data.is_select_picking === 1) ||
+        setup.picking_after === "Sales Order";
+      const siStatus = String((data && data.si_status) || "");
+      const packStatus = String((data && data.packing_status) || "");
+      const canEditAfterPicking =
+        !isSelectPicking &&
+        Number(setup.allow_full_picking) !== 1 &&
+        Number(packingRequired) !== 1 &&
+        siStatus !== "Fully Invoiced" &&
+        siStatus !== "Partially Invoiced" &&
+        (!packStatus || packStatus === "None");
+
+      if (
+        !canEditAfterPicking &&
+        (pickingStatus === "In Progress" || pickingStatus === "Completed")
+      ) {
+        this.hide(["button_save_as_created"]);
+      }
+
+      this.disabled(["plant_id"], true);
+    }
+    this.disabled(
+      [
+        "gd_ref_doc",
+        "gd_delivery_method",
+        "document_description",
+        "gd_area_id",
+        "sales_person",
+        "order_tnc",
+        "order_payment_details",
+        "order_delivery_term",
+        "order_remark",
+        "order_remark2",
+        "order_remark3",
+        "order_remark4",
+        "order_remark5",
+        "select_vehicle_id",
+        "select_driver_id",
+      ],
+      false,
+    );
+  }
+};
+
+const disableTableRows = async () => {
+  return new Promise((resolve) => {
+    setTimeout(async () => {
+      try {
+        const data = await this.getValues();
+        const rows = data.table_gd || [];
+
+        rows.forEach((row, index) => {
+          const fieldNames = Object.keys(row).filter(
+            (key) => key !== "gd_delivery_qty",
+          );
+
+          const fieldsToDisable = fieldNames.map(
+            (field) => `table_gd.${index}.${field}`,
+          );
+
+          this.disabled(fieldsToDisable, true);
+        });
+        resolve();
+      } catch (error) {
+        console.error("Error disabling table rows:", error);
+        resolve();
+      }
+    }, 1000);
+  });
+};
+
+const displayDeliveryMethod = async () => {
+  const deliveryMethodName = this.getValue("gd_delivery_method");
+  console.log("deliveryMethodName", deliveryMethodName);
+
+  if (
+    deliveryMethodName &&
+    typeof deliveryMethodName === "string" &&
+    deliveryMethodName.trim() !== ""
+  ) {
+    this.setData({ delivery_method_text: deliveryMethodName });
+
+    const visibilityMap = {
+      "Self Pickup": "self_pickup",
+      "Courier Service": "courier_service",
+      "Company Truck": "company_truck",
+      "Shipping Service": "shipping_service",
+      "3rd Party Transporter": "third_party_transporter",
+    };
+
+    const selectedField = visibilityMap[deliveryMethodName] || null;
+    const fields = [
+      "self_pickup",
+      "courier_service",
+      "company_truck",
+      "shipping_service",
+      "third_party_transporter",
+    ];
+
+    if (!selectedField) {
+      this.hide(fields);
+    } else {
+      fields.forEach((field) => {
+        field === selectedField ? this.display(field) : this.hide(field);
+      });
+    }
+  } else {
+    this.setData({ delivery_method_text: "" });
+
+    const fields = [
+      "self_pickup",
+      "courier_service",
+      "company_truck",
+      "shipping_service",
+      "third_party_transporter",
+    ];
+    this.hide(fields);
+  }
+};
+
+const setPlant = async (organizationId) => {
+  const deptId = this.getVarSystem("deptIds").split(",")[0];
+  let plantId = "";
+  const hasPlant = this.getValue("plant_id");
+
+  if (!hasPlant) {
+    if (deptId === organizationId) {
+      const resPlant = await db
+        .collection("blade_dept")
+        .where({ parent_id: deptId })
+        .get();
+
+      if (!resPlant || resPlant.data.length === 0) {
+        plantId = deptId;
+      } else {
+        plantId = "";
+        this.disabled("table_gd", true);
+      }
+    } else {
+      plantId = deptId;
+    }
+  }
+
+  this.setData({
+    organization_id: organizationId,
+    ...(!hasPlant ? { plant_id: plantId } : {}),
+    // Local wall-clock: the column stores the time as typed; toISOString() alone is UTC (8h early).
+    delivery_date: new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
+      .toISOString()
+      .slice(0, 19)
+      .replace("T", " "),
+    gd_created_by: this.getVarGlobal("nickname"),
+  });
+};
+
+const checkAccIntegrationType = async (organizationId) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+
+      this.setData({ acc_integration_type: aiData.acc_integration_type });
+    }
+  }
+};
+
+const disabledSelectStock = async (data) => {
+  const tableGD = data.table_gd || [];
+
+  for (let index = 0; index < tableGD.length; index++) {
+    const item = tableGD[index];
+
+    // GD-from-PP rows: gd_qty is the editable picking quantity and gd_delivery_qty
+    // is locked. That state is enforced by disabledGDPPRows for every PP row
+    // (header-agnostic), NOT by stock-balance availability. Skip them here so they
+    // don't fall back to the form default and to avoid redundant balance lookups.
+    if (item.line_pp_id || item.pp_line_item_id) continue;
+
+    if (item.material_id && item.material_id !== "") {
+      try {
+        const resItem = await db
+          .collection("Item")
+          .where({ id: item.material_id, is_deleted: 0 })
+          .get();
+
+        if (resItem && resItem.data.length > 0) {
+          const plant = data.plant_id;
+          const itemData = resItem.data[0];
+
+          if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
+            this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+            this.disabled([`table_gd.${index}.gd_qty`], false);
+            continue;
+          }
+
+          if (itemData.item_batch_management === 0) {
+            if (plant) {
+              const resItemBalance = await db
+                .collection("item_balance")
+                .where({
+                  plant_id: plant,
+                  material_id: item.material_id,
+                  is_deleted: 0,
+                })
+                .get();
+
+              if (resItemBalance && resItemBalance.data.length === 1) {
+                this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+                this.disabled([`table_gd.${index}.gd_qty`], false);
+              }
+            }
+          } else if (itemData.item_batch_management === 1) {
+            const resItemBatchBalance = await db
+              .collection("item_batch_balance")
+              .where({ material_id: item.material_id, plant_id: plant })
+              .get();
+
+            if (resItemBatchBalance && resItemBatchBalance.data.length === 1) {
+              this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
+              this.disabled([`table_gd.${index}.gd_qty`], false);
+            }
+          } else {
+            console.error(
+              `Item batch management is not found for item: ${item.material_id}`,
+            );
+          }
+        }
+      } catch (error) {
+        console.error(
+          `Error processing item ${item.material_id} at index ${index}:`,
+          error,
+        );
+      }
+    }
+  }
+};
+
+// GD-from-PP (GDPP) rows: force the picking layout — gd_qty editable, gd_delivery_qty
+// locked — for every row carrying the picking-plan linkage. Mirrors the Add/line-add
+// behavior (GDaddBatchLineItem) so Edit of a Created GDPP doesn't keep the form default
+// (gd_delivery_qty enabled / gd_qty disabled), which the balance-based disabledSelectStock
+// never corrects for multi-balance PP items.
+const disabledGDPPRows = (data) => {
+  const tableGD = data.table_gd || [];
+  const toDisable = [];
+  const toEnable = [];
+
+  tableGD.forEach((item, index) => {
+    if (item.line_pp_id || item.pp_line_item_id) {
+      toDisable.push(`table_gd.${index}.gd_delivery_qty`);
+      toEnable.push(`table_gd.${index}.gd_qty`);
+    }
+  });
+
+  if (toDisable.length > 0) this.disabled(toDisable, true);
+  if (toEnable.length > 0) this.disabled(toEnable, false);
+};
+
+const setPickingSetup = async (data) => {
+  const pickingSetupResponse = await db
+    .collection("picking_setup")
+    .where({
+      plant_id: data.plant_id,
+      picking_required: 1,
+    })
+    .get();
+
+  if (pickingSetupResponse.data.length > 0) {
+    if (pickingSetupResponse.data[0].picking_after === "Goods Delivery") {
+      this.display("assigned_to");
+    } else if (pickingSetupResponse.data[0].picking_after === "Sales Order") {
+      this.setData({ is_select_picking: 1 });
+      this.display("to_no");
+    }
+
+    // Store split_policy for inventory dialog use
+    const splitPolicy =
+      pickingSetupResponse.data[0].split_policy || "ALLOW_SPLIT";
+    this.setData({ split_policy: splitPolicy });
+
+    return pickingSetupResponse.data[0];
+  }
+
+  return null;
+};
+
+// Organisation-level packing. Editing a delivery whose Picking has started is not
+// supported when packing is on, because the packed handling units would have to be
+// unwound too -- the workflow enforces the same rule.
+const isPackingRequired = async (organizationId) => {
+  if (!organizationId) return 0;
+  try {
+    const res = await db
+      .collection("packing_setup")
+      .where({ organization_id: organizationId, packing_required: 1 })
+      .get();
+    return res?.data?.length > 0 ? 1 : 0;
+  } catch (error) {
+    console.error("Error reading packing_setup:", error);
+    return 0;
+  }
+};
+
+const fetchDeliveredQuantity = async () => {
+  try {
+    const tableGD = this.getValue("table_gd") || [];
+
+    if (tableGD.length === 0) {
+      return;
+    }
+
+    const resSOLineData = await Promise.all(
+      tableGD.map((item) =>
+        item.so_line_item_id
+          ? db
+              .collection("sales_order_axszx8cj_sub")
+              .doc(item.so_line_item_id)
+              .get()
+              .catch((error) => {
+                console.error(
+                  `Error fetching SO line item ${item.so_line_item_id}:`,
+                  error,
+                );
+                return { data: [null] };
+              })
+          : Promise.resolve({ data: [null] }),
+      ),
+    );
+
+    const soLineItemData = resSOLineData.map((response) =>
+      response.data ? response.data[0] : null,
+    );
+
+    const updatedTableGD = tableGD.map((item, index) => {
+      const soLine = soLineItemData[index];
+      const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
+      const orderQty = soLine ? soLine.so_quantity || 0 : 0;
+      const maxDeliverableQty =
+        (orderQty - totalDeliveredQuantity);
+      return {
+        ...item,
+        gd_undelivered_qty: Math.max(
+          0,
+          (maxDeliverableQty - item.gd_qty),
+        ),
+        gd_initial_delivered_qty: totalDeliveredQuantity,
+      };
+    });
+
+    this.setData({ table_gd: updatedTableGD });
+  } catch (error) {
+    console.error("Error fetching delivered quantity:", error);
+  }
+};
+
+const displayPlanQty = async (data) => {
+  const tableGD = data.table_gd || [];
+
+  for (const item of tableGD) {
+    if (item.is_force_complete === 1) {
+      this.display(["table_gd.plan_qty"]);
+    }
+  }
+};
+
+// Only tenant 128671 mirrors its delivery orders to the external system, so it is
+// the only one that gets the created-and-post button, and posting is pointless
+// once the delivery is Completed. Mirrors the display condition:
+//   tenantId === '128671' && (!gd_status || gd_status !== 'Completed')
+// An empty status (Add mode) passes the second half.
+const DO_SYNC_TENANT_ID = "128671";
+
+const displayCreatedPostButton = (status) => {
+  const tenantId = this.getVarSystem("tenantId");
+  console.log("Created post button — tenant:", tenantId, "status:", status);
+
+  if (tenantId === DO_SYNC_TENANT_ID && status !== "Completed") {
+    this.display(["button_created_post"]);
+  } else {
+    this.hide(["button_created_post"]);
+  }
+};
+
+const displayPickedFieldsIfFullPicking = async (organizationId) => {
+  if (!organizationId) return;
+  try {
+    const setupData = await db
+      .collection("picking_setup")
+      .where({ organization_id: organizationId })
+      .get();
+    if (setupData?.data?.[0]?.allow_full_picking === 1) {
+      this.display(["table_gd.picked_qty", "table_gd.picked_view_stock"]);
+    }
+  } catch (error) {
+    console.error("Error reading picking_setup:", error);
+  }
+};
+
+// Main execution function
+(async () => {
+  try {
+    let pageStatus = "";
+    const status = await this.getValue("gd_status");
+    const pickingStatus = await this.getValue("picking_status");
+    const data = this.getValues();
+
+    console.log("Debug", data);
+
+    if (this.isAdd) pageStatus = "Add";
+    else if (this.isEdit) pageStatus = "Edit";
+    else if (this.isView) pageStatus = "View";
+    else if (this.isCopy) pageStatus = "Clone";
+    else throw new Error("Invalid page state");
+
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+
+    this.setData({ page_status: pageStatus });
+
+    const salesOrderId = this.getValue("so_id");
+
+    switch (pageStatus) {
+      case "Add":
+        // Add mode
+        this.display(["draft_status"]);
+
+        await checkAccIntegrationType(organizationId);
+        await setPlant(organizationId);
+        // Set prefix for new document
+        await displayDeliveryMethod();
+        if (salesOrderId.length > 0) {
+          await this.display(["address_grid"]);
+        }
+
+        let allItems = this.getParamsVariables("allItems") || "";
+        if (allItems && allItems !== "") {
+          console.log("all item mounted", allItems);
+          allItems = JSON.parse(allItems);
+          console.log("all item mounted json", allItems);
+          allItems = allItems.map((item) => ({
+            ...item,
+            altUOM: item.altUOM == null ? "" : item.altUOM.toString(),
+          }));
+          console.log("all item mounted convert", allItems);
+          await this.triggerEvent("func_processGDLineItem", {
+            allItems: allItems,
+          });
+        }
+        break;
+
+      case "Edit":
+        console.log("Full data", data);
+        let pickingSetup = null;
+        let packingRequired = 0;
+        const fromConvert = this.getValue("from_convert");
+        const gd_status = this.getValue("gd_status");
+        this.getComponent("table_gd").hideChildRecord();
+        if (
+          fromConvert === "Yes" &&
+          gd_status !== "Completed" &&
+          gd_status !== "Created"
+        ) {
+          let allItem = this.getValue("all_item");
+          if (allItem !== "") {
+            console.log("all item mounted", allItem);
+            allItem = JSON.parse(allItem);
+            console.log("all item mounted json", allItem);
+            allItem = allItem.map((item) => ({
+              ...item,
+              altUOM: item.altUOM == null ? "" : item.altUOM.toString(),
+            }));
+            console.log("all item mounted convert", allItem);
+            await this.triggerEvent("func_processGDLineItem", {
+              allItems: allItem,
+            });
+          }
+        }
+        if (status !== "Completed") {
+          await disabledSelectStock(data);
+          disabledGDPPRows(data);
+          [pickingSetup, packingRequired] = await Promise.all([
+            setPickingSetup(data),
+            isPackingRequired(organizationId),
+          ]);
+        }
+        await checkAccIntegrationType(organizationId);
+        await disabledField(
+          status,
+          pickingStatus,
+          pickingSetup,
+          data,
+          packingRequired,
+        );
+        await showStatusHTML(status);
+        if (salesOrderId.length > 0) {
+          await this.display(["address_grid"]);
+        }
+        await displayDeliveryMethod();
+        await fetchDeliveredQuantity();
+        await displayPlanQty(data);
+        await displayPickedFieldsIfFullPicking(organizationId);
+        break;
+
+      case "View":
+        await showStatusHTML(status);
+        await displayDeliveryMethod();
+        await setPickingSetup(data);
+        await displayPlanQty(data);
+        await displayPickedFieldsIfFullPicking(organizationId);
+        this.hide([
+          "link_billing_address",
+          "link_shipping_address",
+          "button_save_as_draft",
+          "button_save_as_completed",
+          "button_save_as_created",
+          "so_id",
+          "fake_so_id",
+        ]);
+
+        if (salesOrderId.length > 0) {
+          await this.display(["address_grid"]);
+        }
+
+        this.display(["so_no"]);
+        break;
+    }
+
+    // Runs after the mode branches so the tenant/status filter is the last word
+    // on this button in every page mode.
+    displayCreatedPostButton(status);
+  } catch (error) {
+    console.error(error);
+    this.$message.error(error.message || "An error occurred");
+  }
+})();
+
+setTimeout(async () => {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("delivery_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("delivery_no");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("delivery_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("delivery_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        delivery_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ delivery_no_type: defaultData.value });
+    }
+  }
+}, 200);
