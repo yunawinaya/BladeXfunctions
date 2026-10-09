@@ -105,19 +105,27 @@ const buildDeliveryFields = (gd) => {
   return fields;
 };
 
+// A group spanning several GDs keeps each field only where every GD agrees on
+// it -- e.g. two GDs both on "Self Pickup" with the same driver carry both across,
+// while a field they differ on is left empty rather than taken from one of them.
+const buildGroupDeliveryFields = (gds) => {
+  const perGd = gds.map((gd) => buildDeliveryFields(gd));
+  const fields = buildDeliveryFields(null);
+  if (perGd.length === 0) return fields;
+
+  for (const k of DELIVERY_FIELD_KEYS) {
+    const first = perGd[0][k];
+    if (perGd.every((f) => String(f[k] ?? "") === String(first ?? ""))) {
+      fields[k] = first;
+    }
+  }
+  return fields;
+};
+
 // The groups in split_state carry only GD ids, not the header delivery fields,
-// so the first GD of every group -- the one its delivery details are taken
-// from -- is fetched here, keyed by id.
-const getSourceGds = async (groups) => {
+// so every source GD is fetched here, keyed by id.
+const getSourceGds = async (gdIds) => {
   const gdById = {};
-  const gdIds = [
-    ...new Set(
-      groups
-        .map((g) => (Array.isArray(g.gd_ids) ? g.gd_ids.filter(Boolean)[0] : null))
-        .filter(Boolean)
-        .map(String),
-    ),
-  ];
   if (gdIds.length === 0) return gdById;
 
   try {
@@ -144,6 +152,66 @@ const getSourceGds = async (groups) => {
   return gdById;
 };
 
+// Fresh per-GD-line consumed qty, same rules as buildConsumedQtyMap in
+// ConvertToPicking.js. Not caught: a failed read must stop the conversion.
+const getConsumedTotals = async (gdIds) => {
+  const totals = {};
+  const add = (lineId, qty) => {
+    const lid = String(lineId || "");
+    if (!lid) return;
+    totals[lid] = (totals[lid] || 0) + parseFloat(qty || 0);
+  };
+
+  await Promise.all(
+    gdIds.map(async (gdId) => {
+      const toResult = await db
+        .collection("transfer_order")
+        .where({ gd_no: gdId })
+        .field("to_status,table_picking_items,table_picking_records")
+        .get();
+      for (const to of toResult?.data || []) {
+        if (to.to_status === "Cancelled") continue;
+
+        if (to.to_status === "Completed") {
+          for (const rec of to.table_picking_records || []) {
+            if (rec.line_status === "Cancelled") continue;
+            add(rec.gd_line_id, rec.store_out_qty);
+          }
+        } else {
+          for (const item of to.table_picking_items || []) {
+            if (item.row_type === "header") continue;
+            if (item.line_status === "Cancelled") continue;
+            add(item.gd_line_id, item.qty_to_pick);
+          }
+        }
+      }
+    }),
+  );
+
+  return totals;
+};
+
+// GD numbers whose lines in this run gained consumed qty since the bulk action
+// read them — i.e. another user converted them in the meantime.
+const findClaimedSinceStart = (groups, staleByLine, freshTotals) => {
+  const claimed = new Set();
+  for (const group of groups) {
+    for (const item of group.table_picking_items || []) {
+      if (item.row_type === "header") continue;
+      const lid = String(item.gd_line_id || "");
+      if (!lid) continue;
+      const stale = Object.values(staleByLine?.[lid] || {}).reduce(
+        (sum, v) => sum + (parseFloat(v) || 0),
+        0,
+      );
+      if ((freshTotals[lid] || 0) - stale > 1e-6) {
+        claimed.add(item.gd_no || lid);
+      }
+    }
+  }
+  return [...claimed];
+};
+
 // Build N picking payloads (one per group) and run PickingLoopWorkflow with
 // arrayData. The workflow handles: prefix generation (to_id auto-fill),
 // required-field validation, the actual transfer_order add, and the GD
@@ -155,9 +223,52 @@ const finalize = async (
   plantId,
   organizationId,
   listComponentId,
+  consumedByLine,
 ) => {
-  const pickingNoType = await getPickingNoType(organizationId);
-  const gdById = await getSourceGds(groups);
+  const gdIds = [
+    ...new Set(
+      groups.flatMap((g) =>
+        Array.isArray(g.gd_ids) ? g.gd_ids.filter(Boolean).map(String) : [],
+      ),
+    ),
+  ];
+
+  let pickingNoType;
+  let gdById;
+  let freshConsumed;
+  try {
+    [pickingNoType, gdById, freshConsumed] = await Promise.all([
+      getPickingNoType(organizationId),
+      getSourceGds(gdIds),
+      getConsumedTotals(gdIds),
+    ]);
+  } catch (err) {
+    console.error("Error re-checking existing pickings:", err);
+    this.hideLoading();
+    await this.$alert(
+      "Could not verify existing pickings for the selected goods deliveries. No picking was created, please try again.",
+      "Conversion Not Completed",
+      { confirmButtonText: "OK", type: "error" },
+    ).catch(() => {});
+    return;
+  }
+
+  const claimedGdNos = findClaimedSinceStart(
+    groups,
+    consumedByLine,
+    freshConsumed,
+  );
+  if (claimedGdNos.length > 0) {
+    this.hideLoading();
+    await this.$alert(
+      `${claimedGdNos.join(", ")} ${claimedGdNos.length > 1 ? "were" : "was"} converted to Picking by another user while you were assigning. No picking was created. Please convert again to pick any remaining quantity.`,
+      "Already Converted",
+      { confirmButtonText: "OK", type: "warning" },
+    ).catch(() => {});
+    this.refresh && this.refresh();
+    return;
+  }
+
   const nowMysql = new Date().toISOString().slice(0, 19).replace("T", " ");
   const createdBy =
     typeof this !== "undefined" && this.getVarGlobal
@@ -166,11 +277,10 @@ const finalize = async (
 
   const arrayData = groups.map((group, i) => {
     const assignee = assignees[i] || [];
-    // A group spanning several GDs takes its delivery details from the first.
-    const firstGdId = Array.isArray(group.gd_ids)
-      ? group.gd_ids.filter(Boolean)[0]
-      : null;
-    const sourceGd = firstGdId ? gdById[String(firstGdId)] : null;
+    // A GD that failed to load is skipped rather than blanking the group.
+    const sourceGds = (Array.isArray(group.gd_ids) ? group.gd_ids : [])
+      .map((id) => gdById[String(id)])
+      .filter(Boolean);
     return {
       to_status: "Created",
       to_id: "",
@@ -194,7 +304,7 @@ const finalize = async (
       remarks: group.remarks || "",
       remarks_2: group.remarks_2 || "",
       remarks_3: group.remarks_3 || "",
-      ...buildDeliveryFields(sourceGd),
+      ...buildGroupDeliveryFields(sourceGds),
       to_no: [],
       table_picking_records: [],
       is_processing: 0,
@@ -301,6 +411,7 @@ const finalize = async (
           plantId,
           organizationId,
           listComponentId,
+          state.consumed_by_line || {},
         );
       } finally {
         this.hideLoading();
