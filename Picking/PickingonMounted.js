@@ -140,22 +140,25 @@ const setPlant = async (organizationId) => {
 const viewSerialNumber = async () => {
   const table_picking_items = this.getValue("table_picking_items");
   const table_picking_records = this.getValue("table_picking_records");
-  if (table_picking_items.length > 0) {
-    for (const { row: picking } of flatPickingRows(table_picking_items)) {
-      if (picking.is_serialized_item === 1) {
-        await this.display([
-          "table_picking_items.select_serial_number",
-          "table_picking_items.serial_numbers",
-        ]);
-      }
-    }
+  if (
+    table_picking_items.length > 0 &&
+    flatPickingRows(table_picking_items).some(
+      ({ row: picking }) => picking.is_serialized_item === 1,
+    )
+  ) {
+    await this.display([
+      "table_picking_items.select_serial_number",
+      "table_picking_items.serial_numbers",
+    ]);
   }
-  if (table_picking_records.length > 0) {
-    for (const picking of table_picking_records) {
-      if (picking.serial_numbers !== "" && picking.serial_numbers !== null) {
-        await this.display("table_picking_records.serial_numbers");
-      }
-    }
+  if (
+    table_picking_records.length > 0 &&
+    table_picking_records.some(
+      (picking) =>
+        picking.serial_numbers !== "" && picking.serial_numbers !== null,
+    )
+  ) {
+    await this.display("table_picking_records.serial_numbers");
   }
 };
 
@@ -297,7 +300,7 @@ const convertBaseToAlt = (baseQty, tableUomConversion, uom) => {
   }
   const conv = tableUomConversion.find((c) => c.alt_uom_id === uom);
   if (!conv || !conv.base_qty) return baseQty;
-  return Math.round((baseQty / conv.base_qty) * 1000) / 1000;
+  return baseQty / conv.base_qty;
 };
 
 const convertQuantityFromTo = (
@@ -358,12 +361,24 @@ const enrichPickingUOM = async () => {
     ];
     if (materialIds.length === 0) return;
 
-    // Batched item master fetch (one doc().get() per distinct material).
+    // One projected query per 500 materials; .field() limits the join to the UOM subform.
+    const ITEM_CHUNK = 500;
+    const idChunks = [];
+    for (let i = 0; i < materialIds.length; i += ITEM_CHUNK) {
+      idChunks.push(materialIds.slice(i, i + ITEM_CHUNK));
+    }
     const itemResults = await Promise.all(
-      materialIds.map((id) =>
+      idChunks.map((ids) =>
         db
           .collection("Item")
-          .doc(id)
+          .field("based_uom,table_uom_conversion")
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [{ prop: "id", operator: "in", value: ids }],
+            },
+          ])
           .get()
           .catch(() => null),
       ),
@@ -375,19 +390,35 @@ const enrichPickingUOM = async () => {
     // here — this cache only feeds the conversion math used by the validator,
     // the Pick UOM onChange handler, hu_select, and the scalars/displays below.
     if (!window.pickingUOMCache) window.pickingUOMCache = {};
-    itemResults.forEach((res, i) => {
-      const item = res && res.data && res.data[0] ? res.data[0] : null;
-      if (!item) return;
-      window.pickingUOMCache[materialIds[i]] = {
-        based_uom: item.based_uom,
-        table_uom_conversion: Array.isArray(item.table_uom_conversion)
-          ? item.table_uom_conversion
-          : [],
-      };
+    itemResults.forEach((res) => {
+      ((res && res.data) || []).forEach((item) => {
+        if (!item || item.id == null) return;
+        window.pickingUOMCache[String(item.id)] = {
+          based_uom: item.based_uom,
+          table_uom_conversion: Array.isArray(item.table_uom_conversion)
+            ? item.table_uom_conversion
+            : [],
+        };
+      });
     });
 
     // Apply per-row: default Pick UOM, conversion scalars, alt-UOM displays.
+    // Only changed values are written, and picking_uom last in its own setData:
+    // each picking_uom write fires the Pick UOM onChange for that row.
     const updates = {};
+    const uomUpdates = {};
+    const setIfChanged = (row, path, field, value) => {
+      const cur = parseFloat(row[field]);
+      const next = parseFloat(value);
+      if (
+        Number.isFinite(cur) &&
+        Number.isFinite(next) &&
+        Math.abs(cur - next) < 1e-8
+      ) {
+        return;
+      }
+      updates[`${path}.${field}`] = value;
+    };
     for (const { row, path } of flatRows) {
       if (row.row_type === "header") continue;
 
@@ -397,54 +428,82 @@ const enrichPickingUOM = async () => {
       // counted in bundles. Without this the row fell out of the loop and read 0
       // beside its own items.
       if (!row.item_code) {
-        updates[`${path}.to_pick_alt`] = parseFloat(row.qty_to_pick) || 0;
-        updates[`${path}.pending_alt`] =
-          parseFloat(row.pending_process_qty) || 0;
+        setIfChanged(
+          row,
+          path,
+          "to_pick_alt",
+          parseFloat(row.qty_to_pick) || 0,
+        );
+        setIfChanged(
+          row,
+          path,
+          "pending_alt",
+          parseFloat(row.pending_process_qty) || 0,
+        );
         continue;
       }
       const matId = String(row.item_code);
       const cache = window.pickingUOMCache[matId];
       if (!cache) continue;
 
-      const orderUom = String(row.item_uom);
+      const orderUom = row.item_uom ? String(row.item_uom) : null;
       const pickingUom = row.picking_uom ? String(row.picking_uom) : orderUom;
 
       if (!row.picking_uom) {
-        updates[`${path}.picking_uom`] = orderUom;
+        uomUpdates[`${path}.picking_uom`] = orderUom;
       }
 
       // Exact conversion factors carried to the workflow funnel (see comment on
       // getBaseQtyForUom). order_base_qty is fixed per line (item_uom never
       // changes); picking_base_qty tracks the chosen Pick UOM.
-      updates[`${path}.order_base_qty`] = getBaseQtyForUom(
-        orderUom,
-        cache.based_uom,
-        cache.table_uom_conversion,
+      setIfChanged(
+        row,
+        path,
+        "order_base_qty",
+        getBaseQtyForUom(orderUom, cache.based_uom, cache.table_uom_conversion),
       );
-      updates[`${path}.picking_base_qty`] = getBaseQtyForUom(
-        pickingUom,
-        cache.based_uom,
-        cache.table_uom_conversion,
+      setIfChanged(
+        row,
+        path,
+        "picking_base_qty",
+        getBaseQtyForUom(
+          pickingUom,
+          cache.based_uom,
+          cache.table_uom_conversion,
+        ),
       );
 
-      updates[`${path}.to_pick_alt`] = convertQuantityFromTo(
-        parseFloat(row.qty_to_pick) || 0,
-        cache.table_uom_conversion,
-        orderUom,
-        pickingUom,
-        cache.based_uom,
+      setIfChanged(
+        row,
+        path,
+        "to_pick_alt",
+        convertQuantityFromTo(
+          parseFloat(row.qty_to_pick) || 0,
+          cache.table_uom_conversion,
+          orderUom,
+          pickingUom,
+          cache.based_uom,
+        ),
       );
-      updates[`${path}.pending_alt`] = convertQuantityFromTo(
-        parseFloat(row.pending_process_qty) || 0,
-        cache.table_uom_conversion,
-        orderUom,
-        pickingUom,
-        cache.based_uom,
+      setIfChanged(
+        row,
+        path,
+        "pending_alt",
+        convertQuantityFromTo(
+          parseFloat(row.pending_process_qty) || 0,
+          cache.table_uom_conversion,
+          orderUom,
+          pickingUom,
+          cache.based_uom,
+        ),
       );
     }
 
     if (Object.keys(updates).length > 0) {
       await this.setData(updates);
+    }
+    if (Object.keys(uomUpdates).length > 0) {
+      await this.setData(uomUpdates);
     }
   } catch (error) {
     console.error("enrichPickingUOM error:", error);

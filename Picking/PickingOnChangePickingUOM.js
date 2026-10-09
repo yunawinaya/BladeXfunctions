@@ -22,9 +22,6 @@
     const changedRow = arguments[0].row;
     if ((rowIndex === undefined || rowIndex === null) && !changedRow) return;
 
-    const data = this.getValues();
-    const rows = data.table_picking_items || [];
-
     // arguments[0].rowIndex is a position in the TOP-LEVEL array, so it does not
     // address a bundle's items -- they sit under their bundle row as `children`.
     // The row is located by fm_key instead, which identifies a row wherever it
@@ -64,7 +61,26 @@
         : null;
     };
 
-    const resolved = resolveRow(rows, changedRow, rowIndex);
+    // Fast path: the top-level row at rowIndex when it is the changed row -- one
+    // row read instead of the whole form.
+    const sameRow = (a, b) => {
+      if (!a || !b) return false;
+      if (b.fm_key != null)
+        return a.fm_key != null && String(a.fm_key) === String(b.fm_key);
+      if (b.id != null) return a.id != null && String(a.id) === String(b.id);
+      return false;
+    };
+    let resolved = null;
+    if (rowIndex !== undefined && rowIndex !== null) {
+      const atIndex = this.getValue(`table_picking_items.${rowIndex}`);
+      if (sameRow(atIndex, changedRow)) {
+        resolved = { row: atIndex, path: `table_picking_items.${rowIndex}` };
+      }
+    }
+    if (!resolved) {
+      const rows = this.getValues().table_picking_items || [];
+      resolved = resolveRow(rows, changedRow, rowIndex);
+    }
     if (!resolved) return;
 
     const { row, path } = resolved;
@@ -77,7 +93,7 @@
       if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;
       const c = conv.find((x) => x.alt_uom_id === uom);
       if (!c || !c.base_qty) return baseQty;
-      return Math.round((baseQty / c.base_qty) * 1000) / 1000;
+      return baseQty / c.base_qty;
     };
     const convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {
       if (!val || fromUOM === toUOM) return val;
@@ -118,6 +134,26 @@
       newUom,
       baseUom,
     );
+
+    // Nothing to change (e.g. the default Pick UOM written on load): skip the
+    // write, which would also re-fire picked_qty's onChange.
+    const sameNum = (a, b) => {
+      const x = parseFloat(a);
+      const y = parseFloat(b);
+      return Number.isFinite(x) && Number.isFinite(y) && Math.abs(x - y) < 1e-8;
+    };
+    const isZero = (v) =>
+      v !== null && v !== undefined && v !== "" && Number(v) === 0;
+    if (
+      sameNum(row.to_pick_alt, toPickAlt) &&
+      sameNum(row.pending_alt, pendingAlt) &&
+      sameNum(row.picking_base_qty, pickingBaseQty) &&
+      isZero(row.picked_qty) &&
+      isZero(row.packing_qty) &&
+      isZero(row.net_weight)
+    ) {
+      return;
+    }
 
     await this.setData({
       [`${path}.to_pick_alt`]: toPickAlt,

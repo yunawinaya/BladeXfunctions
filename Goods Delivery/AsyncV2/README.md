@@ -110,7 +110,7 @@ New tables: `gd_async_job`, `gd_publish_step`, `gd_bulk_line_stage`, `gd_outbox`
 | `STOCK_CHECK_ENABLED` | `gdV2_func_processGDLineItem` | `false` → runs the original `func_processGDLineItem` |
 | Quartz "GD Async Workflow <tenant>" | `su_code_quartz_job` | tenants 427608, 496474, 000000, **all Paused** since 10-02 |
 
-## Gaps found 2026-10-08 and their fixes (in this repo; deploy to dev pending)
+## Gaps found 2026-10-08 and their fixes (deployed to dev 2026-10-08: REORDER_SET_REDIS v21, PREPARE v16, COMMIT v15, WORKER v8)
 
 1. **No Picking was ever created** — nothing called `GD_PICKING_OUTBOX_CONSUMER`.
    **Fixed:** `GD_ASYNC_WORKER` calls it (`sql_node_PKjob001` → `code_node_PKdec001` →
@@ -152,4 +152,12 @@ New tables: `gd_async_job`, `gd_publish_step`, `gd_bulk_line_stage`, `gd_outbox`
 - Reconcile workflows (`GD_JOB_RECONCILE`, `INVENTORY_OPERATION_RECONCILE`) are unscheduled;
   Quartz passes no params, so they'd need `mode` defaulted to SCAN first.
 - A failed job (credit block, stock taken meanwhile) is invisible to the user — no notification.
+  On hold (2026-10-09): push notifications don't work on the platform yet.
+- Quartz rows (platform UI, per tenant): class `org.springblade.modules.sucode.job.WorkflowJob`, group
+  `GD V2`, params `{"code": "{\"workFlowId\": \"<workflow id>\"}", "type": "json"}` — one for
+  GD_ASYNC_WORKER and one for GD_PICKING_OUTBOX_CONSUMER (poll mode: one READY event per run).
+- First live run (GD/20261008/006, tenant 627085, 2026-10-08 16:15): INVENTORY_APPLY_OPERATION stalled
+  after its operation reached DONE, before releasing its locks; COMMIT never resumed. Left as a
+  test leftover; its ITEM + RESERVATION locks stay held until INVENTORY_OPERATION_RECONCILE
+  (mode OPERATION) is run for `GD|2108108945950560257|1`.
 - Prod release: none of this is in prod.
