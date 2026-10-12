@@ -681,6 +681,15 @@ Three details worth knowing when maintaining it:
   that no longer exists. No backfill appears needed — on dev, zero GDs in an
   `auto_trigger_to = 1` org have unstamped lines under a live Picking.
 
+  **Correction (2026-10-12, BUG-20261012-017): that WHERE clause is NOT enforced.** In prod
+  the stamp demoted `Completed` lines to `Created` on GD edits (DO-10/2026-023,
+  GD-26/10/0254, GD/2610/314). In each case the run's own post-write read showed
+  `Completed`, and the next run read `Created`, with nothing else in between. The stamp now
+  relies on `code_node_o35eZx2c`, which lists only lines whose stored status is unstamped, and
+  on `if_StampGDLines`, which skips the update when that list is empty. `PickingLoopWorkflow`'s
+  `update_node_CfTrqcLh` carries the same unenforced clause; it is only safe while its id list
+  holds lines that are still `Not Created`.
+
 - **Putaway is now covered** for lock handling (1c). Its record merge is still
   client-side, so its merge exposure differs from picking's and has not been audited.
 - **The ~50 ms acquire race is still open.** See 1a.
