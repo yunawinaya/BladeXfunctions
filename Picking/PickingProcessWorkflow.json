@@ -2623,7 +2623,7 @@
                 "name": "GD Lines Preparation",
                 "script": {
                   "type": "javascript",
-                  "code": "// table_picking_items is a tree: an item bundle is ONE row with the items under it\n// as `children`. A row with no `children` yields just itself, so a document with\n// no bundles is unaffected.\nconst flattenPickingRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\n// Computed remainders are rounded to the 8dp column scale so float residue never survives.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\nconst gdLines = {{node:search_node_krPmTbfL.data.data}};\nconst newRecords = {{node:code_node_oHIIKfiw.data.records}};\nconst updatedItems = {{node:code_node_Z5JH4g2u.data.updatedItems}};\nconst locations = {{node:search_node_kUwlb6md.data.data}} || [];\nconst batches = {{node:search_node_kdhCN7Yu.data.data}} || [];\nconst hus = {{node:search_node_ko6ZYIQp.data.data}} || [];\nconst allData = {{workflowparams:allData}};\n\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\nconst existingPickingRecords = allData.table_picking_records || [];\nconst allowFullPicking = ({{node:get_node_Uj1uV9PU.data.data.allow_full_picking}} || 0) === 1;\n\nif (!gdLines || gdLines.length === 0) {\n  return { code: \"200\", updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nif (isForceComplete !== 1 && (!newRecords || newRecords.length === 0)) {\n  return { code: \"200\", updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nif (isForceComplete === 1 && existingPickingRecords.length === 0) {\n  return { code: \"200\", updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nconst recordsToProcess = isForceComplete === 1 ? existingPickingRecords : newRecords;\n\n// ============================================================================\n// ITEM BUNDLES - all or nothing\n// ----------------------------------------------------------------------------\n// A bundle is delivered as a whole, so it has to be picked as a whole. Picking 2\n// of item A and 1 of item B, when the bundle holds one of each, is not a bundle,\n// and this is the last point where that can be caught before the quantities reach\n// the delivery.\n//\n// Components are grouped by the bundle ROW they hang off rather than by the bundle\n// itself, so the same bundle appearing twice on one document is judged twice -- a\n// picker who finished one occurrence and left the other alone is not at fault.\n//\n// The rule only bites once the bundle is actually being closed out. Picking part of\n// every component and saving leaves the Picking In Progress and nothing reaches the\n// delivery, so that is left alone. It bites when one component is finished while\n// another is short, and -- because both of these close a line whatever was picked --\n// whenever anything was picked under Full Picking or Force Complete.\n// Only the ITEMS under a bundle are checked. The bundle row itself carries no\n// stock and never produces a picking record, so it would always read as unpicked\n// and raise a shortfall against itself.\nconst pickingRows = flattenPickingRows(allData.table_picking_items);\n\n// The items are grouped by the bundle ROW they hang off rather than by the bundle\n// itself, so the same bundle appearing twice on one document is judged twice. A\n// document that arrives flat instead -- items pointing back at the bundle row\n// through parent_id -- is handled too.\nconst bundleGroups = {};\nconst bundleLabels = {};\n\nfor (const parentRow of allData.table_picking_items || []) {\n  if (!parentRow || !parentRow.item_bundle_id || parentRow.item_code) continue;\n\n  const groupKey = String(parentRow.id || parentRow.fm_key || \"\");\n  if (!groupKey) continue;\n\n  const nestedKids = Array.isArray(parentRow.children) ? parentRow.children : [];\n  const flatKids = parentRow.id\n    ? pickingRows.filter(\n        (r) => r && String(r.parent_id || \"\") === String(parentRow.id)\n      )\n    : [];\n\n  const kids = (nestedKids.length > 0 ? nestedKids : flatKids).filter(\n    (r) => r && r.row_type !== \"header\" && r.line_status !== \"Cancelled\"\n  );\n\n  if (kids.length === 0) continue;\n\n  bundleGroups[groupKey] = kids;\n  bundleLabels[groupKey] = parentRow.item_name || parentRow.item_bundle_id;\n}\n\nif (Object.keys(bundleGroups).length > 0) {\n  const bundlePickedById = {};\n  for (const rec of recordsToProcess || []) {\n    const key = String(rec.picking_item_id || \"\");\n    if (!key) continue;\n    bundlePickedById[key] = (bundlePickedById[key] || 0) + (parseFloat(rec.store_out_qty) || 0);\n  }\n\n  const closesShortLines = allowFullPicking || isForceComplete === 1;\n  const bundleShortfalls = [];\n\n  for (const key of Object.keys(bundleGroups)) {\n    const state = bundleGroups[key].map((row) => {\n      const pending = parseFloat(row.pending_process_qty) || 0;\n      const picked = bundlePickedById[String(row.id).split(\"_split_\")[0]] || 0;\n      return { row: row, pending: pending, picked: picked, short: Math.max(0, pending - picked) };\n    });\n\n    const anyFinished = state.some((s) => s.pending > 0 && s.short === 0);\n    const anyPicked = state.some((s) => s.picked > 0);\n\n    if (!anyFinished && !(closesShortLines && anyPicked)) continue;\n\n    for (const s of state) {\n      if (s.short > 0) {\n        bundleShortfalls.push(\n          (bundleLabels[key] || s.row.item_bundle_id) +\n            \" / \" + (s.row.item_name || s.row.item_code || \"item\") +\n            \": picked \" + s.picked + \" of \" + s.pending\n        );\n      }\n    }\n  }\n\n  if (bundleShortfalls.length > 0) {\n    return {\n      code: \"400\",\n      message:\n        \"An item bundle must be picked in full. Short: \" +\n        bundleShortfalls.join(\"; \") +\n        \". Pick every item of the bundle to its full quantity, or none of them.\",\n      updatedGdLines: [],\n      hasAnyChanges: false,\n      updatedCount: 0,\n      isForceComplete\n    };\n  }\n}\n\n// --- Loading Bay guard rails -------------------------------------------------\n// is_loading_bay stages picked stock into a bay bin purely by rewriting\n// temp_qty_data.location_id further down. The Reserved allocation only follows\n// it when GD runs detectBinHuMigrations, which fires on a \"Created\" save and\n// needs a real target bin. Fail here, before the first write node, rather than\n// let either condition slip through and strand the reservation at the source.\nconst isLoadingBay = ({{node:get_node_Uj1uV9PU.data.data.is_loading_bay}} || 0) === 1;\nconst autoCompletedGd = ({{node:get_node_Uj1uV9PU.data.data.auto_completed_gd}} || 0) === 1;\n\nif (isLoadingBay && autoCompletedGd) {\n  return {\n    code: \"400\",\n    message: \"Picking Setup has both Loading Bay and Auto Complete GD enabled. Auto Complete GD skips the Created state that the loading bay move depends on, which would strand the reserved stock at the source bin. Please turn off Auto Complete GD.\",\n    updatedGdLines: [],\n    hasAnyChanges: false,\n    updatedCount: 0,\n    isForceComplete\n  };\n}\n\nif (isLoadingBay && isForceComplete !== 1) {\n  const missingTarget = [];\n  for (const record of recordsToProcess) {\n    if (!(record.store_out_qty > 0)) continue;\n    if (record.target_location && String(record.target_location) !== String(record.source_bin)) continue;\n    const label = record.item_code || record.item_name || record.gd_line_id;\n    if (label && missingTarget.indexOf(label) === -1) missingTarget.push(label);\n  }\n  if (missingTarget.length > 0) {\n    return {\n      code: \"400\",\n      message: \"Loading Bay is enabled but Target Location is missing (or the same as the source bin) on these picked items: \" + missingTarget.join(\", \") + \". Set a loading bay bin on every picked line before completing.\",\n      updatedGdLines: [],\n      hasAnyChanges: false,\n      updatedCount: 0,\n      isForceComplete\n    };\n  }\n}\n\nconst locationNameMap = {};\nfor (const loc of locations) {\n  locationNameMap[loc.id] = loc.bin_location_combine || loc.bin_name || loc.id;\n}\n\nconst batchNameMap = {};\nfor (const batch of batches) {\n  batchNameMap[batch.id] = batch.batch_number || batch.id;\n}\n\n// HU id -> handling_no map (for view_stock HU section display)\nconst huNameMap = {};\nfor (const hu of hus) {\n  huNameMap[hu.id] = hu.handling_no || hu.id;\n}\n\nconst splitData = allData.split_data || {};\nfor (const gdLineId in splitData) {\n  const data = splitData[gdLineId];\n  if (data && data.split_locations) {\n    for (const loc of data.split_locations) {\n      if (loc.target_location_id && loc.target_location_name) {\n        locationNameMap[loc.target_location_id] = loc.target_location_name;\n      }\n      if (loc.location_id && loc.location_name) {\n        locationNameMap[loc.location_id] = loc.location_name;\n      }\n      if (loc.batch_no && loc.batch_number) {\n        batchNameMap[loc.batch_no] = loc.batch_number;\n      }\n      if (loc.target_batch && loc.batch_number) {\n        batchNameMap[loc.target_batch] = loc.batch_number;\n      }\n    }\n  }\n}\n\nconst lineStatusByGdLineId = {};\nconst statusesByGdLineId = {};\n// updatedItems arrives as a TREE (the status node rebuilds it so a bundle keeps\n// its items), so it is flattened here. Reading the top level alone saw only the\n// bundle ROW, whose gd_line_id/to_line_id is the bundle's own source line -- the\n// components' lines were never keyed, so their status fell back to whatever the\n// document already had (\"Not Created\") even after a full pick.\nfor (const item of flattenPickingRows(updatedItems)) {\n  if (item.gd_line_id) {\n    if (!statusesByGdLineId[item.gd_line_id]) statusesByGdLineId[item.gd_line_id] = [];\n    statusesByGdLineId[item.gd_line_id].push(item.line_status);\n  }\n}\n// A GD line can fan out into multiple picking rows (multi-batch/location).\n// Aggregate so the line is Completed only when every non-cancelled row is\n// Completed; In Progress if any row is picked; otherwise Open.\nfor (const gdLineId in statusesByGdLineId) {\n  const statuses = statusesByGdLineId[gdLineId].filter(s => s !== 'Cancelled');\n  if (statuses.length === 0) {\n    lineStatusByGdLineId[gdLineId] = 'Cancelled';\n  } else if (statuses.every(s => s === 'Completed')) {\n    lineStatusByGdLineId[gdLineId] = 'Completed';\n  } else if (statuses.some(s => s === 'Completed' || s === 'In Progress')) {\n    lineStatusByGdLineId[gdLineId] = 'In Progress';\n  } else {\n    lineStatusByGdLineId[gdLineId] = 'Open';\n  }\n}\n\nconst recordsByGdLineId = {};\nfor (const record of recordsToProcess) {\n  if (!record.gd_line_id) continue;\n  if (!recordsByGdLineId[record.gd_line_id]) {\n    recordsByGdLineId[record.gd_line_id] = [];\n  }\n  recordsByGdLineId[record.gd_line_id].push(record);\n}\n\nconst sourceInfoByGdLineId = {};\nfor (const item of pickingRows) {\n  if (item.gd_line_id) {\n    sourceInfoByGdLineId[item.gd_line_id] = {\n      source_bin: item.source_bin,\n      batch_no: item.batch_no,\n      item_code: item.item_code\n    };\n  }\n}\n\n// Build view_stock matching GDconfirmDialog.js format:\n// loose entries -> \"DETAILS\" or \"LOOSE STOCK\", HU entries -> \"HANDLING UNIT\" with handling_no.\nconst buildViewStock = (entries, uom) => {\n  const active = entries.filter(e => (e.gd_quantity || 0) > 0);\n  if (active.length === 0) {\n    return 'Total: 0 ' + uom + '\\n\\nDETAILS:\\nNo stock allocated';\n  }\n  const looseEntries = active.filter(e => !e.handling_unit_id);\n  const huEntries = active.filter(e => e.handling_unit_id);\n  const total = active.reduce((s, e) => s + (e.gd_quantity || 0), 0);\n\n  const fmtBatch = (e) => {\n    if (!e.batch_id) return '';\n    const name = batchNameMap[e.batch_id] || e.batch_id;\n    return '\\n[Batch: ' + name + ']';\n  };\n  const looseSection = looseEntries.map((e, i) => {\n    const locName = locationNameMap[e.location_id] || e.location_id;\n    return (i + 1) + '. ' + locName + ': ' + e.gd_quantity + ' ' + uom + fmtBatch(e);\n  }).join('\\n');\n  const huSection = huEntries.map((e, i) => {\n    const huName = huNameMap[e.handling_unit_id] || e.handling_unit_id;\n    return (i + 1) + '. ' + huName + ': ' + e.gd_quantity + ' ' + uom + fmtBatch(e);\n  }).join('\\n');\n\n  let result = 'Total: ' + total + ' ' + uom + '\\n\\n';\n  if (looseEntries.length > 0 && huEntries.length > 0) {\n    result += 'LOOSE STOCK:\\n' + looseSection + '\\n\\nHANDLING UNIT:\\n' + huSection;\n  } else if (huEntries.length > 0) {\n    result += 'HANDLING UNIT:\\n' + huSection;\n  } else {\n    result += 'DETAILS:\\n' + looseSection;\n  }\n  return result;\n};\n\nconst updatedGdLines = [];\nlet hasAnyChanges = false;\nlet updatedCount = 0;\nconst overPickedItems = [];\n\nfor (const lineItem of gdLines) {\n  const lineRecords = recordsByGdLineId[lineItem.id];\n\n  if (lineItem.picking_status === 'Completed' && isForceComplete !== 1) {\n    updatedGdLines.push(lineItem);\n    continue;\n  }\n\n  if (!lineRecords || lineRecords.length === 0) {\n    if (isForceComplete === 1) {\n      updatedGdLines.push({ ...lineItem, picking_status: 'Completed' });\n    } else {\n      updatedGdLines.push(lineItem);\n    }\n    continue;\n  }\n\n  hasAnyChanges = true;\n  updatedCount++;\n\n  const lineSplitData = splitData[lineItem.id];\n  const isSplitItem = lineSplitData && lineSplitData.is_split === true;\n  const sourceInfo = sourceInfoByGdLineId[lineItem.id] || {};\n\n  const pickingStatus = lineStatusByGdLineId[lineItem.id] || lineItem.picking_status || 'Created';\n  const originalTempQtyData = lineItem.temp_qty_data || '[]';\n\n  let tempQtyDataArray = [];\n  if (lineItem.temp_qty_data) {\n    try {\n      tempQtyDataArray = typeof lineItem.temp_qty_data === 'string'\n        ? JSON.parse(lineItem.temp_qty_data)\n        : (Array.isArray(lineItem.temp_qty_data) ? lineItem.temp_qty_data : []);\n    } catch (e) {\n      tempQtyDataArray = [];\n    }\n  }\n\n  let sessionPickedQty = 0;\n  for (const record of lineRecords) {\n    sessionPickedQty += record.store_out_qty || 0;\n  }\n\n  const originalTotalQuantity = lineItem.gd_qty || lineItem.gd_order_quantity || 0;\n\n  // Tracks whether tempQtyDataArray actually changed; drives cheap-path preservation\n  // of the original view_stock + temp_qty_data when picking didn't shift anything.\n  let wasModified = false;\n\n  if (isForceComplete === 1) {\n    tempQtyDataArray = lineRecords.map(record => ({\n      material_id: record.item_code || lineItem.material_id,\n      location_id: record.target_location || record.source_bin,\n      batch_id: record.target_batch || record.batch_no || null,\n      handling_unit_id: record.handling_unit_id || null,\n      gd_quantity: record.store_out_qty\n    }));\n    wasModified = true;\n  } else if (isSplitItem) {\n    // Alt-UOM fix: split allocations arrive in the PICK UOM. Convert them to the\n    // GD order UOM so gd_quantity matches gd_qty (mirrors store_out_qty).\n    const __pi = pickingRows.find(\n      (i) => (i.gd_line_id || i.to_line_id || (i.id ? String(i.id).split('_split_')[0] : '')) === lineItem.id\n    ) || {};\n    let __factor = 1;\n    if (Number(__pi.order_base_qty) > 0) {\n      __factor = (Number(__pi.picking_base_qty) || Number(__pi.order_base_qty) || 1) / Number(__pi.order_base_qty);\n    } else if (lineRecords && lineRecords.length) {\n      const __r = lineRecords.find((r) => Number(r.picked_qty_alt) > 0);\n      if (__r && Number(__r.picked_qty_alt) > 0) __factor = (Number(__r.store_out_qty) || 0) / Number(__r.picked_qty_alt);\n    }\n    const toOrderUom = (alt) => Math.round((Number(alt) || 0) * __factor * 1000) / 1000;\n    const totalProcessedQuantity = lineSplitData.split_locations.reduce(\n      (sum, loc) => sum + toOrderUom(loc.allocated_quantity), 0\n    );\n\n    const remainingQuantity = originalTotalQuantity - totalProcessedQuantity;\n    const locationQuantityMap = {};\n\n    if (remainingQuantity > 0 && sourceInfo.source_bin) {\n      const sourceBatchNo = sourceInfo.batch_no || null;\n      const normalizedBatch = (sourceBatchNo === 'undefined' || sourceBatchNo === null || sourceBatchNo === undefined) ? null : sourceBatchNo;\n      const sourceKey = sourceInfo.source_bin + '_' + (normalizedBatch || 'none');\n      locationQuantityMap[sourceKey] = {\n        location_id: sourceInfo.source_bin,\n        batch_id: normalizedBatch,\n        quantity: remainingQuantity\n      };\n    }\n\n    for (const splitLoc of lineSplitData.split_locations) {\n      const splitQty = toOrderUom(splitLoc.allocated_quantity);\n      const targetLocationId = splitLoc.target_location_id;\n\n      if (splitQty > 0 && targetLocationId) {\n        const batchNo = splitLoc.batch_no || splitLoc.target_batch || null;\n        const normalizedBatch = (batchNo === 'undefined' || batchNo === null || batchNo === undefined) ? null : batchNo;\n        const targetKey = targetLocationId + '_' + (normalizedBatch || 'none');\n\n        if (locationQuantityMap[targetKey]) {\n          locationQuantityMap[targetKey].quantity += splitQty;\n        } else {\n          locationQuantityMap[targetKey] = {\n            location_id: targetLocationId,\n            batch_id: normalizedBatch,\n            quantity: splitQty\n          };\n        }\n      }\n    }\n\n    tempQtyDataArray = [];\n    for (const key in locationQuantityMap) {\n      const locData = locationQuantityMap[key];\n      tempQtyDataArray.push({\n        material_id: lineItem.material_id,\n        location_id: locData.location_id,\n        batch_id: locData.batch_id,\n        block_qty: 0,\n        reserved_qty: 0,\n        unrestricted_qty: locData.quantity,\n        qualityinsp_qty: 0,\n        intransit_qty: 0,\n        balance_quantity: locData.quantity,\n        plant_id: lineItem.plant_id,\n        organization_id: lineItem.organization_id,\n        is_deleted: 0,\n        gd_quantity: locData.quantity\n      });\n    }\n    wasModified = true;\n  } else {\n    for (const record of lineRecords) {\n      const sourceBinId = record.source_bin;\n      const targetLocationId = record.target_location;\n      const originalBatchNo = record.batch_no;\n      const targetBatch = record.target_batch;\n      const pickedQty = record.store_out_qty || 0;\n\n      const hasLocationChange = sourceBinId && targetLocationId && sourceBinId !== targetLocationId;\n      const hasBatchChange = originalBatchNo && targetBatch && originalBatchNo !== targetBatch;\n\n      if ((hasLocationChange || hasBatchChange) && pickedQty > 0) {\n        let sourceEntryIndex = -1;\n\n        if (originalBatchNo) {\n          sourceEntryIndex = tempQtyDataArray.findIndex(entry =>\n            entry.material_id === lineItem.material_id &&\n            entry.location_id === sourceBinId &&\n            entry.batch_id === originalBatchNo\n          );\n        } else {\n          sourceEntryIndex = tempQtyDataArray.findIndex(entry =>\n            entry.material_id === lineItem.material_id &&\n            entry.location_id === sourceBinId\n          );\n        }\n\n        if (sourceEntryIndex !== -1) {\n          const sourceEntry = tempQtyDataArray[sourceEntryIndex];\n          const originalQuantity = sourceEntry.gd_quantity || 0;\n\n          if (q8(pickedQty) >= q8(originalQuantity)) {\n            if (hasLocationChange) {\n              tempQtyDataArray[sourceEntryIndex].location_id = targetLocationId;\n            }\n            if (hasBatchChange) {\n              tempQtyDataArray[sourceEntryIndex].batch_id = targetBatch;\n            }\n          } else {\n            const remainingQty = q8(originalQuantity - pickedQty);\n\n            tempQtyDataArray[sourceEntryIndex].gd_quantity = remainingQty;\n            tempQtyDataArray[sourceEntryIndex].unrestricted_qty = remainingQty;\n            tempQtyDataArray[sourceEntryIndex].balance_quantity = remainingQty;\n\n            const newEntry = {\n              ...sourceEntry,\n              location_id: hasLocationChange ? targetLocationId : sourceBinId,\n              batch_id: hasBatchChange ? targetBatch : originalBatchNo,\n              gd_quantity: pickedQty,\n              unrestricted_qty: pickedQty,\n              balance_quantity: pickedQty\n            };\n\n            tempQtyDataArray.push(newEntry);\n          }\n          wasModified = true;\n        }\n      }\n    }\n\n    const beforeFilter = tempQtyDataArray.length;\n    tempQtyDataArray = tempQtyDataArray.filter(entry => q8(entry.gd_quantity) > 0);\n    if (tempQtyDataArray.length !== beforeFilter) wasModified = true;\n\n    // Dedup key now includes handling_unit_id so HU and loose stock at the same\n    // bin/batch don't collapse into one entry.\n    const locationBatchMap = {};\n    for (const entry of tempQtyDataArray) {\n      const normalizedBatch = (entry.batch_id === 'undefined' || entry.batch_id === null || entry.batch_id === undefined) ? null : entry.batch_id;\n      const huKey = entry.handling_unit_id || 'no_hu';\n      const key = entry.location_id + '_' + (normalizedBatch || 'none') + '_' + huKey;\n\n      if (locationBatchMap[key]) {\n        locationBatchMap[key].gd_quantity += entry.gd_quantity || 0;\n        locationBatchMap[key].unrestricted_qty += (entry.unrestricted_qty || 0);\n        locationBatchMap[key].balance_quantity += (entry.balance_quantity || 0);\n      } else {\n        locationBatchMap[key] = { ...entry, batch_id: normalizedBatch };\n      }\n    }\n    const beforeDedup = tempQtyDataArray.length;\n    tempQtyDataArray = Object.values(locationBatchMap);\n    if (tempQtyDataArray.length !== beforeDedup) wasModified = true;\n  }\n\n  let uom = 'PCS';\n  if (lineItem.view_stock) {\n    const uomMatch = lineItem.view_stock.match(/Total:\\s*[\\d.]+\\s+(\\w+)/);\n    if (uomMatch && uomMatch[1]) {\n      uom = uomMatch[1];\n    }\n  }\n\n  // Cheap path: nothing actually moved, so keep the GD-built view_stock (which has\n  // proper LOOSE/HU sections) and the original temp_qty_data string verbatim.\n  const viewStock = wasModified\n    ? buildViewStock(tempQtyDataArray, uom)\n    : (lineItem.view_stock || buildViewStock(tempQtyDataArray, uom));\n  const newTempQtyDataStr = wasModified ? JSON.stringify(tempQtyDataArray) : originalTempQtyData;\n\n  const forceCompleteFields = isForceComplete === 1 ? {\n    plan_qty: lineItem.gd_qty,\n    plan_temp_qty_data: originalTempQtyData,\n    plan_view_stock: lineItem.view_stock,\n    is_force_complete: 1,\n    gd_qty: sessionPickedQty,\n    base_qty: sessionPickedQty,\n    gd_delivered_qty: sessionPickedQty + (lineItem.gd_initial_delivered_qty || 0),\n    gd_undelivered_qty: lineItem.gd_order_quantity - (sessionPickedQty + (lineItem.gd_initial_delivered_qty || 0))\n  } : {};\n\n  // M:N cumulative tracking. When allow_full_picking is ON, a single GD line can\n  // be split across multiple Pickings; this block accumulates picked qty across\n  // sessions on the GD line itself (mirrors PP-branch code_node_AGoxWP7x).\n  let pickedQtyAddon = null;\n  if (allowFullPicking && isForceComplete !== 1) {\n    let existingPickedTempQtyData = [];\n    if (lineItem.picked_temp_qty_data) {\n      try {\n        existingPickedTempQtyData = typeof lineItem.picked_temp_qty_data === 'string'\n          ? JSON.parse(lineItem.picked_temp_qty_data)\n          : (Array.isArray(lineItem.picked_temp_qty_data) ? lineItem.picked_temp_qty_data : []);\n      } catch (e) {\n        existingPickedTempQtyData = [];\n      }\n    }\n\n    const sessionPickedItems = [];\n    for (const record of lineRecords) {\n      const pickedQty = record.store_out_qty || 0;\n      if (pickedQty > 0) {\n        sessionPickedItems.push({\n          material_id: lineItem.material_id,\n          location_id: record.target_location || record.source_bin,\n          batch_id: record.target_batch || record.batch_no || null,\n          handling_unit_id: record.handling_unit_id || null,\n          gd_quantity: pickedQty,\n          plant_id: lineItem.plant_id,\n          organization_id: lineItem.organization_id\n        });\n      }\n    }\n\n    const mergeKey = (locId, batchId, huId) => {\n      const normBatch = (batchId === 'undefined' || batchId === null || batchId === undefined) ? 'none' : batchId;\n      return (locId || 'no-location') + '_' + normBatch + '_' + (huId || 'no_hu');\n    };\n    const mergedMap = new Map();\n    const collect = (entry) => {\n      const k = mergeKey(entry.location_id, entry.batch_id, entry.handling_unit_id);\n      if (mergedMap.has(k)) {\n        const ex = mergedMap.get(k);\n        ex.gd_quantity = Math.round(((ex.gd_quantity || 0) + (entry.gd_quantity || 0)) * 1000) / 1000;\n      } else {\n        const normBatch = (entry.batch_id === 'undefined' || entry.batch_id === null || entry.batch_id === undefined) ? null : entry.batch_id;\n        mergedMap.set(k, { ...entry, batch_id: normBatch });\n      }\n    };\n    existingPickedTempQtyData.forEach(collect);\n    sessionPickedItems.forEach(collect);\n    const mergedPickedTempQtyData = Array.from(mergedMap.values());\n\n    const totalPickedQty = Math.round(\n      mergedPickedTempQtyData.reduce((sum, e) => sum + (e.gd_quantity || 0), 0) * 1000\n    ) / 1000;\n\n    const pickedViewStock = buildViewStock(mergedPickedTempQtyData, uom);\n\n    const planQty = parseFloat(lineItem.gd_qty || 0);\n\n    // M:N splits one GD line across sibling Pickings, and the cumulative above is a\n    // read-modify-write of the line's own picked_temp_qty_data -- the picking mutex is\n    // per Picking DOCUMENT, so it cannot serialise two siblings. A lost accumulation\n    // makes Convert to Picking mint a follow-up for more than really remains. Mirrors\n    // the PP branch (code_node_AGoxWP7x): refuse rather than over-pick silently.\n    // Compared at 3dp: store_out_qty is rounded to 3dp everywhere, but summing\n    // those floats can land on 10.000000000000002 and a bare `>` would then\n    // block a picker who picked exactly the plan quantity.\n    if (Math.round((totalPickedQty - planQty) * 1000) / 1000 > 0 && planQty > 0) {\n      overPickedItems.push({\n        item_name: lineItem.material_name || lineItem.item_name || lineItem.material_id || '',\n        picked_qty: totalPickedQty,\n        plan_qty: planQty\n      });\n    }\n\n    let cumulativePickingStatus;\n    if (totalPickedQty >= planQty && planQty > 0) {\n      cumulativePickingStatus = 'Completed';\n    } else if (totalPickedQty > 0) {\n      cumulativePickingStatus = 'In Progress';\n    } else {\n      cumulativePickingStatus = 'Created';\n    }\n\n    pickedQtyAddon = {\n      picked_qty: totalPickedQty,\n      picked_temp_qty_data: JSON.stringify(mergedPickedTempQtyData),\n      picked_view_stock: pickedViewStock,\n      picking_status: cumulativePickingStatus\n    };\n  }\n\n  updatedGdLines.push({\n    ...lineItem,\n    temp_qty_data: newTempQtyDataStr,\n    prev_temp_qty_data: originalTempQtyData,\n    view_stock: viewStock,\n    picking_status: isForceComplete === 1 ? 'Completed' : pickingStatus,\n    ...forceCompleteFields,\n    ...(pickedQtyAddon || {})\n  });\n}\n\nif (overPickedItems.length > 0) {\n  const errorDetails = overPickedItems\n    .map((item) => `${item.item_name} (Picked: ${item.picked_qty}, Plan: ${item.plan_qty})`)\n    .join(', ');\n\n  return {\n    code: \"400\",\n    message: `Picked quantity cannot exceed plan quantity: ${errorDetails}`,\n    updatedGdLines: [],\n    hasAnyChanges: false,\n    updatedCount: 0,\n    isForceComplete\n  };\n}\n\nreturn {\n  code: \"200\",\n  updatedGdLines,\n  hasAnyChanges,\n  updatedCount,\n  isForceComplete\n};\n"
+                  "code": "// table_picking_items is a tree: an item bundle is ONE row with the items under it\n// as `children`. A row with no `children` yields just itself, so a document with\n// no bundles is unaffected.\nconst flattenPickingRows = (rows) =>\n  (rows || []).flatMap((row) => [\n    row,\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\n// Computed remainders are rounded to the 8dp column scale so float residue never survives.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\nconst gdLines = {{node:search_node_krPmTbfL.data.data}};\nconst newRecords = {{node:code_node_oHIIKfiw.data.records}};\nconst updatedItems = {{node:code_node_Z5JH4g2u.data.updatedItems}};\nconst locations = {{node:search_node_kUwlb6md.data.data}} || [];\nconst batches = {{node:search_node_kdhCN7Yu.data.data}} || [];\nconst hus = {{node:search_node_ko6ZYIQp.data.data}} || [];\nconst allData = {{workflowparams:allData}};\n\nconst isForceComplete = {{workflowparams:isForceComplete}} || 0;\nconst existingPickingRecords = allData.table_picking_records || [];\nconst allowFullPicking = ({{node:get_node_Uj1uV9PU.data.data.allow_full_picking}} || 0) === 1;\n\nif (!gdLines || gdLines.length === 0) {\n  return { code: \"200\", updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nif (isForceComplete !== 1 && (!newRecords || newRecords.length === 0)) {\n  return { code: \"200\", updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nif (isForceComplete === 1 && existingPickingRecords.length === 0) {\n  return { code: \"200\", updatedGdLines: [], hasAnyChanges: false, updatedCount: 0 };\n}\n\nconst recordsToProcess = isForceComplete === 1 ? existingPickingRecords : newRecords;\n\n// ============================================================================\n// ITEM BUNDLES - all or nothing\n// ----------------------------------------------------------------------------\n// A bundle is delivered as a whole, so it has to be picked as a whole. Picking 2\n// of item A and 1 of item B, when the bundle holds one of each, is not a bundle,\n// and this is the last point where that can be caught before the quantities reach\n// the delivery.\n//\n// Components are grouped by the bundle ROW they hang off rather than by the bundle\n// itself, so the same bundle appearing twice on one document is judged twice -- a\n// picker who finished one occurrence and left the other alone is not at fault.\n//\n// The rule only bites once the bundle is actually being closed out. Picking part of\n// every component and saving leaves the Picking In Progress and nothing reaches the\n// delivery, so that is left alone. It bites when one component is finished while\n// another is short, and -- because both of these close a line whatever was picked --\n// whenever anything was picked under Full Picking or Force Complete.\n// Only the ITEMS under a bundle are checked. The bundle row itself carries no\n// stock and never produces a picking record, so it would always read as unpicked\n// and raise a shortfall against itself.\nconst pickingRows = flattenPickingRows(allData.table_picking_items);\n\n// The items are grouped by the bundle ROW they hang off rather than by the bundle\n// itself, so the same bundle appearing twice on one document is judged twice. A\n// document that arrives flat instead -- items pointing back at the bundle row\n// through parent_id -- is handled too.\nconst bundleGroups = {};\nconst bundleLabels = {};\n\nfor (const parentRow of allData.table_picking_items || []) {\n  if (!parentRow || !parentRow.item_bundle_id || parentRow.item_code) continue;\n\n  const groupKey = String(parentRow.id || parentRow.fm_key || \"\");\n  if (!groupKey) continue;\n\n  const nestedKids = Array.isArray(parentRow.children) ? parentRow.children : [];\n  const flatKids = parentRow.id\n    ? pickingRows.filter(\n        (r) => r && String(r.parent_id || \"\") === String(parentRow.id)\n      )\n    : [];\n\n  const kids = (nestedKids.length > 0 ? nestedKids : flatKids).filter(\n    (r) => r && r.row_type !== \"header\" && r.line_status !== \"Cancelled\"\n  );\n\n  if (kids.length === 0) continue;\n\n  bundleGroups[groupKey] = kids;\n  bundleLabels[groupKey] = parentRow.item_name || parentRow.item_bundle_id;\n}\n\nif (Object.keys(bundleGroups).length > 0) {\n  const bundlePickedById = {};\n  for (const rec of recordsToProcess || []) {\n    const key = String(rec.picking_item_id || \"\");\n    if (!key) continue;\n    bundlePickedById[key] = (bundlePickedById[key] || 0) + (parseFloat(rec.store_out_qty) || 0);\n  }\n\n  const closesShortLines = allowFullPicking || isForceComplete === 1;\n  const bundleShortfalls = [];\n\n  for (const key of Object.keys(bundleGroups)) {\n    const state = bundleGroups[key].map((row) => {\n      const pending = parseFloat(row.pending_process_qty) || 0;\n      const picked = bundlePickedById[String(row.id).split(\"_split_\")[0]] || 0;\n      return { row: row, pending: pending, picked: picked, short: Math.max(0, pending - picked) };\n    });\n\n    const anyFinished = state.some((s) => s.pending > 0 && s.short === 0);\n    const anyPicked = state.some((s) => s.picked > 0);\n\n    if (!anyFinished && !(closesShortLines && anyPicked)) continue;\n\n    for (const s of state) {\n      if (s.short > 0) {\n        bundleShortfalls.push(\n          (bundleLabels[key] || s.row.item_bundle_id) +\n            \" / \" + (s.row.item_name || s.row.item_code || \"item\") +\n            \": picked \" + s.picked + \" of \" + s.pending\n        );\n      }\n    }\n  }\n\n  if (bundleShortfalls.length > 0) {\n    return {\n      code: \"400\",\n      message:\n        \"An item bundle must be picked in full. Short: \" +\n        bundleShortfalls.join(\"; \") +\n        \". Pick every item of the bundle to its full quantity, or none of them.\",\n      updatedGdLines: [],\n      hasAnyChanges: false,\n      updatedCount: 0,\n      isForceComplete\n    };\n  }\n}\n\n// --- Loading Bay guard rails -------------------------------------------------\n// is_loading_bay stages picked stock into a bay bin purely by rewriting\n// temp_qty_data.location_id further down. The Reserved allocation only follows\n// it when GD runs detectBinHuMigrations, which fires on a \"Created\" save and\n// needs a real target bin. Fail here, before the first write node, rather than\n// let either condition slip through and strand the reservation at the source.\nconst isLoadingBay = ({{node:get_node_Uj1uV9PU.data.data.is_loading_bay}} || 0) === 1;\nconst autoCompletedGd = ({{node:get_node_Uj1uV9PU.data.data.auto_completed_gd}} || 0) === 1;\n\nif (isLoadingBay && autoCompletedGd) {\n  return {\n    code: \"400\",\n    message: \"Picking Setup has both Loading Bay and Auto Complete GD enabled. Auto Complete GD skips the Created state that the loading bay move depends on, which would strand the reserved stock at the source bin. Please turn off Auto Complete GD.\",\n    updatedGdLines: [],\n    hasAnyChanges: false,\n    updatedCount: 0,\n    isForceComplete\n  };\n}\n\nif (isLoadingBay && isForceComplete !== 1) {\n  const missingTarget = [];\n  for (const record of recordsToProcess) {\n    if (!(record.store_out_qty > 0)) continue;\n    if (record.target_location && String(record.target_location) !== String(record.source_bin)) continue;\n    const label = record.item_code || record.item_name || record.gd_line_id;\n    if (label && missingTarget.indexOf(label) === -1) missingTarget.push(label);\n  }\n  if (missingTarget.length > 0) {\n    return {\n      code: \"400\",\n      message: \"Loading Bay is enabled but Target Location is missing (or the same as the source bin) on these picked items: \" + missingTarget.join(\", \") + \". Set a loading bay bin on every picked line before completing.\",\n      updatedGdLines: [],\n      hasAnyChanges: false,\n      updatedCount: 0,\n      isForceComplete\n    };\n  }\n}\n\nconst locationNameMap = {};\nfor (const loc of locations) {\n  locationNameMap[loc.id] = loc.bin_location_combine || loc.bin_name || loc.id;\n}\n\nconst batchNameMap = {};\nfor (const batch of batches) {\n  batchNameMap[batch.id] = batch.batch_number || batch.id;\n}\n\n// HU id -> handling_no map (for view_stock HU section display)\nconst huNameMap = {};\nfor (const hu of hus) {\n  huNameMap[hu.id] = hu.handling_no || hu.id;\n}\n\nconst splitData = allData.split_data || {};\nfor (const gdLineId in splitData) {\n  const data = splitData[gdLineId];\n  if (data && data.split_locations) {\n    for (const loc of data.split_locations) {\n      if (loc.target_location_id && loc.target_location_name) {\n        locationNameMap[loc.target_location_id] = loc.target_location_name;\n      }\n      if (loc.location_id && loc.location_name) {\n        locationNameMap[loc.location_id] = loc.location_name;\n      }\n      if (loc.batch_no && loc.batch_number) {\n        batchNameMap[loc.batch_no] = loc.batch_number;\n      }\n      if (loc.target_batch && loc.batch_number) {\n        batchNameMap[loc.target_batch] = loc.batch_number;\n      }\n    }\n  }\n}\n\nconst lineStatusByGdLineId = {};\nconst statusesByGdLineId = {};\n// updatedItems arrives as a TREE (the status node rebuilds it so a bundle keeps\n// its items), so it is flattened here. Reading the top level alone saw only the\n// bundle ROW, whose gd_line_id/to_line_id is the bundle's own source line -- the\n// components' lines were never keyed, so their status fell back to whatever the\n// document already had (\"Not Created\") even after a full pick.\nfor (const item of flattenPickingRows(updatedItems)) {\n  if (item.gd_line_id) {\n    if (!statusesByGdLineId[item.gd_line_id]) statusesByGdLineId[item.gd_line_id] = [];\n    statusesByGdLineId[item.gd_line_id].push(item.line_status);\n  }\n}\n// A GD line can fan out into multiple picking rows (multi-batch/location).\n// Aggregate so the line is Completed only when every non-cancelled row is\n// Completed; In Progress if any row is picked; otherwise Open.\nfor (const gdLineId in statusesByGdLineId) {\n  const statuses = statusesByGdLineId[gdLineId].filter(s => s !== 'Cancelled');\n  if (statuses.length === 0) {\n    lineStatusByGdLineId[gdLineId] = 'Cancelled';\n  } else if (statuses.every(s => s === 'Completed')) {\n    lineStatusByGdLineId[gdLineId] = 'Completed';\n  } else if (statuses.some(s => s === 'Completed' || s === 'In Progress')) {\n    lineStatusByGdLineId[gdLineId] = 'In Progress';\n  } else {\n    lineStatusByGdLineId[gdLineId] = 'Open';\n  }\n}\n\nconst recordsByGdLineId = {};\nfor (const record of recordsToProcess) {\n  if (!record.gd_line_id) continue;\n  if (!recordsByGdLineId[record.gd_line_id]) {\n    recordsByGdLineId[record.gd_line_id] = [];\n  }\n  recordsByGdLineId[record.gd_line_id].push(record);\n}\n\nconst sourceInfoByGdLineId = {};\nfor (const item of pickingRows) {\n  if (item.gd_line_id) {\n    sourceInfoByGdLineId[item.gd_line_id] = {\n      source_bin: item.source_bin,\n      batch_no: item.batch_no,\n      item_code: item.item_code\n    };\n  }\n}\n\n// Build view_stock matching GDconfirmDialog.js format:\n// loose entries -> \"DETAILS\" or \"LOOSE STOCK\", HU entries -> \"HANDLING UNIT\" with handling_no.\nconst buildViewStock = (entries, uom) => {\n  const active = entries.filter(e => (e.gd_quantity || 0) > 0);\n  if (active.length === 0) {\n    return 'Total: 0 ' + uom + '\\n\\nDETAILS:\\nNo stock allocated';\n  }\n  const looseEntries = active.filter(e => !e.handling_unit_id);\n  const huEntries = active.filter(e => e.handling_unit_id);\n  const total = active.reduce((s, e) => s + (e.gd_quantity || 0), 0);\n\n  const fmtBatch = (e) => {\n    if (!e.batch_id) return '';\n    const name = batchNameMap[e.batch_id] || e.batch_id;\n    return '\\n[Batch: ' + name + ']';\n  };\n  const looseSection = looseEntries.map((e, i) => {\n    const locName = locationNameMap[e.location_id] || e.location_id;\n    return (i + 1) + '. ' + locName + ': ' + e.gd_quantity + ' ' + uom + fmtBatch(e);\n  }).join('\\n');\n  const huSection = huEntries.map((e, i) => {\n    const huName = huNameMap[e.handling_unit_id] || e.handling_unit_id;\n    return (i + 1) + '. ' + huName + ': ' + e.gd_quantity + ' ' + uom + fmtBatch(e);\n  }).join('\\n');\n\n  let result = 'Total: ' + total + ' ' + uom + '\\n\\n';\n  if (looseEntries.length > 0 && huEntries.length > 0) {\n    result += 'LOOSE STOCK:\\n' + looseSection + '\\n\\nHANDLING UNIT:\\n' + huSection;\n  } else if (huEntries.length > 0) {\n    result += 'HANDLING UNIT:\\n' + huSection;\n  } else {\n    result += 'DETAILS:\\n' + looseSection;\n  }\n  return result;\n};\n\nconst updatedGdLines = [];\nlet hasAnyChanges = false;\n// Any line whose allocation was rewritten (bin/batch move, force complete): the GD re-save must run.\nlet anyTempChanged = 0;\nlet updatedCount = 0;\nconst overPickedItems = [];\n\nfor (const lineItem of gdLines) {\n  const lineRecords = recordsByGdLineId[lineItem.id];\n\n  if (lineItem.picking_status === 'Completed' && isForceComplete !== 1) {\n    updatedGdLines.push(lineItem);\n    continue;\n  }\n\n  if (!lineRecords || lineRecords.length === 0) {\n    if (isForceComplete === 1) {\n      updatedGdLines.push({ ...lineItem, picking_status: 'Completed' });\n    } else {\n      updatedGdLines.push(lineItem);\n    }\n    continue;\n  }\n\n  hasAnyChanges = true;\n  updatedCount++;\n\n  const lineSplitData = splitData[lineItem.id];\n  const isSplitItem = lineSplitData && lineSplitData.is_split === true;\n  const sourceInfo = sourceInfoByGdLineId[lineItem.id] || {};\n\n  const pickingStatus = lineStatusByGdLineId[lineItem.id] || lineItem.picking_status || 'Created';\n  const originalTempQtyData = lineItem.temp_qty_data || '[]';\n\n  let tempQtyDataArray = [];\n  if (lineItem.temp_qty_data) {\n    try {\n      tempQtyDataArray = typeof lineItem.temp_qty_data === 'string'\n        ? JSON.parse(lineItem.temp_qty_data)\n        : (Array.isArray(lineItem.temp_qty_data) ? lineItem.temp_qty_data : []);\n    } catch (e) {\n      tempQtyDataArray = [];\n    }\n  }\n\n  let sessionPickedQty = 0;\n  for (const record of lineRecords) {\n    sessionPickedQty += record.store_out_qty || 0;\n  }\n\n  const originalTotalQuantity = lineItem.gd_qty || lineItem.gd_order_quantity || 0;\n\n  // Tracks whether tempQtyDataArray actually changed; drives cheap-path preservation\n  // of the original view_stock + temp_qty_data when picking didn't shift anything.\n  let wasModified = false;\n\n  if (isForceComplete === 1) {\n    tempQtyDataArray = lineRecords.map(record => ({\n      material_id: record.item_code || lineItem.material_id,\n      location_id: record.target_location || record.source_bin,\n      batch_id: record.target_batch || record.batch_no || null,\n      handling_unit_id: record.handling_unit_id || null,\n      gd_quantity: record.store_out_qty\n    }));\n    wasModified = true;\n  } else if (isSplitItem) {\n    // Alt-UOM fix: split allocations arrive in the PICK UOM. Convert them to the\n    // GD order UOM so gd_quantity matches gd_qty (mirrors store_out_qty).\n    const __pi = pickingRows.find(\n      (i) => (i.gd_line_id || i.to_line_id || (i.id ? String(i.id).split('_split_')[0] : '')) === lineItem.id\n    ) || {};\n    let __factor = 1;\n    if (Number(__pi.order_base_qty) > 0) {\n      __factor = (Number(__pi.picking_base_qty) || Number(__pi.order_base_qty) || 1) / Number(__pi.order_base_qty);\n    } else if (lineRecords && lineRecords.length) {\n      const __r = lineRecords.find((r) => Number(r.picked_qty_alt) > 0);\n      if (__r && Number(__r.picked_qty_alt) > 0) __factor = (Number(__r.store_out_qty) || 0) / Number(__r.picked_qty_alt);\n    }\n    const toOrderUom = (alt) => Math.round((Number(alt) || 0) * __factor * 1000) / 1000;\n    const totalProcessedQuantity = lineSplitData.split_locations.reduce(\n      (sum, loc) => sum + toOrderUom(loc.allocated_quantity), 0\n    );\n\n    const remainingQuantity = originalTotalQuantity - totalProcessedQuantity;\n    const locationQuantityMap = {};\n\n    if (remainingQuantity > 0 && sourceInfo.source_bin) {\n      const sourceBatchNo = sourceInfo.batch_no || null;\n      const normalizedBatch = (sourceBatchNo === 'undefined' || sourceBatchNo === null || sourceBatchNo === undefined) ? null : sourceBatchNo;\n      const sourceKey = sourceInfo.source_bin + '_' + (normalizedBatch || 'none');\n      locationQuantityMap[sourceKey] = {\n        location_id: sourceInfo.source_bin,\n        batch_id: normalizedBatch,\n        quantity: remainingQuantity\n      };\n    }\n\n    for (const splitLoc of lineSplitData.split_locations) {\n      const splitQty = toOrderUom(splitLoc.allocated_quantity);\n      const targetLocationId = splitLoc.target_location_id;\n\n      if (splitQty > 0 && targetLocationId) {\n        const batchNo = splitLoc.batch_no || splitLoc.target_batch || null;\n        const normalizedBatch = (batchNo === 'undefined' || batchNo === null || batchNo === undefined) ? null : batchNo;\n        const targetKey = targetLocationId + '_' + (normalizedBatch || 'none');\n\n        if (locationQuantityMap[targetKey]) {\n          locationQuantityMap[targetKey].quantity += splitQty;\n        } else {\n          locationQuantityMap[targetKey] = {\n            location_id: targetLocationId,\n            batch_id: normalizedBatch,\n            quantity: splitQty\n          };\n        }\n      }\n    }\n\n    tempQtyDataArray = [];\n    for (const key in locationQuantityMap) {\n      const locData = locationQuantityMap[key];\n      tempQtyDataArray.push({\n        material_id: lineItem.material_id,\n        location_id: locData.location_id,\n        batch_id: locData.batch_id,\n        block_qty: 0,\n        reserved_qty: 0,\n        unrestricted_qty: locData.quantity,\n        qualityinsp_qty: 0,\n        intransit_qty: 0,\n        balance_quantity: locData.quantity,\n        plant_id: lineItem.plant_id,\n        organization_id: lineItem.organization_id,\n        is_deleted: 0,\n        gd_quantity: locData.quantity\n      });\n    }\n    wasModified = true;\n  } else {\n    for (const record of lineRecords) {\n      const sourceBinId = record.source_bin;\n      const targetLocationId = record.target_location;\n      const originalBatchNo = record.batch_no;\n      const targetBatch = record.target_batch;\n      const pickedQty = record.store_out_qty || 0;\n\n      const hasLocationChange = sourceBinId && targetLocationId && sourceBinId !== targetLocationId;\n      const hasBatchChange = originalBatchNo && targetBatch && originalBatchNo !== targetBatch;\n\n      if ((hasLocationChange || hasBatchChange) && pickedQty > 0) {\n        let sourceEntryIndex = -1;\n\n        if (originalBatchNo) {\n          sourceEntryIndex = tempQtyDataArray.findIndex(entry =>\n            entry.material_id === lineItem.material_id &&\n            entry.location_id === sourceBinId &&\n            entry.batch_id === originalBatchNo\n          );\n        } else {\n          sourceEntryIndex = tempQtyDataArray.findIndex(entry =>\n            entry.material_id === lineItem.material_id &&\n            entry.location_id === sourceBinId\n          );\n        }\n\n        if (sourceEntryIndex !== -1) {\n          const sourceEntry = tempQtyDataArray[sourceEntryIndex];\n          const originalQuantity = sourceEntry.gd_quantity || 0;\n\n          if (q8(pickedQty) >= q8(originalQuantity)) {\n            if (hasLocationChange) {\n              tempQtyDataArray[sourceEntryIndex].location_id = targetLocationId;\n            }\n            if (hasBatchChange) {\n              tempQtyDataArray[sourceEntryIndex].batch_id = targetBatch;\n            }\n          } else {\n            const remainingQty = q8(originalQuantity - pickedQty);\n\n            tempQtyDataArray[sourceEntryIndex].gd_quantity = remainingQty;\n            tempQtyDataArray[sourceEntryIndex].unrestricted_qty = remainingQty;\n            tempQtyDataArray[sourceEntryIndex].balance_quantity = remainingQty;\n\n            const newEntry = {\n              ...sourceEntry,\n              location_id: hasLocationChange ? targetLocationId : sourceBinId,\n              batch_id: hasBatchChange ? targetBatch : originalBatchNo,\n              gd_quantity: pickedQty,\n              unrestricted_qty: pickedQty,\n              balance_quantity: pickedQty\n            };\n\n            tempQtyDataArray.push(newEntry);\n          }\n          wasModified = true;\n        }\n      }\n    }\n\n    const beforeFilter = tempQtyDataArray.length;\n    tempQtyDataArray = tempQtyDataArray.filter(entry => q8(entry.gd_quantity) > 0);\n    if (tempQtyDataArray.length !== beforeFilter) wasModified = true;\n\n    // Dedup key now includes handling_unit_id so HU and loose stock at the same\n    // bin/batch don't collapse into one entry.\n    const locationBatchMap = {};\n    for (const entry of tempQtyDataArray) {\n      const normalizedBatch = (entry.batch_id === 'undefined' || entry.batch_id === null || entry.batch_id === undefined) ? null : entry.batch_id;\n      const huKey = entry.handling_unit_id || 'no_hu';\n      const key = entry.location_id + '_' + (normalizedBatch || 'none') + '_' + huKey;\n\n      if (locationBatchMap[key]) {\n        locationBatchMap[key].gd_quantity += entry.gd_quantity || 0;\n        locationBatchMap[key].unrestricted_qty += (entry.unrestricted_qty || 0);\n        locationBatchMap[key].balance_quantity += (entry.balance_quantity || 0);\n      } else {\n        locationBatchMap[key] = { ...entry, batch_id: normalizedBatch };\n      }\n    }\n    const beforeDedup = tempQtyDataArray.length;\n    tempQtyDataArray = Object.values(locationBatchMap);\n    if (tempQtyDataArray.length !== beforeDedup) wasModified = true;\n  }\n\n  let uom = 'PCS';\n  if (lineItem.view_stock) {\n    const uomMatch = lineItem.view_stock.match(/Total:\\s*[\\d.]+\\s+(\\w+)/);\n    if (uomMatch && uomMatch[1]) {\n      uom = uomMatch[1];\n    }\n  }\n\n  // Cheap path: nothing actually moved, so keep the GD-built view_stock (which has\n  // proper LOOSE/HU sections) and the original temp_qty_data string verbatim.\n  if (wasModified) anyTempChanged = 1;\n  const viewStock = wasModified\n    ? buildViewStock(tempQtyDataArray, uom)\n    : (lineItem.view_stock || buildViewStock(tempQtyDataArray, uom));\n  const newTempQtyDataStr = wasModified ? JSON.stringify(tempQtyDataArray) : originalTempQtyData;\n\n  const forceCompleteFields = isForceComplete === 1 ? {\n    plan_qty: lineItem.gd_qty,\n    plan_temp_qty_data: originalTempQtyData,\n    plan_view_stock: lineItem.view_stock,\n    is_force_complete: 1,\n    gd_qty: sessionPickedQty,\n    base_qty: sessionPickedQty,\n    gd_delivered_qty: sessionPickedQty + (lineItem.gd_initial_delivered_qty || 0),\n    gd_undelivered_qty: lineItem.gd_order_quantity - (sessionPickedQty + (lineItem.gd_initial_delivered_qty || 0))\n  } : {};\n\n  // M:N cumulative tracking. When allow_full_picking is ON, a single GD line can\n  // be split across multiple Pickings; this block accumulates picked qty across\n  // sessions on the GD line itself (mirrors PP-branch code_node_AGoxWP7x).\n  let pickedQtyAddon = null;\n  if (allowFullPicking && isForceComplete !== 1) {\n    let existingPickedTempQtyData = [];\n    if (lineItem.picked_temp_qty_data) {\n      try {\n        existingPickedTempQtyData = typeof lineItem.picked_temp_qty_data === 'string'\n          ? JSON.parse(lineItem.picked_temp_qty_data)\n          : (Array.isArray(lineItem.picked_temp_qty_data) ? lineItem.picked_temp_qty_data : []);\n      } catch (e) {\n        existingPickedTempQtyData = [];\n      }\n    }\n\n    const sessionPickedItems = [];\n    for (const record of lineRecords) {\n      const pickedQty = record.store_out_qty || 0;\n      if (pickedQty > 0) {\n        sessionPickedItems.push({\n          material_id: lineItem.material_id,\n          location_id: record.target_location || record.source_bin,\n          batch_id: record.target_batch || record.batch_no || null,\n          handling_unit_id: record.handling_unit_id || null,\n          gd_quantity: pickedQty,\n          plant_id: lineItem.plant_id,\n          organization_id: lineItem.organization_id\n        });\n      }\n    }\n\n    const mergeKey = (locId, batchId, huId) => {\n      const normBatch = (batchId === 'undefined' || batchId === null || batchId === undefined) ? 'none' : batchId;\n      return (locId || 'no-location') + '_' + normBatch + '_' + (huId || 'no_hu');\n    };\n    const mergedMap = new Map();\n    const collect = (entry) => {\n      const k = mergeKey(entry.location_id, entry.batch_id, entry.handling_unit_id);\n      if (mergedMap.has(k)) {\n        const ex = mergedMap.get(k);\n        ex.gd_quantity = Math.round(((ex.gd_quantity || 0) + (entry.gd_quantity || 0)) * 1000) / 1000;\n      } else {\n        const normBatch = (entry.batch_id === 'undefined' || entry.batch_id === null || entry.batch_id === undefined) ? null : entry.batch_id;\n        mergedMap.set(k, { ...entry, batch_id: normBatch });\n      }\n    };\n    existingPickedTempQtyData.forEach(collect);\n    sessionPickedItems.forEach(collect);\n    const mergedPickedTempQtyData = Array.from(mergedMap.values());\n\n    const totalPickedQty = Math.round(\n      mergedPickedTempQtyData.reduce((sum, e) => sum + (e.gd_quantity || 0), 0) * 1000\n    ) / 1000;\n\n    const pickedViewStock = buildViewStock(mergedPickedTempQtyData, uom);\n\n    const planQty = parseFloat(lineItem.gd_qty || 0);\n\n    // M:N splits one GD line across sibling Pickings, and the cumulative above is a\n    // read-modify-write of the line's own picked_temp_qty_data -- the picking mutex is\n    // per Picking DOCUMENT, so it cannot serialise two siblings. A lost accumulation\n    // makes Convert to Picking mint a follow-up for more than really remains. Mirrors\n    // the PP branch (code_node_AGoxWP7x): refuse rather than over-pick silently.\n    // Compared at 3dp: store_out_qty is rounded to 3dp everywhere, but summing\n    // those floats can land on 10.000000000000002 and a bare `>` would then\n    // block a picker who picked exactly the plan quantity.\n    if (Math.round((totalPickedQty - planQty) * 1000) / 1000 > 0 && planQty > 0) {\n      overPickedItems.push({\n        item_name: lineItem.material_name || lineItem.item_name || lineItem.material_id || '',\n        picked_qty: totalPickedQty,\n        plan_qty: planQty\n      });\n    }\n\n    let cumulativePickingStatus;\n    if (totalPickedQty >= planQty && planQty > 0) {\n      cumulativePickingStatus = 'Completed';\n    } else if (totalPickedQty > 0) {\n      cumulativePickingStatus = 'In Progress';\n    } else {\n      cumulativePickingStatus = 'Created';\n    }\n\n    pickedQtyAddon = {\n      picked_qty: totalPickedQty,\n      picked_temp_qty_data: JSON.stringify(mergedPickedTempQtyData),\n      picked_view_stock: pickedViewStock,\n      picking_status: cumulativePickingStatus\n    };\n  }\n\n  updatedGdLines.push({\n    ...lineItem,\n    temp_qty_data: newTempQtyDataStr,\n    prev_temp_qty_data: originalTempQtyData,\n    view_stock: viewStock,\n    picking_status: isForceComplete === 1 ? 'Completed' : pickingStatus,\n    ...forceCompleteFields,\n    ...(pickedQtyAddon || {})\n  });\n}\n\nif (overPickedItems.length > 0) {\n  const errorDetails = overPickedItems\n    .map((item) => `${item.item_name} (Picked: ${item.picked_qty}, Plan: ${item.plan_qty})`)\n    .join(', ');\n\n  return {\n    code: \"400\",\n    message: `Picked quantity cannot exceed plan quantity: ${errorDetails}`,\n    updatedGdLines: [],\n    hasAnyChanges: false,\n    updatedCount: 0,\n    isForceComplete\n  };\n}\n\nreturn {\n  code: \"200\",\n  updatedGdLines,\n  hasAnyChanges,\n  updatedCount,\n  isForceComplete,\n  anyTempChanged\n};\n"
                 },
                 "response_json": [
                   {
@@ -2688,6 +2688,15 @@
                     "description": "",
                     "bsonType": "string",
                     "isExpand": false
+                  },
+                  {
+                    "key": "sc2pjrfn",
+                    "name": "anyTempChanged",
+                    "title": "anyTempChanged",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
                   }
                 ]
               },
@@ -2777,6 +2786,219 @@
                   "data": {
                     "title": "false"
                   },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "code_node_SizeGuardPrep",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Size Guard: the GDs on this Picking (ids for the line count)",
+                "isValidator": true,
+                "nodeName": "Size Guard: the GDs on this Picking (ids for the line count)",
+                "name": "Size Guard: the GDs on this Picking (ids for the line count)",
+                "script": {
+                  "type": "javascript",
+                  "code": "// The GDs on this Picking, quoted for the line count below (digits only).\nconst ids = ({{node:code_node_oHIIKfiw.data.gdIds}} || [])\n  .map((x) => String(x))\n  .filter((x) => /^[0-9]{1,20}$/.test(x));\nreturn { gdIdCsv: ids.length > 0 ? ids.map((x) => \"'\" + x + \"'\").join(\",\") : \"'0'\" };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "tn0h3bzx",
+                    "name": "gdIdCsv",
+                    "title": "gdIdCsv",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "sql_node_GdLineCount",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Size Guard: line count per GD",
+                "isValidator": true,
+                "nodeName": "Size Guard: line count per GD",
+                "name": "Size Guard: line count per GD",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(goods_delivery_id AS CHAR) AS gd_id,\n       COUNT(*) AS line_count\nFROM goods_delivery_fwii8mvb_sub\nWHERE goods_delivery_id IN ({{node:code_node_SizeGuardPrep.data.gdIdCsv}})\n  AND is_deleted = 0\nGROUP BY goods_delivery_id"
+                },
+                "response_json": [
+                  {
+                    "key": "ops2dmf9",
+                    "name": "gd_id",
+                    "title": "gd_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sz533daw",
+                    "name": "line_count",
+                    "title": "line_count",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_SizeGuard",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Size Guard: refuse a full GD re-save above 500 lines (nothing written yet)",
+                "isValidator": true,
+                "nodeName": "Size Guard: refuse a full GD re-save above 500 lines (nothing written yet)",
+                "name": "Size Guard: refuse a full GD re-save above 500 lines (nothing written yet)",
+                "script": {
+                  "type": "javascript",
+                  "code": "// GOODS_DELIVERY's full re-save took the dev server down on a 2,000-line GD (2026-10-09). The cases that still\n// need it (force complete, loading bay, a bin/batch move) are refused on a big GD before anything is written.\nconst MAX_SYNC_GD_LINES = 500;\nconst raw = {{node:sql_node_GdLineCount.data}};\nconst rows = Array.isArray(raw) ? raw : raw ? [raw] : [];\nconst lineCounts = {};\nlet maxLines = 0;\nfor (const r of rows) {\n  const n = Number(r.line_count) || 0;\n  lineCounts[String(r.gd_id)] = n;\n  if (n > maxLines) maxLines = n;\n}\n\nconst setupRaw = {{node:get_node_Uj1uV9PU.data.data}};\nconst setup = (Array.isArray(setupRaw) ? setupRaw[0] : setupRaw) || {};\nconst isForceComplete = Number({{workflowparams:isForceComplete}} || 0) === 1;\nconst isLoadingBay = Number(setup.is_loading_bay || 0) === 1;\nconst anyTempChanged = Number({{node:code_node_iES7iMKA.data.anyTempChanged}} || 0) === 1;\nconst needFullSave = isForceComplete || isLoadingBay || anyTempChanged ? 1 : 0;\n\nif (needFullSave === 1 && maxLines > MAX_SYNC_GD_LINES) {\n  const what = isForceComplete\n    ? \"Force Complete\"\n    : isLoadingBay\n      ? \"A loading bay move\"\n      : \"Moving picked stock to another bin or batch\";\n  return {\n    code: \"400\",\n    message: what + \" is not available yet for a Goods Delivery above \" + MAX_SYNC_GD_LINES +\n      \" lines (this one has \" + maxLines + \"). Nothing was saved.\",\n    lineCounts,\n    needFullSave,\n    maxLines,\n  };\n}\n\nreturn { code: \"200\", message: \"\", lineCounts, needFullSave, maxLines };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "e5ev7eui",
+                    "name": "code",
+                    "title": "code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "wdfhsmqk",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "framgb71",
+                    "name": "lineCounts",
+                    "title": "lineCounts",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "be7f1gc1",
+                    "name": "needFullSave",
+                    "title": "needFullSave",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "jlu1etsw",
+                    "name": "maxLines",
+                    "title": "maxLines",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_SizeGuard",
+              "type": "if",
+              "data": {
+                "title": "IF Too Large For A Full GD Re-save",
+                "isValidator": true,
+                "nodeName": "IF Too Large For A Full GD Re-save",
+                "name": "IF Too Large For A Full GD Re-save",
+                "condition_type": "ConditionRule",
+                "expression": { "type": "javascript", "code": "" },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1791900000002,
+                      "parentId": 1791900000001,
+                      "isTop": true,
+                      "prop": "node.code_node_SizeGuard.data.code",
+                      "operator": "equal",
+                      "valueType": "value",
+                      "value": "400",
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "code",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_SizeGuardT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_SizeGuard",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_SizeGuard.data.code}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SizeGuard.data.message}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_SizeGuardF",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
                   "blocks": []
                 }
               ]
@@ -3975,6 +4197,71 @@
                   "blocks": []
                 },
                 {
+                  "id": "code_node_GdRoute",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "GD Route: header-only update, full re-save, auto-complete or skip",
+                    "isValidator": true,
+                    "nodeName": "GD Route: header-only update, full re-save, auto-complete or skip",
+                    "name": "GD Route: header-only update, full re-save, auto-complete or skip",
+                    "script": {
+                      "type": "javascript",
+                      "code": "// A normal pick changes only the GD header picking_status: write that, rolled up exactly as GOODS_DELIVERY's\n// code_node_PkMerge does, instead of re-saving the whole GD. The full re-save still runs when this pick moved\n// stock or force-completed (refused above 500 lines before any write); auto-complete is skipped above 500 lines.\nconst MAX_SYNC_GD_LINES = 500;\nconst gd = {{node:code_node_9rK80jNQ.data.gdData}} || {};\nconst pickingStatus = {{node:code_node_9rK80jNQ.data.pickingStatus}} || \"\";\nconst setupRaw = {{node:get_node_Uj1uV9PU.data.data}};\nconst setup = (Array.isArray(setupRaw) ? setupRaw[0] : setupRaw) || {};\nconst lineCounts = {{node:code_node_SizeGuard.data.lineCounts}} || {};\nconst needFullSave = Number({{node:code_node_SizeGuard.data.needFullSave}} || 0) === 1;\nconst gdId = String(gd.id || \"\");\nconst lineCount = Number(lineCounts[gdId] || 0);\n\n// Verbatim from GOODS_DELIVERY code_node_PkMerge.\nconst rollUpPicking = (header, rows) => {\n  if (header !== \"Created\" && header !== \"In Progress\") return header;\n  const lines = (rows || [])\n    .flatMap((row) => [row, ...(Array.isArray(row.children) ? row.children : [])])\n    .filter((line) => line.material_id && line.picking_status !== \"Cancelled\" &&\n      (parseFloat(line.gd_qty) || 0) > 0);\n  return lines.length > 0 && lines.every((line) => line.picking_status === \"Completed\")\n    ? \"Completed\" : header;\n};\n\nlet route = \"STATUS\";\nlet failCode = \"\";\nlet failMessage = \"\";\nif (gd.gd_status === \"Cancelled\") {\n  route = \"SKIP\";\n  failCode = \"400\";\n  failMessage = \"the Goods Delivery is cancelled\";\n} else if (pickingStatus === \"Completed\" && Number(setup.auto_completed_gd || 0) === 1) {\n  if (lineCount > MAX_SYNC_GD_LINES) {\n    route = \"SKIP\";\n    failCode = \"200\";\n    failMessage = lineCount + \" lines is above the \" + MAX_SYNC_GD_LINES +\n      \"-line limit for completing it automatically; complete it from the Goods Delivery\";\n  } else {\n    route = \"COMPLETE\";\n  }\n} else if (needFullSave) {\n  route = \"CREATED\";\n}\n\nreturn {\n  route,\n  gdId,\n  headerStatus: rollUpPicking(pickingStatus, gd.table_gd),\n  failCode,\n  failMessage,\n};\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "hxcpm3tr",
+                        "name": "route",
+                        "title": "route",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "ibp9gra3",
+                        "name": "gdId",
+                        "title": "gdId",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "q6ovh8st",
+                        "name": "headerStatus",
+                        "title": "headerStatus",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "csd6ecwg",
+                        "name": "failCode",
+                        "title": "failCode",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "a2e04nxj",
+                        "name": "failMessage",
+                        "title": "failMessage",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
                   "id": "if_9oBTzuRX",
                   "type": "if",
                   "data": {
@@ -3983,49 +4270,22 @@
                     "nodeName": "IF Auto Complete GD",
                     "name": "IF Auto Complete GD",
                     "condition_type": "ConditionRule",
-                    "expression": {
-                      "type": "javascript",
-                      "code": ""
-                    },
+                    "expression": { "type": "javascript", "code": "" },
                     "filter": {
                       "list": [
                         {
-                          "id": 1770868030678,
+                          "id": 1791900000004,
+                          "parentId": 1791900000003,
                           "isTop": true,
-                          "parentId": 1770616684667,
-                          "type": "branch",
-                          "operator": "all",
+                          "prop": "node.code_node_GdRoute.data.route",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "COMPLETE",
+                          "type": "leaf",
                           "level": 1,
-                          "children": [
-                            {
-                              "id": 1770616684668,
-                              "parentId": 1770868030678,
-                              "isTop": false,
-                              "prop": "node.code_node_9rK80jNQ.data.pickingStatus",
-                              "operator": "equal",
-                              "valueType": "value",
-                              "value": "Completed",
-                              "type": "leaf",
-                              "level": 2,
-                              "propLabel": "pickingStatus",
-                              "valueLabel": "",
-                              "operatorLabel": "Equal"
-                            },
-                            {
-                              "id": 1770868030679,
-                              "parentId": 1770868030678,
-                              "isTop": false,
-                              "prop": "node.get_node_Uj1uV9PU.data.data.auto_completed_gd",
-                              "operator": "numberEqual",
-                              "valueType": "value",
-                              "value": 1,
-                              "type": "leaf",
-                              "level": 2,
-                              "propLabel": "Auto Complete GD",
-                              "valueLabel": "",
-                              "operatorLabel": "Equal"
-                            }
-                          ]
+                          "propLabel": "route",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
                         }
                       ]
                     }
@@ -4034,9 +4294,7 @@
                     {
                       "id": "if_block_f6k6UqTd",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "true"
-                      },
+                      "data": { "title": "true" },
                       "blocks": [
                         {
                           "id": "workflow_node_Cd96wivg",
@@ -4168,9 +4426,7 @@
                             {
                               "id": "if_block_lLdqApOW",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
                                   "id": "get_cache_GdFailA",
@@ -4238,9 +4494,7 @@
                             {
                               "id": "if_block_bflyjyId",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
+                              "data": { "title": "false" },
                               "blocks": []
                             }
                           ]
@@ -4250,206 +4504,404 @@
                     {
                       "id": "if_block_VheLY2zW",
                       "type": "ifBlock",
-                      "data": {
-                        "title": "false"
-                      },
+                      "data": { "title": "false" },
                       "blocks": [
                         {
-                          "id": "workflow_node_4c98bf8x",
-                          "type": "workflow-node",
-                          "data": {
-                            "workflow_id": "",
-                            "workflow_name": "",
-                            "input_params": {},
-                            "title": "Run Created GD workflow",
-                            "isValidator": true,
-                            "nodeName": "Run Created GD workflow",
-                            "name": "Run Created GD workflow",
-                            "workflow": {
-                              "source": "GOODS_DELIVERY:Workflow:2017151544868491265",
-                              "rules": {
-                                "collectionId": "2017151544868491265",
-                                "list": [
-                                  {
-                                    "id": 1723795236686,
-                                    "parentId": 1723795236685,
-                                    "isTop": true,
-                                    "prop": "",
-                                    "operator": "",
-                                    "valueType": "",
-                                    "value": "",
-                                    "type": "leaf",
-                                    "level": 1
-                                  }
-                                ]
-                              }
-                            },
-                            "remote": true,
-                            "remoteType": "innerdatasource",
-                            "body_params": {
-                              "list": [
-                                {
-                                  "prop": "allData",
-                                  "propLabel": "allData",
-                                  "operator": "",
-                                  "operatorLabel": "",
-                                  "valueType": "field",
-                                  "valueTypeLabel": "",
-                                  "value": "{{node:code_node_9rK80jNQ.data.gdData}}",
-                                  "valueLabel": ""
-                                },
-                                {
-                                  "prop": "saveAs",
-                                  "operator": "",
-                                  "valueType": "value",
-                                  "value": "Created",
-                                  "valueLabel": "",
-                                  "propLabel": "saveAs"
-                                },
-                                {
-                                  "prop": "pageStatus",
-                                  "operator": "",
-                                  "valueType": "value",
-                                  "value": "Edit",
-                                  "valueLabel": "",
-                                  "propLabel": "pageStatus"
-                                },
-                                {
-                                  "prop": "needCL",
-                                  "operator": "",
-                                  "valueType": "value",
-                                  "value": "auto",
-                                  "valueLabel": "",
-                                  "propLabel": "needCL"
-                                },
-                                {
-                                  "prop": "isPicking",
-                                  "operator": "",
-                                  "valueType": "value",
-                                  "value": "Yes",
-                                  "valueLabel": "",
-                                  "propLabel": "isPicking"
-                                },
-                                {
-                                  "prop": "isLoadingBay",
-                                  "operator": "",
-                                  "valueType": "field",
-                                  "value": "{{node:get_node_Uj1uV9PU.data.data.is_loading_bay}}",
-                                  "valueLabel": "",
-                                  "propLabel": "isLoadingBay"
-                                }
-                              ]
-                            }
-                          },
-                          "blocks": []
-                        },
-                        {
-                          "id": "if_jCnVaUJt",
+                          "id": "if_GdRouteCreated",
                           "type": "if",
                           "data": {
-                            "title": "IF Error",
+                            "title": "IF Full GD Re-save Needed",
                             "isValidator": true,
-                            "nodeName": "IF Error",
-                            "name": "IF Error",
-                            "condition_type": "Expression",
-                            "expression": {
-                              "type": "javascript",
-                              "code": "'{{node:workflow_node_4c98bf8x.data.code}}' != '200'"
-                            },
+                            "nodeName": "IF Full GD Re-save Needed",
+                            "name": "IF Full GD Re-save Needed",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
                             "filter": {
                               "list": [
                                 {
-                                  "id": 1736695973613,
-                                  "parentId": 1736695973612,
+                                  "id": 1791900000010,
+                                  "parentId": 1791900000009,
                                   "isTop": true,
-                                  "prop": "",
-                                  "operator": "",
-                                  "valueType": "",
-                                  "value": "",
+                                  "prop": "node.code_node_GdRoute.data.route",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "CREATED",
                                   "type": "leaf",
-                                  "level": 1
+                                  "level": 1,
+                                  "propLabel": "route",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
                                 }
                               ]
                             }
                           },
                           "blocks": [
                             {
-                              "id": "ifBlock_gvyNNAi4",
+                              "id": "if_block_GdCreatedT",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "true"
-                              },
+                              "data": { "title": "true" },
                               "blocks": [
                                 {
-                                  "id": "get_cache_GdFailB",
-                                  "type": "get-cache-node",
+                                  "id": "workflow_node_4c98bf8x",
+                                  "type": "workflow-node",
                                   "data": {
-                                    "cache_key": "",
-                                    "title": "Get GD Failures",
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "Run Created GD workflow",
                                     "isValidator": true,
-                                    "nodeName": "Get GD Failures",
-                                    "name": "Get GD Failures",
-                                    "redis_key": "gdFails_{{node:code_node_UDOp8D9x.data.id}}"
-                                  },
-                                  "blocks": []
-                                },
-                                {
-                                  "id": "code_node_GdFailB",
-                                  "type": "code-node",
-                                  "data": {
-                                    "language": "javascript",
-                                    "code": "",
-                                    "timeout": 30000,
-                                    "title": "Collect GD Failure",
-                                    "isValidator": true,
-                                    "nodeName": "Collect GD Failure",
-                                    "name": "Collect GD Failure",
-                                    "script": {
-                                      "type": "javascript",
-                                      "code": "const raw = {{node:get_cache_GdFailB.data}};\nlet fails = [];\nif (raw) { fails = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(fails)) fails = [];\n\n// Never test for \"400\": a sub-workflow can return with no code at all, so the\n// caller's success is tested positively. Mirrors SOcascadeDownstreamWorkflow.\nfails.push({\n  doc_no: {{node:code_node_9rK80jNQ.data.docNo}} || \"\",\n  code: String({{node:workflow_node_4c98bf8x.data.code}} || \"\"),\n  message: {{node:workflow_node_4c98bf8x.data.message}} || \"\"\n});\n\nreturn { fails: fails };\n"
-                                    },
-                                    "response_json": [
-                                      {
-                                        "key": "code_node_GdFailB_fails",
-                                        "name": "fails",
-                                        "title": "fails",
-                                        "description": "",
-                                        "bsonType": "any",
-                                        "isExpand": false,
-                                        "children": []
+                                    "nodeName": "Run Created GD workflow",
+                                    "name": "Run Created GD workflow",
+                                    "workflow": {
+                                      "source": "GOODS_DELIVERY:Workflow:2017151544868491265",
+                                      "rules": {
+                                        "collectionId": "2017151544868491265",
+                                        "list": [
+                                          {
+                                            "id": 1723795236686,
+                                            "parentId": 1723795236685,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
                                       }
-                                    ]
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "allData",
+                                          "propLabel": "allData",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:code_node_9rK80jNQ.data.gdData}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "saveAs",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "Created",
+                                          "valueLabel": "",
+                                          "propLabel": "saveAs"
+                                        },
+                                        {
+                                          "prop": "pageStatus",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "Edit",
+                                          "valueLabel": "",
+                                          "propLabel": "pageStatus"
+                                        },
+                                        {
+                                          "prop": "needCL",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "auto",
+                                          "valueLabel": "",
+                                          "propLabel": "needCL"
+                                        },
+                                        {
+                                          "prop": "isPicking",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "Yes",
+                                          "valueLabel": "",
+                                          "propLabel": "isPicking"
+                                        },
+                                        {
+                                          "prop": "isLoadingBay",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:get_node_Uj1uV9PU.data.data.is_loading_bay}}",
+                                          "valueLabel": "",
+                                          "propLabel": "isLoadingBay"
+                                        }
+                                      ]
+                                    }
                                   },
                                   "blocks": []
                                 },
                                 {
-                                  "id": "set_cache_GdFailB",
-                                  "type": "set-cache-node",
+                                  "id": "if_jCnVaUJt",
+                                  "type": "if",
                                   "data": {
-                                    "cache_key": "",
-                                    "cache_value": "",
-                                    "expire_time": 3600,
-                                    "title": "Set GD Failures",
+                                    "title": "IF Error",
                                     "isValidator": true,
-                                    "nodeName": "Set GD Failures",
-                                    "name": "Set GD Failures",
-                                    "custom_wkbocgni": {
+                                    "nodeName": "IF Error",
+                                    "name": "IF Error",
+                                    "condition_type": "Expression",
+                                    "expression": {
                                       "type": "javascript",
-                                      "code": "{{node:code_node_GdFailB.data.fails}}"
+                                      "code": "'{{node:workflow_node_4c98bf8x.data.code}}' != '200'"
                                     },
-                                    "redis_key": "gdFails_{{node:code_node_UDOp8D9x.data.id}}"
+                                    "filter": {
+                                      "list": [
+                                        {
+                                          "id": 1736695973613,
+                                          "parentId": 1736695973612,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
                                   },
-                                  "blocks": []
+                                  "blocks": [
+                                    {
+                                      "id": "ifBlock_gvyNNAi4",
+                                      "type": "ifBlock",
+                                      "data": { "title": "true" },
+                                      "blocks": [
+                                        {
+                                          "id": "get_cache_GdFailB",
+                                          "type": "get-cache-node",
+                                          "data": {
+                                            "cache_key": "",
+                                            "title": "Get GD Failures",
+                                            "isValidator": true,
+                                            "nodeName": "Get GD Failures",
+                                            "name": "Get GD Failures",
+                                            "redis_key": "gdFails_{{node:code_node_UDOp8D9x.data.id}}"
+                                          },
+                                          "blocks": []
+                                        },
+                                        {
+                                          "id": "code_node_GdFailB",
+                                          "type": "code-node",
+                                          "data": {
+                                            "language": "javascript",
+                                            "code": "",
+                                            "timeout": 30000,
+                                            "title": "Collect GD Failure",
+                                            "isValidator": true,
+                                            "nodeName": "Collect GD Failure",
+                                            "name": "Collect GD Failure",
+                                            "script": {
+                                              "type": "javascript",
+                                              "code": "const raw = {{node:get_cache_GdFailB.data}};\nlet fails = [];\nif (raw) { fails = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(fails)) fails = [];\n\n// Never test for \"400\": a sub-workflow can return with no code at all, so the\n// caller's success is tested positively. Mirrors SOcascadeDownstreamWorkflow.\nfails.push({\n  doc_no: {{node:code_node_9rK80jNQ.data.docNo}} || \"\",\n  code: String({{node:workflow_node_4c98bf8x.data.code}} || \"\"),\n  message: {{node:workflow_node_4c98bf8x.data.message}} || \"\"\n});\n\nreturn { fails: fails };\n"
+                                            },
+                                            "response_json": [
+                                              {
+                                                "key": "code_node_GdFailB_fails",
+                                                "name": "fails",
+                                                "title": "fails",
+                                                "description": "",
+                                                "bsonType": "any",
+                                                "isExpand": false,
+                                                "children": []
+                                              }
+                                            ]
+                                          },
+                                          "blocks": []
+                                        },
+                                        {
+                                          "id": "set_cache_GdFailB",
+                                          "type": "set-cache-node",
+                                          "data": {
+                                            "cache_key": "",
+                                            "cache_value": "",
+                                            "expire_time": 3600,
+                                            "title": "Set GD Failures",
+                                            "isValidator": true,
+                                            "nodeName": "Set GD Failures",
+                                            "name": "Set GD Failures",
+                                            "custom_wkbocgni": {
+                                              "type": "javascript",
+                                              "code": "{{node:code_node_GdFailB.data.fails}}"
+                                            },
+                                            "redis_key": "gdFails_{{node:code_node_UDOp8D9x.data.id}}"
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "ifBlock_4bNcmv9J",
+                                      "type": "ifBlock",
+                                      "data": { "title": "false" },
+                                      "blocks": []
+                                    }
+                                  ]
                                 }
                               ]
                             },
                             {
-                              "id": "ifBlock_4bNcmv9J",
+                              "id": "if_block_GdCreatedF",
                               "type": "ifBlock",
-                              "data": {
-                                "title": "false"
-                              },
-                              "blocks": []
+                              "data": { "title": "false" },
+                              "blocks": [
+                                {
+                                  "id": "if_GdRouteStatus",
+                                  "type": "if",
+                                  "data": {
+                                    "title": "IF Header-Only Update",
+                                    "isValidator": true,
+                                    "nodeName": "IF Header-Only Update",
+                                    "name": "IF Header-Only Update",
+                                    "condition_type": "ConditionRule",
+                                    "expression": {
+                                      "type": "javascript",
+                                      "code": ""
+                                    },
+                                    "filter": {
+                                      "list": [
+                                        {
+                                          "id": 1791900000008,
+                                          "parentId": 1791900000007,
+                                          "isTop": true,
+                                          "prop": "node.code_node_GdRoute.data.route",
+                                          "operator": "equal",
+                                          "valueType": "value",
+                                          "value": "STATUS",
+                                          "type": "leaf",
+                                          "level": 1,
+                                          "propLabel": "route",
+                                          "valueLabel": "",
+                                          "operatorLabel": "Equal"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "if_block_GdStatusT",
+                                      "type": "ifBlock",
+                                      "data": { "title": "true" },
+                                      "blocks": [
+                                        {
+                                          "id": "update_node_GdPickHdr",
+                                          "type": "update-node",
+                                          "data": {
+                                            "table_id": {
+                                              "source": "Goods Delivery:Table:1902054888473481218",
+                                              "rules": {
+                                                "collectionId": "1902054888473481218",
+                                                "list": [
+                                                  {
+                                                    "id": 1791900000006,
+                                                    "parentId": 1791900000005,
+                                                    "isTop": true,
+                                                    "prop": "id",
+                                                    "operator": "in",
+                                                    "valueType": "field",
+                                                    "value": "{{node:code_node_GdRoute.data.gdId}}",
+                                                    "type": "leaf",
+                                                    "level": 1,
+                                                    "propLabel": "主键ID",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "In"
+                                                  }
+                                                ]
+                                              }
+                                            },
+                                            "fields": [],
+                                            "condition": {},
+                                            "title": "Update GD Picking Status (header only)",
+                                            "isValidator": true,
+                                            "nodeName": "Update GD Picking Status (header only)",
+                                            "name": "Update GD Picking Status (header only)",
+                                            "props": {
+                                              "modelName": "",
+                                              "list": [
+                                                {
+                                                  "prop": "picking_status",
+                                                  "valueType": "field",
+                                                  "value": "{{node:code_node_GdRoute.data.headerStatus}}",
+                                                  "operator": "",
+                                                  "valueLabel": "",
+                                                  "propLabel": "Picking Status"
+                                                }
+                                              ]
+                                            }
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "id": "if_block_GdStatusF",
+                                      "type": "ifBlock",
+                                      "data": { "title": "false" },
+                                      "blocks": [
+                                        {
+                                          "id": "get_cache_GdFailC",
+                                          "type": "get-cache-node",
+                                          "data": {
+                                            "cache_key": "",
+                                            "title": "Get GD Failures",
+                                            "isValidator": true,
+                                            "nodeName": "Get GD Failures",
+                                            "name": "Get GD Failures",
+                                            "redis_key": "gdFails_{{node:code_node_UDOp8D9x.data.id}}"
+                                          },
+                                          "blocks": []
+                                        },
+                                        {
+                                          "id": "code_node_GdFailC",
+                                          "type": "code-node",
+                                          "data": {
+                                            "language": "javascript",
+                                            "code": "",
+                                            "timeout": 30000,
+                                            "title": "Collect GD Skip",
+                                            "isValidator": true,
+                                            "nodeName": "Collect GD Skip",
+                                            "name": "Collect GD Skip",
+                                            "script": {
+                                              "type": "javascript",
+                                              "code": "const raw = {{node:get_cache_GdFailC.data}};\nlet fails = [];\nif (raw) { fails = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(fails)) fails = [];\n\nfails.push({\n  doc_no: {{node:code_node_9rK80jNQ.data.docNo}} || \"\",\n  code: {{node:code_node_GdRoute.data.failCode}} || \"400\",\n  message: {{node:code_node_GdRoute.data.failMessage}} || \"\"\n});\n\nreturn { fails: fails };\n"
+                                            },
+                                            "response_json": [
+                                              {
+                                                "key": "qnj00jnt",
+                                                "name": "fails",
+                                                "title": "fails",
+                                                "description": "",
+                                                "bsonType": "array",
+                                                "isExpand": false,
+                                                "children": []
+                                              }
+                                            ]
+                                          },
+                                          "blocks": []
+                                        },
+                                        {
+                                          "id": "set_cache_GdFailC",
+                                          "type": "set-cache-node",
+                                          "data": {
+                                            "cache_key": "",
+                                            "cache_value": "",
+                                            "expire_time": 3600,
+                                            "title": "Set GD Failures",
+                                            "isValidator": true,
+                                            "nodeName": "Set GD Failures",
+                                            "name": "Set GD Failures",
+                                            "custom_wkbocgni": {
+                                              "type": "javascript",
+                                              "code": "{{node:code_node_GdFailC.data.fails}}"
+                                            },
+                                            "redis_key": "gdFails_{{node:code_node_UDOp8D9x.data.id}}"
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                }
+                              ]
                             }
                           ]
                         }

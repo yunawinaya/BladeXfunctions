@@ -717,6 +717,40 @@ const revealDeliveryMethodSection = async () => {
   }
 };
 
+// Picking V2: a confirmation saved in the background holds is_processing = 1 until its job ends. While that job is
+// open the save buttons are hidden; a job that ended FAILED / under review / with a reduced line is reported once.
+const pkV2ShowJobState = async () => {
+  const id = this.getValue("id");
+  if (!id) return;
+  let jobs = [];
+  try {
+    const res = await db.collection("GD Async Job").field("id,command,job_status,progress_message,error_code,error_message").where({ picking_id: String(id) }).get();
+    jobs = ((res && res.data) || []).filter((j) => j && j.command === "CONFIRM_PICKING");
+  } catch (e) {
+    console.error("Picking V2: job state could not be read", e);
+    return;
+  }
+  const last = jobs.sort((a, b) => (String(a.id).length - String(b.id).length) || (String(a.id) < String(b.id) ? -1 : 1)).pop();
+  if (!last) return;
+  if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PICKING"].includes(last.job_status)) {
+    this.hide(["button_save_as_draft", "button_created", "button_inprogress", "button_completed"]);
+    this.$message.warning("This Picking is being saved in the background (" + (last.progress_message || last.job_status) + "). Reopen it in a moment.");
+    return;
+  }
+  const seenKey = "pkv2_seen_" + last.id;
+  let seen = false;
+  try {
+    seen = window.localStorage.getItem(seenKey) === "1";
+    window.localStorage.setItem(seenKey, "1");
+  } catch (e) {
+    seen = false;
+  }
+  if (seen) return;
+  if (last.job_status === "FAILED") this.$message.error("The last confirmation was not saved: " + (last.error_message || last.progress_message || "unknown reason"));
+  else if (last.job_status === "REQUIRES_REVIEW") this.$message.error("The last confirmation stopped half-way and is under review: " + (last.error_message || "") + " Please contact support.");
+  else if (last.job_status === "COMPLETED" && last.error_code === "PK_CLAMPED") this.$message.warning(last.error_message || last.progress_message);
+};
+
 // Main execution function
 (async () => {
   try {
@@ -785,6 +819,7 @@ const revealDeliveryMethodSection = async () => {
         await disabledField(status);
         await showStatusHTML(status);
         await disabledPickedQtyField();
+        await pkV2ShowJobState();
         await viewSerialNumber();
         await setSerialNumber();
         console.log(
