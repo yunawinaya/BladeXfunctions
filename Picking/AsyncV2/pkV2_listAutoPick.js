@@ -195,7 +195,7 @@ const fillRows = (rows) => {
         }
         if (sub.data.route !== "NOT_ELIGIBLE") {
           if (String(sub.data.result_code) === "200" && sub.data.job_id) {
-            results.push({ to_id: pickingItem.to_id, success: true, warning: "Saving in the background" });
+            results.push({ to_id: pickingItem.to_id, success: true, queued: true });
             try {
               this.runWorkflow(PK_V2_WF.WORKER, { job_id: String(sub.data.job_id) }, () => {
                 this.refresh();
@@ -301,9 +301,11 @@ const fillRows = (rows) => {
       }
     }
 
-    const successCount = results.filter((r) => r.success && !r.warning).length;
+    const queuedCount = results.filter((r) => r.queued).length;
+    const successCount = results.filter((r) => r.success && !r.warning && !r.queued).length;
     const warningCount = results.filter((r) => r.success && r.warning).length;
     const failCount = results.filter((r) => !r.success).length;
+    const queuedNote = queuedCount > 0 ? `${queuedCount} saving in the background, ` : "";
 
     if (failCount > 0) {
       const failedItems = results
@@ -311,7 +313,7 @@ const fillRows = (rows) => {
         .map((r) => `${r.to_id}: ${r.error}`)
         .join("<br>");
       this.$message.error(
-        `${successCount} succeeded, ${warningCount} with warnings, ${failCount} failed:<br>${failedItems}`,
+        `${successCount} succeeded, ${queuedNote}${warningCount} with warnings, ${failCount} failed:<br>${failedItems}`,
       );
     } else if (warningCount > 0) {
       const warningItems = results
@@ -319,7 +321,13 @@ const fillRows = (rows) => {
         .map((r) => `${r.to_id}: ${r.warning}`)
         .join("<br>");
       this.$message.warning(
-        `${successCount} succeeded, ${warningCount} with warnings:<br>${warningItems}`,
+        `${successCount} succeeded, ${queuedNote}${warningCount} with warnings:<br>${warningItems}`,
+      );
+    } else if (queuedCount > 0) {
+      this.$message.success(
+        `${queuedCount} Picking(s) submitted and being saved in the background` +
+          (successCount > 0 ? `, ${successCount} completed` : "") +
+          ". Reopen them in a moment to see the result.",
       );
     } else {
       this.$message.success(
