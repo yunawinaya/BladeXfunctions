@@ -80,7 +80,9 @@ sudu-lowcode --full data query goods_delivery --where '{"delivery_no":"GD-..."}'
    warning whose message names only the nodes you meant to change
    (`.nodes[#code_required].data.script.code`). `unchanged` = no diff vs live.
 4. Show the user the unescaped before/after of each changed code string (the raw `git diff` is
-   one escaped 1,000-char line) plus that node list, and get a yes. Then publish:
+   one escaped 1,000-char line) plus that node list, and get a yes. **Back up the live version
+   first** (user's rule): `.dbtools/wf --dev backup "<NAME>"` → `~/Documents/ASC-dev/workflow-backups/dev/<NAME>/v<N>_<stamp>.enabled.json`
+   (exact stored JSON; restore = paste it in the designer). Then publish:
    `sudu-lowcode --profile dev-write --full compile "workflow/<path>.ts" --dir . --format json > $SCRATCH/pub.json`
    Success = `ok:true` and `published[].receipt.onlineReadback` → `status: enabled`,
    `versionNumber: <N>` (first done 2026-10-13: CUST_ITEM_BINDING v5 — opens normally in the
