@@ -1,280 +1,106 @@
-const mapLineItem = async (item, record) => {
-  return {
-    item_id: item.item_id || null,
-    item_name: item.item_name,
-    item_desc: item.item_desc,
-    more_desc: item.more_desc,
-    ordered_qty: item.quantity,
-    ordered_qty_uom: item.quantity_uom || null,
-    to_received_qty_uom: item.quantity_uom || null,
-    // Auto-fill received_qty = ordered qty - received qty - created_received_qty
-    // This matches GRaddBatchLineItem.js logic to account for Created GRs
-    received_qty: parseFloat(
-      (
-        item.quantity -
-        (item.received_qty || 0) -
-        (item.created_received_qty || 0)
-      ).toFixed(3),
-    ),
-    item_uom: item.quantity_uom || null,
-    line_po_no: record.purchase_order_no,
-    initial_received_qty: parseFloat((item.received_qty || 0).toFixed(3)),
-    line_po_id: record.id,
-    unit_price: item.unit_price,
-    total_price: item.po_amount,
-    line_remark_1: item.line_remark_1,
-    line_remark_2: item.line_remark_2,
-    po_line_item_id: item.id,
-    item_category_id: item?.item_category_id || null,
-    tariff_id: item.tariff_id,
-    further_description: item.further_description,
-    project_id: item.project_id || null,
-  };
-};
+// Run Workflow: Convert Purchase Order to Goods Receiving (PO_Convert_GR).
+// Same pattern as the Convert to PI button on this list.
+const CONVERT_GR_WORKFLOW_ID = "2109907206996594689";
 
-const fetchDBData = async (selectedRecords) => {
-  try {
-    let data = [];
+// Resolves with "confirm", "cancel" or "close" instead of rejecting, so each
+// of a dialog's two buttons can stand for a choice.
+const askChoice = (message, title, confirmButtonText, cancelButtonText) =>
+  this.$confirm(message, title, {
+    confirmButtonText,
+    cancelButtonText,
+    dangerouslyUseHTMLString: true,
+    type: "info",
+    distinguishCancelAndClose: true,
+  })
+    .then(() => "confirm")
+    .catch((action) => action);
 
-    for (const record of selectedRecords) {
-      console.log("record", record);
-      const response = await db
-        .collection("purchase_order")
-        .where({ id: record.id })
-        .get();
+const handleConvertGR = async (poIds, isMultiple, plantID) => {
+  this.showLoading("Converting to Goods Receiving...");
 
-      console.log("response", response);
-      if (response?.data.length > 0) {
-        data.push(response.data[0]);
-      }
-    }
-
-    return data;
-  } catch (error) {
-    console.error("Error in fetchDBData:", error);
-  }
-};
-
-const mapHeaderData = async (
-  record,
-  poNo,
-  grPrefixId,
-  grPrefix,
-  poID,
-  lineItemPromises,
-  plantID,
-) => {
-  return {
-    gr_status: "Draft",
-    plant_id: plantID,
-    purchase_order_number: poNo,
-    po_id: poID,
-    gr_no: grPrefix,
-    gr_no_type: grPrefixId,
-    gr_date: new Date().toISOString().split("T")[0],
-    organization_id: record.organization_id,
-    supplier_name: record.po_supplier_id,
-    currency_code: record.po_currency,
-    gr_received_by: this.getVarGlobal("nickname"),
-    table_gr: lineItemPromises,
-    project_id: record.project_id || null,
-    from_convert: "Yes",
-    gr_remark1: record.po_remark,
-    gr_remark2: record.po_remark2,
-    gr_remark3: record.po_remark3,
-    gr_remark4: record.po_remark4,
-    gr_remark5: record.po_remark5,
-  };
-};
-
-const handleMultipleGR = async (selectedRecords, plantID) => {
-  const data = await fetchDBData(selectedRecords);
-
-  console.log("Fetched Data:", data);
-
-  let grDataPromises = [];
-
-  for (const record of data) {
-    let lineItemPromises = [];
-    const lineItem = record.table_po || [];
-
-    const grPrefix = await db
-      .collection("su_code_serial_no_rule")
-      .where({
-        business_type: "Goods Receiving",
-        department_id: record.organization_id,
-        is_default: 1,
-      })
-      .get();
-
-    for (const item of lineItem) {
-      // Filter out line items that are fully received
-      // Match GRaddBatchLineItem.js logic: only include lines where initial_received_qty < ordered_qty
-      if ((item.received_qty || 0) >= (item.quantity || 0)) {
-        console.log(
-          `Skipping fully received line item: ${item.item_name} (${item.received_qty}/${item.quantity})`,
-        );
-        continue; // Skip this line item
-      }
-
-      const lineItemPromise = await mapLineItem(item, record);
-      lineItemPromises.push(lineItemPromise);
-    }
-
-    // Skip PO if no line items to receive
-    if (lineItemPromises.length === 0) {
-      console.log(
-        `Skipping PO ${record.purchase_order_no} - all line items fully received`,
-      );
-      continue;
-    }
-
-    const grData = await mapHeaderData(
-      record,
-      record.purchase_order_no,
-      grPrefix.data[0].id,
-      "draft",
-      [record.id],
-      lineItemPromises,
-      plantID,
-    );
-
-    console.log("Mapped GR Data:", grData);
-    grDataPromises.push(grData);
-  }
-
-  console.log("Mapped GR Data Promises:", grDataPromises);
-
-  // Validate that there are GRs to create
-  if (grDataPromises.length === 0) {
-    await this.$alert(
-      "All line items in the selected PO(s) are fully received. No items to convert to GR.",
-      "No Items to Receive",
-      {
-        confirmButtonText: "OK",
-        type: "warning",
-      },
-    );
-    return;
-  }
-
-  const resGR = await Promise.all(
-    grDataPromises.map((grData) =>
-      db.collection("goods_receiving").add(grData),
-    ),
-  );
-
-  const grData = resGR.map((response) => response.data[0]);
-  console.log("Created GR Data:", grData);
-
-  await this.refresh();
-  await this.$alert(
-    `Successfully created ${grData.length} draft goods receipts.<br><br>
-      <strong>Goods Receiving Numbers:</strong><br> ${grData
-        .map((item) => item.gr_no)
-        .join("<br>")}`,
-    "Success Converted to Goods Receipts",
+  await this.runWorkflow(
+    CONVERT_GR_WORKFLOW_ID,
     {
-      confirmButtonText: "OK",
-      dangerouslyUseHTMLString: true,
-      type: "success",
+      po_ids: poIds,
+      is_multiple: isMultiple,
+      plant_id: plantID,
+      received_by: this.getVarGlobal("nickname") || "",
     },
-  );
-};
+    async (res) => {
+      this.hideLoading();
+      const data = res?.data || {};
 
-const handleSingleGR = async (selectedRecords, plantID) => {
-  try {
-    const data = await fetchDBData(selectedRecords);
+      if (isMultiple === "single") {
+        // One GR for every selected order, opened in the add form for review.
+        await this.toView({
+          target: "1901845517592285186",
+          type: "add",
+          data: {
+            ...data.gr_data,
+          },
+          position: "rtl",
+          mode: "dialog",
+          width: "80%",
+          title: "Add",
+        });
+        return;
+      }
 
-    console.log("Fetched Data:", data);
+      const grList = data.gr_list || [];
+      const skipped = data.skipped || [];
 
-    const uniqueSuppliers = new Set(
-      data.map((record) => record.po_supplier_id),
-    );
-
-    const allSameSupplier = uniqueSuppliers.size === 1;
-
-    if (!allSameSupplier) {
-      await this.$confirm(
-        `Selected POs contain multiple suppliers. Create individual goods receipts - one GR per PO?`,
-        "Multiple Suppliers Detected",
+      await this.refresh();
+      await this.$alert(
+        `Successfully created ${grList.length} draft goods receipts.<br><br>
+          <strong>Goods Receiving Numbers:</strong><br> ${grList
+            .map((gr) => gr.gr_no)
+            .join("<br>")}${
+            skipped.length > 0
+              ? `<br><br><strong>Skipped (fully received):</strong><br> ${skipped.join("<br>")}`
+              : ""
+          }`,
+        "Success Converted to Goods Receipts",
         {
+          confirmButtonText: "OK",
+          dangerouslyUseHTMLString: true,
+          type: "success",
+        },
+      );
+    },
+    async (err) => {
+      console.error(err);
+      this.hideLoading();
+      const code = err?.data?.code;
+      const message = err?.data?.msg || err?.msg || String(err);
+
+      if (code === 405) {
+        // Different suppliers: one GR cannot hold them.
+        const proceed = await this.$confirm(message, "Multiple Suppliers Detected", {
           confirmButtonText: "Proceed",
           cancelButtonText: "Cancel",
           dangerouslyUseHTMLString: true,
           type: "info",
-        },
-      ).catch(() => {
-        console.log("User clicked Cancel or closed the dialog");
-        throw new Error();
-      });
+        })
+          .then(() => true)
+          .catch(() => false);
 
-      await handleMultipleGR(selectedRecords, plantID);
-      return;
-    }
-
-    let lineItemPromises = [];
-
-    for (const record of data) {
-      const lineItem = record.table_po || [];
-      for (const item of lineItem) {
-        // Filter out line items that are fully received
-        // Match GRaddBatchLineItem.js logic: only include lines where initial_received_qty < ordered_qty
-        if ((item.received_qty || 0) >= (item.quantity || 0)) {
-          console.log(
-            `Skipping fully received line item: ${item.item_name} (${item.received_qty}/${item.quantity})`,
-          );
-          continue; // Skip this line item
-        }
-
-        const lineItemPromise = await mapLineItem(item, record);
-        lineItemPromises.push(lineItemPromise);
-      }
-    }
-
-    // Validate that there are line items to receive
-    if (lineItemPromises.length === 0) {
-      await this.$alert(
-        "All line items in the selected PO(s) are fully received. No items to convert to GR.",
-        "No Items to Receive",
-        {
+        if (proceed) await handleConvertGR(poIds, "multiple", plantID);
+      } else if (code === 402) {
+        // Nothing convertible, every line fully received, or no GR numbering rule.
+        await this.$alert(message, "Unable to Convert", {
           confirmButtonText: "OK",
+          dangerouslyUseHTMLString: true,
           type: "warning",
-        },
-      );
-      return;
-    }
-
-    const record = data[0];
-    const poNo = data.map((item) => item.purchase_order_no).join(", ");
-    const poID = data.map((item) => item.id);
-    const grPrefix = "";
-    const mappedData = await mapHeaderData(
-      record,
-      poNo,
-      grPrefix,
-      "",
-      poID,
-      lineItemPromises,
-      plantID,
-    );
-
-    console.log("Mapped GR Data:", mappedData);
-
-    await this.toView({
-      target: "1901845517592285186",
-      type: "add",
-      data: {
-        ...mappedData,
-      },
-      position: "rtl",
-      mode: "dialog",
-      width: "80%",
-      title: "Add",
-    });
-  } catch (error) {
-    console.error("Error in handleSingleGR:", error);
-  }
+        });
+      } else {
+        await this.$alert(message, "Error", {
+          confirmButtonText: "OK",
+          dangerouslyUseHTMLString: true,
+          type: "error",
+        });
+      }
+    },
+  );
 };
 
 (async () => {
@@ -284,42 +110,29 @@ const handleSingleGR = async (selectedRecords, plantID) => {
 
     console.log("handleConvertGR selectedRecords:", selectedRecords);
 
+    let isMultiple = "single";
+
     if (selectedRecords.length > 1) {
-      await this.$confirm(
+      const choice = await askChoice(
         `Would you like to convert these into a single goods receipt or into multiple goods receipts?<br><br>
           <strong>Single GR:</strong> All items combined into one document<br>
           <strong>Multiple GRs:</strong> Separate receipts for better tracking`,
         "Purchase Order Conversion",
-        {
-          confirmButtonText: "Single GR",
-          cancelButtonText: "Multiple GRs",
-          dangerouslyUseHTMLString: true,
-          type: "info",
-          distinguishCancelAndClose: true,
-
-          beforeClose: async (action, instance, done) => {
-            if (action === "confirm") {
-              this.showLoading("Converting to Goods Receiving...");
-              await handleSingleGR(selectedRecords, plantID);
-              this.hideLoading();
-              done();
-            } else if (action === "cancel") {
-              this.showLoading("Converting to Goods Receiving...");
-              await handleMultipleGR(selectedRecords, plantID);
-              this.hideLoading();
-              done();
-            } else {
-              done();
-            }
-          },
-        },
+        "Single GR",
+        "Multiple GRs",
       );
-    } else {
-      this.showLoading("Converting to Goods Receiving...");
-      await handleSingleGR(selectedRecords, plantID);
-      this.hideLoading();
+
+      if (choice === "close") return;
+      isMultiple = choice === "confirm" ? "single" : "multiple";
     }
+
+    await handleConvertGR(
+      [...new Set(selectedRecords.map((record) => String(record.id)))],
+      isMultiple,
+      plantID ? String(plantID) : "",
+    );
   } catch (error) {
-    console.error("Error in handleSingleGR:", error);
+    console.error("Error in handleConvertGR:", error);
+    this.hideLoading();
   }
 })();
