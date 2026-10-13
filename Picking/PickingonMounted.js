@@ -717,27 +717,39 @@ const revealDeliveryMethodSection = async () => {
   }
 };
 
-// Picking V2: a confirmation saved in the background holds is_processing = 1 until its job ends. While that job is
-// open the save buttons are hidden; a job that ended FAILED / under review / with a reduced line is reported once.
+// Picking V2: the Picking's latest background confirmation, read through PICKING_ASYNC_SUBMIT (STATUS: the browser
+// cannot read gd_async_job). While it is open the save buttons are hidden; FAILED / under review / a reduced line is
+// reported once.
 const pkV2ShowJobState = async () => {
   const id = this.getValue("id");
   if (!id) return;
-  let jobs = [];
-  try {
-    const res = await db.collection("GD Async Job").field("id,command,job_status,progress_message,error_code,error_message").where({ picking_id: String(id) }).get();
-    jobs = ((res && res.data) || []).filter((j) => j && j.command === "CONFIRM_PICKING");
-  } catch (e) {
-    console.error("Picking V2: job state could not be read", e);
-    return;
+  let organizationId = String(this.getValue("organization_id") || "");
+  if (!organizationId) {
+    organizationId = String(this.getVarGlobal("deptParentId") || "");
+    if (!organizationId || organizationId === "0") organizationId = String(this.getVarSystem("deptIds") || "").split(",")[0];
   }
-  const last = jobs.sort((a, b) => (String(a.id).length - String(b.id).length) || (String(a.id) < String(b.id) ? -1 : 1)).pop();
-  if (!last) return;
-  if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PICKING"].includes(last.job_status)) {
+  const job = await new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        "2109531449614647297",
+        { picking_id: String(id), organization_id: organizationId, operation: "STATUS" },
+        (res) => resolve((res && res.data) || null),
+        (err) => {
+          console.error("Picking V2: job state could not be read", err);
+          resolve(null);
+        },
+      );
+    } catch (e) {
+      resolve(null);
+    }
+  });
+  if (!job || !job.job_id) return;
+  if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PICKING"].includes(job.job_status)) {
     this.hide(["button_save_as_draft", "button_created", "button_inprogress", "button_completed"]);
-    this.$message.warning("This Picking is being saved in the background (" + (last.progress_message || last.job_status) + "). Reopen it in a moment.");
+    this.$message.warning("This Picking is being saved in the background (" + (job.result_message || job.job_status) + "). Reopen it in a moment.");
     return;
   }
-  const seenKey = "pkv2_seen_" + last.id;
+  const seenKey = "pkv2_seen_" + job.job_id;
   let seen = false;
   try {
     seen = window.localStorage.getItem(seenKey) === "1";
@@ -746,9 +758,9 @@ const pkV2ShowJobState = async () => {
     seen = false;
   }
   if (seen) return;
-  if (last.job_status === "FAILED") this.$message.error("The last confirmation was not saved: " + (last.error_message || last.progress_message || "unknown reason"));
-  else if (last.job_status === "REQUIRES_REVIEW") this.$message.error("The last confirmation stopped half-way and is under review: " + (last.error_message || "") + " Please contact support.");
-  else if (last.job_status === "COMPLETED" && last.error_code === "PK_CLAMPED") this.$message.warning(last.error_message || last.progress_message);
+  if (job.job_status === "FAILED") this.$message.error("The last confirmation was not saved: " + (job.result_message || "unknown reason"));
+  else if (job.job_status === "REQUIRES_REVIEW") this.$message.error("The last confirmation stopped half-way and is under review: " + job.result_message + " Please contact support.");
+  else if (job.job_status === "COMPLETED" && job.result_code === "PK_CLAMPED") this.$message.warning(job.result_message);
 };
 
 // Main execution function
@@ -819,7 +831,7 @@ const pkV2ShowJobState = async () => {
         await disabledField(status);
         await showStatusHTML(status);
         await disabledPickedQtyField();
-        await pkV2ShowJobState();
+        pkV2ShowJobState();
         await viewSerialNumber();
         await setSerialNumber();
         console.log(

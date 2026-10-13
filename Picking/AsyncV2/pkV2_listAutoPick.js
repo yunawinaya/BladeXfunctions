@@ -197,7 +197,10 @@ const fillRows = (rows) => {
           if (String(sub.data.result_code) === "200" && sub.data.job_id) {
             results.push({ to_id: pickingItem.to_id, success: true, warning: "Saving in the background" });
             try {
-              this.runWorkflow(PK_V2_WF.WORKER, { job_id: String(sub.data.job_id) }, () => this.refresh(), (e) => console.error("Picking V2: worker start failed", e));
+              this.runWorkflow(PK_V2_WF.WORKER, { job_id: String(sub.data.job_id) }, () => {
+                this.refresh();
+                this.hide("tabs_picking");
+              }, (e) => console.error("Picking V2: worker start failed", e));
             } catch (e) {
               console.error("Picking V2: worker could not be started", e);
             }

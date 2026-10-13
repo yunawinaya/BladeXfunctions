@@ -18,15 +18,21 @@ const HEADER_FIELDS = ["ref_doc", "remarks", "remarks_2", "remarks_3", "delivery
   "di_shipping_company", "di_transport_name", "di_vehicle_number", "di_est_delivery_date", "di_est_arrival_date",
   "di_pickup_date", "di_validity_of_collection", "di_tracking_number", "di_freight_charges", "project_id"];
 
+// the list shows either the GD table or the Picking Plan tabs; a refresh brings both back, so the other one is hidden again
+const refreshList = (data) => {
+  if (!this.parentGenerateForm) return;
+  this.parentGenerateForm.refresh();
+  if (data.to_no && data.to_no.length > 0) {
+    this.parentGenerateForm.hide("custom_41s73hyl");
+  } else {
+    this.parentGenerateForm.hide("tabs_picking");
+  }
+};
+
 const closeDialog = (data) => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    this.parentGenerateForm.refresh();
-    if (data.to_no && data.to_no.length > 0) {
-      this.parentGenerateForm.hide("custom_41s73hyl");
-    } else {
-      this.parentGenerateForm.hide("tabs_picking");
-    }
+    refreshList(data);
   }
 };
 
@@ -143,9 +149,7 @@ const oldPath = async (why) => {
       this.runWorkflow(
         PK_V2_WF.WORKER,
         { job_id: String(out.job_id) },
-        () => {
-          if (this.parentGenerateForm) this.parentGenerateForm.refresh();
-        },
+        () => refreshList(data),
         (e) => console.error("Picking V2: worker start failed - the scheduled worker picks the job up", e),
       );
     } catch (e) {

@@ -131,9 +131,11 @@ Client files:
 
 - `pkV2_onSave_Completed.js`: form event `pkV2_onSave_Completed`, on the Completed button.
 - `pkV2_listAutoPick.js`: the list's `AutoPickingComplete`.
-- `PickingonMounted.js`, `pkV2ShowJobState`:
-  - while a job is open, it hides the save buttons;
-  - it reports a FAILED, under-review or reduced result once.
+- `PickingonMounted.js`, `pkV2ShowJobState`: reads the Picking's latest job through SUBMIT with
+  `operation: "STATUS"` (read only). The browser cannot read `gd_async_job` itself: "GD Async
+  Job数据表尚未发布", the table has no published form.
+  - While a job is open, it hides the save buttons.
+  - It reports a FAILED, under-review or reduced result once.
 
 ## Deploy (dev)
 
