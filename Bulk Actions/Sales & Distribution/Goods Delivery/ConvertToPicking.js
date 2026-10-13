@@ -37,6 +37,55 @@ const isFullPickingEnabled = async (organizationId) => {
 // This map drives both the eligibility filter (sum across keys per line) and
 // the per-bin subtraction in SplitPickingConfirm.js — single source of truth,
 // no reliance on denormalized picked_qty / picked_temp_qty_data fields.
+// A few GDs at a time: one read per GD all at once sent 300 requests together
+// on a 300-GD convert.
+const READ_CONCURRENCY = 6;
+
+const forEachLimited = async (list, limit, fn) => {
+  let next = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next;
+      next += 1;
+      await fn(list[i]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, list.length) }, worker),
+  );
+};
+
+// One GD's live Pickings: a Completed one counts its records, any other its
+// lines. A read naming both subforms makes the server join every line with
+// every record (a Picking with 2,000 of each is 4 million rows), so each
+// subform is read on its own, classified by the status read taken first.
+const readGdPickings = async (gdId) => {
+  const query = () => db.collection("transfer_order").where({ gd_no: gdId });
+  const heads = (await query().field("id,to_status").get())?.data || [];
+  const completed = new Set(
+    heads
+      .filter((to) => to.to_status === "Completed")
+      .map((to) => String(to.id)),
+  );
+  const open = new Set(
+    heads
+      .filter((to) => to.to_status !== "Completed" && to.to_status !== "Cancelled")
+      .map((to) => String(to.id)),
+  );
+  const [withRecords, withItems] = await Promise.all([
+    completed.size > 0
+      ? query().field("id,table_picking_records").get()
+      : null,
+    open.size > 0 ? query().field("id,table_picking_items").get() : null,
+  ]);
+  return {
+    completed: (withRecords?.data || []).filter((to) =>
+      completed.has(String(to.id)),
+    ),
+    open: (withItems?.data || []).filter((to) => open.has(String(to.id))),
+  };
+};
+
 const buildConsumedQtyMap = async (gdIds) => {
   const consumed = {};
   if (!Array.isArray(gdIds) || gdIds.length === 0) return consumed;
@@ -47,53 +96,47 @@ const buildConsumedQtyMap = async (gdIds) => {
     (batch || "no-batch") +
     "_" +
     (hu || "no-hu");
+  const add = (lineId, key, qty) => {
+    const lid = String(lineId || "");
+    if (!lid) return;
+    consumed[lid] = consumed[lid] || {};
+    consumed[lid][key] = (consumed[lid][key] || 0) + parseFloat(qty || 0);
+  };
 
-  await Promise.all(
-    gdIds.map(async (gdId) => {
-      try {
-        const toResult = await db
-          .collection("transfer_order")
-          .where({ gd_no: gdId })
-          .get();
-        for (const to of toResult?.data || []) {
-          if (to.to_status === "Cancelled") continue;
+  // A Picking covering several of these GDs comes back once per GD; count it once.
+  const counted = new Set();
+  const firstTime = (to) => !counted.has(String(to.id)) && counted.add(String(to.id));
 
-          if (to.to_status === "Completed") {
-            for (const rec of to.table_picking_records || []) {
-              if (rec.line_status === "Cancelled") continue;
-              const lid = String(rec.gd_line_id || "");
-              if (!lid) continue;
-              const k = binKeyOf(
-                rec.source_bin,
-                rec.batch_no,
-                rec.handling_unit_id,
-              );
-              consumed[lid] = consumed[lid] || {};
-              consumed[lid][k] =
-                (consumed[lid][k] || 0) + parseFloat(rec.store_out_qty || 0);
-            }
-          } else {
-            for (const item of to.table_picking_items || []) {
-              if (item.row_type === "header") continue;
-              if (item.line_status === "Cancelled") continue;
-              const lid = String(item.gd_line_id || "");
-              if (!lid) continue;
-              const batch = item.batch_no || item.item_batch_id || null;
-              const k = binKeyOf(
-                item.source_bin,
-                batch,
-                item.handling_unit_id,
-              );
-              consumed[lid] = consumed[lid] || {};
-              consumed[lid][k] =
-                (consumed[lid][k] || 0) + parseFloat(item.qty_to_pick || 0);
-            }
-          }
+  // Not caught here: a GD whose Pickings could not be read must stop the
+  // conversion, not count as nothing picked.
+  await forEachLimited(
+    [...new Set(gdIds.map(String))],
+    READ_CONCURRENCY,
+    async (gdId) => {
+      const { completed, open } = await readGdPickings(gdId);
+      for (const to of completed.filter(firstTime)) {
+        for (const rec of to.table_picking_records || []) {
+          if (rec.line_status === "Cancelled") continue;
+          add(
+            rec.gd_line_id,
+            binKeyOf(rec.source_bin, rec.batch_no, rec.handling_unit_id),
+            rec.store_out_qty,
+          );
         }
-      } catch (err) {
-        console.error(`Error building consumed map for gd ${gdId}:`, err);
       }
-    }),
+      for (const to of open.filter(firstTime)) {
+        for (const item of to.table_picking_items || []) {
+          if (item.row_type === "header") continue;
+          if (item.line_status === "Cancelled") continue;
+          const batch = item.batch_no || item.item_batch_id || null;
+          add(
+            item.gd_line_id,
+            binKeyOf(item.source_bin, batch, item.handling_unit_id),
+            item.qty_to_pick,
+          );
+        }
+      }
+    },
   );
 
   return consumed;
@@ -223,9 +266,25 @@ const handlePicking = async (selectedRecords) => {
         selectedRecords[0].organization_id,
       );
 
-      const consumedByLine = fullPickingEnabled
-        ? await buildConsumedQtyMap(selectedRecords.map((r) => r.id))
-        : {};
+      let consumedByLine = {};
+      if (fullPickingEnabled) {
+        this.showLoading("Checking existing pickings...");
+        try {
+          consumedByLine = await buildConsumedQtyMap(
+            selectedRecords.map((r) => r.id),
+          );
+        } catch (err) {
+          console.error("Error reading existing pickings:", err);
+          this.hideLoading();
+          await this.$alert(
+            "Could not read the existing pickings of the selected goods deliveries. Nothing was converted, please try again.",
+            "Conversion Not Started",
+            { confirmButtonText: "OK", type: "error" },
+          );
+          return;
+        }
+        this.hideLoading();
+      }
 
       selectedRecords = selectedRecords.filter((item) =>
         hasPickableLine(item, fullPickingEnabled, consumedByLine),

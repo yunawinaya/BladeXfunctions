@@ -9,3 +9,6 @@ Resume/
 .dbtools/
 *.env
 scratchpad/__pycache__/
+
+# su-code engine metrics, written into whatever directory sudu-lowcode runs from
+.su-code/

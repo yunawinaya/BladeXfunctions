@@ -63,7 +63,7 @@
         "name": "Map Item ID",
         "script": {
           "type": "javascript",
-          "code": "const rawItemId = {{workflowparams:item_id}};\n\n// This workflow is called with a scalar id; tolerate an array form too.\nlet requested = [];\nif (Array.isArray(rawItemId)) requested = rawItemId;\nelse if (rawItemId != null && rawItemId !== \"\") requested = [rawItemId];\n\n// Digits only: these ids are interpolated into Get Item's SQL.\nconst itemIDs = [...new Set(requested.map((v) => String(v == null ? \"\" : v).trim()))].filter(\n  (id) => /^[0-9]+$/.test(id)\n);\n\nreturn { itemIdCsv: itemIDs.join(',') };\n"
+          "code": "const rawItemId = {{workflowparams:item_id}};\n\n// Called with one scalar item id; an array of ids is tolerated too.\nlet requested = [];\nif (Array.isArray(rawItemId)) requested = rawItemId;\nelse if (rawItemId != null && rawItemId !== \"\") requested = [rawItemId];\n\n// Digits only: these ids are interpolated into Get Item's SQL.\nconst itemIDs = [...new Set(requested.map((v) => String(v == null ? \"\" : v).trim()))].filter(\n  (id) => /^[0-9]+$/.test(id)\n);\n\nreturn { itemIdCsv: itemIDs.join(',') };\n"
         },
         "response_json": [
           {

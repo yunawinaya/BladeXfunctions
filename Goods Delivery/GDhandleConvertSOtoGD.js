@@ -121,74 +121,136 @@ const buildCreatedSummary = (created, blocked) => {
   return sections.join("<br><br>");
 };
 
+// A few sales orders per call: one call for 250 ran 54 minutes, and a single failing
+// sales order ended the whole batch.
+const CONVERT_BATCH_SIZE = 5;
+
+const runConvertBatch = (soIds, plantID, organizationID, convertType) =>
+  new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        CONVERT_GD_CREATED_WORKFLOW_ID,
+        {
+          so_ids: soIds,
+          gd_type: convertType,
+          plant_id: plantID,
+          organization_id: organizationID,
+          created_by: this.getVarGlobal("nickname"),
+        },
+        (res) => resolve({ ok: true, result: res?.data || {} }),
+        (err) => resolve({ ok: false, error: err }),
+      );
+    } catch (error) {
+      resolve({ ok: false, error });
+    }
+  });
+
 const handleConvertGDCreated = async (
   selectedRecords,
   plantID,
   organizationID,
   convertType,
 ) => {
-  this.showLoading("Converting to Goods Delivery...");
+  // A second click while a batch is still running would convert the same sales orders again.
+  if (window.__soConvertGdBusy) {
+    await this.$alert(
+      "A conversion to Goods Delivery is still running. Wait for it to finish.",
+      "Conversion Running",
+      { confirmButtonText: "OK", type: "warning" },
+    );
+    return;
+  }
+  window.__soConvertGdBusy = true;
 
-  await this.runWorkflow(
-    CONVERT_GD_CREATED_WORKFLOW_ID,
-    {
-      so_ids: selectedRecords.map((record) => record.id),
-      gd_type: convertType,
-      plant_id: plantID,
-      organization_id: organizationID,
-      created_by: this.getVarGlobal("nickname"),
-    },
-    async (res) => {
+  const total = selectedRecords.length;
+  const created = [];
+  const blocked = [];
+  let setupMessage = "";
+
+  try {
+    for (let start = 0; start < total; start += CONVERT_BATCH_SIZE) {
+      const batch = selectedRecords.slice(start, start + CONVERT_BATCH_SIZE);
       this.hideLoading();
+      this.showLoading(
+        total > CONVERT_BATCH_SIZE
+          ? `Converting to Goods Delivery: ${start} of ${total} sales orders done...`
+          : "Converting to Goods Delivery...",
+      );
 
-      const result = res?.data || {};
-      const created = result.created || [];
-      const blocked = result.blocked || [];
+      const reply = await runConvertBatch(
+        batch.map((record) => record.id),
+        plantID,
+        organizationID,
+        convertType,
+      );
 
-      // Per-SO reasons first: result.message is only a count when the loop ran, and carries
-      // the real text only when a setup gate fired before it.
-      if (created.length === 0) {
-        await this.$alert(
-          blocked.length > 0
-            ? blocked
-                .map(
-                  (item) =>
-                    `<strong>${escapeHTML(item.so_no)}</strong><br>${escapeHTML(
-                      item.reason,
-                    )}`,
-                )
-                .join("<br><br>")
-            : result.message || "No goods deliveries were created.",
-          "Could Not Convert to Goods Delivery",
-          {
-            confirmButtonText: "OK",
-            type: "error",
-            dangerouslyUseHTMLString: true,
-          },
-        );
-        return;
+      if (!reply.ok) {
+        // The server may still have converted some of these; converting again reports
+        // those as having nothing left to deliver.
+        for (const record of batch) {
+          blocked.push({
+            so_no: record.so_no || record.id,
+            reason:
+              "No answer from the server. Check whether it already has a goods delivery before converting it again.",
+          });
+        }
+        continue;
       }
 
-      await this.refresh();
-      await this.$alert(
-        buildCreatedSummary(created, blocked),
-        blocked.length > 0
-          ? "Converted with Exceptions"
-          : "Converted to Goods Deliveries",
-        {
-          confirmButtonText: "OK",
-          type: blocked.length > 0 ? "warning" : "success",
-          dangerouslyUseHTMLString: true,
-        },
-      );
-    },
-    async (err) => {
-      this.hideLoading();
-      this.$alert(err, "Error", {
+      const result = reply.result;
+      const batchCreated = result.created || [];
+      const batchBlocked = result.blocked || [];
+      created.push(...batchCreated);
+      blocked.push(...batchBlocked);
+
+      // A setup gate (picking setup, picking mode) refuses every batch alike: stop at the first.
+      if (
+        batchCreated.length === 0 &&
+        batchBlocked.length === 0 &&
+        String(result.code) !== "200"
+      ) {
+        setupMessage = result.message || "";
+        break;
+      }
+    }
+  } finally {
+    this.hideLoading();
+    window.__soConvertGdBusy = false;
+  }
+
+  // Per-SO reasons first: the server message carries real text only when a setup gate fired.
+  if (created.length === 0) {
+    await this.$alert(
+      blocked.length > 0
+        ? blocked
+            .map(
+              (item) =>
+                `<strong>${escapeHTML(item.so_no)}</strong><br>${escapeHTML(
+                  item.reason,
+                )}`,
+            )
+            .join("<br><br>")
+        : setupMessage || "No goods deliveries were created.",
+      "Could Not Convert to Goods Delivery",
+      {
         confirmButtonText: "OK",
         type: "error",
         dangerouslyUseHTMLString: true,
-      });
+      },
+    );
+    return;
+  }
+
+  await this.refresh();
+  await this.$alert(
+    buildCreatedSummary(created, blocked),
+    blocked.length > 0
+      ? "Converted with Exceptions"
+      : "Converted to Goods Deliveries",
+    {
+      confirmButtonText: "OK",
+      type: blocked.length > 0 ? "warning" : "success",
+      dangerouslyUseHTMLString: true,
     },
   );
 };

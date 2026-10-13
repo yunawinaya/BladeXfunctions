@@ -98,7 +98,7 @@
         "name": "Unique Index",
         "script": {
           "type": "javascript",
-          "code": "const arrayData = {{workflowparams:arrayData}};\nconst allData = arrayData[0];\nconst unique = `${allData.created_by || \"\"}_${Date.now()}`;\n\nreturn {\n  unique\n};"
+          "code": "// This run's key for its cache entries (it used to read the whole arrayData only for created_by).\nconst unique = `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;\n\nreturn {\n  unique\n};"
         },
         "response_json": [
           {
@@ -202,7 +202,7 @@
             "name": "Data Preparation",
             "script": {
               "type": "javascript",
-              "code": "const arrayData = {{workflowparams:arrayData}}\nconst currentIndexRaw = {{node:get_cache_node_hGFbHnzQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isForceComplete = {{workflowparams:isForceComplete}}\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// Validation: For saveAs \"Completed\", at least one item must have picked_qty > 0\nif (saveAs === \"Completed\" && !isForceComplete && isForceComplete !== 1) {\n  const hasPickedQty = data.table_picking_items && data.table_picking_items.length > 0 &&\n    data.table_picking_items.some(item => item.picked_qty > 0);\n  \n  if (!hasPickedQty) {\n    invalidMessage = \"Cannot complete picking. At least one item must have picked quantity greater than 0.\";\n  }\n\n  if (data.to_status === \"Cancelled\") {\n    invalidMessage = \"Picking is cancelled. Unable to process picking.\"\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\")\n    ) {\n      data.to_id = \"draft\";\n    }\n  } else {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\" ||\n        data.to_status === \"Draft\")\n    ) {\n      data.to_id = \"issued\";\n    }\n  }\n}\n\n// Cancel of a Created picking: flag to_id so the document number can be reused\nif (\n  saveAs === \"Cancelled\" &&\n  data.to_status === \"Created\" &&\n  typeof data.to_id === \"string\" &&\n  data.to_id &&\n  !data.to_id.endsWith(\"-Cancelled\")\n) {\n  data.to_id = data.to_id + \"-Cancelled\";\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\n// Interpolated into sql_node_LockGate, and arrayData is caller-supplied.\n// Picking ids are snowflake bigints, so digits-only is exact, not a guess;\n// \"0\" matches no row, which fails closed as \"under processing\".\nconst lockId = /^[0-9]+$/.test(String(data.id || \"\")) ? String(data.id) : \"0\";\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  lockId,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}\n"
+              "code": "const currentIndexRaw = {{node:get_cache_node_hGFbHnzQ.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\nconst isForceComplete = {{workflowparams:isForceComplete}}\n\n// The loop's own item: arrayData[index] took every Picking of the batch on every pass.\nlet data = {{node:loop_BIfi18oK}} || {};\nlet invalidMessage = \"\";\n\n// Validation: For saveAs \"Completed\", at least one item must have picked_qty > 0\nif (saveAs === \"Completed\" && !isForceComplete && isForceComplete !== 1) {\n  const hasPickedQty = data.table_picking_items && data.table_picking_items.length > 0 &&\n    data.table_picking_items.some(item => item.picked_qty > 0);\n  \n  if (!hasPickedQty) {\n    invalidMessage = \"Cannot complete picking. At least one item must have picked quantity greater than 0.\";\n  }\n\n  if (data.to_status === \"Cancelled\") {\n    invalidMessage = \"Picking is cancelled. Unable to process picking.\"\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\")\n    ) {\n      data.to_id = \"draft\";\n    }\n  } else {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\" ||\n        data.to_status === \"Draft\")\n    ) {\n      data.to_id = \"issued\";\n    }\n  }\n}\n\n// Cancel of a Created picking: flag to_id so the document number can be reused\nif (\n  saveAs === \"Cancelled\" &&\n  data.to_status === \"Created\" &&\n  typeof data.to_id === \"string\" &&\n  data.to_id &&\n  !data.to_id.endsWith(\"-Cancelled\")\n) {\n  data.to_id = data.to_id + \"-Cancelled\";\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\n// Interpolated into sql_node_LockGate, and arrayData is caller-supplied.\n// Picking ids are snowflake bigints, so digits-only is exact, not a guess;\n// \"0\" matches no row, which fails closed as \"under processing\".\nconst lockId = /^[0-9]+$/.test(String(data.id || \"\")) ? String(data.id) : \"0\";\n\nreturn {\n  data,\n  itemCount: Array.isArray(data.table_picking_items) ? data.table_picking_items.length : 0,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  lockId,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}\n"
             },
             "response_json": [
               {
@@ -211,6 +211,15 @@
                 "title": "data",
                 "description": "",
                 "bsonType": "any",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "wpf7k980",
+                "name": "itemCount",
+                "title": "itemCount",
+                "description": "",
+                "bsonType": "int",
                 "isExpand": false,
                 "children": []
               },
@@ -778,7 +787,7 @@
             "name": "Required Fields",
             "script": {
               "type": "javascript",
-              "code": "return {\n  required_fields: JSON.stringify([\n      { name: \"plant_id\", label: \"Plant\" },\n      { name: \"to_id\", label: \"Transfer Order No\" },\n      { name: \"ref_doc_type\", label: \"Reference Document Type\" },\n      {\n        name: \"table_picking_items\",\n        label: \"Picking Items\",\n        isArray: true,\n        arrayType: \"object\",\n        arrayFields: [],\n      },\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_node_hjAwTKzF.data.data.plant_id}},\n    to_id: {{node:code_node_hjAwTKzF.data.data.to_id}},\n    ref_doc_type: {{node:code_node_hjAwTKzF.data.data.ref_doc_type}},\n    table_picking_items: {{node:code_node_hjAwTKzF.data.data.table_picking_items}},\n  })\n}"
+              "code": "return {\n  required_fields: JSON.stringify([\n      { name: \"plant_id\", label: \"Plant\" },\n      { name: \"to_id\", label: \"Transfer Order No\" },\n      { name: \"ref_doc_type\", label: \"Reference Document Type\" },\n      {\n        name: \"table_picking_items\",\n        label: \"Picking Items\",\n        isArray: true,\n        arrayType: \"object\",\n        arrayFields: [],\n      },\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_node_hjAwTKzF.data.data.plant_id}},\n    to_id: {{node:code_node_hjAwTKzF.data.data.to_id}},\n    ref_doc_type: {{node:code_node_hjAwTKzF.data.data.ref_doc_type}},\n    // CHECK_REQUIRED_FIELD only checks that the list is not empty; a placeholder keeps its verdict.\n    table_picking_items: {{node:code_node_hjAwTKzF.data.itemCount}} > 0 ? [{}] : [],\n  })\n}"
             },
             "response_json": [
               {
@@ -2754,11 +2763,123 @@
                     "name": "Picking Data to Create",
                     "script": {
                       "type": "javascript",
-                      "code": "const pageStatus = {{workflowparams:pageStatus}}\n\nlet pickingData = {{node:code_node_hjAwTKzF.data.data}}\n  \nif (pageStatus === 'Add') {\n  const rawData = {{node:add_node_j6HU6pFP.data}}\n  pickingData = rawData[0]\n  pickingData.table_picking_items = {{node:search_node_OmBi3hyy.data.data}}\n} else {\n  pickingData = {{node:get_node_xPyPMAKx.data.data}}\n}\n\nconst isPickingPlan = pickingData.ref_doc_type === \"Picking Plan\" ? 1 : 0;\n\n// The two branches above return DIFFERENT shapes. Add reads the SUB-table\n// (transfer_order_jz8m9w3h_sub), which comes back FLAT -- a bundle's items are\n// already top-level rows. Edit reads the MASTER (Transfer Order Picking), whose\n// subform comes back NESTED, so the items hang off the bundle row and the filters\n// below saw only that row: the component GD/PP lines never got stamped on a re-save.\n// Flattening makes Edit behave like Add. A document with no bundles is unaffected.\nconst flattenPickingRows = (rows) =>\n  (rows || []).flatMap((row) => {\n    const { children, ...rest } = row || {};\n    return [rest, ...(Array.isArray(children) ? children : [])];\n  });\n\npickingData.table_picking_items = flattenPickingRows(\n  pickingData.table_picking_items\n);\n\nconst gdIds = pickingData.table_picking_items.filter((item) => item.line_status !== \"Cancelled\").map((item) => item.gd_id);\n\nconst toIds = pickingData.table_picking_items.filter((item) => item.line_status !== \"Cancelled\").map((item) => item.to_id);\n\nconst filteredPickingItems = pickingData.table_picking_items.filter((item) => item.line_status !== \"Cancelled\",);\n\nreturn {\n  gdIds,\n  toIds,\n  filteredPickingItems,\n  isPickingPlan,\n}"
+                      "code": "const pageStatus = {{workflowparams:pageStatus}}\n\nlet pickingData = {{node:code_node_hjAwTKzF.data.data}}\n  \nif (pageStatus === 'Add') {\n  const rawData = {{node:add_node_j6HU6pFP.data}}\n  pickingData = rawData[0]\n  pickingData.table_picking_items = {{node:search_node_OmBi3hyy.data.data}}\n} else {\n  pickingData = {{node:get_node_xPyPMAKx.data.data}}\n}\n\nconst isPickingPlan = pickingData.ref_doc_type === \"Picking Plan\" ? 1 : 0;\n\n// The two branches above return DIFFERENT shapes. Add reads the SUB-table\n// (transfer_order_jz8m9w3h_sub), which comes back FLAT -- a bundle's items are\n// already top-level rows. Edit reads the MASTER (Transfer Order Picking), whose\n// subform comes back NESTED, so the items hang off the bundle row and the filters\n// below saw only that row: the component GD/PP lines never got stamped on a re-save.\n// Flattening makes Edit behave like Add. A document with no bundles is unaffected.\nconst flattenPickingRows = (rows) =>\n  (rows || []).flatMap((row) => {\n    const { children, ...rest } = row || {};\n    return [rest, ...(Array.isArray(children) ? children : [])];\n  });\n\npickingData.table_picking_items = flattenPickingRows(\n  pickingData.table_picking_items\n);\n\n// One entry per document or line, digits only (sql_node_StampState takes them as text): the per-row lists\n// wrote each GD header once per Picking line, 2,096 writes for the 300-GD convert.\nconst pickingItems = pickingData.table_picking_items.filter((item) => item.line_status !== \"Cancelled\");\nconst digits = (v) => (/^[0-9]{1,20}$/.test(String(v == null ? \"\" : v)) ? String(v) : \"\");\nconst csv = (key) => [...new Set(pickingItems.map((item) => digits(item[key])).filter(Boolean))].join(\",\");\n\nreturn {\n  isPickingPlan,\n  gdIdCsv: isPickingPlan ? \"\" : csv(\"gd_id\"),\n  gdLineIdCsv: isPickingPlan ? \"\" : csv(\"gd_line_id\"),\n  toIdCsv: isPickingPlan ? csv(\"to_id\") : \"\",\n  toLineIdCsv: isPickingPlan ? csv(\"to_line_id\") : \"\",\n}"
                     },
                     "response_json": [
                       {
-                        "key": "38egf0xr",
+                        "key": "xutbdnck",
+                        "name": "isPickingPlan",
+                        "title": "isPickingPlan",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "o8j072tf",
+                        "name": "gdIdCsv",
+                        "title": "gdIdCsv",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "4xqal18n",
+                        "name": "gdLineIdCsv",
+                        "title": "gdLineIdCsv",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "xq89df65",
+                        "name": "toIdCsv",
+                        "title": "toIdCsv",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "g091p618",
+                        "name": "toLineIdCsv",
+                        "title": "toLineIdCsv",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "sql_node_StampState",
+                  "type": "sql-node",
+                  "data": {
+                    "database_id": "",
+                    "sql": "",
+                    "params": {},
+                    "title": "Current Picking Status (GD / Picking Plan)",
+                    "isValidator": true,
+                    "nodeName": "Current Picking Status (GD / Picking Plan)",
+                    "name": "Current Picking Status (GD / Picking Plan)",
+                    "script": {
+                      "type": "sql",
+                      "code": "SELECT CAST('gd' AS CHAR) AS kind, CAST(g.id AS CHAR) AS id, CAST(COALESCE(g.picking_status, '') AS CHAR) AS picking_status\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_1HuvfKMv.data.gdIdCsv}}', ']'), '$[*]' COLUMNS (rid BIGINT PATH '$')) j\nJOIN goods_delivery g ON g.id = j.rid AND g.is_deleted = 0\nUNION ALL\nSELECT CAST('gd_line' AS CHAR), CAST(l.id AS CHAR), CAST(COALESCE(l.picking_status, '') AS CHAR)\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_1HuvfKMv.data.gdLineIdCsv}}', ']'), '$[*]' COLUMNS (rid BIGINT PATH '$')) j\nJOIN goods_delivery_fwii8mvb_sub l ON l.id = j.rid AND l.is_deleted = 0\nUNION ALL\nSELECT CAST('pp' AS CHAR), CAST(p.id AS CHAR), CAST(COALESCE(p.picking_status, '') AS CHAR)\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_1HuvfKMv.data.toIdCsv}}', ']'), '$[*]' COLUMNS (rid BIGINT PATH '$')) j\nJOIN picking_plan p ON p.id = j.rid AND p.is_deleted = 0\nUNION ALL\nSELECT CAST('pp_line' AS CHAR), CAST(l.id AS CHAR), CAST(COALESCE(l.picking_status, '') AS CHAR)\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_1HuvfKMv.data.toLineIdCsv}}', ']'), '$[*]' COLUMNS (rid BIGINT PATH '$')) j\nJOIN picking_plan_fwii8mvb_sub l ON l.id = j.rid AND l.is_deleted = 0"
+                    },
+                    "response_json": [
+                      {
+                        "key": "25bavhxu",
+                        "name": "kind",
+                        "title": "kind",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "jrqhlg9r",
+                        "name": "id",
+                        "title": "id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "msq164r7",
+                        "name": "picking_status",
+                        "title": "picking_status",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "code_node_StampPlan",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Rows To Stamp Created",
+                    "isValidator": true,
+                    "nodeName": "Rows To Stamp Created",
+                    "name": "Rows To Stamp Created",
+                    "script": {
+                      "type": "javascript",
+                      "code": "// \"Created\" goes only on rows still waiting for a Picking. The update-nodes below are keyed on id lists, and an\n// id list makes the platform ignore their status filter, so they used to reset In Progress / Completed rows too.\nconst STAMPABLE = { \"Not Created\": true, \"Cancelled\": true, \"\": true };\nconst raw = {{node:sql_node_StampState.data}};\nconst rows = Array.isArray(raw) ? raw : raw ? [raw] : [];\nconst pick = (kind) => [\n  ...new Set(rows.filter((r) => r.kind === kind && STAMPABLE[r.picking_status || \"\"] === true).map((r) => String(r.id))),\n];\nconst gdIds = pick(\"gd\");\nconst gdLineIds = pick(\"gd_line\");\nconst toIds = pick(\"pp\");\nconst toLineIds = pick(\"pp_line\");\n\nreturn {\n  gdIds,\n  gdLineIds,\n  toIds,\n  toLineIds,\n  hasGdIds: gdIds.length > 0 ? 1 : 0,\n  hasGdLineIds: gdLineIds.length > 0 ? 1 : 0,\n  hasToIds: toIds.length > 0 ? 1 : 0,\n  hasToLineIds: toLineIds.length > 0 ? 1 : 0,\n};\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "h0g8sg9c",
                         "name": "gdIds",
                         "title": "gdIds",
                         "description": "",
@@ -2766,7 +2887,7 @@
                         "isExpand": true,
                         "children": [
                           {
-                            "key": "c1l2csll",
+                            "key": "zp3pte6v",
                             "name": "items",
                             "title": "",
                             "description": "",
@@ -2778,15 +2899,15 @@
                         ]
                       },
                       {
-                        "key": "ke2x8tjd",
-                        "name": "filteredPickingItems",
-                        "title": "filteredPickingItems",
+                        "key": "n2w9ztif",
+                        "name": "gdLineIds",
+                        "title": "gdLineIds",
                         "description": "",
                         "bsonType": "array",
                         "isExpand": true,
                         "children": [
                           {
-                            "key": "fgeemn2w",
+                            "key": "kp594d92",
                             "name": "items",
                             "title": "",
                             "description": "",
@@ -2798,7 +2919,7 @@
                         ]
                       },
                       {
-                        "key": "w7s3vv46",
+                        "key": "l0pgli5x",
                         "name": "toIds",
                         "title": "toIds",
                         "description": "",
@@ -2806,7 +2927,7 @@
                         "isExpand": true,
                         "children": [
                           {
-                            "key": "rytrv3ig",
+                            "key": "xq2jrlxi",
                             "name": "items",
                             "title": "",
                             "description": "",
@@ -2818,9 +2939,56 @@
                         ]
                       },
                       {
-                        "key": "xutbdnck",
-                        "name": "isPickingPlan",
-                        "title": "isPickingPlan",
+                        "key": "66qfi8lz",
+                        "name": "toLineIds",
+                        "title": "toLineIds",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "igrufag5",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "key": "a0mfq93h",
+                        "name": "hasGdIds",
+                        "title": "hasGdIds",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "rwleep5t",
+                        "name": "hasGdLineIds",
+                        "title": "hasGdLineIds",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "6v8h02dl",
+                        "name": "hasToIds",
+                        "title": "hasToIds",
+                        "description": "",
+                        "bsonType": "int",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "ls3zmmy0",
+                        "name": "hasToLineIds",
+                        "title": "hasToLineIds",
                         "description": "",
                         "bsonType": "int",
                         "isExpand": false,
@@ -2866,270 +3034,360 @@
                       "data": { "title": "true" },
                       "blocks": [
                         {
-                          "id": "update_node_BnFKmzTB",
-                          "type": "update-node",
+                          "id": "if_BnFKmzTBStamp",
+                          "type": "if",
                           "data": {
-                            "table_id": {
-                              "source": "Picking Plan:Table:1982744224777474050",
-                              "rules": {
-                                "collectionId": "1982744224777474050",
-                                "list": [
-                                  {
-                                    "id": 1772510528308,
-                                    "parentId": 1772510528309,
-                                    "isTop": true,
-                                    "type": "branch",
-                                    "operator": "all",
-                                    "prop": "",
-                                    "valueType": "",
-                                    "value": "",
-                                    "level": 1,
-                                    "children": [
-                                      {
-                                        "id": 1770879430849,
-                                        "parentId": 1772510528308,
-                                        "isTop": false,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_1HuvfKMv.data.toIds}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "主键ID",
-                                        "valueLabel": "",
-                                        "operatorLabel": "In"
-                                      },
-                                      {
-                                        "id": 1772510719259,
-                                        "isTop": false,
-                                        "parentId": 1772510528308,
-                                        "type": "branch",
-                                        "operator": "any",
-                                        "level": 2,
-                                        "children": [
-                                          {
-                                            "id": 1772510528310,
-                                            "parentId": 1772510719259,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "equal",
-                                            "valueType": "value",
-                                            "value": "Not Created",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Equal"
-                                          },
-                                          {
-                                            "id": 1772510719260,
-                                            "parentId": 1772510719259,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "equal",
-                                            "valueType": "value",
-                                            "value": "Cancelled",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Equal"
-                                          },
-                                          {
-                                            "id": 1772510745569,
-                                            "parentId": 1772510719259,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "isNull",
-                                            "valueType": "value",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Is Null"
-                                          },
-                                          {
-                                            "id": 1772510745570,
-                                            "parentId": 1772510719259,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "isEmpty",
-                                            "valueType": "value",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Is Empty"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            },
-                            "fields": [],
-                            "condition": {},
-                            "title": "Update PP",
+                            "title": "IF Picking Plans To Stamp",
                             "isValidator": true,
-                            "nodeName": "Update PP",
-                            "name": "Update PP",
-                            "props": {
-                              "modelName": "",
+                            "nodeName": "IF Picking Plans To Stamp",
+                            "name": "IF Picking Plans To Stamp",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
+                            "filter": {
                               "list": [
                                 {
-                                  "prop": "id",
-                                  "valueType": "field",
-                                  "value": "{{node:code_node_1HuvfKMv.data.toIds}}",
-                                  "operator": "",
-                                  "valueLabel": "",
-                                  "propLabel": "主键ID"
-                                },
-                                {
-                                  "prop": "picking_status",
-                                  "operator": "",
+                                  "id": 1792000000005,
+                                  "parentId": 1792000000006,
+                                  "isTop": true,
+                                  "prop": "node.code_node_StampPlan.data.hasToIds",
+                                  "operator": "numberEqual",
                                   "valueType": "value",
-                                  "value": "Created",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "hasToIds",
                                   "valueLabel": "",
-                                  "propLabel": "Picking Status"
+                                  "operatorLabel": "Equal"
                                 }
                               ]
                             }
                           },
-                          "blocks": []
+                          "blocks": [
+                            {
+                              "id": "if_BnFKmzTBStampT",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                                {
+                                  "id": "update_node_BnFKmzTB",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "Picking Plan:Table:1982744224777474050",
+                                      "rules": {
+                                        "collectionId": "1982744224777474050",
+                                        "list": [
+                                          {
+                                            "id": 1772510528308,
+                                            "parentId": 1772510528309,
+                                            "isTop": true,
+                                            "type": "branch",
+                                            "operator": "all",
+                                            "prop": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "level": 1,
+                                            "children": [
+                                              {
+                                                "id": 1770879430849,
+                                                "parentId": 1772510528308,
+                                                "isTop": false,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_StampPlan.data.toIds}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "主键ID",
+                                                "valueLabel": "",
+                                                "operatorLabel": "In"
+                                              },
+                                              {
+                                                "id": 1772510719259,
+                                                "isTop": false,
+                                                "parentId": 1772510528308,
+                                                "type": "branch",
+                                                "operator": "any",
+                                                "level": 2,
+                                                "children": [
+                                                  {
+                                                    "id": 1772510528310,
+                                                    "parentId": 1772510719259,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "Not Created",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1772510719260,
+                                                    "parentId": 1772510719259,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "Cancelled",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1772510745569,
+                                                    "parentId": 1772510719259,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "isNull",
+                                                    "valueType": "value",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Is Null"
+                                                  },
+                                                  {
+                                                    "id": 1772510745570,
+                                                    "parentId": 1772510719259,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "isEmpty",
+                                                    "valueType": "value",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Is Empty"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "condition": {},
+                                    "title": "Update PP",
+                                    "isValidator": true,
+                                    "nodeName": "Update PP",
+                                    "name": "Update PP",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "id",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_StampPlan.data.toIds}}",
+                                          "operator": "",
+                                          "valueLabel": "",
+                                          "propLabel": "主键ID"
+                                        },
+                                        {
+                                          "prop": "picking_status",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "Created",
+                                          "valueLabel": "",
+                                          "propLabel": "Picking Status"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_BnFKmzTBStampF",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
                         },
                         {
-                          "id": "update_node_WU2OsGIZ",
-                          "type": "update-node",
+                          "id": "if_WU2OsGIZStamp",
+                          "type": "if",
                           "data": {
-                            "table_id": {
-                              "source": "(Picking Plan):Table:1983062532297117697",
-                              "rules": {
-                                "collectionId": "1983062532297117697",
-                                "list": [
-                                  {
-                                    "id": 1772594200318,
-                                    "parentId": 1772594200319,
-                                    "isTop": true,
-                                    "type": "branch",
-                                    "operator": "all",
-                                    "prop": "",
-                                    "valueType": "",
-                                    "value": "",
-                                    "level": 1,
-                                    "children": [
-                                      {
-                                        "id": 1770879479846,
-                                        "parentId": 1772594200318,
-                                        "isTop": false,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_1HuvfKMv.data.filteredPickingItems.to_line_id}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "主键ID",
-                                        "valueLabel": "",
-                                        "operatorLabel": "In"
-                                      },
-                                      {
-                                        "id": 1772594200321,
-                                        "isTop": false,
-                                        "parentId": 1772594200318,
-                                        "type": "branch",
-                                        "operator": "any",
-                                        "level": 2,
-                                        "children": [
-                                          {
-                                            "id": 1772594200320,
-                                            "parentId": 1772594200321,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "equal",
-                                            "valueType": "value",
-                                            "value": "'Not Created'",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Line Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Equal"
-                                          },
-                                          {
-                                            "id": 1772594200322,
-                                            "parentId": 1772594200321,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "equal",
-                                            "valueType": "value",
-                                            "value": "'Cancelled'",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Line Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Equal"
-                                          },
-                                          {
-                                            "id": 1772594200325,
-                                            "parentId": 1772594200321,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "isNull",
-                                            "valueType": "value",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Line Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Is Null"
-                                          },
-                                          {
-                                            "id": 1772594200326,
-                                            "parentId": 1772594200321,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "isEmpty",
-                                            "valueType": "value",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Line Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Is Empty"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            },
-                            "fields": [],
-                            "condition": {},
-                            "title": "Update PP Table",
+                            "title": "IF Picking Plan Lines To Stamp",
                             "isValidator": true,
-                            "nodeName": "Update PP Table",
-                            "name": "Update PP Table",
-                            "props": {
-                              "modelName": "",
+                            "nodeName": "IF Picking Plan Lines To Stamp",
+                            "name": "IF Picking Plan Lines To Stamp",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
+                            "filter": {
                               "list": [
                                 {
-                                  "prop": "id",
-                                  "valueType": "field",
-                                  "value": "{{node:code_node_1HuvfKMv.data.filteredPickingItems.to_line_id}}",
-                                  "operator": "",
-                                  "valueLabel": "",
-                                  "propLabel": "主键ID"
-                                },
-                                {
-                                  "prop": "picking_status",
-                                  "operator": "",
+                                  "id": 1792000000007,
+                                  "parentId": 1792000000008,
+                                  "isTop": true,
+                                  "prop": "node.code_node_StampPlan.data.hasToLineIds",
+                                  "operator": "numberEqual",
                                   "valueType": "value",
-                                  "value": "Created",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "hasToLineIds",
                                   "valueLabel": "",
-                                  "propLabel": "Line Picking Status"
+                                  "operatorLabel": "Equal"
                                 }
                               ]
                             }
                           },
-                          "blocks": []
+                          "blocks": [
+                            {
+                              "id": "if_WU2OsGIZStampT",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                                {
+                                  "id": "update_node_WU2OsGIZ",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "(Picking Plan):Table:1983062532297117697",
+                                      "rules": {
+                                        "collectionId": "1983062532297117697",
+                                        "list": [
+                                          {
+                                            "id": 1772594200318,
+                                            "parentId": 1772594200319,
+                                            "isTop": true,
+                                            "type": "branch",
+                                            "operator": "all",
+                                            "prop": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "level": 1,
+                                            "children": [
+                                              {
+                                                "id": 1770879479846,
+                                                "parentId": 1772594200318,
+                                                "isTop": false,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_StampPlan.data.toLineIds}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "主键ID",
+                                                "valueLabel": "",
+                                                "operatorLabel": "In"
+                                              },
+                                              {
+                                                "id": 1772594200321,
+                                                "isTop": false,
+                                                "parentId": 1772594200318,
+                                                "type": "branch",
+                                                "operator": "any",
+                                                "level": 2,
+                                                "children": [
+                                                  {
+                                                    "id": 1772594200320,
+                                                    "parentId": 1772594200321,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "Not Created",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Line Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1772594200322,
+                                                    "parentId": 1772594200321,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "Cancelled",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Line Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1772594200325,
+                                                    "parentId": 1772594200321,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "isNull",
+                                                    "valueType": "value",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Line Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Is Null"
+                                                  },
+                                                  {
+                                                    "id": 1772594200326,
+                                                    "parentId": 1772594200321,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "isEmpty",
+                                                    "valueType": "value",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Line Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Is Empty"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "condition": {},
+                                    "title": "Update PP Table",
+                                    "isValidator": true,
+                                    "nodeName": "Update PP Table",
+                                    "name": "Update PP Table",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "id",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_StampPlan.data.toLineIds}}",
+                                          "operator": "",
+                                          "valueLabel": "",
+                                          "propLabel": "主键ID"
+                                        },
+                                        {
+                                          "prop": "picking_status",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "Created",
+                                          "valueLabel": "",
+                                          "propLabel": "Line Picking Status"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_WU2OsGIZStampF",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
                         }
                       ]
                     },
@@ -3139,270 +3397,360 @@
                       "data": { "title": "false" },
                       "blocks": [
                         {
-                          "id": "update_node_g7Juvu0X",
-                          "type": "update-node",
+                          "id": "if_g7Juvu0XStamp",
+                          "type": "if",
                           "data": {
-                            "table_id": {
-                              "source": "Goods Delivery:Table:1902054888473481218",
-                              "rules": {
-                                "collectionId": "1902054888473481218",
-                                "list": [
-                                  {
-                                    "id": 1772706323818,
-                                    "parentId": 1772706323819,
-                                    "isTop": true,
-                                    "prop": "",
-                                    "operator": "all",
-                                    "valueType": "",
-                                    "value": "",
-                                    "type": "branch",
-                                    "level": 1,
-                                    "children": [
-                                      {
-                                        "id": 1770699004988,
-                                        "parentId": 1772706323818,
-                                        "isTop": false,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_1HuvfKMv.data.gdIds}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "主键ID",
-                                        "valueLabel": "",
-                                        "operatorLabel": "In"
-                                      },
-                                      {
-                                        "id": 1772706323821,
-                                        "isTop": false,
-                                        "parentId": 1772706323818,
-                                        "type": "branch",
-                                        "operator": "any",
-                                        "level": 2,
-                                        "children": [
-                                          {
-                                            "id": 1772706323820,
-                                            "parentId": 1772706323821,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "equal",
-                                            "valueType": "value",
-                                            "value": "Not Created",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Equal"
-                                          },
-                                          {
-                                            "id": 1772706323822,
-                                            "parentId": 1772706323821,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "equal",
-                                            "valueType": "value",
-                                            "value": "Cancelled",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Equal"
-                                          },
-                                          {
-                                            "id": 1772706323823,
-                                            "parentId": 1772706323821,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "isEmpty",
-                                            "valueType": "value",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Is Empty"
-                                          },
-                                          {
-                                            "id": 1772706323824,
-                                            "parentId": 1772706323821,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "isNull",
-                                            "valueType": "value",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Is Null"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            },
-                            "fields": [],
-                            "condition": {},
-                            "title": "Update GD",
+                            "title": "IF GD Headers To Stamp",
                             "isValidator": true,
-                            "nodeName": "Update GD",
-                            "name": "Update GD",
-                            "props": {
-                              "modelName": "",
+                            "nodeName": "IF GD Headers To Stamp",
+                            "name": "IF GD Headers To Stamp",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
+                            "filter": {
                               "list": [
                                 {
-                                  "prop": "id",
-                                  "valueType": "field",
-                                  "value": "{{node:code_node_1HuvfKMv.data.gdIds}}",
-                                  "operator": "",
-                                  "valueLabel": "",
-                                  "propLabel": "主键ID"
-                                },
-                                {
-                                  "prop": "picking_status",
-                                  "operator": "",
+                                  "id": 1792000000001,
+                                  "parentId": 1792000000002,
+                                  "isTop": true,
+                                  "prop": "node.code_node_StampPlan.data.hasGdIds",
+                                  "operator": "numberEqual",
                                   "valueType": "value",
-                                  "value": "Created",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "hasGdIds",
                                   "valueLabel": "",
-                                  "propLabel": "Picking Status"
+                                  "operatorLabel": "Equal"
                                 }
                               ]
                             }
                           },
-                          "blocks": []
+                          "blocks": [
+                            {
+                              "id": "if_g7Juvu0XStampT",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                                {
+                                  "id": "update_node_g7Juvu0X",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "Goods Delivery:Table:1902054888473481218",
+                                      "rules": {
+                                        "collectionId": "1902054888473481218",
+                                        "list": [
+                                          {
+                                            "id": 1772706323818,
+                                            "parentId": 1772706323819,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "all",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "branch",
+                                            "level": 1,
+                                            "children": [
+                                              {
+                                                "id": 1770699004988,
+                                                "parentId": 1772706323818,
+                                                "isTop": false,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_StampPlan.data.gdIds}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "主键ID",
+                                                "valueLabel": "",
+                                                "operatorLabel": "In"
+                                              },
+                                              {
+                                                "id": 1772706323821,
+                                                "isTop": false,
+                                                "parentId": 1772706323818,
+                                                "type": "branch",
+                                                "operator": "any",
+                                                "level": 2,
+                                                "children": [
+                                                  {
+                                                    "id": 1772706323820,
+                                                    "parentId": 1772706323821,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "Not Created",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1772706323822,
+                                                    "parentId": 1772706323821,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "Cancelled",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1772706323823,
+                                                    "parentId": 1772706323821,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "isEmpty",
+                                                    "valueType": "value",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Is Empty"
+                                                  },
+                                                  {
+                                                    "id": 1772706323824,
+                                                    "parentId": 1772706323821,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "isNull",
+                                                    "valueType": "value",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Is Null"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "condition": {},
+                                    "title": "Update GD",
+                                    "isValidator": true,
+                                    "nodeName": "Update GD",
+                                    "name": "Update GD",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "id",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_StampPlan.data.gdIds}}",
+                                          "operator": "",
+                                          "valueLabel": "",
+                                          "propLabel": "主键ID"
+                                        },
+                                        {
+                                          "prop": "picking_status",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "Created",
+                                          "valueLabel": "",
+                                          "propLabel": "Picking Status"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_g7Juvu0XStampF",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
                         },
                         {
-                          "id": "update_node_CfTrqcLh",
-                          "type": "update-node",
+                          "id": "if_CfTrqcLhStamp",
+                          "type": "if",
                           "data": {
-                            "table_id": {
-                              "source": "goods_delivery_fwii8mvb_sub:Table:1939904186426433537",
-                              "rules": {
-                                "collectionId": "1939904186426433537",
-                                "list": [
-                                  {
-                                    "id": 1772594284373,
-                                    "parentId": 1772594284374,
-                                    "isTop": true,
-                                    "type": "branch",
-                                    "operator": "all",
-                                    "prop": "",
-                                    "valueType": "",
-                                    "value": "",
-                                    "level": 1,
-                                    "children": [
-                                      {
-                                        "id": 1770699071984,
-                                        "parentId": 1772594284373,
-                                        "isTop": false,
-                                        "prop": "id",
-                                        "operator": "in",
-                                        "valueType": "field",
-                                        "value": "{{node:code_node_1HuvfKMv.data.filteredPickingItems.gd_line_id}}",
-                                        "type": "leaf",
-                                        "level": 2,
-                                        "propLabel": "主键ID",
-                                        "valueLabel": "",
-                                        "operatorLabel": "In"
-                                      },
-                                      {
-                                        "id": 1772594284377,
-                                        "isTop": false,
-                                        "parentId": 1772594284373,
-                                        "type": "branch",
-                                        "operator": "any",
-                                        "level": 2,
-                                        "children": [
-                                          {
-                                            "id": 1772594284375,
-                                            "parentId": 1772594284377,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "equal",
-                                            "valueType": "value",
-                                            "value": "'Not Created'",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Line Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Equal"
-                                          },
-                                          {
-                                            "id": 1772594284378,
-                                            "parentId": 1772594284377,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "equal",
-                                            "valueType": "value",
-                                            "value": "'Cancelled'",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Line Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Equal"
-                                          },
-                                          {
-                                            "id": 1772594284379,
-                                            "parentId": 1772594284377,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "isNull",
-                                            "valueType": "value",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Line Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Is Null"
-                                          },
-                                          {
-                                            "id": 1772594284380,
-                                            "parentId": 1772594284377,
-                                            "isTop": false,
-                                            "prop": "picking_status",
-                                            "operator": "isEmpty",
-                                            "valueType": "value",
-                                            "type": "leaf",
-                                            "level": 3,
-                                            "propLabel": "Line Picking Status",
-                                            "valueLabel": "",
-                                            "operatorLabel": "Is Empty"
-                                          }
-                                        ]
-                                      }
-                                    ]
-                                  }
-                                ]
-                              }
-                            },
-                            "fields": [],
-                            "condition": {},
-                            "title": "Update GD Table",
+                            "title": "IF GD Lines To Stamp",
                             "isValidator": true,
-                            "nodeName": "Update GD Table",
-                            "name": "Update GD Table",
-                            "props": {
-                              "modelName": "",
+                            "nodeName": "IF GD Lines To Stamp",
+                            "name": "IF GD Lines To Stamp",
+                            "condition_type": "ConditionRule",
+                            "expression": { "type": "javascript", "code": "" },
+                            "filter": {
                               "list": [
                                 {
-                                  "prop": "id",
-                                  "valueType": "field",
-                                  "value": "{{node:code_node_1HuvfKMv.data.filteredPickingItems.gd_line_id}}",
-                                  "operator": "",
-                                  "valueLabel": "",
-                                  "propLabel": "主键ID"
-                                },
-                                {
-                                  "prop": "picking_status",
-                                  "operator": "",
+                                  "id": 1792000000003,
+                                  "parentId": 1792000000004,
+                                  "isTop": true,
+                                  "prop": "node.code_node_StampPlan.data.hasGdLineIds",
+                                  "operator": "numberEqual",
                                   "valueType": "value",
-                                  "value": "Created",
+                                  "value": 1,
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "hasGdLineIds",
                                   "valueLabel": "",
-                                  "propLabel": "Line Picking Status"
+                                  "operatorLabel": "Equal"
                                 }
                               ]
                             }
                           },
-                          "blocks": []
+                          "blocks": [
+                            {
+                              "id": "if_CfTrqcLhStampT",
+                              "type": "ifBlock",
+                              "data": { "title": "true" },
+                              "blocks": [
+                                {
+                                  "id": "update_node_CfTrqcLh",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "goods_delivery_fwii8mvb_sub:Table:1939904186426433537",
+                                      "rules": {
+                                        "collectionId": "1939904186426433537",
+                                        "list": [
+                                          {
+                                            "id": 1772594284373,
+                                            "parentId": 1772594284374,
+                                            "isTop": true,
+                                            "type": "branch",
+                                            "operator": "all",
+                                            "prop": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "level": 1,
+                                            "children": [
+                                              {
+                                                "id": 1770699071984,
+                                                "parentId": 1772594284373,
+                                                "isTop": false,
+                                                "prop": "id",
+                                                "operator": "in",
+                                                "valueType": "field",
+                                                "value": "{{node:code_node_StampPlan.data.gdLineIds}}",
+                                                "type": "leaf",
+                                                "level": 2,
+                                                "propLabel": "主键ID",
+                                                "valueLabel": "",
+                                                "operatorLabel": "In"
+                                              },
+                                              {
+                                                "id": 1772594284377,
+                                                "isTop": false,
+                                                "parentId": 1772594284373,
+                                                "type": "branch",
+                                                "operator": "any",
+                                                "level": 2,
+                                                "children": [
+                                                  {
+                                                    "id": 1772594284375,
+                                                    "parentId": 1772594284377,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "Not Created",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Line Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1772594284378,
+                                                    "parentId": 1772594284377,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "equal",
+                                                    "valueType": "value",
+                                                    "value": "Cancelled",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Line Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Equal"
+                                                  },
+                                                  {
+                                                    "id": 1772594284379,
+                                                    "parentId": 1772594284377,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "isNull",
+                                                    "valueType": "value",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Line Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Is Null"
+                                                  },
+                                                  {
+                                                    "id": 1772594284380,
+                                                    "parentId": 1772594284377,
+                                                    "isTop": false,
+                                                    "prop": "picking_status",
+                                                    "operator": "isEmpty",
+                                                    "valueType": "value",
+                                                    "type": "leaf",
+                                                    "level": 3,
+                                                    "propLabel": "Line Picking Status",
+                                                    "valueLabel": "",
+                                                    "operatorLabel": "Is Empty"
+                                                  }
+                                                ]
+                                              }
+                                            ]
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "condition": {},
+                                    "title": "Update GD Table",
+                                    "isValidator": true,
+                                    "nodeName": "Update GD Table",
+                                    "name": "Update GD Table",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "id",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_StampPlan.data.gdLineIds}}",
+                                          "operator": "",
+                                          "valueLabel": "",
+                                          "propLabel": "主键ID"
+                                        },
+                                        {
+                                          "prop": "picking_status",
+                                          "operator": "",
+                                          "valueType": "value",
+                                          "value": "Created",
+                                          "valueLabel": "",
+                                          "propLabel": "Line Picking Status"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "if_CfTrqcLhStampF",
+                              "type": "ifBlock",
+                              "data": { "title": "false" },
+                              "blocks": []
+                            }
+                          ]
                         }
                       ]
                     }

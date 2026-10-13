@@ -152,6 +152,55 @@ const getSourceGds = async (gdIds) => {
   return gdById;
 };
 
+// A few GDs at a time: one read per GD all at once sent 300 requests together
+// on a 300-GD convert.
+const READ_CONCURRENCY = 6;
+
+const forEachLimited = async (list, limit, fn) => {
+  let next = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next;
+      next += 1;
+      await fn(list[i]);
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, list.length) }, worker),
+  );
+};
+
+// One GD's live Pickings: a Completed one counts its records, any other its
+// lines. A read naming both subforms makes the server join every line with
+// every record (a Picking with 2,000 of each is 4 million rows), so each
+// subform is read on its own, classified by the status read taken first.
+const readGdPickings = async (gdId) => {
+  const query = () => db.collection("transfer_order").where({ gd_no: gdId });
+  const heads = (await query().field("id,to_status").get())?.data || [];
+  const completed = new Set(
+    heads
+      .filter((to) => to.to_status === "Completed")
+      .map((to) => String(to.id)),
+  );
+  const open = new Set(
+    heads
+      .filter((to) => to.to_status !== "Completed" && to.to_status !== "Cancelled")
+      .map((to) => String(to.id)),
+  );
+  const [withRecords, withItems] = await Promise.all([
+    completed.size > 0
+      ? query().field("id,table_picking_records").get()
+      : null,
+    open.size > 0 ? query().field("id,table_picking_items").get() : null,
+  ]);
+  return {
+    completed: (withRecords?.data || []).filter((to) =>
+      completed.has(String(to.id)),
+    ),
+    open: (withItems?.data || []).filter((to) => open.has(String(to.id))),
+  };
+};
+
 // Fresh per-GD-line consumed qty, same rules as buildConsumedQtyMap in
 // ConvertToPicking.js. Not caught: a failed read must stop the conversion.
 const getConsumedTotals = async (gdIds) => {
@@ -162,31 +211,26 @@ const getConsumedTotals = async (gdIds) => {
     totals[lid] = (totals[lid] || 0) + parseFloat(qty || 0);
   };
 
-  await Promise.all(
-    gdIds.map(async (gdId) => {
-      const toResult = await db
-        .collection("transfer_order")
-        .where({ gd_no: gdId })
-        .field("to_status,table_picking_items,table_picking_records")
-        .get();
-      for (const to of toResult?.data || []) {
-        if (to.to_status === "Cancelled") continue;
+  // A Picking covering several of these GDs comes back once per GD; count it once.
+  const counted = new Set();
+  const firstTime = (to) => !counted.has(String(to.id)) && counted.add(String(to.id));
 
-        if (to.to_status === "Completed") {
-          for (const rec of to.table_picking_records || []) {
-            if (rec.line_status === "Cancelled") continue;
-            add(rec.gd_line_id, rec.store_out_qty);
-          }
-        } else {
-          for (const item of to.table_picking_items || []) {
-            if (item.row_type === "header") continue;
-            if (item.line_status === "Cancelled") continue;
-            add(item.gd_line_id, item.qty_to_pick);
-          }
-        }
+  await forEachLimited(gdIds, READ_CONCURRENCY, async (gdId) => {
+    const { completed, open } = await readGdPickings(gdId);
+    for (const to of completed.filter(firstTime)) {
+      for (const rec of to.table_picking_records || []) {
+        if (rec.line_status === "Cancelled") continue;
+        add(rec.gd_line_id, rec.store_out_qty);
       }
-    }),
-  );
+    }
+    for (const to of open.filter(firstTime)) {
+      for (const item of to.table_picking_items || []) {
+        if (item.row_type === "header") continue;
+        if (item.line_status === "Cancelled") continue;
+        add(item.gd_line_id, item.qty_to_pick);
+      }
+    }
+  });
 
   return totals;
 };
