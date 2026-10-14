@@ -1,0 +1,1154 @@
+{
+  "request_json": [
+    {
+      "key": "6kgd7kvo",
+      "name": "packing_id",
+      "title": "packing_id",
+      "description": "packing.id (digits): a Created Packing with no HU rows",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "ocem3qof",
+      "name": "rows",
+      "title": "rows",
+      "description": "JSON array of completed HUs: handling_unit_id, handling_no, location_id, storage_location_id, temp_data, item_count, total_quantity",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "emz84h0a",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "9t7cqxdk",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "fxgevexh",
+      "name": "inserted",
+      "title": "inserted",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ydwed2bd",
+      "name": "hu_rows",
+      "title": "hu_rows",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "oki2rvv8",
+      "name": "hu_qty",
+      "title": "hu_qty",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "title": "Start Node",
+        "isValidator": true,
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_TAguard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// PKG_TEST_ADD_HU_ROWS (DEV test tool) - Guard: packing_id, rows (a JSON array of completed HUs), session tenant\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst ID = /^[0-9]{1,20}$/;\nconst guardRows = function guardRows(packingId, rowsIn, tenantId) {\n  const bad = (why) => ({ route: \"REJECT\", tenantId: \"0\", packingId: \"0\", rows: [], result_code: \"400\", result_message: why });\n  if (!ID.test(s(tenantId))) return bad(\"no session tenant\");\n  if (!ID.test(s(packingId))) return bad(\"packing_id: digits only\");\n  let rows = rowsIn;\n  if (typeof rows === \"string\") {\n    try {\n      rows = JSON.parse(rows);\n    } catch (e) {\n      return bad(\"rows is not valid JSON\");\n    }\n  }\n  if (!Array.isArray(rows) || !rows.length || rows.length > 50) return bad(\"rows: 1 to 50 HU rows\");\n  const out = [];\n  for (const r of rows) {\n    if (!r || !ID.test(s(r.handling_unit_id)) || !s(r.handling_no) || !ID.test(s(r.location_id))) return bad(\"each row needs handling_unit_id, handling_no and location_id\");\n    if (s(r.storage_location_id) && !ID.test(s(r.storage_location_id))) return bad(\"storage_location_id: digits only\");\n    let entries = [];\n    try {\n      entries = JSON.parse(s(r.temp_data) || \"[]\");\n    } catch (e) {\n      return bad(\"temp_data of \" + s(r.handling_no) + \" is not valid JSON\");\n    }\n    if (!Array.isArray(entries) || !entries.length) return bad(\"temp_data of \" + s(r.handling_no) + \" is empty\");\n    out.push({ handling_unit_id: s(r.handling_unit_id), handling_no: s(r.handling_no), location_id: s(r.location_id), storage_location_id: s(r.storage_location_id),\n      temp_data: s(r.temp_data), item_count: parseInt(r.item_count, 10) || 0, total_quantity: (parseFloat(r.total_quantity) || 0).toFixed(8) });\n  }\n  return { route: \"CONTINUE\", tenantId: s(tenantId), packingId: s(packingId), rows: out, result_code: \"\", result_message: \"\" };\n};\nconst res = guardRows([{{workflowparams:packing_id}}][0], [{{workflowparams:rows}}][0], [{{system:tenantId}}][0]);\nconsole.log(\"add hu rows guard\", JSON.stringify({ route: res.route, rows: res.rows.length, message: res.result_message }));\nreturn res;"
+        },
+        "response_json": [
+          {
+            "key": "0adac97e",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ozdko99o",
+            "name": "tenantId",
+            "title": "tenantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "e8u1h8if",
+            "name": "packingId",
+            "title": "packingId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vr2esgfz",
+            "name": "rows",
+            "title": "rows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "39vescas",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "izu7j03e",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "s6cz7qfo",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Guard: packing_id, rows, session tenant (DEV test tool)",
+        "isValidator": true,
+        "nodeName": "Guard: packing_id, rows, session tenant (DEV test tool)",
+        "name": "Guard: packing_id, rows, session tenant (DEV test tool)"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_TAreject",
+      "type": "if",
+      "data": {
+        "title": "IF the input is invalid: answer 400, write nothing",
+        "isValidator": true,
+        "nodeName": "IF the input is invalid: answer 400, write nothing",
+        "name": "IF the input is invalid: answer 400, write nothing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1777100000001,
+              "parentId": 1777100000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_TAguard.data.route}}' == 'REJECT'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TTAreject",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "code_node_TArej",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "return { result_code: \"400\", result_message: [{{node:code_node_TAguard.data.result_message}}][0], inserted: 0, hu_rows: 0, hu_qty: \"0\" };"
+                },
+                "response_json": [
+                  {
+                    "key": "umdgx17c",
+                    "name": "result_code",
+                    "title": "result_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "4lv0k44m",
+                    "name": "result_message",
+                    "title": "result_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fyf6fbuk",
+                    "name": "inserted",
+                    "title": "inserted",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ojq43qbj",
+                    "name": "hu_rows",
+                    "title": "hu_rows",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "o1b3aohd",
+                    "name": "hu_qty",
+                    "title": "hu_qty",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "Answer (rejected input)",
+                "isValidator": true,
+                "nodeName": "Answer (rejected input)",
+                "name": "Answer (rejected input)"
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_node_TArej",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return (rejected, nothing written)",
+                "isValidator": true,
+                "nodeName": "Return (rejected, nothing written)",
+                "name": "Return (rejected, nothing written)",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "result_code",
+                      "propLabel": "result_code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArej.data.result_code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_message",
+                      "propLabel": "result_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArej.data.result_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "inserted",
+                      "propLabel": "inserted",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArej.data.inserted}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "hu_rows",
+                      "propLabel": "hu_rows",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArej.data.hu_rows}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "hu_qty",
+                      "propLabel": "hu_qty",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArej.data.hu_qty}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FTAreject",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_TAfacts",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Facts: the Packing and its HU rows",
+        "isValidator": true,
+        "nodeName": "Facts: the Packing and its HU rows",
+        "name": "Facts: the Packing and its HU rows",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(p.id AS CHAR) AS id,\n       p.packing_status,\n       CAST(p.is_deleted AS CHAR) AS is_deleted,\n       CAST(p.plant_id AS CHAR) AS plant_id,\n       p.organization_id,\n       CAST(p.customer_id AS CHAR) AS customer_json,\n       (SELECT COUNT(*)\n          FROM packing_hr4nq20g_sub h\n         WHERE h.tenant_id = '{{node:code_node_TAguard.data.tenantId}}'\n           AND h.packing_id = p.id\n           AND h.is_deleted = 0) AS hu_rows\n  FROM packing p\n WHERE p.tenant_id = '{{node:code_node_TAguard.data.tenantId}}'\n   AND p.id = {{node:code_node_TAguard.data.packingId}}"
+        },
+        "response_json": [
+          {
+            "key": "kbim0l5a",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "m9tlo71q",
+            "name": "packing_status",
+            "title": "packing_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "x2j9vagm",
+            "name": "is_deleted",
+            "title": "is_deleted",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bn182ku0",
+            "name": "plant_id",
+            "title": "plant_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "32uzcvig",
+            "name": "organization_id",
+            "title": "organization_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1ko3bh6z",
+            "name": "customer_json",
+            "title": "customer_json",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fzmgfpak",
+            "name": "hu_rows",
+            "title": "hu_rows",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_TAplan",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// PKG_TEST_ADD_HU_ROWS (DEV test tool) - Plan: only a Created Packing with no HU rows; header plant / org / customers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst planRows = function planRows(guard, factRows) {\n  const f = (Array.isArray(factRows) ? factRows : factRows ? [factRows] : []).filter((r) => r)[0] || {};\n  const bad = (why) => ({ route: \"REJECT\", rows: [], count: 0, result_code: \"400\", result_message: why });\n  if (!s(f.id) || s(f.is_deleted) === \"1\") return bad(\"Packing not found in this tenant\");\n  if (s(f.packing_status) !== \"Created\") return bad(\"the Packing is \" + (s(f.packing_status) || \"not Created\"));\n  if (Number(f.hu_rows) > 0) return bad(\"the Packing already has \" + f.hu_rows + \" HU row(s): nothing added\");\n  // ids kept as digit strings: JSON.parse would round 19-digit ids\n  const customers = s(f.customer_json).match(/[0-9]+/g) || [];\n  const rows = guard.rows.map((r) => ({ packing_id: guard.packingId, plant_id: s(f.plant_id), organization_id: s(f.organization_id), customer_id: customers,\n    handling_no: r.handling_no, handling_unit_id: r.handling_unit_id, hu_row_type: \"generated\", hu_status: \"Completed\", location_id: r.location_id,\n    storage_location_id: r.storage_location_id || null, temp_data: r.temp_data, item_count: r.item_count, total_quantity: r.total_quantity, hu_quantity: 1,\n    hu_material_id: \"\", hu_type: \"\", remark: \"\", remark_2: \"\", remark_3: \"\", parent_hu_id: \"\", select_hu: 0, closed_by: \"PKG_TEST_ADD_HU_ROWS\",\n    net_volume: \"0.000\", gross_weight: \"0.000\", net_weight: \"0.000\" }));\n  return { route: \"ADD\", rows: rows, count: rows.length, result_code: \"\", result_message: \"\" };\n};\nconst res = planRows([{{node:code_node_TAguard.data}}][0], [{{node:sql_node_TAfacts.data}}][0]);\nconsole.log(\"add hu rows plan\", JSON.stringify({ route: res.route, count: res.count, message: res.result_message }));\nreturn res;"
+        },
+        "response_json": [
+          {
+            "key": "ei3w5c6x",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "nax09br6",
+            "name": "rows",
+            "title": "rows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "2dv8kvi9",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "7hpbxks1",
+            "name": "count",
+            "title": "count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "nof6tvwh",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qrhkehh2",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Plan: only a Created Packing with no HU rows",
+        "isValidator": true,
+        "nodeName": "Plan: only a Created Packing with no HU rows",
+        "name": "Plan: only a Created Packing with no HU rows"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_TArefuse",
+      "type": "if",
+      "data": {
+        "title": "IF the Packing cannot take them: answer 400, write nothing",
+        "isValidator": true,
+        "nodeName": "IF the Packing cannot take them: answer 400, write nothing",
+        "name": "IF the Packing cannot take them: answer 400, write nothing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1777100000003,
+              "parentId": 1777100000004,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_TAplan.data.route}}' == 'REJECT'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TTArefuse",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "code_node_TArefres",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "return { result_code: \"400\", result_message: [{{node:code_node_TAplan.data.result_message}}][0], inserted: 0, hu_rows: 0, hu_qty: \"0\" };"
+                },
+                "response_json": [
+                  {
+                    "key": "9jw8066q",
+                    "name": "result_code",
+                    "title": "result_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "6re4u2z5",
+                    "name": "result_message",
+                    "title": "result_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "it0u33ll",
+                    "name": "inserted",
+                    "title": "inserted",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "492zsuj7",
+                    "name": "hu_rows",
+                    "title": "hu_rows",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "9k4ohgxp",
+                    "name": "hu_qty",
+                    "title": "hu_qty",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "Answer (refused)",
+                "isValidator": true,
+                "nodeName": "Answer (refused)",
+                "name": "Answer (refused)"
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_node_TAref",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return (refused, nothing written)",
+                "isValidator": true,
+                "nodeName": "Return (refused, nothing written)",
+                "name": "Return (refused, nothing written)",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "result_code",
+                      "propLabel": "result_code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArefres.data.result_code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_message",
+                      "propLabel": "result_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArefres.data.result_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "inserted",
+                      "propLabel": "inserted",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArefres.data.inserted}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "hu_rows",
+                      "propLabel": "hu_rows",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArefres.data.hu_rows}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "hu_qty",
+                      "propLabel": "hu_qty",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_TArefres.data.hu_qty}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FTArefuse",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "loop_TArows",
+      "type": "loop",
+      "data": {
+        "title": "One HU row per pass",
+        "isValidator": true,
+        "nodeName": "One HU row per pass",
+        "name": "One HU row per pass",
+        "loopType": "Var",
+        "loopSeletSource": {
+          "datasource": {
+            "rules": {
+              "collectionId": "",
+              "list": [
+                {
+                  "id": 1777100000007,
+                  "parentId": 1777100000008,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            }
+          },
+          "auto_refresh": 1,
+          "auto_refresh_debounce": 100,
+          "options": [],
+          "props": {
+            "value": "",
+            "label": "",
+            "image": "",
+            "icon": "",
+            "explain": ""
+          },
+          "remote": false,
+          "remoteType": "datasource"
+        },
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{node:code_node_TAplan.data.rows}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "add_node_TArow",
+          "type": "add-node",
+          "data": {
+            "table_id": {
+              "source": "Table HU(Packing):Table:1993956081773305857",
+              "rules": {
+                "collectionId": "1993956081773305857",
+                "list": [
+                  {
+                    "id": 1777100000005,
+                    "parentId": 1777100000006,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                  }
+                ]
+              }
+            },
+            "fields": [],
+            "title": "Add the HU row",
+            "isValidator": true,
+            "nodeName": "Add the HU row",
+            "name": "Add the HU row",
+            "props": {
+              "modelName": "",
+              "list": [
+                {
+                  "prop": "packing_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.packing_id}}",
+                  "valueLabel": "",
+                  "propLabel": "packing_id"
+                },
+                {
+                  "prop": "plant_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.plant_id}}",
+                  "valueLabel": "",
+                  "propLabel": "plant_id"
+                },
+                {
+                  "prop": "organization_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.organization_id}}",
+                  "valueLabel": "",
+                  "propLabel": "organization_id"
+                },
+                {
+                  "prop": "customer_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.customer_id}}",
+                  "valueLabel": "",
+                  "propLabel": "customer_id"
+                },
+                {
+                  "prop": "handling_no",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.handling_no}}",
+                  "valueLabel": "",
+                  "propLabel": "handling_no"
+                },
+                {
+                  "prop": "handling_unit_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.handling_unit_id}}",
+                  "valueLabel": "",
+                  "propLabel": "handling_unit_id"
+                },
+                {
+                  "prop": "hu_row_type",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.hu_row_type}}",
+                  "valueLabel": "",
+                  "propLabel": "hu_row_type"
+                },
+                {
+                  "prop": "hu_status",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.hu_status}}",
+                  "valueLabel": "",
+                  "propLabel": "hu_status"
+                },
+                {
+                  "prop": "location_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.location_id}}",
+                  "valueLabel": "",
+                  "propLabel": "location_id"
+                },
+                {
+                  "prop": "storage_location_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.storage_location_id}}",
+                  "valueLabel": "",
+                  "propLabel": "storage_location_id"
+                },
+                {
+                  "prop": "temp_data",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.temp_data}}",
+                  "valueLabel": "",
+                  "propLabel": "temp_data"
+                },
+                {
+                  "prop": "item_count",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.item_count}}",
+                  "valueLabel": "",
+                  "propLabel": "item_count"
+                },
+                {
+                  "prop": "total_quantity",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.total_quantity}}",
+                  "valueLabel": "",
+                  "propLabel": "total_quantity"
+                },
+                {
+                  "prop": "hu_quantity",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.hu_quantity}}",
+                  "valueLabel": "",
+                  "propLabel": "hu_quantity"
+                },
+                {
+                  "prop": "hu_material_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.hu_material_id}}",
+                  "valueLabel": "",
+                  "propLabel": "hu_material_id"
+                },
+                {
+                  "prop": "hu_type",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.hu_type}}",
+                  "valueLabel": "",
+                  "propLabel": "hu_type"
+                },
+                {
+                  "prop": "remark",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.remark}}",
+                  "valueLabel": "",
+                  "propLabel": "remark"
+                },
+                {
+                  "prop": "remark_2",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.remark_2}}",
+                  "valueLabel": "",
+                  "propLabel": "remark_2"
+                },
+                {
+                  "prop": "remark_3",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.remark_3}}",
+                  "valueLabel": "",
+                  "propLabel": "remark_3"
+                },
+                {
+                  "prop": "parent_hu_id",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.parent_hu_id}}",
+                  "valueLabel": "",
+                  "propLabel": "parent_hu_id"
+                },
+                {
+                  "prop": "select_hu",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.select_hu}}",
+                  "valueLabel": "",
+                  "propLabel": "select_hu"
+                },
+                {
+                  "prop": "closed_by",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.closed_by}}",
+                  "valueLabel": "",
+                  "propLabel": "closed_by"
+                },
+                {
+                  "prop": "net_volume",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.net_volume}}",
+                  "valueLabel": "",
+                  "propLabel": "net_volume"
+                },
+                {
+                  "prop": "gross_weight",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.gross_weight}}",
+                  "valueLabel": "",
+                  "propLabel": "gross_weight"
+                },
+                {
+                  "prop": "net_weight",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_TArows.net_weight}}",
+                  "valueLabel": "",
+                  "propLabel": "net_weight"
+                }
+              ]
+            }
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_TAback",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Read-back: the Packing's HU rows",
+        "isValidator": true,
+        "nodeName": "Read-back: the Packing's HU rows",
+        "name": "Read-back: the Packing's HU rows",
+        "script": {
+          "type": "sql",
+          "code": "SELECT COUNT(*) AS hu_rows,\n       CAST(COALESCE(SUM(h.total_quantity), 0) AS CHAR) AS hu_qty\n  FROM packing_hr4nq20g_sub h\n WHERE h.tenant_id = '{{node:code_node_TAguard.data.tenantId}}'\n   AND h.packing_id = {{node:code_node_TAguard.data.packingId}}\n   AND h.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "zgdvvjxf",
+            "name": "hu_rows",
+            "title": "hu_rows",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "7iar4nfs",
+            "name": "hu_qty",
+            "title": "hu_qty",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_TAres",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// PKG_TEST_ADD_HU_ROWS (DEV test tool) - Result: what the read-back holds\nconst b = ([{{node:sql_node_TAback.data}}][0] || []);\nconst r = (Array.isArray(b) ? b : [b]).filter((x) => x)[0] || {};\nconst want = Number([{{node:code_node_TAplan.data.count}}][0]) || 0;\nconst have = Number(r.hu_rows) || 0;\nreturn { result_code: have === want ? \"200\" : \"409\", result_message: have === want ? \"added \" + want + \" HU row(s)\" : \"read-back holds \" + have + \" HU row(s), \" + want + \" were added\",\n  inserted: want, hu_rows: have, hu_qty: String(r.hu_qty || \"0\") };"
+        },
+        "response_json": [
+          {
+            "key": "8269fkwi",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "h2yf8cpx",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6ina97ak",
+            "name": "inserted",
+            "title": "inserted",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "18k269dt",
+            "name": "hu_rows",
+            "title": "hu_rows",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "lngdnabr",
+            "name": "hu_qty",
+            "title": "hu_qty",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Result",
+        "isValidator": true,
+        "nodeName": "Result",
+        "name": "Result"
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_TAdone",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return",
+        "isValidator": true,
+        "nodeName": "Return",
+        "name": "Return",
+        "response_value": {
+          "list": [
+            {
+              "prop": "result_code",
+              "propLabel": "result_code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_TAres.data.result_code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "result_message",
+              "propLabel": "result_message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_TAres.data.result_message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "inserted",
+              "propLabel": "inserted",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_TAres.data.inserted}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "hu_rows",
+              "propLabel": "hu_rows",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_TAres.data.hu_rows}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "hu_qty",
+              "propLabel": "hu_qty",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_TAres.data.hu_qty}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "title": "End Node",
+        "isValidator": true,
+        "nodeName": "End Node",
+        "name": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

@@ -220,6 +220,228 @@
       "blocks": []
     },
     {
+      "id": "code_node_GdProcGuard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Processing Guard: Edit of a stored GD?",
+        "isValidator": true,
+        "nodeName": "Processing Guard: Edit of a stored GD?",
+        "name": "Processing Guard: Edit of a stored GD?",
+        "script": {
+          "type": "javascript",
+          "code": "// A Goods Delivery an async job holds is Processing (GD V2 Created, GD Completion V2): refuse any save until it finishes\nconst id = String([{{workflowparams:allData.id}}][0] || \"\").trim();\nconst edit = String([{{workflowparams:pageStatus}}][0] || \"\") === \"Edit\";\nconst ok = /^[0-9]{1,20}$/.test(id);\nreturn { check: edit && ok ? \"YES\" : \"NO\", gdId: ok ? id : \"0\" };"
+        },
+        "response_json": [
+          {
+            "key": "gpg1chck",
+            "name": "check",
+            "title": "check",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gpg2gdid",
+            "name": "gdId",
+            "title": "gdId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GdProcGuard",
+      "type": "if",
+      "data": {
+        "title": "IF Edit of a stored GD",
+        "isValidator": true,
+        "nodeName": "IF Edit of a stored GD",
+        "name": "IF Edit of a stored GD",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1797500000001,
+              "parentId": 1797500000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GdProcGuard.data.check}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGdProcGuard",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_GdProcGuard",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Stored GD Status",
+                "isValidator": true,
+                "nodeName": "Stored GD Status",
+                "name": "Stored GD Status",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT g.gd_status\n  FROM goods_delivery g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id = {{node:code_node_GdProcGuard.data.gdId}}\n   AND g.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "gpg1stat",
+                    "name": "gd_status",
+                    "title": "GD Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_GdProcBusy",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Processing Guard: held by an async job?",
+                "isValidator": true,
+                "nodeName": "Processing Guard: held by an async job?",
+                "name": "Processing Guard: held by an async job?",
+                "script": {
+                  "type": "javascript",
+                  "code": "const row = (([{{node:sql_node_GdProcGuard.data}}][0]) || [])[0] || {};\nreturn { busy: String(row.gd_status || \"\") === \"Processing\" ? \"YES\" : \"NO\" };"
+                },
+                "response_json": [
+                  {
+                    "key": "gpg3busy",
+                    "name": "busy",
+                    "title": "busy",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_GdProcBusy",
+              "type": "if",
+              "data": {
+                "title": "IF Processing (async job running)",
+                "isValidator": true,
+                "nodeName": "IF Processing (async job running)",
+                "name": "IF Processing (async job running)",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1797500000003,
+                      "parentId": 1797500000004,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_GdProcBusy.data.busy}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TGdProcBusy",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_GdProcBusy",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Processing",
+                        "isValidator": true,
+                        "nodeName": "Return Processing",
+                        "name": "Return Processing",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "value",
+                              "value": "This Goods Delivery is being processed in the background - please wait for it to finish.",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FGdProcBusy",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGdProcGuard",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_gr_gate_completed",
       "type": "if",
       "data": {

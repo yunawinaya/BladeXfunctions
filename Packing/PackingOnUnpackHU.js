@@ -183,7 +183,11 @@
         storage_location_id: row.storage_location_id,
         location_id: row.location_id,
         parent_hu_id: row.parent_hu_id || "",
-        hu_status: "Packed",
+        // Unload takes out everything this row loaded (direct items above;
+        // nested HUs are unlinked below), leaving an empty HU. HANDLING_UNIT
+        // writes whatever status we pass and never derives it from contents,
+        // so send the empty-HU status — the same "Created" a new HU starts at.
+        hu_status: "Created",
       };
 
       const firstGdRef =

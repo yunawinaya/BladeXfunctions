@@ -3,18 +3,26 @@ const rowIndex =
   arguments[0] && typeof arguments[0].index === "number"
     ? arguments[0].index
     : arguments[0] && arguments[0].rowIndex;
+// bulk: Save as Completed (Packing V2) completes pending HUs one at a time and writes the Packing once; it reads the outcome here
+const bulk = !!(arguments[0] && arguments[0].bulk);
+const pkgv2Done = (v) => {
+  if (bulk) this.models["_data"] = { ...this.models["_data"], ["pkgv2_hu_" + rowIndex]: v };
+};
 
 (async () => {
   try {
     const tempDataStr = row.temp_data || "[]";
-    if (!tempDataStr || tempDataStr === "[]") return;
+    if (!tempDataStr || tempDataStr === "[]") {
+      pkgv2Done("OK");
+      return;
+    }
 
     // ============================================================
     // Locked row → source HU already exists as a real handling_unit.
     // No workflow / inventory movement; normalize state only.
     // ============================================================
     if (row.hu_row_type === "locked") {
-      this.showLoading("Completing HU...");
+      if (!bulk) this.showLoading("Completing HU...");
       try {
         const lockedHuId = row.handling_unit_id;
         const lockedPackingId = this.getValue("id");
@@ -58,25 +66,27 @@ const rowIndex =
           )
           .filter((r) => r.hu_status === "Completed");
 
-        await db
-          .collection("packing")
-          .doc(lockedPackingId)
-          .update({
-            table_hu: ledgerTableHu,
-            table_hu_source: this.getValue("table_hu_source") || [],
-            table_item_source: this.getValue("table_item_source") || [],
-          });
-
-        this.hideLoading();
-        this.$message.success("HU completed");
+        if (!bulk) {
+          await db
+            .collection("packing")
+            .doc(lockedPackingId)
+            .update({
+              table_hu: ledgerTableHu,
+              table_hu_source: this.getValue("table_hu_source") || [],
+              table_item_source: this.getValue("table_item_source") || [],
+            });
+          this.hideLoading();
+          this.$message.success("HU completed");
+        }
+        pkgv2Done("OK");
       } catch (e) {
-        this.hideLoading();
+        if (!bulk) this.hideLoading();
         throw e;
       }
       return;
     }
 
-    this.showLoading("Completing HU...");
+    if (!bulk) this.showLoading("Completing HU...");
 
     const packingId = this.getValue("id");
     const packingNo = this.getValue("packing_no");
@@ -172,13 +182,15 @@ const rowIndex =
       !workflowResult.data ||
       String(workflowResult.data.code) !== "200"
     ) {
-      this.hideLoading();
-      this.$message.error(
+      const failMessage =
         (workflowResult &&
           workflowResult.data &&
           workflowResult.data.message) ||
-          "Failed to complete HU",
-      );
+        "Failed to complete HU";
+      pkgv2Done("ERR:" + failMessage);
+      if (bulk) return;
+      this.hideLoading();
+      this.$message.error(failMessage);
       return;
     }
 
@@ -255,19 +267,23 @@ const rowIndex =
       )
       .filter((r) => r.hu_status === "Completed");
 
-    await db
-      .collection("packing")
-      .doc(packingId)
-      .update({
-        table_hu: ledgerTableHu,
-        table_hu_source: this.getValue("table_hu_source") || [],
-        table_item_source: this.getValue("table_item_source") || [],
-      });
-
-    this.hideLoading();
-    this.$message.success("HU completed");
+    if (!bulk) {
+      await db
+        .collection("packing")
+        .doc(packingId)
+        .update({
+          table_hu: ledgerTableHu,
+          table_hu_source: this.getValue("table_hu_source") || [],
+          table_item_source: this.getValue("table_item_source") || [],
+        });
+      this.hideLoading();
+      this.$message.success("HU completed");
+    }
+    pkgv2Done("OK");
   } catch (error) {
     console.error("TableHUCompleted error:", error);
+    pkgv2Done("ERR:" + (error.message || error));
+    if (bulk) return;
     this.hideLoading();
     this.$message.error("Failed to complete HU: " + (error.message || error));
   }

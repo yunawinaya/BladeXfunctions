@@ -1,0 +1,49 @@
+{
+ "id": "workflow_node_EyUiRACK",
+ "type": "workflow-node",
+ "data": {
+  "workflow_id": "",
+  "workflow_name": "",
+  "input_params": {},
+  "title": "GD_BULK_PREPARE (bounded set-based validation; writes gd_async_job + gd_bulk_line_stage only)",
+  "isValidator": true,
+  "nodeName": "GD_BULK_PREPARE (bounded set-based validation; writes gd_async_job + gd_bulk_line_stage only)",
+  "name": "GD_BULK_PREPARE (bounded set-based validation; writes gd_async_job + gd_bulk_line_stage only)",
+  "workflow": {
+   "source": "GD_BULK_PREPARE:Workflow:2104840044642754561",
+   "rules": {
+    "collectionId": "2104840044642754561",
+    "list": [
+     {
+      "id": 1794000000038,
+      "parentId": 1794000000039,
+      "isTop": true,
+      "prop": "",
+      "operator": "",
+      "valueType": "",
+      "value": "",
+      "type": "leaf",
+      "level": 1
+     }
+    ]
+   }
+  },
+  "remote": true,
+  "remoteType": "innerdatasource",
+  "body_params": {
+   "list": [
+    {
+     "prop": "job_id",
+     "propLabel": "job_id",
+     "operator": "",
+     "operatorLabel": "",
+     "valueType": "field",
+     "valueTypeLabel": "",
+     "value": "{{node:code_node_Qo8Suk1M.data.jobId}}",
+     "valueLabel": ""
+    }
+   ]
+  }
+ },
+ "blocks": []
+}

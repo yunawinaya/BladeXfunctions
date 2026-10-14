@@ -1,0 +1,183 @@
+{
+ "id": "condition_or_node_L3Zplr6W",
+ "type": "condition-or-node",
+ "data": {
+  "title": "Claim row to insert?",
+  "filter": {
+   "list": []
+  },
+  "expression": {
+   "code": ""
+  },
+  "displayContent": "sdk.form.setCondition"
+ },
+ "blocks": [
+  {
+   "id": "condition_or_node_item_fDQEKA30",
+   "type": "condition-or-node-item",
+   "data": {
+    "title": "YES",
+    "filter": {
+     "list": [
+      {
+       "id": 1794000000018,
+       "parentId": 1794000000019,
+       "isTop": true,
+       "prop": "node.code_node_Qo8Suk1M.data.needClaimAdd",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "YES",
+       "type": "leaf",
+       "level": 1,
+       "propLabel": "needClaimAdd",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition",
+    "isValidator": true,
+    "nodeName": "YES",
+    "name": "YES",
+    "condition_type": "ConditionRule"
+   },
+   "blocks": [
+    {
+     "id": "add_node_csa6HOGB",
+     "type": "add-node",
+     "data": {
+      "table_id": {
+       "source": "GD Publish Step:Table:2105131615547461634",
+       "rules": {
+        "collectionId": "2105131615547461634",
+        "list": [
+         {
+          "id": 1794000000016,
+          "parentId": 1794000000017,
+          "isTop": true,
+          "prop": "",
+          "operator": "",
+          "valueType": "",
+          "value": "",
+          "type": "leaf",
+          "level": 1
+         }
+        ]
+       }
+      },
+      "fields": [],
+      "title": "CLAIM GATE: gd_publish_step W0_CLAIM_<row_version> (unique tenant / job / step_name): a twin's insert fails here and its run ends before it writes the job (F4 / F24 / F5)",
+      "isValidator": true,
+      "nodeName": "CLAIM GATE: gd_publish_step W0_CLAIM_<row_version> (unique tenant / job / step_name): a twin's insert fails here and its run ends before it writes the job (F4 / F24 / F5)",
+      "name": "CLAIM GATE: gd_publish_step W0_CLAIM_<row_version> (unique tenant / job / step_name): a twin's insert fails here and its run ends before it writes the job (F4 / F24 / F5)",
+      "props": {
+       "modelName": "",
+       "list": [
+        {
+         "prop": "job_id",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.job_id}}",
+         "valueLabel": "",
+         "propLabel": "job_id"
+        },
+        {
+         "prop": "organization_id",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.organization_id}}",
+         "valueLabel": "",
+         "propLabel": "Organization"
+        },
+        {
+         "prop": "step_name",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.step_name}}",
+         "valueLabel": "",
+         "propLabel": "step_name"
+        },
+        {
+         "prop": "step_status",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.step_status}}",
+         "valueLabel": "",
+         "propLabel": "step_status"
+        },
+        {
+         "prop": "attempt_count",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.attempt_count}}",
+         "valueLabel": "",
+         "propLabel": "attempt_count"
+        },
+        {
+         "prop": "started_at",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.started_at}}",
+         "valueLabel": "",
+         "propLabel": "started_at"
+        },
+        {
+         "prop": "inventory_operation_id",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.inventory_operation_id}}",
+         "valueLabel": "",
+         "propLabel": "inventory_operation_id"
+        },
+        {
+         "prop": "result_ref",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.result_ref}}",
+         "valueLabel": "",
+         "propLabel": "result_ref"
+        },
+        {
+         "prop": "error_code",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.error_code}}",
+         "valueLabel": "",
+         "propLabel": "error_code"
+        },
+        {
+         "prop": "error_message",
+         "operator": "",
+         "valueType": "field",
+         "value": "{{node:code_node_Qo8Suk1M.data.claimRows.error_message}}",
+         "valueLabel": "",
+         "propLabel": "error_message"
+        }
+       ]
+      }
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "condition_or_node_item_xMC4Cc7t",
+   "type": "condition-or-node-item",
+   "data": {
+    "title": "NO",
+    "isDefault": true,
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.otherCondition"
+   },
+   "blocks": []
+  }
+ ]
+}

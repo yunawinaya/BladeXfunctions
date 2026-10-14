@@ -1,0 +1,571 @@
+// func_bulkComplete (GD list) + GD Completion V2: each selected Created delivery goes to GD_COMPLETE_SUBMIT first (QUEUED =
+// completed in the background by GD_COMPLETE_WORKER, which this page then keeps running until nothing is due - there is no
+// scheduled worker); NOT_ELIGIBLE and 406 run the classic GOODS_DELIVERY path below, unchanged.
+const GDC_WF = {
+  SUBMIT: "2110182609618337794", // GD_COMPLETE_SUBMIT
+  WORKER: "2110182645714518018", // GD_COMPLETE_WORKER
+};
+// Switch: false = every delivery runs the classic save
+const ASYNC_COMPLETE_ENABLED = true;
+
+const runWf = (id, params) =>
+  new Promise((resolve, reject) => {
+    this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));
+  });
+
+// SUBMIT for one delivery, answering 401 / 403 as the classic path below does; 412 is left to the batch prompt
+const submitV2 = async (gdItem, answers) => {
+  const res = await runWf(GDC_WF.SUBMIT, { operation: "SUBMIT", gd_id: gdItem.id, source: "LIST", answers: answers });
+  const r = (res && res.data) || null;
+  const fail = (error) => ({ kind: "RESULT", result: { delivery_no: gdItem.delivery_no, success: false, error: error } });
+  if (!r || !r.route) return fail("No response from workflow");
+  if (r.route === "QUEUED") return { kind: "QUEUED", jobId: r.job_id };
+  if (r.route === "NOT_ELIGIBLE") return { kind: "CLASSIC", why: r.reason || r.message };
+  if (r.route !== "STOP") return fail(r.message || "Failed to complete Goods Delivery");
+  const code = String(r.code);
+  if (code === "401") return submitV2(gdItem, { ...answers, continueZero: "Yes" });
+  if (code === "403") return submitV2(gdItem, { ...answers, needCL: "not required" });
+  if (code === "406") return { kind: "CLASSIC", why: "406: picking not completed" };
+  if (code === "412") return { kind: "PENDING_SI", answers: answers };
+  if (code === "402") return fail((r.message || "Credit limit exceeded").replace(/^Block - /, ""));
+  if (code === "405") return fail("Must save as Created first");
+  if (code === "407") return fail("Packing must be completed first");
+  return fail(r.message || "Failed to complete Goods Delivery");
+};
+
+// one tick completes up to 5 due jobs; keep ticking while ticks find work (the page must stay open for that)
+const drainWorker = (round) => {
+  try {
+    this.runWorkflow(
+      GDC_WF.WORKER,
+      {},
+      (w) => {
+        const processed = Number((w && w.data && w.data.processed) || 0);
+        console.log("GD Completion V2: worker tick", round, processed);
+        this.refresh();
+        if (processed > 0 && round < 40) drainWorker(round + 1);
+      },
+      (e) => console.error("GD Completion V2: worker tick failed", e),
+    );
+  } catch (e) {
+    console.error("GD Completion V2: worker could not be started", e);
+  }
+};
+
+// Every confirmation the workflow can ask for is carried in one object. Threading them
+// individually meant a retry after one gate dropped the answer to another -- and with no
+// user in the loop to break the cycle, a delivery that needs both continueZero and
+// isForceComplete bounced 401 -> 406 -> 401 forever.
+const runGDWorkflow = async (data, ctx) => {
+  return new Promise((resolve, reject) => {
+    this.runWorkflow(
+      "2017151544868491265",
+      {
+        allData: data,
+        saveAs: "Completed",
+        pageStatus: "Edit",
+        needCL: ctx.needCL,
+        isForceComplete: ctx.isForceComplete,
+        continueZero: ctx.continueZero,
+        // Auto-GR / auto-SI decisions are carried on the data object so they persist across
+        // the 401/403/406 inline retries below (mirrors the GD form client).
+        auto_gr_confirmed: data.auto_gr_confirmed || "",
+        auto_gr_skip: data.auto_gr_skip || "",
+        auto_si_confirmed: data.auto_si_confirmed || "",
+        auto_si_skip: data.auto_si_skip || "",
+      },
+      (res) => {
+        console.log("Goods Delivery workflow response:", res);
+        resolve(res);
+      },
+      (err) => {
+        console.error("Failed to save Goods Delivery:", err);
+        reject(err);
+      },
+    );
+  });
+};
+
+// pendingGR / pendingSI: when provided, a 408 (auto-GR eligible) or 412 (auto-SI eligible) is
+// deferred into them for a single batch prompt instead of being decided per-GD. Pass null once
+// that phase's question has already been answered.
+//
+// A GD can hit both gates: the GR gate returns 408 before the SI gate is ever reached, so a GD
+// deferred for GR can come back asking 412 on its re-run. That is why pendingSI is still threaded
+// through phase 2 — see the phase comments below.
+const handleWorkflowResult = async (
+  workflowResult,
+  gdItem,
+  gdData,
+  pendingGR,
+  pendingSI,
+  ctx,
+) => {
+  if (!workflowResult || !workflowResult.data) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: false,
+      error: "No response from workflow",
+    };
+  }
+
+  const resultCode = workflowResult.data.code;
+
+  // Handle 401 - Zero quantity confirmation - auto-proceed
+  if (resultCode === "401" || resultCode === 401) {
+    console.log(
+      `GD ${gdItem.delivery_no}: Zero quantity warning, auto-proceeding`,
+    );
+    const next = { ...ctx, continueZero: "Yes" };
+    const retryResult = await runGDWorkflow(gdData, next);
+    return handleWorkflowResult(
+      retryResult,
+      gdItem,
+      gdData,
+      pendingGR,
+      pendingSI,
+      next,
+    );
+  }
+
+  // Handle 402 - Credit limit block
+  if (resultCode === "402" || resultCode === 402) {
+    const cleanMessage = (
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Credit limit exceeded"
+    ).replace(/^Block - /, "");
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: false,
+      error: cleanMessage,
+    };
+  }
+
+  // Handle 403 - Credit limit override - auto-proceed
+  if (resultCode === "403" || resultCode === 403) {
+    console.log(
+      `GD ${gdItem.delivery_no}: Credit limit override, auto-proceeding`,
+    );
+    const next = { ...ctx, needCL: "not required" };
+    const retryResult = await runGDWorkflow(gdData, next);
+    return handleWorkflowResult(
+      retryResult,
+      gdItem,
+      gdData,
+      pendingGR,
+      pendingSI,
+      next,
+    );
+  }
+
+  // Handle 405 - Must save as Created first (shouldn't happen for bulk)
+  if (resultCode === "405" || resultCode === 405) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: false,
+      error: "Must save as Created first",
+    };
+  }
+
+  // Handle 406 - Force complete picking - auto-proceed
+  if (resultCode === "406" || resultCode === 406) {
+    console.log(
+      `GD ${gdItem.delivery_no}: Force complete picking, auto-proceeding`,
+    );
+    const next = { ...ctx, isForceComplete: "Yes" };
+    const retryResult = await runGDWorkflow(gdData, next);
+    return handleWorkflowResult(
+      retryResult,
+      gdItem,
+      gdData,
+      pendingGR,
+      pendingSI,
+      next,
+    );
+  }
+
+  // Handle 407 - Packing not completed
+  if (resultCode === "407" || resultCode === 407) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: false,
+      error: "Packing must be completed first",
+    };
+  }
+
+  // Handle 408 - Internal trading: eligible for auto-GR. Defer to one batch
+  // prompt (phase 1). The GD is NOT completed yet (the gate returns before save).
+  if (resultCode === "408" || resultCode === 408) {
+    if (pendingGR) {
+      pendingGR.push({ gdItem, gdData, ctx });
+      return null; // deferred — handled in phase 2
+    }
+    // No batch context (defensive) — complete without auto-GR.
+    gdData.auto_gr_skip = true;
+    const retryResult = await runGDWorkflow(gdData, ctx);
+    return handleWorkflowResult(
+      retryResult,
+      gdItem,
+      gdData,
+      null,
+      pendingSI,
+      ctx,
+    );
+  }
+
+  // Handle 409 - Internal trading: GD does not fully complete the linked SO
+  if (resultCode === "409" || resultCode === 409) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: false,
+      error:
+        workflowResult.data.msg ||
+        workflowResult.data.message ||
+        "Delivery does not fully complete the linked Sales Order (required for auto-GR).",
+    };
+  }
+
+  // Handle 410 - GD completed, but auto-GR creation failed (non-blocking)
+  if (resultCode === "410" || resultCode === 410) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: true,
+      warning:
+        workflowResult.data.msg ||
+        workflowResult.data.message ||
+        "Completed, but the linked Goods Receipt could not be auto-created.",
+    };
+  }
+
+  // Handle 412 - Eligible for an auto Sales Invoice. Defer to one batch prompt.
+  // The GD is NOT completed yet (the gate returns before save), same as 408.
+  if (resultCode === "412" || resultCode === 412) {
+    if (pendingSI) {
+      pendingSI.push({ gdItem, gdData, ctx });
+      return null; // deferred — handled in the auto-SI phase
+    }
+    // No batch context (defensive) — complete without an invoice.
+    gdData.auto_si_skip = true;
+    const retryResult = await runGDWorkflow(gdData, ctx);
+    return handleWorkflowResult(retryResult, gdItem, gdData, null, null, ctx);
+  }
+
+  // Handle 411 - GD completed, but the auto Sales Invoice failed (non-blocking)
+  if (resultCode === "411" || resultCode === 411) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: true,
+      warning:
+        workflowResult.data.msg ||
+        workflowResult.data.message ||
+        "Completed, but the Sales Invoice could not be auto-created.",
+    };
+  }
+
+  // Handle 400 - General error
+  if (
+    resultCode === "400" ||
+    resultCode === 400 ||
+    workflowResult.data.success === false
+  ) {
+    const errorMessage =
+      workflowResult.data.msg ||
+      workflowResult.data.message ||
+      "Failed to complete Goods Delivery";
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: false,
+      error: errorMessage,
+    };
+  }
+
+  // Handle success
+  if (
+    resultCode === "200" ||
+    resultCode === 200 ||
+    workflowResult.data.success === true
+  ) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: true,
+    };
+  }
+
+  return {
+    delivery_no: gdItem.delivery_no,
+    success: false,
+    error: "Unknown workflow status",
+  };
+};
+
+(async () => {
+  try {
+    this.showLoading();
+    const allListID = "custom_ezwb0qqp";
+
+    const selectedRecords =
+      this.getComponent(allListID)?.$refs.crud.tableSelect;
+
+    console.log("selectedRecords", selectedRecords);
+
+    if (!selectedRecords || selectedRecords.length === 0) {
+      this.hideLoading();
+      this.$message.error("Please select at least one record.");
+      return;
+    }
+
+    const goodsDeliveryData = selectedRecords.filter(
+      (item) => item.gd_status === "Created",
+    );
+
+    if (goodsDeliveryData.length === 0) {
+      this.hideLoading();
+      this.$message.error("Please select at least one created goods delivery.");
+      return;
+    }
+
+    const goodsDeliveryNumbers = goodsDeliveryData.map(
+      (item) => item.delivery_no,
+    );
+
+    await this.$confirm(
+      `You've selected ${
+        goodsDeliveryNumbers.length
+      } goods delivery(s) to complete. <br> <strong>Goods Delivery Numbers:</strong> <br>${goodsDeliveryNumbers.join(
+        ", ",
+      )} <br>Do you want to proceed?`,
+      "Goods Delivery Completion",
+      {
+        confirmButtonText: "Proceed",
+        cancelButtonText: "Cancel",
+        type: "warning",
+        dangerouslyUseHTMLString: true,
+      },
+    ).catch(() => {
+      console.log("User clicked Cancel or closed the dialog");
+      throw new Error();
+    });
+
+    const results = [];
+    const pendingGR = []; // GDs eligible for auto-GR (408), decided via one batch prompt
+    const pendingSI = []; // GDs eligible for auto-SI (412), decided via one batch prompt
+    const queuedJobs = []; // GD Completion V2 jobs this click queued
+
+    // Phase 1: complete everything; defer auto-GR-eligible (408) and auto-SI-eligible (412)
+    // GDs — neither is completed yet, both gates return before saving.
+    for (const gdItem of goodsDeliveryData) {
+      const id = gdItem.id;
+
+      if (ASYNC_COMPLETE_ENABLED === true) {
+        try {
+          const v = await submitV2(gdItem, { needCL: "required", continueZero: "", isForceComplete: "", auto_si_confirmed: "", auto_si_skip: "" });
+          if (v.kind === "QUEUED") {
+            results.push({ delivery_no: gdItem.delivery_no, success: true, queued: true });
+            queuedJobs.push(v.jobId);
+            continue;
+          }
+          if (v.kind === "RESULT") {
+            results.push(v.result);
+            continue;
+          }
+          if (v.kind === "PENDING_SI") {
+            pendingSI.push({ gdItem, v2: true, answers: v.answers });
+            continue;
+          }
+          console.log(`GD ${gdItem.delivery_no}: classic completion - ${v.why}`);
+        } catch (error) {
+          results.push({ delivery_no: gdItem.delivery_no, success: false, error: error.message || "Failed to complete" });
+          continue;
+        }
+      }
+
+      const data = await db.collection("goods_delivery").doc(id).get();
+
+      if (!data.data || data.data.length === 0) {
+        results.push({
+          delivery_no: gdItem.delivery_no,
+          success: false,
+          error: "Goods Delivery record not found",
+        });
+        continue;
+      }
+
+      try {
+        const gdData = data.data[0];
+        const ctx = {
+          needCL: "required",
+          isForceComplete: "",
+          continueZero: "",
+        };
+        const workflowResult = await runGDWorkflow(gdData, ctx);
+        const result = await handleWorkflowResult(
+          workflowResult,
+          gdItem,
+          gdData,
+          pendingGR,
+          pendingSI,
+          ctx,
+        );
+        if (result) results.push(result);
+      } catch (error) {
+        results.push({
+          delivery_no: gdItem.delivery_no,
+          success: false,
+          error: error.message || "Failed to complete",
+        });
+      }
+    }
+
+    // Phase 2: one prompt for all auto-GR-eligible deliveries, then complete them.
+    // pendingSI is still passed: the GR gate sits BEFORE the SI gate, so a delivery deferred here
+    // only reaches the SI gate on this re-run and may now answer 412 — it must be deferred too,
+    // not decided per-GD.
+    if (pendingGR.length > 0) {
+      this.hideLoading();
+      const eligibleNos = pendingGR.map((p) => p.gdItem.delivery_no).join(", ");
+      const createGR = await this.$confirm(
+        `${pendingGR.length} of the selected delivery(s) are linked to internal Purchase Orders and can auto-create Goods Receipts in the buyer organization.<br><strong>Deliveries:</strong><br>${eligibleNos}<br><br>Create the Goods Receipts now?<br><em>Choosing "No" will still complete the deliveries, without creating GRs.</em>`,
+        "Internal Trading – Auto-create Goods Receipts",
+        {
+          confirmButtonText: "Yes, create GRs",
+          cancelButtonText: "No, complete only",
+          type: "info",
+          dangerouslyUseHTMLString: true,
+        },
+      )
+        .then(() => true)
+        .catch(() => false);
+
+      this.showLoading();
+      for (const p of pendingGR) {
+        if (createGR) {
+          p.gdData.auto_gr_confirmed = true;
+        } else {
+          p.gdData.auto_gr_skip = true;
+        }
+        try {
+          const workflowResult = await runGDWorkflow(p.gdData, p.ctx);
+          const result = await handleWorkflowResult(
+            workflowResult,
+            p.gdItem,
+            p.gdData,
+            null,
+            pendingSI,
+            p.ctx,
+          );
+          if (result) results.push(result);
+        } catch (error) {
+          results.push({
+            delivery_no: p.gdItem.delivery_no,
+            success: false,
+            error: error.message || "Failed to complete",
+          });
+        }
+      }
+    }
+
+    // Phase 3: one prompt for all auto-SI-eligible deliveries, then complete them.
+    if (pendingSI.length > 0) {
+      this.hideLoading();
+      const siNos = pendingSI.map((p) => p.gdItem.delivery_no).join(", ");
+      const createSI = await this.$confirm(
+        `${pendingSI.length} of the selected delivery(s) will be invoiced automatically on completion.<br><strong>Deliveries:</strong><br>${siNos}<br><br>Create the Sales Invoices now?<br><em>Choosing "No" will still complete the deliveries, without creating invoices.</em>`,
+        "Auto-create Sales Invoices",
+        {
+          confirmButtonText: "Yes, create invoices",
+          cancelButtonText: "No, complete only",
+          type: "info",
+          dangerouslyUseHTMLString: true,
+        },
+      )
+        .then(() => true)
+        .catch(() => false);
+
+      this.showLoading();
+      for (const p of pendingSI) {
+        if (p.v2) {
+          try {
+            const v = await submitV2(p.gdItem, createSI ? { ...p.answers, auto_si_confirmed: "true" } : { ...p.answers, auto_si_skip: "true" });
+            if (v.kind === "QUEUED") {
+              results.push({ delivery_no: p.gdItem.delivery_no, success: true, queued: true });
+              queuedJobs.push(v.jobId);
+            } else if (v.kind === "RESULT") {
+              results.push(v.result);
+            } else {
+              results.push({ delivery_no: p.gdItem.delivery_no, success: false, error: "Could not be completed in the background - complete it from the form" });
+            }
+          } catch (error) {
+            results.push({ delivery_no: p.gdItem.delivery_no, success: false, error: error.message || "Failed to complete" });
+          }
+          continue;
+        }
+        if (createSI) {
+          p.gdData.auto_si_confirmed = true;
+        } else {
+          p.gdData.auto_si_skip = true;
+        }
+        try {
+          const workflowResult = await runGDWorkflow(p.gdData, p.ctx);
+          const result = await handleWorkflowResult(
+            workflowResult,
+            p.gdItem,
+            p.gdData,
+            null,
+            null,
+            p.ctx,
+          );
+          if (result) results.push(result);
+        } catch (error) {
+          results.push({
+            delivery_no: p.gdItem.delivery_no,
+            success: false,
+            error: error.message || "Failed to complete",
+          });
+        }
+      }
+    }
+
+    // Show summary
+    const queuedCount = results.filter((r) => r.queued).length;
+    const queuedText = queuedCount > 0 ? `<br>${queuedCount} of them are being completed in the background.` : "";
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.filter((r) => !r.success).length;
+    const warningItems = results.filter((r) => r.success && r.warning);
+
+    if (failCount > 0) {
+      const failedItems = results
+        .filter((r) => !r.success)
+        .map((r) => `${r.delivery_no}: ${r.error}`)
+        .join("<br>");
+      const warnText =
+        warningItems.length > 0
+          ? `<br><br><strong>Warnings:</strong><br>${warningItems
+              .map((r) => `${r.delivery_no}: ${r.warning}`)
+              .join("<br>")}`
+          : "";
+      this.$message.error(
+        `${successCount} succeeded, ${failCount} failed:<br>${failedItems}${warnText}${queuedText}`,
+      );
+    } else if (warningItems.length > 0) {
+      this.$message.warning(
+        `All ${successCount} Goods Delivery completed.<br><br><strong>Warnings:</strong><br>${warningItems
+          .map((r) => `${r.delivery_no}: ${r.warning}`)
+          .join("<br>")}${queuedText}`,
+      );
+    } else {
+      this.$message.success(
+        queuedCount > 0
+          ? `${successCount - queuedCount} Goods Delivery completed, ${queuedCount} being completed in the background.`
+          : `All ${successCount} Goods Delivery completed successfully`,
+      );
+    }
+
+    this.hideLoading();
+    this.refresh();
+    if (queuedJobs.length > 0) drainWorker(1);
+  } catch (error) {
+    this.hideLoading();
+    console.error(error);
+  }
+})();

@@ -1,3 +1,57 @@
+// func_bulkComplete (GD list) + GD Completion V2: each selected Created delivery goes to GD_COMPLETE_SUBMIT first (QUEUED =
+// completed in the background by GD_COMPLETE_WORKER, which this page then keeps running until nothing is due - there is no
+// scheduled worker); NOT_ELIGIBLE and 406 run the classic GOODS_DELIVERY path below, unchanged.
+const GDC_WF = {
+  SUBMIT: "2110182609618337794", // GD_COMPLETE_SUBMIT
+  WORKER: "2110182645714518018", // GD_COMPLETE_WORKER
+};
+// Switch: false = every delivery runs the classic save
+const ASYNC_COMPLETE_ENABLED = true;
+
+const runWf = (id, params) =>
+  new Promise((resolve, reject) => {
+    this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));
+  });
+
+// SUBMIT for one delivery, answering 401 / 403 as the classic path below does; 412 is left to the batch prompt
+const submitV2 = async (gdItem, answers) => {
+  const res = await runWf(GDC_WF.SUBMIT, { operation: "SUBMIT", gd_id: gdItem.id, source: "LIST", answers: answers });
+  const r = (res && res.data) || null;
+  const fail = (error) => ({ kind: "RESULT", result: { delivery_no: gdItem.delivery_no, success: false, error: error } });
+  if (!r || !r.route) return fail("No response from workflow");
+  if (r.route === "QUEUED") return { kind: "QUEUED", jobId: r.job_id };
+  if (r.route === "NOT_ELIGIBLE") return { kind: "CLASSIC", why: r.reason || r.message };
+  if (r.route !== "STOP") return fail(r.message || "Failed to complete Goods Delivery");
+  const code = String(r.code);
+  if (code === "401") return submitV2(gdItem, { ...answers, continueZero: "Yes" });
+  if (code === "403") return submitV2(gdItem, { ...answers, needCL: "not required" });
+  if (code === "406") return { kind: "CLASSIC", why: "406: picking not completed" };
+  if (code === "412") return { kind: "PENDING_SI", answers: answers };
+  if (code === "402") return fail((r.message || "Credit limit exceeded").replace(/^Block - /, ""));
+  if (code === "405") return fail("Must save as Created first");
+  if (code === "407") return fail("Packing must be completed first");
+  return fail(r.message || "Failed to complete Goods Delivery");
+};
+
+// one tick completes up to 5 due jobs; keep ticking while ticks find work (the page must stay open for that)
+const drainWorker = (round) => {
+  try {
+    this.runWorkflow(
+      GDC_WF.WORKER,
+      {},
+      (w) => {
+        const processed = Number((w && w.data && w.data.processed) || 0);
+        console.log("GD Completion V2: worker tick", round, processed);
+        this.refresh();
+        if (processed > 0 && round < 40) drainWorker(round + 1);
+      },
+      (e) => console.error("GD Completion V2: worker tick failed", e),
+    );
+  } catch (e) {
+    console.error("GD Completion V2: worker could not be started", e);
+  }
+};
+
 // Every confirmation the workflow can ask for is carried in one object. Threading them
 // individually meant a retry after one gate dropped the answer to another -- and with no
 // user in the loop to break the cycle, a delivery that needs both continueZero and
@@ -296,11 +350,35 @@ const handleWorkflowResult = async (
     const results = [];
     const pendingGR = []; // GDs eligible for auto-GR (408), decided via one batch prompt
     const pendingSI = []; // GDs eligible for auto-SI (412), decided via one batch prompt
+    const queuedJobs = []; // GD Completion V2 jobs this click queued
 
     // Phase 1: complete everything; defer auto-GR-eligible (408) and auto-SI-eligible (412)
     // GDs — neither is completed yet, both gates return before saving.
     for (const gdItem of goodsDeliveryData) {
       const id = gdItem.id;
+
+      if (ASYNC_COMPLETE_ENABLED === true) {
+        try {
+          const v = await submitV2(gdItem, { needCL: "required", continueZero: "", isForceComplete: "", auto_si_confirmed: "", auto_si_skip: "" });
+          if (v.kind === "QUEUED") {
+            results.push({ delivery_no: gdItem.delivery_no, success: true, queued: true });
+            queuedJobs.push(v.jobId);
+            continue;
+          }
+          if (v.kind === "RESULT") {
+            results.push(v.result);
+            continue;
+          }
+          if (v.kind === "PENDING_SI") {
+            pendingSI.push({ gdItem, v2: true, answers: v.answers });
+            continue;
+          }
+          console.log(`GD ${gdItem.delivery_no}: classic completion - ${v.why}`);
+        } catch (error) {
+          results.push({ delivery_no: gdItem.delivery_no, success: false, error: error.message || "Failed to complete" });
+          continue;
+        }
+      }
 
       const data = await db.collection("goods_delivery").doc(id).get();
 
@@ -406,6 +484,22 @@ const handleWorkflowResult = async (
 
       this.showLoading();
       for (const p of pendingSI) {
+        if (p.v2) {
+          try {
+            const v = await submitV2(p.gdItem, createSI ? { ...p.answers, auto_si_confirmed: "true" } : { ...p.answers, auto_si_skip: "true" });
+            if (v.kind === "QUEUED") {
+              results.push({ delivery_no: p.gdItem.delivery_no, success: true, queued: true });
+              queuedJobs.push(v.jobId);
+            } else if (v.kind === "RESULT") {
+              results.push(v.result);
+            } else {
+              results.push({ delivery_no: p.gdItem.delivery_no, success: false, error: "Could not be completed in the background - complete it from the form" });
+            }
+          } catch (error) {
+            results.push({ delivery_no: p.gdItem.delivery_no, success: false, error: error.message || "Failed to complete" });
+          }
+          continue;
+        }
         if (createSI) {
           p.gdData.auto_si_confirmed = true;
         } else {
@@ -433,6 +527,8 @@ const handleWorkflowResult = async (
     }
 
     // Show summary
+    const queuedCount = results.filter((r) => r.queued).length;
+    const queuedText = queuedCount > 0 ? `<br>${queuedCount} of them are being completed in the background.` : "";
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
     const warningItems = results.filter((r) => r.success && r.warning);
@@ -449,22 +545,25 @@ const handleWorkflowResult = async (
               .join("<br>")}`
           : "";
       this.$message.error(
-        `${successCount} succeeded, ${failCount} failed:<br>${failedItems}${warnText}`,
+        `${successCount} succeeded, ${failCount} failed:<br>${failedItems}${warnText}${queuedText}`,
       );
     } else if (warningItems.length > 0) {
       this.$message.warning(
         `All ${successCount} Goods Delivery completed.<br><br><strong>Warnings:</strong><br>${warningItems
           .map((r) => `${r.delivery_no}: ${r.warning}`)
-          .join("<br>")}`,
+          .join("<br>")}${queuedText}`,
       );
     } else {
       this.$message.success(
-        `All ${successCount} Goods Delivery completed successfully`,
+        queuedCount > 0
+          ? `${successCount - queuedCount} Goods Delivery completed, ${queuedCount} being completed in the background.`
+          : `All ${successCount} Goods Delivery completed successfully`,
       );
     }
 
     this.hideLoading();
     this.refresh();
+    if (queuedJobs.length > 0) drainWorker(1);
   } catch (error) {
     this.hideLoading();
     console.error(error);

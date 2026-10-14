@@ -1,0 +1,23 @@
+{
+ "operation_key": "IBATEST|PLAN1",
+ "mode": "PLAN",
+ "organization_id": "1123598813738675201",
+ "movements": [
+  {
+   "plant_id": "1123598813738675202",
+   "organization_id": "1123598813738675201",
+   "material_id": "2020755054429687810",
+   "location_id": "2018912875841613825",
+   "quantity": 1,
+   "trx_no": "IBA-TEST-1",
+   "parent_trx_no": null,
+   "doc_date": "2026-10-13 00:00:00",
+   "handling_unit_id": "",
+   "movement_key": "D1",
+   "direction": "SUBTRACT",
+   "inventory_category": "Reserved",
+   "isMovingInv": 0,
+   "transaction_type": "IBA-TEST"
+  }
+ ]
+}

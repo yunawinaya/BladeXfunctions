@@ -31,13 +31,21 @@
     const huById = {};
     for (const hu of (huRes && huRes.data) || []) huById[hu.id] = hu;
 
+    // An HU's contents are its items with quantity left. Unloading an HU to
+    // zero leaves the item row behind (quantity 0, is_deleted 0 — the
+    // HANDLING_UNIT workflow's soft delete doesn't persist), so row presence
+    // alone would mis-classify an emptied HU as locked.
+    const itemQty = (it) =>
+      Number(it.store_in_quantity) || Number(it.quantity) || 0;
+    const heldItems = (hu) =>
+      (hu.table_hu_items || []).filter((i) => !i.is_deleted && itemQty(i) > 0);
+
     // Collect distinct material_ids across all pre-existing items for one batch
     // Item-master lookup (so temp_data entries carry item_code/name/desc/uom).
     const materialIdSet = {};
     for (const hu of Object.values(huById)) {
-      const items = hu.table_hu_items || [];
-      for (const it of items) {
-        if (!it.is_deleted && it.material_id) materialIdSet[it.material_id] = true;
+      for (const it of heldItems(hu)) {
+        if (it.material_id) materialIdSet[it.material_id] = true;
       }
     }
     const materialIds = Object.keys(materialIdSet);
@@ -51,14 +59,13 @@
     const tableHu = data.table_hu || [];
     const newRows = selected.map((dialogRow) => {
       const hu = huById[dialogRow.handling_unit_id] || {};
-      const huItems = (hu.table_hu_items || []).filter((i) => !i.is_deleted);
+      const huItems = heldItems(hu);
 
       // Pre-existing temp_data entries, tagged is_preexisting so the save
       // workflow can skip them from the "load" HU update later.
       const preexistingEntries = huItems.map((it, idx) => {
         const master = itemById[it.material_id] || {};
-        const qty =
-          Number(it.store_in_quantity) || Number(it.quantity) || 0;
+        const qty = itemQty(it);
         return {
           is_preexisting: true,
           line_index: idx,

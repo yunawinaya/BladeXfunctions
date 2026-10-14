@@ -7,14 +7,14 @@
     if (packingMode === "Basic") {
       await this.display(["table_hu.hu_quantity"]);
       await this.hide([
-        "table_hu.select_items",
+        "table_hu.view_detail_button",
         "table_hu.item_count",
         "table_hu.total_quantity",
       ]);
     } else {
       await this.hide(["table_hu.hu_quantity"]);
       await this.display([
-        "table_hu.select_items",
+        "table_hu.view_detail_button",
         "table_hu.item_count",
         "table_hu.total_quantity",
       ]);
@@ -27,8 +27,9 @@
       for (let i = 0; i < tableHu.length; i++) {
         const r = tableHu[i];
         if (r.hu_status === "Completed") continue;
-        resetUpdates[`table_hu.${i}.hu_quantity`] = 0;
-        if (!r.temp_data || r.temp_data === "[]") {
+        // only cells whose value changes: a row-path write fires that column's onChange once per row
+        if (Number(r.hu_quantity) !== 0 || r.hu_quantity === null || r.hu_quantity === undefined || r.hu_quantity === "") resetUpdates[`table_hu.${i}.hu_quantity`] = 0;
+        if ((!r.temp_data || r.temp_data === "[]") && r.hu_status !== "Unpacked") {
           resetUpdates[`table_hu.${i}.hu_status`] = "Unpacked";
         }
       }

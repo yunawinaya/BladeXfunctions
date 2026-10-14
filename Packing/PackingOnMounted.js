@@ -141,6 +141,50 @@ const fetchPickingSetup = async (organizationId) => {
   }
 };
 
+// Packing V2: the Packing's latest background completion, read through PACKING_ASYNC_SUBMIT (STATUS: the browser cannot
+// read gd_async_job). While it is open the save buttons are hidden; FAILED / under review is reported once.
+const pkgV2ShowJobState = async () => {
+  const id = this.getValue("id");
+  if (!id || "2109924558618333185".indexOf("__") === 0) return;
+  let organizationId = String(this.getValue("organization_id") || "");
+  if (!organizationId) {
+    organizationId = String(this.getVarGlobal("deptParentId") || "");
+    if (!organizationId || organizationId === "0") organizationId = String(this.getVarSystem("deptIds") || "").split(",")[0];
+  }
+  const job = await new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        "2109924558618333185",
+        { packing_id: String(id), organization_id: organizationId, operation: "STATUS" },
+        (res) => resolve((res && res.data) || null),
+        (err) => {
+          console.error("Packing V2: job state could not be read", err);
+          resolve(null);
+        },
+      );
+    } catch (e) {
+      resolve(null);
+    }
+  });
+  if (!job || !job.job_id) return;
+  if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PACKING"].includes(job.job_status)) {
+    this.hide(["button_save_as_draft", "button_created", "button_completed"]);
+    this.$message.warning("This Packing is being completed in the background (" + (job.result_message || job.job_status) + "). Reopen it in a moment.");
+    return;
+  }
+  const seenKey = "pkgv2_seen_" + job.job_id;
+  let seen = false;
+  try {
+    seen = window.localStorage.getItem(seenKey) === "1";
+    window.localStorage.setItem(seenKey, "1");
+  } catch (e) {
+    seen = false;
+  }
+  if (seen) return;
+  if (job.job_status === "FAILED") this.$message.error("The last completion was not saved: " + (job.result_message || "unknown reason"));
+  else if (job.job_status === "REQUIRES_REVIEW") this.$message.error("The last completion stopped half-way and is under review: " + job.result_message + " Please contact support.");
+};
+
 // Main execution function
 (async () => {
   try {
@@ -183,6 +227,7 @@ const fetchPickingSetup = async (organizationId) => {
         await disabledField(status);
         await showStatusHTML(status);
         await setPackingMode();
+        pkgV2ShowJobState();
         break;
 
       case "View":
@@ -193,6 +238,7 @@ const fetchPickingSetup = async (organizationId) => {
           "button_completed",
         ]);
         await setPackingMode();
+        pkgV2ShowJobState();
         break;
     }
 

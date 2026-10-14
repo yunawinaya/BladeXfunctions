@@ -81,13 +81,23 @@
       return v || "";
     };
 
+    // One read of the GD per open, kept in _data for the next taps (a 2,000-line GD per tap was the stutter). A tap the
+    // kept map would refuse reads the GD again first: a Picking may have finished since.
     const pickedMap = {};
     // Stays false when there is no GD (a Sales-Order-based packing has none) or
     // the read fails, and the guard below is then SKIPPED rather than blocking:
     // an empty map would read as "nothing picked" and refuse everything.
     let pickedCheckReady = false;
+    let pickedFromCache = false;
     const gdId = firstId(data.gd_id);
-    if (gdId) {
+    const loadPicked = async (fresh) => {
+      const kept = (this.models["_data"] || {}).pkgv2_picked;
+      if (!fresh && kept && kept.gdId === String(gdId) && kept.map) {
+        Object.assign(pickedMap, kept.map);
+        pickedCheckReady = true;
+        pickedFromCache = true;
+        return;
+      }
       try {
       const gdRes = await db.collection("goods_delivery").doc(gdId).get();
       const gd = gdRes?.data?.[0];
@@ -106,6 +116,7 @@
           return [];
         }
       };
+      const map = {};
       for (const line of gdLines) {
         if (!line.material_id) continue;
         const picked = parseJsonSafe(line.picked_temp_qty_data);
@@ -123,10 +134,14 @@
           // separately on hu_status.
           if (e.handling_unit_id) continue;
           const k = srcKey(line.id, e.location_id, e.batch_id);
-          pickedMap[k] = (pickedMap[k] || 0) + (Number(e.gd_quantity) || 0);
+          map[k] = (map[k] || 0) + (Number(e.gd_quantity) || 0);
         }
       }
+      for (const k of Object.keys(pickedMap)) delete pickedMap[k];
+      Object.assign(pickedMap, map);
       pickedCheckReady = true;
+      pickedFromCache = false;
+      this.models["_data"] = { ...this.models["_data"], pkgv2_picked: { gdId: String(gdId), map: map } };
       } catch (e) {
         // Fail OPEN. A flaky read must not strand a packer on a legitimately
         // picked order, and this runs on every pick tap. onSave_Completed
@@ -137,7 +152,8 @@
           "Pick check skipped \u2014 could not read the Goods Delivery.",
         );
       }
-    }
+    };
+    if (gdId) await loadPicked(false);
 
     // picked_qty is what PackingRecomputeSource just wrote: already packed.
     const packableOf = (row) =>
@@ -159,7 +175,11 @@
       );
       return;
     }
-    const packable = packableOf(sourceRow);
+    let packable = packableOf(sourceRow);
+    if (pickedCheckReady && pickedFromCache && qtyToPick > packable) {
+      await loadPicked(true);
+      packable = packableOf(sourceRow);
+    }
     if (pickedCheckReady && qtyToPick > packable) {
       this.$message.warning(
         packable <= 0

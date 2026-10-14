@@ -87,6 +87,10 @@ sudu-lowcode --full data query goods_delivery --where '{"delivery_no":"GD-..."}'
    Success = `ok:true` and `published[].receipt.onlineReadback` → `status: enabled`,
    `versionNumber: <N>` (first done 2026-10-13: CUST_ITEM_BINDING v5 — opens normally in the
    platform designer).
+   **The compile publish reaches only the CLI gateway's runtime** — forms, Quartz and the designer run
+   behind `https://dev.mes.sudu.ai/api` and keep the old version. In the same yes, sync it:
+   `.dbtools/wf_upload.plan.json` items `[{ "name": "<NAME>", "dataId": "<id>", "republish": true }]`,
+   then `node .dbtools/wf_upload.mjs --dry-run` and `--publish` (message the other session first; the plan is shared).
 5. Commit the mirror — the publish also rewrites the sidecar, `sync-lock.json` and types:
    `git -C <root> -c user.name=sudu-lowcode -c user.email=sudu-lowcode@localhost -c core.hooksPath=/dev/null commit -qam "publish <NAME> v<N>"`
    A re-run of the dry-run should now say `unchanged`.
@@ -114,3 +118,4 @@ sudu-lowcode --full data query goods_delivery --where '{"delivery_no":"GD-..."}'
 | Workflow in `notPushable` | Server copy has a dangling reference or a loop with no source — a real bug; compile refuses it |
 | Untracked `.su-code/` appears in BladeXfunctions | The engine writes `.su-code/metrics/` into its cwd. Run it from the app root or the scratchpad; delete a stray `.su-code/` you created |
 | Auth error | `sudu-lowcode status`; the user re-runs `sudu-lowcode login` (browser SSO). Never ask for tokens |
+| A form / Quartz run after a CLI publish → 400 `Cannot invoke ... getJSONArray(String) because "rootNode" is null`, or the old version still runs | Two gateways, two runtime caches (verified 2026-10-13): the CLI's `sumes-cli.dev.mes.sudu.ai` and the browser's `dev.mes.sudu.ai` each refresh only on a publish through themselves. Re-publish through dev.mes (`wf_upload` `republish: true`, or a designer publish) and check with a run through `https://dev.mes.sudu.ai/api` — a run through the CLI gateway tests the other runtime |

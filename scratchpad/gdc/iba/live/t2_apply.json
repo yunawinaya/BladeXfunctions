@@ -1,0 +1,73 @@
+{
+ "operation_key": "IBATEST|RT1",
+ "mode": "APPLY",
+ "organization_id": "1123598813738675201",
+ "movements": [
+  {
+   "plant_id": "1123598813738675202",
+   "organization_id": "1123598813738675201",
+   "material_id": "2020755054429687810",
+   "location_id": "2018912875841613825",
+   "quantity": 1,
+   "trx_no": "IBA-TEST-1",
+   "parent_trx_no": null,
+   "doc_date": "2026-10-13 00:00:00",
+   "handling_unit_id": "",
+   "movement_key": "A",
+   "direction": "SUBTRACT",
+   "inventory_category": "Reserved",
+   "isMovingInv": 1,
+   "transaction_type": "IBA-TEST"
+  },
+  {
+   "plant_id": "1123598813738675202",
+   "organization_id": "1123598813738675201",
+   "material_id": "2020755054429687810",
+   "location_id": "2018912875841613825",
+   "quantity": 1,
+   "trx_no": "IBA-TEST-1",
+   "parent_trx_no": null,
+   "doc_date": "2026-10-13 00:00:00",
+   "handling_unit_id": "",
+   "movement_key": "B",
+   "direction": "ADD",
+   "inventory_category": "Unrestricted",
+   "isMovingInv": 1,
+   "transaction_type": "IBA-TEST",
+   "unit_price_from": "A"
+  },
+  {
+   "plant_id": "1123598813738675202",
+   "organization_id": "1123598813738675201",
+   "material_id": "2020755054429687810",
+   "location_id": "2018912875841613825",
+   "quantity": 1,
+   "trx_no": "IBA-TEST-1",
+   "parent_trx_no": null,
+   "doc_date": "2026-10-13 00:00:00",
+   "handling_unit_id": "",
+   "movement_key": "C",
+   "direction": "SUBTRACT",
+   "inventory_category": "Unrestricted",
+   "isMovingInv": 1,
+   "transaction_type": "IBA-TEST"
+  },
+  {
+   "plant_id": "1123598813738675202",
+   "organization_id": "1123598813738675201",
+   "material_id": "2020755054429687810",
+   "location_id": "2018912875841613825",
+   "quantity": 1,
+   "trx_no": "IBA-TEST-1",
+   "parent_trx_no": null,
+   "doc_date": "2026-10-13 00:00:00",
+   "handling_unit_id": "",
+   "movement_key": "D",
+   "direction": "ADD",
+   "inventory_category": "Reserved",
+   "isMovingInv": 1,
+   "transaction_type": "IBA-TEST",
+   "unit_price_from": "C"
+  }
+ ]
+}

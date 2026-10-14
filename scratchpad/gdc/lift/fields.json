@@ -1,0 +1,3748 @@
+{
+ "goods_delivery": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "gd_status": [
+   "str",
+   "str"
+  ],
+  "picking_status": [
+   "str",
+   "str"
+  ],
+  "si_status": [
+   "str",
+   "str"
+  ],
+  "sr_status": [
+   "str",
+   "str"
+  ],
+  "credit_limit_status": [
+   "str",
+   "str"
+  ],
+  "packing_status": [
+   "str",
+   "str"
+  ],
+  "has_sr": [
+   "int",
+   "int"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "customer_name": [
+   "id",
+   "id"
+  ],
+  "currency_code": [
+   "str",
+   "str"
+  ],
+  "so_no": [
+   "str",
+   "str"
+  ],
+  "pp_no": [
+   "str",
+   "str"
+  ],
+  "to_no": [
+   "str",
+   "str"
+  ],
+  "so_id": [
+   "json",
+   "json"
+  ],
+  "pp_id": [
+   "json",
+   "json"
+  ],
+  "gd_billing_address": [
+   "str",
+   "str"
+  ],
+  "gd_shipping_address": [
+   "str",
+   "str"
+  ],
+  "delivery_no": [
+   "str",
+   "str"
+  ],
+  "delivery_no_type": [
+   "id",
+   "id"
+  ],
+  "gd_contact_name": [
+   "str",
+   "str"
+  ],
+  "contact_number": [
+   "str",
+   "str"
+  ],
+  "email_address": [
+   "str",
+   "str"
+  ],
+  "di_shipping_method": [
+   "str",
+   "str"
+  ],
+  "gd_delivery_method": [
+   "str",
+   "str"
+  ],
+  "delivery_date": [
+   "dt",
+   "dt"
+  ],
+  "document_description": [
+   "str",
+   "str"
+  ],
+  "assigned_to": [
+   "json",
+   "json"
+  ],
+  "posted_status": [
+   "str",
+   "str"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "gd_uuid": [
+   "str",
+   "str"
+  ],
+  "from_convert": [
+   "str",
+   "str"
+  ],
+  "all_item": [
+   "str",
+   "str"
+  ],
+  "gd_created_by": [
+   "str",
+   "str"
+  ],
+  "acc_integration_type": [
+   "str",
+   "str"
+  ],
+  "so_docref": [
+   "str",
+   "str"
+  ],
+  "gd_dockey": [
+   "str",
+   "str"
+  ],
+  "reference_type": [
+   "str",
+   "str"
+  ],
+  "is_select_picking": [
+   "int",
+   "int"
+  ],
+  "gd_area_id": [
+   "id",
+   "id"
+  ],
+  "sales_person": [
+   "json",
+   "json"
+  ],
+  "project_id": [
+   "id",
+   "id"
+  ],
+  "gd_ref_doc": [
+   "json",
+   "json"
+  ],
+  "last_sync_date": [
+   "dt",
+   "dt"
+  ],
+  "customer_credit_limit": [
+   "dec",
+   "dec"
+  ],
+  "overdue_limit": [
+   "dec",
+   "dec"
+  ],
+  "outstanding_balance": [
+   "dec",
+   "dec"
+  ],
+  "overdue_inv_total_amount": [
+   "dec",
+   "dec"
+  ],
+  "is_accurate": [
+   "int",
+   "int"
+  ],
+  "delivery_method_text": [
+   "str",
+   "str"
+  ],
+  "di_driver_name": [
+   "str",
+   "str"
+  ],
+  "di_ic_no": [
+   "str",
+   "str"
+  ],
+  "di_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "di_shipping_company": [
+   "str",
+   "str"
+  ],
+  "di_transport_name": [
+   "str",
+   "str"
+  ],
+  "di_est_delivery_date": [
+   "dt",
+   "dt"
+  ],
+  "di_vehicle_number": [
+   "id",
+   "id"
+  ],
+  "di_pickup_date": [
+   "dt",
+   "dt"
+  ],
+  "di_validity_of_collection": [
+   "dt",
+   "dt"
+  ],
+  "di_est_arrival_date": [
+   "dt",
+   "dt"
+  ],
+  "di_tracking_number": [
+   "str",
+   "str"
+  ],
+  "di_freight_charges": [
+   "dec",
+   "dec"
+  ],
+  "driver_name": [
+   "str",
+   "str"
+  ],
+  "ic_no": [
+   "str",
+   "str"
+  ],
+  "driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "sp_vehicle_no": [
+   "str",
+   "str"
+  ],
+  "pickup_date": [
+   "dt",
+   "dt"
+  ],
+  "validity_of_collection": [
+   "dt",
+   "dt"
+  ],
+  "courier_company": [
+   "str",
+   "str"
+  ],
+  "shipping_date": [
+   "dt",
+   "dt"
+  ],
+  "freight_charges": [
+   "dec",
+   "dec"
+  ],
+  "tracking_number": [
+   "str",
+   "str"
+  ],
+  "est_arrival_date": [
+   "dt",
+   "dt"
+  ],
+  "vehicle_no": [
+   "id",
+   "id"
+  ],
+  "est_delivery_date": [
+   "dt",
+   "dt"
+  ],
+  "delivery_cost": [
+   "dec",
+   "dec"
+  ],
+  "shipping_company": [
+   "str",
+   "str"
+  ],
+  "shipping_method": [
+   "str",
+   "str"
+  ],
+  "tpt_vehicle_number": [
+   "str",
+   "str"
+  ],
+  "tpt_transport_name": [
+   "str",
+   "str"
+  ],
+  "tpt_driver_name": [
+   "str",
+   "str"
+  ],
+  "tpt_ic_no": [
+   "str",
+   "str"
+  ],
+  "tpt_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "custom_fields": [
+   "json",
+   "json"
+  ],
+  "table_gd": [
+   "json",
+   "json"
+  ],
+  "gd_total": [
+   "dec",
+   "dec"
+  ],
+  "order_tnc": [
+   "str",
+   "str"
+  ],
+  "order_payment_details": [
+   "str",
+   "str"
+  ],
+  "order_delivery_term": [
+   "str",
+   "str"
+  ],
+  "order_remark": [
+   "str",
+   "str"
+  ],
+  "order_remark2": [
+   "str",
+   "str"
+  ],
+  "order_remark3": [
+   "str",
+   "str"
+  ],
+  "order_remark4": [
+   "str",
+   "str"
+  ],
+  "order_remark5": [
+   "str",
+   "str"
+  ],
+  "storage_location": [
+   "id",
+   "id"
+  ],
+  "table_item_balance": [
+   "json",
+   "json"
+  ],
+  "table_insufficient": [
+   "json",
+   "json"
+  ],
+  "billing_address_name": [
+   "str",
+   "str"
+  ],
+  "billing_address_code": [
+   "str",
+   "str"
+  ],
+  "billing_address_phone": [
+   "str",
+   "str"
+  ],
+  "billing_address_fax": [
+   "str",
+   "str"
+  ],
+  "billing_address_line_1": [
+   "str",
+   "str"
+  ],
+  "billing_address_line_2": [
+   "str",
+   "str"
+  ],
+  "billing_address_line_3": [
+   "str",
+   "str"
+  ],
+  "billing_address_line_4": [
+   "str",
+   "str"
+  ],
+  "billing_address_city": [
+   "str",
+   "str"
+  ],
+  "billing_postal_code": [
+   "str",
+   "str"
+  ],
+  "billing_address_state": [
+   "id",
+   "id"
+  ],
+  "billing_address_country": [
+   "id",
+   "id"
+  ],
+  "billing_attention": [
+   "str",
+   "str"
+  ],
+  "shipping_address_name": [
+   "str",
+   "str"
+  ],
+  "shipping_address_code": [
+   "str",
+   "str"
+  ],
+  "shipping_address_phone": [
+   "str",
+   "str"
+  ],
+  "shipping_address_fax": [
+   "str",
+   "str"
+  ],
+  "shipping_address_line_1": [
+   "str",
+   "str"
+  ],
+  "shipping_address_line_2": [
+   "str",
+   "str"
+  ],
+  "shipping_address_line_3": [
+   "str",
+   "str"
+  ],
+  "shipping_address_line_4": [
+   "str",
+   "str"
+  ],
+  "shipping_address_city": [
+   "str",
+   "str"
+  ],
+  "shipping_postal_code": [
+   "str",
+   "str"
+  ],
+  "shipping_address_state": [
+   "id",
+   "id"
+  ],
+  "shipping_address_country": [
+   "id",
+   "id"
+  ],
+  "shipping_attention": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "delivery_no_sn": [
+   "id",
+   "id"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "goods_delivery_fwii8mvb_sub": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "goods_delivery_id": [
+   "id",
+   "id"
+  ],
+  "material_id": [
+   "id",
+   "id"
+  ],
+  "material_name": [
+   "str",
+   "str"
+  ],
+  "item_bundle_id": [
+   "id",
+   "id"
+  ],
+  "gd_material_desc": [
+   "str",
+   "str"
+  ],
+  "more_desc": [
+   "str",
+   "str"
+  ],
+  "further_description": [
+   "str",
+   "str"
+  ],
+  "gd_order_quantity": [
+   "dec",
+   "dec"
+  ],
+  "gd_order_uom_id": [
+   "id",
+   "id"
+  ],
+  "gd_delivered_qty": [
+   "dec",
+   "dec"
+  ],
+  "gd_undelivered_qty": [
+   "dec",
+   "dec"
+  ],
+  "gd_qty": [
+   "dec",
+   "dec"
+  ],
+  "plan_qty": [
+   "dec",
+   "dec"
+  ],
+  "picked_qty": [
+   "dec",
+   "dec"
+  ],
+  "good_delivery_uom_id": [
+   "id",
+   "id"
+  ],
+  "line_so_no": [
+   "str",
+   "str"
+  ],
+  "line_to_no": [
+   "str",
+   "str"
+  ],
+  "view_stock": [
+   "str",
+   "str"
+  ],
+  "net_weight": [
+   "dec",
+   "dec"
+  ],
+  "weight_conversion": [
+   "dec",
+   "dec"
+  ],
+  "packing_qty": [
+   "dec",
+   "dec"
+  ],
+  "packing_uom": [
+   "id",
+   "id"
+  ],
+  "packing_conversion": [
+   "dec",
+   "dec"
+  ],
+  "plan_view_stock": [
+   "str",
+   "str"
+  ],
+  "tariff_id": [
+   "id",
+   "id"
+  ],
+  "picked_view_stock": [
+   "str",
+   "str"
+  ],
+  "invoice_qty": [
+   "dec",
+   "dec"
+  ],
+  "line_so_id": [
+   "num",
+   "str"
+  ],
+  "so_line_item_id": [
+   "num",
+   "str"
+  ],
+  "line_pp_id": [
+   "id",
+   "id"
+  ],
+  "pp_line_item_id": [
+   "id",
+   "id"
+  ],
+  "line_to_id": [
+   "id",
+   "id"
+  ],
+  "to_record_id": [
+   "id",
+   "id"
+  ],
+  "temp_qty_data": [
+   "str",
+   "str"
+  ],
+  "temp_hu_data": [
+   "str",
+   "str"
+  ],
+  "temp_excess_data": [
+   "str",
+   "str"
+  ],
+  "prev_temp_qty_data": [
+   "str",
+   "str"
+  ],
+  "plan_temp_qty_data": [
+   "str",
+   "str"
+  ],
+  "picked_temp_qty_data": [
+   "str",
+   "str"
+  ],
+  "is_force_complete": [
+   "int",
+   "int"
+  ],
+  "gd_initial_delivered_qty": [
+   "dec",
+   "dec"
+  ],
+  "unit_price": [
+   "dec",
+   "dec"
+  ],
+  "total_price": [
+   "dec",
+   "dec"
+  ],
+  "return_qty": [
+   "dec",
+   "dec"
+  ],
+  "base_qty": [
+   "dec",
+   "dec"
+  ],
+  "base_uom_id": [
+   "str",
+   "str"
+  ],
+  "fifo_sequence": [
+   "str",
+   "str"
+  ],
+  "item_costing_method": [
+   "str",
+   "str"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "line_index": [
+   "str",
+   "str"
+  ],
+  "si_status": [
+   "str",
+   "str"
+  ],
+  "job_line_key": [
+   "str",
+   "str"
+  ],
+  "picking_status": [
+   "str",
+   "str"
+  ],
+  "sr_status": [
+   "str",
+   "str"
+  ],
+  "packing_status": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "item_category_id": [
+   "id",
+   "id"
+  ],
+  "customer_id": [
+   "id",
+   "id"
+  ],
+  "assigned_to": [
+   "json",
+   "json"
+  ],
+  "billing_state_id": [
+   "id",
+   "id"
+  ],
+  "shipping_state_id": [
+   "id",
+   "id"
+  ],
+  "billing_country_id": [
+   "id",
+   "id"
+  ],
+  "shipping_country_id": [
+   "id",
+   "id"
+  ],
+  "area_id": [
+   "id",
+   "id"
+  ],
+  "line_remark_1": [
+   "str",
+   "str"
+  ],
+  "line_remark_2": [
+   "str",
+   "str"
+  ],
+  "line_remark_3": [
+   "str",
+   "str"
+  ],
+  "packing_no": [
+   "id",
+   "id"
+  ],
+  "hu_no": [
+   "json",
+   "json"
+  ],
+  "custom_fields": [
+   "json",
+   "json"
+  ],
+  "project_id": [
+   "id",
+   "id"
+  ],
+  "line_gd_uuid": [
+   "json",
+   "json"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "parent_id": [
+   "id",
+   "id"
+  ]
+ },
+ "on_reserved_gd": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "doc_type": [
+   "str",
+   "str"
+  ],
+  "target_gd_id": [
+   "str",
+   "str"
+  ],
+  "source_reserved_id": [
+   "str",
+   "str"
+  ],
+  "status": [
+   "str",
+   "str"
+  ],
+  "parent_no": [
+   "str",
+   "str"
+  ],
+  "parent_id": [
+   "str",
+   "str"
+  ],
+  "parent_line_id": [
+   "str",
+   "str"
+  ],
+  "doc_no": [
+   "str",
+   "str"
+  ],
+  "doc_id": [
+   "str",
+   "str"
+  ],
+  "doc_line_id": [
+   "str",
+   "str"
+  ],
+  "material_id": [
+   "id",
+   "id"
+  ],
+  "item_code": [
+   "str",
+   "str"
+  ],
+  "item_name": [
+   "str",
+   "str"
+  ],
+  "item_desc": [
+   "str",
+   "str"
+  ],
+  "batch_id": [
+   "id",
+   "id"
+  ],
+  "bin_location": [
+   "id",
+   "id"
+  ],
+  "item_uom": [
+   "id",
+   "id"
+  ],
+  "line_no": [
+   "int",
+   "int"
+  ],
+  "reserved_qty": [
+   "dec",
+   "dec"
+  ],
+  "delivered_qty": [
+   "dec",
+   "dec"
+  ],
+  "open_qty": [
+   "dec",
+   "dec"
+  ],
+  "reserved_date": [
+   "dt",
+   "dt"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "handling_unit_id": [
+   "str",
+   "str"
+  ],
+  "job_line_key": [
+   "str",
+   "str"
+  ],
+  "from_category": [
+   "str",
+   "str"
+  ],
+  "remark": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "sales_order": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "so_type": [
+   "str",
+   "str"
+  ],
+  "auto_gd": [
+   "int",
+   "int"
+  ],
+  "auto_si": [
+   "int",
+   "int"
+  ],
+  "plant_name": [
+   "id",
+   "id"
+  ],
+  "customer_name": [
+   "str",
+   "str"
+  ],
+  "so_currency": [
+   "str",
+   "str"
+  ],
+  "so_description": [
+   "str",
+   "str"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "price_tag_id": [
+   "str",
+   "str"
+  ],
+  "partially_delivered": [
+   "str",
+   "str"
+  ],
+  "fully_delivered": [
+   "str",
+   "str"
+  ],
+  "so_uuid": [
+   "str",
+   "str"
+  ],
+  "cust_billing_address": [
+   "str",
+   "str"
+  ],
+  "cust_shipping_address": [
+   "str",
+   "str"
+  ],
+  "so_no": [
+   "str",
+   "str"
+  ],
+  "so_no_type": [
+   "id",
+   "id"
+  ],
+  "so_date": [
+   "dt",
+   "dt"
+  ],
+  "sqt_no": [
+   "str",
+   "str"
+  ],
+  "sqt_id": [
+   "json",
+   "json"
+  ],
+  "cust_po": [
+   "str",
+   "str"
+  ],
+  "cust_po_date": [
+   "dt",
+   "dt"
+  ],
+  "so_payment_term": [
+   "str",
+   "str"
+  ],
+  "exchange_rate_currency": [
+   "str",
+   "str"
+  ],
+  "exchange_rate": [
+   "dec",
+   "dec"
+  ],
+  "exchange_rate_myr": [
+   "str",
+   "str"
+  ],
+  "so_sales_person": [
+   "str",
+   "str"
+  ],
+  "so_area_id": [
+   "id",
+   "id"
+  ],
+  "so_shipping_date": [
+   "dt",
+   "dt"
+  ],
+  "project_id": [
+   "id",
+   "id"
+  ],
+  "so_ref_doc": [
+   "json",
+   "json"
+  ],
+  "source_po_id": [
+   "id",
+   "id"
+  ],
+  "so_agent_user_id": [
+   "id",
+   "id"
+  ],
+  "so_docno": [
+   "str",
+   "str"
+  ],
+  "access_group": [
+   "json",
+   "json"
+  ],
+  "so_created_by": [
+   "str",
+   "str"
+  ],
+  "created_source": [
+   "str",
+   "str"
+  ],
+  "wa_number": [
+   "str",
+   "str"
+  ],
+  "wa_group": [
+   "str",
+   "str"
+  ],
+  "acc_integration_type": [
+   "str",
+   "str"
+  ],
+  "last_sync_date": [
+   "dt",
+   "dt"
+  ],
+  "customer_credit_limit": [
+   "dec",
+   "dec"
+  ],
+  "overdue_limit": [
+   "dec",
+   "dec"
+  ],
+  "outstanding_balance": [
+   "dec",
+   "dec"
+  ],
+  "overdue_inv_total_amount": [
+   "dec",
+   "dec"
+  ],
+  "approval_condition": [
+   "json",
+   "json"
+  ],
+  "is_accurate": [
+   "int",
+   "int"
+  ],
+  "so_status": [
+   "str",
+   "str"
+  ],
+  "gd_status": [
+   "str",
+   "str"
+  ],
+  "to_status": [
+   "str",
+   "str"
+  ],
+  "production_status": [
+   "str",
+   "str"
+  ],
+  "si_posted_status": [
+   "str",
+   "str"
+  ],
+  "si_status": [
+   "str",
+   "str"
+  ],
+  "posted_status": [
+   "str",
+   "str"
+  ],
+  "sr_status": [
+   "str",
+   "str"
+  ],
+  "srr_status": [
+   "str",
+   "str"
+  ],
+  "packing_status": [
+   "str",
+   "str"
+  ],
+  "previous_status": [
+   "str",
+   "str"
+  ],
+  "need_cl": [
+   "str",
+   "str"
+  ],
+  "create_si": [
+   "str",
+   "str"
+  ],
+  "has_sr": [
+   "int",
+   "int"
+  ],
+  "di_shipping_method": [
+   "str",
+   "str"
+  ],
+  "so_delivery_method": [
+   "str",
+   "str"
+  ],
+  "di_driver_name": [
+   "str",
+   "str"
+  ],
+  "di_ic_no": [
+   "str",
+   "str"
+  ],
+  "di_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "di_shipping_company": [
+   "str",
+   "str"
+  ],
+  "di_transport_name": [
+   "str",
+   "str"
+  ],
+  "di_est_delivery_date": [
+   "dt",
+   "dt"
+  ],
+  "di_vehicle_number": [
+   "id",
+   "id"
+  ],
+  "di_pickup_date": [
+   "dt",
+   "dt"
+  ],
+  "di_validity_of_collection": [
+   "dt",
+   "dt"
+  ],
+  "di_est_arrival_date": [
+   "dt",
+   "dt"
+  ],
+  "di_tracking_number": [
+   "str",
+   "str"
+  ],
+  "di_freight_charges": [
+   "dec",
+   "dec"
+  ],
+  "cp_driver_name": [
+   "str",
+   "str"
+  ],
+  "cp_ic_no": [
+   "str",
+   "str"
+  ],
+  "cp_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "cp_vehicle_number": [
+   "str",
+   "str"
+  ],
+  "cp_pickup_date": [
+   "dt",
+   "dt"
+  ],
+  "validity_of_collection": [
+   "dt",
+   "dt"
+  ],
+  "cs_courier_company": [
+   "str",
+   "str"
+  ],
+  "cs_shipping_date": [
+   "dt",
+   "dt"
+  ],
+  "cs_freight_charges": [
+   "dec",
+   "dec"
+  ],
+  "est_arrival_date": [
+   "dt",
+   "dt"
+  ],
+  "cs_tracking_number": [
+   "str",
+   "str"
+  ],
+  "ct_vehicle_number": [
+   "id",
+   "id"
+  ],
+  "ct_est_delivery_date": [
+   "dt",
+   "dt"
+  ],
+  "ct_delivery_cost": [
+   "dec",
+   "dec"
+  ],
+  "ct_driver_name": [
+   "str",
+   "str"
+  ],
+  "ct_ic_no": [
+   "str",
+   "str"
+  ],
+  "ct_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "ss_shipping_company": [
+   "str",
+   "str"
+  ],
+  "ss_shippping_date": [
+   "dt",
+   "dt"
+  ],
+  "ss_freight_charges": [
+   "dec",
+   "dec"
+  ],
+  "ss_shipping_method": [
+   "str",
+   "str"
+  ],
+  "ss_est_arrival_date": [
+   "dt",
+   "dt"
+  ],
+  "ss_tracking_number": [
+   "str",
+   "str"
+  ],
+  "tpt_vehicle_number": [
+   "str",
+   "str"
+  ],
+  "tpt_transport_name": [
+   "str",
+   "str"
+  ],
+  "tpt_driver_name": [
+   "str",
+   "str"
+  ],
+  "tpt_ic_no": [
+   "str",
+   "str"
+  ],
+  "tpt_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "custom_fields_m07krnod": [
+   "json",
+   "json"
+  ],
+  "table_so": [
+   "json",
+   "json"
+  ],
+  "total_gross_currency": [
+   "str",
+   "str"
+  ],
+  "total_discount_currency": [
+   "str",
+   "str"
+  ],
+  "total_tax_currency": [
+   "str",
+   "str"
+  ],
+  "total_amount_currency": [
+   "str",
+   "str"
+  ],
+  "total_amount_myr": [
+   "str",
+   "str"
+  ],
+  "so_total_gross": [
+   "dec",
+   "dec"
+  ],
+  "so_total_discount": [
+   "dec",
+   "dec"
+  ],
+  "so_total_tax": [
+   "dec",
+   "dec"
+  ],
+  "so_total": [
+   "dec",
+   "dec"
+  ],
+  "myr_total_amount": [
+   "dec",
+   "dec"
+  ],
+  "so_tnc": [
+   "str",
+   "str"
+  ],
+  "so_payment_details": [
+   "str",
+   "str"
+  ],
+  "so_delivery_term": [
+   "str",
+   "str"
+  ],
+  "so_remarks": [
+   "str",
+   "str"
+  ],
+  "so_remarks2": [
+   "str",
+   "str"
+  ],
+  "so_remarks3": [
+   "str",
+   "str"
+  ],
+  "so_remarks4": [
+   "str",
+   "str"
+  ],
+  "so_remarks5": [
+   "str",
+   "str"
+  ],
+  "billing_address_name": [
+   "str",
+   "str"
+  ],
+  "billing_address_code": [
+   "str",
+   "str"
+  ],
+  "billing_address_phone": [
+   "str",
+   "str"
+  ],
+  "billing_address_fax": [
+   "str",
+   "str"
+  ],
+  "billing_address_line_1": [
+   "str",
+   "str"
+  ],
+  "billing_address_line_2": [
+   "str",
+   "str"
+  ],
+  "billing_address_line_3": [
+   "str",
+   "str"
+  ],
+  "billing_address_line_4": [
+   "str",
+   "str"
+  ],
+  "billing_address_city": [
+   "str",
+   "str"
+  ],
+  "billing_postal_code": [
+   "str",
+   "str"
+  ],
+  "billing_address_state": [
+   "id",
+   "id"
+  ],
+  "billing_address_country": [
+   "id",
+   "id"
+  ],
+  "billing_attention": [
+   "str",
+   "str"
+  ],
+  "shipping_address_name": [
+   "str",
+   "str"
+  ],
+  "shipping_address_code": [
+   "str",
+   "str"
+  ],
+  "shipping_address_phone": [
+   "str",
+   "str"
+  ],
+  "shipping_address_fax": [
+   "str",
+   "str"
+  ],
+  "shipping_address_line_1": [
+   "str",
+   "str"
+  ],
+  "shipping_address_line_2": [
+   "str",
+   "str"
+  ],
+  "shipping_address_line_4": [
+   "str",
+   "str"
+  ],
+  "shipping_address_line_3": [
+   "str",
+   "str"
+  ],
+  "shipping_address_city": [
+   "str",
+   "str"
+  ],
+  "shipping_postal_code": [
+   "str",
+   "str"
+  ],
+  "shipping_address_country": [
+   "id",
+   "id"
+  ],
+  "shipping_address_state": [
+   "id",
+   "id"
+  ],
+  "shipping_attention": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "approve_flow_id": [
+   "str",
+   "str"
+  ],
+  "approve_flow_inst_id": [
+   "str",
+   "str"
+  ],
+  "approve_flow_inst_node_id": [
+   "str",
+   "str"
+  ],
+  "approve_flow_inst_node_name": [
+   "str",
+   "str"
+  ],
+  "approve_flow_status": [
+   "str",
+   "str"
+  ],
+  "approve_flow_workflow_id": [
+   "str",
+   "str"
+  ],
+  "so_no_sn": [
+   "id",
+   "id"
+  ],
+  "workflow_inst_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "sales_order_axszx8cj_sub": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "sales_order_id": [
+   "id",
+   "id"
+  ],
+  "item_name": [
+   "str",
+   "str"
+  ],
+  "item_id": [
+   "str",
+   "str"
+  ],
+  "so_desc": [
+   "str",
+   "str"
+  ],
+  "more_desc": [
+   "str",
+   "str"
+  ],
+  "further_description": [
+   "str",
+   "str"
+  ],
+  "unrestricted_qty": [
+   "dec",
+   "dec"
+  ],
+  "base_unrestricted_qty": [
+   "dec",
+   "dec"
+  ],
+  "so_quantity": [
+   "dec",
+   "dec"
+  ],
+  "bundle_ratio": [
+   "dec",
+   "dec"
+  ],
+  "min_quantity": [
+   "dec",
+   "dec"
+  ],
+  "max_quantity": [
+   "dec",
+   "dec"
+  ],
+  "so_item_uom": [
+   "id",
+   "id"
+  ],
+  "so_item_price": [
+   "dec",
+   "dec"
+  ],
+  "so_gross": [
+   "dec",
+   "dec"
+  ],
+  "so_discount": [
+   "dec",
+   "dec"
+  ],
+  "so_discount_uom": [
+   "str",
+   "str"
+  ],
+  "so_discount_amount": [
+   "dec",
+   "dec"
+  ],
+  "so_tax_preference": [
+   "id",
+   "id"
+  ],
+  "so_tax_percentage": [
+   "int",
+   "int"
+  ],
+  "so_tax_amount": [
+   "dec",
+   "dec"
+  ],
+  "min_price": [
+   "dec",
+   "dec"
+  ],
+  "max_price": [
+   "dec",
+   "dec"
+  ],
+  "so_tax_inclusive": [
+   "int",
+   "int"
+  ],
+  "so_brand": [
+   "id",
+   "id"
+  ],
+  "so_packaging_style": [
+   "str",
+   "str"
+  ],
+  "so_amount": [
+   "dec",
+   "dec"
+  ],
+  "tariff_id": [
+   "id",
+   "id"
+  ],
+  "net_weight": [
+   "dec",
+   "dec"
+  ],
+  "weight_conversion": [
+   "dec",
+   "dec"
+  ],
+  "packing_qty": [
+   "dec",
+   "dec"
+  ],
+  "packing_uom": [
+   "id",
+   "id"
+  ],
+  "packing_conversion": [
+   "dec",
+   "dec"
+  ],
+  "delivered_qty": [
+   "dec",
+   "dec"
+  ],
+  "from_historical": [
+   "int",
+   "int"
+  ],
+  "planned_qty": [
+   "dec",
+   "dec"
+  ],
+  "outstanding_quantity": [
+   "dec",
+   "dec"
+  ],
+  "invoice_qty": [
+   "dec",
+   "dec"
+  ],
+  "posted_qty": [
+   "dec",
+   "dec"
+  ],
+  "production_qty": [
+   "dec",
+   "dec"
+  ],
+  "production_planned_qty": [
+   "dec",
+   "dec"
+  ],
+  "production_status": [
+   "str",
+   "str"
+  ],
+  "return_qty": [
+   "dec",
+   "dec"
+  ],
+  "line_remark_1": [
+   "str",
+   "str"
+  ],
+  "line_remark_2": [
+   "str",
+   "str"
+  ],
+  "line_remark_3": [
+   "str",
+   "str"
+  ],
+  "so_shipping_date": [
+   "dt",
+   "dt"
+  ],
+  "project_id": [
+   "id",
+   "id"
+  ],
+  "item_category_id": [
+   "id",
+   "id"
+  ],
+  "access_group": [
+   "json",
+   "json"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "sqt_id": [
+   "id",
+   "id"
+  ],
+  "sqt_line_id": [
+   "str",
+   "str"
+  ],
+  "sqt_created_by_id": [
+   "id",
+   "id"
+  ],
+  "customer_id": [
+   "id",
+   "id"
+  ],
+  "item_bundle_id": [
+   "id",
+   "id"
+  ],
+  "payment_term_id": [
+   "id",
+   "id"
+  ],
+  "sales_person_id": [
+   "id",
+   "id"
+  ],
+  "billing_state_Id": [
+   "id",
+   "id"
+  ],
+  "shipping_state_id": [
+   "id",
+   "id"
+  ],
+  "billing_country_id": [
+   "id",
+   "id"
+  ],
+  "shipping_country_id": [
+   "id",
+   "id"
+  ],
+  "area_id": [
+   "id",
+   "id"
+  ],
+  "agent_user_id": [
+   "id",
+   "id"
+  ],
+  "line_index": [
+   "str",
+   "str"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "line_status": [
+   "str",
+   "str"
+  ],
+  "si_status": [
+   "str",
+   "str"
+  ],
+  "packing_status": [
+   "str",
+   "str"
+  ],
+  "source_po_line_item_id": [
+   "str",
+   "str"
+  ],
+  "table_uom_conversion": [
+   "str",
+   "str"
+  ],
+  "packing_no": [
+   "id",
+   "id"
+  ],
+  "hu_no": [
+   "json",
+   "json"
+  ],
+  "custom_fields": [
+   "json",
+   "json"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "parent_id": [
+   "id",
+   "id"
+  ]
+ },
+ "transfer_order": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "to_status": [
+   "str",
+   "str"
+  ],
+  "delivery_status": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "to_id": [
+   "str",
+   "str"
+  ],
+  "to_id_type": [
+   "id",
+   "id"
+  ],
+  "movement_type": [
+   "str",
+   "str"
+  ],
+  "ref_doc_type": [
+   "str",
+   "str"
+  ],
+  "gd_no": [
+   "json",
+   "json"
+  ],
+  "to_no": [
+   "json",
+   "json"
+  ],
+  "delivery_no": [
+   "str",
+   "str"
+  ],
+  "so_no": [
+   "str",
+   "str"
+  ],
+  "customer_id": [
+   "json",
+   "json"
+  ],
+  "to_validity_period": [
+   "json",
+   "json"
+  ],
+  "assigned_to": [
+   "json",
+   "json"
+  ],
+  "created_at": [
+   "dt",
+   "dt"
+  ],
+  "created_by": [
+   "str",
+   "str"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "is_processing": [
+   "int",
+   "int"
+  ],
+  "is_loading_bay": [
+   "int",
+   "int"
+  ],
+  "di_shipping_method": [
+   "str",
+   "str"
+  ],
+  "delivery_method": [
+   "str",
+   "str"
+  ],
+  "area_id": [
+   "id",
+   "id"
+  ],
+  "area_name": [
+   "str",
+   "str"
+  ],
+  "project_id": [
+   "id",
+   "id"
+  ],
+  "ref_doc": [
+   "json",
+   "json"
+  ],
+  "delivery_method_text": [
+   "str",
+   "str"
+  ],
+  "di_driver_name": [
+   "str",
+   "str"
+  ],
+  "di_ic_no": [
+   "str",
+   "str"
+  ],
+  "di_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "di_shipping_company": [
+   "str",
+   "str"
+  ],
+  "di_transport_name": [
+   "str",
+   "str"
+  ],
+  "di_est_delivery_date": [
+   "dt",
+   "dt"
+  ],
+  "di_vehicle_number": [
+   "id",
+   "id"
+  ],
+  "di_pickup_date": [
+   "dt",
+   "dt"
+  ],
+  "di_validity_of_collection": [
+   "dt",
+   "dt"
+  ],
+  "di_est_arrival_date": [
+   "dt",
+   "dt"
+  ],
+  "di_tracking_number": [
+   "str",
+   "str"
+  ],
+  "di_freight_charges": [
+   "dec",
+   "dec"
+  ],
+  "driver_name": [
+   "str",
+   "str"
+  ],
+  "ic_no": [
+   "str",
+   "str"
+  ],
+  "driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "sp_vehicle_no": [
+   "str",
+   "str"
+  ],
+  "pickup_date": [
+   "dt",
+   "dt"
+  ],
+  "validity_of_collection": [
+   "dt",
+   "dt"
+  ],
+  "courier_company": [
+   "str",
+   "str"
+  ],
+  "shipping_date": [
+   "dt",
+   "dt"
+  ],
+  "freight_charges": [
+   "dec",
+   "dec"
+  ],
+  "tracking_number": [
+   "str",
+   "str"
+  ],
+  "est_arrival_date": [
+   "dt",
+   "dt"
+  ],
+  "ct_driver_name": [
+   "str",
+   "str"
+  ],
+  "ct_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "ct_ic_no": [
+   "str",
+   "str"
+  ],
+  "vehicle_no": [
+   "id",
+   "id"
+  ],
+  "est_delivery_date": [
+   "dt",
+   "dt"
+  ],
+  "delivery_cost": [
+   "dec",
+   "dec"
+  ],
+  "shipping_company": [
+   "str",
+   "str"
+  ],
+  "ss_shipping_date": [
+   "dt",
+   "dt"
+  ],
+  "ss_freight_charges": [
+   "dec",
+   "dec"
+  ],
+  "shipping_method": [
+   "str",
+   "str"
+  ],
+  "ss_est_arrival_date": [
+   "dt",
+   "dt"
+  ],
+  "ss_tracking_number": [
+   "str",
+   "str"
+  ],
+  "tpt_vehicle_number": [
+   "str",
+   "str"
+  ],
+  "tpt_transport_name": [
+   "str",
+   "str"
+  ],
+  "tpt_driver_name": [
+   "str",
+   "str"
+  ],
+  "tpt_ic_no": [
+   "str",
+   "str"
+  ],
+  "tpt_driver_contact_no": [
+   "str",
+   "str"
+  ],
+  "table_picking_items": [
+   "json",
+   "json"
+  ],
+  "table_picking_records": [
+   "json",
+   "json"
+  ],
+  "remarks": [
+   "str",
+   "str"
+  ],
+  "remarks_2": [
+   "str",
+   "str"
+  ],
+  "remarks_3": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "to_id_sn": [
+   "id",
+   "id"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "transfer_order_vrqs3cmr_sub": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "transfer_order_id": [
+   "id",
+   "id"
+  ],
+  "handling_unit_id": [
+   "id",
+   "id"
+  ],
+  "item_code": [
+   "id",
+   "id"
+  ],
+  "item_name": [
+   "str",
+   "str"
+  ],
+  "item_desc": [
+   "str",
+   "str"
+  ],
+  "more_desc": [
+   "str",
+   "str"
+  ],
+  "gd_no": [
+   "str",
+   "str"
+  ],
+  "so_no": [
+   "str",
+   "str"
+  ],
+  "batch_no": [
+   "id",
+   "id"
+  ],
+  "target_batch": [
+   "id",
+   "id"
+  ],
+  "so_id": [
+   "id",
+   "id"
+  ],
+  "so_line_id": [
+   "id",
+   "id"
+  ],
+  "gd_id": [
+   "id",
+   "id"
+  ],
+  "gd_line_id": [
+   "id",
+   "id"
+  ],
+  "to_id": [
+   "id",
+   "id"
+  ],
+  "to_line_id": [
+   "id",
+   "id"
+  ],
+  "serial_numbers": [
+   "str",
+   "str"
+  ],
+  "store_out_qty": [
+   "dec",
+   "dec"
+  ],
+  "picked_qty_alt": [
+   "dec",
+   "dec"
+  ],
+  "delivered_qty": [
+   "dec",
+   "dec"
+  ],
+  "reserved_qty": [
+   "dec",
+   "dec"
+  ],
+  "item_uom": [
+   "id",
+   "id"
+  ],
+  "picked_uom": [
+   "id",
+   "id"
+  ],
+  "source_bin": [
+   "id",
+   "id"
+  ],
+  "target_location": [
+   "id",
+   "id"
+  ],
+  "delivery_status": [
+   "str",
+   "str"
+  ],
+  "remark": [
+   "str",
+   "str"
+  ],
+  "remark_2": [
+   "str",
+   "str"
+  ],
+  "remark_3": [
+   "str",
+   "str"
+  ],
+  "confirmed_by": [
+   "str",
+   "str"
+  ],
+  "confirmed_at": [
+   "dt",
+   "dt"
+  ],
+  "attachment": [
+   "json",
+   "json"
+  ],
+  "job_line_key": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "transfer_order_jz8m9w3h_sub": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "transfer_order_id": [
+   "id",
+   "id"
+  ],
+  "hu_select": [
+   "int",
+   "int"
+  ],
+  "handling_unit_id": [
+   "id",
+   "id"
+  ],
+  "row_type": [
+   "str",
+   "str"
+  ],
+  "item_code": [
+   "id",
+   "id"
+  ],
+  "item_name": [
+   "str",
+   "str"
+  ],
+  "item_desc": [
+   "str",
+   "str"
+  ],
+  "more_desc": [
+   "str",
+   "str"
+  ],
+  "gd_no": [
+   "str",
+   "str"
+  ],
+  "so_no": [
+   "str",
+   "str"
+  ],
+  "batch_no": [
+   "id",
+   "id"
+  ],
+  "qty_to_pick": [
+   "dec",
+   "dec"
+  ],
+  "to_pick_alt": [
+   "dec",
+   "dec"
+  ],
+  "order_base_qty": [
+   "dec",
+   "dec"
+  ],
+  "picking_base_qty": [
+   "dec",
+   "dec"
+  ],
+  "source_bin": [
+   "id",
+   "id"
+  ],
+  "storage_location": [
+   "id",
+   "id"
+  ],
+  "target_location": [
+   "id",
+   "id"
+  ],
+  "pending_process_qty": [
+   "dec",
+   "dec"
+  ],
+  "pending_alt": [
+   "dec",
+   "dec"
+  ],
+  "item_uom": [
+   "id",
+   "id"
+  ],
+  "picking_uom": [
+   "id",
+   "id"
+  ],
+  "serial_numbers": [
+   "str",
+   "str"
+  ],
+  "select_serial_number": [
+   "json",
+   "json"
+  ],
+  "picked_qty": [
+   "dec",
+   "dec"
+  ],
+  "remark": [
+   "str",
+   "str"
+  ],
+  "remark_2": [
+   "str",
+   "str"
+  ],
+  "remark_3": [
+   "str",
+   "str"
+  ],
+  "line_status": [
+   "str",
+   "str"
+  ],
+  "net_weight": [
+   "dec",
+   "dec"
+  ],
+  "weight_conversion": [
+   "dec",
+   "dec"
+  ],
+  "packing_qty": [
+   "dec",
+   "dec"
+  ],
+  "packing_uom": [
+   "id",
+   "id"
+  ],
+  "attachment": [
+   "json",
+   "json"
+  ],
+  "project_id": [
+   "id",
+   "id"
+  ],
+  "packing_conversion": [
+   "dec",
+   "dec"
+  ],
+  "so_id": [
+   "id",
+   "id"
+  ],
+  "so_line_id": [
+   "id",
+   "id"
+  ],
+  "gd_id": [
+   "id",
+   "id"
+  ],
+  "gd_line_id": [
+   "id",
+   "id"
+  ],
+  "to_id": [
+   "id",
+   "id"
+  ],
+  "to_line_id": [
+   "id",
+   "id"
+  ],
+  "target_batch": [
+   "id",
+   "id"
+  ],
+  "customer_id": [
+   "id",
+   "id"
+  ],
+  "is_serialized_item": [
+   "int",
+   "int"
+  ],
+  "item_bundle_id": [
+   "id",
+   "id"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "parent_id": [
+   "id",
+   "id"
+  ]
+ },
+ "handling_unit": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "hu_status": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "customer_id": [
+   "json",
+   "json"
+  ],
+  "parent_hu_id": [
+   "str",
+   "str"
+  ],
+  "handling_no": [
+   "str",
+   "str"
+  ],
+  "handling_no_type": [
+   "id",
+   "id"
+  ],
+  "hu_material_id": [
+   "str",
+   "str"
+  ],
+  "hu_type": [
+   "str",
+   "str"
+  ],
+  "hu_quantity": [
+   "int",
+   "int"
+  ],
+  "hu_uom": [
+   "id",
+   "id"
+  ],
+  "closed_by": [
+   "str",
+   "str"
+  ],
+  "storage_location_id": [
+   "id",
+   "id"
+  ],
+  "location_id": [
+   "id",
+   "id"
+  ],
+  "item_count": [
+   "int",
+   "int"
+  ],
+  "total_quantity": [
+   "dec",
+   "dec"
+  ],
+  "gross_weight": [
+   "dec",
+   "dec"
+  ],
+  "net_weight": [
+   "dec",
+   "dec"
+  ],
+  "net_volume": [
+   "dec",
+   "dec"
+  ],
+  "ref_doc": [
+   "json",
+   "json"
+  ],
+  "packing_id": [
+   "str",
+   "str"
+  ],
+  "transfer_source_hu_id": [
+   "str",
+   "str"
+  ],
+  "table_hu_items": [
+   "json",
+   "json"
+  ],
+  "remark": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "handling_no_sn": [
+   "id",
+   "id"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "handling_unit_atu7sreg_sub": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "handling_unit_id": [
+   "id",
+   "id"
+  ],
+  "material_id": [
+   "id",
+   "id"
+  ],
+  "material_name": [
+   "str",
+   "str"
+  ],
+  "material_desc": [
+   "str",
+   "str"
+  ],
+  "location_id": [
+   "id",
+   "id"
+  ],
+  "batch_id": [
+   "id",
+   "id"
+  ],
+  "material_uom": [
+   "id",
+   "id"
+  ],
+  "quantity": [
+   "dec",
+   "dec"
+  ],
+  "line_status": [
+   "str",
+   "str"
+  ],
+  "line_index": [
+   "id",
+   "id"
+  ],
+  "balance_id": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "picking_setup": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "movement_type": [
+   "str",
+   "str"
+  ],
+  "picking_required": [
+   "int",
+   "int"
+  ],
+  "picking_after": [
+   "str",
+   "str"
+  ],
+  "auto_trigger_to": [
+   "int",
+   "int"
+  ],
+  "is_loading_bay": [
+   "int",
+   "int"
+  ],
+  "auto_completed_gd": [
+   "int",
+   "int"
+  ],
+  "auto_completed_si": [
+   "int",
+   "int"
+  ],
+  "allow_full_picking": [
+   "int",
+   "int"
+  ],
+  "full_cl_check": [
+   "int",
+   "int"
+  ],
+  "convert_gd_created": [
+   "int",
+   "int"
+  ],
+  "picking_mode": [
+   "str",
+   "str"
+  ],
+  "default_strategy_id": [
+   "str",
+   "str"
+  ],
+  "fallback_strategy_id": [
+   "str",
+   "str"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "bin_validation_scope": [
+   "str",
+   "str"
+  ],
+  "split_policy": [
+   "str",
+   "str"
+  ],
+  "require_batch_scan": [
+   "int",
+   "int"
+  ],
+  "require_bin_scan": [
+   "int",
+   "int"
+  ],
+  "require_item_scan": [
+   "int",
+   "int"
+  ],
+  "require_hu_scan": [
+   "int",
+   "int"
+  ],
+  "lot_picking_required": [
+   "int",
+   "int"
+  ],
+  "pt_picking_required": [
+   "int",
+   "int"
+  ],
+  "msi_picking_required": [
+   "int",
+   "int"
+  ],
+  "sp_auto_advance": [
+   "int",
+   "int"
+  ],
+  "sp_allow_full_picking": [
+   "int",
+   "int"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "packing_setup": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "packing_required": [
+   "int",
+   "int"
+  ],
+  "auto_trigger_pkg": [
+   "int",
+   "int"
+  ],
+  "packing_mode": [
+   "str",
+   "str"
+  ],
+  "packing_location": [
+   "int",
+   "int"
+  ],
+  "is_packing_dimension": [
+   "int",
+   "int"
+  ],
+  "is_scan_required": [
+   "int",
+   "int"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "document_linkage": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "buyer_org_id": [
+   "str",
+   "str"
+  ],
+  "seller_org_id": [
+   "str",
+   "str"
+  ],
+  "source_doc_type": [
+   "str",
+   "str"
+  ],
+  "source_doc_id": [
+   "str",
+   "str"
+  ],
+  "source_doc_no": [
+   "str",
+   "str"
+  ],
+  "target_doc_type": [
+   "str",
+   "str"
+  ],
+  "target_doc_id": [
+   "str",
+   "str"
+  ],
+  "target_doc_no": [
+   "str",
+   "str"
+  ],
+  "target_doc_line_id": [
+   "str",
+   "str"
+  ],
+  "link_status": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "internal_trading_setup": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "is_active": [
+   "int",
+   "int"
+  ],
+  "buyer_org_id": [
+   "id",
+   "id"
+  ],
+  "buyer_supplier_id": [
+   "id",
+   "id"
+  ],
+  "auto_create_so": [
+   "int",
+   "int"
+  ],
+  "auto_create_gr": [
+   "int",
+   "int"
+  ],
+  "buyer_plant_id": [
+   "id",
+   "id"
+  ],
+  "skip_picking": [
+   "int",
+   "int"
+  ],
+  "skip_putaway": [
+   "int",
+   "int"
+  ],
+  "auto_create_pi": [
+   "int",
+   "int"
+  ],
+  "pricing_source": [
+   "str",
+   "str"
+  ],
+  "tax_source": [
+   "str",
+   "str"
+  ],
+  "payment_term_source": [
+   "str",
+   "str"
+  ],
+  "seller_org_id": [
+   "id",
+   "id"
+  ],
+  "seller_customer_id": [
+   "id",
+   "id"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "item": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "is_active": [
+   "int",
+   "int"
+  ],
+  "item_image": [
+   "json",
+   "json"
+  ],
+  "material_code": [
+   "str",
+   "str"
+  ],
+  "material_code_type": [
+   "id",
+   "id"
+  ],
+  "based_uom": [
+   "id",
+   "id"
+  ],
+  "item_properties": [
+   "str",
+   "str"
+  ],
+  "hu_type": [
+   "str",
+   "str"
+  ],
+  "auto_bom": [
+   "int",
+   "int"
+  ],
+  "business_scope": [
+   "json",
+   "json"
+  ],
+  "barcode_number": [
+   "str",
+   "str"
+  ],
+  "item_sort": [
+   "id",
+   "id"
+  ],
+  "material_type": [
+   "str",
+   "str"
+  ],
+  "material_name": [
+   "str",
+   "str"
+  ],
+  "material_desc": [
+   "str",
+   "str"
+  ],
+  "item_category": [
+   "str",
+   "str"
+  ],
+  "item_group_id": [
+   "str",
+   "str"
+  ],
+  "material_costing_method": [
+   "str",
+   "str"
+  ],
+  "equip_model": [
+   "str",
+   "str"
+  ],
+  "stock_control": [
+   "int",
+   "int"
+  ],
+  "show_delivery": [
+   "int",
+   "int"
+  ],
+  "show_receiving": [
+   "int",
+   "int"
+  ],
+  "custom_fields": [
+   "json",
+   "json"
+  ],
+  "posted_status": [
+   "str",
+   "str"
+  ],
+  "bom_status": [
+   "str",
+   "str"
+  ],
+  "bom_id": [
+   "id",
+   "id"
+  ],
+  "posted_date": [
+   "dt",
+   "dt"
+  ],
+  "last_transaction_date": [
+   "dt",
+   "dt"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "previous_based_uom": [
+   "str",
+   "str"
+  ],
+  "item_current_prefix": [
+   "str",
+   "str"
+  ],
+  "is_base": [
+   "str",
+   "str"
+  ],
+  "acc_integration_type": [
+   "str",
+   "str"
+  ],
+  "item_uuid": [
+   "str",
+   "str"
+  ],
+  "error_message": [
+   "str",
+   "str"
+  ],
+  "table_uom_conversion": [
+   "json",
+   "json"
+  ],
+  "mat_purchase_currency_id": [
+   "id",
+   "id"
+  ],
+  "purchase_unit_price": [
+   "dec",
+   "dec"
+  ],
+  "purchase_min_price": [
+   "dec",
+   "dec"
+  ],
+  "purchase_max_price": [
+   "dec",
+   "dec"
+  ],
+  "purchase_default_uom": [
+   "id",
+   "id"
+  ],
+  "mat_purchase_tax_id": [
+   "id",
+   "id"
+  ],
+  "purchase_tax_percent": [
+   "int",
+   "int"
+  ],
+  "over_receive_tolerance": [
+   "dec",
+   "dec"
+  ],
+  "under_receive_tolerance": [
+   "dec",
+   "dec"
+  ],
+  "min_purchase_qty": [
+   "dec",
+   "dec"
+  ],
+  "purchase_tariff_id": [
+   "id",
+   "id"
+  ],
+  "table_supplier_price": [
+   "json",
+   "json"
+  ],
+  "table_sup_item_access": [
+   "json",
+   "json"
+  ],
+  "table_sup_item_bind": [
+   "json",
+   "json"
+  ],
+  "table_reorder_supplier": [
+   "json",
+   "json"
+  ],
+  "table_customer_price": [
+   "json",
+   "json"
+  ],
+  "table_cust_item_access": [
+   "json",
+   "json"
+  ],
+  "table_cust_item_bind": [
+   "json",
+   "json"
+  ],
+  "mat_sales_currency_id": [
+   "id",
+   "id"
+  ],
+  "sales_unit_price": [
+   "dec",
+   "dec"
+  ],
+  "sales_min_price": [
+   "dec",
+   "dec"
+  ],
+  "sales_max_price": [
+   "dec",
+   "dec"
+  ],
+  "sales_default_uom": [
+   "id",
+   "id"
+  ],
+  "mat_sales_tax_id": [
+   "id",
+   "id"
+  ],
+  "sales_tax_percent": [
+   "int",
+   "int"
+  ],
+  "over_delivery_tolerance": [
+   "dec",
+   "dec"
+  ],
+  "under_delivery_tolerance": [
+   "dec",
+   "dec"
+  ],
+  "min_sales_qty": [
+   "dec",
+   "dec"
+  ],
+  "sales_tariff_id": [
+   "id",
+   "id"
+  ],
+  "item_batch_management": [
+   "int",
+   "int"
+  ],
+  "batch_number_genaration": [
+   "str",
+   "str"
+  ],
+  "serial_number_management": [
+   "int",
+   "int"
+  ],
+  "is_single_unit_serial": [
+   "int",
+   "int"
+  ],
+  "serial_no_generate_rule": [
+   "str",
+   "str"
+  ],
+  "further_description": [
+   "str",
+   "str"
+  ],
+  "receiving_inspection": [
+   "int",
+   "int"
+  ],
+  "brand_id": [
+   "id",
+   "id"
+  ],
+  "brand_artwork_id": [
+   "id",
+   "id"
+  ],
+  "table_packing_detail": [
+   "json",
+   "json"
+  ],
+  "table_default_bin": [
+   "json",
+   "json"
+  ],
+  "reorder_level": [
+   "int",
+   "int"
+  ],
+  "lead_time": [
+   "int",
+   "int"
+  ],
+  "assembly_cost": [
+   "dec",
+   "dec"
+  ],
+  "bom_related": [
+   "int",
+   "int"
+  ],
+  "reorder_quantity": [
+   "int",
+   "int"
+  ],
+  "irbm_id": [
+   "str",
+   "str"
+  ],
+  "production_time": [
+   "int",
+   "int"
+  ],
+  "additional_remark": [
+   "str",
+   "str"
+  ],
+  "custom_7u3don4k": [
+   "str",
+   "str"
+  ],
+  "gross_weight": [
+   "dec",
+   "dec"
+  ],
+  "net_weight": [
+   "dec",
+   "dec"
+  ],
+  "formula": [
+   "str",
+   "str"
+  ],
+  "success_formula": [
+   "str",
+   "str"
+  ],
+  "error_msg": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "approve_flow_id": [
+   "str",
+   "str"
+  ],
+  "approve_flow_inst_id": [
+   "str",
+   "str"
+  ],
+  "approve_flow_inst_node_id": [
+   "str",
+   "str"
+  ],
+  "approve_flow_inst_node_name": [
+   "str",
+   "str"
+  ],
+  "approve_flow_status": [
+   "str",
+   "str"
+  ],
+  "approve_flow_workflow_id": [
+   "str",
+   "str"
+  ],
+  "material_code_sn": [
+   "id",
+   "id"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ }
+}

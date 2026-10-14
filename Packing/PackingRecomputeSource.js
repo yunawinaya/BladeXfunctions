@@ -49,10 +49,12 @@
           ? currentQtyToPick
           : remaining;
 
-      updates[`table_item_source.${i}.picked_qty`] = picked;
-      updates[`table_item_source.${i}.remaining_qty`] = remaining;
-      updates[`table_item_source.${i}.qty_to_pick`] = newQtyToPick;
-      updates[`table_item_source.${i}.line_status`] = status;
+      // only cells whose value changes: a row-path write fires that column's onChange (qty_to_pick) once per row
+      const differs = (v, want) => v === null || v === undefined || v === "" || Number(v) !== want;
+      if (differs(row.picked_qty, picked)) updates[`table_item_source.${i}.picked_qty`] = picked;
+      if (differs(row.remaining_qty, remaining)) updates[`table_item_source.${i}.remaining_qty`] = remaining;
+      if (differs(row.qty_to_pick, newQtyToPick)) updates[`table_item_source.${i}.qty_to_pick`] = newQtyToPick;
+      if (row.line_status !== status) updates[`table_item_source.${i}.line_status`] = status;
     }
 
     if (Object.keys(updates).length > 0) {
