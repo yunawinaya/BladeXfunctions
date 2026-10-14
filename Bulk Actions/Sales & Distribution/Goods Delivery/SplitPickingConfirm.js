@@ -62,6 +62,7 @@ const buildTablePickingItems = (entries) => {
         item_batch_id: tempItem.batch_id ? String(tempItem.batch_id) : null,
         qty_to_pick: 0,
         item_uom: String(line.gd_order_uom_id || line.good_delivery_uom_id || ""),
+        picking_uom: String(line.gd_order_uom_id || line.good_delivery_uom_id || ""),
         pending_process_qty: 0,
         source_bin: String(tempItem.location_id),
         line_status: "Open",

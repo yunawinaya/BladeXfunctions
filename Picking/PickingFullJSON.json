@@ -8774,7 +8774,7 @@
                             "operator": "numberEqual",
                             "prop": "Item_id.id",
                             "valueType": "formula",
-                            "value": "{{value:table_picking_items}}.map(item => item.item_code)[arguments[0].rowIndex]",
+                            "value": "(() => {\n  const item = arguments[0].row.item_code;\n  return item\n})",
                             "level": 1,
                             "propLabel": "主键ID",
                             "valueLabel": "",
