@@ -1066,7 +1066,7 @@
                         "name": "Balance Preparation",
                         "script": {
                           "type": "javascript",
-                          "code": "const saveAs = {{workflowparams:saveAs}}\n\n// Balance straight from the loop variable — no redis index counter.\nconst balance = {{node:loop_NygsPXBU}};\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst quantity = balance.sa_quantity;\nlet inventory_category = balance.category || \"Unrestricted\";\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst movement_type = balance.movement_type.toLowerCase();\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  movement_type: movement_type\n};\n\n"
+                          "code": "const saveAs = {{workflowparams:saveAs}}\n\n// Balance straight from the loop variable — no redis index counter.\nconst balance = {{node:loop_NygsPXBU}};\nconst batch_id = balance.batch_id || null;\nconst location_id = balance.location_id;\nconst plant_id = balance.plant_id || {{node:code_node_qrsgEz2F.data.plant_id}};\nconst quantity = balance.sa_quantity;\nlet inventory_category = balance.category || \"Unrestricted\";\nconst manufacturing_date = balance.manufacturing_date || null;\nconst expired_date = balance.expired_date || null;\nconst movement_type = balance.movement_type.toLowerCase();\n\nreturn {\n  batch_id: batch_id,\n  location_id: location_id,\n  plant_id: plant_id,\n  quantity: quantity,\n  inventory_category: inventory_category,\n  manufacturing_date: manufacturing_date,\n  expired_date: expired_date,\n  movement_type: movement_type\n};\n\n"
                         },
                         "response_json": [
                           {
@@ -1122,6 +1122,14 @@
                             "key": "utrka6ax",
                             "name": "movement_type",
                             "title": "movement_type",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false
+                          },
+                          {
+                            "key": "sabpplt1",
+                            "name": "plant_id",
+                            "title": "plant_id",
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
@@ -1212,7 +1220,7 @@
                                       "operatorLabel": "",
                                       "valueType": "field",
                                       "valueTypeLabel": "",
-                                      "value": "{{node:code_node_qrsgEz2F.data.plant_id}}",
+                                      "value": "{{node:code_node_GmKmvMGe.data.plant_id}}",
                                       "valueLabel": ""
                                     },
                                     {
@@ -1497,7 +1505,7 @@
                                       "operatorLabel": "",
                                       "valueType": "field",
                                       "valueTypeLabel": "",
-                                      "value": "{{node:code_node_qrsgEz2F.data.plant_id}}",
+                                      "value": "{{node:code_node_GmKmvMGe.data.plant_id}}",
                                       "valueLabel": ""
                                     },
                                     {

@@ -123,13 +123,25 @@
         .get()
         .then((x) => (x.data && x.data[0]) || null)
         .catch(() => null);
+      let saError = sa ? "" : "the Stock Adjustment record was not found";
       if (sa) {
         sa.id = saId;
         try {
-          await runSACompletion(sa);
+          const saRes = await runSACompletion(sa);
+          const s = (saRes && saRes.data) || {};
+          if (String(s.code) === "400" || s.success === false) saError = s.message || s.msg || "unknown error";
         } catch (e) {
           console.error("Stock Adjustment completion failed:", e);
+          saError = (e && (e.message || e.msg)) || "unknown error";
         }
+      }
+      if (saError) {
+        this.hideLoading();
+        this.$message.error(
+          `Review saved, but Stock Adjustment ${(sa && sa.adjustment_no) || ""} was not completed: ${saError}. Open it and complete it manually.`
+        );
+        closeDialog();
+        return;
       }
     }
 
