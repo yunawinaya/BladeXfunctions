@@ -1,0 +1,156 @@
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Handling Unit Workflow",
+ "isValidator": true,
+ "nodeName": "Handling Unit Workflow",
+ "name": "Handling Unit Workflow",
+ "workflow": {
+  "source": "HANDLING_UNIT:Workflow:2037062451509002241",
+  "rules": {
+   "collectionId": "2037062451509002241",
+   "list": [
+    {
+     "id": 1723795236686,
+     "parentId": 1723795236685,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "handling_unit_id",
+    "propLabel": "handling_unit_id",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_qiSKhKkT.data.handling_unit_id}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "handling_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_qiSKhKkT.data.handling_no}}",
+    "valueLabel": "",
+    "propLabel": "handling_no"
+   },
+   {
+    "prop": "plant_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_dofqVRSn.data.data.plant_id}}",
+    "valueLabel": "",
+    "propLabel": "plant_id"
+   },
+   {
+    "prop": "organization_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_dofqVRSn.data.data.organization_id}}",
+    "valueLabel": "",
+    "propLabel": "organization_id"
+   },
+   {
+    "prop": "hu_material_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_qiSKhKkT.data.hu_material_id}}",
+    "valueLabel": "",
+    "propLabel": "hu_material_id"
+   },
+   {
+    "prop": "hu_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_qiSKhKkT.data.hu_type}}",
+    "valueLabel": "",
+    "propLabel": "hu_type"
+   },
+   {
+    "prop": "hu_quantity",
+    "operator": "",
+    "valueType": "value",
+    "value": 1,
+    "valueLabel": "",
+    "propLabel": "hu_quantity"
+   },
+   {
+    "prop": "hu_uom",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_qiSKhKkT.data.hu_uom}}",
+    "valueLabel": "",
+    "propLabel": "hu_uom"
+   },
+   {
+    "prop": "storage_location_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_dofqVRSn.data.data.storage_location}}",
+    "valueLabel": "",
+    "propLabel": "storage_location_id"
+   },
+   {
+    "prop": "location_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_dofqVRSn.data.data.bin_location_id}}",
+    "valueLabel": "",
+    "propLabel": "location_id"
+   },
+   {
+    "prop": "remark",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_qiSKhKkT.data.remark}}",
+    "valueLabel": "",
+    "propLabel": "remark"
+   },
+   {
+    "prop": "table_hu_items",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_qiSKhKkT.data.table_hu_items}}",
+    "valueLabel": "",
+    "propLabel": "table_hu_items"
+   },
+   {
+    "prop": "parent_trx_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_dofqVRSn.data.data.parent_trx_no}}",
+    "valueLabel": "",
+    "propLabel": "parent_trx_no"
+   },
+   {
+    "prop": "inventory_movement_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:workflow_node_wCxvhaAr.data.inventoryMovementId}}",
+    "valueLabel": "",
+    "propLabel": "inventory_movement_id"
+   },
+   {
+    "prop": "process_type",
+    "operator": "",
+    "valueType": "value",
+    "value": "move",
+    "valueLabel": "",
+    "propLabel": "process_type"
+   }
+  ]
+ }
+}

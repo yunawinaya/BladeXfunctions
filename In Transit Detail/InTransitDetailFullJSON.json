@@ -1902,7 +1902,7 @@
                 "isLabelWidth": false,
                 "hidden": false,
                 "dataBind": true,
-                "precision": 3,
+                "precision": 8,
                 "customProps": {
                   "progressColor": "",
                   "dividingNumber": "",
@@ -1910,7 +1910,8 @@
                   "viewMode": "",
                   "format": "rmb",
                   "cacheProp": true,
-                  "number_rule": ""
+                  "precision_rule": 1,
+                  "number_rule": "Inventory Qty"
                 },
                 "tip": "",
                 "remoteFunc": "func_o4kxgljh",
@@ -1961,7 +1962,7 @@
                 "isLabelWidth": false,
                 "hidden": false,
                 "dataBind": true,
-                "precision": 3,
+                "precision": 8,
                 "customProps": {
                   "progressColor": "",
                   "dividingNumber": "",
@@ -1969,7 +1970,8 @@
                   "viewMode": "",
                   "format": "rmb",
                   "cacheProp": true,
-                  "number_rule": ""
+                  "precision_rule": 1,
+                  "number_rule": "Inventory Qty"
                 },
                 "tip": "",
                 "remoteFunc": "func_o4kxgljh",
@@ -2020,7 +2022,7 @@
                 "isLabelWidth": false,
                 "hidden": false,
                 "dataBind": true,
-                "precision": 3,
+                "precision": 8,
                 "customProps": {
                   "progressColor": "",
                   "dividingNumber": "",
@@ -2028,7 +2030,8 @@
                   "viewMode": "",
                   "format": "rmb",
                   "cacheProp": true,
-                  "number_rule": ""
+                  "precision_rule": 1,
+                  "number_rule": "Inventory Qty"
                 },
                 "tip": "",
                 "remoteFunc": "func_o4kxgljh",
@@ -2611,6 +2614,64 @@
               "name": "Source Transit ID",
               "key": "ealk4ix5",
               "model": "source_transit_id",
+              "rules": [],
+              "novalid": {}
+            },
+            {
+              "type": "input",
+              "mainIcon": "单行文本",
+              "typeIcon": "单行文本",
+              "icon": "icon-input",
+              "group": "Text",
+              "groupSort": 1,
+              "enableScopes": ["Component", "Table", "Page"],
+              "el": "fm-input",
+              "options": {
+                "width": "",
+                "defaultValue": "",
+                "required": false,
+                "requiredMessage": "",
+                "dataType": "",
+                "dataTypeCheck": false,
+                "dataTypeMessage": "",
+                "pattern": "",
+                "patternCheck": false,
+                "patternMessage": "",
+                "validatorCheck": false,
+                "validator": "",
+                "placeholder": "",
+                "customClass": "",
+                "disabled": true,
+                "labelWidth": 100,
+                "isLabelWidth": false,
+                "hidden": true,
+                "dataBind": true,
+                "showPassword": false,
+                "clearable": false,
+                "maxlength": "",
+                "showWordLimit": false,
+                "customProps": {},
+                "tip": "",
+                "remoteFunc": "func_9ldrewpr",
+                "remoteOption": "option_9ldrewpr",
+                "tableColumn": false,
+                "subform": false,
+                "select-card_n7ge7fmb": [],
+                "left": 3,
+                "right": 4,
+                "pad": "*",
+                "desensitization_pattern": "",
+                "desensitization_replace": "",
+                "select-card_4c8m22dh": []
+              },
+              "events": {
+                "onChange": "",
+                "onFocus": "",
+                "onBlur": ""
+              },
+              "name": "Job Line Key",
+              "key": "9ldrewpr",
+              "model": "job_line_key",
               "rules": [],
               "novalid": {}
             }

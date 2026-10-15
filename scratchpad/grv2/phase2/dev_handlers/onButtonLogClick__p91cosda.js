@@ -1,0 +1,1 @@
+console.log("Split Dialog",this.getValue('split_dialog'))

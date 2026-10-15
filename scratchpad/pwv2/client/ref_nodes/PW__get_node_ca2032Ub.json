@@ -1,0 +1,59 @@
+{
+ "table_id": {
+  "source": "Putaway Setup:Table:1937437989915992066",
+  "rules": {
+   "collectionId": "1937437989915992066",
+   "list": [
+    {
+     "id": 1773123821735,
+     "parentId": 1773123821736,
+     "isTop": true,
+     "type": "branch",
+     "operator": "all",
+     "prop": "plant_id",
+     "valueType": "field",
+     "value": "{{workflowparams:allData.plant_id}}",
+     "level": 1,
+     "propLabel": "Plant ID",
+     "valueLabel": "",
+     "operatorLabel": "Equal",
+     "children": [
+      {
+       "id": 1773123834495,
+       "parentId": 1773123821735,
+       "isTop": false,
+       "type": "leaf",
+       "operator": "numberEqual",
+       "prop": "plant_id",
+       "valueType": "field",
+       "value": "{{workflowparams:allData.plant_id}}",
+       "level": 2,
+       "propLabel": "Plant ID",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      },
+      {
+       "id": 1773123821737,
+       "parentId": 1773123821735,
+       "isTop": false,
+       "prop": "organization_id",
+       "operator": "equal",
+       "valueType": "field",
+       "value": "{{workflowparams:allData.organization_id}}",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "Organization ID",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Get Putaway Setup",
+ "isValidator": true,
+ "nodeName": "Get Putaway Setup",
+ "name": "Get Putaway Setup"
+}

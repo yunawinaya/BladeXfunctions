@@ -1,8 +1,8 @@
 # SUDU open defect register
 
-Updated: 2026-10-12.
+Updated: 2026-10-15.
 
-This register currently contains **two open bugs**. The previous sixteen entries were marked Fixed on the user's confirmation on 2026-10-12; those closures were not independently reverified in this investigation. Statuses below reflect the recorded investigation snapshots, not a new live recheck.
+This register currently contains **four open bugs**. The previous sixteen entries were marked Fixed on the user's confirmation on 2026-10-12; those closures were not independently reverified in this investigation. Statuses below reflect the recorded investigation snapshots, not a new live recheck.
 
 [Full register and historical findings](bug-list-history-2026-10-12.md).
 
@@ -54,3 +54,33 @@ This register currently contains **two open bugs**. The previous sixteen entries
 - Existing-flow protection: This entry records a demonstrated defect; it does not authorize production stock corrections or finalize a workflow change. Preserve legitimate partial Putaway, zero/unselected quantities, equal and unequal splits, repeated items/batches, UOMs, bundles/serials, target bins/categories and existing confirmations. Retain the backend over-quantity validation. Do not clear pending or force Completed without reconciling stock: only 2,400 Paket was posted for the sugar Putaway. Any implementation must identify affected mobile callers and data compatibility; existing-flow regression safety is not yet verified.
 - Regression verification needed: Reproduce sugar 1,200/3,600 and red-dates 2/1 splits on an isolated mobile session; compare displayed actual confirmation quantities with the request, records, remaining pending and stock movements. Also check equal splits, three or more splits, repeated item/batch rows, edits to either split, partial/unselected splits, ordinary unsplit Putaway, UOM and bundle/serial cases, and retries without duplicate posting. No implementation or regression completion is claimed.
 - Evidence: Both supplied WhatsApp videos, supplied screenshot, tenant-scoped read-only production records and executed workflow traces. Raw client data and the portable local replay remain in the gitignored bundle `incidents/bundles/lsh-putaway-20261012/`; do not commit the raw bundle. Detailed local handoff: `incidents/bundles/lsh-putaway-20261012/handoff.txt`. No Lark case was created because the CLI is not configured.
+
+## BUG-20261015-022 — Tax Inclusive is not synced across lines for "AutoCount Accounting V2" organizations (SQT, SO, SI, PR, PI forms)
+
+- Status: Open — backlog (user, 2026-10-15). Not fixed. The PO form already has the fix (dev form v849, 2026-10-15).
+- Reported and diagnosed: 2026-10-15, found while rebuilding the PO form for 2,000-line documents.
+- Scope: the client rule on the line Tax Inclusive field of five forms — Quotation (`table_sqt.sqt_tax_inclusive`), Sales Order (`table_so.so_tax_inclusive`), Sales Invoice (`table_si.si_tax_inclusive`), Purchase Requisition (`table_pr.pr_tax_inclusive`) and Purchase Invoice (`table_pi.tax_inclusive`). Affects every organization whose accounting integration is "AutoCount Accounting V2".
+- Expected: for an AutoCount organization, ticking or unticking Tax Inclusive on one line applies the same value to every line of the document (AutoCount keeps Tax Inclusive as one setting per document).
+- Actual: each rule runs only when `acc_integration_type === 'AutoCount Accounting'`, the legacy integration. "AutoCount Accounting V2" organizations never sync, so one document can carry lines with different Tax Inclusive values. Example (SO form): `if(data.acc_integration_type === 'AutoCount Accounting') { updatedData['table_so.so_tax_inclusive'] = value; this.setData(updatedData) }`.
+- Evidence: prod POs created in the last 180 days: 695 under "AutoCount Accounting V2", 18 under the legacy "AutoCount Accounting". The user confirmed V2 is the integration in use.
+- Fix: in each of the five forms, check `=== "AutoCount Accounting V2"`, as the PO form now does (`scratchpad/po1b/new_handlers/onChange_taxInclusive.rule0.js`, which also drops the whole-form `getValues()` copy and writes only when a line differs). Seed each form from its deployed dev version; the forms are pasted by the user. Posting code already has its own `case "AutoCount Accounting V2"` branches — leave those unchanged.
+- Not assessed: whether documents with mixed Tax Inclusive lines already posted to AutoCount V2 need correcting.
+
+## BUG-20261015-023 — Cost prices from CALCULATE_COSTING_PRICE lose their decimals (Plant Transfer receiving lines, HU movements)
+
+- Status: Fixed on dev 2026-10-15 15:38 (CALCULATE_COSTING_PRICE v6, SM_PLANT_TRANSFER v104). Not on prod (still v5 / v61). PROCESS_HU_BALANCE not changed (see Dev fix).
+- Reported and diagnosed: 2026-10-15, found while proving the Plant Transfer decimal-quantity fix on dev (prod-hotfix `2026-10-15-int-decimal-truncation`, same bug class).
+- Scope: `CALCULATE_COSTING_PRICE` (ID `1995674630618058753`, v5 on prod and dev). Two callers on prod: `SM_PLANT_TRANSFER` (v61) — saving In Progress copies `unitPrice` onto each receiving line (`workflow_node_a0efvb83`, `workflow_node_ZUj84fhM`), and receiving later passes that line price to ADD_INVENTORY; `PROCESS_HU_BALANCE` (v7) — `code_node_Vijt7YGG` writes `unitPrice` / `totalPrice` as the `unit_price` / `total_price` of the inventory movement it records.
+- Expected: the unit and total cost keep their decimals (2.5 units at a cost of 1.75 → 1.75 and 4.375).
+- Actual: every output of the workflow is declared `bsonType: "int"`: the response (`unitPrice`, `totalPrice`), Data Preparation (`quantity`, `unitPrice` — the incoming quantity is cut before the multiplication), `fifoCostPrice`, `waCostPrice`, `fixedCost` and calculateCostingPrice (`unitPrice`, `totalPrice`). The platform drops the decimals of an `int` output without an error. Dev run of 2026-10-15 (Plant Transfer PT/202610150034, 2.5 units at a FIFO cost of 1.00): `unitPrice` 1, `totalPrice` 2.
+- Fix: those entries become `"decimal"`. Before publishing, check that both callers round the now-fractional prices before writing them (the `multipleOf` trap of decimal columns): the Plant Transfer receiving line `unit_price` and the movement's `unit_price` / `total_price` in PROCESS_HU_BALANCE.
+- Not assessed: how many prod receiving lines and HU movements already carry a cut price. A first look found destination prices mostly 0 or equal to the source price.
+- Worse than lost decimals: a cost below 1 came back as 0. Dev baseline, tenant 000000: Weighted Average 2.5 units at 0.5229 → 0 / 0.
+- Dev fix (2026-10-15):
+  - CALCULATE_COSTING_PRICE v6: the 9 entries above are now `decimal`. Nothing else changed.
+  - SM_PLANT_TRANSFER v104: `code_node_9E4f9nuV` and `code_node_vRuaPu72` now write the price as `(parseFloat(unitPrice) || 0).toFixed(8)`, a string; `plant_transfer.stock_movement.unit_price` holds 8 decimals. The repo copy `Stock Movement/Plant Transfer/PTsaveWorkflowChangeFlow.json` has the same two lines.
+  - Backups: `~/Documents/ASC-dev/workflow-backups/dev/` (CALCULATE_COSTING_PRICE v5, SM_PLANT_TRANSFER v103).
+  - Verified on dev with three read-only runs (CALCULATE_COSTING_PRICE writes nothing). FIFO 2.5 units → 1 / 2.5. FIFO 1005.5 units across two cost layers → 1.0082 / 1013.7451. Weighted Average 2.5 units → 0.5229 / 1.3073.
+  - Not run: a Plant Transfer saved In Progress end to end (it writes dev rows).
+- PROCESS_HU_BALANCE is not reached by this fix. Its own `code_node_Vijt7YGG` also declares `unit_price`, `total_price`, `quantity` and `base_qty` as `int`, and so do its balance nodes (`allocationQty`, `remainingQty`, `unrestricted_qty`, `balance_quantity`). It has no caller: no enabled workflow on prod, no form on prod or dev, and the dev mirror has none either. It has no recorded runs on either side. Left as is. Fix it the same way if anything starts calling it.
+- Still at 3 / 4 decimals inside CALCULATE_COSTING_PRICE: `roundQty` (3) on the FIFO quantities and `roundPrice` (4) on every price. The q8 rule would make both 8, since `fifo_costing_history` and `wa_costing_method` hold 8. Not changed here.

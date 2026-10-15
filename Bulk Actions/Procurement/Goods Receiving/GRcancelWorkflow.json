@@ -43,6 +43,210 @@
       "blocks": []
     },
     {
+      "id": "code_node_CcGuardKey",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: the GR ids, digits only",
+        "isValidator": true,
+        "nodeName": "Guard: the GR ids, digits only",
+        "name": "Guard: the GR ids, digits only",
+        "script": {
+          "type": "javascript",
+          "code": "// Stored-status gate: the list only checks its own snapshot of the row, which can be stale (a repeated cancel released the PO reservation twice)\nconst raw = [{{workflowparams:gr_id}}][0];\nconst ids = (Array.isArray(raw) ? raw : [raw]).map((v) => String(v === null || v === undefined ? \"\" : v).trim());\nconst ok = ids.length > 0 && ids.every((v) => /^[0-9]{1,20}$/.test(v));\nreturn { idsCsv: ok ? ids.join(\",\") : \"0\", idCount: String(ok ? ids.length : 0) };"
+        },
+        "response_json": [
+          {
+            "key": "ccg1ids",
+            "name": "idsCsv",
+            "title": "idsCsv",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ccg2cnt",
+            "name": "idCount",
+            "title": "idCount",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_CcGuard",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Stored GR status",
+        "isValidator": true,
+        "nodeName": "Stored GR status",
+        "name": "Stored GR status",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(g.id AS CHAR) AS id, g.gr_no, g.gr_status\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id IN ({{node:code_node_CcGuardKey.data.idsCsv}})\n   AND g.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "ccg3id",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ccg4no",
+            "name": "gr_no",
+            "title": "gr_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ccg5st",
+            "name": "gr_status",
+            "title": "gr_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_CcGuardDecide",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: does the stored status allow this action?",
+        "isValidator": true,
+        "nodeName": "Guard: does the stored status allow this action?",
+        "name": "Guard: does the stored status allow this action?",
+        "script": {
+          "type": "javascript",
+          "code": "const rows = ([{{node:sql_node_CcGuard.data}}][0]) || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst wanted = Number({{node:code_node_CcGuardKey.data.idCount}}) || 0;\nconst isDelete = String([{{workflowparams:action}}][0] || \"\") === \"delete\";\nlet message = \"\";\nif (wanted === 0 || list.length < wanted) {\n  message = \"Goods Receiving not found - it may already have been deleted.\";\n} else {\n  for (const row of list) {\n    const status = String(row.gr_status || \"\");\n    const no = String(row.gr_no || \"\");\n    if (status === \"Processing\") {\n      message = \"Goods Receiving \" + no + \" is being processed in the background - please wait for it to finish.\";\n    } else if (isDelete && status !== \"Draft\" && status !== \"Cancelled\") {\n      message = \"Goods Receiving \" + no + \" cannot be deleted: only Draft or Cancelled receipts can be deleted (it is \" + (status || \"blank\") + \" now).\";\n    } else if (!isDelete && status !== \"Created\") {\n      message = \"Goods Receiving \" + no + \" cannot be cancelled: only Created receipts can be cancelled (it is \" + (status || \"blank\") + \" now).\";\n    }\n    if (message) break;\n  }\n}\nreturn { refuse: message ? \"YES\" : \"NO\", message };"
+        },
+        "response_json": [
+          {
+            "key": "ccg6ref",
+            "name": "refuse",
+            "title": "refuse",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ccg7msg",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_CcGuard",
+      "type": "if",
+      "data": {
+        "title": "IF the stored status refuses it",
+        "isValidator": true,
+        "nodeName": "IF the stored status refuses it",
+        "name": "IF the stored status refuses it",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798100000021,
+              "parentId": 1798100000022,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CcGuardDecide.data.refuse}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TCcGuard",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_CcGuard",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return refused",
+                "isValidator": true,
+                "nodeName": "Return refused",
+                "name": "Return refused",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CcGuardDecide.data.message}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FCcGuard",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_is_delete",
       "type": "if",
       "data": {
@@ -172,288 +376,147 @@
       ]
     },
     {
-      "id": "parallel_fetch",
-      "type": "condition-all-node",
+      "id": "sql_node_CcLines",
+      "type": "sql-node",
       "data": {
-        "title": "Parallel Fetch",
-        "filter": { "list": [] },
-        "expression": { "code": "" },
-        "displayContent": "sdk.form.setCondition"
-      },
-      "blocks": [
-        {
-          "id": "cai_gr",
-          "type": "condition-all-node-item",
-          "data": {
-            "title": "GR Data",
-            "filter": {
-              "list": [
-                {
-                  "id": 1783400000101,
-                  "parentId": 1783400000100,
-                  "isTop": true,
-                  "prop": "",
-                  "operator": "",
-                  "valueType": "",
-                  "value": "",
-                  "type": "leaf",
-                  "level": 1
-                }
-              ]
-            },
-            "expression": { "code": "" },
-            "displayContent": "sdk.form.setCondition",
-            "isValidator": true,
-            "nodeName": "GR Data",
-            "name": "GR Data",
-            "condition_type": "ConditionRule"
-          },
-          "blocks": [
-            {
-              "id": "get_gr",
-              "type": "get-node",
-              "data": {
-                "table_id": {
-                  "source": "Goods Receiving:Table:1901845517592285186",
-                  "rules": {
-                    "collectionId": "1901845517592285186",
-                    "list": [
-                      {
-                        "id": 1783400000111,
-                        "parentId": 1783400000110,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{workflowparams:gr_id}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "主键ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Get GR Data",
-                "isValidator": true,
-                "nodeName": "Get GR Data",
-                "name": "Get GR Data"
-              },
-              "blocks": []
-            }
-          ]
-        },
-        {
-          "id": "cai_po",
-          "type": "condition-all-node-item",
-          "data": {
-            "title": "PO List",
-            "filter": {
-              "list": [
-                {
-                  "id": 1783400000121,
-                  "parentId": 1783400000120,
-                  "isTop": true,
-                  "prop": "",
-                  "operator": "",
-                  "valueType": "",
-                  "value": "",
-                  "type": "leaf",
-                  "level": 1
-                }
-              ]
-            },
-            "expression": { "code": "" },
-            "displayContent": "sdk.form.setCondition",
-            "isValidator": true,
-            "nodeName": "PO List",
-            "name": "PO List",
-            "condition_type": "ConditionRule"
-          },
-          "blocks": [
-            {
-              "id": "search_po",
-              "type": "search-node",
-              "data": {
-                "table_id": {
-                  "source": "Purchase Order:Table:1902776039445217282",
-                  "rules": {
-                    "collectionId": "1902776039445217282",
-                    "list": [
-                      {
-                        "id": 1783400000131,
-                        "parentId": 1783400000130,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{workflowparams:po_id}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "主键ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 100,
-                "title": "Get PO List",
-                "isValidator": true,
-                "nodeName": "Get PO List",
-                "name": "Get PO List"
-              },
-              "blocks": []
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "id": "code_reversals",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Compute PO Reversals",
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "This GR's PO lines: reserved qty + fresh created_received_qty",
         "isValidator": true,
-        "nodeName": "Compute PO Reversals",
-        "name": "Compute PO Reversals",
+        "nodeName": "This GR's PO lines: reserved qty + fresh created_received_qty",
+        "name": "This GR's PO lines: reserved qty + fresh created_received_qty",
         "script": {
-          "type": "javascript",
-          "code": "const grRaw = {{node:get_gr.data.data}};\nconst gr = Array.isArray(grRaw) ? grRaw[0] : grRaw;\nconst poList = {{node:search_po.data.data}} || [];\n// table_gr and table_po are trees: an item bundle is ONE row with its items under\n// `children`. A bundle's items each reserved against a purchase order line of\n// their own, so each has to be released again -- read off the top level alone,\n// their share of created_received_qty stayed on the purchase order for good. A\n// row with no `children` yields just itself, so this is a no-op on a document\n// with no bundles and on one read back already flat.\nconst flattenRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    for (const child of Array.isArray(row.children) ? row.children : []) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// A bundle's items carry the bundle id and an item of their own. Read back flat\n// they sit at the top level, so this catches them in either shape.\nconst isBundleComponent = (row) =>\n  Boolean(row.item_bundle_id) && Boolean(row.item_id);\n\nconst grLines = flattenRows(gr && gr.table_gr);\nconst grNo = {{workflowparams:gr_no}} || \"\";\n\n// Total qty to reverse per PO line item.\nconst reversals = {};\nfor (const line of grLines) {\n  // Split-parent rows sum their children; counting them would double-reverse.\n  if (line.is_split === \"Yes\" && line.parent_or_child === \"Parent\") {\n    continue;\n  }\n  const lineId = line.po_line_item_id;\n  reversals[lineId] = (reversals[lineId] || 0) + parseFloat(line.received_qty || 0);\n}\n\nconst poUpdates = poList.map((po) => {\n  // Each entry remembers the position of its bundle line (-1 when it is not in a\n  // bundle) so what is written back keeps the shape it arrived in.\n  const flat = [];\n  for (const row of po.table_po || []) {\n    const position = flat.length;\n    flat.push({ row, parent: -1, nested: false });\n\n    for (const child of Array.isArray(row.children) ? row.children : []) {\n      flat.push({ row: child, parent: position, nested: true });\n    }\n  }\n\n  const applied = flat.map(({ row, parent, nested }) => {\n    const rev = reversals[row.id] || 0;\n    if (rev > 0) {\n      const cur = parseFloat(row.created_received_qty || 0);\n      // toFixed STRING: raw float output breaks the DB multipleOf check.\n      return { row: Object.assign({}, row, { created_received_qty: Math.max(0, cur - rev).toFixed(3) }), parent, nested };\n    }\n    return { row: Object.assign({}, row), parent, nested };\n  });\n\n  // Written back in the shape it arrived in.\n  const items = [];\n  for (const [index, entry] of applied.entries()) {\n    if (entry.nested) continue;\n\n    const children = applied\n      .filter((candidate) => candidate.nested && candidate.parent === index)\n      .map((candidate) => candidate.row);\n\n    if (children.length > 0) {\n      items.push(Object.assign({}, entry.row, { children }));\n    } else if (Array.isArray(entry.row.children)) {\n      items.push(Object.assign({}, entry.row, { children: [] }));\n    } else {\n      items.push(entry.row);\n    }\n  }\n\n  // Any line at all can still hold a reservation, a bundle's items included.\n  const hasRemainingCreated = applied.some((e) => (parseFloat(e.row.created_received_qty) || 0) > 0);\n\n  // Received status is decided on the bundle line, never on its items -- the same\n  // rule the forward path uses when it updates the purchase order after a receipt.\n  const countable = applied.filter((e) => e.parent === -1 && !isBundleComponent(e.row)).map((e) => e.row);\n  const allCompleted = countable.every((i) => (parseFloat(i.received_qty) || 0) >= (parseFloat(i.quantity) || 0));\n  const anyProcessing = countable.some((i) => (parseFloat(i.received_qty) || 0) > 0 && (parseFloat(i.received_qty) || 0) < (parseFloat(i.quantity) || 0));\n\n  let grStatus;\n  if (hasRemainingCreated) {\n    grStatus = \"Created\";\n  } else if (allCompleted) {\n    grStatus = \"Fully Received\";\n  } else if (anyProcessing) {\n    grStatus = \"Partially Received\";\n  } else {\n    grStatus = \"Cancelled\";\n  }\n\n  return { po_id: po.id, table_po: items, gr_status: grStatus };\n});\n\nreturn {\n  poUpdates: poUpdates,\n  cancelledGrNo: grNo.endsWith(\"-Cancelled\") ? grNo : grNo + \"-Cancelled\"\n};"
+          "type": "sql",
+          "code": "SELECT CAST(p.id AS CHAR) AS id, CAST(p.purchase_order_id AS CHAR) AS po_id,\n       p.created_received_qty, SUM(l.received_qty) AS rev\n  FROM goods_receiving_eg6l4ywi_sub l\n  JOIN purchase_order_2ukyuanr_sub p ON p.id = l.po_line_item_id AND p.is_deleted = 0\n  JOIN purchase_order h ON h.id = p.purchase_order_id AND h.is_deleted = 0\n WHERE l.goods_receiving_id IN ({{node:code_node_CcGuardKey.data.idsCsv}})\n   AND l.tenant_id = '{{system:tenantId}}'\n   AND l.is_deleted = 0\n   AND NOT (COALESCE(l.is_split, '') = 'Yes' AND COALESCE(l.parent_or_child, '') = 'Parent')\n GROUP BY p.id, p.purchase_order_id, p.created_received_qty"
         },
         "response_json": [
           {
-            "key": "wf_poupdates",
-            "name": "poUpdates",
-            "title": "poUpdates",
+            "key": "nm24acbm",
+            "name": "id",
+            "title": "id",
             "description": "",
-            "bsonType": "any",
             "isExpand": false,
-            "children": []
+            "children": [],
+            "bsonType": "string"
           },
           {
-            "key": "wf_cancelledgrno",
-            "name": "cancelledGrNo",
-            "title": "cancelledGrNo",
+            "key": "71zzo5do",
+            "name": "po_id",
+            "title": "po_id",
             "description": "",
-            "bsonType": "string",
-            "isExpand": false
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "9ldrewpr",
+            "name": "created_received_qty",
+            "title": "created_received_qty",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "zlbca821",
+            "name": "rev",
+            "title": "rev",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
           }
         ]
       },
       "blocks": []
     },
     {
-      "id": "loop_po",
-      "type": "loop",
+      "id": "code_node_CcPlan",
+      "type": "code-node",
       "data": {
-        "title": "Loop PO Updates",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Releases + the GR stamp",
         "isValidator": true,
-        "nodeName": "Loop PO Updates",
-        "name": "Loop PO Updates",
-        "loopType": "Var",
-        "loopSeletSource": {
-          "datasource": {
-            "rules": {
-              "collectionId": "",
-              "list": [
-                {
-                  "id": 1783400000201,
-                  "parentId": 1783400000200,
-                  "isTop": true,
-                  "prop": "",
-                  "operator": "",
-                  "valueType": "",
-                  "value": "",
-                  "type": "leaf",
-                  "level": 1
-                }
-              ]
-            }
-          },
-          "auto_refresh": 1,
-          "auto_refresh_debounce": 100,
-          "options": [],
-          "props": {
-            "value": "",
-            "label": "",
-            "image": "",
-            "icon": "",
-            "explain": ""
-          },
-          "remote": false,
-          "remoteType": "datasource",
-          "limit_count": ""
+        "nodeName": "Releases + the GR stamp",
+        "name": "Releases + the GR stamp",
+        "script": {
+          "type": "javascript",
+          "code": "// Release per PO line from the stored GR lines (8 dp, >= 0); the suffix goes on the STORED number\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst rows = [{{node:sql_node_CcLines.data}}][0] || [];\nconst heads = [{{node:sql_node_CcGuard.data}}][0] || [];\nconst SLICE = 250;\nconst ok = (v) => /^[0-9]{1,20}$/.test(v);\nconst releases = [];\nconst poIds = new Set();\nfor (const r of Array.isArray(rows) ? rows : [rows]) {\n  const po = String(r.po_id || \"\");\n  if (ok(po)) poIds.add(po);\n  const rev = q8(r.rev);\n  if (!(rev > 0)) continue;\n  const cur = parseFloat(r.created_received_qty || 0);\n  releases.push({ id: String(r.id), created_received_qty: Math.max(0, q8(cur - rev)).toFixed(8) });\n}\nconst slices = [];\nfor (let i = 0; i < releases.length; i += SLICE) slices.push({ n: slices.length + 1, rows: releases.slice(i, i + SLICE) });\nconst grStamps = [];\nfor (const h of Array.isArray(heads) ? heads : [heads]) {\n  if (!h || !ok(String(h.id || \"\"))) continue;\n  const no = String(h.gr_no || \"\");\n  grStamps.push({ id: String(h.id), gr_no: no.endsWith(\"-Cancelled\") ? no : no + \"-Cancelled\" });\n}\nreturn {\n  grStamps,\n  hasLines: releases.length > 0 ? \"YES\" : \"NO\",\n  slices,\n  releaseCount: releases.length,\n  poCsv: [...poIds].join(\",\") || \"0\",\n};"
         },
-        "loopSeletVar": {
-          "type": "markdown",
-          "code": "{{node:code_reversals.data.poUpdates}}"
-        }
-      },
-      "blocks": [
-        {
-          "id": "update_node_po",
-          "type": "update-node",
-          "data": {
-            "table_id": {
-              "source": "Purchase Order:Table:1902776039445217282",
-              "rules": {
-                "collectionId": "1902776039445217282",
-                "list": [
-                  {
-                    "id": 1783400000211,
-                    "parentId": 1783400000210,
-                    "isTop": true,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:loop_po.po_id}}",
-                    "type": "leaf",
-                    "level": 1,
-                    "propLabel": "主键ID",
-                    "valueLabel": "",
-                    "operatorLabel": "In"
-                  }
-                ]
+        "response_json": [
+          {
+            "key": "ka25dhem",
+            "name": "grStamps",
+            "title": "grStamps",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "8c29n4b3",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
               }
-            },
-            "fields": [],
-            "condition": {},
-            "title": "Reverse PO Quantities",
-            "isValidator": true,
-            "nodeName": "Reverse PO Quantities",
-            "name": "Reverse PO Quantities",
-            "props": {
-              "modelName": "",
-              "list": [
-                {
-                  "prop": "table_po",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:loop_po.table_po}}",
-                  "valueLabel": "",
-                  "propLabel": "Purchase Order Table"
-                },
-                {
-                  "prop": "gr_status",
-                  "operator": "",
-                  "valueType": "field",
-                  "value": "{{node:loop_po.gr_status}}",
-                  "valueLabel": "",
-                  "propLabel": "GR Status"
-                }
-              ]
-            }
+            ]
           },
-          "blocks": []
-        }
-      ]
+          {
+            "key": "9lrpyiig",
+            "name": "hasLines",
+            "title": "hasLines",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "tccy6wp0",
+            "name": "slices",
+            "title": "slices",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "33asncti",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "p426zrpl",
+            "name": "releaseCount",
+            "title": "releaseCount",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "0a1hz49h",
+            "name": "poCsv",
+            "title": "poCsv",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          }
+        ]
+      },
+      "blocks": []
     },
     {
       "id": "update_node_gr",
@@ -471,7 +534,7 @@
                 "prop": "id",
                 "operator": "in",
                 "valueType": "field",
-                "value": "{{workflowparams:gr_id}}",
+                "value": "{{node:code_node_CcPlan.data.grStamps.id}}",
                 "type": "leaf",
                 "level": 1,
                 "propLabel": "主键ID",
@@ -491,6 +554,14 @@
           "modelName": "",
           "list": [
             {
+              "prop": "id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CcPlan.data.grStamps.id}}",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
               "prop": "gr_status",
               "operator": "",
               "valueType": "value",
@@ -502,7 +573,7 @@
               "prop": "gr_no",
               "operator": "",
               "valueType": "field",
-              "value": "{{node:code_reversals.data.cancelledGrNo}}",
+              "value": "{{node:code_node_CcPlan.data.grStamps.gr_no}}",
               "valueLabel": "",
               "propLabel": "Goods Receiving Number"
             }
@@ -510,6 +581,420 @@
         }
       },
       "blocks": []
+    },
+    {
+      "id": "if_CcLines",
+      "type": "if",
+      "data": {
+        "title": "IF PO lines to release",
+        "isValidator": true,
+        "nodeName": "IF PO lines to release",
+        "name": "IF PO lines to release",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798200000105,
+              "parentId": 1798200000106,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CcPlan.data.hasLines}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TCcLines",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "loop_CcPoLines",
+              "type": "loop",
+              "data": {
+                "title": "Release on PO lines (slices of <= 250)",
+                "isValidator": true,
+                "nodeName": "Release on PO lines (slices of <= 250)",
+                "name": "Release on PO lines (slices of <= 250)",
+                "loopType": "Var",
+                "loopSeletSource": {
+                  "datasource": {
+                    "rules": {
+                      "collectionId": "",
+                      "list": [
+                        {
+                          "id": 1798200000103,
+                          "parentId": 1798200000104,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  },
+                  "auto_refresh": 1,
+                  "auto_refresh_debounce": 100,
+                  "options": [],
+                  "props": {
+                    "value": "",
+                    "label": "",
+                    "image": "",
+                    "icon": "",
+                    "explain": ""
+                  },
+                  "remote": false,
+                  "remoteType": "datasource"
+                },
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_CcPlan.data.slices}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "code_node_CcSlice",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "This slice (the loop item: <= 250 rows)",
+                    "isValidator": true,
+                    "nodeName": "This slice (the loop item: <= 250 rows)",
+                    "name": "This slice (the loop item: <= 250 rows)",
+                    "script": {
+                      "type": "javascript",
+                      "code": "// one slice of the write loop: the loop item itself ({ n, rows }), never the whole list again\nconst it = [{{node:loop_CcPoLines}}][0] || {};\nreturn { n: it.n || 0, rows: Array.isArray(it.rows) ? it.rows : [] };"
+                    },
+                    "response_json": [
+                      {
+                        "key": "mhzwwdcf",
+                        "name": "n",
+                        "title": "n",
+                        "description": "",
+                        "isExpand": false,
+                        "children": [],
+                        "bsonType": "string"
+                      },
+                      {
+                        "key": "fbl6ltxu",
+                        "name": "rows",
+                        "title": "rows",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "hfjshqtz",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "update_node_CcPoLines",
+                  "type": "update-node",
+                  "data": {
+                    "table_id": {
+                      "source": "Item Table(Purchase Order):Table:1939901372270747649",
+                      "rules": {
+                        "collectionId": "1939901372270747649",
+                        "list": [
+                          {
+                            "id": 1798200000101,
+                            "parentId": 1798200000102,
+                            "isTop": true,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_CcSlice.data.rows.id}}",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    },
+                    "fields": [],
+                    "condition": {},
+                    "title": "PO lines: created_received_qty (<= 250 per call)",
+                    "isValidator": true,
+                    "nodeName": "PO lines: created_received_qty (<= 250 per call)",
+                    "name": "PO lines: created_received_qty (<= 250 per call)",
+                    "props": {
+                      "modelName": "",
+                      "list": [
+                        {
+                          "prop": "id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_CcSlice.data.rows.id}}",
+                          "valueLabel": "",
+                          "propLabel": "主键ID"
+                        },
+                        {
+                          "prop": "created_received_qty",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_CcSlice.data.rows.created_received_qty}}",
+                          "valueLabel": "",
+                          "propLabel": "Created Received Qty"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FCcLines",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_CcPoStatus",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "This GR's POs: lines as they are now",
+        "isValidator": true,
+        "nodeName": "This GR's POs: lines as they are now",
+        "name": "This GR's POs: lines as they are now",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(h.id AS CHAR) AS po_id,\n       SUM(COALESCE(p.created_received_qty, 0) > 0) AS reserved,\n       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')) AS countable,\n       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')\n           AND COALESCE(p.received_qty, 0) > 0) AS partially,\n       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')\n           AND COALESCE(p.received_qty, 0) > 0 AND p.received_qty >= COALESCE(p.quantity, 0)) AS fully\n  FROM JSON_TABLE(CONCAT('[', '{{node:code_node_CcPlan.data.poCsv}}', ']'), '$[*]' COLUMNS (pid BIGINT PATH '$')) sel\n  JOIN purchase_order h ON h.id = sel.pid AND h.is_deleted = 0\n  JOIN purchase_order_2ukyuanr_sub p ON p.purchase_order_id = h.id AND p.is_deleted = 0\n WHERE h.tenant_id = '{{system:tenantId}}'\n GROUP BY h.id"
+        },
+        "response_json": [
+          {
+            "key": "u4dpxvsp",
+            "name": "po_id",
+            "title": "po_id",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "ejjkydkj",
+            "name": "reserved",
+            "title": "reserved",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "7cj71twg",
+            "name": "countable",
+            "title": "countable",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "dll3xjy0",
+            "name": "partially",
+            "title": "partially",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "bzuhd7ce",
+            "name": "fully",
+            "title": "fully",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_CcPoHdr",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "PO gr_status from its lines",
+        "isValidator": true,
+        "nodeName": "PO gr_status from its lines",
+        "name": "PO gr_status from its lines",
+        "script": {
+          "type": "javascript",
+          "code": "// some lines received + the rest untouched -> Partially Received (it used to end Cancelled)\n// counted as GOODS_RECEIVING does (a bundle's items are not counted, the bundle line is)\nconst poGrStatus = (r) => {\n  const n = (v) => Number(v) || 0;\n  if (n(r.reserved) > 0) return \"Created\";\n  if (n(r.countable) > 0 && n(r.fully) === n(r.countable)) return \"Fully Received\";\n  if (n(r.partially) > 0) return \"Partially Received\";\n  return \"Cancelled\";\n};\nconst rows = [{{node:sql_node_CcPoStatus.data}}][0] || [];\nconst headers = [];\nfor (const r of Array.isArray(rows) ? rows : [rows]) {\n  const id = String(r.po_id || \"\");\n  if (!/^[0-9]{1,20}$/.test(id)) continue;\n  headers.push({ id, gr_status: poGrStatus(r) });\n}\nreturn { headers, hasHeaders: headers.length > 0 ? \"YES\" : \"NO\" };"
+        },
+        "response_json": [
+          {
+            "key": "zdqn6gyd",
+            "name": "headers",
+            "title": "headers",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "mhcet4mg",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "8hqsidj8",
+            "name": "hasHeaders",
+            "title": "hasHeaders",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_CcPoHdr",
+      "type": "if",
+      "data": {
+        "title": "IF PO headers to write",
+        "isValidator": true,
+        "nodeName": "IF PO headers to write",
+        "name": "IF PO headers to write",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798200000109,
+              "parentId": 1798200000110,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CcPoHdr.data.hasHeaders}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TCcPoHdr",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_CcPoHdr",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Order:Table:1902776039445217282",
+                  "rules": {
+                    "collectionId": "1902776039445217282",
+                    "list": [
+                      {
+                        "id": 1798200000107,
+                        "parentId": 1798200000108,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CcPoHdr.data.headers.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update PO gr_status",
+                "isValidator": true,
+                "nodeName": "Update PO gr_status",
+                "name": "Update PO gr_status",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CcPoHdr.data.headers.id}}",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "gr_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CcPoHdr.data.headers.gr_status}}",
+                      "valueLabel": "",
+                      "propLabel": "GR Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FCcPoHdr",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "return_success",

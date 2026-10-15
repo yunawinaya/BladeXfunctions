@@ -1,0 +1,287 @@
+{
+ "files": {
+  "VPprep": [
+   "lift/runtime.js",
+   "lift/lifted_prepare.js",
+   "code/prepare/adapter.js",
+   "code/prepare/prep.js",
+   "code/prepare/prep_tail.js"
+  ],
+  "VPplan": [
+   "lift/runtime.js",
+   "lift/lifted_prepare.js",
+   "code/prepare/adapter.js",
+   "code/prepare/plan.js",
+   "code/prepare/plan_tail.js"
+  ],
+  "VSgate": [
+   "lift/runtime.js",
+   "lift/lifted_prepare.js",
+   "code/prepare/adapter.js",
+   "code/prepare/prep.js",
+   "code/submit/gate.js",
+   "code/submit/gate_tail.js"
+  ]
+ },
+ "VPprep": {
+  "fields": [
+   "route",
+   "code",
+   "message",
+   "unlockOk",
+   "revertFrom",
+   "lineCount",
+   "refuse",
+   "refuseMessage",
+   "grId",
+   "grIdList",
+   "grNo",
+   "organizationId",
+   "plantId",
+   "plantIdSql",
+   "minLiveIdSql",
+   "grIdSql",
+   "grNoSql",
+   "orgSql",
+   "itemIdsCsv",
+   "previousStatus",
+   "lines",
+   "liveRows",
+   "cycleRows",
+   "locations",
+   "partialRow",
+   "huOutRows",
+   "tupleAnchors",
+   "itemIds",
+   "batchIds",
+   "huIds",
+   "poIds",
+   "poLineIds",
+   "sqlMinLiveId",
+   "sqlPlantId",
+   "sqlItemIds",
+   "sqlBatchIds",
+   "sqlHuIds",
+   "sqlPoIds",
+   "sqlPoLineIds"
+  ],
+  "arrays": [
+   "grIdList",
+   "lines",
+   "liveRows",
+   "cycleRows",
+   "locations",
+   "huOutRows",
+   "itemIds",
+   "batchIds",
+   "huIds",
+   "poIds",
+   "poLineIds"
+  ],
+  "objects": [
+   "unlockOk",
+   "lineCount",
+   "refuse",
+   "partialRow",
+   "tupleAnchors"
+  ]
+ },
+ "VPplan": {
+  "fields": [
+   "route",
+   "code",
+   "message",
+   "payload",
+   "partRows",
+   "lineCount",
+   "movementCount",
+   "unlockOk",
+   "previousStatus",
+   "errorDetails"
+  ],
+  "arrays": [
+   "partRows"
+  ],
+  "objects": [
+   "lineCount",
+   "movementCount",
+   "unlockOk"
+  ]
+ },
+ "VSgate": {
+  "fields": [
+   "route",
+   "code",
+   "message",
+   "reason",
+   "lineCount",
+   "previousStatus"
+  ],
+  "arrays": [],
+  "objects": [
+   "lineCount"
+  ]
+ },
+ "sql": {
+  "hdr": {
+   "round": 1,
+   "cols": [
+    "j"
+   ],
+   "title": "The receipt (every schema field + gr_v2_job_id)"
+  },
+  "lines": {
+   "round": 1,
+   "cols": [
+    "j",
+    "sn"
+   ],
+   "title": "Its lines (table_gr)"
+  },
+  "movs": {
+   "round": 1,
+   "cols": [
+    "j"
+   ],
+   "title": "Its stock movements (sql_node_grRvMovs)"
+  },
+  "putaway": {
+   "round": 1,
+   "cols": [
+    "k",
+    "j"
+   ],
+   "title": "Its putaways + lines + records"
+  },
+  "qi": {
+   "round": 1,
+   "cols": [
+    "j"
+   ],
+   "title": "Its inspection lots"
+  },
+  "transit": {
+   "round": 1,
+   "cols": [
+    "j"
+   ],
+   "title": "Its in-transit rows (every status)"
+  },
+  "batches": {
+   "round": 1,
+   "cols": [
+    "j"
+   ],
+   "title": "Batches minted under its number"
+  },
+  "lock": {
+   "round": 1,
+   "cols": [
+    "step_name",
+    "result_ref"
+   ],
+   "title": "Its latest lock (GRC|<gr>)"
+  },
+  "later": {
+   "round": 2,
+   "cols": [
+    "j"
+   ],
+   "title": "Later movements on its stock (sql_node_grRvLater)"
+  },
+  "fifo": {
+   "round": 2,
+   "cols": [
+    "j"
+   ],
+   "title": "FIFO layers newer than it"
+  },
+  "wa": {
+   "round": 2,
+   "cols": [
+    "j"
+   ],
+   "title": "Weighted average rows"
+  },
+  "costcounts": {
+   "round": 2,
+   "cols": [
+    "j"
+   ],
+   "title": "Costing rows per item"
+  },
+  "pi": {
+   "round": 2,
+   "cols": [
+    "j"
+   ],
+   "title": "Purchase invoices naming it"
+  },
+  "bbal": {
+   "round": 2,
+   "cols": [
+    "j"
+   ],
+   "title": "Batch balances of its live batches"
+  },
+  "ibal": {
+   "round": 2,
+   "cols": [
+    "j"
+   ],
+   "title": "Item balances of its items"
+  },
+  "hu": {
+   "round": 2,
+   "cols": [
+    "k",
+    "j"
+   ],
+   "title": "Handling units of its live rows"
+  },
+  "po": {
+   "round": 2,
+   "cols": [
+    "k",
+    "j"
+   ],
+   "title": "Its purchase orders + lines"
+  },
+  "oo": {
+   "round": 2,
+   "cols": [
+    "j"
+   ],
+   "title": "On-order rows of its PO lines"
+  },
+  "items": {
+   "round": 2,
+   "cols": [
+    "k",
+    "j"
+   ],
+   "title": "Item masters + UOM conversions"
+  }
+ },
+ "submit_sql": {
+  "hdr": {
+   "cols": [
+    "j"
+   ],
+   "title": "The receipt (every schema field + gr_v2_job_id)"
+  },
+  "lines": {
+   "cols": [
+    "j",
+    "sn"
+   ],
+   "title": "Its lines (table_gr)"
+  },
+  "movs": {
+   "cols": [
+    "j"
+   ],
+   "title": "Its stock movements (sql_node_grRvMovs)"
+  }
+ }
+}

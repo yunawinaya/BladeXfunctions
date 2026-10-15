@@ -58,16 +58,12 @@ const submitForm = async (data) => {
         this.hideLoading();
         const gateMsg = `${payload.message || ""}`;
         if (gateCode === "414" || gateCode === 414) {
-          const addToDelivery = await this.$confirm(
-            gateMsg,
-            `Delivery quantity`,
-            {
-              confirmButtonText: "Add to delivery",
-              cancelButtonText: "Leave outstanding",
-              type: "warning",
-              dangerouslyUseHTMLString: true,
-            },
-          )
+          const addToDelivery = await this.$confirm(gateMsg, `Delivery quantity`, {
+            confirmButtonText: "Add to delivery",
+            cancelButtonText: "Leave outstanding",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          })
             .then(() => "Yes")
             .catch(() => "No");
 
@@ -97,6 +93,15 @@ const submitForm = async (data) => {
           dangerouslyUseHTMLString: true,
         });
         return;
+      }
+
+      // GD Edit V2: the deliveries this save changed are saved in the background - start their worker (no scheduled worker)
+      for (const jobId of Array.isArray(payload.gdEditJobs) ? payload.gdEditJobs : []) {
+        try {
+          this.runWorkflow("2110618789356687361", { job_id: String(jobId) }, () => {}, (e) => console.error("GD Edit V2: worker start failed", e));
+        } catch (e) {
+          console.error("GD Edit V2: worker could not be started", e);
+        }
       }
 
       // What has to be physically put back after a pick reversal, as the delivery
@@ -262,6 +267,37 @@ const submitForm = async (data) => {
       return;
     }
 
+    // Item bundle children sit nested under their parent's `children`, where
+    // validateByColName is not guaranteed to reach, so walk the tree for them.
+    const zeroQtyChildren = [];
+    const collectZeroQtyChildren = (rows, lineNo) => {
+      (rows || []).forEach((row, index) => {
+        const no = lineNo ? `${lineNo}.${index + 1}` : `${index + 1}`;
+
+        if (lineNo && !(Number(row.so_quantity) > 0)) {
+          zeroQtyChildren.push(
+            `Line ${no} · ${row.material_name || row.so_desc || "Item"}`,
+          );
+        }
+
+        if (Array.isArray(row.children)) {
+          collectZeroQtyChildren(row.children, no);
+        }
+      });
+    };
+    collectZeroQtyChildren(this.getValue("table_so"), "");
+
+    if (zeroQtyChildren.length > 0) {
+      const lines = zeroQtyChildren.slice(0, 3);
+      if (zeroQtyChildren.length > 3) {
+        lines.push(`(+${zeroQtyChildren.length - 3} more)`);
+      }
+      this.$message.error(
+        `Quantity must be greater than 0: ${lines.join(";")}`,
+      );
+      return;
+    }
+
     const entry = this.getValues();
 
     entry.so_status =
@@ -284,9 +320,7 @@ const submitForm = async (data) => {
           ? error.message || findFieldMessage(error)
           : "") || String(error);
       this.$message.error(
-        msg && msg !== "[object Object]"
-          ? msg
-          : "Save failed, please try again.",
+        msg && msg !== "[object Object]" ? msg : "Save failed, please try again.",
       );
     }
   } finally {

@@ -16,10 +16,46 @@ const FIFO = "First In First Out";
 const WA = "Weighted Average";
 const FIXED = "Fixed Cost";
 
+// a stored decimal as the platform keeps it: dp decimals of the exact 8-dp value, mode = the number rule's precision_rule
+// (1 round half-up, 2 truncate toward zero, 3 away from zero)
+function roundDec(v, dp, mode) {
+  const x = q8(v);
+  if (!(dp >= 0 && dp < 8)) return x;
+  const t = Math.abs(x).toFixed(8);
+  const cut = t.indexOf(".") + 1 + dp;
+  let head = t.slice(0, cut);
+  const rest = t.slice(cut);
+  const up = Number(mode) === 2 ? false : Number(mode) === 3 ? /[1-9]/.test(rest) : rest.charCodeAt(0) >= 53;
+  if (up) {
+    const digits = head.replace(".", "").split("");
+    let i = digits.length - 1;
+    while (i >= 0 && digits[i] === "9") digits[i--] = "0";
+    if (i < 0) digits.unshift("1");
+    else digits[i] = String(Number(digits[i]) + 1);
+    const intLen = digits.length - dp;
+    head = digits.slice(0, intLen).join("") + (dp ? "." + digits.slice(intLen).join("") : "");
+  }
+  const r = Number(head.replace(/\.$/, ""));
+  return x < 0 && r !== 0 ? -r : r;
+}
+const roundHalfUp = (v, dp) => roundDec(v, dp, 1);
+// the written numbers bound to "Inventory Price" (schema numberRule); every other one is "Inventory Qty"
+const PRICE_COLUMNS = { unit_price: 1, total_price: 1, fifo_cost_price: 1, wa_cost_price: 1 };
+
 function planBulk(input) {
   const movements = Array.isArray(input.movements) ? input.movements : [];
   const items = input.items || {};
   const nowText = input.nowText || "";
+  // the tenant's number rules: a stored column holds what the platform rounded it to, and a later movement reads that back
+  // (as the old path's next call did). input.precision = { price, qty, columns: { "<table>.<column>": rule } }, a rule
+  // being { dp, mode } (a bare number = dp, half-up); none = 8 dp
+  const P = input.precision || {};
+  const ruleOf = (r) => (r === undefined || r === null ? null : typeof r === "number" ? { dp: r, mode: 1 } : r);
+  const rc = (table, col, v) => {
+    const cols = P.columns || {};
+    const r = ruleOf(Object.prototype.hasOwnProperty.call(cols, table + "." + col) ? cols[table + "." + col] : PRICE_COLUMNS[col] ? P.price : P.qty);
+    return r && r.dp !== null && r.dp !== undefined ? roundDec(v, r.dp, r.mode) : q8(v);
+  };
   let seq = 0;
   const newId = (kind) => "new:" + kind + ":" + ++seq;
 
@@ -47,11 +83,11 @@ function planBulk(input) {
   const before = { item_balance: {}, item_batch_balance: {}, fifo: {}, wa: {} };
   const touched = { item_balance: {}, item_batch_balance: {}, fifo: {}, wa: {} };
   const created = { item_balance: [], item_batch_balance: [], fifo: [], wa: [], batch: [] };
+  // a column first touched by a later movement joins the row's snapshot (its value is still the one read)
   const snap = (table, row, cols) => {
-    if (row.id.indexOf("new:") === 0 || before[table][row.id]) return;
-    const b = {};
-    for (const c of cols) b[c] = row[c] === undefined ? null : row[c];
-    before[table][row.id] = b;
+    if (row.id.indexOf("new:") === 0) return;
+    const b = before[table][row.id] || (before[table][row.id] = {});
+    for (const c of cols) if (!(c in b)) b[c] = row[c] === undefined ? null : row[c];
   };
   const touch = (table, row) => {
     if (row.id.indexOf("new:") !== 0) touched[table][row.id] = row;
@@ -93,6 +129,7 @@ function planBulk(input) {
     const qtyNum = parseFloat(m.quantity);
     const missing = !s(m.material_id) || m.quantity === undefined || m.quantity === null || !(qtyNum > 0) || !s(m.plant_id) || !s(m.organization_id);
     if (missing || (dir === "SUBTRACT" && !s(m.inventory_category))) return fail(m, "VALIDATION_FAILED", "Validation Failed");
+    if (s(m.unit_price) !== "" && q8(m.unit_price) < 0) return fail(m, "UNSUPPORTED_PRICE", "Negative unit price " + s(m.unit_price));
 
     const item = items[s(m.material_id)];
     if (!item) return fail(m, "ITEM_NOT_FOUND", "Item " + s(m.material_id) + " not found");
@@ -133,8 +170,10 @@ function planBulk(input) {
 
       const fifo = fifoFor(mat, plant, org, batch || null);
       const wa = waFor(mat, plant, org, batch || null);
-      // SUBTRACT's "Migration Condition": the old branch rewrites costing rows from stale reads - refused here
-      if ((wa.length > 0 && fifo.length > 0) || (u.method === FIFO && fifo.length === 0 && wa.length > 0) || (u.method === WA && wa.length === 0 && fifo.length > 0)) {
+      // SUBTRACT's "Migration Condition": the old branch rewrites costing rows from stale reads - refused here. A
+      // category move with its price given reads and writes no costing row, so it goes through
+      const priced = isMovingInv === 1 && q8(m.unit_price) > 0;
+      if (!priced && ((wa.length > 0 && fifo.length > 0) || (u.method === FIFO && fifo.length === 0 && wa.length > 0) || (u.method === WA && wa.length === 0 && fifo.length > 0))) {
         return fail(m, "UNSUPPORTED_COSTING", "Item " + mat + " has costing rows that need migration (FIFO " + fifo.length + ", WA " + wa.length + ")");
       }
 
@@ -143,12 +182,14 @@ function planBulk(input) {
       else if (u.method === FIFO) price = fifoUnitPrice(fifo, u.baseQty);
       else if (u.method === WA) price = wa.length ? q8(newestWa(wa).wa_cost_price || 0) : 0;
       else if (u.method === FIXED) price = q8(parseFloat(item.purchase_unit_price || 0));
+      if (price < 0) return fail(m, "UNSUPPORTED_PRICE", "Negative unit price " + price + " for material " + mat);
       const totalPrice = q8(price * u.baseQty);
 
       const deduct = (row) => {
-        snap(row === itemRow ? "item_balance" : "item_batch_balance", row, QTY_COLS);
-        for (const c of QTY_COLS.slice(0, 5)) row[c] = q8(q8(row[c] || 0) - (c === categoryField ? u.baseQty : 0));
-        row.balance_quantity = q8(q8(row.balance_quantity || 0) - u.baseQty);
+        const tb = row === itemRow ? "item_balance" : "item_batch_balance";
+        snap(tb, row, QTY_COLS);
+        for (const c of QTY_COLS.slice(0, 5)) row[c] = rc(tb, c, q8(row[c] || 0) - (c === categoryField ? u.baseQty : 0));
+        row.balance_quantity = rc(tb, "balance_quantity", q8(row.balance_quantity || 0) - u.baseQty);
       };
       if (itemRow) {
         deduct(itemRow);
@@ -156,8 +197,8 @@ function planBulk(input) {
       }
       if (batch && batchRow) {
         snap("item_batch_balance", batchRow, QTY_COLS);
-        for (const c of QTY_COLS.slice(0, 5)) batchRow[c] = q8(q8(batchRow[c] || 0) - (c === categoryField ? u.baseQty : 0));
-        batchRow.balance_quantity = q8(q8(batchRow.balance_quantity || 0) - u.baseQty);
+        for (const c of QTY_COLS.slice(0, 5)) batchRow[c] = rc("item_batch_balance", c, q8(batchRow[c] || 0) - (c === categoryField ? u.baseQty : 0));
+        batchRow.balance_quantity = rc("item_batch_balance", "balance_quantity", q8(batchRow.balance_quantity || 0) - u.baseQty);
         touch("item_batch_balance", batchRow);
       }
 
@@ -170,7 +211,7 @@ function planBulk(input) {
             if (avail <= 0) continue;
             const take = Math.min(remaining, avail);
             snap("fifo", layer, ["fifo_available_quantity"]);
-            layer.fifo_available_quantity = q8(q8(avail - take));
+            layer.fifo_available_quantity = rc("fifo_costing_history", "fifo_available_quantity", avail - take);
             touch("fifo", layer);
             remaining = q8(remaining - take);
           }
@@ -180,7 +221,7 @@ function planBulk(input) {
             return fail(m, "NO_WA_RECORD", "No Weighted Average costing record for material " + mat + ", batch " + (batch || "(none)") + ", plant " + plant + " -- create the costing record for this plant before issuing this stock.");
           }
           snap("wa", doc, ["wa_quantity", "wa_cost_price"]);
-          doc.wa_quantity = Math.max(0, q8(q8(doc.wa_quantity || 0) - q8(u.baseQty)));
+          doc.wa_quantity = Math.max(0, rc("wa_costing_method", "wa_quantity", q8(doc.wa_quantity || 0) - q8(u.baseQty)));
           touch("wa", doc);
         }
       }
@@ -194,10 +235,10 @@ function planBulk(input) {
         movement: "OUT",
         plant_id: plant,
         organization_id: org,
-        unit_price: price,
-        total_price: totalPrice,
-        quantity: u.altQty,
-        base_qty: u.baseQty,
+        unit_price: rc("inventory_movement", "unit_price", price),
+        total_price: rc("inventory_movement", "total_price", totalPrice),
+        quantity: rc("inventory_movement", "quantity", u.altQty),
+        base_qty: rc("inventory_movement", "base_qty", u.baseQty),
         uom_id: u.altUOM,
         base_uom_id: u.baseUOM,
         item_id: mat,
@@ -207,8 +248,8 @@ function planBulk(input) {
         manufacturing_date: mfg,
         expired_date: exp,
         doc_date: m.doc_date,
-        actual_qty: -u.altQty,
-        actual_base_qty: -u.baseQty,
+        actual_qty: rc("inventory_movement", "actual_qty", -u.altQty),
+        actual_base_qty: rc("inventory_movement", "actual_base_qty", -u.baseQty),
         handling_unit_id: m.handling_unit_id === undefined ? null : m.handling_unit_id,
       });
       const r = { movement_key: key, direction: dir, code: "200", unit_price: price, total_price: totalPrice, manufacturing_date: mfg, expired_date: exp };
@@ -253,6 +294,7 @@ function planBulk(input) {
     }
     unitPrice = q8(unitPrice);
     totalPrice = q8(totalPrice);
+    if (unitPrice < 0 || totalPrice < 0) return fail(m, "UNSUPPORTED_PRICE", "Negative unit price " + unitPrice + " for material " + mat);
 
     let batchId = m.batch_id || null;
     if (m.batch_number !== "-" && m.batch_number && !m.batch_id) {
@@ -261,7 +303,7 @@ function planBulk(input) {
         id: batchId,
         batch_number: m.batch_number,
         material_id: mat,
-        initial_quantity: u.baseQty,
+        initial_quantity: rc("batch", "initial_quantity", u.baseQty),
         transaction_no: m.trx_no,
         plant_id: plant,
         organization_id: org,
@@ -277,7 +319,12 @@ function planBulk(input) {
     const cat = m.inventory_category;
     const col = cat === "Blocked" ? "block_qty" : cat === "Reserved" ? "reserved_qty" : cat === "Quality Inspection" ? "qualityinsp_qty" : cat === "In Transit" ? "intransit_qty" : "unrestricted_qty";
     add[col] = q8(parseFloat(u.baseQty || 0));
-    add.balance_quantity = add.block_qty + add.reserved_qty + add.unrestricted_qty + add.qualityinsp_qty + add.intransit_qty;
+    add.balance_quantity = q8(add.block_qty + add.reserved_qty + add.unrestricted_qty + add.qualityinsp_qty + add.intransit_qty);
+    const stored = (table) => {
+      const o = {};
+      for (const c of QTY_COLS) o[c] = rc(table, c, add[c]);
+      return o;
+    };
 
     if (batchId) {
       const tk = batchKey(mat, loc, batchId, plant, org);
@@ -285,14 +332,14 @@ function planBulk(input) {
       const row = batchBalIdx.map[tk];
       if (row) {
         snap("item_batch_balance", row, QTY_COLS.concat(["remark", "remark2", "remark3"]));
-        for (const c of QTY_COLS) row[c] = q8(q8(row[c] || 0) + q8(add[c] || 0));
+        for (const c of QTY_COLS) row[c] = rc("item_batch_balance", c, q8(row[c] || 0) + q8(add[c] || 0));
         const remarkOf = (nv, ev) => (nv != null && nv !== ev ? nv : ev || "");
         row.remark = remarkOf(m.remark, row.remark);
         row.remark2 = remarkOf(m.remark2, row.remark2);
         row.remark3 = remarkOf(m.remark3, row.remark3);
         touch("item_batch_balance", row);
       } else {
-        const nr = Object.assign({ id: newId("item_batch_balance"), material_id: mat, material_uom: u.baseUOM, location_id: loc }, add, {
+        const nr = Object.assign({ id: newId("item_batch_balance"), material_id: mat, material_uom: u.baseUOM, location_id: loc }, stored("item_batch_balance"), {
           batch_id: batchId,
           plant_id: plant,
           organization_id: org,
@@ -312,10 +359,10 @@ function planBulk(input) {
     const itemRow = itemBalIdx.map[bk];
     if (itemRow) {
       snap("item_balance", itemRow, QTY_COLS);
-      for (const c of QTY_COLS) itemRow[c] = q8(q8(itemRow[c] || 0) + q8(add[c] || 0));
+      for (const c of QTY_COLS) itemRow[c] = rc("item_balance", c, q8(itemRow[c] || 0) + q8(add[c] || 0));
       touch("item_balance", itemRow);
     } else {
-      const nr = Object.assign({ id: newId("item_balance"), material_id: mat, material_uom: u.baseUOM, location_id: loc }, add, { plant_id: plant, organization_id: org });
+      const nr = Object.assign({ id: newId("item_balance"), material_id: mat, material_uom: u.baseUOM, location_id: loc }, stored("item_balance"), { plant_id: plant, organization_id: org });
       itemBalIdx.map[bk] = nr;
       created.item_balance.push(nr);
     }
@@ -326,12 +373,12 @@ function planBulk(input) {
         const next = layers.length ? Math.max(...layers.map((l) => parseInt(l.fifo_sequence || 0, 10)), 0) + 1 : 1;
         const layer = {
           id: newId("fifo"),
-          fifo_cost_price: unitPrice,
-          fifo_initial_quantity: u.baseQty,
-          fifo_available_quantity: u.baseQty,
+          fifo_cost_price: rc("fifo_costing_history", "fifo_cost_price", unitPrice),
+          fifo_initial_quantity: rc("fifo_costing_history", "fifo_initial_quantity", u.baseQty),
+          fifo_available_quantity: rc("fifo_costing_history", "fifo_available_quantity", u.baseQty),
           material_id: mat,
           batch_id: batchId,
-          fifo_sequence: next,
+          fifo_sequence: String(next),
           plant_id: plant,
           organization_id: org,
         };
@@ -339,7 +386,7 @@ function planBulk(input) {
         created.fifo.push(layer);
       } else if (u.method === WA) {
         if (batchId) {
-          const row = { id: newId("wa"), wa_cost_price: unitPrice, wa_quantity: u.baseQty, material_id: mat, batch_id: batchId, plant_id: plant, organization_id: org, created_at: nowText };
+          const row = { id: newId("wa"), wa_cost_price: rc("wa_costing_method", "wa_cost_price", unitPrice), wa_quantity: rc("wa_costing_method", "wa_quantity", u.baseQty), material_id: mat, batch_id: batchId, plant_id: plant, organization_id: org, created_at: nowText };
           waRows.push(row);
           created.wa.push(row);
         } else {
@@ -350,11 +397,11 @@ function planBulk(input) {
             const wq = q8(latest.wa_quantity);
             const nq = q8(wq + u.baseQty);
             snap("wa", latest, ["wa_quantity", "wa_cost_price"]);
-            latest.wa_cost_price = q8(q8((wc * wq + unitPrice * u.baseQty) / nq));
-            latest.wa_quantity = nq;
+            latest.wa_cost_price = rc("wa_costing_method", "wa_cost_price", q8((wc * wq + unitPrice * u.baseQty) / nq));
+            latest.wa_quantity = rc("wa_costing_method", "wa_quantity", nq);
             touch("wa", latest);
           } else {
-            const row = { id: newId("wa"), wa_cost_price: unitPrice, wa_quantity: u.baseQty, material_id: mat, plant_id: plant, organization_id: org, created_at: nowText };
+            const row = { id: newId("wa"), wa_cost_price: rc("wa_costing_method", "wa_cost_price", unitPrice), wa_quantity: rc("wa_costing_method", "wa_quantity", u.baseQty), material_id: mat, plant_id: plant, organization_id: org, created_at: nowText };
             waRows.push(row);
             created.wa.push(row);
           }
@@ -374,18 +421,18 @@ function planBulk(input) {
       doc_date: m.doc_date,
       manufacturing_date: m.manufacturing_date === undefined ? null : m.manufacturing_date,
       expired_date: m.expired_date === undefined ? null : m.expired_date,
-      unit_price: unitPrice,
-      total_price: totalPrice,
-      quantity: u.altQty,
-      base_qty: u.baseQty,
+      unit_price: rc("inventory_movement", "unit_price", unitPrice),
+      total_price: rc("inventory_movement", "total_price", totalPrice),
+      quantity: rc("inventory_movement", "quantity", u.altQty),
+      base_qty: rc("inventory_movement", "base_qty", u.baseQty),
       uom_id: u.altUOM,
       base_uom_id: u.baseUOM,
       item_id: mat,
       bin_location_id: loc,
       batch_number_id: batchId,
       costing_method_id: u.method,
-      actual_qty: u.altQty,
-      actual_base_qty: u.baseQty,
+      actual_qty: rc("inventory_movement", "actual_qty", u.altQty),
+      actual_base_qty: rc("inventory_movement", "actual_base_qty", u.baseQty),
       handling_unit_id: m.handling_unit_id === undefined ? null : m.handling_unit_id,
     });
     const r = { movement_key: key, direction: dir, code: "200", batch_id: batchId, unit_price: unitPrice, total_price: totalPrice };
@@ -431,4 +478,4 @@ function fifoUnitPrice(layers, baseQty) {
   return totalQty > 0 ? q8(totalCost / totalQty) : 0;
 }
 
-if (typeof module !== "undefined") module.exports = { planBulk, fifoUnitPrice, q8 };
+if (typeof module !== "undefined") module.exports = { planBulk, fifoUnitPrice, q8, roundHalfUp, roundDec };

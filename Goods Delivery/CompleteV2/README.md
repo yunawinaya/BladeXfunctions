@@ -9,7 +9,7 @@ wrote. A 1,948-line delivery completes in ~84 s on dev. The classic path took de
 | GD_COMPLETE_SUBMIT `2110182609618337794` | runs GOODS_DELIVERY's gates in its order (same codes, same texts), then queues: lock row + `COMPLETE_GD` job + `gd_status = 'Processing'`. `operation: STATUS` reports the latest job |
 | GD_COMPLETE_WORKER `2110182645714518018` | claims due jobs (≤ 5 per tick), calls PREPARE then COMMIT (twice: COMMIT splits) |
 | GD_COMPLETE_PREPARE `2110182689117175810` | set-based reads + GOODS_DELIVERY / GD_UNUSED_FN_NEW code (copied verbatim) + INVENTORY_BULK_APPLY in PLAN mode → the prepared payload |
-| GD_COMPLETE_COMMIT `2110182729927753730` | C0 revalidate · C1 snapshot (GD_COMPLETION_SNAPSHOT, so Revert Completed works) · C2 inventory (INVENTORY_BULK_APPLY, all-or-nothing) · C3 reservations · C4 sales orders · C5 the delivery (Completed) · C6 item dates, reorder, auto-SI |
+| GD_COMPLETE_COMMIT `2110182729927753730` | C0 revalidate (incl. handling units hold enough) · C1 snapshot (GD_COMPLETION_SNAPSHOT, so Revert Completed works) · C2 inventory (INVENTORY_BULK_APPLY, all-or-nothing) · C3 reservations · C3H handling units · C4 sales orders · C5 the delivery (Completed) · C6 item dates, reorder, auto-SI |
 | INVENTORY_BULK_APPLY `2109916822821744641` | general set-based SUBTRACT/ADD engine (Balance Table/) |
 
 Built from `scratchpad/gdc/` (`python3 scratchpad/gdc/build_gdc.py --write`, all four at once).
@@ -22,8 +22,12 @@ Everything the Completed button / list Complete sends, except (these run the cla
 - a Draft or a new delivery; force-completing an In Progress Picking (406);
 - unsaved edits on the form (any column the classic save writes; `gd_undelivered_qty` is carried instead);
 - serial-numbered items, a delivery from a Picking Plan, internal-trading auto-GR, lines needing auto-allocation;
-- **handling-unit allocations** (`temp_qty_data.handling_unit_id`, `temp_hu_data`) and **Picking-record stamps**
-  (`picking_record_id`): not built yet (C3H / C3P).
+- a line linked to a Picking (`line_to_id`, `picking_record_id`): the classic save stamps that Picking. In the data only
+  Picking Plan deliveries have such lines (prod 90 days + dev).
+
+Handling-unit (packed) deliveries go async. C3H writes what GD_UNUSED_FN_NEW's Branch 5 writes: `handling_unit.total_quantity`
+and the HU's item rows (`handling_unit_atu7sreg_sub.quantity`) minus the delivered qty, drained in id order (a null
+batch matches any batch, as the classic atomic node drops it); `hu_status`, `item_count` and `table_hu_items` untouched.
 
 Above 500 lines these are refused with the reason, since the classic save cannot carry them.
 
@@ -44,6 +48,8 @@ ticking while ticks find work), and when the list opens (at most every 2 minutes
 - Header columns stored as `""` stay `""`; the classic re-save turns them into NULL.
 - Inventory movements carry `operation_effect_key` (`GDC|<job>|<movement>`); the engine replays safely.
 - All open FIFO layers are read (SUBTRACT read 100); a stock shortfall fails the job before anything moves.
+- A handling unit that no longer holds the delivered qty fails the job at C0, before anything moves (GD back to
+  Created); the classic save fails at its HU node after the stock moved.
 
 ## Tested on dev (tenant 711077, 2026-10-14)
 
@@ -54,6 +60,7 @@ ticking while ticks find work), and when the list opens (at most every 2 minutes
 | /001, 1,948 lines | 83.6 s; same checks; largest run 20.8 MB node data (cap 64 MB) |
 | Revert Completed of /005 | back to the pre-completion state (reservations, SO header, balances) |
 | GOODS_DELIVERY guard | save of a Processing delivery refused, nothing written; normal completion unaffected |
+| HU (2026-10-14, Packing V2 outputs) | 000000 /586 (2 HUs) and /565 (2 batches in 2 HUs); 496474 /069, 2,000 lines in 4 HUs × 500, `source: PACKING`: 72.3 s (PREPARE 8.6 s / 19.8 MB, COMMIT A 22.5 s / 8.4 MB, COMMIT B 36.1 s / 14.8 MB); every table reconciled incl. HU totals + item rows, movements carry the HU |
 
 Run them again with the `running-dev-workflows-as-tenant` skill, plus `scratchpad/gdc/test/snap.py`,
 `diff_twins.py` and `check_one.py`.

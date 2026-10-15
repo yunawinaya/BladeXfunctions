@@ -100,147 +100,149 @@ const setPlant = async (organizationId) => {
 };
 
 const showQINo = async () => {
-  const data = this.getValues();
+  const qiId = this.getValue("qi_id");
 
-  if (data.qi_id && data.qi_id !== null && data.qi_id !== "") {
+  if (qiId && qiId !== null && qiId !== "") {
     this.display("quality_insp_no");
   }
 };
 
+// target_inv_category's column expression; a row state is set only where it differs (each path copies the state map)
+const targetCategoryColumnDisabled = (item) =>
+  Boolean(item.item_bundle_id && !item.parent_fm_key);
+
 const enabledTargetCategoryField = async () => {
   const putawayItem = this.getValue("table_putaway_item");
 
+  // The bundle row carries the bundle id and no item code. It holds no stock,
+  // so it has no inventory category — that belongs to the items under it.
+  const isBundleParentRow = (item) =>
+    Boolean(item.item_bundle_id) && !item.item_code;
+
   setTimeout(() => {
+    const toDisable = [];
+    const toEnable = [];
+
+    const applyRow = (item, path) => {
+      let state;
+      if (isBundleParentRow(item)) {
+        state = true;
+      } else if (!item.qi_no || item.qi_no === null) {
+        state = false;
+      } else {
+        return;
+      }
+
+      if (state !== targetCategoryColumnDisabled(item)) {
+        (state ? toDisable : toEnable).push(`${path}.target_inv_category`);
+      }
+    };
+
     for (const [index, item] of putawayItem.entries()) {
-      if (!item.qi_no || item.qi_no === null) {
-        console.log("item qi no", item.qi_no);
-        this.disabled(
-          [`table_putaway_item.${index}.target_inv_category`],
-          false,
-        );
+      const path = `table_putaway_item.${index}`;
+
+      applyRow(item, path);
+
+      // A bundle's items are rows of the tree, not of table_putaway_item, so
+      // they are reached through their parent.
+      const bundleChildren = Array.isArray(item.children) ? item.children : [];
+
+      for (const [childIndex, child] of bundleChildren.entries()) {
+        applyRow(child, `${path}.children.${childIndex}`);
       }
     }
+
+    if (toDisable.length > 0) this.disabled(toDisable, true);
+    if (toEnable.length > 0) this.disabled(toEnable, false);
   }, 100);
 };
 
 const viewSerialNumber = async () => {
-  const table_putaway_item = this.getValue("table_putaway_item");
-  const table_putaway_records = this.getValue("table_putaway_records");
-  if (table_putaway_item.length > 0) {
-    for (const putaway of table_putaway_item) {
-      if (
+  const table_putaway_item = this.getValue("table_putaway_item") || [];
+  const table_putaway_records = this.getValue("table_putaway_records") || [];
+
+  if (
+    table_putaway_item.some(
+      (putaway) =>
         putaway.is_serialized_item === 1 &&
         putaway.serial_numbers !== "" &&
-        putaway.serial_numbers !== undefined
-      ) {
-        console.log("serial numbers", putaway.serial_numbers);
-        await this.display("table_putaway_item.select_serial_number");
-      }
-    }
+        putaway.serial_numbers !== undefined,
+    )
+  ) {
+    await this.display("table_putaway_item.select_serial_number");
   }
-  if (table_putaway_records.length > 0) {
-    for (const putaway of table_putaway_records) {
-      if (putaway.serial_numbers !== "" && putaway.serial_numbers !== null) {
-        await this.display("table_putaway_records.serial_numbers");
-      }
-    }
+
+  if (
+    table_putaway_records.some(
+      (putaway) =>
+        putaway.serial_numbers !== "" && putaway.serial_numbers !== null,
+    )
+  ) {
+    await this.display("table_putaway_records.serial_numbers");
   }
 };
 
+// serial rows only: one write of the selections (each key still runs onChange_selectSN) and one disabled() call
 const setSerialNumber = async () => {
   try {
     const table_putaway_item = this.getValue("table_putaway_item");
 
-    // Check if table_putaway_item exists and is an array
     if (!Array.isArray(table_putaway_item) || table_putaway_item.length === 0) {
       console.log("No putaway items found or invalid data structure");
       return;
     }
 
+    const selections = {};
+    const qtyPaths = [];
+    const optionCalls = [];
+
     for (const [index, putaway] of table_putaway_item.entries()) {
-      try {
-        // Check if item is serialized
-        if (putaway.is_serialized_item === 1) {
-          console.log(
-            `Processing serialized item at index ${index}:`,
-            putaway.item_code || putaway.id,
-          );
+      if (putaway.is_serialized_item !== 1) continue;
 
-          // Check if serial_numbers exists and is not empty
-          if (
-            !putaway.serial_numbers ||
-            putaway.serial_numbers === null ||
-            putaway.serial_numbers === undefined ||
-            typeof putaway.serial_numbers !== "string" ||
-            putaway.serial_numbers.trim() === ""
-          ) {
-            console.warn(
-              `No valid serial numbers found for item at index ${index}`,
-            );
-            continue;
-          }
-
-          // Split and clean serial numbers
-          const serialNumbers = putaway.serial_numbers
-            .split(",")
-            .map((sn) => sn.trim())
-            .filter((sn) => sn !== "");
-
-          if (serialNumbers.length === 0) {
-            console.warn(
-              `No valid serial numbers after processing for item at index ${index}`,
-            );
-            continue;
-          }
-
-          console.log(
-            `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,
-            serialNumbers,
-          );
-
-          // Set option data for select dropdown
-          await this.setOptionData(
-            [`table_putaway_item.${index}.select_serial_number`],
-            serialNumbers,
-          );
-
-          // Set the actual data
-          await this.setData({
-            [`table_putaway_item.${index}.select_serial_number`]: serialNumbers,
-          });
-
-          // Disable putaway_qty field for serialized items
-          await this.disabled(
-            [`table_putaway_item.${index}.putaway_qty`],
-            true,
-          );
-
-          console.log(
-            `Successfully set serial numbers for item at index ${index}`,
-          );
-        }
-      } catch (itemError) {
-        console.error(`Error processing item at index ${index}:`, itemError);
-        // Continue with next item instead of breaking the entire function
+      if (
+        !putaway.serial_numbers ||
+        typeof putaway.serial_numbers !== "string" ||
+        putaway.serial_numbers.trim() === ""
+      ) {
+        console.warn(`No valid serial numbers found for item at index ${index}`);
         continue;
       }
+
+      const serialNumbers = putaway.serial_numbers
+        .split(",")
+        .map((sn) => sn.trim())
+        .filter((sn) => sn !== "");
+
+      if (serialNumbers.length === 0) {
+        console.warn(
+          `No valid serial numbers after processing for item at index ${index}`,
+        );
+        continue;
+      }
+
+      optionCalls.push(
+        this.setOptionData(
+          [`table_putaway_item.${index}.select_serial_number`],
+          serialNumbers,
+        ),
+      );
+      selections[`table_putaway_item.${index}.select_serial_number`] =
+        serialNumbers;
+      qtyPaths.push(`table_putaway_item.${index}.putaway_qty`);
     }
+
+    if (qtyPaths.length === 0) return;
+
+    await Promise.all(optionCalls);
+    await this.setData(selections);
+    this.disabled(qtyPaths, true);
   } catch (error) {
     console.error("Error in setSerialNumber function:", error);
     // Don't throw error to prevent breaking the entire onMounted flow
   }
 };
 
-const disableSplitForHUItems = async () => {
-  const tablePutawayItem = this.getValue("table_putaway_item");
-  if (!Array.isArray(tablePutawayItem) || tablePutawayItem.length === 0) return;
-
-  for (const [index, item] of tablePutawayItem.entries()) {
-    if (item.hu_data && item.hu_data !== "") {
-      this.disabled([`table_putaway_item.${index}.button_split`], true);
-    }
-  }
-};
+// rows with a handling unit are disabled by button_split's own column expression
 
 const setDocType = async (plantId) => {
   if (plantId) {
@@ -286,22 +288,35 @@ const setDocType = async (plantId) => {
           if (status === "Created" || status === "In Progress") {
             console.log("status", status);
             const tablePutawayItem = this.getValue("table_putaway_item");
+            // Flat: a bundle's items are rows in their own right and hold a
+            // putaway_qty of their own. Resetting only the top level left last
+            // session's quantities on them, and because the completion path skips
+            // the bundle row by design nothing objected -- the stale quantities
+            // simply booked real inventory again on the next Complete.
             for (const putaway of tablePutawayItem) {
               putaway.putaway_qty = 0;
+
+              for (const child of (Array.isArray(putaway.children) ? putaway.children : [])) {
+                child.putaway_qty = 0;
+              }
             }
 
             this.setData({ table_putaway_item: tablePutawayItem });
             setTimeout(() => {
               this.triggerEvent("func_getPutawayStrategy", {});
             }, 100);
+
+            // Putaway Completion V2: an open background completion hides the save buttons
+            this.triggerEvent("pwV2_onClick_completed", { pwv2_mode: "STATUS_ON_OPEN" });
           }
         }
+        this.getComponent("table_putaway_item")?.hideChildRecord();
+
         await enabledTargetCategoryField();
         await disabledField(status);
         await showStatusHTML(status);
         await showQINo();
         await viewSerialNumber();
-        await disableSplitForHUItems();
         setTimeout(() => {
           setSerialNumber();
         }, 300);
@@ -318,7 +333,6 @@ const setDocType = async (plantId) => {
         ]);
         await showQINo();
         await viewSerialNumber();
-        await disableSplitForHUItems();
         break;
     }
   } catch (error) {
@@ -328,7 +342,6 @@ const setDocType = async (plantId) => {
 })();
 
 setTimeout(async () => {
-  if (!this.isAdd) return;
   const maxRetries = 10;
   const interval = 500;
   for (let i = 0; i < maxRetries; i++) {
@@ -339,10 +352,24 @@ setTimeout(async () => {
   function getDefaultItem(arr) {
     return arr?.find((item) => item?.item?.is_default === 1);
   }
+  var params = this.getComponent("to_id");
+  const { options } = params;
 
   const optionsData = this.getOptionData("to_id_type") || [];
-  const data = getDefaultItem(optionsData);
-  if (data) {
-    this.setData({ to_id_type: data.value });
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("to_id_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        to_id_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ to_id_type: defaultData.value });
+    }
   }
-}, 500);
+}, 200);

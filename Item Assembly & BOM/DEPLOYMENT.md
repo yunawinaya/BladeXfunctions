@@ -499,6 +499,67 @@ nested or moved. **400**: not `Completed`, or posted.
   a 0 `unit_price` as absent and stamps the `IA-R` movement with the FIFO/WA price.
   Only that audit row's price is affected.
 
+## Header batch and inventory category (2026-10-14)
+
+The header is one MSR receipt line, so it now takes the receipt's batch and category the way
+an MSR line does.
+
+- **Batch fields.** `batch_no`, `manufacturing_date` and `expired_date` were on the form but
+  always hidden. They now follow the assembled item: Batch No for a batch item **not** on
+  "According To System Settings" (Manual Input or blank — `code_batch_decide` treats both as
+  manual), the dates for any batch item. `onChange_assembledItem` reads the config off the
+  Item fetch it already made; Edit Draft / Clone do one projected fetch in `mounted`; past
+  Draft and View show only fields holding a value. A Clone clears all three. Both dates
+  carried a table-row `disabled` expression (`arguments[0].row.item_batch_no`) left from
+  cloning — now `false`.
+- **Inventory Category.** New header select `inventory_category` (key `iainvcat`), static
+  `Unrestricted` / `Blocked` (MSR's `ALLOWED_CATEGORIES`), default Unrestricted, locked past
+  Draft. Rows saved before the column existed load as Unrestricted.
+- **IA_SAVE.** `code_fillback` defaults a blank category to Unrestricted (old drafts, mobile);
+  `code_validate` returns 401 for anything else; `code_receipt_prep` feeds
+  `wf_add.inventory_category` instead of the literal; all four header writes persist it.
+  Revert needed nothing — it pairs and balance-checks by each movement's own category.
+- **Blank numbering rule = manual** (IA_SAVE v11, 2026-10-14). `code_validate` used to
+  require `batch_no` only for `=== 'Manual Input'`, so a batch item with no rule — which
+  the form shows Batch No for — could be received unbatched. It now requires it for any
+  batch item not on "According To System Settings". No live item has a blank rule (prod
+  24,502 System Settings / 2,905 Manual Input). Raised by the mobile session.
+- **`scratchpad/gen_ia_save_workflow.py` is stale**: it predates the q8 sweep of
+  `code_fillback` / `code_validate` / `code_receipt_prep`, so regenerating reverts it. The
+  JSON was patched directly and is the source now.
+
+**BOM Item Code picker.** Dev v28 (2026-10-14) swapped the plain select for a
+`su-fm-table-select` with `props.value: "id"` — the BOM row id. Publishing it turned
+`item_id` from bigint FK `bill_of_materials.parent_material_code.id` into varchar FK
+`bill_of_materials.id`, while every reader (BOM lookup, Item fetch, IA_SAVE `material_id`,
+IA_REVERT, the list column) and every existing row use the **Item id**. The repo keeps the
+table picker with `props.value: "parent_material_code.id"`, the same dotted shape as
+`sudu_agent_topup.tenant_2`. No IA was saved under v28.
+
+**Deployed on dev 2026-10-14:** form v29 (column created, `item_id` FK back on
+`parent_material_code.id`, column left varchar), IA_SAVE v10. Workflow runs passed:
+Manual Input item with no batch → 401, category `Reserved` → 401 (both write nothing);
+Manual batch + Blocked → IN movement and `block_qty` on the new batch; non-batch with no
+category → Unrestricted; both reverted cleanly by IA_REVERT. Test headers
+`IA-TEST-1014-A/C/D` are left on dev as Draft. The form's show/hide behaviour was not
+driven from the CLI.
+
+**Deployed on prod 2026-10-14:** form v29 and IA_SAVE v11 (the blank-rule change), both identical to the repo (dev
+form re-pasted as v30 with the validator below). The paste created `inventory_category` and
+turned `item_id` into varchar on `bill_of_materials.parent_material_code.id`, as on dev; all
+40 existing prod assemblies (4 Completed, 36 Fully Posted) still resolve to their Item.
+
+**Dialog `sm_quantity` validator:** prod v28 (2026-09-29, edited in prod) carried a hardened
+copy — `Number()` on every quantity so a string `sm_quantity` cannot concatenate, plus
+null-safe reads and a missing-row `callback()` in **both** `options.validator` and
+`rules[0].func` (dev's `rules[0].func` could still throw). Copied into the repo form
+2026-10-14, so that column is now byte-identical to prod's; re-pasting dev picks it up.
+
+**Gap found while testing:** if `search_items` does not return the assembled item,
+`code_validate` skips the batch rule and the issue leg runs before `ADD_INVENTORY` fails on
+the empty `itemData` — components deducted, nothing received. Dev has 5 Manual Input items
+with `tenant_id = '0'` (e.g. `JN-MANUAL_BATCH`) that trigger exactly this. Not fixed.
+
 ## Re-running the tooling
 
     python3 scratchpad/gen_bom_save_workflow.py      # regenerate the workflow

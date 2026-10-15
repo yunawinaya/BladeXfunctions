@@ -1,0 +1,24 @@
+{
+ "database_id": "",
+ "sql": "",
+ "params": {},
+ "title": "Get In Transit Rows (all statuses)",
+ "isValidator": true,
+ "nodeName": "Get In Transit Rows (all statuses)",
+ "name": "Get In Transit Rows (all statuses)",
+ "script": {
+  "type": "sql",
+  "code": "SELECT JSON_OBJECT(\n         'id', CAST(t.id AS CHAR), 'doc_type', t.doc_type, 'doc_id', t.doc_id, 'doc_no', t.doc_no,\n         'doc_line_id', t.doc_line_id, 'line_no', t.line_no, 'parent_id', t.parent_id, 'parent_no', t.parent_no,\n         'parent_line_id', t.parent_line_id, 'material_id', CAST(t.material_id AS CHAR), 'item_code', t.item_code,\n         'item_name', t.item_name, 'item_desc', t.item_desc, 'item_uom', CAST(t.item_uom AS CHAR),\n         'batch_id', CAST(t.batch_id AS CHAR), 'handling_unit_id', t.handling_unit_id,\n         'plant_id', CAST(t.plant_id AS CHAR), 'organization_id', t.organization_id,\n         'transit_bin', CAST(t.transit_bin AS CHAR), 'from_plant_id', CAST(t.from_plant_id AS CHAR),\n         'from_bin', CAST(t.from_bin AS CHAR), 'from_category', t.from_category,\n         'to_plant_id', CAST(t.to_plant_id AS CHAR), 'to_bin', CAST(t.to_bin AS CHAR), 'to_category', t.to_category,\n         'transit_qty', t.transit_qty, 'received_qty', t.received_qty, 'open_qty', t.open_qty, 'status', t.status,\n         'transit_date', DATE_FORMAT(t.transit_date, '%Y-%m-%d %H:%i:%s'),\n         'received_date', DATE_FORMAT(t.received_date, '%Y-%m-%d %H:%i:%s'), 'remark', t.remark,\n         'target_doc_type', t.target_doc_type, 'target_doc_id', t.target_doc_id, 'target_doc_no', t.target_doc_no,\n         'target_doc_line_id', t.target_doc_line_id, 'source_transit_id', t.source_transit_id\n       ) AS j\n  FROM in_transit_detail t\n WHERE t.tenant_id = '{{system:tenantId}}'\n   AND t.doc_id = '{{node:code_node_PwKeys.data.grId}}'\n   AND t.organization_id = '{{node:code_node_PwKeys.data.orgId}}'\n   AND t.is_deleted = 0\n ORDER BY t.id"
+ },
+ "response_json": [
+  {
+   "key": "pwt2j",
+   "name": "j",
+   "title": "j",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ]
+}

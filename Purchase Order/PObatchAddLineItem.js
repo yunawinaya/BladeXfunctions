@@ -21,6 +21,17 @@ const resolveItemDesc = (item, supplierId) => {
   return fallback;
 };
 
+// true: GET_ITEM_UNIT_PRICE_BULK (same contract); false: GET_ITEM_UNIT_PRICE.
+const USE_UNIT_PRICE_BULK = true;
+const UNIT_PRICE_WORKFLOW_ID = USE_UNIT_PRICE_BULK
+  ? "2110564019682578434"
+  : "2067818102244966401";
+
+const copyRow = (row) =>
+  Array.isArray(row.children)
+    ? { ...row, children: row.children.map(copyRow) }
+    : { ...row };
+
 (async () => {
   const currentItemArray = arguments[0].itemArray;
   const poLineItems = this.getValue("table_po");
@@ -37,7 +48,9 @@ const resolveItemDesc = (item, supplierId) => {
     return;
   }
 
-  for (const item of currentItemArray) {
+  const stamp = Date.now().toString(36);
+
+  for (const [index, item] of currentItemArray.entries()) {
     let defaultPurchaseDetail = item.table_uom_conversion.find(
       (uom) => uom.purchase_default_uom === 1,
     );
@@ -58,6 +71,12 @@ const resolveItemDesc = (item, supplierId) => {
       tax_percent: defaultPurchaseDetail.purchase_tax_percent || null,
       quantity_uom: defaultPurchaseDetail.alt_uom_id || null,
       further_description: item.further_description,
+      min_quantity: defaultPurchaseDetail.min_purchase_qty || 0,
+      max_quantity: defaultPurchaseDetail.max_purchase_qty || 0,
+      alt_uom: JSON.stringify(item.table_uom_conversion),
+      // the price lookup finds its lines by key, wherever they sit by then
+      fm_key:
+        stamp + index.toString(36) + Math.random().toString(36).slice(2, 6),
     };
 
     itemArray.push(poItem);
@@ -69,25 +88,41 @@ const resolveItemDesc = (item, supplierId) => {
 
   this.closeDialog("dialog_item_selection");
 
-  setTimeout(async () => {
-    for (const [index, item] of currentItemArray.entries()) {
-      const newIndex = poLineItems.length + index;
-      this.setData({
-        [`table_po.${newIndex}.alt_uom`]: JSON.stringify(
-          item.table_uom_conversion,
-        ),
-      });
+  const keyByLine = {};
+  const taxKeys = new Set();
 
-      this.disabled([`table_po.${newIndex}.quantity_uom`], false);
-      this.refreshFieldOptionData([`table_po.${newIndex}.quantity_uom`]);
+  itemArray.forEach((poItem, index) => {
+    keyByLine[poLineItems.length + index] = poItem.fm_key;
 
-      if (item.mat_purchase_tax_id) {
-        this.disabled([`table_po.${newIndex}.tax_percent`], false);
+    if (currentItemArray[index].mat_purchase_tax_id) taxKeys.add(poItem.fm_key);
+  });
+
+  // Lines of items with a header purchase tax keep Tax Rate open, as before.
+  const openTaxPercent = (done) => {
+    const paths = [];
+
+    (this.getValue("table_po") || []).forEach((row, index) => {
+      if (
+        taxKeys.has(row.fm_key) &&
+        !row.tax_preference &&
+        !done.has(row.fm_key)
+      ) {
+        paths.push(`table_po.${index}.tax_percent`);
+        done.add(row.fm_key);
       }
-    }
+    });
+
+    if (paths.length > 0) this.disabled(paths, false);
+  };
+  const taxOpened = new Set();
+
+  setTimeout(async () => {
+    await this.triggerEvent("syncBundleChildButtons");
+
+    openTaxPercent(taxOpened);
 
     await this.runWorkflow(
-      "2067818102244966401",
+      UNIT_PRICE_WORKFLOW_ID,
       {
         document_type: "PO",
         supp_cust_id: supplierID,
@@ -108,23 +143,36 @@ const resolveItemDesc = (item, supplierId) => {
         const updates = {};
 
         for (const item of result.data.data) {
-          updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;
-          updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;
-          updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;
-          updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;
-          updates[`table_po.${item.line_index}.from_historical`] =
-            item.from_historical;
-          updates[`table_po.${item.line_index}.max_price`] = item.max_price;
-          updates[`table_po.${item.line_index}.min_price`] = item.min_price;
-          updates[`table_po.${item.line_index}.quantity`] = item.quantity;
-          updates[`table_po.${item.line_index}.moq_qty`] = item.moq;
-          updates[`table_po.${item.line_index}.discount`] = item.discount;
-          updates[`table_po.${item.line_index}.discount_uom`] =
-            item.discount_uom;
+          const key = keyByLine[item.line_index];
+
+          if (key === undefined) continue;
+
+          updates[key] = {
+            unit_price: item.unit_price,
+            quantity_uom: item.uom_id,
+            tax_preference: item.tax_rate,
+            tax_percent: item.tax_percent,
+            from_historical: item.from_historical,
+            max_price: item.max_price,
+            min_price: item.min_price,
+            quantity: item.quantity,
+            min_qty: item.min_qty,
+            max_qty: item.max_qty,
+            discount: item.discount,
+            discount_uom: item.discount_uom,
+          };
         }
 
-        await this.setData(updates);
-        await this.triggerEvent("POcalculation");
+        const rows = (this.getValue("table_po") || []).map((row) =>
+          updates[row.fm_key]
+            ? Object.assign(copyRow(row), updates[row.fm_key])
+            : copyRow(row),
+        );
+        const header = this.triggerEvent("POcalculation", { calcRows: rows });
+
+        await this.setData({ table_po: rows, ...header });
+
+        openTaxPercent(taxOpened);
       },
       (error) => {
         console.log("error", error);

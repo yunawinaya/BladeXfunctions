@@ -1,0 +1,131 @@
+{
+ "table_id": {
+  "source": "In Transit Detail:Table:2080477944160923650",
+  "rules": {
+   "collectionId": "2080477944160923650",
+   "list": [
+    {
+     "id": 1790000004000,
+     "parentId": 1790000004001,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_ITmatch.data.transitUpdates.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Close In Transit Rows",
+ "isValidator": true,
+ "nodeName": "Close In Transit Rows",
+ "name": "Close In Transit Rows",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.id}}",
+    "valueLabel": "",
+    "propLabel": "主键ID"
+   },
+   {
+    "prop": "transit_qty",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.transit_qty}}",
+    "valueLabel": "",
+    "propLabel": "Transit Quantity"
+   },
+   {
+    "prop": "received_qty",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.received_qty}}",
+    "valueLabel": "",
+    "propLabel": "Received Quantity"
+   },
+   {
+    "prop": "open_qty",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.open_qty}}",
+    "valueLabel": "",
+    "propLabel": "Open Quantity"
+   },
+   {
+    "prop": "status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.status}}",
+    "valueLabel": "",
+    "propLabel": "Status"
+   },
+   {
+    "prop": "received_date",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.received_date}}",
+    "valueLabel": "",
+    "propLabel": "Received Date"
+   },
+   {
+    "prop": "to_bin",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.to_bin}}",
+    "valueLabel": "",
+    "propLabel": "To Bin"
+   },
+   {
+    "prop": "to_category",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.to_category}}",
+    "valueLabel": "",
+    "propLabel": "To Category"
+   },
+   {
+    "prop": "target_doc_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.target_doc_type}}",
+    "valueLabel": "",
+    "propLabel": "Target Document Type"
+   },
+   {
+    "prop": "target_doc_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.target_doc_id}}",
+    "valueLabel": "",
+    "propLabel": "Target Document ID"
+   },
+   {
+    "prop": "target_doc_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.target_doc_no}}",
+    "valueLabel": "",
+    "propLabel": "Target Document Number"
+   },
+   {
+    "prop": "target_doc_line_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitUpdates.target_doc_line_id}}",
+    "valueLabel": "",
+    "propLabel": "Target Document Line ID"
+   }
+  ]
+ }
+}

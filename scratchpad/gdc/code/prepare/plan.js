@@ -31,10 +31,13 @@ const gcPlan = function gcPlan(entry, S) {
   if (out.route !== "PLANNED") return fail(out.route === "NOT_ELIGIBLE" ? "GDC_NOT_ELIGIBLE" : "GDC_" + out.code, out.message || out.route);
 
   const exec = out.unused.exec;
-  // C3P (picking records) and C3H (handling units) are not built yet: such a GD stays on the old path for now
-  if ((exec.huUpdates || []).length) return fail("GDC_NOT_YET_SUPPORTED", "handling-unit allocations are not supported by the async completion yet");
-  const obStamps = (__withContext(out.ctx.callee, () => __v("node:code_node_OBz5tEws.data.pickingRecordUpdates")) || []).length;
-  if (obStamps) return fail("GDC_NOT_YET_SUPPORTED", "picking-record stamps are not supported by the async completion yet");
+  // GD_UNUSED_FN_NEW's Branch 4 stamps the Picking records and headers of the lines it is linked to (line_to_id /
+  // picking_record_id): only Picking Plan deliveries are (dev + prod), and those stay on the classic save
+  const pickOut = out.unused.pick || {};
+  const ob = __withContext(out.ctx.callee, () => __v("node:code_node_OBz5tEws.data")) || {};
+  if ((ob.pickingRecordUpdates || []).length || (pickOut.recordUpdates || []).length || (pickOut.headerUpdates || []).length) {
+    return fail("GDC_NOT_ELIGIBLE", "it is linked to a Picking: the classic save updates the Picking");
+  }
   const P = { plant: s(stored.plant_id), org: s(stored.organization_id), no: s(stored.delivery_no), date: s(stored.delivery_date) };
   // condition_or_node_zvMyWcqT: DELIVERY = one SUBTRACT; the pairs = SUBTRACT then ADD priced (and dated) from it
   const movements = [];
@@ -136,8 +139,6 @@ const gcPlan = function gcPlan(entry, S) {
   const deltas = __withContext({ "workflowparams:previous_data": reorderIn.previous, "workflowparams:latest_data": reorderIn.latest,
     "workflowparams:document_type": "GD_COMPLETED", "system:tenantId": s(entry.tenantId) }, () => __run("code_node_f8qELJUF"));
   const reorder = (deltas.data || []).length ? Object.assign(reorderIn, { deltas: (deltas.data || []).length }) : null;
-  const pickOut = out.unused.pick || {};
-  const ob = C("node:code_node_OBz5tEws.data") || {};
   const dates = H("node:code_node_62FzZA2e.data") || {};
   // the payload goes to gd_publish_step as one part per COMMIT step (each step reads only its own), chunked, under this run's
   // nonce so a re-run never meets an earlier run's rows; the job keeps a manifest

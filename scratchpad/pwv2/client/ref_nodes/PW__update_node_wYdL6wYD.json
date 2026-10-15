@@ -1,0 +1,59 @@
+{
+ "table_id": {
+  "source": "Transfer Order Putaway:Table:1937714890958053378",
+  "rules": {
+   "collectionId": "1937714890958053378",
+   "list": [
+    {
+     "id": 1773126621248,
+     "parentId": 1773126621247,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{workflowparams:allData.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update Putaway",
+ "isValidator": true,
+ "nodeName": "Update Putaway",
+ "name": "Update Putaway",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "to_status",
+    "valueType": "field",
+    "value": "{{node:code_node_KbJLkjP8.data.toStatus}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "Transfer Order Status"
+   },
+   {
+    "prop": "table_putaway_item",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_KbJLkjP8.data.updatedItems}}",
+    "valueLabel": "",
+    "propLabel": "Putaway Items"
+   },
+   {
+    "prop": "table_putaway_records",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_KbJLkjP8.data.combinedRecords}}",
+    "valueLabel": "",
+    "propLabel": "Putaway Items"
+   }
+  ]
+ }
+}

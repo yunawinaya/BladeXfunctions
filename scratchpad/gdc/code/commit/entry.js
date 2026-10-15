@@ -1,6 +1,6 @@
 // GD_COMPLETE_COMMIT - Entry: the job, its step rows, the manifest and the GD's lock -> what this run does (phase A = C0
-// revalidate, C1 snapshot, C2 inventory, then SPLIT; phase B = C3 reservations, C3P picking records, C3H handling units,
-// C4 sales orders, C5 the GD, C6 item dates / reorder / auto-SI, then COMPLETED), the lease claim
+// revalidate, C1 snapshot, C2 inventory, then SPLIT; phase B = C3 reservations, C3H handling units, C4 sales
+// orders, C5 the GD, C6 item dates / reorder / auto-SI, then COMPLETED), the lease claim
 const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, gdRows) {
   const jobs = list(jobRows);
   const job = jobs.filter((r) => s(r.id))[0] || null;
@@ -12,7 +12,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
     route: "NO_WRITE", phase: "", dbNow: dbNow, jobId: guard.jobId, organizationId: "0", gdId: "0", gdNo: "", idempotencyKey: "",
     jobStatus: job ? s(job.job_status) : "", rowVersion: job ? Number(job.row_version) || 0 : 0, attempts: job ? Number(job.attempt_count) || 0 : 0,
     leaseUntil: job ? s(job.lease_until) : "", unlockOk: "NO", partPrefix: "", manifest: {}, jobRows: [], needJobUpd: "NO", unlockRows: [], needUnlock: "NO",
-    needC0: "NO", needC1: "NO", needC2: "NO", needC3: "NO", needC3P: "NO", needC3H: "NO", needC4: "NO", needC5: "NO", needC6: "NO", doneC6Reorder: "NO", doneC6Si: "NO",
+    needC0: "NO", needC1: "NO", needC2: "NO", needC3: "NO", needC3H: "NO", needC4: "NO", needC5: "NO", needC6: "NO", doneC6Reorder: "NO", doneC6Si: "NO",
     result_code: "", result_message: "", job_status: job ? s(job.job_status) : "",
   };
   const answer = (code, why) => Object.assign({}, base, { result_code: code, result_message: why });
@@ -50,7 +50,6 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
     needC1: phase === "A" && !done.C1_SNAPSHOT ? "YES" : "NO",
     needC2: phase === "A" ? "YES" : "NO",
     needC3: phase === "B" && !done.C3_RESERVATIONS && num(c.reservation_updates) + num(c.reservation_creates) > 0 ? "YES" : "NO",
-    needC3P: phase === "B" && !done.C3P_PICKING && num(c.picking_stamps) > 0 ? "YES" : "NO",
     needC3H: phase === "B" && !done.C3H_HU && num(c.hu) > 0 ? "YES" : "NO",
     needC4: phase === "B" && !done.C4_SO ? "YES" : "NO",
     needC5: phase === "B" && !done.C5_GD ? "YES" : "NO",
@@ -61,5 +60,5 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
 };
 const guard = [{{node:code_node_CCguard.data}}][0];
 const res = commitEntry(guard, [{{node:sql_node_CCjob.data}}][0], [{{node:sql_node_CCsteps.data}}][0], [{{node:sql_node_CCpayload.data}}][0], [{{node:sql_node_CCgd.data}}][0]);
-console.log("commit entry", JSON.stringify({ route: res.route, phase: res.phase, c0: res.needC0, c1: res.needC1, c2: res.needC2, c3: res.needC3, c3p: res.needC3P, c3h: res.needC3H, c4: res.needC4, c5: res.needC5, c6: res.needC6, unlock: res.unlockOk, result: res.result_code, message: res.result_message }));
+console.log("commit entry", JSON.stringify({ route: res.route, phase: res.phase, c0: res.needC0, c1: res.needC1, c2: res.needC2, c3: res.needC3, c3h: res.needC3H, c4: res.needC4, c5: res.needC5, c6: res.needC6, unlock: res.unlockOk, result: res.result_code, message: res.result_message }));
 return res;

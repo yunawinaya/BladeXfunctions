@@ -180,6 +180,8 @@ RESV = "On Reserved Goods Delivery:Table:1935880014687440897"
 SOL = "sales_order_axszx8cj_sub:Table:1939903359943024642"
 SOH = "Sales Order:Table:1902773735979597826"
 ITEM = "Item:Table:1901546842240438273"
+HU = "Handling Unit:Table:2036736671686529026"
+HUI = "Items(Handling Unit):Table:2036977712276639745"
 SNAPSHOT = ("GD_COMPLETION_SNAPSHOT", "2058818938677665794")
 REORDER = ("REORDER_SET_REDIS", "2065256261729759233")
 CONVERT_SI = ("GD_CONVERT_SI", "2070069049332416514")
@@ -194,8 +196,15 @@ GC_LINE_COLS = ["prev_temp_qty_data", "customer_id", "organization_id", "plant_i
 CG, CE = "code_node_CCguard", "code_node_CCentry"
 
 
+def engine_fn(name):
+    m = re.search(r"^function %s\(.*?^}\n" % name, raw("engine/core.js") + "\n", re.S | re.M)
+    assert m, "engine/core.js has no function " + name
+    return m.group(0).rstrip("\n")
+
+
 def ccode(name, extra=()):
-    parts = [code("commit/_common.js"), code("commit/_cmp.js")] + [raw(x) if x.startswith("lift/") else code(x) for x in extra] + [code("commit/" + name)]
+    inc = lambda x: engine_fn(x[7:]) if x.startswith("engine:") else raw(x) if x.startswith("lift/") else code(x)
+    parts = [code("commit/_common.js"), code("commit/_cmp.js")] + [inc(x) for x in extra] + [code("commit/" + name)]
     body = "\n".join(parts)
     assert "{{" not in "\n".join(raw(x) for x in extra if x.startswith("lift/")), "a lifted body still holds a platform token"
     return body
@@ -283,6 +292,14 @@ def build_commit():
         " WHERE r.tenant_id = %s AND r.id IN (SELECT jt.i FROM JSON_TABLE('%s', '$[*]' COLUMNS (i BIGINT PATH '$')) jt)" % (T, idsref)) + (
         ("\nUNION ALL\nSELECT 'C' AS k, JSON_OBJECT('id', CAST(r.id AS CHAR), 'job_line_key', r.job_line_key) AS j\n  FROM on_reserved_gd r\n"
          " WHERE r.tenant_id = %s AND r.job_line_key LIKE '%s' AND r.is_deleted = 0" % (T, creates)) if creates else "")
+    hurows = lambda idsref: ("SELECT JSON_OBJECT('id', CAST(h.id AS CHAR), 'total_quantity', h.total_quantity, 'is_deleted', h.is_deleted) AS j\n  FROM handling_unit h\n"
+        " WHERE h.tenant_id = %s AND h.id IN (SELECT jt.i FROM JSON_TABLE('%s', '$[*]' COLUMNS (i BIGINT PATH '$')) jt)") % (T, idsref)
+    huitems = lambda idsref: ("SELECT JSON_OBJECT('id', CAST(s.id AS CHAR), 'handling_unit_id', CAST(s.handling_unit_id AS CHAR), 'material_id', CAST(s.material_id AS CHAR), "
+        "'batch_id', CAST(s.batch_id AS CHAR), 'quantity', s.quantity, 'is_deleted', s.is_deleted) AS j\n  FROM handling_unit_atu7sreg_sub s\n"
+        " WHERE s.tenant_id = %s AND s.is_deleted = 0\n   AND s.handling_unit_id IN (SELECT jt.i FROM JSON_TABLE('%s', '$[*]' COLUMNS (i BIGINT PATH '$')) jt)\n ORDER BY s.id") % (T, idsref)
+    huprec = ("SELECT p.scope_type, p.rule_key, p.table_id, p.field_name, p.decimal_places, p.precision_rule, p.store_raw_value\n  FROM su_code_num_precision p\n"
+        " WHERE p.tenant_id = %s\n   AND p.status = 1\n   AND p.is_deleted = 0\n   AND ((p.scope_type = '1' AND p.rule_key = 'Handling Unit Qty')\n"
+        "     OR (p.scope_type = '2' AND p.table_id IN ('2036736671686529026', '2036977712276639745')))") % T
     so_lines = lambda src: ("SELECT JSON_OBJECT('id', CAST(sl.id AS CHAR), 'sales_order_id', CAST(sl.sales_order_id AS CHAR), 'parent_id', CAST(sl.parent_id AS CHAR), "
         "'item_bundle_id', CAST(sl.item_bundle_id AS CHAR), 'item_name', sl.item_name, 'so_quantity', sl.so_quantity, 'delivered_qty', sl.delivered_qty, "
         "'planned_qty', sl.planned_qty, 'outstanding_quantity', sl.outstanding_quantity, 'line_status', sl.line_status) AS j\n  FROM sales_order_axszx8cj_sub sl\n"
@@ -303,7 +320,7 @@ def build_commit():
         "'net_weight', CAST(l.net_weight AS CHAR)) AS j\n  FROM goods_delivery_fwii8mvb_sub l\n WHERE l.tenant_id = %s AND l.goods_delivery_id = %s AND l.is_deleted = 0") % (T, GDID, T, GDID)
 
     entry_fields = ["route", "phase", "dbNow", "jobId", "organizationId", "gdId", "gdNo", "idempotencyKey", "jobStatus", "rowVersion", "attempts", "leaseUntil", "unlockOk",
-                    "partPrefix", "manifest", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "needC0", "needC1", "needC2", "needC3", "needC3P", "needC3H", "needC4",
+                    "partPrefix", "manifest", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "needC0", "needC1", "needC2", "needC3", "needC3H", "needC4",
                     "needC5", "needC6", "doneC6Reorder", "doneC6Si", "result_code", "result_message", "job_status"]
     chk = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "result_code", "result_message", "job_status"]
     chk_arr = ("stepRows", "jobRows", "unlockRows")
@@ -334,10 +351,18 @@ def build_commit():
         K.if_(ids, "if_CClost", "IF another run took the job: stop", is_("code_node_CCown", "route", "LOST"), cres("lost", "code_node_CCown", "LOST")),
         # ---------------------------------------------------------------- C0
         K.if_(ids, "if_CCc0", "IF C0 REVALIDATE is due", is_(CE, "needC0", "YES"), [
-            K.sql("sql_node_CCc0part", "C0: the RES part", part("RES"), ["step_name", "result_ref"]),
-            K.code("code_node_CCc0ids", "C0: the reservation ids", ccode("c0_ids.js"), ["ok", "idsJson", "count"], objects=("count",)),
-            K.sql("sql_node_CCc0rows", "C0: those reservations now", resrows(N("code_node_CCc0ids", "data.idsJson"), None), ["k", "j"]),
-            K.code("code_node_CCc0", "C0 REVALIDATE: GD still locked by this job, reservations as PREPARE read them -> DONE; else FAILED + GD back to Created", ccode("c0.js"), chk, arrays=chk_arr),
+            K.parallel("condition_all_CCc0parts", "C0: the RES and HU parts in parallel", [
+                ("cai_CCc0part", "RES part", [K.sql("sql_node_CCc0part", "C0: the RES part", part("RES"), ["step_name", "result_ref"])]),
+                ("cai_CCc0hupart", "HU part", [K.sql("sql_node_CCc0hupart", "C0: the HU part", part("HU"), ["step_name", "result_ref"])]),
+            ]),
+            K.code("code_node_CCc0ids", "C0: the reservation ids and the handling units", ccode("c0_ids.js"), ["ok", "idsJson", "count", "huIdsJson"], objects=("count",)),
+            K.parallel("condition_all_CCc0rows", "C0: those rows now, in parallel", [
+                ("cai_CCc0rows", "Reservations", [K.sql("sql_node_CCc0rows", "C0: those reservations now", resrows(N("code_node_CCc0ids", "data.idsJson"), None), ["k", "j"])]),
+                ("cai_CCc0hus", "Handling units", [K.sql("sql_node_CCc0hus", "C0: those handling units now", hurows(N("code_node_CCc0ids", "data.huIdsJson")), ["j"])]),
+                ("cai_CCc0huitems", "HU items", [K.sql("sql_node_CCc0huitems", "C0: their item rows now", huitems(N("code_node_CCc0ids", "data.huIdsJson")), ["j"])]),
+            ]),
+            K.code("code_node_CCc0", "C0 REVALIDATE: GD still locked by this job, reservations as PREPARE read them, handling units hold enough -> DONE; else FAILED + GD back to Created",
+                   ccode("c0.js", ("engine:roundDec", "commit/_hu.js")), chk, arrays=chk_arr),
             end_block(ids, "c0", "code_node_CCc0", "IF the delivery changed meanwhile", unlock=True),
             step_done(ids, "c0", "code_node_CCc0", "C0_REVALIDATE"),
         ]),
@@ -357,7 +382,9 @@ def build_commit():
             call(ids, "workflow_node_CCc2", "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDC|<job> replays on a re-run)", ENGINE, [
                 ("operation_key", N("code_node_CCc2in", "data.operationKey")), ("mode", "APPLY", "value"), ("organization_id", N(CE, "data.organizationId")),
                 ("movements", N("code_node_CCc2in", "data.movements"))]),
-            K.code("code_node_CCc2", "C2 check: 200 -> DONE + SPLIT; 409 -> retry; 400 -> FAILED + GD back to Created; else review", ccode("c2.js"),
+            K.sql("sql_node_CCc2ops", "C2: this operation's engine intent rows (any = it may have written)",
+                  "SELECT COUNT(*) AS intents FROM gd_publish_step st WHERE st.tenant_id = %s AND st.job_id = 'GDC|%s' AND st.step_name LIKE 'IBA|I|%%' AND st.is_deleted = 0" % (T, JOBID), ["intents"]),
+            K.code("code_node_CCc2", "C2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review", ccode("c2.js"),
                    chk + ["splitRows", "needSplit"], arrays=chk_arr + ("splitRows",)),
             end_block(ids, "c2", "code_node_CCc2", "IF the stock did not move", unlock=True),
             step_done(ids, "c2", "code_node_CCc2", "C2_INVENTORY"),
@@ -379,6 +406,33 @@ def build_commit():
             K.code("code_node_CCc3check", "C3 check: every row at its target, every create once -> DONE", ccode("c3_check.js"), chk, arrays=chk_arr),
             end_block(ids, "c3", "code_node_CCc3check", "IF C3 did not complete"),
             step_done(ids, "c3", "code_node_CCc3check", "C3_RESERVATIONS"),
+        ]),
+        # ---------------------------------------------------------------- C3H
+        K.if_(ids, "if_CCc3h", "IF C3H HANDLING UNITS is due", is_(CE, "needC3H", "YES"), [
+            K.sql("sql_node_CCc3hpart", "C3H: the HU part", part("HU"), ["step_name", "result_ref"]),
+            K.code("code_node_CCc3hids", "C3H: the handling units the delivery draws from", ccode("c3h_ids.js"), ["ok", "idsJson", "count"], objects=("count",)),
+            K.parallel("condition_all_CCc3hread", "C3H fresh reads in parallel", [
+                ("cai_CCc3hhus", "Handling units", [K.sql("sql_node_CCc3hhus", "C3H: the handling units now", hurows(N("code_node_CCc3hids", "data.idsJson")), ["j"])]),
+                ("cai_CCc3hitems", "HU items", [K.sql("sql_node_CCc3hitems", "C3H: their item rows now", huitems(N("code_node_CCc3hids", "data.idsJson")), ["j"])]),
+                ("cai_CCc3hintent", "Intent", [K.sql("sql_node_CCc3hintent", "C3H: an intent of an earlier run", intent("C3H"), ["step_name", "result_ref"])]),
+                ("cai_CCc3hprec", "Number rules", [K.sql("sql_node_CCc3hprec", "C3H: the tenant's Handling Unit Qty rules", huprec,
+                    ["scope_type", "rule_key", "table_id", "field_name", "decimal_places", "precision_rule", "store_raw_value"])]),
+            ]),
+            K.code("code_node_CCc3hplan", "C3H plan: the classic HU decrements on the fresh rows -> intent; write what is at before", ccode("c3h_plan.js", ("engine:roundDec", "commit/_hu.js")),
+                   ["route", "needIntent", "intentRows", "huSlices", "huCount", "itemSlices", "itemCount", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"],
+                   arrays=("intentRows", "huSlices", "itemSlices", "jobRows"), objects=("huCount", "itemCount")),
+            end_block(ids, "c3hpl", "code_node_CCc3hplan", "IF the handling units cannot be written"),
+            gate(ids, "cor_CCc3hintent", "Intent to record?", "code_node_CCc3hplan", "needIntent", [step_add(ids, "add_node_CCc3hintent", "C3H INTENT: C3H|I|<nnn> (before + after of every row)", "code_node_CCc3hplan", "intentRows")]),
+            slice_loop(ids, "c3hh", "code_node_CCc3hplan", "huSlices", "C3H WRITE: Handling Unit total_quantity", HU, ["total_quantity"], {"total_quantity": "Total Item Quantity"}),
+            slice_loop(ids, "c3hi", "code_node_CCc3hplan", "itemSlices", "C3H WRITE: HU item quantity", HUI, ["quantity"], {"quantity": "Quantity"}),
+            K.parallel("condition_all_CCc3hback", "C3H read-back in parallel", [
+                ("cai_CCc3hhusB", "Handling units", [K.sql("sql_node_CCc3hhusB", "C3H read-back: handling units", hurows(N("code_node_CCc3hids", "data.idsJson")), ["j"])]),
+                ("cai_CCc3hitemsB", "HU items", [K.sql("sql_node_CCc3hitemsB", "C3H read-back: item rows", huitems(N("code_node_CCc3hids", "data.idsJson")), ["j"])]),
+                ("cai_CCc3hintentB", "Intent", [K.sql("sql_node_CCc3hintentB", "C3H read-back: the intent", intent("C3H"), ["step_name", "result_ref"])]),
+            ]),
+            K.code("code_node_CCc3hcheck", "C3H check: every intent row at its after-value -> DONE", ccode("c3h_check.js", ("engine:roundDec", "commit/_hu.js")), chk, arrays=chk_arr),
+            end_block(ids, "c3h", "code_node_CCc3hcheck", "IF C3H did not complete"),
+            step_done(ids, "c3h", "code_node_CCc3hcheck", "C3H_HU"),
         ]),
         # ---------------------------------------------------------------- C4
         K.if_(ids, "if_CCc4", "IF C4 SALES ORDERS is due", is_(CE, "needC4", "YES"), [
@@ -723,7 +777,8 @@ def build_submit():
     G, E, GT, PO = "code_node_GSguard", "code_node_GSentry", "code_node_GSgate", "code_node_GSpost"
     T, GD_ID = N(G, "data.tenantId"), N(G, "data.gdId")
     open_sets = ("(o.command = 'COMPLETE_GD' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'REQUIRES_REVIEW'))\n"
-                 "                 OR (o.command = 'COMPLETE_PACKING' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PACKING', 'REQUIRES_REVIEW'))")
+                 "                 OR (o.command = 'COMPLETE_PACKING' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PACKING', 'REQUIRES_REVIEW'))\n"
+                 "                 OR (o.command = 'EDIT_GD' AND o.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED'))")
     facts = """SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
        CAST(g.id AS CHAR) AS gd_id,
        g.delivery_no,
@@ -781,7 +836,7 @@ def build_submit():
         K.code(G, "Guard: operation, gd_id (digits), source, answers, session tenant + user", scode("guard.js"),
                ["route", "code", "message", "operation", "gdId", "tenantId", "source", "uid", "causationId", "answers"], objects=("answers",)),
         K.if_(ids, "if_GSreject", "IF the input is invalid: answer, write nothing", is_(G, "route", "REJECT"), sres("rej", G, "rejected input")),
-        K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING jobs, the latest COMPLETE_GD job, DB clock", facts,
+        K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, the latest COMPLETE_GD job, DB clock", facts,
               ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "open_jobs", "last_job"]),
         K.code(E, "Entry: STATUS; SUBMIT goes on for a Created GD with no open job (BUSY / NOT_ELIGIBLE / STOP otherwise)", scode("entry.js"), entry_fields,
                objects=("lineCount", "lockN", "progressPercent")),
@@ -802,11 +857,15 @@ def build_submit():
               labels={"organization_id": "Organization"}),
         K.add(ids, "add_node_GSjob", "Job insert: COMPLETE_GD QUEUED (idempotency_key GDC|<gd>|<n>, correlation_id GD|<gd>)", JOB,
               [(p, N(PO, "data.jobRows." + p)) for p in ["organization_id", "plant_id", "command", "idempotency_key", "job_status", "progress_percent", "progress_message",
-                                                      "attempt_count", "row_version", "cancel_requested", "request_payload", "causation_id", "correlation_id", "line_count", "queued_at"]],
+                                                      "attempt_count", "row_version", "cancel_requested", "next_attempt_at", "request_payload", "causation_id", "correlation_id", "line_count", "queued_at"]],
               labels={"organization_id": "Organization"}),
         K.update(ids, "update_node_GSgd", "Goods Delivery Processing (the lock every writer honours)", GD, ("id", "in", N(PO, "data.gdRows.id")),
                  [("id", N(PO, "data.gdRows.id")), ("gd_status", N(PO, "data.gdRows.gd_status"))], labels={"gd_status": "GD Status"}),
         K.sql("sql_node_GSback", "Read-back: the job, the GD's status, its latest lock", back, ["job_id", "job_status", "gd_status", "lock_ref"]),
+        K.code("code_node_GSdue", "Due: the GD is Processing under this job's lock -> the job due now", scode("due.js"), ["dueRows", "needDue"], arrays=("dueRows",)),
+        gate(ids, "cor_GSdue", "Job to make due?", "code_node_GSdue", "needDue", [
+            K.update(ids, "update_node_GSdue", "Job due now (it was inserted 2 minutes ahead)", JOB, ("id", "in", N("code_node_GSdue", "data.dueRows.id")),
+                     [("id", N("code_node_GSdue", "data.dueRows.id")), ("next_attempt_at", N("code_node_GSdue", "data.dueRows.next_attempt_at"))])]),
     ] + sres("done", PO, "queued", "sql_node_GSback")
     return K.workflow([("operation", "string", "SUBMIT (default) or STATUS"), ("gd_id", "string", "goods_delivery.id (digits)"),
                        ("source", "string", "FORM (default) | LIST | PICKING | PACKING"),

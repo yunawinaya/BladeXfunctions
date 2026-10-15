@@ -1,0 +1,19 @@
+[
+ {
+  "key": "kvjhn0hc",
+  "action": "js",
+  "options": {
+   "func": "const data = this.getValues();\nconst value = arguments[0].value;\nconst updatedData = {};\n\nif(data.acc_integration_type === 'AutoCount Accounting') {\n  updatedData[`table_po.tax_inclusive`] = value\n  this.setData(updatedData)\n}"
+  }
+ },
+ {
+  "key": "3s1enjo5",
+  "action": "triggerEvent",
+  "options": {
+   "condition": "",
+   "isCondition": false,
+   "functionName": "POcalculation",
+   "functionParams": ""
+  }
+ }
+]

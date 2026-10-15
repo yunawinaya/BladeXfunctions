@@ -1,26 +1,58 @@
 const roundQty = (value) => {
-  return Math.round(value * 1000) / 1000;
+  return value;
 };
 
-// over_receive_tolerance now lives per-UOM inside table_uom_conversion, keyed by
-// alt_uom_id. Look it up by the GR line's ordered UOM (base UOM is guaranteed to
-// be row 0, so this resolves for both base and alternate UOMs).
-const getOverReceiveTolerance = (item, uomId) =>
-  ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) || {})
-    .over_receive_tolerance || 0;
+// Over-receive tolerance by UOM (first row per UOM, like find()); 0 = none.
+const toleranceEntry = (uomRows) => {
+  const entry = {};
+  const seen = new Set();
+  (uomRows || []).forEach((conv) => {
+    if (seen.has(conv.alt_uom_id)) return;
+    seen.add(conv.alt_uom_id);
+    if (conv.over_receive_tolerance) {
+      entry[conv.alt_uom_id] = conv.over_receive_tolerance;
+    }
+  });
+  return Object.keys(entry).length > 0 ? entry : 0;
+};
 
-const { table_gr } = this.getValues();
+// Item map cached in _data by func_processGRLineItem, else one projected read.
+const getOverReceiveTolerance = async (itemId, uomId) => {
+  const key = String(itemId);
+  let entry = ((this.models["_data"] || {}).gr_item_tol || {})[key];
+
+  if (entry === undefined) {
+    const { data } = await db
+      .collection("Item")
+      .field("table_uom_conversion")
+      .where({ id: itemId })
+      .get();
+    if (!data || data.length === 0) return 0;
+
+    entry = toleranceEntry(data[0].table_uom_conversion);
+    const store = this.models["_data"] || {};
+    this.models["_data"] = {
+      ...store,
+      gr_item_tol: { ...(store.gr_item_tol || {}), [key]: entry },
+    };
+  }
+
+  return (entry && entry[uomId]) || 0;
+};
+
+// The validated row itself rather than a copy of the whole form per cell.
 const fieldParts = rule.field.split(".");
 const index = fieldParts[1];
+const row = this.getValue(`table_gr.${index}`);
 
-const materialId = table_gr[index].item_id;
-const initialReceivedQty =
-  parseFloat(table_gr[index].initial_received_qty) || 0;
-const orderQty = parseFloat(table_gr[index].ordered_qty) || 0;
-const baseOrderedQty = parseFloat(table_gr[index].base_ordered_qty) || 0;
-const uomConversion = parseFloat(table_gr[index].uom_conversion) || 0;
-const isSplit = table_gr[index].is_split;
-const parentOrChild = table_gr[index].parent_or_child;
+const materialId = row.item_id;
+const orderedQtyUom = row.ordered_qty_uom;
+const initialReceivedQty = parseFloat(row.initial_received_qty) || 0;
+const orderQty = parseFloat(row.ordered_qty) || 0;
+const baseOrderedQty = parseFloat(row.base_ordered_qty) || 0;
+const uomConversion = parseFloat(row.uom_conversion) || 0;
+const isSplit = row.is_split;
+const parentOrChild = row.parent_or_child;
 
 if (!window.validationState) {
   window.validationState = {};
@@ -65,15 +97,10 @@ const parsedValue = parseFloat(value);
 
   // For Draft/Received GRs, validate and cap (only for non-split parent rows)
   if (materialId) {
-    const { data } = await db
-      .collection("Item")
-      .where({ id: materialId })
-      .get();
-    console.log("data", data);
-    const overReceiveTolerance =
-      data && data.length > 0
-        ? getOverReceiveTolerance(data[0], table_gr[index].ordered_qty_uom)
-        : 0;
+    const overReceiveTolerance = await getOverReceiveTolerance(
+      materialId,
+      orderedQtyUom,
+    );
 
     if (uomConversion > 0) {
       // UOM conversion path - validate at base level

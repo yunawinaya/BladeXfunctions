@@ -747,6 +747,19 @@ const pkV2ShowJobState = async () => {
   if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PICKING"].includes(job.job_status)) {
     this.hide(["button_save_as_draft", "button_created", "button_inprogress", "button_completed"]);
     this.$message.warning("This Picking is being saved in the background (" + (job.result_message || job.job_status) + "). Reopen it in a moment.");
+    // no scheduled worker: every open starts it again (a run in progress holds the job's lease, so a second start does nothing)
+    try {
+      this.runWorkflow(
+        "2109531412499251201",
+        { job_id: String(job.job_id) },
+        (res) => {
+          if (((res && res.data) || {}).job_status === "COMPLETED") this.$message.success("The Picking was saved in the background. Reopen it to see it.");
+        },
+        (err) => console.error("Picking V2: worker start failed", err),
+      );
+    } catch (e) {
+      console.error("Picking V2: worker could not be started", e);
+    }
     return;
   }
   const seenKey = "pkv2_seen_" + job.job_id;

@@ -183,7 +183,7 @@
         "name": "Validate Items",
         "script": {
           "type": "javascript",
-          "code": "const allData = {{workflowparams:allData}};\n\nconst errors = [];\n\n// table_putaway_item is a tree: an item bundle is one row with its items under\n// `children`. The items are stock lines in their own right and are validated as\n// such. Split children are flat siblings, so `children` only ever means a bundle.\nconst flattenPutawayRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// The bundle row carries the bundle id and no item code. It holds no stock — no\n// bin, nothing of its own to store away — so none of the checks below apply.\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.item_code;\n\nconst items = flattenPutawayRows(allData.table_putaway_item);\n\nfor (let index = 0; index < items.length; index++) {\n  const item = items[index];\n\n  // Skip cancelled items\n  if (item.line_status === 'Cancelled') continue;\n\n  // Skip parent items with split children\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n\n  // Skip item bundle rows\n  if (isBundleParentRow(item)) continue;\n\n  const putawayQty = parseFloat(item.putaway_qty) || 0;\n  const pendingProcessQty = parseFloat(item.pending_process_qty) || 0;\n\n  // Validate putaway_qty doesn't exceed pending_process_qty\n  if (putawayQty > pendingProcessQty) {\n    errors.push(\n      `Putaway quantity (${putawayQty}) cannot be greater than pending quantity (${pendingProcessQty}) for item ${item.item_code || '#' + (index + 1)}`\n    );\n  }\n\n  // Validate putaway_qty is not negative\n  if (putawayQty < 0) {\n    errors.push(\n      `Putaway quantity cannot be negative for item ${item.item_code || '#' + (index + 1)}`\n    );\n  }\n\n  // Check target location for items with putaway_qty > 0 (non-split items only)\n  if (item.is_split === 'No' && putawayQty > 0) {\n    if (!item.target_location || item.target_location === null || item.target_location === '') {\n      errors.push(\n        `Target Location is required for item ${item.item_code || '#' + (index + 1)} (Putaway Qty: ${putawayQty})`\n      );\n    }\n  }\n}\n\nconst isValid = errors.length === 0 ? 1 : 0;\n\nreturn {\n  isValid: isValid,\n  errors: errors,\n  errorMessage: errors.join('; ')\n};"
+          "code": "const allData = {{workflowparams:allData}};\n\nconst errors = [];\n\n// table_putaway_item is a tree: an item bundle is one row with its items under\n// `children`. The items are stock lines in their own right and are validated as\n// such. Split children are flat siblings, so `children` only ever means a bundle.\nconst flattenPutawayRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// The bundle row carries the bundle id and no item code. It holds no stock — no\n// bin, nothing of its own to store away — so none of the checks below apply.\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.item_code;\n\nconst items = flattenPutawayRows(allData.table_putaway_item);\n\nfor (let index = 0; index < items.length; index++) {\n  const item = items[index];\n\n  // Skip cancelled items\n  if (item.line_status === 'Cancelled') continue;\n\n  // Skip parent items with split children\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n\n  // Skip item bundle rows\n  if (isBundleParentRow(item)) continue;\n\n  const putawayQty = parseFloat(item.putaway_qty) || 0;\n  const pendingProcessQty = parseFloat(item.pending_process_qty) || 0;\n\n  // Validate putaway_qty doesn't exceed pending_process_qty\n  if (putawayQty > pendingProcessQty) {\n    errors.push(\n      `Putaway quantity (${putawayQty}) cannot be greater than pending quantity (${pendingProcessQty}) for item ${item.item_code || '#' + (index + 1)}`\n    );\n  }\n\n  // Validate putaway_qty is not negative\n  if (putawayQty < 0) {\n    errors.push(\n      `Putaway quantity cannot be negative for item ${item.item_code || '#' + (index + 1)}`\n    );\n  }\n\n  // Check target location for items with putaway_qty > 0 (non-split items only)\n  if (item.is_split === 'No' && putawayQty > 0) {\n    if (!item.target_location || item.target_location === null || item.target_location === '') {\n      errors.push(\n        `Target Location is required for item ${item.item_code || '#' + (index + 1)} (Putaway Qty: ${putawayQty})`\n      );\n    }\n  }\n}\n\n// The stored lines decide what is still pending: a stale screen (a mobile copy opened before another confirmation)\n// must not post a line twice. Quantities are grouped the way code_node_KbJLkjP8 applies them (\"<line> - <n>\" split\n// children count against their line).\nconst storedRaw = [{{node:get_node_C64LC1sr.data.data}}][0];\nconst stored = Array.isArray(storedRaw) ? storedRaw[0] || {} : storedRaw || {};\n// lines that share a line_index count together (code_node_KbJLkjP8 reduces every one of them)\nconst storedPending = {};\nconst storedName = {};\nfor (const row of flattenPutawayRows(stored.table_putaway_item)) {\n  const k = String(row.line_index);\n  storedPending[k] = (storedPending[k] || 0) + (parseFloat(row.pending_process_qty) || 0);\n  if (!storedName[k] && row.item_name) storedName[k] = row.item_name;\n}\nconst claimed = {};\nfor (const item of items) {\n  if (item.line_status === 'Cancelled') continue;\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n  if (isBundleParentRow(item)) continue;\n  const qty = parseFloat(item.putaway_qty) || 0;\n  if (qty <= 0) continue;\n  const lineIndex = String(item.line_index);\n  const key = lineIndex.includes(' - ') ? lineIndex.split(' - ')[0] : lineIndex;\n  claimed[key] = (claimed[key] || 0) + qty;\n}\nfor (const key of Object.keys(claimed)) {\n  if (storedPending[key] === undefined) continue;\n  const pending = storedPending[key];\n  if (claimed[key] - pending > 0.0005) {\n    errors.push(\n      `Putaway quantity (${claimed[key]}) cannot be greater than the pending quantity (${pending}) of line ${key}${storedName[key] ? ' (' + storedName[key] + ')' : ''} - it may already have been put away; please reload the putaway.`\n    );\n  }\n}\n\nconst isValid = errors.length === 0 ? 1 : 0;\n\nreturn {\n  isValid: isValid,\n  errors: errors,\n  errorMessage: errors.join('; ')\n};"
         },
         "response_json": [
           {
@@ -414,6 +414,53 @@
       "blocks": []
     },
     {
+      "id": "code_node_PwKeys",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Keys for the Item and in-transit reads (digits only)",
+        "isValidator": true,
+        "nodeName": "Keys for the Item and in-transit reads (digits only)",
+        "name": "Keys for the Item and in-transit reads (digits only)",
+        "script": {
+          "type": "javascript",
+          "code": "// Digits-only keys for the Item and in-transit reads below (interpolated into SQL)\nconst DIG = /^[0-9]{1,20}$/;\nconst codes = [{{node:code_node_qfSZO0bi.data.uniqueItemCodes}}][0] || [];\nconst ids = [];\nfor (const c of Array.isArray(codes) ? codes : []) {\n  const s = String(c === null || c === undefined ? \"\" : c).trim();\n  if (DIG.test(s) && !ids.includes(s)) ids.push(s);\n}\nconst grId = String([{{node:code_node_qfSZO0bi.data.grId}}][0] || \"\").trim();\nconst orgId = String([{{node:code_node_qfSZO0bi.data.organizationId}}][0] || \"\").trim();\nreturn {\n  itemIdsCsv: ids.length ? ids.join(\",\") : \"0\",\n  grId: DIG.test(grId) ? grId : \"0\",\n  orgId: DIG.test(orgId) ? orgId : \"0\",\n};"
+        },
+        "response_json": [
+          {
+            "key": "pwk1ids",
+            "name": "itemIdsCsv",
+            "title": "itemIdsCsv",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "pwk2gr",
+            "name": "grId",
+            "title": "grId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "pwk3org",
+            "name": "orgId",
+            "title": "orgId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "condition_all_ITfetch",
       "type": "condition-all-node",
       "data": {
@@ -452,37 +499,71 @@
           },
           "blocks": [
             {
-              "id": "search_node_6yzlT81I",
-              "type": "search-node",
+              "id": "sql_node_PwItems",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Item:Table:1901546842240438273",
-                  "rules": {
-                    "collectionId": "1901546842240438273",
-                    "list": [
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Get Items (UOM conversions)",
+                "isValidator": true,
+                "nodeName": "Get Items (UOM conversions)",
+                "name": "Get Items (UOM conversions)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT JSON_OBJECT(\n         'id', CAST(i.id AS CHAR),\n         'based_uom', CAST(i.based_uom AS CHAR),\n         'item_batch_management', i.item_batch_management,\n         'material_costing_method', i.material_costing_method,\n         'table_uom_conversion', COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                                                                           'base_qty', u.base_qty))\n                                             FROM item_mji552rc_sub u\n                                            WHERE u.Item_id = i.id\n                                              AND u.is_deleted = 0), JSON_ARRAY())\n       ) AS j\n  FROM item i\n WHERE i.tenant_id = '{{system:tenantId}}'\n   AND i.id IN ({{node:code_node_PwKeys.data.itemIdsCsv}})\n   AND i.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "pwi2j",
+                    "name": "j",
+                    "title": "j",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PwItems",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Item master rows (search-node shape)",
+                "isValidator": true,
+                "nodeName": "Item master rows (search-node shape)",
+                "name": "Item master rows (search-node shape)",
+                "script": {
+                  "type": "javascript",
+                  "code": "// The Item fields the movement builder reads, in the search-node's shape (ids as strings, numbers as numbers, NULL and empty values left out)\nconst parse = (v) => {\n  if (typeof v !== \"string\") return v;\n  try {\n    return JSON.parse(v);\n  } catch (e) {\n    return null;\n  }\n};\nconst raw = [{{node:sql_node_PwItems.data}}][0] || [];\nconst items = [];\nfor (const r of Array.isArray(raw) ? raw : [raw]) {\n  const o = parse(r && r.j !== undefined ? r.j : r);\n  if (!o || !o.id) continue;\n  const conv = parse(o.table_uom_conversion);\n  o.table_uom_conversion = (Array.isArray(conv) ? conv : []).map((c) => ({\n    alt_uom_id: c.alt_uom_id === null || c.alt_uom_id === undefined ? c.alt_uom_id : String(c.alt_uom_id),\n    base_qty: c.base_qty === null || c.base_qty === undefined ? c.base_qty : Number(c.base_qty),\n  }));\n  if (o.item_batch_management !== null && o.item_batch_management !== undefined) o.item_batch_management = Number(o.item_batch_management);\n  for (const k of Object.keys(o)) if (o[k] === null || o[k] === \"\") delete o[k];\n  items.push(o);\n}\nreturn { items };"
+                },
+                "response_json": [
+                  {
+                    "key": "pwi1itms",
+                    "name": "items",
+                    "title": "items",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
                       {
-                        "id": 1773127781923,
-                        "parentId": 1773127781922,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:code_node_qfSZO0bi.data.uniqueItemCodes}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "主键ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
+                        "key": "pwi1itmsi",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
                       }
                     ]
                   }
-                },
-                "condition": {},
-                "limit": 100,
-                "title": "Get Items",
-                "isValidator": true,
-                "nodeName": "Get Items",
-                "name": "Get Items"
+                ]
               },
               "blocks": []
             }
@@ -517,64 +598,71 @@
           },
           "blocks": [
             {
-              "id": "search_node_ITopen",
-              "type": "search-node",
+              "id": "sql_node_PwTransit",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "In Transit Detail:Table:2080477944160923650",
-                  "rules": {
-                    "collectionId": "2080477944160923650",
-                    "list": [
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Get In Transit Rows (all statuses)",
+                "isValidator": true,
+                "nodeName": "Get In Transit Rows (all statuses)",
+                "name": "Get In Transit Rows (all statuses)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT JSON_OBJECT(\n         'id', CAST(t.id AS CHAR), 'doc_type', t.doc_type, 'doc_id', t.doc_id, 'doc_no', t.doc_no,\n         'doc_line_id', t.doc_line_id, 'line_no', t.line_no, 'parent_id', t.parent_id, 'parent_no', t.parent_no,\n         'parent_line_id', t.parent_line_id, 'material_id', CAST(t.material_id AS CHAR), 'item_code', t.item_code,\n         'item_name', t.item_name, 'item_desc', t.item_desc, 'item_uom', CAST(t.item_uom AS CHAR),\n         'batch_id', CAST(t.batch_id AS CHAR), 'handling_unit_id', t.handling_unit_id,\n         'plant_id', CAST(t.plant_id AS CHAR), 'organization_id', t.organization_id,\n         'transit_bin', CAST(t.transit_bin AS CHAR), 'from_plant_id', CAST(t.from_plant_id AS CHAR),\n         'from_bin', CAST(t.from_bin AS CHAR), 'from_category', t.from_category,\n         'to_plant_id', CAST(t.to_plant_id AS CHAR), 'to_bin', CAST(t.to_bin AS CHAR), 'to_category', t.to_category,\n         'transit_qty', t.transit_qty, 'received_qty', t.received_qty, 'open_qty', t.open_qty, 'status', t.status,\n         'transit_date', DATE_FORMAT(t.transit_date, '%Y-%m-%d %H:%i:%s'),\n         'received_date', DATE_FORMAT(t.received_date, '%Y-%m-%d %H:%i:%s'), 'remark', t.remark,\n         'target_doc_type', t.target_doc_type, 'target_doc_id', t.target_doc_id, 'target_doc_no', t.target_doc_no,\n         'target_doc_line_id', t.target_doc_line_id, 'source_transit_id', t.source_transit_id\n       ) AS j\n  FROM in_transit_detail t\n WHERE t.tenant_id = '{{system:tenantId}}'\n   AND t.doc_id = '{{node:code_node_PwKeys.data.grId}}'\n   AND t.organization_id = '{{node:code_node_PwKeys.data.orgId}}'\n   AND t.is_deleted = 0\n ORDER BY t.id"
+                },
+                "response_json": [
+                  {
+                    "key": "pwt2j",
+                    "name": "j",
+                    "title": "j",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PwTransit",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "In-transit rows (search-node shape)",
+                "isValidator": true,
+                "nodeName": "In-transit rows (search-node shape)",
+                "name": "In-transit rows (search-node shape)",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Every in-transit row of this Goods Receiving (all statuses: the matcher needs the closed ones to refuse double\n// consumption), in the search-node's shape: decimals as numbers, ids as strings, NULL and empty values left out\nconst parse = (v) => {\n  if (typeof v !== \"string\") return v;\n  try {\n    return JSON.parse(v);\n  } catch (e) {\n    return null;\n  }\n};\nconst raw = [{{node:sql_node_PwTransit.data}}][0] || [];\nconst rows = [];\nfor (const r of Array.isArray(raw) ? raw : [raw]) {\n  const o = parse(r && r.j !== undefined ? r.j : r);\n  if (!o || !o.id) continue;\n  for (const k of Object.keys(o)) if (o[k] === null || o[k] === \"\") delete o[k];\n  for (const k of [\"transit_qty\", \"received_qty\", \"open_qty\", \"line_no\"]) if (o[k] !== undefined) o[k] = Number(o[k]);\n  rows.push(o);\n}\nreturn { rows };"
+                },
+                "response_json": [
+                  {
+                    "key": "pwt1rows",
+                    "name": "rows",
+                    "title": "rows",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
                       {
-                        "id": 1790000003000,
-                        "parentId": 1790000003001,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
-                          {
-                            "id": 1790000003002,
-                            "parentId": 1790000003000,
-                            "isTop": false,
-                            "prop": "doc_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{node:code_node_qfSZO0bi.data.grId}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Document ID",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          },
-                          {
-                            "id": 1790000003004,
-                            "parentId": 1790000003000,
-                            "isTop": false,
-                            "prop": "organization_id",
-                            "operator": "equal",
-                            "valueType": "field",
-                            "value": "{{node:code_node_qfSZO0bi.data.organizationId}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Organization ID",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
-                          }
-                        ]
+                        "key": "pwt1rowsi",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
                       }
                     ]
                   }
-                },
-                "condition": {},
-                "limit": 1000,
-                "title": "Get In Transit Rows",
-                "isValidator": true,
-                "nodeName": "Get In Transit Rows",
-                "name": "Get In Transit Rows"
+                ]
               },
               "blocks": []
             }
@@ -663,7 +751,7 @@
         "name": "Create Inventory Movement Array",
         "script": {
           "type": "javascript",
-          "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst allData = {{workflowparams:allData}};\nconst itemsToProcess = {{node:code_node_qfSZO0bi.data.itemsToProcess}};\nconst itemMasterData = {{node:search_node_6yzlT81I.data.data}} || [];\n\n// Helper: round to 3 decimal places\n\n// Build item master lookup map\nconst itemMasterMap = {};\nfor (const item of itemMasterData) {\n  itemMasterMap[item.id] = item;\n}\n\n// Array to collect inventory movements for loop processing\nconst inventoryMovements = [];\n\nfor (const mat of itemsToProcess) {\n  const itemData = itemMasterMap[mat.item_code];\n\n  if (!itemData) {\n    continue;\n  }\n\n  // UOM conversion\n  let basedQty = mat.putaway_qty;\n  if (mat.item_uom !== itemData.based_uom && itemData.table_uom_conversion) {\n    for (const uom of itemData.table_uom_conversion) {\n      if (mat.item_uom === uom.alt_uom_id) {\n        basedQty = q8(mat.putaway_qty * uom.base_qty);\n        break;\n      }\n    }\n  }\n  basedQty = q8(basedQty);\n\n  const isBatchManaged = itemData.item_batch_management === 1;\n\n  // OUT movement from source_bin\n  inventoryMovements.push({\n    movement: \"OUT\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    bin_location_id: mat.source_bin,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.source_inv_category,\n    target_bin: mat.target_location,\n    target_category: mat.target_inv_category,\n    target_doc_line_id: mat.putaway_line_id || \"\",\n    unit_price: q8(mat.unit_price),\n    total_price: q8(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n  });\n\n  // IN movement to target_location\n  inventoryMovements.push({\n    movement: \"IN\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    storage_location: mat.storage_location,\n    bin_location_id: mat.target_location,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.target_inv_category,\n    unit_price: q8(mat.unit_price),\n    total_price: q8(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n    hu_data: mat.hu_data || \"\",\n  });\n}\n\nreturn {\n  inventoryMovements: inventoryMovements,\n  inventoryMovementsLength: inventoryMovements.length\n};\n"
+          "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst allData = {{workflowparams:allData}};\nconst itemsToProcess = {{node:code_node_qfSZO0bi.data.itemsToProcess}};\nconst itemMasterData = {{node:code_node_PwItems.data.items}} || [];\n\n// Helper: round to 3 decimal places\n\n// Build item master lookup map\nconst itemMasterMap = {};\nfor (const item of itemMasterData) {\n  itemMasterMap[item.id] = item;\n}\n\n// Array to collect inventory movements for loop processing\nconst inventoryMovements = [];\n\nfor (const mat of itemsToProcess) {\n  const itemData = itemMasterMap[mat.item_code];\n\n  if (!itemData) {\n    continue;\n  }\n\n  // UOM conversion\n  let basedQty = mat.putaway_qty;\n  if (mat.item_uom !== itemData.based_uom && itemData.table_uom_conversion) {\n    for (const uom of itemData.table_uom_conversion) {\n      if (mat.item_uom === uom.alt_uom_id) {\n        basedQty = q8(mat.putaway_qty * uom.base_qty);\n        break;\n      }\n    }\n  }\n  basedQty = q8(basedQty);\n\n  const isBatchManaged = itemData.item_batch_management === 1;\n\n  // OUT movement from source_bin\n  inventoryMovements.push({\n    movement: \"OUT\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    bin_location_id: mat.source_bin,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.source_inv_category,\n    target_bin: mat.target_location,\n    target_category: mat.target_inv_category,\n    target_doc_line_id: mat.putaway_line_id || \"\",\n    unit_price: q8(mat.unit_price),\n    total_price: q8(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n  });\n\n  // IN movement to target_location\n  inventoryMovements.push({\n    movement: \"IN\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    storage_location: mat.storage_location,\n    bin_location_id: mat.target_location,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.target_inv_category,\n    unit_price: q8(mat.unit_price),\n    total_price: q8(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n    hu_data: mat.hu_data || \"\",\n  });\n}\n\nreturn {\n  inventoryMovements: inventoryMovements,\n  inventoryMovementsLength: inventoryMovements.length\n};\n"
         },
         "response_json": [
           {
@@ -712,7 +800,7 @@
         "name": "Match In Transit",
         "script": {
           "type": "javascript",
-          "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// toFixed(3) STRINGS: the serializer emits full-precision floats that\n// BigDecimal multipleOf rejects, and Number()/parseFloat() do not fix it.\nconst qtyStr = (v) => Math.max(0, q8(v)).toFixed(8);\n\n// The ledger stores 3dp. A base -> alt -> base round trip on a fractional UOM\n// conversion comes back high (GRbaseReceivedQty divides, code_node_M7XzDZ48\n// multiplies again: 1 / 7 -> 0.143 -> x7 = 1.001), and a split putaway\n// accumulates one such error per child. Anything at or under this is a rounding\n// artefact, not a real shortage, and must not 400 the putaway.\nconst QTY_EPS = 0.005;\n\nconst allData = {{workflowparams:allData}};\nconst movements = {{node:code_node_M7XzDZ48.data.inventoryMovements}} || [];\n\nconst rowsRaw = {{node:search_node_ITopen.data.data}};\nconst allRows = Array.isArray(rowsRaw) ? rowsRaw : (rowsRaw ? [rowsRaw] : []);\n\n// Goods Receivings completed before this ledger existed hold In-Transit stock with\n// no rows behind it. Blocking their putaway would be an operational break, so fall\n// through silently and let the inventory workflows behave as they always did.\nif (allRows.length === 0) {\n  return {\n    transitUpdates: [], transitUpdatesLength: 0, hasTransitUpdates: 0,\n    transitCreates: [], transitCreatesLength: 0, hasTransitCreates: 0,\n    shortages: [], hasShortage: 0,\n    message: \"No in-transit ledger rows for this GR (legacy document) - skipped\"\n  };\n}\n\nconst keyOf = (mat, batch, bin) =>\n  String(mat || \"\") + \"|\" + String(batch || \"\") + \"|\" + String(bin || \"\");\n\n// Two structures off the same fetch, deliberately built from different slices:\n//\n//   trackedTuples - every tuple this GR has EVER staged, whatever its status.\n//     A tuple in here but absent from the pool has been fully consumed, so a\n//     second claim on it is a double-consumption and must 400.\n//   pool - only rows still open. The FIFO stock actually available to draw down.\n//\n// A tuple in NEITHER is untracked, and is skipped rather than shorted. Two ways\n// that happens: Quality Inspection stock released by QIsaveAsCompleted.js, which\n// appends its lines to this same putaway record, and legacy lines on a GR that\n// predates the ledger. The ledger simply has no opinion about that stock.\nconst trackedTuples = {};\nconst pool = {};\nfor (const r of allRows) {\n  const k = keyOf(r.material_id, r.batch_id, r.transit_bin);\n  trackedTuples[k] = 1;\n  if (r.status !== \"In Transit\") continue;\n  if (!pool[k]) pool[k] = [];\n  pool[k].push({ row: r, remaining: q8(r.open_qty), slices: [] });\n}\nfor (const k in pool) {\n  pool[k].sort((a, b) => {\n    const da = String(a.row.transit_date || \"\");\n    const db = String(b.row.transit_date || \"\");\n    if (da !== db) return da < db ? -1 : 1;\n    return (parseInt(a.row.line_no, 10) || 0) - (parseInt(b.row.line_no, 10) || 0);\n  });\n}\n\n// Demand is accumulated against the shared pool across every line of this\n// putaway, so two lines drawing on one balance cannot both pass -- the stateless\n// per-row check is exactly what let the PT double-commit through.\nconst shortages = [];\nfor (const m of movements) {\n  if (m.movement !== \"OUT\") continue;\n  if (m.inventory_category !== \"In Transit\") continue;\n\n  const k = keyOf(m.item_id, m.batch_id, m.bin_location_id);\n\n  // Untracked tuple: this GR never staged this stock through the ledger.\n  if (!trackedTuples[k]) continue;\n\n  let need = q8(m.based_qty);\n  const bucket = pool[k] || [];\n\n  for (const entry of bucket) {\n    if (need <= 0) break;\n    if (entry.remaining <= 0) continue;\n    const take = q8(Math.min(entry.remaining, need));\n    if (take <= 0) continue;\n    entry.remaining = q8(entry.remaining - take);\n    entry.slices.push({\n      qty: take,\n      to_bin: m.target_bin || null,\n      to_category: m.target_category || \"\",\n      target_doc_line_id: m.target_doc_line_id || \"\"\n    });\n    need = q8(need - take);\n  }\n\n  if (need > QTY_EPS) {\n    shortages.push({\n      material_id: m.item_id,\n      batch_id: m.batch_id || \"\",\n      bin_location: m.bin_location_id,\n      shortage: qtyStr(need)\n    });\n  }\n}\n\nif (shortages.length > 0) {\n  const f = shortages[0];\n  return {\n    transitUpdates: [], transitUpdatesLength: 0, hasTransitUpdates: 0,\n    transitCreates: [], transitCreatesLength: 0, hasTransitCreates: 0,\n    shortages: shortages, hasShortage: 1,\n    message: \"Insufficient in-transit quantity for item \" + f.material_id +\n      \" at bin \" + f.bin_location + \" (short by \" + f.shortage +\n      \"). This putaway would consume stock already claimed by another transfer order.\"\n  };\n}\n\nconst receivedDate = new Date().toISOString().split(\"T\")[0];\nconst targetDocId = allData.id || \"\";\nconst targetDocNo = allData.to_id || \"\";\n\nconst cloneOf = (r) => ({\n  doc_type: r.doc_type, doc_id: r.doc_id, doc_no: r.doc_no, doc_line_id: r.doc_line_id,\n  line_no: r.line_no,\n  parent_id: r.parent_id, parent_no: r.parent_no, parent_line_id: r.parent_line_id,\n  material_id: r.material_id, item_code: r.item_code, item_name: r.item_name,\n  item_desc: r.item_desc, item_uom: r.item_uom, batch_id: r.batch_id,\n  handling_unit_id: r.handling_unit_id, plant_id: r.plant_id,\n  organization_id: r.organization_id, transit_bin: r.transit_bin,\n  from_plant_id: r.from_plant_id, from_bin: r.from_bin, from_category: r.from_category,\n  to_plant_id: r.to_plant_id, to_category: r.to_category,\n  transit_date: r.transit_date, remark: r.remark,\n  source_transit_id: r.source_transit_id || r.id\n});\n\nconst transitUpdates = [];\nconst transitCreates = [];\n\nfor (const k in pool) {\n  for (const entry of pool[k]) {\n    if (entry.slices.length === 0) continue;\n    const r = entry.row;\n\n    // The first slice closes the original row in place; further slices become\n    // their own closed rows chained by source_transit_id, and any leftover stays\n    // open. Same split shape as on_reserved_gd's partial delivery, so each\n    // portion keeps its own destination bin.\n    const first = entry.slices[0];\n    transitUpdates.push({\n      id: r.id,\n      transit_qty: qtyStr(first.qty),\n      received_qty: qtyStr(q8((r.received_qty || 0) + first.qty)),\n      open_qty: qtyStr(0),\n      status: \"Received\",\n      received_date: receivedDate,\n      to_bin: first.to_bin,\n      to_category: first.to_category,\n      target_doc_type: \"Putaway\",\n      target_doc_id: targetDocId,\n      target_doc_no: targetDocNo,\n      target_doc_line_id: first.target_doc_line_id\n    });\n\n    for (let i = 1; i < entry.slices.length; i++) {\n      const s = entry.slices[i];\n      const row = cloneOf(r);\n      row.to_bin = s.to_bin;\n      row.to_category = s.to_category;\n      row.transit_qty = qtyStr(s.qty);\n      row.received_qty = qtyStr(s.qty);\n      row.open_qty = qtyStr(0);\n      row.status = \"Received\";\n      row.received_date = receivedDate;\n      row.target_doc_type = \"Putaway\";\n      row.target_doc_id = targetDocId;\n      row.target_doc_no = targetDocNo;\n      row.target_doc_line_id = s.target_doc_line_id;\n      transitCreates.push(row);\n    }\n\n    if (entry.remaining > 0) {\n      const row = cloneOf(r);\n      row.to_bin = null;\n      row.transit_qty = qtyStr(entry.remaining);\n      row.received_qty = qtyStr(0);\n      row.open_qty = qtyStr(entry.remaining);\n      row.status = \"In Transit\";\n      row.received_date = null;\n      row.target_doc_type = \"\";\n      row.target_doc_id = \"\";\n      row.target_doc_no = \"\";\n      row.target_doc_line_id = \"\";\n      transitCreates.push(row);\n    }\n  }\n}\n\nreturn {\n  transitUpdates,\n  transitUpdatesLength: transitUpdates.length,\n  hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  transitCreates,\n  transitCreatesLength: transitCreates.length,\n  hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  shortages: [],\n  hasShortage: 0,\n  message: \"In transit ledger: \" + transitUpdates.length + \" closed, \" +\n    transitCreates.length + \" created\"\n};\n"
+          "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// toFixed(3) STRINGS: the serializer emits full-precision floats that\n// BigDecimal multipleOf rejects, and Number()/parseFloat() do not fix it.\nconst qtyStr = (v) => Math.max(0, q8(v)).toFixed(8);\n\n// The ledger stores 3dp. A base -> alt -> base round trip on a fractional UOM\n// conversion comes back high (GRbaseReceivedQty divides, code_node_M7XzDZ48\n// multiplies again: 1 / 7 -> 0.143 -> x7 = 1.001), and a split putaway\n// accumulates one such error per child. Anything at or under this is a rounding\n// artefact, not a real shortage, and must not 400 the putaway.\nconst QTY_EPS = 0.005;\n\nconst allData = {{workflowparams:allData}};\nconst movements = {{node:code_node_M7XzDZ48.data.inventoryMovements}} || [];\n\nconst rowsRaw = {{node:code_node_PwTransit.data.rows}};\nconst allRows = Array.isArray(rowsRaw) ? rowsRaw : (rowsRaw ? [rowsRaw] : []);\n\n// Goods Receivings completed before this ledger existed hold In-Transit stock with\n// no rows behind it. Blocking their putaway would be an operational break, so fall\n// through silently and let the inventory workflows behave as they always did.\nif (allRows.length === 0) {\n  return {\n    transitUpdates: [], transitUpdatesLength: 0, hasTransitUpdates: 0,\n    transitCreates: [], transitCreatesLength: 0, hasTransitCreates: 0,\n    shortages: [], hasShortage: 0,\n    message: \"No in-transit ledger rows for this GR (legacy document) - skipped\"\n  };\n}\n\nconst keyOf = (mat, batch, bin) =>\n  String(mat || \"\") + \"|\" + String(batch || \"\") + \"|\" + String(bin || \"\");\n\n// Two structures off the same fetch, deliberately built from different slices:\n//\n//   trackedTuples - every tuple this GR has EVER staged, whatever its status.\n//     A tuple in here but absent from the pool has been fully consumed, so a\n//     second claim on it is a double-consumption and must 400.\n//   pool - only rows still open. The FIFO stock actually available to draw down.\n//\n// A tuple in NEITHER is untracked, and is skipped rather than shorted. Two ways\n// that happens: Quality Inspection stock released by QIsaveAsCompleted.js, which\n// appends its lines to this same putaway record, and legacy lines on a GR that\n// predates the ledger. The ledger simply has no opinion about that stock.\nconst trackedTuples = {};\nconst pool = {};\nfor (const r of allRows) {\n  const k = keyOf(r.material_id, r.batch_id, r.transit_bin);\n  trackedTuples[k] = 1;\n  if (r.status !== \"In Transit\") continue;\n  if (!pool[k]) pool[k] = [];\n  pool[k].push({ row: r, remaining: q8(r.open_qty), slices: [] });\n}\nfor (const k in pool) {\n  pool[k].sort((a, b) => {\n    const da = String(a.row.transit_date || \"\");\n    const db = String(b.row.transit_date || \"\");\n    if (da !== db) return da < db ? -1 : 1;\n    return (parseInt(a.row.line_no, 10) || 0) - (parseInt(b.row.line_no, 10) || 0);\n  });\n}\n\n// Demand is accumulated against the shared pool across every line of this\n// putaway, so two lines drawing on one balance cannot both pass -- the stateless\n// per-row check is exactly what let the PT double-commit through.\nconst shortages = [];\nfor (const m of movements) {\n  if (m.movement !== \"OUT\") continue;\n  if (m.inventory_category !== \"In Transit\") continue;\n\n  const k = keyOf(m.item_id, m.batch_id, m.bin_location_id);\n\n  // Untracked tuple: this GR never staged this stock through the ledger.\n  if (!trackedTuples[k]) continue;\n\n  let need = q8(m.based_qty);\n  const bucket = pool[k] || [];\n\n  for (const entry of bucket) {\n    if (need <= 0) break;\n    if (entry.remaining <= 0) continue;\n    const take = q8(Math.min(entry.remaining, need));\n    if (take <= 0) continue;\n    entry.remaining = q8(entry.remaining - take);\n    entry.slices.push({\n      qty: take,\n      to_bin: m.target_bin || null,\n      to_category: m.target_category || \"\",\n      target_doc_line_id: m.target_doc_line_id || \"\"\n    });\n    need = q8(need - take);\n  }\n\n  if (need > QTY_EPS) {\n    shortages.push({\n      material_id: m.item_id,\n      batch_id: m.batch_id || \"\",\n      bin_location: m.bin_location_id,\n      shortage: qtyStr(need)\n    });\n  }\n}\n\nif (shortages.length > 0) {\n  const f = shortages[0];\n  return {\n    transitUpdates: [], transitUpdatesLength: 0, hasTransitUpdates: 0,\n    transitCreates: [], transitCreatesLength: 0, hasTransitCreates: 0,\n    shortages: shortages, hasShortage: 1,\n    message: \"Insufficient in-transit quantity for item \" + f.material_id +\n      \" at bin \" + f.bin_location + \" (short by \" + f.shortage +\n      \"). This putaway would consume stock already claimed by another transfer order.\"\n  };\n}\n\nconst receivedDate = new Date().toISOString().split(\"T\")[0];\nconst targetDocId = allData.id || \"\";\nconst targetDocNo = allData.to_id || \"\";\n\nconst cloneOf = (r) => ({\n  doc_type: r.doc_type, doc_id: r.doc_id, doc_no: r.doc_no, doc_line_id: r.doc_line_id,\n  line_no: r.line_no,\n  parent_id: r.parent_id, parent_no: r.parent_no, parent_line_id: r.parent_line_id,\n  material_id: r.material_id, item_code: r.item_code, item_name: r.item_name,\n  item_desc: r.item_desc, item_uom: r.item_uom, batch_id: r.batch_id,\n  handling_unit_id: r.handling_unit_id, plant_id: r.plant_id,\n  organization_id: r.organization_id, transit_bin: r.transit_bin,\n  from_plant_id: r.from_plant_id, from_bin: r.from_bin, from_category: r.from_category,\n  to_plant_id: r.to_plant_id, to_category: r.to_category,\n  transit_date: r.transit_date, remark: r.remark,\n  source_transit_id: r.source_transit_id || r.id\n});\n\nconst transitUpdates = [];\nconst transitCreates = [];\n\nfor (const k in pool) {\n  for (const entry of pool[k]) {\n    if (entry.slices.length === 0) continue;\n    const r = entry.row;\n\n    // The first slice closes the original row in place; further slices become\n    // their own closed rows chained by source_transit_id, and any leftover stays\n    // open. Same split shape as on_reserved_gd's partial delivery, so each\n    // portion keeps its own destination bin.\n    const first = entry.slices[0];\n    transitUpdates.push({\n      id: r.id,\n      transit_qty: qtyStr(first.qty),\n      received_qty: qtyStr(q8((r.received_qty || 0) + first.qty)),\n      open_qty: qtyStr(0),\n      status: \"Received\",\n      received_date: receivedDate,\n      to_bin: first.to_bin,\n      to_category: first.to_category,\n      target_doc_type: \"Putaway\",\n      target_doc_id: targetDocId,\n      target_doc_no: targetDocNo,\n      target_doc_line_id: first.target_doc_line_id\n    });\n\n    for (let i = 1; i < entry.slices.length; i++) {\n      const s = entry.slices[i];\n      const row = cloneOf(r);\n      row.to_bin = s.to_bin;\n      row.to_category = s.to_category;\n      row.transit_qty = qtyStr(s.qty);\n      row.received_qty = qtyStr(s.qty);\n      row.open_qty = qtyStr(0);\n      row.status = \"Received\";\n      row.received_date = receivedDate;\n      row.target_doc_type = \"Putaway\";\n      row.target_doc_id = targetDocId;\n      row.target_doc_no = targetDocNo;\n      row.target_doc_line_id = s.target_doc_line_id;\n      transitCreates.push(row);\n    }\n\n    if (entry.remaining > 0) {\n      const row = cloneOf(r);\n      row.to_bin = null;\n      row.transit_qty = qtyStr(entry.remaining);\n      row.received_qty = qtyStr(0);\n      row.open_qty = qtyStr(entry.remaining);\n      row.status = \"In Transit\";\n      row.received_date = null;\n      row.target_doc_type = \"\";\n      row.target_doc_id = \"\";\n      row.target_doc_no = \"\";\n      row.target_doc_line_id = \"\";\n      transitCreates.push(row);\n    }\n  }\n}\n\nreturn {\n  transitUpdates,\n  transitUpdatesLength: transitUpdates.length,\n  hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  transitCreates,\n  transitCreatesLength: transitCreates.length,\n  hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  shortages: [],\n  hasShortage: 0,\n  message: \"In transit ledger: \" + transitUpdates.length + \" closed, \" +\n    transitCreates.length + \" created\"\n};\n"
         },
         "response_json": [
           {

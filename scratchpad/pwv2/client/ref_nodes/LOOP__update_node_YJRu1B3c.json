@@ -1,0 +1,187 @@
+{
+ "table_id": {
+  "source": "Transfer Order Putaway:Table:1937714890958053378",
+  "rules": {
+   "collectionId": "1937714890958053378",
+   "list": [
+    {
+     "id": 1773109812296,
+     "parentId": 1773109812295,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_kku8SAT9.data.data.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update Putaway",
+ "isValidator": true,
+ "nodeName": "Update Putaway",
+ "name": "Update Putaway",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "valueType": "field",
+    "value": "{{workflowparams:saveAs}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "Transfer Order Status",
+    "prop": "to_status"
+   },
+   {
+    "prop": "plant_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.plant_id}}",
+    "valueLabel": "",
+    "propLabel": "Plant"
+   },
+   {
+    "prop": "to_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.to_id}}",
+    "valueLabel": "",
+    "propLabel": "Transfer Order No"
+   },
+   {
+    "prop": "to_id_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.to_id_type}}",
+    "valueLabel": "",
+    "propLabel": "规则"
+   },
+   {
+    "prop": "movement_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.movement_type}}",
+    "valueLabel": "",
+    "propLabel": "Movement Type"
+   },
+   {
+    "prop": "ref_doc_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.ref_doc_type}}",
+    "valueLabel": "",
+    "propLabel": "Reference Doc Type"
+   },
+   {
+    "prop": "gr_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.gr_no}}",
+    "valueLabel": "",
+    "propLabel": "Reference Document No"
+   },
+   {
+    "prop": "receiving_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.receiving_no}}",
+    "valueLabel": "",
+    "propLabel": "Reference Document No"
+   },
+   {
+    "prop": "supplier_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.supplier_id}}",
+    "valueLabel": "",
+    "propLabel": "Supplier Name"
+   },
+   {
+    "prop": "quality_insp_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.quality_insp_no}}",
+    "valueLabel": "",
+    "propLabel": "Quality Inspection Number"
+   },
+   {
+    "prop": "qi_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.qi_id}}",
+    "valueLabel": "",
+    "propLabel": "Quality Inspection ID"
+   },
+   {
+    "prop": "assigned_to",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.assigned_to}}",
+    "valueLabel": "",
+    "propLabel": "Assigned To"
+   },
+   {
+    "prop": "created_at",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.created_at}}",
+    "valueLabel": "",
+    "propLabel": "Created At"
+   },
+   {
+    "prop": "created_by",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.created_by}}",
+    "valueLabel": "",
+    "propLabel": "Created By"
+   },
+   {
+    "prop": "organization_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.organization_id}}",
+    "valueLabel": "",
+    "propLabel": "Organization"
+   },
+   {
+    "prop": "project_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.project_id}}",
+    "valueLabel": "",
+    "propLabel": "Project"
+   },
+   {
+    "prop": "ref_doc",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.ref_doc}}",
+    "valueLabel": "",
+    "propLabel": "Reference Document"
+   },
+   {
+    "prop": "table_putaway_item",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_pcHu3XnW.data.data.table_putaway_item}}",
+    "valueLabel": "",
+    "propLabel": "Putaway Items"
+   },
+   {
+    "prop": "remarks",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_kku8SAT9.data.data.remarks}}",
+    "valueLabel": "",
+    "propLabel": "Remarks"
+   }
+  ]
+ }
+}

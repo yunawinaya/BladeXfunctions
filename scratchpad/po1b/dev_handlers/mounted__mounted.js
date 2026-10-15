@@ -1,0 +1,415 @@
+const showStatusHTML = async (status) => {
+  switch (status) {
+    case "Draft":
+      this.display(["draft_status"]);
+      break;
+    case "Issued":
+      this.display(["issued_status"]);
+      break;
+    case "Processing":
+      this.display(["processing_status"]);
+      break;
+    case "Completed":
+      this.display(["completed_status"]);
+      break;
+    case "Cancelled":
+      this.display(["cancelled_status"]);
+      break;
+    default:
+      break;
+  }
+};
+
+const displayFields = async () => {
+  const poDeliveryAddress = this.getValue("po_delivery_address");
+  const preqNo = this.getValue("preq_no");
+  const totalTax = this.getValue("po_total_tax");
+
+  if (totalTax > 0) {
+    this.display(["po_total_tax", "total_tax_currency"]);
+  }
+
+  if (poDeliveryAddress === "Supplier") {
+    this.display("po_receiving_supplier");
+    this.hide("po_plant");
+  }
+
+  if (preqNo) {
+    this.display("preq_no");
+  }
+};
+
+const displayCurrency = async () => {
+  const currencyCode = this.getValue("po_currency");
+
+  if (currencyCode && currencyCode !== "----" && currencyCode !== "MYR") {
+    this.display([
+      "exchange_rate",
+      "exchange_rate_myr",
+      "exchange_rate_currency",
+      "button_refresh_rate",
+      "myr_total_amount",
+      "total_amount_myr",
+    ]);
+  }
+
+  this.setData({
+    total_gross_currency: currencyCode,
+    total_discount_currency: currencyCode,
+    total_tax_currency: currencyCode,
+    total_amount_currency: currencyCode,
+    exchange_rate_currency: currencyCode,
+  });
+};
+
+const displayPlantAddress = async () => {
+  const plant = this.getValue("po_plant");
+
+  if (plant) {
+    this.display("address_grid");
+  }
+};
+
+const displayTax = async () => {
+  const totalTax = this.getValue("po_total_tax");
+
+  if (totalTax > 0.0) {
+    this.display(["po_total_tax", "total_tax_currency"]);
+  }
+};
+
+const enabledUOMField = async () => {
+  const tablePO = this.getValue("table_po");
+
+  tablePO.forEach((po, rowIndex) => {
+    if (po.item_id || po.item_desc !== "") {
+      this.triggerEvent("LineItem_onChange_fillback", {
+        poItem: po,
+        index: rowIndex,
+      });
+    }
+  });
+};
+
+const disabledEditField = async (status) => {
+  if (status !== "Draft" && status !== "Issued") {
+    this.disabled(
+      [
+        "purchase_order_no",
+        "po_supplier_id",
+        "organization_id",
+        "po_date",
+        "po_currency",
+        "po_delivery_address",
+        "po_plant",
+        "po_receiving_supplier",
+        "po_billing_name",
+        "po_billing_cp",
+        "po_billing_address",
+        "po_shipping_address",
+        "po_payment_terms",
+        "po_expected_date",
+        "po_shipping_preference",
+        "po_ref_doc",
+        "table_po",
+        "po_total_gross",
+        "po_total_discount",
+        "po_total_tax",
+        "po_total",
+        "po_remark",
+        "po_remark2",
+        "po_remark3",
+        "po_remark4",
+        "po_remark5",
+        "po_description",
+        "po_tnc",
+        "billing_address_line_1",
+        "billing_address_line_2",
+        "billing_address_line_3",
+        "billing_address_line_4",
+        "billing_address_city",
+        "billing_postal_code",
+        "billing_address_state",
+        "billing_address_country",
+        "shipping_address_line_1",
+        "shipping_address_line_2",
+        "shipping_address_line_3",
+        "shipping_address_line_4",
+        "shipping_address_city",
+        "shipping_postal_code",
+        "shipping_address_state",
+        "shipping_address_country",
+        "exchange_rate",
+        "myr_total_amount",
+        "button_refresh_rate",
+      ],
+      true,
+    );
+
+    this.hide([
+      "link_billing_address",
+      "link_shipping_address",
+      "button_save_as_draft",
+      "button_save_as_issue",
+      "button_refresh_rate",
+    ]);
+  } else if (status === "Issued") {
+    this.hide("button_save_as_draft");
+  }
+};
+
+const cloneResetQuantity = async (data) => {
+  const tablePO = this.getValue("table_po");
+
+  const resetLineQuantity = (po) => {
+    po.received_qty = 0;
+    po.created_received_qty = 0;
+    po.return_quantity = 0;
+    po.invoice_qty = 0;
+    po.posted_qty = 0;
+    po.min_price = 0;
+    po.max_price = 0;
+    po.outstanding_quantity = 0;
+    po.preq_id = "";
+    po.line_status = "";
+    po.pi_status = "";
+  };
+
+  for (const po of tablePO) {
+    resetLineQuantity(po);
+
+    // An item bundle is one row with its items under `children`. The items are
+    // lines in their own right and carry the same received / invoiced
+    // quantities, so a clone has to clear theirs too.
+    const bundleChildren = Array.isArray(po.children) ? po.children : [];
+
+    for (const child of bundleChildren) {
+      resetLineQuantity(child);
+    }
+  }
+
+  data["table_po"] = tablePO;
+  data["gr_status"] = "";
+  data["pi_posted_status"] = "";
+  data["pi_status"] = "";
+  data["return_status"] = "";
+  data["partially_received"] = `0 / ${tablePO.length}`;
+  data["fully_received"] = `0 / ${tablePO.length}`;
+  data["po_date"] = new Date().toISOString().split("T")[0];
+  data["po_status"] = "Draft";
+  data["preq_no"] = "";
+  data["preq_id"] = [];
+  data["purchase_order_no"] = null;
+  data["linked_so_id"] = "";
+  data["po_description"] = "Purchase Order";
+
+  this.hide("preq_no");
+
+  return data;
+};
+
+const setPlant = async (organizationId, pageStatus, data) => {
+  const currentDept = this.getVarSystem("deptIds");
+
+  if (currentDept === organizationId) {
+    this.disabled("po_plant", false);
+
+    if (pageStatus === "Add" || pageStatus === "Clone") {
+      this.setData({ po_plant: currentDept });
+    }
+  } else {
+    if (pageStatus === "Add" || pageStatus === "Clone") {
+      this.setData({ po_plant: currentDept });
+    }
+    this.disabled("po_plant", true);
+  }
+
+  return data;
+};
+
+const checkAccIntegrationType = async (organizationId, data) => {
+  if (organizationId) {
+    const resAI = await db
+      .collection("accounting_integration")
+      .where({ organization_id: organizationId })
+      .get();
+
+    if (resAI && resAI.data.length > 0) {
+      const aiData = resAI.data[0];
+      data["acc_integration_type"] = aiData.acc_integration_type;
+    }
+  }
+
+  return data;
+};
+
+(async () => {
+  try {
+    const status = await this.getValue("po_status");
+    const data = {};
+    const pageStatus = this.isAdd
+      ? "Add"
+      : this.isEdit
+        ? "Edit"
+        : this.isView
+          ? "View"
+          : this.isCopy
+            ? "Clone"
+            : (() => {
+                this.$message.error("Invalid page status");
+              })();
+
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds");
+    }
+    data["page_status"] = pageStatus;
+
+    // Direct Invoice on the PI list opens this form with purchase_order_title
+    // 'Purchase Invoice'. auto_pi = 1 makes PO_SAVE create a Completed PI when the
+    // PO is issued; create_pi is the answer to its 0-total prompt.
+    const fromSource = this.getParamsVariables("purchase_order_title");
+    this.hide([
+      "exchange_rate",
+      "exchange_rate_myr",
+      "exchange_rate_currency",
+      "button_refresh_rate",
+      "myr_total_amount",
+      "total_amount_myr",
+    ]);
+    const tabGR = document.getElementById("tab-tab_gr");
+
+    switch (pageStatus) {
+      case "Add":
+        this.display(["draft_status"]);
+        const supplierID = this.getValue("po_supplier_id");
+        this.disabled("table_po", !supplierID);
+        data["organization_id"] = organizationId;
+        data["po_date"] = new Date().toISOString().split("T")[0];
+        data["auto_pi"] = fromSource === "Purchase Invoice" ? 1 : 0;
+        data["create_pi"] = "No";
+        data["created_source"] = "Web";
+        data["po_description"] =
+          this.getValue("po_description") || "Purchase Order";
+
+        // hide GR Tab
+        if (tabGR) {
+          tabGR.style.display = "none";
+        }
+        await setPlant(organizationId, pageStatus, data);
+        await checkAccIntegrationType(organizationId, data);
+        await enabledUOMField();
+        await displayFields();
+        await displayCurrency();
+        await displayPlantAddress();
+        await displayTax();
+        break;
+
+      case "Edit":
+        await disabledEditField(status);
+        await showStatusHTML(status);
+        await checkAccIntegrationType(organizationId, data);
+        await enabledUOMField();
+        await displayFields();
+        await displayCurrency();
+        await displayPlantAddress();
+        await displayTax();
+        await setPlant(organizationId, pageStatus, data);
+        data["previous_status"] = this.getValue("po_status");
+        this.disabled(
+          status !== "Draft"
+            ? ["purchase_order_no", "purchase_order_no_type"]
+            : [],
+          true,
+        );
+
+        // hide GR Tab
+        if (tabGR) {
+          tabGR.style.display = "none";
+        }
+        break;
+
+      case "Clone":
+        // hide GR Tab
+        if (tabGR) {
+          tabGR.style.display = "none";
+        }
+        await displayFields();
+        await checkAccIntegrationType(organizationId, data);
+        await setPlant(organizationId, pageStatus, data);
+        await enabledUOMField();
+        await displayCurrency();
+        await displayPlantAddress();
+        await displayTax();
+        await showStatusHTML("Draft");
+        await cloneResetQuantity(data);
+        data["auto_pi"] = fromSource === "Purchase Invoice" ? 1 : 0;
+        data["create_pi"] = "No";
+        data["created_source"] = "Web";
+
+        break;
+
+      case "View":
+        this.hide([
+          "link_billing_address",
+          "link_shipping_address",
+          "button_save_as_draft",
+          "button_save_as_issue",
+        ]);
+
+        // hide GR Tab
+        if (tabGR && status !== "Processing") {
+          tabGR.style.display = "none";
+        }
+        await showStatusHTML(status);
+        await displayFields();
+        await displayCurrency();
+        await displayPlantAddress();
+        await displayTax();
+
+        break;
+    }
+
+    this.setData(data);
+    this.refreshFieldOptionData("po_plant");
+
+    setTimeout(() => {
+      this.triggerEvent("syncBundleChildButtons");
+    }, 100);
+  } catch (error) {
+    this.$message.error(error);
+  }
+})();
+
+setTimeout(async () => {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("purchase_order_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("purchase_order_no");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("purchase_order_no_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("purchase_order_no_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        purchase_order_no_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ purchase_order_no_type: defaultData.value });
+    }
+  }
+}, 200);

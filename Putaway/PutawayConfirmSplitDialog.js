@@ -1,4 +1,4 @@
-const setPutawayItemData = async (
+const setPutawayItemData = (
   itemData,
   lineIndex,
   qtyToPutaway,
@@ -49,9 +49,6 @@ const setPutawayItemData = async (
     total_price: itemData.total_price,
     qi_no: itemData.qi_no,
     is_serialized_item: itemData.is_serialized_item,
-    // Carried through explicitly. This function rebuilds EVERY row of the table,
-    // including untouched ones, so any field omitted here is silently destroyed
-    // document-wide the moment a single line is split.
     gr_line_id: itemData.gr_line_id || "",
     // A handling unit is one physical pallet and cannot land in two bins, so the
     // children of a split never inherit it -- only untouched and parent rows keep
@@ -63,6 +60,26 @@ const setPutawayItemData = async (
   };
 };
 
+const SPLIT_PARENT_LOCKED = [
+  "line_index",
+  "item_code",
+  "item_name",
+  "item_desc",
+  "batch_no",
+  "select_serial_number",
+  "source_inv_category",
+  "target_inv_category",
+  "received_qty",
+  "item_uom",
+  "source_bin",
+  "qty_to_putaway",
+  "pending_process_qty",
+  "putaway_qty",
+  "storage_location",
+  "target_location",
+  "remark",
+];
+
 (async () => {
   try {
     const data = this.getValues();
@@ -72,8 +89,7 @@ const setPutawayItemData = async (
 
     const totalStoreInQty = parseFloat(
       tableSplit
-        .reduce((sum, item) => sum + (parseFloat(item.store_in_qty) || 0), 0)
-        .toFixed(3),
+        .reduce((sum, item) => sum + (parseFloat(item.store_in_qty) || 0), 0),
     );
 
     if (totalStoreInQty !== splitDialogData.qty_to_putaway) {
@@ -86,26 +102,27 @@ const setPutawayItemData = async (
 
     const latestPutawaytItem = [];
 
-    console.log("save split tablePutawayItem", tablePutawayItem);
-
+    // rows keep their own fields (id, fm_key, bundle items); split rows name their line in parent_line_id
     for (const [index, paItem] of tablePutawayItem.entries()) {
       if (index === rowIndex) {
-        const parentItem = await setPutawayItemData(
-          paItem,
-          paItem.parent_index + 1,
-          totalStoreInQty,
-          "",
-          "",
-          paItem.remark,
-          "Yes",
-          "Parent",
-          index,
-          paItem.select_serial_number,
-        );
-        latestPutawaytItem.push(parentItem);
+        latestPutawaytItem.push({
+          ...paItem,
+          ...setPutawayItemData(
+            paItem,
+            paItem.parent_index + 1,
+            totalStoreInQty,
+            "",
+            "",
+            paItem.remark,
+            "Yes",
+            "Parent",
+            index,
+            paItem.select_serial_number,
+          ),
+        });
 
         for (const [dialogLineIndex, dialogItem] of tableSplit.entries()) {
-          const childItem = await setPutawayItemData(
+          const childItem = setPutawayItemData(
             paItem,
             `${paItem.parent_index + 1} - ${dialogLineIndex + 1}`,
             dialogItem.store_in_qty,
@@ -117,104 +134,55 @@ const setPutawayItemData = async (
             index,
             dialogItem.select_serial_number,
           );
+          if (paItem.id) childItem.parent_line_id = paItem.id;
           latestPutawaytItem.push(childItem);
         }
       } else {
-        const parentItem = await setPutawayItemData(
-          paItem,
-          paItem.line_index,
-          paItem.qty_to_putaway,
-          paItem.storage_location,
-          paItem.target_location,
-          paItem.remark,
-          paItem.is_split,
-          paItem.parent_or_child,
-          paItem.parent_index,
-          paItem.select_serial_number,
-        );
-        latestPutawaytItem.push(parentItem);
+        latestPutawaytItem.push({
+          ...paItem,
+          ...setPutawayItemData(
+            paItem,
+            paItem.line_index,
+            paItem.qty_to_putaway,
+            paItem.storage_location,
+            paItem.target_location,
+            paItem.remark,
+            paItem.is_split,
+            paItem.parent_or_child,
+            paItem.parent_index,
+            paItem.select_serial_number,
+          ),
+        });
       }
     }
 
-    console.log("latestPutawayItem", latestPutawaytItem);
+    console.log("latestPutawayItem", latestPutawaytItem.length);
     await this.setData({ table_putaway_item: latestPutawaytItem });
 
-    const tablePutaway = this.getValue("table_putaway_item");
+    // rows keep their fm_key and so their states: only split parents, split rows and serial rows are set again
+    const lock = [];
+    const unlock = [];
+    const parentLocations = {};
 
-    for (const [index, paItem] of tablePutaway.entries()) {
+    for (const [index, paItem] of latestPutawaytItem.entries()) {
+      const path = `table_putaway_item.${index}`;
       if (paItem.is_split === "Yes" && paItem.parent_or_child === "Parent") {
-        this.disabled(
-          [
-            `table_putaway_item.${index}.line_index`,
-            `table_putaway_item.${index}.item_code`,
-            `table_putaway_item.${index}.item_name`,
-            `table_putaway_item.${index}.item_desc`,
-            `table_putaway_item.${index}.batch_no`,
-            `table_putaway_item.${index}.select_serial_number`,
-            `table_putaway_item.${index}.source_inv_category`,
-            `table_putaway_item.${index}.target_inv_category`,
-            `table_putaway_item.${index}.received_qty`,
-            `table_putaway_item.${index}.item_uom`,
-            `table_putaway_item.${index}.source_bin`,
-            `table_putaway_item.${index}.qty_to_putaway`,
-            `table_putaway_item.${index}.pending_process_qty`,
-            `table_putaway_item.${index}.putaway_qty`,
-            `table_putaway_item.${index}.storage_location`,
-            `table_putaway_item.${index}.target_location`,
-            `table_putaway_item.${index}.remark`,
-          ],
-          true,
-        );
-
-        this.setData({
-          [`table_putaway_item.${index}.storage_location`]: "",
-          [`table_putaway_item.${index}.target_location`]: "",
-        });
+        SPLIT_PARENT_LOCKED.forEach((column) => lock.push(`${path}.${column}`));
+        parentLocations[`${path}.storage_location`] = "";
+        parentLocations[`${path}.target_location`] = "";
       } else if (paItem.parent_or_child === "Child") {
-        if (!paItem.qi_no || paItem.qi_no === null) {
-          this.disabled(
-            [`table_putaway_item.${index}.target_inv_category`],
-            false,
-          );
-        }
-        this.disabled([`table_putaway_item.${index}.button_split`], true);
-
+        lock.push(`${path}.button_split`);
         if (paItem.is_serialized_item === 1) {
-          this.disabled(
-            [
-              `table_putaway_item.${index}.select_serial_number`,
-              `table_putaway_item.${index}.putaway_qty`,
-            ],
-            true,
-          );
+          lock.push(`${path}.select_serial_number`, `${path}.putaway_qty`);
         }
-      } else {
-        if (!paItem.qi_no || paItem.qi_no === null) {
-          this.disabled(
-            [`table_putaway_item.${index}.target_inv_category`],
-            false,
-          );
-        }
-        // Re-enable only for rows without a handling unit, mirroring
-        // disableSplitForHUItems in PutawayOnMounted.js. An unconditional enable
-        // here would hand the split button back to HU rows after any other line
-        // was split, defeating the HU-cannot-split rule.
-        this.disabled(
-          [`table_putaway_item.${index}.button_split`],
-          !!(paItem.hu_data && paItem.hu_data !== ""),
-        );
-
-        if (paItem.is_serialized_item === 1) {
-          this.disabled(
-            [
-              `table_putaway_item.${index}.select_serial_number`,
-              `table_putaway_item.${index}.putaway_qty`,
-            ],
-            false,
-          );
-        }
+      } else if (paItem.is_serialized_item === 1) {
+        unlock.push(`${path}.select_serial_number`, `${path}.putaway_qty`);
       }
     }
+
+    if (lock.length > 0) this.disabled(lock, true);
+    if (unlock.length > 0) this.disabled(unlock, false);
+    if (Object.keys(parentLocations).length > 0) this.setData(parentLocations);
 
     await this.closeDialog("split_dialog");
     await this.triggerEvent("func_reset_split_dialog");

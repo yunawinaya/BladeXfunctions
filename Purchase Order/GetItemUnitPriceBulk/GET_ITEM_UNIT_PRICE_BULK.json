@@ -1,0 +1,822 @@
+{
+ "request_json": [
+  {
+   "key": "y2scjqom",
+   "name": "document_type",
+   "title": "Document Type",
+   "description": "PREQ/PO/SQT/SO",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "rnusmf2s",
+   "name": "supp_cust_id",
+   "title": "Supplier / Customer ID",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "lc2m7q82",
+   "name": "plant_id",
+   "title": "Plant ID",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "m1s0ifyh",
+   "name": "item_data",
+   "title": "Item Data",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "u7orgp3k",
+   "name": "organization_id",
+   "title": "Organization ID",
+   "description": "used when the session has no organization (a call from another workflow)",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "response_json": [
+  {
+   "key": "4neav81h",
+   "name": "data",
+   "title": "",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "8zianfqj",
+   "name": "needOverwrite",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "title": "Start Node",
+    "isValidator": true,
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_UPcheck",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "const documentType = {{workflowparams:document_type}};\nconst suppCustId = {{workflowparams:supp_cust_id}};\nconst plantId = {{workflowparams:plant_id}};\nconst itemData = {{workflowparams:item_data}};\nconst errors = [];\n\n// 1. Check if document type is missing\nif (!documentType || documentType.trim() === \"\") {\n  errors.push(\"Document type is required.\");\n}\n\n// 2. Check if supplier/customer ID is missing for SO/PO\nif (documentType === \"SO\" || documentType === \"PO\") {\n  if (!suppCustId) {\n    errors.push(\n      `${documentType === \"PO\" ? \"Supplier\" : \"Customer\"} ID is required for document type \"${documentType}\".`,\n    );\n  }\n}\n\n// 3. Check if plant ID is missing\nif (!plantId || plantId.trim() === \"\") {\n  errors.push(\"Plant ID is required.\");\n}\n\n// 4. Check if item data is missing or empty\nif (!itemData || itemData.length === 0) {\n  errors.push(\"Item data is required.\");\n} else {\n  // 5. Check if any item is missing item ID\n  const missingItemIds = itemData.filter(\n    (item) => !item.item_id || item.item_id.trim() === \"\",\n  );\n  if (missingItemIds.length > 0) {\n    errors.push(`Item ID is required.`);\n  }\n}\n\n// Return error if any validation fails\nif (errors.length > 0) {\n  return {\n    status: \"Failed\",\n    message: \"Validation Error:<br><br>\" + errors.join(\"<br>\"),\n  };\n}\n\n// If all validations pass\nreturn {\n  status: \"Success\",\n  message: \"All input validation passed.\",\n};"
+    },
+    "response_json": [
+     {
+      "key": "0adac97e",
+      "name": "status",
+      "title": "status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ozdko99o",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Check workflow input (GET_ITEM_UNIT_PRICE code_node_Q1zqehTx, verbatim)",
+    "isValidator": true,
+    "nodeName": "Check workflow input (GET_ITEM_UNIT_PRICE code_node_Q1zqehTx, verbatim)",
+    "name": "Check workflow input (GET_ITEM_UNIT_PRICE code_node_Q1zqehTx, verbatim)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_UPinvalid",
+   "type": "if",
+   "data": {
+    "title": "IF validation failed: 401 with the message (as GET_ITEM_UNIT_PRICE)",
+    "isValidator": true,
+    "nodeName": "IF validation failed: 401 with the message (as GET_ITEM_UNIT_PRICE)",
+    "name": "IF validation failed: 401 with the message (as GET_ITEM_UNIT_PRICE)",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1792100000001,
+       "parentId": 1792100000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_UPcheck.data.status}}' == 'Failed'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TUPinvalid",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_UPinvalid",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 401,
+        "msg": {
+         "type": "javascript",
+         "code": "{{node:code_node_UPcheck.data.message}}"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FUPinvalid",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_UPkeys",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GET_ITEM_UNIT_PRICE_BULK - Keys: GET_ITEM_UNIT_PRICE's \"Process input\" (document_type, plantIdSafe, suppCustIdSafe) plus\n// the keys of the set-based reads. Only digits, or the classic's blank, ever reach the SQL text below:\n// a present-but-malformed id becomes \"0\" and matches nothing.\nconst priceKeys = function priceKeys(documentType, suppCustId, plantId, itemData, tenantId, orgId, orgParam) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v));\n  const big = (v) => /^[0-9]{1,19}$/.test(v) && (v.length < 19 || v <= \"9223372036854775807\");\n  const guardId = (v) => {\n    const raw = s(v).trim();\n    return raw === \"\" ? \"\" : big(raw) ? raw : \"0\";\n  };\n  const docType = documentType === \"SO\" || documentType === \"SQT\" ? \"sd\" : documentType === \"PO\" || documentType === \"PREQ\" ? \"procurement\" : \"\";\n  const lines = Array.isArray(itemData) ? itemData : [];\n  const pairs = [];\n  const seen = {};\n  for (const it of lines) {\n    const row = it && typeof it === \"object\" ? it : {};\n    // the reads match the line's own strings, as the classic's per-line SQL did\n    const item = s(row.item_id);\n    const uom = s(row.uom_id);\n    if (big(item) && big(uom) && !seen[\"p\" + item + \"|\" + uom]) {\n      seen[\"p\" + item + \"|\" + uom] = true;\n      pairs.push([item, uom]);\n    }\n  }\n  const tenant = s(tenantId).trim();\n  // the session's organization; a nested call (workflow-node) has none and passes organization_id\n  const org = big(s(orgId).trim()) ? s(orgId).trim() : s(orgParam).trim();\n  return {\n    document_type: docType,\n    plantIdSafe: guardId(plantId),\n    suppCustIdSafe: guardId(suppCustId),\n    needFetch: suppCustId && suppCustId !== \"\" ? \"Yes\" : \"No\",\n    fetchFrom: docType === \"sd\" ? \"Customer\" : \"Supplier\",\n    side: docType === \"sd\" ? \"sales\" : \"purchase\",\n    pairsJson: JSON.stringify(pairs),\n    pairCount: pairs.length,\n    tenantId: big(tenant) ? tenant : \"0\",\n    organizationId: big(org) ? org : \"0\",\n  };\n};\nconst res = priceKeys([{{workflowparams:document_type}}][0], [{{workflowparams:supp_cust_id}}][0], [{{workflowparams:plant_id}}][0],\n  [{{workflowparams:item_data}}][0], [{{system:tenantId}}][0], [{{global:firstLvDeptId}}][0], [{{workflowparams:organization_id}}][0]);\nconsole.log(\"price keys\", JSON.stringify({ doc: res.document_type, pairs: res.pairCount, fetch: res.needFetch }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "e8u1h8if",
+      "name": "document_type",
+      "title": "document_type",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "vr2esgfz",
+      "name": "plantIdSafe",
+      "title": "plantIdSafe",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "39vescas",
+      "name": "suppCustIdSafe",
+      "title": "suppCustIdSafe",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "izu7j03e",
+      "name": "needFetch",
+      "title": "needFetch",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "s6cz7qfo",
+      "name": "fetchFrom",
+      "title": "fetchFrom",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "umdgx17c",
+      "name": "side",
+      "title": "side",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "4lv0k44m",
+      "name": "pairsJson",
+      "title": "pairsJson",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "fyf6fbuk",
+      "name": "pairCount",
+      "title": "pairCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ojq43qbj",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "o1b3aohd",
+      "name": "organizationId",
+      "title": "organizationId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Keys: document type, plant / party / tenant / organization, the lines' item + UOM pairs (digits only)",
+    "isValidator": true,
+    "nodeName": "Keys: document type, plant / party / tenant / organization, the lines' item + UOM pairs (digits only)",
+    "name": "Keys: document type, plant / party / tenant / organization, the lines' item + UOM pairs (digits only)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "sql_node_UPcfg",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "Price History Config of the organization + document type, and the customer's / supplier's price tag",
+    "isValidator": true,
+    "nodeName": "Price History Config of the organization + document type, and the customer's / supplier's price tag",
+    "name": "Price History Config of the organization + document type, and the customer's / supplier's price tag",
+    "script": {
+     "type": "sql",
+     "code": "SELECT 'cfg' AS kind, CAST(c.id AS CHAR) AS id, CONVERT(c.config_sequence USING utf8mb4) COLLATE utf8mb4_general_ci AS val\n  FROM price_history_config c\n WHERE c.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND c.organization_id = '{{node:code_node_UPkeys.data.organizationId}}' AND c.document_type = '{{node:code_node_UPkeys.data.document_type}}' AND c.is_deleted = 0\nUNION ALL\nSELECT 'tag' AS kind, CAST(x.id AS CHAR) AS id, x.price_tag_id AS val\n  FROM customer x\n WHERE '{{node:code_node_UPkeys.data.needFetch}}' = 'Yes' AND '{{node:code_node_UPkeys.data.fetchFrom}}' = 'Customer' AND x.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND x.id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}' AND x.is_deleted = 0\nUNION ALL\nSELECT 'tag' AS kind, CAST(x.id AS CHAR) AS id, x.price_tag_id AS val\n  FROM supplier_head x\n WHERE '{{node:code_node_UPkeys.data.needFetch}}' = 'Yes' AND '{{node:code_node_UPkeys.data.fetchFrom}}' = 'Supplier' AND x.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND x.id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}' AND x.is_deleted = 0\n ORDER BY kind, LENGTH(id), id"
+    },
+    "response_json": [
+     {
+      "key": "kbim0l5a",
+      "name": "kind",
+      "title": "kind",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "m9tlo71q",
+      "name": "id",
+      "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "x2j9vagm",
+      "name": "val",
+      "title": "val",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_UPplan",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GET_ITEM_UNIT_PRICE_BULK - Plan: the rule sequence (\"Define number iterations\": the organization's Price History Config\n// for the document type, else the document type's default), which history sources and whether the price tag it needs,\n// and the party's price tag id (digits only, else \"0\": matches nothing, as the classic's null did).\nconst pricePlan = function pricePlan(documentType, keys, cfgRows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v));\n  const big = (v) => /^[0-9]{1,19}$/.test(v) && (v.length < 19 || v <= \"9223372036854775807\");\n  const rows = (Array.isArray(cfgRows) ? cfgRows : cfgRows && typeof cfgRows === \"object\" ? [cfgRows] : []).filter((r) => r);\n  const cfg = rows.filter((r) => r.kind === \"cfg\");\n  const tag = rows.filter((r) => r.kind === \"tag\");\n  const DEFAULTS = {\n    SQT: [\"Last Quotation Price\", \"Last Sales Order Price\", \"Last Sales Invoice Price\", \"Customer Price Tag\", \"Default Sales Unit Price\", \"Multi Pricing\"],\n    SO: [\"Last Sales Order Price\", \"Last Sales Invoice Price\", \"Last Quotation Price\", \"Customer Price Tag\", \"Default Sales Unit Price\", \"Multi Pricing\"],\n    PREQ: [\"Last Purchase Requisition Price\", \"Last Purchase Order Price\", \"Last Purchase Invoice Price\", \"Supplier Price Tag\", \"Default Purchase Unit Price\"],\n    PO: [\"Last Purchase Order Price\", \"Last Purchase Invoice Price\", \"Last Purchase Requisition Price\", \"Supplier Price Tag\", \"Default Purchase Unit Price\"],\n  };\n  const SOURCE = { \"Last Quotation Price\": \"SQT\", \"Last Sales Order Price\": \"SO\", \"Last Sales Invoice Price\": \"SI\",\n    \"Last Purchase Requisition Price\": \"PREQ\", \"Last Purchase Order Price\": \"PO\", \"Last Purchase Invoice Price\": \"PI\" };\n  let sequence = [];\n  if (cfg.length === 0) {\n    sequence = (DEFAULTS[documentType] || []).map((rules, i) => ({ rules: rules, line_index: i + 1 }));\n  } else {\n    // one config per organization + document type (the classic's get-node record); the oldest if ever more than one\n    try {\n      const parsed = JSON.parse(s(cfg[0].val));\n      sequence = Array.isArray(parsed) ? parsed : [];\n    } catch (e) {\n      sequence = [];\n    }\n  }\n  const rulesOf = sequence.map((st) => (st && typeof st === \"object\" ? st.rules : undefined));\n  const use = (src) => (keys.pairCount > 0 && rulesOf.some((r) => SOURCE[r] === src) ? \"YES\" : \"NO\");\n  const tagRule = rulesOf.some((r) => r === \"Customer Price Tag\" || r === \"Supplier Price Tag\");\n  const tagId = tag.length ? s(tag[0].val).trim() : \"\";\n  return {\n    sequence: sequence,\n    useSQT: use(\"SQT\"), useSO: use(\"SO\"), useSI: use(\"SI\"), usePREQ: use(\"PREQ\"), usePO: use(\"PO\"), usePI: use(\"PI\"),\n    needTag: tagRule && keys.needFetch === \"Yes\" && keys.pairCount > 0 ? \"YES\" : \"NO\",\n    tagIdSql: big(tagId) ? tagId : \"0\",\n    configCount: cfg.length,\n  };\n};\nconst res = pricePlan([{{workflowparams:document_type}}][0], [{{node:code_node_UPkeys.data}}][0], [{{node:sql_node_UPcfg.data}}][0]);\nconsole.log(\"price plan\", JSON.stringify({ rules: res.sequence.map((st) => st && st.rules), tag: res.needTag, configs: res.configCount }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "bn182ku0",
+      "name": "sequence",
+      "title": "sequence",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "32uzcvig",
+      "name": "useSQT",
+      "title": "useSQT",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "1ko3bh6z",
+      "name": "useSO",
+      "title": "useSO",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "fzmgfpak",
+      "name": "useSI",
+      "title": "useSI",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ei3w5c6x",
+      "name": "usePREQ",
+      "title": "usePREQ",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "nax09br6",
+      "name": "usePO",
+      "title": "usePO",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2dv8kvi9",
+      "name": "usePI",
+      "title": "usePI",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "7hpbxks1",
+      "name": "needTag",
+      "title": "needTag",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "nof6tvwh",
+      "name": "tagIdSql",
+      "title": "tagIdSql",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "qrhkehh2",
+      "name": "configCount",
+      "title": "configCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Plan: the rule sequence (config, else the document type's default), the history sources and price tag it needs",
+    "isValidator": true,
+    "nodeName": "Plan: the rule sequence (config, else the document type's default), the history sources and price tag it needs",
+    "name": "Plan: the rule sequence (config, else the document type's default), the history sources and price tag it needs"
+   },
+   "blocks": []
+  },
+  {
+   "id": "condition_all_UPread",
+   "type": "condition-all-node",
+   "data": {
+    "title": "The three price sources in parallel, each one SQL over every line (no row limits)",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cai_UPitems",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "items",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "items",
+      "name": "items",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_UPitems",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Items: the lines' UOM rows - price, limits, tax of the document's side (Get Item List, projected)",
+        "isValidator": true,
+        "nodeName": "Items: the lines' UOM rows - price, limits, tax of the document's side (Get Item List, projected)",
+        "name": "Items: the lines' UOM rows - price, limits, tax of the document's side (Get Item List, projected)",
+        "script": {
+         "type": "sql",
+         "code": "WITH p AS (SELECT DISTINCT j.item_id, j.uom_id, j.ii, j.uu\n             FROM JSON_TABLE('{{node:code_node_UPkeys.data.pairsJson}}', '$[*]' COLUMNS (item_id VARCHAR(32) PATH '$[0]', uom_id VARCHAR(32) PATH '$[1]',\n                               ii BIGINT PATH '$[0]' NULL ON ERROR, uu BIGINT PATH '$[1]' NULL ON ERROR)) j)\nSELECT CAST(i.id AS CHAR) AS id,\n       COALESCE((\n           SELECT JSON_ARRAYAGG(IF('{{node:code_node_UPkeys.data.side}}' = 'sales',\n                      JSON_OBJECT('alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                                  'sales_unit_price', u.sales_unit_price,\n                                  'sales_min_price', u.sales_min_price,\n                                  'sales_max_price', u.sales_max_price,\n                                  'min_sales_qty', u.min_sales_qty,\n                                  'max_sales_qty', u.max_sales_qty,\n                                  'mat_sales_tax_id', CAST(u.mat_sales_tax_id AS CHAR),\n                                  'sales_tax_percent', u.sales_tax_percent),\n                      JSON_OBJECT('alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                                  'purchase_unit_price', u.purchase_unit_price,\n                                  'purchase_min_price', u.purchase_min_price,\n                                  'purchase_max_price', u.purchase_max_price,\n                                  'min_purchase_qty', u.min_purchase_qty,\n                                  'max_purchase_qty', u.max_purchase_qty,\n                                  'mat_purchase_tax_id', CAST(u.mat_purchase_tax_id AS CHAR),\n                                  'purchase_tax_percent', u.purchase_tax_percent)))\n             FROM item_mji552rc_sub u\n            WHERE u.Item_id = i.id\n              AND u.is_deleted = 0\n              AND u.alt_uom_id IN (SELECT pp.uu FROM p pp WHERE pp.ii = i.id)\n       ), '[]') AS uom_conversion_json\n  FROM (SELECT DISTINCT p.ii FROM p) sel\n  JOIN item i\n    ON i.id = sel.ii\n   AND i.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}'\n   AND i.is_deleted = 0"
+        },
+        "response_json": [
+         {
+          "key": "9jw8066q",
+          "name": "id",
+          "title": "id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "6re4u2z5",
+          "name": "uom_conversion_json",
+          "title": "uom_conversion_json",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_UPhist",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "history",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "history",
+      "name": "history",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_UPhist",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "History: the latest line per source + item + UOM of this party and plant (the sequence's sources only)",
+        "isValidator": true,
+        "nodeName": "History: the latest line per source + item + UOM of this party and plant (the sequence's sources only)",
+        "name": "History: the latest line per source + item + UOM of this party and plant (the sequence's sources only)",
+        "script": {
+         "type": "sql",
+         "code": "WITH p AS (SELECT DISTINCT j.item_id, j.uom_id, j.ii, j.uu\n             FROM JSON_TABLE('{{node:code_node_UPkeys.data.pairsJson}}', '$[*]' COLUMNS (item_id VARCHAR(32) PATH '$[0]', uom_id VARCHAR(32) PATH '$[1]',\n                               ii BIGINT PATH '$[0]' NULL ON ERROR, uu BIGINT PATH '$[1]' NULL ON ERROR)) j),\n     h AS (SELECT 'SO' AS src, p.item_id, p.uom_id, x.so_item_price AS unit_price, x.create_time, x.id\n         FROM p\n         JOIN sales_order_axszx8cj_sub x ON x.item_name = p.item_id COLLATE utf8mb4_general_ci AND x.so_item_uom = p.uu\n        WHERE '{{node:code_node_UPplan.data.useSO}}' = 'YES'\n          AND x.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND x.plant_id = '{{node:code_node_UPkeys.data.plantIdSafe}}' AND x.customer_id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}'\n          AND x.is_deleted = 0 AND x.line_status NOT IN ('Cancelled', 'Draft')\n       UNION ALL\n       SELECT 'SQT' AS src, p.item_id, p.uom_id, x.unit_price AS unit_price, x.create_time, x.id\n         FROM p\n         JOIN quotation_rdywe1rx_sub x ON x.material_id = p.item_id COLLATE utf8mb4_general_ci AND x.sqt_order_uom_id = p.uu\n         JOIN quotation q ON x.quotation_id = q.id\n        WHERE '{{node:code_node_UPplan.data.useSQT}}' = 'YES'\n          AND x.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND x.plant_id = '{{node:code_node_UPkeys.data.plantIdSafe}}' AND x.customer_id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}'\n          AND x.is_deleted = 0 AND q.sqt_status NOT IN ('Cancelled', 'Draft')\n       UNION ALL\n       SELECT 'PREQ' AS src, p.item_id, p.uom_id, x.pr_line_unit_price AS unit_price, x.create_time, x.id\n         FROM p\n         JOIN purchase_requisition_9wptilyh_sub x ON x.pr_line_material_id = p.item_id COLLATE utf8mb4_general_ci AND x.pr_line_uom_id = p.uu\n        WHERE '{{node:code_node_UPplan.data.usePREQ}}' = 'YES'\n          AND x.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND x.plant_id = '{{node:code_node_UPkeys.data.plantIdSafe}}' AND x.supplier_id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}'\n          AND x.is_deleted = 0 AND x.line_status NOT IN ('Cancelled', 'Draft')\n       UNION ALL\n       SELECT 'PO' AS src, p.item_id, p.uom_id, x.unit_price AS unit_price, x.create_time, x.id\n         FROM p\n         JOIN purchase_order_2ukyuanr_sub x ON x.item_id = p.item_id COLLATE utf8mb4_general_ci AND x.quantity_uom = p.uu\n        WHERE '{{node:code_node_UPplan.data.usePO}}' = 'YES'\n          AND x.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND x.plant_id = '{{node:code_node_UPkeys.data.plantIdSafe}}' AND x.supplier_id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}'\n          AND x.is_deleted = 0 AND x.line_status NOT IN ('Cancelled', 'Draft')\n       UNION ALL\n       SELECT 'SI' AS src, p.item_id, p.uom_id, x.unit_price AS unit_price, x.create_time, x.id\n         FROM p\n         JOIN sales_invoice_zt0c3x55_sub x ON x.material_id = p.ii AND x.invoice_qty_uom_id = p.uu\n         JOIN sales_invoice hd ON x.sales_invoice_id = hd.id\n        WHERE '{{node:code_node_UPplan.data.useSI}}' = 'YES'\n          AND x.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND x.plant_id = '{{node:code_node_UPkeys.data.plantIdSafe}}' AND x.customer_id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}'\n          AND x.is_deleted = 0 AND hd.si_status NOT IN ('Cancelled', 'Draft')\n       UNION ALL\n       SELECT 'PI' AS src, p.item_id, p.uom_id, x.order_unit_price AS unit_price, x.create_time, x.id\n         FROM p\n         JOIN purchase_invoice_xpuy7o4q_sub x ON x.material_id = p.ii AND x.quantity_uom = p.uu\n         JOIN purchase_invoice hd ON x.purchase_invoice_id = hd.id\n        WHERE '{{node:code_node_UPplan.data.usePI}}' = 'YES'\n          AND x.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND x.plant_id = '{{node:code_node_UPkeys.data.plantIdSafe}}' AND x.supplier_id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}'\n          AND x.is_deleted = 0 AND hd.pi_status NOT IN ('Cancelled', 'Draft'))\nSELECT r.src, r.item_id, r.uom_id, r.unit_price\n  FROM (SELECT h.src, h.item_id, h.uom_id, h.unit_price,\n               ROW_NUMBER() OVER (PARTITION BY h.src, h.item_id, h.uom_id ORDER BY h.create_time DESC, h.id) AS rn\n          FROM h) r\n WHERE r.rn = 1"
+        },
+        "response_json": [
+         {
+          "key": "it0u33ll",
+          "name": "src",
+          "title": "src",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "492zsuj7",
+          "name": "item_id",
+          "title": "item_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "9k4ohgxp",
+          "name": "uom_id",
+          "title": "uom_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "zgdvvjxf",
+          "name": "unit_price",
+          "title": "unit_price",
+          "description": "",
+          "bsonType": "decimal",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_UPtag",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "price tag",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "price tag",
+      "name": "price tag",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_UPtag",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Price tag rows per item + UOM (tag or party, valid today), in the classic's row order",
+        "isValidator": true,
+        "nodeName": "Price tag rows per item + UOM (tag or party, valid today), in the classic's row order",
+        "name": "Price tag rows per item + UOM (tag or party, valid today), in the classic's row order",
+        "script": {
+         "type": "sql",
+         "code": "WITH p AS (SELECT DISTINCT j.item_id, j.uom_id, j.ii, j.uu\n             FROM JSON_TABLE('{{node:code_node_UPkeys.data.pairsJson}}', '$[*]' COLUMNS (item_id VARCHAR(32) PATH '$[0]', uom_id VARCHAR(32) PATH '$[1]',\n                               ii BIGINT PATH '$[0]' NULL ON ERROR, uu BIGINT PATH '$[1]' NULL ON ERROR)) j)\nSELECT t.item_id, t.uom_id, t.min_order_qty, t.max_order_qty, t.discount, t.discount_type, t.tax, t.tax_percent, t.unit_price, t.min_price,\n       t.max_price\n  FROM (SELECT p.item_id, p.uom_id, sq.sup_min_order_qty AS min_order_qty, sq.sup_max_order_qty AS max_order_qty, sq.sup_price_discount AS discount,\n               sq.sup_price_discount_type AS discount_type, sq.sup_price_tax AS tax, sq.sup_price_tax_percent AS tax_percent, sq.sup_price_unit_price AS unit_price,\n               sq.sup_price_min_price AS min_price, sq.sup_price_max_price AS max_price, sq.id AS rid\n          FROM p\n          JOIN item_qd8nxw32_sub sq ON sq.Item_id = p.ii AND sq.sup_price_uom = p.uu\n          JOIN item i ON sq.Item_id = i.id\n         WHERE '{{node:code_node_UPplan.data.needTag}}' = 'YES' AND '{{node:code_node_UPkeys.data.fetchFrom}}' = 'Supplier' AND sq.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND sq.is_deleted = 0\n           AND (sq.sup_price_tag_id = '{{node:code_node_UPplan.data.tagIdSql}}' OR ('{{node:code_node_UPkeys.data.suppCustIdSafe}}' IS NOT NULL AND '{{node:code_node_UPkeys.data.suppCustIdSafe}}' != '' AND sq.supplier_id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}'))\n           AND ((sq.sup_price_date_from IS NULL AND sq.sup_price_date_to IS NULL) OR (sq.sup_price_date_from < CURDATE() AND sq.sup_price_date_to IS NULL)\n                OR (sq.sup_price_date_from IS NULL AND sq.sup_price_date_to > CURDATE()) OR (sq.sup_price_date_from < CURDATE() AND sq.sup_price_date_to > CURDATE()))\n        UNION ALL\n        SELECT p.item_id, p.uom_id, sc.cust_min_order_qty AS min_order_qty, sc.cust_max_order_qty AS max_order_qty, sc.cust_price_discount AS discount,\n               sc.cust_price_discount_type AS discount_type, sc.cust_price_tax AS tax, sc.cust_price_tax_percent AS tax_percent, sc.cust_price_unit_price AS unit_price,\n               sc.cust_price_min_price AS min_price, sc.cust_price_max_price AS max_price, sc.id AS rid\n          FROM p\n          JOIN item_i9q0d8uj_sub sc ON sc.Item_id = p.ii AND sc.cust_price_uom = p.uu\n          JOIN item i ON sc.Item_id = i.id\n         WHERE '{{node:code_node_UPplan.data.needTag}}' = 'YES' AND '{{node:code_node_UPkeys.data.fetchFrom}}' = 'Customer' AND sc.tenant_id = '{{node:code_node_UPkeys.data.tenantId}}' AND sc.is_deleted = 0\n           AND (sc.cust_price_tag_id = '{{node:code_node_UPplan.data.tagIdSql}}' OR ('{{node:code_node_UPkeys.data.suppCustIdSafe}}' IS NOT NULL AND '{{node:code_node_UPkeys.data.suppCustIdSafe}}' != '' AND sc.customer_id = '{{node:code_node_UPkeys.data.suppCustIdSafe}}'))\n           AND ((sc.cust_price_date_from IS NULL AND sc.cust_price_date_to IS NULL) OR (sc.cust_price_date_from < CURDATE() AND sc.cust_price_date_to IS NULL)\n                OR (sc.cust_price_date_from IS NULL AND sc.cust_price_date_to > CURDATE()) OR (sc.cust_price_date_from < CURDATE() AND sc.cust_price_date_to > CURDATE()))) t\n ORDER BY t.item_id, t.uom_id, t.rid"
+        },
+        "response_json": [
+         {
+          "key": "7iar4nfs",
+          "name": "item_id",
+          "title": "item_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "8269fkwi",
+          "name": "uom_id",
+          "title": "uom_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "h2yf8cpx",
+          "name": "min_order_qty",
+          "title": "min_order_qty",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "6ina97ak",
+          "name": "max_order_qty",
+          "title": "max_order_qty",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "18k269dt",
+          "name": "discount",
+          "title": "discount",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "lngdnabr",
+          "name": "discount_type",
+          "title": "discount_type",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "6kgd7kvo",
+          "name": "tax",
+          "title": "tax",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ocem3qof",
+          "name": "tax_percent",
+          "title": "tax_percent",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "emz84h0a",
+          "name": "unit_price",
+          "title": "unit_price",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "9t7cqxdk",
+          "name": "min_price",
+          "title": "min_price",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "fxgevexh",
+          "name": "max_price",
+          "title": "max_price",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_node_UPresolve",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GET_ITEM_UNIT_PRICE_BULK - Resolve: every line through the rule sequence, first rule with an answer wins (the classic's\n// Loop Item Data x Loop Config Sequence with its three Map nodes), then \"Map return data\". The expressions are the\n// classic's; only the reads changed (one SQL per source instead of one per line and rule). Where the classic's node threw\n// (item or UOM row missing, quantity that broke its SQL) the line goes on instead of failing the whole request.\nconst resolvePrices = function resolvePrices(itemData, keys, plan, itemRows, histRows, tagRows) {\n  const list = (v) => (Array.isArray(v) ? v : v && typeof v === \"object\" ? [v] : []).filter((r) => r);\n  const parseConv = (v) => {\n    if (Array.isArray(v)) return v;\n    if (!v) return [];\n    try {\n      const p = JSON.parse(v);\n      return Array.isArray(p) ? p : [];\n    } catch (e) {\n      return [];\n    }\n  };\n  const SOURCE = { \"Last Quotation Price\": \"SQT\", \"Last Sales Order Price\": \"SO\", \"Last Sales Invoice Price\": \"SI\",\n    \"Last Purchase Requisition Price\": \"PREQ\", \"Last Purchase Order Price\": \"PO\", \"Last Purchase Invoice Price\": \"PI\" };\n  const items = {};\n  for (const it of list(itemRows)) if (!(String(it.id) in items)) items[String(it.id)] = it;\n  const hist = {};\n  for (const h of list(histRows)) hist[h.src + \"|\" + h.item_id + \"|\" + h.uom_id] = h;\n  const tags = {};\n  for (const t of list(tagRows)) (tags[t.item_id + \"|\" + t.uom_id] = tags[t.item_id + \"|\" + t.uom_id] || []).push(t);\n  // the classic put the line's quantity into its SQL as text: a number or numeric text compares, null / missing is SQL\n  // NULL (only a row without limits passes); text that broke the SQL there is treated as missing here\n  const sqlQty = (v) => {\n    if (typeof v === \"number\") return isFinite(v) ? v : null;\n    if (typeof v === \"boolean\") return v ? 1 : 0;\n    if (typeof v === \"string\" && /^\\s*[+-]?(\\d+(\\.\\d*)?|\\.\\d+)([eE][+-]?\\d+)?\\s*$/.test(v)) return Number(v);\n    return null;\n  };\n  const bound = (v) => (v === undefined || v === null || v === \"\" ? null : Number(v));\n  // (min <= q OR min = 0) AND (max >= q OR max = 0), SQL three-valued: a NULL limit never passes\n  const inRange = (t, q) => {\n    const lo = bound(t.min_order_qty);\n    const hi = bound(t.max_order_qty);\n    if (lo === null || hi === null || isNaN(lo) || isNaN(hi)) return false;\n    return (lo === 0 || (q !== null && lo <= q)) && (hi === 0 || (q !== null && hi >= q));\n  };\n  // what the classic's Redis round trip and node outputs keep: no undefined, null or NaN values\n  const clean = (o) => {\n    const out = {};\n    for (const k of Object.keys(o)) {\n      const v = o[k];\n      if (v === undefined || v === null || (typeof v === \"number\" && !isFinite(v))) continue;\n      out[k] = v;\n    }\n    return out;\n  };\n  const documentType = keys.document_type;\n  const sdOrProcurement = documentType === \"sd\" ? \"sales\" : \"purchase\";\n  const sequence = list(plan.sequence);\n  const redisData = [];\n  for (const currentLineItem of Array.isArray(itemData) ? itemData : []) {\n    if (!currentLineItem || typeof currentLineItem !== \"object\") continue;\n    const itemRow = items[String(currentLineItem.item_id)];\n    const conv = itemRow ? parseConv(itemRow.uom_conversion_json) : [];\n    const itemUOM = conv.find((uom) => String(uom.alt_uom_id) === String(currentLineItem.uom_id)) || null;\n    const u = itemUOM || {};\n    const pairKey = String(currentLineItem.item_id) + \"|\" + String(currentLineItem.uom_id);\n    let data = null;\n    for (const step of sequence) {\n      const rules = step && typeof step === \"object\" ? step.rules : undefined;\n      if (SOURCE[rules]) {\n        const latest = hist[SOURCE[rules] + \"|\" + pairKey];\n        if (!latest) continue;\n        data = {\n          ...currentLineItem,\n          from: rules,\n          unit_price: latest.unit_price || currentLineItem.unit_price || 0,\n          from_historical: 1,\n          max_price: parseFloat(u[`${sdOrProcurement}_max_price`] || 0),\n          min_price: parseFloat(u[`${sdOrProcurement}_min_price`] || 0),\n          max_qty: parseFloat(u[`max_${sdOrProcurement}_qty`] || 0),\n          min_qty: parseFloat(u[`min_${sdOrProcurement}_qty`] || 0),\n        };\n      } else if (rules === \"Customer Price Tag\" || rules === \"Supplier Price Tag\") {\n        if (keys.needFetch !== \"Yes\") continue;\n        const q = sqlQty(currentLineItem.quantity);\n        const priceTagData = (tags[pairKey] || []).filter((t) => inRange(t, q));\n        if (priceTagData.length === 0) continue;\n        data = {\n          ...currentLineItem,\n          from: rules,\n          use_price_tag: true,\n          unit_price: priceTagData[0].unit_price || currentLineItem.unit_price || 0,\n          from_historical: 0,\n          max_price: priceTagData[0].max_price || 0,\n          min_price: priceTagData[0].min_price || 0,\n          min_qty: parseFloat(u[`min_${sdOrProcurement}_qty`] || 0),\n          max_qty: parseFloat(u[`max_${sdOrProcurement}_qty`] || 0),\n          quantity: parseFloat(currentLineItem.quantity || 0),\n          discount: priceTagData[0].discount || currentLineItem.discount || 0,\n          discount_uom: priceTagData[0].discount_type || currentLineItem.discount_uom,\n          tax_rate: priceTagData[0].tax || currentLineItem.tax_rate,\n          tax_percent: priceTagData[0].tax_percent || currentLineItem.tax_percent,\n        };\n      } else if (rules === \"Default Sales Unit Price\" || rules === \"Default Purchase Unit Price\") {\n        if (!itemUOM) continue;\n        data = {\n          ...currentLineItem,\n          from: rules,\n          use_price_tag: false,\n          unit_price: itemUOM[`${sdOrProcurement}_unit_price`] || currentLineItem.unit_price || 0,\n          from_historical: 0,\n          max_price: itemUOM[`${sdOrProcurement}_max_price`] || 0,\n          min_price: itemUOM[`${sdOrProcurement}_min_price`] || 0,\n          min_qty: itemUOM[`min_${sdOrProcurement}_qty`] || 0,\n          max_qty: itemUOM[`max_${sdOrProcurement}_qty`] || 0,\n          quantity: parseFloat(currentLineItem.quantity || 0),\n          discount: currentLineItem.discount || 0,\n          discount_uom: currentLineItem.discount_uom,\n          tax_rate: itemUOM[`mat_${sdOrProcurement}_tax_id`] || currentLineItem.tax_rate,\n          tax_percent: itemUOM[`${sdOrProcurement}_tax_percent`] || currentLineItem.tax_percent,\n        };\n      } else {\n        continue;\n      }\n      break;\n    }\n    if (data) redisData.push(clean(data));\n  }\n\n  // Map return data (verbatim)\n  const workflowItemData = itemData || [];\n  const hasUsePriceTag = redisData.some((item) => item.use_price_tag === true);\n  const roundTo4 = (val) => {\n    if (val === undefined || val === null || val === \"\") return null;\n    const num = parseFloat(val);\n    return isNaN(num) ? null : Math.round(num * 10000) / 10000;\n  };\n  let isPriceDifferent = false;\n  let isDiscountDifferent = false;\n  let isDiscountUomDifferent = false;\n  let isTaxRateDifferent = false;\n  let isTaxPercentDifferent = false;\n  if (redisData.length > 0 && workflowItemData.length > 0) {\n    for (const redisItem of redisData) {\n      const workflowItem = workflowItemData.find((item) => item.item_id === redisItem.item_id && item.line_index === redisItem.line_index);\n      if (workflowItem) {\n        const redisPrice = roundTo4(redisItem?.unit_price);\n        const workflowPrice = roundTo4(workflowItem?.unit_price);\n        if (redisPrice !== workflowPrice && redisPrice !== 0) isPriceDifferent = true;\n        if (roundTo4(redisItem?.discount) !== roundTo4(workflowItem?.discount)) isDiscountDifferent = true;\n        if ((redisItem?.discount_uom || null) !== (workflowItem?.discount_uom || null)) isDiscountUomDifferent = true;\n        if (roundTo4(redisItem?.tax_rate) !== roundTo4(workflowItem?.tax_rate)) isTaxRateDifferent = true;\n        if (roundTo4(redisItem?.tax_percent) !== roundTo4(workflowItem?.tax_percent)) isTaxPercentDifferent = true;\n      }\n    }\n  }\n  const needOverwrite = hasUsePriceTag || isPriceDifferent || isDiscountDifferent || isDiscountUomDifferent || isTaxRateDifferent || isTaxPercentDifferent ? \"Yes\" : \"No\";\n  return { data: redisData, needOverwrite: needOverwrite };\n};\nconst res = resolvePrices([{{workflowparams:item_data}}][0], [{{node:code_node_UPkeys.data}}][0], [{{node:code_node_UPplan.data}}][0],\n  [{{node:sql_node_UPitems.data}}][0], [{{node:sql_node_UPhist.data}}][0], [{{node:sql_node_UPtag.data}}][0]);\nconsole.log(\"prices\", JSON.stringify({ lines: ([{{workflowparams:item_data}}][0] || []).length, priced: res.data.length, needOverwrite: res.needOverwrite }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "ydwed2bd",
+      "name": "data",
+      "title": "data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "oki2rvv8",
+      "name": "needOverwrite",
+      "title": "needOverwrite",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Resolve: each line through the sequence (first rule with an answer), then needOverwrite (Map return data)",
+    "isValidator": true,
+    "nodeName": "Resolve: each line through the sequence (first rule with an answer), then needOverwrite (Map return data)",
+    "name": "Resolve: each line through the sequence (first rule with an answer), then needOverwrite (Map return data)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node",
+    "nodeName": "End Node",
+    "name": "End Node",
+    "back_data_type": "OutputParams",
+    "response_value": {
+     "list": [
+      {
+       "prop": "data",
+       "propLabel": "data",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "valueLabel": "",
+       "value": "{{node:code_node_UPresolve.data.data}}"
+      },
+      {
+       "prop": "needOverwrite",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_UPresolve.data.needOverwrite}}",
+       "valueLabel": "",
+       "propLabel": "needOverwrite"
+      }
+     ]
+    }
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

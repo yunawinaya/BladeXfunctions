@@ -1,0 +1,396 @@
+const showStatusHTML = (status) => {
+  switch (status) {
+    case "Draft":
+      this.display(["draft_status"]);
+      break;
+    case "Created":
+      this.display(["created_status"]);
+      break;
+    case "In Progress":
+      this.display(["processing_status"]);
+      break;
+    case "Completed":
+      this.display(["completed_status"]);
+      break;
+    default:
+      break;
+  }
+};
+
+const disabledField = async (status) => {
+  switch (status) {
+    case "Completed":
+      this.disabled(
+        [
+          "to_status",
+          "plant_id",
+          "to_id",
+          "movement_type",
+          "ref_doc_type",
+          "gr_no",
+          "receiving_no",
+          "supplier_id",
+          "assigned_to",
+          "created_by",
+          "created_at",
+          "organization_id",
+          "ref_doc",
+          "table_putaway_item",
+          "table_putaway_records",
+          "remarks",
+        ],
+        true,
+      );
+
+      this.hide([
+        "button_save_as_draft",
+        "button_inprogress",
+        "button_completed",
+      ]);
+
+      break;
+
+    case "Created":
+    case "In Progress":
+      this.disabled(
+        [
+          "plant_id",
+          "to_id",
+          "movement_type",
+          "ref_doc_type",
+          "gr_no",
+          "receiving_no",
+          "supplier_id",
+          "assigned_to",
+          "created_by",
+          "created_at",
+        ],
+        true,
+      );
+
+      this.hide(["button_save_as_draft"]);
+  }
+};
+
+const setPlant = async (organizationId) => {
+  const deptId = this.getVarSystem("deptIds").split(",")[0];
+  let plantId = "";
+  if (deptId === organizationId) {
+    const resPlant = await db
+      .collection("blade_dept")
+      .where({ parent_id: deptId })
+      .get();
+
+    if (!resPlant.data.length > 0) {
+      plantId = deptId;
+    } else {
+      plantId = "";
+    }
+  } else {
+    plantId = deptId;
+  }
+
+  this.setData({
+    organization_id: organizationId,
+    plant_id: plantId,
+    created_at: new Date().toISOString().split("T")[0],
+    created_by: this.getVarGlobal("nickname"),
+    movement_type: "Putaway",
+  });
+};
+
+const showQINo = async () => {
+  const data = this.getValues();
+
+  if (data.qi_id && data.qi_id !== null && data.qi_id !== "") {
+    this.display("quality_insp_no");
+  }
+};
+
+const enabledTargetCategoryField = async () => {
+  const putawayItem = this.getValue("table_putaway_item");
+
+  // The bundle row carries the bundle id and no item code. It holds no stock,
+  // so it has no inventory category — that belongs to the items under it. It is
+  // locked here rather than by the column's own disabled expression, because
+  // this enables the column row by row and an imperative call overrides the
+  // per-row expression.
+  const isBundleParentRow = (item) =>
+    Boolean(item.item_bundle_id) && !item.item_code;
+
+  setTimeout(() => {
+    const applyRow = (item, path) => {
+      if (isBundleParentRow(item)) {
+        this.disabled([`${path}.target_inv_category`], true);
+        return;
+      }
+
+      if (!item.qi_no || item.qi_no === null) {
+        console.log("item qi no", item.qi_no);
+        this.disabled([`${path}.target_inv_category`], false);
+      }
+    };
+
+    for (const [index, item] of putawayItem.entries()) {
+      const path = `table_putaway_item.${index}`;
+
+      applyRow(item, path);
+
+      // A bundle's items are rows of the tree, not of table_putaway_item, so
+      // they are reached through their parent.
+      const bundleChildren = Array.isArray(item.children) ? item.children : [];
+
+      for (const [childIndex, child] of bundleChildren.entries()) {
+        applyRow(child, `${path}.children.${childIndex}`);
+      }
+    }
+  }, 100);
+};
+
+const viewSerialNumber = async () => {
+  const table_putaway_item = this.getValue("table_putaway_item");
+  const table_putaway_records = this.getValue("table_putaway_records");
+  if (table_putaway_item.length > 0) {
+    for (const putaway of table_putaway_item) {
+      if (
+        putaway.is_serialized_item === 1 &&
+        putaway.serial_numbers !== "" &&
+        putaway.serial_numbers !== undefined
+      ) {
+        console.log("serial numbers", putaway.serial_numbers);
+        await this.display("table_putaway_item.select_serial_number");
+      }
+    }
+  }
+  if (table_putaway_records.length > 0) {
+    for (const putaway of table_putaway_records) {
+      if (putaway.serial_numbers !== "" && putaway.serial_numbers !== null) {
+        await this.display("table_putaway_records.serial_numbers");
+      }
+    }
+  }
+};
+
+const setSerialNumber = async () => {
+  try {
+    const table_putaway_item = this.getValue("table_putaway_item");
+
+    // Check if table_putaway_item exists and is an array
+    if (!Array.isArray(table_putaway_item) || table_putaway_item.length === 0) {
+      console.log("No putaway items found or invalid data structure");
+      return;
+    }
+
+    for (const [index, putaway] of table_putaway_item.entries()) {
+      try {
+        // Check if item is serialized
+        if (putaway.is_serialized_item === 1) {
+          console.log(
+            `Processing serialized item at index ${index}:`,
+            putaway.item_code || putaway.id,
+          );
+
+          // Check if serial_numbers exists and is not empty
+          if (
+            !putaway.serial_numbers ||
+            putaway.serial_numbers === null ||
+            putaway.serial_numbers === undefined ||
+            typeof putaway.serial_numbers !== "string" ||
+            putaway.serial_numbers.trim() === ""
+          ) {
+            console.warn(
+              `No valid serial numbers found for item at index ${index}`,
+            );
+            continue;
+          }
+
+          // Split and clean serial numbers
+          const serialNumbers = putaway.serial_numbers
+            .split(",")
+            .map((sn) => sn.trim())
+            .filter((sn) => sn !== "");
+
+          if (serialNumbers.length === 0) {
+            console.warn(
+              `No valid serial numbers after processing for item at index ${index}`,
+            );
+            continue;
+          }
+
+          console.log(
+            `Setting ${serialNumbers.length} serial numbers for item at index ${index}:`,
+            serialNumbers,
+          );
+
+          // Set option data for select dropdown
+          await this.setOptionData(
+            [`table_putaway_item.${index}.select_serial_number`],
+            serialNumbers,
+          );
+
+          // Set the actual data
+          await this.setData({
+            [`table_putaway_item.${index}.select_serial_number`]: serialNumbers,
+          });
+
+          // Disable putaway_qty field for serialized items
+          await this.disabled(
+            [`table_putaway_item.${index}.putaway_qty`],
+            true,
+          );
+
+          console.log(
+            `Successfully set serial numbers for item at index ${index}`,
+          );
+        }
+      } catch (itemError) {
+        console.error(`Error processing item at index ${index}:`, itemError);
+        // Continue with next item instead of breaking the entire function
+        continue;
+      }
+    }
+  } catch (error) {
+    console.error("Error in setSerialNumber function:", error);
+    // Don't throw error to prevent breaking the entire onMounted flow
+  }
+};
+
+const disableSplitForHUItems = async () => {
+  const tablePutawayItem = this.getValue("table_putaway_item");
+  if (!Array.isArray(tablePutawayItem) || tablePutawayItem.length === 0) return;
+
+  for (const [index, item] of tablePutawayItem.entries()) {
+    if (item.hu_data && item.hu_data !== "") {
+      this.disabled([`table_putaway_item.${index}.button_split`], true);
+    }
+  }
+};
+
+const setDocType = async (plantId) => {
+  if (plantId) {
+    await this.disabled(["ref_doc_type", "gr_no"], false);
+    await this.setData({ ref_doc_type: "Goods Receiving" });
+  }
+};
+
+// Main execution function
+(async () => {
+  try {
+    let pageStatus = "";
+    const status = await this.getValue("to_status");
+
+    if (this.isAdd) pageStatus = "Add";
+    else if (this.isEdit) pageStatus = "Edit";
+    else if (this.isView) pageStatus = "View";
+    else if (this.isCopy) pageStatus = "Clone";
+    else throw new Error("Invalid page state");
+
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+
+    this.setData({ page_status: pageStatus });
+
+    switch (pageStatus) {
+      case "Add":
+        // Add mode
+        this.display(["draft_status"]);
+
+        await setPlant(organizationId);
+        await setDocType(this.getValue("plant_id"));
+        break;
+
+      case "Edit":
+        this.setData({ previous_status: status });
+        if (status !== "Draft") {
+          this.hide(["gr_no"]);
+          this.display(["receiving_no"]);
+
+          if (status === "Created" || status === "In Progress") {
+            console.log("status", status);
+            const tablePutawayItem = this.getValue("table_putaway_item");
+            // Flat: a bundle's items are rows in their own right and hold a
+            // putaway_qty of their own. Resetting only the top level left last
+            // session's quantities on them, and because the completion path skips
+            // the bundle row by design nothing objected -- the stale quantities
+            // simply booked real inventory again on the next Complete.
+            for (const putaway of tablePutawayItem) {
+              putaway.putaway_qty = 0;
+
+              for (const child of (Array.isArray(putaway.children) ? putaway.children : [])) {
+                child.putaway_qty = 0;
+              }
+            }
+
+            this.setData({ table_putaway_item: tablePutawayItem });
+            setTimeout(() => {
+              this.triggerEvent("func_getPutawayStrategy", {});
+            }, 100);
+          }
+        }
+        this.getComponent("table_putaway_item")?.hideChildRecord();
+
+        await enabledTargetCategoryField();
+        await disabledField(status);
+        await showStatusHTML(status);
+        await showQINo();
+        await viewSerialNumber();
+        await disableSplitForHUItems();
+        setTimeout(() => {
+          setSerialNumber();
+        }, 300);
+        break;
+
+      case "View":
+        this.hide(["gr_no"]);
+        this.display(["receiving_no"]);
+        await showStatusHTML(status);
+        this.hide([
+          "button_save_as_draft",
+          "button_inprogress",
+          "button_completed",
+        ]);
+        await showQINo();
+        await viewSerialNumber();
+        await disableSplitForHUItems();
+        break;
+    }
+  } catch (error) {
+    console.error(error);
+    this.$message.error(error.message || "An error occurred");
+  }
+})();
+
+setTimeout(async () => {
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("to_id_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+  var params = this.getComponent("to_id");
+  const { options } = params;
+
+  const optionsData = this.getOptionData("to_id_type") || [];
+  const defaultData = getDefaultItem(optionsData);
+  if (options?.canManualInput) {
+    this.setOptionData("to_id_type", [
+      { label: "Manual Input", value: -9999 },
+      ...optionsData,
+    ]);
+    if (this.isAdd) {
+      this.setData({
+        to_id_type: defaultData ? defaultData.value : -9999,
+      });
+    }
+  } else if (defaultData) {
+    if (this.isAdd) {
+      this.setData({ to_id_type: defaultData.value });
+    }
+  }
+}, 200);

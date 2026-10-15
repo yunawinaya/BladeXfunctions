@@ -1,0 +1,105 @@
+{
+ "request_json": [
+  {
+   "key": "y2scjqom",
+   "name": "document_type",
+   "title": "Document Type",
+   "description": "PREQ/PO/SQT/SO",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "rnusmf2s",
+   "name": "supp_cust_id",
+   "title": "Supplier / Customer ID",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "lc2m7q82",
+   "name": "plant_id",
+   "title": "Plant ID",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "m1s0ifyh",
+   "name": "item_data",
+   "title": "Item Data",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "4neav81h",
+   "name": "data",
+   "title": "",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "8zianfqj",
+   "name": "needOverwrite",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "end_401": {
+  "title": "结束节点",
+  "outputs": {
+   "type": "object",
+   "properties": {
+    "result": {
+     "type": "string"
+    }
+   }
+  },
+  "isValidator": true,
+  "nodeName": "结束节点",
+  "name": "结束节点",
+  "back_data_type": "Default",
+  "code": 401,
+  "msg": {
+   "type": "javascript",
+   "code": "{{node:code_node_Q1zqehTx.data.message}}"
+  }
+ },
+ "end": {
+  "isValidator": true,
+  "title": "End Node",
+  "nodeName": "End Node",
+  "name": "End Node",
+  "back_data_type": "OutputParams",
+  "response_value": {
+   "list": [
+    {
+     "prop": "data",
+     "propLabel": "data",
+     "operator": "",
+     "operatorLabel": "",
+     "valueType": "field",
+     "valueTypeLabel": "",
+     "valueLabel": "",
+     "value": "{{node:code_node_Dc1KkM8t.data.data}}"
+    },
+    {
+     "prop": "needOverwrite",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_Dc1KkM8t.data.needOverwrite}}",
+     "valueLabel": "",
+     "propLabel": "needOverwrite"
+    }
+   ]
+  }
+ }
+}

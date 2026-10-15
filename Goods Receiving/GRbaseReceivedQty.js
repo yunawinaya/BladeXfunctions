@@ -1,20 +1,60 @@
 // Helper function to round quantity to 3 decimal places
 const roundQty = (value) => {
-  return Math.round(value * 1000) / 1000;
+  return value;
 };
 
-// over_receive_tolerance now lives per-UOM inside table_uom_conversion, keyed by
-// alt_uom_id. Look it up by the GR line's ordered UOM (base UOM is guaranteed to
-// be row 0, so this resolves for both base and alternate UOMs).
-const getOverReceiveTolerance = (item, uomId) =>
-  ((item?.table_uom_conversion || []).find((c) => c.alt_uom_id === uomId) || {})
-    .over_receive_tolerance || 0;
+// Over-receive tolerance by UOM (first row per UOM, like find()); 0 = none.
+const toleranceEntry = (uomRows) => {
+  const entry = {};
+  const seen = new Set();
+  (uomRows || []).forEach((conv) => {
+    if (seen.has(conv.alt_uom_id)) return;
+    seen.add(conv.alt_uom_id);
+    if (conv.over_receive_tolerance) {
+      entry[conv.alt_uom_id] = conv.over_receive_tolerance;
+    }
+  });
+  return Object.keys(entry).length > 0 ? entry : 0;
+};
+
+// Item map cached in _data by func_processGRLineItem, else one projected read.
+const getOverReceiveTolerance = async (itemId, uomId) => {
+  const key = String(itemId);
+  let entry = ((this.models["_data"] || {}).gr_item_tol || {})[key];
+
+  if (entry === undefined) {
+    const { data } = await db
+      .collection("Item")
+      .field("table_uom_conversion")
+      .where({ id: itemId })
+      .get();
+    if (!data || data.length === 0) return 0;
+
+    entry = toleranceEntry(data[0].table_uom_conversion);
+    const store = this.models["_data"] || {};
+    this.models["_data"] = {
+      ...store,
+      gr_item_tol: { ...(store.gr_item_tol || {}), [key]: entry },
+    };
+  }
+
+  return (entry && entry[uomId]) || 0;
+};
 
 (async () => {
   try {
     // Get input values
     const quantity = arguments[0].value;
     const rowIndex = arguments[0].rowIndex;
+
+    // rowIndex is not a usable position once table_gr is a tree -- a bundle's items
+    // are not rows of it. Address the row by its own key, falling back to the index
+    // only for a row the platform has not keyed.
+    const eventRow = arguments[0].row;
+    const rowPath =
+      eventRow && eventRow.fm_key
+        ? `table_gr.${eventRow.fm_key}`
+        : `table_gr.${rowIndex}`;
 
     // Validate inputs
     if (rowIndex === undefined || rowIndex === null) {
@@ -28,9 +68,9 @@ const getOverReceiveTolerance = (item, uomId) =>
     }
 
     // Check if line has HU data - if quantity changed, confirm reset
-    const tempHuDataStr = this.getValue(`table_gr.${rowIndex}.temp_hu_data`);
+    const tempHuDataStr = this.getValue(`${rowPath}.temp_hu_data`);
     const uomConversionCheck =
-      this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 1;
+      this.getValue(`${rowPath}.uom_conversion`) || 1;
 
     if (tempHuDataStr && tempHuDataStr !== "[]") {
       const tempHuData = JSON.parse(tempHuDataStr);
@@ -57,13 +97,13 @@ const getOverReceiveTolerance = (item, uomId) =>
 
           // User confirmed - clear temp_hu_data and view_hu
           await this.setData({
-            [`table_gr.${rowIndex}.temp_hu_data`]: "[]",
-            [`table_gr.${rowIndex}.view_hu`]: "",
+            [`${rowPath}.temp_hu_data`]: "[]",
+            [`${rowPath}.view_hu`]: "",
           });
         } catch {
           // User cancelled - revert to HU total (in base UOM)
           await this.setData({
-            [`table_gr.${rowIndex}.base_received_qty`]: totalStoreInBaseQty,
+            [`${rowPath}.base_received_qty`]: totalStoreInBaseQty,
           });
           return;
         }
@@ -72,8 +112,8 @@ const getOverReceiveTolerance = (item, uomId) =>
 
     // Skip calculation for hierarchy split parent rows (their quantities are managed by split logic)
     // Note: Split-Parent rows are treated like regular rows (no skip)
-    const isSplit = this.getValue(`table_gr.${rowIndex}.is_split`);
-    const parentOrChild = this.getValue(`table_gr.${rowIndex}.parent_or_child`);
+    const isSplit = this.getValue(`${rowPath}.is_split`);
+    const parentOrChild = this.getValue(`${rowPath}.parent_or_child`);
     if (isSplit === "Yes" && parentOrChild === "Parent") {
       return;
     }
@@ -84,12 +124,12 @@ const getOverReceiveTolerance = (item, uomId) =>
     // For child rows: validate total children qty against parent's ordered qty
     if (parentOrChild === "Child") {
       const uomConversion =
-        this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
+        this.getValue(`${rowPath}.uom_conversion`) || 0;
       const receivedQty = roundQty(
         uomConversion > 0 ? quantity / uomConversion : quantity,
       );
 
-      const parentIndex = this.getValue(`table_gr.${rowIndex}.parent_index`);
+      const parentIndex = this.getValue(`${rowPath}.parent_index`);
       const tableGR = this.getValue("table_gr");
 
       // Find parent row to get ordered_qty
@@ -126,20 +166,14 @@ const getOverReceiveTolerance = (item, uomId) =>
         const totalChildrenQty = roundQty(siblingsTotal + receivedQty);
 
         // Get tolerance from item
-        const itemId = this.getValue(`table_gr.${rowIndex}.item_id`);
+        const itemId = this.getValue(`${rowPath}.item_id`);
         let overReceiveTolerance = 0;
 
         if (itemId) {
-          const { data: itemData } = await db
-            .collection("Item")
-            .where({ id: itemId })
-            .get();
-          if (itemData && itemData.length > 0) {
-            overReceiveTolerance = getOverReceiveTolerance(
-          itemData[0],
-          this.getValue(`table_gr.${rowIndex}.ordered_qty_uom`),
-        );
-          }
+          overReceiveTolerance = await getOverReceiveTolerance(
+            itemId,
+            this.getValue(`${rowPath}.ordered_qty_uom`),
+          );
         }
 
         // Max allowed total (ordered qty based, not remaining)
@@ -164,14 +198,14 @@ const getOverReceiveTolerance = (item, uomId) =>
       }
 
       const currentChildReceivedQty =
-        this.getValue(`table_gr.${rowIndex}.received_qty`) || 0;
+        this.getValue(`${rowPath}.received_qty`) || 0;
       const childUpdates = {};
       if (currentChildReceivedQty !== effectiveReceivedQty) {
-        childUpdates[`table_gr.${rowIndex}.received_qty`] = effectiveReceivedQty;
+        childUpdates[`${rowPath}.received_qty`] = effectiveReceivedQty;
       }
       // If capped, also reset the edited base field to reflect the cap
       if (effectiveReceivedQty !== receivedQty) {
-        childUpdates[`table_gr.${rowIndex}.base_received_qty`] =
+        childUpdates[`${rowPath}.base_received_qty`] =
           uomConversion > 0
             ? roundQty(effectiveReceivedQty * uomConversion)
             : effectiveReceivedQty;
@@ -183,31 +217,25 @@ const getOverReceiveTolerance = (item, uomId) =>
     }
 
     // Get table values
-    const orderedQty = this.getValue(`table_gr.${rowIndex}.ordered_qty`) || 0;
+    const orderedQty = this.getValue(`${rowPath}.ordered_qty`) || 0;
     const baseOrderedQty =
-      this.getValue(`table_gr.${rowIndex}.base_ordered_qty`) || 0;
+      this.getValue(`${rowPath}.base_ordered_qty`) || 0;
     const initialReceivedQty =
-      this.getValue(`table_gr.${rowIndex}.initial_received_qty`) || 0;
+      this.getValue(`${rowPath}.initial_received_qty`) || 0;
     const uomConversion =
-      this.getValue(`table_gr.${rowIndex}.uom_conversion`) || 0;
+      this.getValue(`${rowPath}.uom_conversion`) || 0;
     const currentReceivedQty =
-      this.getValue(`table_gr.${rowIndex}.received_qty`) || 0;
+      this.getValue(`${rowPath}.received_qty`) || 0;
 
     // Fetch over-receive tolerance from Item master
-    const itemId = this.getValue(`table_gr.${rowIndex}.item_id`);
+    const itemId = this.getValue(`${rowPath}.item_id`);
     let overReceiveTolerance = 0;
 
     if (itemId) {
-      const { data: itemData } = await db
-        .collection("Item")
-        .where({ id: itemId })
-        .get();
-      if (itemData && itemData.length > 0) {
-        overReceiveTolerance = getOverReceiveTolerance(
-          itemData[0],
-          this.getValue(`table_gr.${rowIndex}.ordered_qty_uom`),
-        );
-      }
+      overReceiveTolerance = await getOverReceiveTolerance(
+        itemId,
+        this.getValue(`${rowPath}.ordered_qty_uom`),
+      );
     }
 
     console.log("Calculation inputs:", {
@@ -227,9 +255,9 @@ const getOverReceiveTolerance = (item, uomId) =>
 
       const toReceivedQty = orderedQty - initialReceivedQty;
       await this.setData({
-        [`table_gr.${rowIndex}.base_received_qty`]: 0,
-        [`table_gr.${rowIndex}.received_qty`]: 0,
-        [`table_gr.${rowIndex}.to_received_qty`]: toReceivedQty,
+        [`${rowPath}.base_received_qty`]: 0,
+        [`${rowPath}.received_qty`]: 0,
+        [`${rowPath}.to_received_qty`]: toReceivedQty,
       });
       return;
     }
@@ -260,7 +288,7 @@ const getOverReceiveTolerance = (item, uomId) =>
       );
 
       await this.setData({
-        [`table_gr.${rowIndex}.base_received_qty`]: effectiveBaseQty,
+        [`${rowPath}.base_received_qty`]: effectiveBaseQty,
       });
     }
 
@@ -275,11 +303,11 @@ const getOverReceiveTolerance = (item, uomId) =>
     );
 
     const updates = {
-      [`table_gr.${rowIndex}.to_received_qty`]:
+      [`${rowPath}.to_received_qty`]:
         toReceivedQty < 0 ? 0 : toReceivedQty,
     };
     if (currentReceivedQty !== receivedQty) {
-      updates[`table_gr.${rowIndex}.received_qty`] = receivedQty;
+      updates[`${rowPath}.received_qty`] = receivedQty;
     }
     await this.setData(updates);
   } catch (error) {

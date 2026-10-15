@@ -78,19 +78,6 @@ const displayTax = async () => {
   }
 };
 
-const enabledUOMField = async () => {
-  const tablePO = this.getValue("table_po");
-
-  tablePO.forEach((po, rowIndex) => {
-    if (po.item_id || po.item_desc !== "") {
-      this.triggerEvent("LineItem_onChange_fillback", {
-        poItem: po,
-        index: rowIndex,
-      });
-    }
-  });
-};
-
 const disabledEditField = async (status) => {
   if (status !== "Draft" && status !== "Issued") {
     this.disabled(
@@ -121,6 +108,7 @@ const disabledEditField = async (status) => {
         "po_remark3",
         "po_remark4",
         "po_remark5",
+        "po_description",
         "po_tnc",
         "billing_address_line_1",
         "billing_address_line_2",
@@ -200,6 +188,7 @@ const cloneResetQuantity = async (data) => {
   data["preq_id"] = [];
   data["purchase_order_no"] = null;
   data["linked_so_id"] = "";
+  data["po_description"] = "Purchase Order";
 
   this.hide("preq_no");
 
@@ -262,6 +251,11 @@ const checkAccIntegrationType = async (organizationId, data) => {
       organizationId = this.getVarSystem("deptIds");
     }
     data["page_status"] = pageStatus;
+
+    // Direct Invoice on the PI list opens this form with purchase_order_title
+    // 'Purchase Invoice'. auto_pi = 1 makes PO_SAVE create a Completed PI when the
+    // PO is issued; create_pi is the answer to its 0-total prompt.
+    const fromSource = this.getParamsVariables("purchase_order_title");
     this.hide([
       "exchange_rate",
       "exchange_rate_myr",
@@ -279,6 +273,11 @@ const checkAccIntegrationType = async (organizationId, data) => {
         this.disabled("table_po", !supplierID);
         data["organization_id"] = organizationId;
         data["po_date"] = new Date().toISOString().split("T")[0];
+        data["auto_pi"] = fromSource === "Purchase Invoice" ? 1 : 0;
+        data["create_pi"] = "No";
+        data["created_source"] = "Web";
+        data["po_description"] =
+          this.getValue("po_description") || "Purchase Order";
 
         // hide GR Tab
         if (tabGR) {
@@ -286,7 +285,6 @@ const checkAccIntegrationType = async (organizationId, data) => {
         }
         await setPlant(organizationId, pageStatus, data);
         await checkAccIntegrationType(organizationId, data);
-        await enabledUOMField();
         await displayFields();
         await displayCurrency();
         await displayPlantAddress();
@@ -297,7 +295,6 @@ const checkAccIntegrationType = async (organizationId, data) => {
         await disabledEditField(status);
         await showStatusHTML(status);
         await checkAccIntegrationType(organizationId, data);
-        await enabledUOMField();
         await displayFields();
         await displayCurrency();
         await displayPlantAddress();
@@ -325,12 +322,14 @@ const checkAccIntegrationType = async (organizationId, data) => {
         await displayFields();
         await checkAccIntegrationType(organizationId, data);
         await setPlant(organizationId, pageStatus, data);
-        await enabledUOMField();
         await displayCurrency();
         await displayPlantAddress();
         await displayTax();
         await showStatusHTML("Draft");
         await cloneResetQuantity(data);
+        data["auto_pi"] = fromSource === "Purchase Invoice" ? 1 : 0;
+        data["create_pi"] = "No";
+        data["created_source"] = "Web";
 
         break;
 
@@ -340,6 +339,7 @@ const checkAccIntegrationType = async (organizationId, data) => {
           "link_shipping_address",
           "button_save_as_draft",
           "button_save_as_issue",
+          "import_po_lines",
         ]);
 
         // hide GR Tab
@@ -356,8 +356,11 @@ const checkAccIntegrationType = async (organizationId, data) => {
     }
 
     this.setData(data);
-    this.getComponent("table_po")?.hideChildRecord();
     this.refreshFieldOptionData("po_plant");
+
+    setTimeout(() => {
+      this.triggerEvent("syncBundleChildButtons");
+    }, 100);
   } catch (error) {
     this.$message.error(error);
   }

@@ -17,18 +17,6 @@
     })();
   }, 50);
 
-  setTimeout(async () => {
-    const tableGR = await this.getValue("table_gr");
-    console.log("tableGR", tableGR);
-    tableGR.forEach((gr, index) => {
-      if (gr.is_serialized_item === 1) {
-        this.disabled(`table_gr.${index}.received_qty`, true);
-        this.disabled(`table_gr.${index}.base_received_qty`, true);
-      } else {
-        this.disabled(`table_gr.${index}.select_serial_number`, true);
-        this.disabled(`table_gr.${index}.received_qty`, false);
-        this.disabled(`table_gr.${index}.base_received_qty`, false);
-      }
-    });
-  }, 100);
+  // Line states are kept per line (the table keys them by fm_key), so removing
+  // a line moves nothing and nothing is re-applied here.
 })();

@@ -172,7 +172,7 @@ t("ADD GRN on FIFO: PO price, new balance row, next FIFO sequence", () => {
   assert.strictEqual(p.results[0].unit_price, 10);
   assert.strictEqual(p.creates.item_balance.length, 1);
   assert.strictEqual(p.creates.item_balance[0].unrestricted_qty, 24);
-  assert.strictEqual(p.creates.fifo[0].fifo_sequence, 4);
+  assert.strictEqual(p.creates.fifo[0].fifo_sequence, "4");
   assert.strictEqual(p.creates.fifo[0].fifo_available_quantity, 24);
 });
 
@@ -207,6 +207,103 @@ t("duplicate balance rows refuse the plan", () => {
     movements: [sub("a", "M1", "L1", 1)],
   });
   assert.strictEqual(p.failure.code, "DUPLICATE_BALANCE");
+});
+
+t("precision: a WA receipt re-average and the balances are stored at the tenant rule (4 dp price, 3 dp qty)", () => {
+  const p = planBulk({
+    precision: { price: 4, qty: 3 },
+    items: { M1: item("M1", "Weighted Average") },
+    itemBalances: [bal("B1", "M1", "L1", { unrestricted_qty: 3, balance_quantity: 3 })],
+    waRows: [{ id: "W1", material_id: "M1", plant_id: PLANT, organization_id: ORG, batch_id: null, wa_quantity: 3, wa_cost_price: 10, created_at: "2026-10-01 00:00:00" }],
+    movements: [add("a", "M1", "L1", 1, { isMovingInv: 0, transaction_type: "GRN", unit_price: 1.00005, po_quantity: 1, po_amount: 1.00005, exchange_rate: 1 })],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  // (10 * 3 + 1.00005 * 1) / 4 = 7.7500125 -> 7.7500 stored; the movement price 1.00005 -> 1.0001
+  assert.deepStrictEqual(upd(p, "wa", "W1").after, { wa_quantity: 4, wa_cost_price: 7.75 });
+  assert.strictEqual(p.movements[0].unit_price, 1.0001);
+  assert.strictEqual(p.results[0].unit_price, 1.00005); // the caller still gets the computed price
+});
+
+t("precision: a later movement reads the stored (rounded) value, as the old path's next call did", () => {
+  const p = planBulk({
+    precision: { price: 4, qty: 3 },
+    items: { M1: item("M1", "Fixed Cost") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 1, balance_quantity: 1 })],
+    movements: [sub("a", "M1", "L1", 0.0004), sub("b", "M1", "L1", 0.0004)],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  // 1 - 0.0004 = 0.9996 -> 1.000 stored; again -> 1.000
+  assert.strictEqual(upd(p, "item_balance", "B1").after.reserved_qty, 1);
+  assert.strictEqual(p.movements[0].base_qty, 0);
+});
+
+t("no precision given: values kept at 8 dp (unchanged behaviour)", () => {
+  const p = planBulk({
+    items: { M1: item("M1", "Fixed Cost") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 1, balance_quantity: 1 })],
+    movements: [sub("a", "M1", "L1", 0.0004)],
+  });
+  assert.strictEqual(upd(p, "item_balance", "B1").after.reserved_qty, 0.9996);
+});
+
+t("a category move with its price given skips the costing-migration refusal; without a price it still refuses", () => {
+  const rows = {
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { unrestricted_qty: 5, balance_quantity: 5 })],
+    fifoLayers: [{ id: "F1", material_id: "M1", plant_id: PLANT, organization_id: ORG, fifo_sequence: 1, fifo_available_quantity: 5, fifo_cost_price: 2 }],
+    waRows: [{ id: "W1", material_id: "M1", plant_id: PLANT, organization_id: ORG, wa_quantity: 5, wa_cost_price: 2 }],
+  };
+  const priced = planBulk(Object.assign({}, rows, { movements: [sub("a", "M1", "L1", 1, { inventory_category: "Unrestricted", isMovingInv: 1, unit_price: 2 })] }));
+  assert.ok(priced.ok, JSON.stringify(priced.failure));
+  assert.strictEqual(priced.updates.fifo.length + priced.updates.wa.length, 0); // no costing row touched
+  const unpriced = planBulk(Object.assign({}, rows, { movements: [sub("a", "M1", "L1", 1, { inventory_category: "Unrestricted", isMovingInv: 1 })] }));
+  assert.strictEqual(unpriced.failure.code, "UNSUPPORTED_COSTING");
+});
+
+t("a negative price is refused before anything is planned (given, or computed for a GRN)", () => {
+  const base = { items: { M1: item("M1", "First In First Out") }, itemBalances: [bal("B1", "M1", "L1", {})] };
+  const given = planBulk(Object.assign({}, base, { movements: [add("a", "M1", "L1", 1, { isMovingInv: 0, transaction_type: "GRN", unit_price: -1, po_quantity: 1, po_amount: 5 })] }));
+  assert.strictEqual(given.failure.code, "UNSUPPORTED_PRICE");
+  const computed = planBulk(Object.assign({}, base, { movements: [add("a", "M1", "L1", 1, { isMovingInv: 0, transaction_type: "GRN", unit_price: 0, po_quantity: 1, po_amount: -5 })] }));
+  assert.strictEqual(computed.failure.code, "UNSUPPORTED_PRICE");
+});
+
+t("snapshot: a column first touched by a later movement (the ADD's remark after a SUBTRACT) reaches the write", () => {
+  const p = planBulk({
+    items: { M1: item("M1", "Fixed Cost") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 2, balance_quantity: 2 })],
+    batchBalances: [Object.assign(bal("BB1", "M1", "L1", { reserved_qty: 2, balance_quantity: 2 }), { batch_id: "BA1", remark: "old" })],
+    movements: [sub("a", "M1", "L1", 1, { batch_id: "BA1" }), add("b", "M1", "L1", 1, { batch_id: "BA1", remark: "new" })],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  const u = upd(p, "item_batch_balance", "BB1");
+  assert.strictEqual(u.before.remark, "old");
+  assert.strictEqual(u.after.remark, "new");
+});
+
+t("customised rules: truncate toward zero for prices, and a per-column override (item_balance.reserved_qty 1 dp)", () => {
+  const p = planBulk({
+    precision: { price: { dp: 2, mode: 2 }, qty: { dp: 3, mode: 1 }, columns: { "item_balance.reserved_qty": { dp: 1, mode: 3 } } },
+    items: { M1: item("M1", "Fixed Cost", { purchase_unit_price: 7.129 }) },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 5, balance_quantity: 5 })],
+    movements: [sub("a", "M1", "L1", 1.0004)],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  const b = upd(p, "item_balance", "B1");
+  assert.strictEqual(b.after.reserved_qty, 4); // 3.9996 away from zero at 1 dp -> 4.0
+  assert.strictEqual(b.after.balance_quantity, 4); // 3.9996 half-up at 3 dp -> 4.000
+  assert.strictEqual(p.movements[0].unit_price, 7.12); // 7.129 toward zero at 2 dp
+  assert.strictEqual(p.movements[0].total_price, 7.13); // 7.1318516 toward zero
+});
+
+t("store raw value (dp null) keeps 8 dp for that rule", () => {
+  const p = planBulk({
+    precision: { price: { dp: null, mode: 1 }, qty: { dp: null, mode: 1 } },
+    items: { M1: item("M1", "Fixed Cost") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 1, balance_quantity: 1 })],
+    movements: [sub("a", "M1", "L1", 0.0004)],
+  });
+  assert.strictEqual(upd(p, "item_balance", "B1").after.reserved_qty, 0.9996);
 });
 
 console.log(n + " passed");

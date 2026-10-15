@@ -11,7 +11,7 @@ const sb = { console, JSON, Math, Number, String, Array, Object, Set, Map, parse
 vm.createContext(sb);
 vm.runInContext(src + `\nconst GC_KINDS = ${JSON.stringify({ header: F.goods_delivery, line: F.goods_delivery_fwii8mvb_sub })};`, sb);
 S.lock = [{ step_name: "LOCK|1", result_ref: "GDC|" + gdId + "|1" }];
-sb.__E = { jobId: "999000000000000001", nonce: "a1b2c3d4", idempotencyKey: "GDC|" + gdId + "|1", gdId, organizationId: S.organizationId, tenantId: tenant, request: { v: 1, source: "FORM", submitted_by: "2105190590557097986", answers: {}, header: {} } };
+sb.__E = { jobId: "999000000000000001", nonce: "a1b2c3d4", idempotencyKey: "GDC|" + gdId + "|1", gdId, organizationId: S.organizationId, tenantId: tenant, request: { v: 1, source: process.env.SOURCE || "FORM", submitted_by: "2105190590557097986", answers: JSON.parse(process.env.ANSWERS || "{}"), header: {} } };
 sb.__S = S;
 const t0 = Date.now();
 const res = vm.runInContext("gcPlan(__E, __S)", sb);

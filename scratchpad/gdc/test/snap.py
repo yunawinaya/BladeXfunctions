@@ -1,6 +1,6 @@
 """snap.py <tenant> <gd_id> <out.json>: every row a GD completion can touch, read-only (dev): the GD and its lines, the
 reservations of its SO lines, its SOs and their lines, balances / FIFO / WA / items of its materials at its plant, the
-movements under its number, its completion snapshot, its COMPLETE_GD jobs and their step rows."""
+movements under its number, its completion snapshot, the handling units it delivers from (+ item rows), its COMPLETE_GD jobs and their step rows."""
 import json
 import os
 import sys
@@ -17,6 +17,9 @@ plant, org, no = hdr[0]["plant_id"], hdr[0]["organization_id"], hdr[0]["delivery
 LINES = f"SELECT material_id FROM goods_delivery_fwii8mvb_sub WHERE {T} AND goods_delivery_id = {gd} AND is_deleted = 0 AND material_id IS NOT NULL"
 SOL = f"SELECT CAST(so_line_item_id AS UNSIGNED) FROM goods_delivery_fwii8mvb_sub WHERE {T} AND goods_delivery_id = {gd} AND so_line_item_id REGEXP '^[0-9]+$'"
 SOS = f"SELECT js.s FROM goods_delivery g, JSON_TABLE(g.so_id, '$[*]' COLUMNS (s BIGINT PATH '$')) js WHERE g.{T} AND g.id = {gd}"
+# the handling units its lines deliver from (temp_qty_data entries with a handling_unit_id)
+HUS = (f"SELECT DISTINCT CAST(jt.hu AS UNSIGNED) FROM goods_delivery_fwii8mvb_sub l, JSON_TABLE(IF(JSON_VALID(l.temp_qty_data), l.temp_qty_data, '[]'), "
+       f"'$[*]' COLUMNS (hu VARCHAR(32) PATH '$.handling_unit_id')) jt WHERE l.{T} AND l.goods_delivery_id = {gd} AND l.is_deleted = 0 AND jt.hu REGEXP '^[0-9]+$'")
 snap = {
     "gd": hdr,
     "gdl": q("--dev", f"SELECT * FROM goods_delivery_fwii8mvb_sub WHERE {T} AND goods_delivery_id = {gd} ORDER BY id"),
@@ -30,6 +33,8 @@ snap = {
     "mv": q("--dev", f"SELECT * FROM inventory_movement WHERE {T} AND trx_no = '{no}' ORDER BY id"),
     "item": q("--dev", f"SELECT id, material_code, last_transaction_date, update_time FROM item WHERE id IN ({LINES}) ORDER BY id"),
     "snapshot": q("--dev", f"SELECT * FROM gd_completion_snapshot WHERE {T} AND gd_id = '{gd}' ORDER BY id"),
+    "hu": q("--dev", f"SELECT * FROM handling_unit WHERE {T} AND id IN ({HUS}) ORDER BY id"),
+    "hui": q("--dev", f"SELECT * FROM handling_unit_atu7sreg_sub WHERE {T} AND handling_unit_id IN ({HUS}) ORDER BY id"),
     "job": q("--dev", f"SELECT * FROM gd_async_job WHERE {T} AND correlation_id = 'GD|{gd}' ORDER BY id"),
     "step": q("--dev", f"SELECT id, job_id, step_name, step_status, attempt_count, started_at, finished_at, error_code, error_message, LENGTH(result_ref) ref_len FROM gd_publish_step "
                        f"WHERE {T} AND (job_id = 'GDC|{gd}' OR job_id IN (SELECT CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci FROM gd_async_job j WHERE j.{T} AND j.correlation_id = 'GD|{gd}')) ORDER BY id"),

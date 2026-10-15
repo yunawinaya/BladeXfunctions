@@ -21,6 +21,20 @@ const clearComponents = () => {
   });
 };
 
+// Batch No is typed only under Manual Input; a System Settings batch is generated
+// on completion. Any batch item takes the dates.
+const applyBatchFields = (item) => {
+  const isBatch = item?.item_batch_management === 1;
+  const isManual =
+    isBatch && item.batch_number_genaration !== "According To System Settings";
+
+  this.setData({ batch_no: "", manufacturing_date: null, expired_date: null });
+  if (isManual) this.display(["batch_no"]);
+  else this.hide(["batch_no"]);
+  if (isBatch) this.display(["manufacturing_date", "expired_date"]);
+  else this.hide(["manufacturing_date", "expired_date"]);
+};
+
 const fetchByIds = (collection, ids, fields) => {
   let query = db.collection(collection);
   if (fields) query = query.field(fields);
@@ -410,6 +424,7 @@ const componentsWereEdited = (currentRows, bomRows) => {
 
     if (!value) {
       clearComponents();
+      applyBatchFields(null);
       return;
     }
 
@@ -433,7 +448,7 @@ const componentsWereEdited = (currentRows, bomRows) => {
       fetchByIds(
         "item",
         [value],
-        "material_name,material_desc,based_uom,table_default_bin"
+        "material_name,material_desc,based_uom,table_default_bin,item_batch_management,batch_number_genaration"
       ),
       rescale
         ? Promise.resolve({ storageLocation: null, binLocation: null })
@@ -464,6 +479,7 @@ const componentsWereEdited = (currentRows, bomRows) => {
         location_id:
           parentDefaultBin?.binLocation || plantDefaults.binLocation || "",
       });
+      applyBatchFields(parentItem);
     }
 
     // A re-scale never clears the table: the components may be the user's own by

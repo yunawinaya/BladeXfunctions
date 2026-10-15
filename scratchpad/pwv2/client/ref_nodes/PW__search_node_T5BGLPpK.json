@@ -1,0 +1,30 @@
+{
+ "table_id": {
+  "source": "Basic Inspection Lot:Table:1930547663980482561",
+  "rules": {
+   "collectionId": "1930547663980482561",
+   "list": [
+    {
+     "id": 1773128324192,
+     "parentId": 1773128324191,
+     "isTop": true,
+     "prop": "goods_receiving_no",
+     "operator": "equal",
+     "valueType": "field",
+     "value": "{{workflowparams:allData.gr_no}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "Goods Receiving No",
+     "valueLabel": "",
+     "operatorLabel": "Equal"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "Get QIs",
+ "isValidator": true,
+ "nodeName": "Get QIs",
+ "name": "Get QIs"
+}

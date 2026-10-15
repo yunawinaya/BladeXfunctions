@@ -1,0 +1,80 @@
+{
+ "note": "Each source is the DEPLOYED dev version pinned here (su_code_workflow_history, status enabled), never the repo working copy: other sessions edit those files before deploying.",
+ "sources": [
+  {
+   "name": "GOODS_DELIVERY",
+   "workflow_id": "2017151544868491265",
+   "version": 242,
+   "repo_file": "Goods Delivery/GDheadWorkflow.json",
+   "nodes": [
+    "code_node_eOO3RTkR",
+    "code_node_shTWK0Nm",
+    "code_picking_defaults",
+    "code_node_kJx9p9Nh",
+    "code_node_ymugKpln",
+    "code_node_IyJHrBst",
+    "code_pick_reconcile",
+    "code_pick_reversal_msg",
+    "code_node_EIDz5y7I",
+    "code_node_8pN1MyXz",
+    "code_node_hb8ZWe9c",
+    "code_node_QtyCheckBatch",
+    "code_si_gate",
+    "code_node_GKc0ALEe",
+    "code_node_PkMerge",
+    "code_node_Pgtw6zFL",
+    "code_node_aq0VGgxs",
+    "code_node_GD92d7xU",
+    "code_node_UMQapdjk",
+    "code_node_lwB2FVe0",
+    "code_node_o35eZx2c",
+    "code_node_6L2Ozea8",
+    "code_pick_hdr_sync",
+    "code_node_62FzZA2e",
+    "code_node_cv51vgiy",
+    "code_gr_soids",
+    "code_gr_link",
+    "code_gr_cover_ids",
+    "code_gr_gate",
+    "code_node_SqL4Tv8v",
+    "code_node_aay7z3VT",
+    "code_node_Htpcyp8t",
+    "code_node_1Ya3sACY",
+    "code_node_hifFKzmo",
+    "code_node_56IOJIBu"
+   ]
+  },
+  {
+   "name": "GD_UNUSED_FN_NEW",
+   "workflow_id": "2032273338771128322",
+   "version": 55,
+   "repo_file": "Goods Delivery/GDinventoryProcessWorkflow.json",
+   "nodes": [
+    "code_node_SSWylCan",
+    "code_node_eOMvMZOj",
+    "code_node_b71wypDJ",
+    "code_node_QrF4F4Hx"
+   ],
+   "note": "Branch 4 (OBz5tEws / PkHdrIds / xVqrs3Yi, Picking Plan GDs only) is not lifted: Edit V2 refuses isGDPP GDs before the planner."
+  },
+  {
+   "name": "REORDER_SET_REDIS",
+   "workflow_id": "2065256261729759233",
+   "version": 21,
+   "repo_file": "Reorder/ReorderRedisWorkflow.json",
+   "nodes": [
+    "code_node_f8qELJUF"
+   ]
+  },
+  {
+   "name": "GLOBAL_ALLOCATION",
+   "workflow_id": "2032298961937842178",
+   "version": 34,
+   "repo_file": null,
+   "nodes": [
+    "code_node_ItemNorm",
+    "code_node_hDa6pSw5"
+   ]
+  }
+ ]
+}

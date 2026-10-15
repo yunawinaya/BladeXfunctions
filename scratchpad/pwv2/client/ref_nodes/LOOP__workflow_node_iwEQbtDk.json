@@ -1,0 +1,52 @@
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Check Required Workflow",
+ "isValidator": true,
+ "nodeName": "Check Required Workflow",
+ "name": "Check Required Workflow",
+ "workflow": {
+  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+  "rules": {
+   "collectionId": "1988831880511062018",
+   "list": [
+    {
+     "id": 1763010683443,
+     "parentId": 1763010683442,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "entry",
+    "propLabel": "entry",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_0rV4kqmz.data.data}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "required_fields",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_0rV4kqmz.data.required_fields}}",
+    "valueLabel": "",
+    "propLabel": "required_fields"
+   }
+  ]
+ }
+}

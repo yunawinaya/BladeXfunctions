@@ -1,0 +1,907 @@
+{
+  "request_json": [
+    {
+      "key": "iejzaduc",
+      "name": "gd_ids",
+      "title": "GD IDs",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+        {
+          "key": "c9lnj9q6",
+          "name": "items",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "isArrayItem": true
+        }
+      ]
+    },
+    {
+      "key": "6hh7qrsn",
+      "name": "plant_id",
+      "title": "Plant ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [
+    {
+      "key": "m63mnpxh",
+      "name": "data",
+      "title": "Data",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "开始节点",
+        "nodeName": "开始节点",
+        "name": "开始节点",
+        "run_filter": {
+          "list": [
+            {
+              "id": 1762397554389,
+              "parentId": 1762397554388,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "search_node_IUyBiDce",
+      "type": "search-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Delivery:Table:1902054888473481218",
+          "rules": {
+            "collectionId": "1902054888473481218",
+            "list": [
+              {
+                "id": 1762397778691,
+                "parentId": 1762397778690,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:gd_ids}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "limit": 100,
+        "title": "Get GD Data",
+        "isValidator": true,
+        "nodeName": "Get GD Data",
+        "name": "Get GD Data"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_ConvBusy",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "GD Busy: a GD being saved in the background is not converted",
+        "isValidator": true,
+        "nodeName": "GD Busy: a GD being saved in the background is not converted",
+        "name": "GD Busy: a GD being saved in the background is not converted",
+        "script": {
+          "type": "javascript",
+          "code": "// A Goods Delivery being saved in the background is not converted: the run fails with the reason (mobile inserts nothing).\nconst raw = {{node:search_node_IUyBiDce.data.data}};\nconst row = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter((g) => g && g.gd_status === \"Processing\")[0];\nreturn row\n  ? { busy: 1, message: \"Goods Delivery \" + (row.delivery_no || row.id) + \" is being saved in the background. Wait a moment, then try again.\" }\n  : { busy: 0, message: \"\" };\n"
+        },
+        "response_json": [
+          {
+            "key": "cvbusy01",
+            "name": "busy",
+            "title": "Busy",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cvmsg001",
+            "name": "message",
+            "title": "Message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_ConvBusy",
+      "type": "if",
+      "data": {
+        "title": "IF a GD is being saved in the background: the run fails with the reason",
+        "isValidator": true,
+        "nodeName": "IF a GD is being saved in the background: the run fails with the reason",
+        "name": "IF a GD is being saved in the background: the run fails with the reason",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1791960000002,
+              "parentId": 1791960000001,
+              "isTop": true,
+              "prop": "node.code_node_ConvBusy.data.busy",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "busy",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_ConvBusyT",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "end_ConvBusy",
+              "type": "end-node",
+              "data": {
+                "title": "End: refused (a GD is being saved in the background)",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "End: refused (a GD is being saved in the background)",
+                "name": "End: refused (a GD is being saved in the background)",
+                "back_data_type": "Default",
+                "code": 400,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_ConvBusy.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_ConvBusyF",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "get_node_XlbxIscw",
+      "type": "get-node",
+      "data": {
+        "table_id": {
+          "source": "Picking Setup:Table:1935547845324787714",
+          "rules": {
+            "collectionId": "1935547845324787714",
+            "list": [
+              {
+                "id": 1777426388977,
+                "parentId": 1777426388976,
+                "isTop": true,
+                "prop": "plant_id",
+                "operator": "numberEqual",
+                "valueType": "field",
+                "value": "{{workflowparams:plant_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "Plant ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+              }
+            ]
+          }
+        },
+        "condition": {},
+        "title": "Get Picking Setup",
+        "isValidator": true,
+        "nodeName": "Get Picking Setup",
+        "name": "Get Picking Setup"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_PYFZeGpr",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Picking Data",
+        "isValidator": true,
+        "nodeName": "Map Picking Data",
+        "name": "Map Picking Data",
+        "script": {
+          "type": "javascript",
+          "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every scale intact while killing float residue. Target is transfer_order_jz8m9w3h_sub\n// (Transfer Order Picking), whose quantity columns are already decimal(65,8).\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// A bundle is ONE row with its items under `children` -- the same shape the source\n// document is stored in, and the same one the platform reads back. Nesting the\n// items rather than laying them out beside the bundle keeps the two together\n// whatever else reorders the table, and keeps the items out of the handling-unit\n// grouping, which only ever walks top-level rows.\nconst nestBundleRows = (rows) => {\n  const nested = [];\n  const bundleRowByLineId = new Map();\n\n  for (const row of rows) {\n    const parentLineId = row.bundle_parent_line_id;\n    delete row.bundle_parent_line_id;\n\n    if (!parentLineId) {\n      // The bundle row itself, keyed by the source line its items point back at.\n      // It is the only row carrying a bundle id but no item.\n      if (row.item_bundle_id && !row.item_code) {\n        bundleRowByLineId.set(String(row.gd_line_id || row.to_line_id || \"\"), row);\n      }\n\n      nested.push(row);\n      continue;\n    }\n\n    const parentRow = bundleRowByLineId.get(String(parentLineId));\n\n    // A bundle row is only created when its bundle still has something to pick.\n    // An item whose bundle row was never created stays a row of its own rather\n    // than being dropped from the picking altogether.\n    if (!parentRow) {\n      nested.push(row);\n      continue;\n    }\n\n    if (!Array.isArray(parentRow.children)) parentRow.children = [];\n    parentRow.children.push({ ...row, row_type: \"item\" });\n  }\n\n  return nested;\n};\n\n// A bundle is ONE row with the bundle's items under `children`. The bundle row\n// holds no material and nothing is picked against it -- the guards below step\n// over it -- while its items are picked like any other line.\n//\n// Declared at the top: this is used both inside mapLineItem and again when the\n// deliveries are filtered further down, and a const inside the mapper is not\n// visible there.\nconst flattenGdRows = (rows) =>\n  (rows || []).flatMap((row) => {\n    // The parent is emitted WITHOUT its `children`, which makes flattening an\n    // already-flat list a no-op. This node flattens TWICE -- once for the\n    // picking-status filter below, once inside mapLineItem -- and a parent that\n    // survived the filter still carrying its children would hand them over a\n    // second time, counting every item's quantity twice.\n    const { children, ...rest } = row || {};\n    return [rest, ...(Array.isArray(children) ? children : [])];\n  });\n\n// The bundle number and the bundle-row link, built from the documents EXACTLY as\n// fetched. They cannot be derived later: the filter further down drops the bundle\n// row -- its picking_status is Completed, because nothing is ever picked against a\n// bundle -- and that dropped row is the only one carrying the ib_no.\nconst bundleNoById = {};\nconst bundleParentByLineId = {};\n// The bundle rows themselves, kept whole. The bundle row is a picking line in its\n// own right -- it is the one the picker types on -- but the filter below drops it\n// (its picking_status is Completed), so it has to be held onto here.\nconst bundleRowById = {};\n\nconst indexBundles = (rows) => {\n  for (const row of rows || []) {\n    if (!row) continue;\n    if (row.item_bundle_id && !row.material_id) {\n      bundleNoById[String(row.item_bundle_id)] = row.material_name || \"\";\n      if (row.id != null) bundleRowById[String(row.id)] = row;\n    }\n    for (const kid of Array.isArray(row.children) ? row.children : []) {\n      if (kid && kid.id != null) bundleParentByLineId[String(kid.id)] = String(row.id);\n    }\n    if (row.parent_id != null && row.parent_id !== \"\" && row.id != null) {\n      bundleParentByLineId[String(row.id)] = String(row.parent_id);\n    }\n  }\n};\n\nconst mapLineItem = (gdData) => {\n  let tablePickingItems = [];\n  const pickingItemGroups = new Map();\n\n  for (const item of flattenGdRows(gdData.table_gd)) {\n    // The bundle row itself, created the moment its first item appears so it lands\n    // directly above them. It holds no stock -- no material, no bin, no batch, no\n    // handling unit -- but it IS the line the picker works on: its quantity is the\n    // number of bundles, and every item under it follows from that by ratio. Only\n    // bundles that still have something to pick get one, which is why it is created\n    // from the surviving items rather than from the source rows.\n    const parentLineId = item.item_bundle_id\n      ? bundleParentByLineId[String(item.id)]\n      : null;\n    if (parentLineId && !pickingItemGroups.has(`bundle_${parentLineId}`)) {\n      const bundleRow = bundleRowById[String(parentLineId)];\n      if (bundleRow) {\n        pickingItemGroups.set(`bundle_${parentLineId}`, {\n          item_bundle_id: bundleRow.item_bundle_id || null,\n          bundle_parent_line_id: null,\n          item_code: \"\",\n          item_name: bundleRow.material_name || \"\",\n          item_desc: bundleRow.gd_material_desc || \"\",\n          more_desc: bundleRow.more_desc || \"\",\n          remark: bundleRow.line_remark_1 || \"\",\n          remark_2: bundleRow.line_remark_2 || \"\",\n          remark_3: bundleRow.line_remark_3 || \"\",\n          batch_no: null,\n          qty_to_pick: parseFloat(bundleRow.gd_qty) || 0,\n          item_uom: \"\",\n          picking_uom: \"\",\n          source_bin: \"\",\n          pending_process_qty: parseFloat(bundleRow.gd_qty) || 0,\n          line_status: \"Open\",\n          so_no: bundleRow.line_so_no,\n          gd_no: gdData.delivery_no,\n          so_id: String(bundleRow.line_so_id || \"\"),\n          so_line_id: String(bundleRow.so_line_item_id || \"\"),\n          gd_id: String(gdData.id),\n          gd_line_id: String(bundleRow.id),\n          serial_numbers: [],\n          is_serialized_item: 0,\n          packing_uom: \"\",\n          packing_conversion: 0,\n          weight_conversion: 0,\n          packing_qty: 0,\n          net_weight: 0,\n          handling_unit_id: null,\n        });\n      }\n    }\n\n    if (item.temp_qty_data && item.material_id) {\n      const tempData = JSON.parse(item.temp_qty_data);\n      for (const tempItem of tempData) {\n        const materialId = String(tempItem.material_id) || String(item.material_id);\n        const groupKey = `${item.id}_${materialId}_${\n          tempItem.batch_id || \"no-batch\"\n        }_${tempItem.location_id}_${tempItem.handling_unit_id || \"no-hu\"}`;\n\n        if (!pickingItemGroups.has(groupKey)) {\n          pickingItemGroups.set(groupKey, {\n            item_bundle_id: item.item_bundle_id || null,\n            bundle_parent_line_id: item.item_bundle_id\n              ? bundleParentByLineId[String(item.id)] || null\n              : null,\n            item_code: String(materialId),\n            item_name: item.material_name,\n            item_desc: item.gd_material_desc || \"\",\n            more_desc: item.more_desc || \"\",\n            remark: item.line_remark_1 || \"\",\n            remark_2: item.line_remark_2 || \"\",\n            remark_3: item.line_remark_3 || \"\",\n            batch_no: tempItem.batch_id ? String(tempItem.batch_id) : null,\n            qty_to_pick: 0,\n            item_uom: String(item.good_delivery_uom_id),\n            picking_uom: String(item.good_delivery_uom_id),\n            source_bin: String(tempItem.location_id),\n            pending_process_qty: 0,\n            line_status: \"Open\",\n            so_no: item.line_so_no,\n            gd_no: gdData.delivery_no,\n            so_id: String(item.line_so_id),\n            so_line_id: String(item.so_line_item_id),\n            gd_id: String(gdData.id),\n            gd_line_id: String(item.id),\n            serial_numbers: [],\n            is_serialized_item: 0,\n            packing_uom: item.packing_uom ? String(item.packing_uom) : \"\",\n            packing_conversion: parseFloat(item.packing_conversion) || 1,\n            weight_conversion: parseFloat(item.weight_conversion) || 0,\n            packing_qty: 0,\n            net_weight: 0,\n            handling_unit_id: tempItem.handling_unit_id ? String(tempItem.handling_unit_id) : null,\n          });\n\n        }\n\n        const group = pickingItemGroups.get(groupKey);\n        group.qty_to_pick += parseFloat(tempItem.gd_quantity);\n        group.pending_process_qty += parseFloat(tempItem.gd_quantity);\n\n        if (tempItem.serial_number) {\n          group.serial_numbers.push(String(tempItem.serial_number));\n          group.is_serialized_item = 1;\n        }\n      }\n    }\n  }\n  \n  for (const group of pickingItemGroups.values()) {\n    if (group.serial_numbers.length > 0) {\n      group.serial_numbers = group.serial_numbers.join(\", \");\n    } else {\n      delete group.serial_numbers;\n    }\n\n    group.packing_qty = group.packing_conversion ? q8(group.qty_to_pick / group.packing_conversion) : 0;\n    group.net_weight = q8(group.qty_to_pick * group.weight_conversion);\n\n    tablePickingItems.push({ ...group });\n  }\n\n  tablePickingItems.splice(0, tablePickingItems.length, ...nestBundleRows(tablePickingItems));\n\n  tablePickingItems.sort((a, b) => {\n    if (a.gd_line_id !== b.gd_line_id) return 0;\n    const aHU = a.handling_unit_id || \"\";\n    const bHU = b.handling_unit_id || \"\";\n    if (aHU === bHU) return 0;\n    return aHU < bHU ? -1 : 1;\n  });\n\n  const withHeaders = [];\n  let lastHuId = null;\n  for (const row of tablePickingItems) {\n    // A bundle is ONE row with its items nested under it, so the items never reach\n    // this loop at all and can never be separated from the bundle by the grouping.\n    // The bundle row itself holds no handling unit: it opens no header, and it must\n    // not close the run above it either.\n    if (row.item_bundle_id) {\n      withHeaders.push({ ...row, row_type: \"item\" });\n      continue;\n    }\n    \n    const huId = row.handling_unit_id;\n    if (huId && huId !== lastHuId) {\n      withHeaders.push({\n        row_type: \"header\",\n        handling_unit_id: huId,\n        hu_select: 0,\n      });\n      lastHuId = huId;\n    } else if (!huId) {\n      lastHuId = null;\n    }\n    withHeaders.push({ ...row, row_type: \"item\" });\n  }\n  tablePickingItems = withHeaders;\n\n  return tablePickingItems;\n};\n\nconst mapToPickingData = (\n  pickingLineItemPromises,\n  gdIDs,\n  gdNos,\n  soNos,\n  gdCustomers,\n  plantID,\n  deliveryFields\n) => {\n  return {\n    so_no: soNos,\n    delivery_no: gdNos,\n    gd_no: gdIDs,\n    ref_doc_type: \"Goods Delivery\",\n    table_picking_items: pickingLineItemPromises,\n    customer_id: gdCustomers,\n    plant_id: plantID,\n    ...deliveryFields,\n  };\n};\n\nconst pickingSetup = {{node:get_node_XlbxIscw.data.data}} || {};\nconst allowFullPicking = pickingSetup.allow_full_picking === 1;\n\n// When allow_full_picking is ON, rewrite each line's temp_qty_data to the\n// actually-remaining allocation by subtracting picked_temp_qty_data per\n// (location, batch, HU). This way the next Picking only pulls from bins/batches\n// that still have qty left, instead of re-allocating already-picked stock.\nconst subtractPickedFromTemp = (gdItem) => {\n  let tempArr = [];\n  try {\n    tempArr = gdItem.temp_qty_data ? JSON.parse(gdItem.temp_qty_data) : [];\n  } catch (e) { tempArr = []; }\n\n  let pickedArr = [];\n  try {\n    pickedArr = gdItem.picked_temp_qty_data\n      ? JSON.parse(gdItem.picked_temp_qty_data)\n      : [];\n  } catch (e) { pickedArr = []; }\n\n  if (!Array.isArray(tempArr) || tempArr.length === 0) return gdItem;\n  if (!Array.isArray(pickedArr) || pickedArr.length === 0) return gdItem;\n\n  const keyOf = (e) =>\n    (e.location_id || 'no-loc') + '_' +\n    (e.batch_id || 'no-batch') + '_' +\n    (e.handling_unit_id || 'no-hu');\n\n  const pickedByKey = new Map();\n  for (const p of pickedArr) {\n    const k = keyOf(p);\n    pickedByKey.set(k, (pickedByKey.get(k) || 0) + parseFloat(p.gd_quantity || 0));\n  }\n\n  const remaining = [];\n  for (const t of tempArr) {\n    const used = pickedByKey.get(keyOf(t)) || 0;\n    const rem = parseFloat(t.gd_quantity || 0) - used;\n    if (rem > 0) {\n      remaining.push({ ...t, gd_quantity: rem });\n    }\n  }\n\n  return { ...gdItem, temp_qty_data: JSON.stringify(remaining) };\n};\n\nlet gdData = {{node:search_node_IUyBiDce.data.data}};\nfor (const gd of gdData || []) indexBundles(gd.table_gd);\n\ngdData = gdData.map((item) => ({\n  ...item,\n  // Flattened before filtering: a bundle row is dropped by the picking-status\n  // test below, and its items would be dropped with it if they were still\n  // hanging off it.\n  table_gd: flattenGdRows(item.table_gd)\n    .filter((gdItem) => {\n      if (allowFullPicking) {\n        const remaining = (gdItem.gd_qty || 0) - (gdItem.picked_qty || 0);\n        return (\n          remaining > 0 &&\n          gdItem.picking_status !== 'Completed' &&\n          gdItem.picking_status !== 'Cancelled'\n        );\n      }\n      return gdItem.picking_status === 'Not Created';\n    })\n    .map((gdItem) => (allowFullPicking ? subtractPickedFromTemp(gdItem) : gdItem))\n}));\n\nconst gdIDs = gdData.map((gd) => String(gd.id));\nconst gdNos = gdData.map((gd) => gd.delivery_no).join(', ');\nconst soNos = [\n  ...new Set(gdData.flatMap((gd) => gd.so_no.split(', ')))\n].join(', ');\nconst gdCustomers = [ ...new Set(gdData.map((gd) => String(gd.customer_name)))];\nconst plantID = {{workflowparams:plant_id}};\nlet pickingLineItemPromises = [];\n\nfor(const gd of gdData) {\n  const lineItemPromise = mapLineItem(gd);\n  pickingLineItemPromises.push(...lineItemPromise);\n}\n\n// Carry the GD's delivery method + details onto the new Picking. GD and Picking\n// name some fields differently, so Company Truck / Shipping values are remapped\n// into Picking's ct_* / ss_* fields. Only for a single-GD conversion; merging\n// multiple GDs makes the arrangement ambiguous, so every field stays empty.\nconst DELIVERY_FIELD_KEYS = [\n  \"delivery_method\", \"delivery_method_text\", \"area_id\",\n  \"driver_name\", \"ic_no\", \"driver_contact_no\", \"sp_vehicle_no\", \"pickup_date\", \"validity_of_collection\",\n  \"courier_company\", \"shipping_date\", \"tracking_number\", \"est_arrival_date\", \"freight_charges\",\n  \"ct_driver_name\", \"ct_driver_contact_no\", \"ct_ic_no\", \"vehicle_no\", \"est_delivery_date\", \"delivery_cost\",\n  \"shipping_company\", \"ss_shipping_date\", \"ss_freight_charges\", \"shipping_method\", \"ss_est_arrival_date\", \"ss_tracking_number\",\n  \"tpt_vehicle_number\", \"tpt_transport_name\", \"tpt_ic_no\", \"tpt_driver_contact_no\", \"tpt_driver_name\",\n  \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\",\n  \"remarks\", \"remarks_2\", \"remarks_3\",\n];\n\nconst buildDeliveryFields = (gdList) => {\n  const fields = {};\n  for (const k of DELIVERY_FIELD_KEYS) fields[k] = \"\";\n  if (gdList.length !== 1) return fields;\n\n  const gd = gdList[0];\n  const method = gd.gd_delivery_method || \"\";\n  fields.delivery_method = method;\n  fields.delivery_method_text = gd.delivery_method_text || method;\n  fields.area_id = gd.gd_area_id || \"\";\n\n  // GD header remarks. Only three of GD's five have a home on the Picking.\n  fields.remarks = gd.order_remark ?? \"\";\n  fields.remarks_2 = gd.order_remark2 ?? \"\";\n  fields.remarks_3 = gd.order_remark3 ?? \"\";\n\n  // Consolidated Delivery Info block. GD and Picking share these column names,\n  // so no remap is needed and they copy straight across.\n  fields.di_shipping_method = gd.di_shipping_method ?? \"\";\n  fields.di_driver_name = gd.di_driver_name ?? \"\";\n  fields.di_ic_no = gd.di_ic_no ?? \"\";\n  fields.di_driver_contact_no = gd.di_driver_contact_no ?? \"\";\n  fields.di_shipping_company = gd.di_shipping_company ?? \"\";\n  fields.di_transport_name = gd.di_transport_name ?? \"\";\n  fields.di_vehicle_number = gd.di_vehicle_number ?? \"\";\n  fields.di_est_delivery_date = gd.di_est_delivery_date ?? \"\";\n  fields.di_est_arrival_date = gd.di_est_arrival_date ?? \"\";\n  fields.di_pickup_date = gd.di_pickup_date ?? \"\";\n  fields.di_validity_of_collection = gd.di_validity_of_collection ?? \"\";\n  fields.di_tracking_number = gd.di_tracking_number ?? \"\";\n  fields.di_freight_charges = gd.di_freight_charges ?? \"\";\n\n  switch (method) {\n    case \"Self Pickup\":\n      fields.driver_name = gd.driver_name ?? \"\";\n      fields.ic_no = gd.ic_no ?? \"\";\n      fields.driver_contact_no = gd.driver_contact_no ?? \"\";\n      fields.sp_vehicle_no = gd.sp_vehicle_no ?? \"\";\n      fields.pickup_date = gd.pickup_date ?? \"\";\n      fields.validity_of_collection = gd.validity_of_collection ?? \"\";\n      break;\n    case \"Courier Service\":\n      fields.courier_company = gd.courier_company ?? \"\";\n      fields.shipping_date = gd.shipping_date ?? \"\";\n      fields.tracking_number = gd.tracking_number ?? \"\";\n      fields.est_arrival_date = gd.est_arrival_date ?? \"\";\n      fields.freight_charges = gd.freight_charges ?? \"\";\n      break;\n    case \"Company Truck\":\n      fields.ct_driver_name = gd.driver_name ?? \"\";\n      fields.ct_driver_contact_no = gd.driver_contact_no ?? \"\";\n      fields.ct_ic_no = gd.ic_no ?? \"\";\n      fields.vehicle_no = gd.vehicle_no ?? \"\";\n      fields.est_delivery_date = gd.est_delivery_date ?? \"\";\n      fields.delivery_cost = gd.delivery_cost ?? \"\";\n      break;\n    case \"Shipping Service\":\n      fields.shipping_company = gd.shipping_company ?? \"\";\n      fields.ss_shipping_date = gd.shipping_date ?? \"\";\n      fields.ss_freight_charges = gd.freight_charges ?? \"\";\n      fields.shipping_method = gd.shipping_method ?? \"\";\n      fields.ss_est_arrival_date = gd.est_arrival_date ?? \"\";\n      fields.ss_tracking_number = gd.tracking_number ?? \"\";\n      break;\n    case \"3rd Party Transporter\":\n      fields.tpt_vehicle_number = gd.tpt_vehicle_number ?? \"\";\n      fields.tpt_transport_name = gd.tpt_transport_name ?? \"\";\n      fields.tpt_ic_no = gd.tpt_ic_no ?? \"\";\n      fields.tpt_driver_contact_no = gd.tpt_driver_contact_no ?? \"\";\n      fields.tpt_driver_name = gd.tpt_driver_name ?? \"\";\n      break;\n  }\n  return fields;\n};\n\nconst deliveryFields = buildDeliveryFields(gdData);\n// Project is carried under the same single-source rule as Delivery Info:\n// merging several source documents makes the attribution ambiguous.\ndeliveryFields.project_id = gdData.length === 1 ? (gdData[0].project_id ?? \"\") : \"\";\n\nconst pickingData = mapToPickingData(pickingLineItemPromises, gdIDs, gdNos, soNos, gdCustomers, plantID, deliveryFields);\n\nreturn pickingData;"
+        },
+        "response_json": [
+          {
+            "key": "22jrgwnb",
+            "name": "so_no",
+            "title": "SO No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "vwpjoz6y",
+            "name": "delivery_no",
+            "title": "GD No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "l8wtscoz",
+            "name": "gd_no",
+            "title": "GD IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "vwdnzlnr",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          },
+          {
+            "key": "ksn3gbax",
+            "name": "customer_id",
+            "title": "Customer IDs",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "3f8qqiof",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "isArrayItem": true
+              }
+            ]
+          },
+          {
+            "key": "5xjz9yfr",
+            "name": "plant_id",
+            "title": "Plant ID",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "430dg6wm",
+            "name": "table_picking_items",
+            "title": "Table Picking Item",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "969yem15",
+                "name": "items",
+                "title": "Items",
+                "description": "",
+                "bsonType": "object",
+                "isExpand": true,
+                "isArrayItem": true,
+                "children": [
+                  {
+                    "key": "788io7ro",
+                    "name": "item_code",
+                    "title": "Item Code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "x9ipl49o",
+                    "name": "item_name",
+                    "title": "Item Name",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "tyzhwp0k",
+                    "name": "item_desc",
+                    "title": "Item Desc",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "mdesc2b7",
+                    "name": "more_desc",
+                    "title": "More Desc",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "r713o15c",
+                    "name": "batch_no",
+                    "title": "Batch No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "34bmw0bg",
+                    "name": "qty_to_pick",
+                    "title": "Qty to Pick",
+                    "description": "",
+                    "bsonType": "decimal",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "307qgcfk",
+                    "name": "item_uom",
+                    "title": "Item UOM",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "7bt74jua",
+                    "name": "source_bin",
+                    "title": "Source Bin",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "4yxvn7fe",
+                    "name": "pending_process_qty",
+                    "title": "Pending Process Qty",
+                    "description": "",
+                    "bsonType": "decimal",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "g4dcfe42",
+                    "name": "line_status",
+                    "title": "Line Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "qy2md0sj",
+                    "name": "so_no",
+                    "title": "SO No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "ru6ukt4u",
+                    "name": "gd_no",
+                    "title": "GD No",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "53yl259i",
+                    "name": "so_id",
+                    "title": "SO ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "yywh6azp",
+                    "name": "so_line_id",
+                    "title": "SO Line ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "2yv53t3l",
+                    "name": "gd_id",
+                    "title": "GD ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "34l0yauo",
+                    "name": "gd_line_id",
+                    "title": "GD Line ID",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "erdmi2vm",
+                    "name": "serial_numbers",
+                    "title": "Serial Numbers",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "8r8e1ogi",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "isArrayItem": true
+                      }
+                    ]
+                  },
+                  {
+                    "key": "xvyp7xnk",
+                    "name": "is_serialized_item",
+                    "title": "Is Serialized Item",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "key": "swjmgfnc",
+            "name": "ref_doc_type",
+            "title": "ref_doc_type",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld01",
+            "name": "delivery_method",
+            "title": "Delivery Method",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld02",
+            "name": "delivery_method_text",
+            "title": "Delivery Method Text",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld03",
+            "name": "area_id",
+            "title": "Area",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld04",
+            "name": "driver_name",
+            "title": "Driver Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld05",
+            "name": "ic_no",
+            "title": "IC No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld06",
+            "name": "driver_contact_no",
+            "title": "Driver Contact No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld07",
+            "name": "sp_vehicle_no",
+            "title": "Vehicle No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld08",
+            "name": "pickup_date",
+            "title": "Pickup Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld09",
+            "name": "validity_of_collection",
+            "title": "Validity of Collection",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld10",
+            "name": "courier_company",
+            "title": "Courier Company",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld11",
+            "name": "shipping_date",
+            "title": "Shipping Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld12",
+            "name": "tracking_number",
+            "title": "Tracking Number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld13",
+            "name": "est_arrival_date",
+            "title": "Est Arrival Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld14",
+            "name": "freight_charges",
+            "title": "Freight Charges",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld15",
+            "name": "ct_driver_name",
+            "title": "CT Driver Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld16",
+            "name": "ct_driver_contact_no",
+            "title": "CT Driver Contact No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld17",
+            "name": "ct_ic_no",
+            "title": "CT IC No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld18",
+            "name": "vehicle_no",
+            "title": "Vehicle No (CT)",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld19",
+            "name": "est_delivery_date",
+            "title": "Est Delivery Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld20",
+            "name": "delivery_cost",
+            "title": "Delivery Cost",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld21",
+            "name": "shipping_company",
+            "title": "Shipping Company",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld22",
+            "name": "ss_shipping_date",
+            "title": "SS Shipping Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld23",
+            "name": "ss_freight_charges",
+            "title": "SS Freight Charges",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld24",
+            "name": "shipping_method",
+            "title": "Shipping Method",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld25",
+            "name": "ss_est_arrival_date",
+            "title": "SS Est Arrival Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld26",
+            "name": "ss_tracking_number",
+            "title": "SS Tracking Number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld27",
+            "name": "tpt_vehicle_number",
+            "title": "TPT Vehicle Number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld28",
+            "name": "tpt_transport_name",
+            "title": "TPT Transport Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld29",
+            "name": "tpt_ic_no",
+            "title": "TPT IC No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dlvfld30",
+            "name": "tpt_driver_contact_no",
+            "title": "TPT Driver Contact No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "bnxom6tq",
+            "name": "tpt_driver_name",
+            "title": "TPT Driver Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp01",
+            "name": "di_shipping_method",
+            "title": "Shipping Method",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp02",
+            "name": "di_driver_name",
+            "title": "Driver Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp03",
+            "name": "di_ic_no",
+            "title": "IC No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp04",
+            "name": "di_driver_contact_no",
+            "title": "Driver Contact No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp05",
+            "name": "di_shipping_company",
+            "title": "Shipping Company",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp06",
+            "name": "di_transport_name",
+            "title": "Transport Name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp07",
+            "name": "di_vehicle_number",
+            "title": "Vehicle Number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp08",
+            "name": "di_est_delivery_date",
+            "title": "Est Delivery Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp09",
+            "name": "di_est_arrival_date",
+            "title": "Est Arrival Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp10",
+            "name": "di_pickup_date",
+            "title": "Pickup Date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp11",
+            "name": "di_validity_of_collection",
+            "title": "Validity of Collection",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp12",
+            "name": "di_tracking_number",
+            "title": "Tracking Number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicp13",
+            "name": "di_freight_charges",
+            "title": "Freight Charges",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "dicppj1",
+            "name": "project_id",
+            "title": "Project",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_yhvAaVn7",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Data",
+        "isValidator": true,
+        "nodeName": "Return Data",
+        "name": "Return Data",
+        "response_value": {
+          "list": [
+            {
+              "prop": "data",
+              "propLabel": "Data",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_PYFZeGpr.data}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "结束节点" },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

@@ -13,8 +13,135 @@ const showStatusHTML = (status) => {
     case "Cancelled":
       this.display(["cancel_status"]);
       break;
+    case "Processing":
+      this.display(["processing_status"]);
+      break;
     default:
       break;
+  }
+};
+
+// A delivery saved in the background stays Processing (read-only) until its job ends; opening it re-kicks and follows the job.
+const GD_BG_WF = {
+  STATUS: "2110618741159940097", // GD_EDIT_SUBMIT (its STATUS covers edits and completions)
+  EDIT_GD: "2110618789356687361", // GD_EDIT_WORKER
+  COMPLETE_GD: "2110182645714518018", // GD_COMPLETE_WORKER
+};
+const GD_BG_POLL_MS = 3000;
+const GD_BG_KICK_MS = 15000;
+const GD_BG_WAIT_MS = 180000;
+
+const followBackgroundSave = async (gdId, gdNo) => {
+  const run = (id, params) =>
+    new Promise((resolve, reject) => {
+      this.runWorkflow(
+        id,
+        params,
+        (res) => resolve(res),
+        (err) => reject(err),
+      );
+    });
+  const status = async () => {
+    try {
+      const res = await run(GD_BG_WF.STATUS, {
+        operation: "STATUS",
+        gd_id: gdId,
+      });
+      return (res && res.data) || null;
+    } catch (error) {
+      console.error("Background save: status check failed", error);
+      return null;
+    }
+  };
+  const kick = (s) => {
+    if (!GD_BG_WF[s.command]) return;
+    try {
+      this.runWorkflow(
+        GD_BG_WF[s.command],
+        { job_id: s.job_id },
+        () => {},
+        (error) => console.error("Background save: worker start failed", error),
+      );
+    } catch (error) {
+      console.error("Background save: worker could not be started", error);
+    }
+  };
+  const alertBox = (message, title, type) =>
+    this.$alert(message, title, { confirmButtonText: "OK", type: type }).catch(
+      () => {},
+    );
+  const refreshList = () => {
+    if (this.parentGenerateForm) this.parentGenerateForm.refresh();
+  };
+  const name = ("Goods Delivery " + (gdNo || "")).trim();
+  const deadline = Date.now() + GD_BG_WAIT_MS;
+  let kickedAt = 0;
+  let s = await status();
+  if (s && !s.job_id) {
+    this.$message.warning(
+      name + " is being processed. It is read-only until that finishes.",
+    );
+    return;
+  }
+  for (;;) {
+    if (s && s.job_id) {
+      const st = s.job_status;
+      const completion = s.command === "COMPLETE_GD";
+      if (st === "COMPLETED") {
+        this.$message.success(
+          name +
+            (completion ? " has been completed." : " has been saved.") +
+            " Reopen it to see the result.",
+        );
+        refreshList();
+        return;
+      }
+      if (st === "FAILED" || st === "CANCELLED") {
+        const reason = String(
+          s.error_message || s.error_code || "No reason was given.",
+        ).trim();
+        refreshList();
+        await alertBox(
+          reason +
+            (/[.!?]$/.test(reason) ? "" : ".") +
+            " Reopen it to continue.",
+          name + (completion ? " was not completed" : " was not saved"),
+          "error",
+        );
+        return;
+      }
+      if (st === "REQUIRES_REVIEW") {
+        await alertBox(
+          "It stopped part-way through its " +
+            (completion ? "completion" : "save") +
+            " and needs a review before it can be changed. Please contact support." +
+            (s.error_message ? " (" + s.error_message + ")" : ""),
+          name + " needs a review",
+          "warning",
+        );
+        return;
+      }
+      // a job waiting out a retry backoff or a stock-lock wait moves only when kicked again
+      if (!kickedAt || Date.now() - kickedAt >= GD_BG_KICK_MS) {
+        if (!kickedAt)
+          this.$message.info(
+            name +
+              " is being " +
+              (completion ? "completed" : "saved") +
+              " in the background. It is read-only until that finishes.",
+          );
+        kickedAt = Date.now();
+        kick(s);
+      }
+    }
+    if (Date.now() >= deadline) {
+      this.$message.info(
+        name + " is still being processed in the background. Reopen it later.",
+      );
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, GD_BG_POLL_MS));
+    s = await status();
   }
 };
 
@@ -25,7 +152,7 @@ const disabledField = async (
   data,
   packingRequired,
 ) => {
-  if (status === "Completed") {
+  if (status === "Completed" || status === "Processing") {
     this.disabled(
       [
         "gd_status",
@@ -285,75 +412,144 @@ const checkAccIntegrationType = async (organizationId) => {
   }
 };
 
+// Reads for many lines at once: ids per read and an explicit limit (dev's API clamps a read at 5,000 rows).
+const GD_READ_CHUNK = 500;
+const GD_READ_MAX = 5000;
+
+const chunkList = (list, size) => {
+  const out = [];
+  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+  return out;
+};
+
 const disabledSelectStock = async (data) => {
   const tableGD = data.table_gd || [];
+  const plant = data.plant_id;
 
-  for (let index = 0; index < tableGD.length; index++) {
-    const item = tableGD[index];
+  // GD-from-PP rows: gd_qty is the editable picking quantity and gd_delivery_qty
+  // is locked. That state is enforced by disabledGDPPRows for every PP row
+  // (header-agnostic), NOT by stock-balance availability. Skip them here so they
+  // don't fall back to the form default and to avoid redundant balance lookups.
+  const rows = [];
+  tableGD.forEach((item, index) => {
+    if (item.line_pp_id || item.pp_line_item_id) return;
+    if (item.material_id && item.material_id !== "")
+      rows.push({ index, materialId: String(item.material_id) });
+  });
+  if (rows.length === 0) return;
+  const materialIds = [...new Set(rows.map((row) => row.materialId))];
 
-    // GD-from-PP rows: gd_qty is the editable picking quantity and gd_delivery_qty
-    // is locked. That state is enforced by disabledGDPPRows for every PP row
-    // (header-agnostic), NOT by stock-balance availability. Skip them here so they
-    // don't fall back to the form default and to avoid redundant balance lookups.
-    if (item.line_pp_id || item.pp_line_item_id) continue;
-
-    if (item.material_id && item.material_id !== "") {
+  const items = {};
+  await Promise.all(
+    chunkList(materialIds, GD_READ_CHUNK).map(async (ids) => {
       try {
         const resItem = await db
           .collection("Item")
-          .where({ id: item.material_id, is_deleted: 0 })
+          .filter([
+            {
+              type: "branch",
+              operator: "all",
+              children: [
+                { prop: "id", operator: "in", value: ids },
+                { prop: "is_deleted", operator: "equal", value: 0 },
+              ],
+            },
+          ])
+          .field("stock_control,show_delivery,item_batch_management")
+          .limit(ids.length)
           .get();
-
-        if (resItem && resItem.data.length > 0) {
-          const plant = data.plant_id;
-          const itemData = resItem.data[0];
-
-          if (itemData.stock_control === 0 && itemData.show_delivery === 0) {
-            this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-            this.disabled([`table_gd.${index}.gd_qty`], false);
-            continue;
-          }
-
-          if (itemData.item_batch_management === 0) {
-            if (plant) {
-              const resItemBalance = await db
-                .collection("item_balance")
-                .where({
-                  plant_id: plant,
-                  material_id: item.material_id,
-                  is_deleted: 0,
-                })
-                .get();
-
-              if (resItemBalance && resItemBalance.data.length === 1) {
-                this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-                this.disabled([`table_gd.${index}.gd_qty`], false);
-              }
-            }
-          } else if (itemData.item_batch_management === 1) {
-            const resItemBatchBalance = await db
-              .collection("item_batch_balance")
-              .where({ material_id: item.material_id, plant_id: plant })
-              .get();
-
-            if (resItemBatchBalance && resItemBatchBalance.data.length === 1) {
-              this.disabled([`table_gd.${index}.gd_delivery_qty`], true);
-              this.disabled([`table_gd.${index}.gd_qty`], false);
-            }
-          } else {
-            console.error(
-              `Item batch management is not found for item: ${item.material_id}`,
-            );
-          }
-        }
+        for (const itemData of resItem?.data || [])
+          items[String(itemData.id)] = itemData;
       } catch (error) {
-        console.error(
-          `Error processing item ${item.material_id} at index ${index}:`,
-          error,
-        );
+        console.error("Error reading items:", error);
       }
+    }),
+  );
+
+  // balance rows per material; a read the API clamped is repeated material by material
+  const countRows = async (collection, ids, conditions) => {
+    const counts = {};
+    const read = async (chunk) => {
+      const res = await db
+        .collection(collection)
+        .filter([
+          {
+            type: "branch",
+            operator: "all",
+            children: [
+              { prop: "material_id", operator: "in", value: chunk },
+              ...conditions,
+            ],
+          },
+        ])
+        .field("material_id")
+        .limit(GD_READ_MAX)
+        .get();
+      return res?.data || [];
+    };
+    await Promise.all(
+      chunkList(ids, 100).map(async (chunk) => {
+        try {
+          let found = await read(chunk);
+          if (found.length >= GD_READ_MAX)
+            found = (await Promise.all(chunk.map((id) => read([id])))).flat();
+          for (const row of found) {
+            const key = String(row.material_id);
+            counts[key] = (counts[key] || 0) + 1;
+          }
+        } catch (error) {
+          console.error(`Error reading ${collection}:`, error);
+        }
+      }),
+    );
+    return counts;
+  };
+  const stockOf = (mode) =>
+    materialIds.filter((id) => {
+      const itemData = items[id];
+      return (
+        itemData &&
+        !(itemData.stock_control === 0 && itemData.show_delivery === 0) &&
+        itemData.item_batch_management === mode
+      );
+    });
+  const [balanceCounts, batchCounts] = await Promise.all([
+    plant
+      ? countRows("item_balance", stockOf(0), [
+          { prop: "is_deleted", operator: "equal", value: 0 },
+          { prop: "plant_id", operator: "equal", value: plant },
+        ])
+      : {},
+    countRows(
+      "item_batch_balance",
+      stockOf(1),
+      plant ? [{ prop: "plant_id", operator: "equal", value: plant }] : [],
+    ),
+  ]);
+
+  const toDisable = [];
+  const toEnable = [];
+  for (const { index, materialId } of rows) {
+    const itemData = items[materialId];
+    if (!itemData) continue;
+    let single = false;
+    if (itemData.stock_control === 0 && itemData.show_delivery === 0)
+      single = true;
+    else if (itemData.item_batch_management === 0)
+      single = !!plant && balanceCounts[materialId] === 1;
+    else if (itemData.item_batch_management === 1)
+      single = batchCounts[materialId] === 1;
+    else
+      console.error(
+        `Item batch management is not found for item: ${materialId}`,
+      );
+    if (single) {
+      toDisable.push(`table_gd.${index}.gd_delivery_qty`);
+      toEnable.push(`table_gd.${index}.gd_qty`);
     }
   }
+  if (toDisable.length > 0) this.disabled(toDisable, true);
+  if (toEnable.length > 0) this.disabled(toEnable, false);
 };
 
 // GD-from-PP (GDPP) rows: force the picking layout — gd_qty editable, gd_delivery_qty
@@ -430,30 +626,42 @@ const fetchDeliveredQuantity = async () => {
       return;
     }
 
-    const resSOLineData = await Promise.all(
-      tableGD.map((item) =>
-        item.so_line_item_id
-          ? db
-              .collection("sales_order_axszx8cj_sub")
-              .doc(item.so_line_item_id)
-              .get()
-              .catch((error) => {
-                console.error(
-                  `Error fetching SO line item ${item.so_line_item_id}:`,
-                  error,
-                );
-                return { data: [null] };
-              })
-          : Promise.resolve({ data: [null] }),
+    const soLineIds = [
+      ...new Set(
+        tableGD
+          .map((item) => item.so_line_item_id)
+          .filter((id) => id)
+          .map(String),
       ),
+    ];
+    const soLines = {};
+    await Promise.all(
+      chunkList(soLineIds, GD_READ_CHUNK).map(async (ids) => {
+        try {
+          const res = await db
+            .collection("sales_order_axszx8cj_sub")
+            .filter([
+              {
+                type: "branch",
+                operator: "all",
+                children: [{ prop: "id", operator: "in", value: ids }],
+              },
+            ])
+            .field("delivered_qty,so_quantity")
+            .limit(ids.length)
+            .get();
+          for (const soLine of res?.data || [])
+            soLines[String(soLine.id)] = soLine;
+        } catch (error) {
+          console.error("Error fetching SO line items:", error);
+        }
+      }),
     );
 
-    const soLineItemData = resSOLineData.map((response) =>
-      response.data ? response.data[0] : null,
-    );
-
-    const updatedTableGD = tableGD.map((item, index) => {
-      const soLine = soLineItemData[index];
+    const updatedTableGD = tableGD.map((item) => {
+      const soLine = item.so_line_item_id
+        ? soLines[String(item.so_line_item_id)]
+        : null;
       const totalDeliveredQuantity = soLine ? soLine.delivered_qty || 0 : 0;
       const orderQty = soLine ? soLine.so_quantity || 0 : 0;
       const maxDeliverableQty =
@@ -495,7 +703,11 @@ const displayCreatedPostButton = (status) => {
   const tenantId = this.getVarSystem("tenantId");
   console.log("Created post button — tenant:", tenantId, "status:", status);
 
-  if (tenantId === DO_SYNC_TENANT_ID && status !== "Completed") {
+  if (
+    tenantId === DO_SYNC_TENANT_ID &&
+    status !== "Completed" &&
+    status !== "Processing"
+  ) {
     this.display(["button_created_post"]);
   } else {
     this.hide(["button_created_post"]);
@@ -540,6 +752,12 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
 
     this.setData({ page_status: pageStatus });
 
+    if (
+      (pageStatus === "Edit" || pageStatus === "View") &&
+      status === "Processing"
+    )
+      followBackgroundSave(data.id, data.delivery_no);
+
     const salesOrderId = this.getValue("so_id");
 
     switch (pageStatus) {
@@ -581,7 +799,8 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
         if (
           fromConvert === "Yes" &&
           gd_status !== "Completed" &&
-          gd_status !== "Created"
+          gd_status !== "Created" &&
+          gd_status !== "Processing"
         ) {
           let allItem = this.getValue("all_item");
           if (allItem !== "") {
@@ -598,10 +817,10 @@ const displayPickedFieldsIfFullPicking = async (organizationId) => {
             });
           }
         }
-        if (status !== "Completed") {
-          await disabledSelectStock(data);
+        if (status !== "Completed" && status !== "Processing") {
           disabledGDPPRows(data);
-          [pickingSetup, packingRequired] = await Promise.all([
+          [, pickingSetup, packingRequired] = await Promise.all([
+            disabledSelectStock(data),
             setPickingSetup(data),
             isPackingRequired(organizationId),
           ]);

@@ -32,7 +32,7 @@ for (const t of Object.keys(reads)) {
 }
 for (const c of creates) {
   const rows = reads[c.table] || [];
-  const norm = (k, v) => (k === "batch_id" && (v === null || v === undefined || s(v) === "0") ? "" : s(v));
+  const norm = (k, v) => (k === "batch_id" && (v === null || v === undefined || s(v) === "0") ? "" : k === "fifo_sequence" ? String(parseInt(v || 0, 10)) : s(v));
   const hit = rows.some((r) => Object.keys(c.key).every((k) => norm(k, r[k]) === norm(k, c.key[k])) && same(r, c.values));
   if (!hit) bad.push(c.table + " new row " + JSON.stringify(c.key) + " missing");
 }

@@ -1,0 +1,512 @@
+{
+ "item_balance": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "material_id": [
+   "id",
+   "id"
+  ],
+  "location_id": [
+   "id",
+   "id"
+  ],
+  "block_qty": [
+   "dec",
+   "dec"
+  ],
+  "reserved_qty": [
+   "dec",
+   "dec"
+  ],
+  "unrestricted_qty": [
+   "dec",
+   "dec"
+  ],
+  "qualityinsp_qty": [
+   "dec",
+   "dec"
+  ],
+  "balance_quantity": [
+   "dec",
+   "dec"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "intransit_qty": [
+   "dec",
+   "dec"
+  ],
+  "material_uom": [
+   "id",
+   "id"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "item_batch_balance": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "material_id": [
+   "id",
+   "id"
+  ],
+  "location_id": [
+   "id",
+   "id"
+  ],
+  "block_qty": [
+   "dec",
+   "dec"
+  ],
+  "reserved_qty": [
+   "dec",
+   "dec"
+  ],
+  "unrestricted_qty": [
+   "dec",
+   "dec"
+  ],
+  "qualityinsp_qty": [
+   "dec",
+   "dec"
+  ],
+  "balance_quantity": [
+   "dec",
+   "dec"
+  ],
+  "batch_id": [
+   "id",
+   "id"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "intransit_qty": [
+   "dec",
+   "dec"
+  ],
+  "material_uom": [
+   "id",
+   "id"
+  ],
+  "doc_date": [
+   "dt",
+   "dt"
+  ],
+  "expired_date": [
+   "dt",
+   "dt"
+  ],
+  "manufacturing_date": [
+   "dt",
+   "dt"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ],
+  "remark3": [
+   "str",
+   "str"
+  ],
+  "remark2": [
+   "str",
+   "str"
+  ],
+  "remark": [
+   "str",
+   "str"
+  ]
+ },
+ "bin_location": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "bin_status": [
+   "int",
+   "int"
+  ],
+  "is_default": [
+   "int",
+   "int"
+  ],
+  "bin_name": [
+   "str",
+   "str"
+  ],
+  "bin_label_tier_1": [
+   "str",
+   "str"
+  ],
+  "bin_label_tier_2": [
+   "str",
+   "str"
+  ],
+  "bin_label_tier_3": [
+   "str",
+   "str"
+  ],
+  "bin_label_tier_4": [
+   "str",
+   "str"
+  ],
+  "bin_label_tier_5": [
+   "str",
+   "str"
+  ],
+  "bin_code_tier_1": [
+   "str",
+   "str"
+  ],
+  "bin_code_tier_2": [
+   "str",
+   "str"
+  ],
+  "bin_code_tier_3": [
+   "str",
+   "str"
+  ],
+  "bin_code_tier_4": [
+   "str",
+   "str"
+  ],
+  "bin_code_tier_5": [
+   "str",
+   "str"
+  ],
+  "tier_1_active": [
+   "int",
+   "int"
+  ],
+  "tier_2_active": [
+   "int",
+   "int"
+  ],
+  "tier_3_active": [
+   "int",
+   "int"
+  ],
+  "tier_4_active": [
+   "int",
+   "int"
+  ],
+  "tier_5_active": [
+   "int",
+   "int"
+  ],
+  "bin_location_combine": [
+   "str",
+   "str"
+  ],
+  "bin_description": [
+   "str",
+   "str"
+  ],
+  "bin_qr_color": [
+   "str",
+   "str"
+  ],
+  "bin_qr_position": [
+   "str",
+   "str"
+  ],
+  "bin_tier_highlight": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "inactive_status": [
+   "str",
+   "str"
+  ],
+  "active_status": [
+   "str",
+   "str"
+  ],
+  "page_status": [
+   "str",
+   "str"
+  ],
+  "confirm_text": [
+   "str",
+   "str"
+  ],
+  "current_bin_location": [
+   "str",
+   "str"
+  ],
+  "default_bin_location_id": [
+   "str",
+   "str"
+  ],
+  "default_bin_location": [
+   "str",
+   "str"
+  ],
+  "storage_location_id": [
+   "id",
+   "id"
+  ],
+  "storage_location_name": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "unit_of_measurement": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "uom_name": [
+   "str",
+   "str"
+  ],
+  "uom_type": [
+   "str",
+   "str"
+  ],
+  "uom_desc": [
+   "str",
+   "str"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "batch": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "batch_number": [
+   "str",
+   "str"
+  ],
+  "material_id": [
+   "id",
+   "id"
+  ],
+  "initial_quantity": [
+   "dec",
+   "dec"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "goods_receiving_no": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "transaction_no": [
+   "str",
+   "str"
+  ],
+  "parent_transaction_no": [
+   "str",
+   "str"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ],
+  "remark2": [
+   "str",
+   "str"
+  ],
+  "remark": [
+   "str",
+   "str"
+  ],
+  "remark3": [
+   "str",
+   "str"
+  ],
+  "expired_date": [
+   "dt",
+   "dt"
+  ],
+  "manufacturing_date": [
+   "dt",
+   "dt"
+  ]
+ }
+}

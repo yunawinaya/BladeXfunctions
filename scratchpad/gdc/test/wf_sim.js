@@ -7,7 +7,7 @@ const [name, tenant, paramsJson] = process.argv.slice(2);
 const writes = [];
 const db = { tenantId: tenant, insert(t, rows) { writes.push(["add", t, rows]); return rows; }, update(t, rows) { writes.push(["update", t, rows]); return rows.length; } };
 const sql = new Proxy({}, { get: (_, id) => (text) => JSON.parse(cp.execFileSync(R + ".dbtools/db", ["--dev", "--json", "--limit", "100000", text], { maxBuffer: 1 << 30, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] })) });
-const e = new Engine({ dir: R + "Goods Delivery/CompleteV2", db, mocks: { sql, read: {} } });
+const e = new Engine({ dir: R + (process.env.WF_DIR || "Goods Delivery/CompleteV2"), db, mocks: { sql, read: {} } });
 const run0 = e.run.bind(e);
 e.run = (n, p) => (n.startsWith("GD_COMPLETE_") && n !== name ? (writes.push(["call", n, p]), { returned: {}, ctx: {} }) : n === name ? run0(n, p) : (writes.push(["call", n, p]), { returned: {}, ctx: {} }));
 const out = e.run(name, JSON.parse(paramsJson));

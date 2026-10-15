@@ -1,0 +1,12 @@
+SELECT CAST(h.id AS CHAR) AS po_id,
+       SUM(COALESCE(p.created_received_qty, 0) > 0) AS reserved,
+       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')) AS countable,
+       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')
+           AND COALESCE(p.received_qty, 0) > 0) AS partially,
+       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')
+           AND COALESCE(p.received_qty, 0) > 0 AND p.received_qty >= COALESCE(p.quantity, 0)) AS fully
+  FROM JSON_TABLE(CONCAT('[', '{{node:%(src)s}}', ']'), '$[*]' COLUMNS (pid BIGINT PATH '$')) sel
+  JOIN purchase_order h ON h.id = sel.pid AND h.is_deleted = 0
+  JOIN purchase_order_2ukyuanr_sub p ON p.purchase_order_id = h.id AND p.is_deleted = 0
+ WHERE h.tenant_id = '{{system:tenantId}}'
+ GROUP BY h.id

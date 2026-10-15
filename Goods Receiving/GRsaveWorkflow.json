@@ -85,6 +85,327 @@
       "blocks": []
     },
     {
+      "id": "code_node_GrSizeGuard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: line count + Edit of a stored GR?",
+        "isValidator": true,
+        "nodeName": "Guard: line count + Edit of a stored GR?",
+        "name": "Guard: line count + Edit of a stored GR?",
+        "script": {
+          "type": "javascript",
+          "code": "// Classic-save guards: a receipt above 500 lines is refused (this save cannot carry it), and so is an Edit of a Goods Receiving a background job holds (stored gr_status 'Processing')\nconst rows = [{{workflowparams:allData.table_gr}}][0] || [];\nlet lineCount = 0;\nfor (const row of Array.isArray(rows) ? rows : []) {\n  lineCount += 1 + (Array.isArray(row.children) ? row.children.length : 0);\n}\nconst id = String([{{workflowparams:allData.id}}][0] || \"\").trim();\nconst edit = String([{{workflowparams:pageStatus}}][0] || \"\") === \"Edit\";\nconst ok = /^[0-9]{1,20}$/.test(id);\nreturn {\n  tooBig: lineCount > 500 ? \"YES\" : \"NO\",\n  sizeMessage: \"This Goods Receiving has \" + lineCount + \" lines. A save of more than 500 lines is not supported here - please split it into smaller receipts.\",\n  check: edit && ok ? \"YES\" : \"NO\",\n  grId: ok ? id : \"0\",\n};"
+        },
+        "response_json": [
+          {
+            "key": "grg1big",
+            "name": "tooBig",
+            "title": "tooBig",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "grg2msg",
+            "name": "sizeMessage",
+            "title": "sizeMessage",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "grg3chk",
+            "name": "check",
+            "title": "check",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "grg4grid",
+            "name": "grId",
+            "title": "grId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GrSizeGuard",
+      "type": "if",
+      "data": {
+        "title": "IF more than 500 lines",
+        "isValidator": true,
+        "nodeName": "IF more than 500 lines",
+        "name": "IF more than 500 lines",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798100000001,
+              "parentId": 1798100000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GrSizeGuard.data.tooBig}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGrSizeGuard",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_GrSizeGuard",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return too many lines",
+                "isValidator": true,
+                "nodeName": "Return too many lines",
+                "name": "Return too many lines",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_GrSizeGuard.data.sizeMessage}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGrSizeGuard",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_GrProcGuard",
+      "type": "if",
+      "data": {
+        "title": "IF Edit of a stored GR",
+        "isValidator": true,
+        "nodeName": "IF Edit of a stored GR",
+        "name": "IF Edit of a stored GR",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798100000003,
+              "parentId": 1798100000004,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GrSizeGuard.data.check}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGrProcGuard",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_GrProcGuard",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Stored GR Status",
+                "isValidator": true,
+                "nodeName": "Stored GR Status",
+                "name": "Stored GR Status",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT g.gr_status\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id = {{node:code_node_GrSizeGuard.data.grId}}\n   AND g.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "grg5stat",
+                    "name": "gr_status",
+                    "title": "gr_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_GrProcBusy",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Guard: held by a background job?",
+                "isValidator": true,
+                "nodeName": "Guard: held by a background job?",
+                "name": "Guard: held by a background job?",
+                "script": {
+                  "type": "javascript",
+                  "code": "const row = (([{{node:sql_node_GrProcGuard.data}}][0]) || [])[0] || {};\nreturn { busy: String(row.gr_status || \"\") === \"Processing\" ? \"YES\" : \"NO\" };"
+                },
+                "response_json": [
+                  {
+                    "key": "grg6busy",
+                    "name": "busy",
+                    "title": "busy",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_GrProcBusy",
+              "type": "if",
+              "data": {
+                "title": "IF Processing (background job running)",
+                "isValidator": true,
+                "nodeName": "IF Processing (background job running)",
+                "name": "IF Processing (background job running)",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1798100000005,
+                      "parentId": 1798100000006,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_GrProcBusy.data.busy}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TGrProcBusy",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_GrProcBusy",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Processing",
+                        "isValidator": true,
+                        "nodeName": "Return Processing",
+                        "name": "Return Processing",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "propLabel": "message",
+                              "operator": "",
+                              "valueType": "value",
+                              "value": "This Goods Receiving is being processed in the background - please wait for it to finish.",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FGrProcBusy",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGrProcGuard",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "code_node_LFPr1wQW",
       "type": "code-node",
       "data": {
@@ -3554,7 +3875,7 @@
                         "name": "onOrderQty",
                         "title": "onOrderQty",
                         "description": "",
-                        "bsonType": "int",
+                        "bsonType": "decimal",
                         "isExpand": false,
                         "children": []
                       },

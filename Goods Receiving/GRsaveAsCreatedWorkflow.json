@@ -40,6 +40,14 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "xcchg07h",
+      "name": "idempotency_key",
+      "title": "idempotency_key",
+      "description": "optional, Add only: one key per new GR (kept across retries); a retry returns the first GR",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "response_json": [
@@ -66,6 +74,22 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "554kmv9h",
+      "name": "gr_no",
+      "title": "gr_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "6iulophw",
+      "name": "duplicate",
+      "title": "duplicate",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "config": {},
@@ -77,42 +101,768 @@
       "blocks": []
     },
     {
-      "id": "cn_zero",
+      "id": "code_node_GcPrep",
       "type": "code-node",
       "data": {
         "language": "javascript",
         "code": "",
         "timeout": 30000,
-        "title": "Zero Quantity Check",
+        "title": "Prepare: guards, fill, checks (reads allData once)",
         "isValidator": true,
-        "nodeName": "Zero Quantity Check",
-        "name": "Zero Quantity Check",
+        "nodeName": "Prepare: guards, fill, checks (reads allData once)",
+        "name": "Prepare: guards, fill, checks (reads allData once)",
         "script": {
           "type": "javascript",
-          "code": "const allData = {{workflowparams:allData}};\n\n// table_gr is a tree: an item bundle is one row with its items under `children`.\n// The document keeps the tree; every per-line step walks this flattened view.\nconst flattenGrRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// The bundle row carries the bundle id and no item. Nothing is received against it\n// directly, so it is exempt here exactly as it is in the completion workflow -- its\n// items are listed on their own account when they come to zero.\nconst isBundleParentRow = (row) => Boolean(row.item_bundle_id) && !row.item_id;\n\nconst zeroQtyArray = [];\nfor (const [index, gr] of flattenGrRows(allData.table_gr).entries()) {\n  if (isBundleParentRow(gr)) continue;\n  if (gr.received_qty <= 0) zeroQtyArray.push(`#${index + 1}`);\n}\nlet hasZero = 0;\nlet message = null;\nif (zeroQtyArray.length > 0) {\n  message = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${zeroQtyArray.length > 1 ? \"ve\" : \"s\"} a zero received quantity.\\nIf you proceed, those rows will be removed.\\nWould you like to proceed?`;\n  hasZero = 1;\n}\nreturn { message, hasZero };"
+          "code": "// The only node that reads allData: guards, fill, checks, the GR row to write and a compact per-PO-line view\nconst MAX_LINES = 2000;\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst allData = [{{workflowparams:allData}}][0] || {};\nconst pageStatus = String([{{workflowparams:pageStatus}}][0] || \"\");\nconst continueZero = String([{{workflowparams:continueZero}}][0] || \"\");\nconst rawKey = String([{{workflowparams:idempotency_key}}][0] || \"\").trim();\n\nconst rows0 = Array.isArray(allData.table_gr) ? allData.table_gr : [];\nlet lineCount = 0;\nfor (const row of rows0) {\n  lineCount += 1 + (Array.isArray(row.children) ? row.children.length : 0);\n}\nconst sizeMessage =\n  \"This Goods Receiving has \" + lineCount + \" lines. A save of more than \" + MAX_LINES +\n  \" lines is not supported here - please split it into smaller receipts.\";\nif (lineCount > MAX_LINES) {\n  return { tooBig: \"YES\", sizeMessage };\n}\n\nconst edit = pageStatus === \"Edit\";\nconst idText = String(allData.id === undefined || allData.id === null ? \"\" : allData.id).trim();\nconst grId = edit && /^[0-9]{1,20}$/.test(idText) ? idText : \"0\";\nconst keyOk = !edit && /^[A-Za-z0-9:_.-]{8,128}$/.test(rawKey);\n// gr_idem_key = key#nonce: an attempt finds its own row after the add\nconst nonce = String([{{system:uuid}}][0] || \"\").replace(/[^A-Za-z0-9-]/g, \"\") ||\n  Date.now().toString(36) + Math.random().toString(36).slice(2, 10);\n\n// table_gr is a tree: an item bundle is ONE row with its items under `children`\nconst flatten = (rows) => {\n  const flat = [];\n  for (const row of rows || []) {\n    flat.push(row);\n    for (const child of Array.isArray(row.children) ? row.children : []) flat.push(child);\n  }\n  return flat;\n};\nconst isBundleParentRow = (row) => Boolean(row.item_bundle_id) && !row.item_id;\n\nconst zeroQtyArray = [];\nfor (const [index, gr] of flatten(rows0).entries()) {\n  if (isBundleParentRow(gr)) continue;\n  if (gr.received_qty <= 0) zeroQtyArray.push(`#${index + 1}`);\n}\nlet hasZero = 0;\nlet zeroMessage = null;\nif (zeroQtyArray.length > 0) {\n  zeroMessage = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${zeroQtyArray.length > 1 ? \"ve\" : \"s\"} a zero received quantity.\\nIf you proceed, those rows will be removed.\\nWould you like to proceed?`;\n  hasZero = 1;\n}\n\n// q8 as GOODS_RECEIVING's fillback: a raw client float (2032.3799999999997) failed the decimal check\nconst DECIMALS = [\"ordered_qty\", \"base_ordered_qty\", \"to_received_qty\", \"received_qty\", \"base_received_qty\",\n  \"initial_received_qty\", \"unit_price\", \"total_price\", \"uom_conversion\"];\nconst stampGrLineItem = (line) => {\n  for (const f of DECIMALS) {\n    if (line[f] !== undefined && line[f] !== null && line[f] !== \"\") line[f] = q8(line[f]);\n  }\n  line.supplier_id = allData.supplier_name || null;\n  line.organization_id = allData.organization_id;\n  line.plant_id = allData.plant_id || null;\n  line.billing_state_id = allData.billing_address_state || null;\n  line.billing_country_id = allData.billing_address_country || null;\n  line.shipping_state_id = allData.shipping_address_state || null;\n  line.shipping_country_id = allData.shipping_address_country || null;\n  line.assigned_to = allData.assigned_to || null;\n};\nconst kept = [];\nfor (const [index, line] of rows0.entries()) {\n  stampGrLineItem(line);\n  line.line_index = index + 1;\n  const children = Array.isArray(line.children) ? line.children : [];\n  if (children.length > 0) {\n    const keptChildren = [];\n    for (const child of children) {\n      stampGrLineItem(child);\n      if (child.received_qty > 0) {\n        child.line_index = keptChildren.length + 1;\n        keptChildren.push(child);\n      }\n    }\n    line.children = keptChildren;\n  }\n  if (isBundleParentRow(line) ? Array.isArray(line.children) && line.children.length > 0 : line.received_qty > 0) {\n    kept.push(line);\n  }\n}\nconst flatRows = flatten(kept);\n\nconst noRule = allData.gr_no_type !== -9999;\nconst grNo = noRule && (!allData.gr_no || allData.previous_status === \"Draft\") ? \"issued\" : allData.gr_no;\n\nlet poID = [];\nfor (const gr of flatRows) poID.push(gr.line_po_id);\npoID = [...new Set(poID)];\n\nconst invalidMessage = kept.length === 0\n  ? \"All Received Quantity must not be 0. Please add at least one item with received quantity > 0.\"\n  : \"\";\n\nconst errors = [];\nconst headerRequired = [\n  { name: \"gr_no\", label: \"Good Receiving Number\", value: grNo },\n  { name: \"gr_date\", label: \"Received Date\", value: allData.gr_date },\n  { name: \"plant_id\", label: \"Plant\", value: allData.plant_id },\n];\nfor (const f of headerRequired) {\n  const v = f.value;\n  if (v === undefined || v === null || (typeof v === \"string\" && v.trim() === \"\")) errors.push(f.label + \" is required.\");\n}\nif (flatRows.length === 0) errors.push(\"GR Items are required.\");\nfor (let i = 0; i < flatRows.length; i++) {\n  const item = flatRows[i];\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") continue;\n  if (isBundleParentRow(item)) continue;\n  if (!item.location_id) errors.push(`Target Location is required for item #${i + 1}.`);\n  if (!item.inv_category) errors.push(`Inventory Category is required for item #${i + 1}.`);\n  if (!item.item_batch_no) errors.push(`Batch Number is required for item #${i + 1}.`);\n  if (item.is_serialized_item === 1 && item.is_serial_allocated !== 1) {\n    const name = item.item_name || item.item_code || item.item_id || `Item #${i + 1}`;\n    errors.push(`Serial number allocation is required for ${name} (row ${i + 1}).`);\n  }\n}\n\n// per PO line: 3 dp for the checks (as before), 8 dp for the reservation\nconst agg = new Map();\nfor (const gr of flatRows) {\n  if (gr.is_split === \"Yes\" && gr.parent_or_child === \"Parent\") continue;\n  const lid = gr.po_line_item_id;\n  if (!lid) continue;\n  let a = agg.get(String(lid));\n  if (!a) {\n    a = { lid: String(lid), q3: 0, q8: 0, item: gr.item_id, uom: null, name: gr.item_name || gr.item_id || lid };\n    agg.set(String(lid), a);\n  }\n  a.q3 = roundQty(a.q3 + parseFloat(gr.received_qty || 0));\n  a.q8 = q8(a.q8 + parseFloat(gr.received_qty || 0));\n  a.uom = gr.ordered_qty_uom;\n}\nconst lines = [...agg.values()].map((a) => ({\n  lid: a.lid, q3: a.q3, q8: a.q8, name: a.name,\n  item: a.item === undefined || a.item === null ? \"\" : String(a.item),\n  uom: a.uom === undefined || a.uom === null ? \"\" : String(a.uom),\n}));\nconst digits = (list) => [...new Set(list.filter((v) => /^[0-9]{1,20}$/.test(v)))].join(\",\") || \"0\";\n\n// only the columns the add / update nodes map (no dialog models)\nconst FIELDS = [\"putaway_status\", \"plant_id\", \"purchase_order_number\", \"supplier_name\", \"currency_code\",\n  \"gr_billing_address\", \"gr_shipping_address\", \"supplier_contact_person\", \"supplier_contact_number\", \"supplier_email\",\n  \"organization_id\", \"acc_integration_type\", \"project_id\", \"reference_type\", \"previous_status\", \"batch_index\",\n  \"reference_doc\", \"ref_no_1\", \"ref_no_2\", \"gr_no_type\", \"gr_received_by\", \"gr_date\", \"assigned_to\", \"table_sn_records\",\n  \"gr_remark1\", \"gr_remark2\", \"gr_remark3\", \"gr_remark4\", \"gr_remark5\", \"billing_address_name\", \"billing_address_phone\",\n  \"billing_address_line_1\", \"billing_address_line_2\", \"billing_address_line_3\", \"billing_address_line_4\",\n  \"billing_address_city\", \"billing_postal_code\", \"billing_address_state\", \"billing_address_country\", \"billing_attention\",\n  \"billing_address_fax\", \"shipping_address_fax\", \"shipping_address_name\", \"shipping_address_phone\",\n  \"shipping_address_line_1\", \"shipping_address_line_2\", \"shipping_address_line_3\", \"shipping_address_line_4\",\n  \"shipping_address_city\", \"shipping_postal_code\", \"shipping_address_state\", \"shipping_address_country\",\n  \"shipping_attention\"];\nconst gr = {};\nfor (const f of FIELDS) {\n  if (f in allData) gr[f] = allData[f];\n}\ngr.po_id = poID;\ngr.gr_no = grNo;\ngr.table_gr = kept;\n\nreturn {\n  tooBig: \"NO\",\n  sizeMessage,\n  edit: edit ? \"YES\" : \"NO\",\n  check: edit ? \"YES\" : \"NO\",\n  grId,\n  keyCheck: keyOk ? \"YES\" : \"NO\",\n  keySql: keyOk ? rawKey : \"\",\n  keyStore: keyOk ? rawKey + \"#\" + nonce : null,\n  zeroStop: hasZero === 1 && continueZero !== \"Yes\" ? \"YES\" : \"NO\",\n  zeroMessage,\n  invalid: invalidMessage ? \"YES\" : \"NO\",\n  invalidMessage,\n  hasError: errors.length > 0 ? \"YES\" : \"NO\",\n  errorMessage: errors.length > 0 ? errors.join(\"\\n\") : null,\n  noRule: noRule ? \"YES\" : \"NO\",\n  clientGrNo: allData.gr_no === undefined ? null : allData.gr_no,\n  gr,\n  lines,\n  poLineCsv: digits(lines.map((a) => a.lid)),\n  itemCsv: digits(lines.map((a) => a.item)),\n  lineCount,\n};"
         },
         "response_json": [
           {
-            "key": "message",
-            "name": "message",
-            "title": "message",
+            "key": "8lj46vwu",
+            "name": "tooBig",
+            "title": "tooBig",
             "description": "",
-            "bsonType": "string",
             "isExpand": false,
-            "children": []
+            "children": [],
+            "bsonType": "string"
           },
           {
-            "key": "hasZero",
-            "name": "hasZero",
-            "title": "hasZero",
+            "key": "7wj81t21",
+            "name": "sizeMessage",
+            "title": "sizeMessage",
             "description": "",
-            "bsonType": "int",
             "isExpand": false,
-            "children": []
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "rpd2u6zu",
+            "name": "edit",
+            "title": "edit",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "q1mevnhy",
+            "name": "check",
+            "title": "check",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "gadxrzh1",
+            "name": "grId",
+            "title": "grId",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "yfijrxdx",
+            "name": "keyCheck",
+            "title": "keyCheck",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "idnas79a",
+            "name": "keySql",
+            "title": "keySql",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "arfx85gw",
+            "name": "keyStore",
+            "title": "keyStore",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "aqah4bna",
+            "name": "zeroStop",
+            "title": "zeroStop",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "kn9uoxsa",
+            "name": "zeroMessage",
+            "title": "zeroMessage",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "njgnpgnx",
+            "name": "invalid",
+            "title": "invalid",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "8q6jnjbb",
+            "name": "invalidMessage",
+            "title": "invalidMessage",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "37443a43",
+            "name": "hasError",
+            "title": "hasError",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "tqosez5x",
+            "name": "errorMessage",
+            "title": "errorMessage",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "xj105s55",
+            "name": "noRule",
+            "title": "noRule",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "zoy1twzg",
+            "name": "clientGrNo",
+            "title": "clientGrNo",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "o3lnydjw",
+            "name": "gr",
+            "title": "gr",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "any"
+          },
+          {
+            "key": "ur5p1yev",
+            "name": "lines",
+            "title": "lines",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "9hy6dajk",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "0ttou2gs",
+            "name": "poLineCsv",
+            "title": "poLineCsv",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "p3xle9mx",
+            "name": "itemCsv",
+            "title": "itemCsv",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "h7bm3pgw",
+            "name": "lineCount",
+            "title": "lineCount",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
           }
         ]
       },
       "blocks": []
+    },
+    {
+      "id": "if_GcSizeGuard",
+      "type": "if",
+      "data": {
+        "title": "IF more than 2000 lines",
+        "isValidator": true,
+        "nodeName": "IF more than 2000 lines",
+        "name": "IF more than 2000 lines",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798200000001,
+              "parentId": 1798200000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcPrep.data.tooBig}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGcSizeGuard",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_GcSizeGuard",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return too many lines",
+                "isValidator": true,
+                "nodeName": "Return too many lines",
+                "name": "Return too many lines",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_GcPrep.data.sizeMessage}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGcSizeGuard",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_GcKey",
+      "type": "if",
+      "data": {
+        "title": "IF Add with an idempotency key",
+        "isValidator": true,
+        "nodeName": "IF Add with an idempotency key",
+        "name": "IF Add with an idempotency key",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798200000005,
+              "parentId": 1798200000006,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcPrep.data.keyCheck}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGcKey",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_GcKeyHit",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "GR already saved with this key?",
+                "isValidator": true,
+                "nodeName": "GR already saved with this key?",
+                "name": "GR already saved with this key?",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(g.id AS CHAR) AS id, g.gr_no, g.gr_status\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND SUBSTRING_INDEX(g.gr_idem_key, '#', 1) = '{{node:code_node_GcPrep.data.keySql}}'\n   AND g.is_deleted = 0\n ORDER BY g.id\n LIMIT 1"
+                },
+                "response_json": [
+                  {
+                    "key": "73luk0mq",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "hck1u8g1",
+                    "name": "gr_no",
+                    "title": "gr_no",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "tdgk9zch",
+                    "name": "gr_status",
+                    "title": "gr_status",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_GcKeyHit",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Earlier attempt found?",
+                "isValidator": true,
+                "nodeName": "Earlier attempt found?",
+                "name": "Earlier attempt found?",
+                "script": {
+                  "type": "javascript",
+                  "code": "// A retried Add (same idempotency key): the GR the first attempt created is the answer; nothing is written again\nconst rows = [{{node:sql_node_GcKeyHit.data}}][0] || [];\nconst first = (Array.isArray(rows) ? rows : [rows])[0] || null;\nconst no = first ? String(first.gr_no || \"\") : \"\";\nreturn {\n  hit: first ? \"YES\" : \"NO\",\n  id: first ? String(first.id) : \"\",\n  grNo: no,\n  message: \"Goods Receiving \" + no + \" was already saved as Created.\",\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "260xlf6z",
+                    "name": "hit",
+                    "title": "hit",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "gq2otrlk",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "o7d6geow",
+                    "name": "grNo",
+                    "title": "grNo",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "w4zv5dd3",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_GcKeyHit",
+              "type": "if",
+              "data": {
+                "title": "IF the first attempt already saved it",
+                "isValidator": true,
+                "nodeName": "IF the first attempt already saved it",
+                "name": "IF the first attempt already saved it",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1798200000003,
+                      "parentId": 1798200000004,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_GcKeyHit.data.hit}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TGcKeyHit",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_GcKeyHit",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return the first GR",
+                        "isValidator": true,
+                        "nodeName": "Return the first GR",
+                        "name": "Return the first GR",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "200",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "propLabel": "message",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_GcKeyHit.data.message}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "id",
+                              "propLabel": "id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_GcKeyHit.data.id}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "gr_no",
+                              "propLabel": "gr_no",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_GcKeyHit.data.grNo}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "duplicate",
+                              "propLabel": "duplicate",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "YES",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FGcKeyHit",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGcKey",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_GcProcGuard",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Stored GR: status, number, reserved qty per PO line",
+        "isValidator": true,
+        "nodeName": "Stored GR: status, number, reserved qty per PO line",
+        "name": "Stored GR: status, number, reserved qty per PO line",
+        "script": {
+          "type": "sql",
+          "code": "SELECT g.gr_status, g.gr_no,\n       CAST(l.po_line_item_id AS CHAR) AS po_line_id, SUM(l.received_qty) AS qty\n  FROM goods_receiving g\n  LEFT JOIN goods_receiving_eg6l4ywi_sub l\n    ON l.goods_receiving_id = g.id AND l.is_deleted = 0 AND l.po_line_item_id IS NOT NULL\n   AND NOT (COALESCE(l.is_split, '') = 'Yes' AND COALESCE(l.parent_or_child, '') = 'Parent')\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id = {{node:code_node_GcPrep.data.grId}}\n   AND g.is_deleted = 0\n GROUP BY g.gr_status, g.gr_no, l.po_line_item_id"
+        },
+        "response_json": [
+          {
+            "key": "anlvv107",
+            "name": "gr_status",
+            "title": "gr_status",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "fkpcby32",
+            "name": "gr_no",
+            "title": "gr_no",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "sjp7xkmi",
+            "name": "po_line_id",
+            "title": "po_line_id",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "yhlh8pll",
+            "name": "qty",
+            "title": "qty",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_GcProcBusy",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: may the stored GR be saved as Created?",
+        "isValidator": true,
+        "nodeName": "Guard: may the stored GR be saved as Created?",
+        "name": "Guard: may the stored GR be saved as Created?",
+        "script": {
+          "type": "javascript",
+          "code": "// Edit: refused unless the STORED GR is Draft / Created; only a stored Created GR has a reservation to replace\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst isEdit = String([{{node:code_node_GcPrep.data.check}}][0] || \"\") === \"YES\";\nconst rows = [{{node:sql_node_GcProcGuard.data}}][0] || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst head = list[0] || null;\nconst status = head ? String(head.gr_status || \"\") : \"\";\nlet message = \"\";\nif (isEdit && !head) {\n  message = \"Goods Receiving not found - it may already have been deleted.\";\n} else if (isEdit && status === \"Processing\") {\n  message = \"This Goods Receiving is being processed in the background - please wait for it to finish.\";\n} else if (isEdit && status !== \"Draft\" && status !== \"Created\") {\n  message = \"Goods Receiving \" + String(head.gr_no || \"\") + \" cannot be saved as Created: it is \" + (status || \"blank\") + \" now.\";\n}\nlet oldAgg = null;\nif (isEdit && status === \"Created\") {\n  oldAgg = {};\n  for (const r of list) {\n    if (!r.po_line_id) continue;\n    oldAgg[String(r.po_line_id)] = { q3: roundQty(r.qty), q8: q8(r.qty) };\n  }\n}\n// a rule-numbered Created GR keeps its stored number (a stale form must not re-issue it)\nconst noRule = String([{{node:code_node_GcPrep.data.noRule}}][0] || \"\") === \"YES\";\nconst clientNo = [{{node:code_node_GcPrep.data.clientGrNo}}][0];\nlet grNo = clientNo === undefined ? null : clientNo;\nif (isEdit && noRule && head) grNo = status === \"Created\" ? (head.gr_no || clientNo || \"issued\") : \"issued\";\nreturn { busy: message ? \"YES\" : \"NO\", message, storedStatus: status, oldAgg, grNo };"
+        },
+        "response_json": [
+          {
+            "key": "lr3edyly",
+            "name": "busy",
+            "title": "busy",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "k5f9dx2r",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "qvk53wct",
+            "name": "storedStatus",
+            "title": "storedStatus",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "rdycvrsg",
+            "name": "oldAgg",
+            "title": "oldAgg",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "any"
+          },
+          {
+            "key": "a5iurfbz",
+            "name": "grNo",
+            "title": "grNo",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GcProcBusy",
+      "type": "if",
+      "data": {
+        "title": "IF the stored GR refuses it",
+        "isValidator": true,
+        "nodeName": "IF the stored GR refuses it",
+        "name": "IF the stored GR refuses it",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798200000007,
+              "parentId": 1798200000008,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcProcBusy.data.busy}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGcProcBusy",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_GcProcBusy",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return refused",
+                "isValidator": true,
+                "nodeName": "Return refused",
+                "name": "Return refused",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_GcProcBusy.data.message}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGcProcBusy",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "if_zero",
@@ -122,52 +872,25 @@
         "isValidator": true,
         "nodeName": "IF Zero Qty",
         "name": "IF Zero Qty",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "condition_type": "Expression",
         "filter": {
           "list": [
             {
-              "id": 1780000000005,
-              "parentId": 1780000000006,
+              "id": 1798200000009,
+              "parentId": 1798200000010,
               "isTop": true,
               "prop": "",
-              "operator": "all",
+              "operator": "",
               "valueType": "",
               "value": "",
-              "type": "branch",
-              "level": 1,
-              "children": [
-                {
-                  "id": 1780000000001,
-                  "parentId": 1780000000002,
-                  "isTop": false,
-                  "prop": "node.cn_zero.data.hasZero",
-                  "operator": "numberEqual",
-                  "valueType": "value",
-                  "type": "leaf",
-                  "level": 2,
-                  "propLabel": "hasZero",
-                  "valueLabel": "",
-                  "operatorLabel": "Equal",
-                  "value": 1
-                },
-                {
-                  "id": 1780000000003,
-                  "parentId": 1780000000004,
-                  "isTop": false,
-                  "prop": "workflowparams.continueZero",
-                  "operator": "notEqual",
-                  "valueType": "value",
-                  "type": "leaf",
-                  "level": 2,
-                  "propLabel": "continueZero",
-                  "valueLabel": "",
-                  "operatorLabel": "Not Equal",
-                  "value": "Yes"
-                }
-              ]
+              "type": "leaf",
+              "level": 1
             }
           ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcPrep.data.zeroStop}}' == 'YES'"
         }
       },
       "blocks": [
@@ -202,7 +925,7 @@
                       "prop": "message",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_zero.data.message}}",
+                      "value": "{{node:code_node_GcPrep.data.zeroMessage}}",
                       "valueLabel": "",
                       "propLabel": "message"
                     }
@@ -223,73 +946,6 @@
       ]
     },
     {
-      "id": "cn_fill",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Fillback Header Fields",
-        "isValidator": true,
-        "nodeName": "Fillback Header Fields",
-        "name": "Fillback Header Fields",
-        "script": {
-          "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst updatedGR = [];\n\n// table_gr is a tree: an item bundle is ONE row with its items under `children`.\n// The saved document keeps that tree, but a bundle's items are receivable lines\n// in their own right — each has its own purchase order line — so every step that\n// reasons per line walks a flattened view of it.\nconst flattenGrRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// Everything stamped onto a line regardless of where it sits in the tree. A\n// bundle's items carry the same header fields as a top-level line.\nconst stampGrLineItem = (grLineItem) => {\n  grLineItem.supplier_id = allData.supplier_name || null;\n  grLineItem.organization_id = allData.organization_id;\n  grLineItem.plant_id = allData.plant_id || null;\n  grLineItem.billing_state_id = allData.billing_address_state || null;\n  grLineItem.billing_country_id = allData.billing_address_country || null;\n  grLineItem.shipping_state_id = allData.shipping_address_state || null;\n  grLineItem.shipping_country_id = allData.shipping_address_country || null;\n  grLineItem.assigned_to = allData.assigned_to || null;\n};\n\nfor (const [index, grLineItem] of allData.table_gr.entries()) {\n  stampGrLineItem(grLineItem);\n  grLineItem.line_index = index + 1;\n\n  const children = Array.isArray(grLineItem.children) ? grLineItem.children : [];\n\n  // A bundle's items are numbered within their own bundle, and a zero-quantity\n  // one is dropped exactly like a zero-quantity top-level line.\n  if (children.length > 0) {\n    const keptChildren = [];\n\n    for (const child of children) {\n      stampGrLineItem(child);\n\n      if (child.received_qty > 0) {\n        child.line_index = keptChildren.length + 1;\n        keptChildren.push(child);\n      }\n    }\n\n    grLineItem.children = keptChildren;\n  }\n\n  updatedGR.push(grLineItem);\n}\nallData.table_gr = updatedGR;\n\nallData.gr_status = \"Created\";\n\nif (allData.gr_no_type !== -9999 &&\n    (!allData.gr_no || allData.gr_no === null || allData.gr_no === \"\" || allData.previous_status === \"Draft\")) {\n  allData.gr_no = \"issued\";\n}\n\n// A bundle row is a header: it holds no stock, and its quantity is the number of\n// bundles rather than a quantity of anything. It is kept or dropped on whether any\n// of its items survived the pass above, never on its own received_qty -- filtering\n// it on that would delete every item nested under it, and the zero-quantity check\n// deliberately exempts it, so the deletion would happen with no warning at all.\nconst isBundleParentRow = (row) => Boolean(row.item_bundle_id) && !row.item_id;\n\nallData.table_gr = allData.table_gr.filter((item) =>\n  isBundleParentRow(item)\n    ? Array.isArray(item.children) && item.children.length > 0\n    : item.received_qty > 0\n);\n\n// Flat view of what was kept. A bundle's items reference the same purchase order\n// as the bundle row, but read them all the same rather than assuming it.\nconst flatRows = flattenGrRows(allData.table_gr);\n\nlet poID = [];\nlet purchaseOrderNumber = [];\nfor (const gr of flatRows) {\n  poID.push(gr.line_po_id);\n  purchaseOrderNumber.push(gr.line_po_no);\n}\npoID = [...new Set(poID)];\npurchaseOrderNumber = [...new Set(purchaseOrderNumber)];\nallData.po_id = poID;\nallData.po_no_display = purchaseOrderNumber.join(\", \");\n\nlet invalidMessage;\nif (allData.table_gr.length === 0) {\n  invalidMessage = \"All Received Quantity must not be 0. Please add at least one item with received quantity > 0.\";\n}\n\nconst poIds = Array.isArray(allData.po_id) ? allData.po_id : [allData.po_id];\nconst searchGrId = (pageStatus === \"Edit\" && allData.id) ? allData.id : null;\n\nreturn { allData, poIds, invalidMessage, searchGrId };"
-        },
-        "response_json": [
-          {
-            "key": "allData",
-            "name": "allData",
-            "title": "allData",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "poIds",
-            "name": "poIds",
-            "title": "poIds",
-            "description": "",
-            "bsonType": "array",
-            "isExpand": true,
-            "children": [
-              {
-                "key": "poIdsit",
-                "name": "items",
-                "title": "",
-                "description": "",
-                "bsonType": "any",
-                "isExpand": false,
-                "isArrayItem": true,
-                "children": []
-              }
-            ]
-          },
-          {
-            "key": "invalidM",
-            "name": "invalidMessage",
-            "title": "invalidMessage",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "searchGr",
-            "name": "searchGrId",
-            "title": "searchGrId",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
       "id": "if_invalid",
       "type": "if",
       "data": {
@@ -297,24 +953,25 @@
         "isValidator": true,
         "nodeName": "IF invalidMessage",
         "name": "IF invalidMessage",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "condition_type": "Expression",
         "filter": {
           "list": [
             {
-              "id": 1780000000007,
-              "parentId": 1780000000008,
+              "id": 1798200000011,
+              "parentId": 1798200000012,
               "isTop": true,
-              "prop": "node.cn_fill.data.invalidMessage",
-              "operator": "isNotNull",
-              "valueType": "value",
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
               "type": "leaf",
-              "level": 1,
-              "propLabel": "invalidMessage",
-              "valueLabel": "",
-              "operatorLabel": "Is Not Null"
+              "level": 1
             }
           ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcPrep.data.invalid}}' == 'YES'"
         }
       },
       "blocks": [
@@ -349,7 +1006,7 @@
                       "prop": "message",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.invalidMessage}}",
+                      "value": "{{node:code_node_GcPrep.data.invalidMessage}}",
                       "valueLabel": "",
                       "propLabel": "message"
                     }
@@ -370,44 +1027,6 @@
       ]
     },
     {
-      "id": "cn_validate",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Validate Fields",
-        "isValidator": true,
-        "nodeName": "Validate Fields",
-        "name": "Validate Fields",
-        "script": {
-          "type": "javascript",
-          "code": "const allData = {{node:cn_fill.data.allData}};\n\n// table_gr is a tree: an item bundle is one row with its items under `children`.\n// The document keeps the tree; every per-line step walks this flattened view.\nconst flattenGrRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// The bundle row carries the bundle id and no item. It holds no stock — no\n// location, no category, no batch, no serials — so none of the line checks below\n// apply to it. They apply to the items under it, which are validated as lines.\nconst isBundleParentRow = (row) => Boolean(row.item_bundle_id) && !row.item_id;\n\nconst tableGR = flattenGrRows(allData.table_gr);\nconst errors = [];\n\nconst headerRequired = [\n  { name: \"gr_no\", label: \"Good Receiving Number\" },\n  { name: \"gr_date\", label: \"Received Date\" },\n  { name: \"plant_id\", label: \"Plant\" },\n];\nfor (const f of headerRequired) {\n  const v = allData[f.name];\n  if (v === undefined || v === null || (typeof v === \"string\" && v.trim() === \"\")) {\n    errors.push(f.label + \" is required.\");\n  }\n}\nif (tableGR.length === 0) errors.push(\"GR Items are required.\");\n\nfor (let i = 0; i < tableGR.length; i++) {\n  const item = tableGR[i];\n  const isSplitParent = item.is_split === \"Yes\" && item.parent_or_child === \"Parent\";\n  if (isSplitParent) continue;\n\n  // Skip item bundle rows\n  if (isBundleParentRow(item)) continue;\n\n  if (!item.location_id) errors.push(`Target Location is required for item #${i + 1}.`);\n  if (!item.inv_category) errors.push(`Inventory Category is required for item #${i + 1}.`);\n  if (!item.item_batch_no) errors.push(`Batch Number is required for item #${i + 1}.`);\n\n  if (item.is_serialized_item === 1 && item.is_serial_allocated !== 1) {\n    const id = item.item_name || item.item_code || item.item_id || `Item #${i + 1}`;\n    errors.push(`Serial number allocation is required for ${id} (row ${i + 1}).`);\n  }\n}\n\nconst hasError = errors.length > 0 ? 1 : 0;\nconst errorMessage = hasError ? errors.join(\"\\n\") : null;\nreturn { hasError, errorMessage };"
-        },
-        "response_json": [
-          {
-            "key": "hasError",
-            "name": "hasError",
-            "title": "hasError",
-            "description": "",
-            "bsonType": "int",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "errorMes",
-            "name": "errorMessage",
-            "title": "errorMessage",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
       "id": "if_validate",
       "type": "if",
       "data": {
@@ -415,25 +1034,25 @@
         "isValidator": true,
         "nodeName": "IF Validation Failed",
         "name": "IF Validation Failed",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "condition_type": "Expression",
         "filter": {
           "list": [
             {
-              "id": 1780000000009,
-              "parentId": 1780000000010,
+              "id": 1798200000013,
+              "parentId": 1798200000014,
               "isTop": true,
-              "prop": "node.cn_validate.data.hasError",
-              "operator": "numberEqual",
-              "valueType": "value",
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
               "type": "leaf",
-              "level": 1,
-              "propLabel": "hasError",
-              "valueLabel": "",
-              "operatorLabel": "Equal",
-              "value": 1
+              "level": 1
             }
           ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcPrep.data.hasError}}' == 'YES'"
         }
       },
       "blocks": [
@@ -468,7 +1087,7 @@
                       "prop": "message",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_validate.data.errorMessage}}",
+                      "value": "{{node:code_node_GcPrep.data.errorMessage}}",
                       "valueLabel": "",
                       "propLabel": "message"
                     }
@@ -489,146 +1108,232 @@
       ]
     },
     {
-      "id": "if_orig_edit",
-      "type": "if",
+      "id": "condition_all_GcReads",
+      "type": "condition-all-node",
       "data": {
-        "title": "IF Edit (Original GR)",
-        "isValidator": true,
-        "nodeName": "IF Edit (Original GR)",
-        "name": "IF Edit (Original GR)",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
-        "filter": {
-          "list": [
-            {
-              "id": 1780000000013,
-              "parentId": 1780000000014,
-              "isTop": true,
-              "prop": "workflowparams.pageStatus",
-              "operator": "equal",
-              "valueType": "value",
-              "type": "leaf",
-              "level": 1,
-              "propLabel": "pageStatus",
-              "valueLabel": "",
-              "operatorLabel": "Equal",
-              "value": "Edit"
-            }
-          ]
-        }
+        "title": "Read PO lines + item tolerances",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
       },
       "blocks": [
         {
-          "id": "if_orig_edit_t",
-          "type": "ifBlock",
-          "data": { "title": "true" },
+          "id": "condition_all_node_item_GcPoLines",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "PO lines",
+            "filter": { "list": [] },
+            "expression": { "code": "", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "PO lines",
+            "name": "PO lines",
+            "condition_type": "ConditionRule"
+          },
           "blocks": [
             {
-              "id": "search_origGR",
-              "type": "search-node",
+              "id": "sql_node_GcPoLines",
+              "type": "sql-node",
               "data": {
-                "table_id": {
-                  "source": "Goods Receiving:Table:1901845517592285186",
-                  "rules": {
-                    "collectionId": "1901845517592285186",
-                    "list": [
-                      {
-                        "id": 1780000000011,
-                        "parentId": 1780000000012,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:cn_fill.data.searchGrId}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "id",
-                        "valueLabel": "",
-                        "operatorLabel": "in"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 1,
-                "title": "Get Original GR",
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "PO lines of this GR (new + stored)",
                 "isValidator": true,
-                "nodeName": "Get Original GR",
-                "name": "Get Original GR"
+                "nodeName": "PO lines of this GR (new + stored)",
+                "name": "PO lines of this GR (new + stored)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(p.id AS CHAR) AS id, CAST(p.purchase_order_id AS CHAR) AS po_id,\n       p.quantity, p.received_qty, p.created_received_qty\n  FROM (SELECT sel.lid\n          FROM JSON_TABLE(CONCAT('[', '{{node:code_node_GcPrep.data.poLineCsv}}', ']'),\n                          '$[*]' COLUMNS (lid BIGINT PATH '$')) sel\n        UNION\n        SELECT l.po_line_item_id\n          FROM goods_receiving_eg6l4ywi_sub l\n         WHERE {{node:code_node_GcPrep.data.grId}} <> 0\n           AND l.goods_receiving_id = {{node:code_node_GcPrep.data.grId}}\n           AND l.is_deleted = 0 AND l.po_line_item_id IS NOT NULL) ids\n  JOIN purchase_order_2ukyuanr_sub p ON p.id = ids.lid AND p.is_deleted = 0\n  JOIN purchase_order h ON h.id = p.purchase_order_id AND h.is_deleted = 0\n WHERE p.tenant_id = '{{system:tenantId}}'"
+                },
+                "response_json": [
+                  {
+                    "key": "09itlj3l",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "cbu1syeb",
+                    "name": "po_id",
+                    "title": "po_id",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "1y6xf2ue",
+                    "name": "quantity",
+                    "title": "quantity",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "hvimzwod",
+                    "name": "received_qty",
+                    "title": "received_qty",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "emx2p0z2",
+                    "name": "created_received_qty",
+                    "title": "created_received_qty",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  }
+                ]
               },
               "blocks": []
             }
           ]
         },
         {
-          "id": "if_orig_edit_f",
-          "type": "ifBlock",
-          "data": { "title": "false" },
-          "blocks": []
+          "id": "condition_all_node_item_GcTol",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Item tolerances",
+            "filter": { "list": [] },
+            "expression": { "code": "", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Item tolerances",
+            "name": "Item tolerances",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_GcTol",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Over-receive tolerance per item + UOM",
+                "isValidator": true,
+                "nodeName": "Over-receive tolerance per item + UOM",
+                "name": "Over-receive tolerance per item + UOM",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(u.Item_id AS CHAR) AS item_id, CAST(u.alt_uom_id AS CHAR) AS uom_id,\n       u.over_receive_tolerance AS tol\n  FROM JSON_TABLE(CONCAT('[', '{{node:code_node_GcPrep.data.itemCsv}}', ']'),\n                  '$[*]' COLUMNS (iid BIGINT PATH '$')) sel\n  JOIN item i ON i.id = sel.iid AND i.is_deleted = 0\n  JOIN item_mji552rc_sub u ON u.Item_id = i.id AND u.tenant_id = i.tenant_id AND u.is_deleted = 0\n WHERE i.tenant_id = '{{system:tenantId}}'\n ORDER BY u.Item_id, u.id"
+                },
+                "response_json": [
+                  {
+                    "key": "uf97quad",
+                    "name": "item_id",
+                    "title": "item_id",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "tjm2nhyx",
+                    "name": "uom_id",
+                    "title": "uom_id",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "lnnm09gz",
+                    "name": "tol",
+                    "title": "tol",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
         }
       ]
     },
     {
-      "id": "search_po",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Purchase Order:Table:1902776039445217282",
-          "rules": {
-            "collectionId": "1902776039445217282",
-            "list": [
-              {
-                "id": 1780000000015,
-                "parentId": 1780000000016,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:cn_fill.data.poIds}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "id",
-                "valueLabel": "",
-                "operatorLabel": "in"
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 100,
-        "title": "Get PO Datas",
-        "isValidator": true,
-        "nodeName": "Get PO Datas",
-        "name": "Get PO Datas"
-      },
-      "blocks": []
-    },
-    {
-      "id": "cn_itemIds",
+      "id": "code_node_GcQty",
       "type": "code-node",
       "data": {
         "language": "javascript",
         "code": "",
         "timeout": 30000,
-        "title": "Extract Item IDs",
+        "title": "Over-receive checks + reservation plan",
         "isValidator": true,
-        "nodeName": "Extract Item IDs",
-        "name": "Extract Item IDs",
+        "nodeName": "Over-receive checks + reservation plan",
+        "name": "Over-receive checks + reservation plan",
         "script": {
           "type": "javascript",
-          "code": "const tableData = {{node:cn_fill.data.allData.table_gr}} || [];\n\n// table_gr is a tree: an item bundle is one row with its items under `children`.\n// The items are the ones that need their master data fetched — the bundle row\n// itself has no item, so it drops out of the set on its own.\nconst flattenGrRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\nconst itemIdsSet = new Set();\nfor (const grItem of flattenGrRows(tableData)) {\n  if (grItem.item_id) itemIdsSet.add(grItem.item_id);\n}\nreturn { itemIds: Array.from(itemIdsSet) };"
+          "code": "// Over-receive checks (texts as before) + reservation delta per PO line: this GR's qty - what its stored Created save held\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst lines = [{{node:code_node_GcPrep.data.lines}}][0] || [];\nconst stored = [{{node:code_node_GcProcBusy.data.oldAgg}}][0];\nconst poRows = [{{node:sql_node_GcPoLines.data}}][0] || [];\nconst tolRows = [{{node:sql_node_GcTol.data}}][0] || [];\nconst continueOvercommit = String([{{workflowparams:continueOvercommit}}][0] || \"\");\nconst SLICE = 250;\n\nconst hasOld = stored !== undefined && stored !== null && typeof stored === \"object\";\nconst old = hasOld ? stored : {};\nconst poLineMap = new Map();\nfor (const r of poRows) poLineMap.set(String(r.id), r);\nconst tolMap = new Map();\nfor (const r of tolRows) {\n  const k = String(r.item_id) + \"|\" + String(r.uom_id);\n  if (!tolMap.has(k)) tolMap.set(k, Number(r.tol) || 0);\n}\n\nconst hardErrors = [];\nconst warnings = [];\nfor (const a of lines) {\n  const poLine = poLineMap.get(a.lid);\n  if (!poLine) continue;\n  const tol = tolMap.get(a.item + \"|\" + a.uom) || 0;\n  const name = a.name;\n  const newQty = a.q3;\n  const ordered = parseFloat(poLine.quantity || 0);\n  const received = parseFloat(poLine.received_qty || 0);\n  let created = parseFloat(poLine.created_received_qty || 0);\n  if (hasOld) created = Math.max(0, roundQty(created - ((old[a.lid] || {}).q3 || 0)));\n\n  const maxReceivable = roundQty((ordered - received) * (100 + tol) / 100);\n  if (newQty > maxReceivable) {\n    hardErrors.push(`${name}: receiving ${newQty} exceeds remaining receivable ${Math.max(0, maxReceivable)} (Ordered ${ordered}, Already received ${received}).`);\n  }\n  const maxAllowed = roundQty(ordered * (100 + tol) / 100);\n  const totalAfter = roundQty(received + created + newQty);\n  if (totalAfter > maxAllowed) {\n    warnings.push(`${name}: committed total ${totalAfter} would exceed PO max ${maxAllowed} (Received ${received}, In Created GRs ${created}, This GR ${newQty}).`);\n  }\n}\nconst errorMessage = hardErrors.length > 0 ? \"Cannot save - quantity exceeds purchase order:\\n\" + hardErrors.join(\"\\n\") : null;\nconst warningMessage = warnings.length > 0\n  ? \"Over-Commitment Warning:\\n\" + warnings.join(\"\\n\") + \"\\n\\nThis GR can be saved as Created, but may fail to receive if other Created GRs are received first.\\nDo you want to proceed?\"\n  : null;\n\n// an Edit can drop a PO line: it is released too\nconst new8 = new Map();\nfor (const a of lines) new8.set(a.lid, a.q8);\nconst updates = [];\nconst newPo = new Set();\nconst touchedPo = new Set();\nfor (const lid of new Set([...new8.keys(), ...Object.keys(old)])) {\n  const poLine = poLineMap.get(lid);\n  if (!poLine) continue;\n  const po = String(poLine.po_id);\n  if (new8.has(lid)) newPo.add(po);\n  const delta = q8((new8.get(lid) || 0) - ((old[lid] || {}).q8 || 0));\n  if (delta === 0) continue;\n  const next = Math.max(0, q8(parseFloat(poLine.created_received_qty || 0) + delta));\n  updates.push({ id: lid, created_received_qty: next.toFixed(8) });\n  touchedPo.add(po);\n}\nconst slices = [];\nfor (let i = 0; i < updates.length; i += SLICE) slices.push({ n: slices.length + 1, rows: updates.slice(i, i + SLICE) });\nconst ok = (v) => /^[0-9]{1,20}$/.test(v);\nconst relPo = [...touchedPo].filter((p) => !newPo.has(p) && ok(p));\n\nreturn {\n  qtyStop: hardErrors.length > 0 ? \"YES\" : \"NO\",\n  errorMessage,\n  overStop: warnings.length > 0 && continueOvercommit !== \"Yes\" ? \"YES\" : \"NO\",\n  warningMessage,\n  hasLineUpdates: updates.length > 0 ? \"YES\" : \"NO\",\n  slices,\n  lineUpdateCount: updates.length,\n  newPoCsv: [...newPo].filter(ok).join(\",\") || \"0\",\n  relPoCsv: relPo.join(\",\") || \"0\",\n};"
         },
         "response_json": [
           {
-            "key": "itemIds",
-            "name": "itemIds",
-            "title": "itemIds",
+            "key": "1hi47mk4",
+            "name": "qtyStop",
+            "title": "qtyStop",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "iqaub18r",
+            "name": "errorMessage",
+            "title": "errorMessage",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "hbcm36cr",
+            "name": "overStop",
+            "title": "overStop",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "trha6e30",
+            "name": "warningMessage",
+            "title": "warningMessage",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "g8o1bop0",
+            "name": "hasLineUpdates",
+            "title": "hasLineUpdates",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "tv77vy8q",
+            "name": "slices",
+            "title": "slices",
             "description": "",
             "bsonType": "array",
             "isExpand": true,
             "children": [
               {
-                "key": "itemIdit",
+                "key": "h78b54nm",
                 "name": "items",
                 "title": "",
                 "description": "",
@@ -638,97 +1343,33 @@
                 "children": []
               }
             ]
-          }
-        ]
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_items",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Item:Table:1901546842240438273",
-          "rules": {
-            "collectionId": "1901546842240438273",
-            "list": [
-              {
-                "id": 1780000000017,
-                "parentId": 1780000000018,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:cn_itemIds.data.itemIds}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "id",
-                "valueLabel": "",
-                "operatorLabel": "in"
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 100,
-        "title": "Get Items",
-        "isValidator": true,
-        "nodeName": "Get Items",
-        "name": "Get Items"
-      },
-      "blocks": []
-    },
-    {
-      "id": "cn_validateQty",
-      "type": "code-node",
-      "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Validate Quantities",
-        "isValidator": true,
-        "nodeName": "Validate Quantities",
-        "name": "Validate Quantities",
-        "script": {
-          "type": "javascript",
-          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n\n// table_gr and table_po are trees: an item bundle is one row with its items under\n// `children`. The bundle row and each of its items are receivable lines with a\n// purchase order line of their own, so all of them are checked here — the bundle\n// row against the purchase order's bundle line, its items against theirs.\nconst flattenTree = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\nconst tableGR = flattenTree({{node:cn_fill.data.allData.table_gr}});\nconst poDataList = {{node:search_po.data.data}} || [];\nconst itemDataList = {{node:search_items.data.data}} || [];\nconst pageStatus = {{workflowparams:pageStatus}};\nconst origRaw = {{node:search_origGR.data.data}} || [];\nconst originalGR = Array.isArray(origRaw) ? (origRaw[0] || null) : origRaw;\nconst originalTableGR = flattenTree((originalGR && originalGR.table_gr) ? originalGR.table_gr : []);\n\nconst poLineMap = new Map();\nfor (const po of poDataList) {\n  for (const line of flattenTree(po.table_po)) poLineMap.set(line.id, line);\n}\nconst tolMap = new Map();\nfor (const it of itemDataList) tolMap.set(it.id, it.table_uom_conversion || []);\n\nconst isParent = (r) => r.is_split === \"Yes\" && r.parent_or_child === \"Parent\";\n\nconst newAgg = new Map();\nconst itemByLine = new Map();\nconst uomByLine = new Map();\nconst nameByLine = new Map();\nfor (const gr of tableGR) {\n  if (isParent(gr)) continue;\n  const lid = gr.po_line_item_id;\n  if (!lid) continue;\n  newAgg.set(lid, roundQty((newAgg.get(lid) || 0) + parseFloat(gr.received_qty || 0)));\n  if (!itemByLine.has(lid)) itemByLine.set(lid, gr.item_id);\n  uomByLine.set(lid, gr.ordered_qty_uom);\n  if (!nameByLine.has(lid)) nameByLine.set(lid, gr.item_name || gr.item_id || lid);\n}\nconst oldAgg = new Map();\nfor (const gr of originalTableGR) {\n  if (isParent(gr)) continue;\n  const lid = gr.po_line_item_id;\n  if (!lid) continue;\n  oldAgg.set(lid, roundQty((oldAgg.get(lid) || 0) + parseFloat(gr.received_qty || 0)));\n}\n\nconst hardErrors = [];\nconst warnings = [];\nfor (const [lid, newQty] of newAgg) {\n  const poLine = poLineMap.get(lid);\n  if (!poLine) continue;\n  const tol = ((tolMap.get(itemByLine.get(lid)) || []).find(c => c.alt_uom_id === uomByLine.get(lid)) || {}).over_receive_tolerance || 0;\n  const name = nameByLine.get(lid);\n  const ordered = parseFloat(poLine.quantity || 0);\n  const received = parseFloat(poLine.received_qty || 0);\n  let created = parseFloat(poLine.created_received_qty || 0);\n  if (pageStatus === \"Edit\") created = Math.max(0, roundQty(created - (oldAgg.get(lid) || 0)));\n\n  const maxReceivable = roundQty((ordered - received) * (100 + tol) / 100);\n  if (newQty > maxReceivable) {\n    hardErrors.push(`${name}: receiving ${newQty} exceeds remaining receivable ${Math.max(0, maxReceivable)} (Ordered ${ordered}, Already received ${received}).`);\n  }\n\n  const maxAllowed = roundQty(ordered * (100 + tol) / 100);\n  const totalAfter = roundQty(received + created + newQty);\n  if (totalAfter > maxAllowed) {\n    warnings.push(`${name}: committed total ${totalAfter} would exceed PO max ${maxAllowed} (Received ${received}, In Created GRs ${created}, This GR ${newQty}).`);\n  }\n}\n\nconst hasError = hardErrors.length > 0 ? 1 : 0;\nconst errorMessage = hasError ? (\"Cannot save - quantity exceeds purchase order:\\n\" + hardErrors.join(\"\\n\")) : null;\nconst hasWarning = warnings.length > 0 ? 1 : 0;\nconst warningMessage = hasWarning ? (\"Over-Commitment Warning:\\n\" + warnings.join(\"\\n\") + \"\\n\\nThis GR can be saved as Created, but may fail to receive if other Created GRs are received first.\\nDo you want to proceed?\") : null;\n\nreturn { hasError, errorMessage, hasWarning, warningMessage };"
-        },
-        "response_json": [
-          {
-            "key": "hasError",
-            "name": "hasError",
-            "title": "hasError",
-            "description": "",
-            "bsonType": "int",
-            "isExpand": false,
-            "children": []
           },
           {
-            "key": "errorMes",
-            "name": "errorMessage",
-            "title": "errorMessage",
+            "key": "bswgi27q",
+            "name": "lineUpdateCount",
+            "title": "lineUpdateCount",
             "description": "",
-            "bsonType": "string",
             "isExpand": false,
-            "children": []
+            "children": [],
+            "bsonType": "string"
           },
           {
-            "key": "hasWarni",
-            "name": "hasWarning",
-            "title": "hasWarning",
+            "key": "n16ylm38",
+            "name": "newPoCsv",
+            "title": "newPoCsv",
             "description": "",
-            "bsonType": "int",
             "isExpand": false,
-            "children": []
+            "children": [],
+            "bsonType": "string"
           },
           {
-            "key": "warningM",
-            "name": "warningMessage",
-            "title": "warningMessage",
+            "key": "wq77eqhh",
+            "name": "relPoCsv",
+            "title": "relPoCsv",
             "description": "",
-            "bsonType": "string",
             "isExpand": false,
-            "children": []
+            "children": [],
+            "bsonType": "string"
           }
         ]
       },
@@ -742,25 +1383,25 @@
         "isValidator": true,
         "nodeName": "IF Qty Error",
         "name": "IF Qty Error",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "condition_type": "Expression",
         "filter": {
           "list": [
             {
-              "id": 1780000000019,
-              "parentId": 1780000000020,
+              "id": 1798200000015,
+              "parentId": 1798200000016,
               "isTop": true,
-              "prop": "node.cn_validateQty.data.hasError",
-              "operator": "numberEqual",
-              "valueType": "value",
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
               "type": "leaf",
-              "level": 1,
-              "propLabel": "hasError",
-              "valueLabel": "",
-              "operatorLabel": "Equal",
-              "value": 1
+              "level": 1
             }
           ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcQty.data.qtyStop}}' == 'YES'"
         }
       },
       "blocks": [
@@ -795,7 +1436,7 @@
                       "prop": "message",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_validateQty.data.errorMessage}}",
+                      "value": "{{node:code_node_GcQty.data.errorMessage}}",
                       "valueLabel": "",
                       "propLabel": "message"
                     }
@@ -823,52 +1464,25 @@
         "isValidator": true,
         "nodeName": "IF Over Commitment",
         "name": "IF Over Commitment",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "condition_type": "Expression",
         "filter": {
           "list": [
             {
-              "id": 1780000000025,
-              "parentId": 1780000000026,
+              "id": 1798200000017,
+              "parentId": 1798200000018,
               "isTop": true,
               "prop": "",
-              "operator": "all",
+              "operator": "",
               "valueType": "",
               "value": "",
-              "type": "branch",
-              "level": 1,
-              "children": [
-                {
-                  "id": 1780000000021,
-                  "parentId": 1780000000022,
-                  "isTop": false,
-                  "prop": "node.cn_validateQty.data.hasWarning",
-                  "operator": "numberEqual",
-                  "valueType": "value",
-                  "type": "leaf",
-                  "level": 2,
-                  "propLabel": "hasWarning",
-                  "valueLabel": "",
-                  "operatorLabel": "Equal",
-                  "value": 1
-                },
-                {
-                  "id": 1780000000023,
-                  "parentId": 1780000000024,
-                  "isTop": false,
-                  "prop": "workflowparams.continueOvercommit",
-                  "operator": "notEqual",
-                  "valueType": "value",
-                  "type": "leaf",
-                  "level": 2,
-                  "propLabel": "continueOvercommit",
-                  "valueLabel": "",
-                  "operatorLabel": "Not Equal",
-                  "value": "Yes"
-                }
-              ]
+              "type": "leaf",
+              "level": 1
             }
           ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcQty.data.overStop}}' == 'YES'"
         }
       },
       "blocks": [
@@ -903,7 +1517,7 @@
                       "prop": "message",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_validateQty.data.warningMessage}}",
+                      "value": "{{node:code_node_GcQty.data.warningMessage}}",
                       "valueLabel": "",
                       "propLabel": "message"
                     }
@@ -931,25 +1545,25 @@
         "isValidator": true,
         "nodeName": "IF Edit Mode",
         "name": "IF Edit Mode",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "condition_type": "Expression",
         "filter": {
           "list": [
             {
-              "id": 1780000000031,
-              "parentId": 1780000000032,
+              "id": 1798200000025,
+              "parentId": 1798200000026,
               "isTop": true,
-              "prop": "workflowparams.pageStatus",
-              "operator": "equal",
-              "valueType": "value",
-              "value": "Edit",
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
               "type": "leaf",
-              "level": 1,
-              "propLabel": "pageStatus",
-              "valueLabel": "",
-              "operatorLabel": "Equal"
+              "level": 1
             }
           ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcPrep.data.edit}}' == 'YES'"
         }
       },
       "blocks": [
@@ -974,7 +1588,7 @@
                         "prop": "id",
                         "operator": "in",
                         "valueType": "field",
-                        "value": "{{node:cn_fill.data.allData.id}}",
+                        "value": "{{node:code_node_GcPrep.data.grId}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "id",
@@ -1005,7 +1619,7 @@
                       "prop": "putaway_status",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.putaway_status}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.putaway_status}}",
                       "valueLabel": "",
                       "propLabel": "Putaway Status"
                     },
@@ -1013,7 +1627,7 @@
                       "prop": "plant_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.plant_id}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.plant_id}}",
                       "valueLabel": "",
                       "propLabel": "Plant"
                     },
@@ -1021,7 +1635,7 @@
                       "prop": "purchase_order_number",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.purchase_order_number}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.purchase_order_number}}",
                       "valueLabel": "",
                       "propLabel": "Purchase Order Number"
                     },
@@ -1029,7 +1643,7 @@
                       "prop": "po_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.po_id}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.po_id}}",
                       "valueLabel": "",
                       "propLabel": "PO ID"
                     },
@@ -1037,7 +1651,7 @@
                       "prop": "supplier_name",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.supplier_name}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.supplier_name}}",
                       "valueLabel": "",
                       "propLabel": "Supplier"
                     },
@@ -1045,7 +1659,7 @@
                       "prop": "currency_code",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.currency_code}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.currency_code}}",
                       "valueLabel": "",
                       "propLabel": "Currency Code"
                     },
@@ -1053,7 +1667,7 @@
                       "prop": "gr_billing_address",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_billing_address}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_billing_address}}",
                       "valueLabel": "",
                       "propLabel": "Billing"
                     },
@@ -1061,7 +1675,7 @@
                       "prop": "gr_shipping_address",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_shipping_address}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_shipping_address}}",
                       "valueLabel": "",
                       "propLabel": "Shipping"
                     },
@@ -1069,7 +1683,7 @@
                       "prop": "supplier_contact_person",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.supplier_contact_person}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.supplier_contact_person}}",
                       "valueLabel": "",
                       "propLabel": "Contact Person"
                     },
@@ -1077,7 +1691,7 @@
                       "prop": "supplier_contact_number",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.supplier_contact_number}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.supplier_contact_number}}",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
                     },
@@ -1085,7 +1699,7 @@
                       "prop": "supplier_email",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.supplier_email}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.supplier_email}}",
                       "valueLabel": "",
                       "propLabel": "Email Address"
                     },
@@ -1093,7 +1707,7 @@
                       "prop": "organization_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.organization_id}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.organization_id}}",
                       "valueLabel": "",
                       "propLabel": "Organization"
                     },
@@ -1101,7 +1715,7 @@
                       "prop": "acc_integration_type",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.acc_integration_type}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.acc_integration_type}}",
                       "valueLabel": "",
                       "propLabel": "Acc Integration Type"
                     },
@@ -1109,7 +1723,7 @@
                       "prop": "project_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.project_id}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.project_id}}",
                       "valueLabel": "",
                       "propLabel": "Project"
                     },
@@ -1117,7 +1731,7 @@
                       "prop": "reference_type",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.reference_type}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.reference_type}}",
                       "valueLabel": "",
                       "propLabel": "Reference Type"
                     },
@@ -1125,7 +1739,7 @@
                       "prop": "previous_status",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.previous_status}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.previous_status}}",
                       "valueLabel": "",
                       "propLabel": "Previous Status"
                     },
@@ -1133,7 +1747,7 @@
                       "prop": "batch_index",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.batch_index}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.batch_index}}",
                       "valueLabel": "",
                       "propLabel": "Batch Index"
                     },
@@ -1141,7 +1755,7 @@
                       "prop": "reference_doc",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.reference_doc}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.reference_doc}}",
                       "valueLabel": "",
                       "propLabel": "Reference Document"
                     },
@@ -1149,7 +1763,7 @@
                       "prop": "ref_no_1",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.ref_no_1}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.ref_no_1}}",
                       "valueLabel": "",
                       "propLabel": "Reference No 1"
                     },
@@ -1157,7 +1771,7 @@
                       "prop": "ref_no_2",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.ref_no_2}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.ref_no_2}}",
                       "valueLabel": "",
                       "propLabel": "Reference No 2"
                     },
@@ -1165,7 +1779,7 @@
                       "prop": "gr_no",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_no}}",
+                      "value": "{{node:code_node_GcProcBusy.data.grNo}}",
                       "valueLabel": "",
                       "propLabel": "Goods Receiving No"
                     },
@@ -1173,7 +1787,7 @@
                       "prop": "gr_no_type",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_no_type}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_no_type}}",
                       "valueLabel": "",
                       "propLabel": "规则"
                     },
@@ -1181,7 +1795,7 @@
                       "prop": "gr_received_by",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_received_by}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_received_by}}",
                       "valueLabel": "",
                       "propLabel": "Received By"
                     },
@@ -1189,7 +1803,7 @@
                       "prop": "gr_date",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_date}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_date}}",
                       "valueLabel": "",
                       "propLabel": "Received Date"
                     },
@@ -1197,7 +1811,7 @@
                       "prop": "assigned_to",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.assigned_to}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.assigned_to}}",
                       "valueLabel": "",
                       "propLabel": "Assign Putaway To"
                     },
@@ -1205,7 +1819,7 @@
                       "prop": "table_gr",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.table_gr}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.table_gr}}",
                       "valueLabel": "",
                       "propLabel": "Item Table"
                     },
@@ -1213,7 +1827,7 @@
                       "prop": "table_sn_records",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.table_sn_records}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.table_sn_records}}",
                       "valueLabel": "",
                       "propLabel": "Table SN"
                     },
@@ -1221,7 +1835,7 @@
                       "prop": "gr_remark1",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark1}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark1}}",
                       "valueLabel": "",
                       "propLabel": "Remark 1"
                     },
@@ -1229,7 +1843,7 @@
                       "prop": "gr_remark2",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark2}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark2}}",
                       "valueLabel": "",
                       "propLabel": "Remark 2"
                     },
@@ -1237,7 +1851,7 @@
                       "prop": "gr_remark3",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark3}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark3}}",
                       "valueLabel": "",
                       "propLabel": "Remark 3"
                     },
@@ -1245,7 +1859,7 @@
                       "prop": "gr_remark4",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark4}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark4}}",
                       "valueLabel": "",
                       "propLabel": "Remark 4"
                     },
@@ -1253,7 +1867,7 @@
                       "prop": "gr_remark5",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark5}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark5}}",
                       "valueLabel": "",
                       "propLabel": "Remark 5"
                     },
@@ -1261,7 +1875,7 @@
                       "prop": "billing_address_name",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_name}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_name}}",
                       "valueLabel": "",
                       "propLabel": "Address Name"
                     },
@@ -1269,7 +1883,7 @@
                       "prop": "billing_address_phone",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_phone}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_phone}}",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
                     },
@@ -1277,7 +1891,7 @@
                       "prop": "billing_address_line_1",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_line_1}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_line_1}}",
                       "valueLabel": "",
                       "propLabel": "Address"
                     },
@@ -1285,7 +1899,7 @@
                       "prop": "billing_address_line_2",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_line_2}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_line_2}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 2"
                     },
@@ -1293,7 +1907,7 @@
                       "prop": "billing_address_line_3",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_line_3}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_line_3}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 3"
                     },
@@ -1301,7 +1915,7 @@
                       "prop": "billing_address_line_4",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_line_4}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_line_4}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 4"
                     },
@@ -1309,7 +1923,7 @@
                       "prop": "billing_address_city",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_city}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_city}}",
                       "valueLabel": "",
                       "propLabel": "City"
                     },
@@ -1317,7 +1931,7 @@
                       "prop": "billing_postal_code",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_postal_code}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_postal_code}}",
                       "valueLabel": "",
                       "propLabel": "Postal Code"
                     },
@@ -1325,7 +1939,7 @@
                       "prop": "billing_address_state",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_state}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_state}}",
                       "valueLabel": "",
                       "propLabel": "State"
                     },
@@ -1333,7 +1947,7 @@
                       "prop": "billing_address_country",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_country}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_country}}",
                       "valueLabel": "",
                       "propLabel": "Country"
                     },
@@ -1341,7 +1955,7 @@
                       "prop": "billing_attention",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_attention}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_attention}}",
                       "valueLabel": "",
                       "propLabel": "Attention"
                     },
@@ -1349,7 +1963,7 @@
                       "prop": "shipping_address_name",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_name}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_name}}",
                       "valueLabel": "",
                       "propLabel": "Address Name"
                     },
@@ -1357,7 +1971,7 @@
                       "prop": "shipping_address_phone",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_phone}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_phone}}",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
                     },
@@ -1365,7 +1979,7 @@
                       "prop": "shipping_address_line_1",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_line_1}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_line_1}}",
                       "valueLabel": "",
                       "propLabel": "Address"
                     },
@@ -1373,7 +1987,7 @@
                       "prop": "shipping_address_line_2",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_line_2}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_line_2}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 2"
                     },
@@ -1381,7 +1995,7 @@
                       "prop": "shipping_address_line_3",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_line_3}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_line_3}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 3"
                     },
@@ -1389,7 +2003,7 @@
                       "prop": "shipping_address_line_4",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_line_4}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_line_4}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 4"
                     },
@@ -1397,7 +2011,7 @@
                       "prop": "shipping_address_city",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_city}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_city}}",
                       "valueLabel": "",
                       "propLabel": "City"
                     },
@@ -1405,7 +2019,7 @@
                       "prop": "shipping_postal_code",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_postal_code}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_postal_code}}",
                       "valueLabel": "",
                       "propLabel": "Postal Code"
                     },
@@ -1413,7 +2027,7 @@
                       "prop": "shipping_address_state",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_state}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_state}}",
                       "valueLabel": "",
                       "propLabel": "State"
                     },
@@ -1421,7 +2035,7 @@
                       "prop": "shipping_address_country",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_country}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_country}}",
                       "valueLabel": "",
                       "propLabel": "Country"
                     },
@@ -1429,7 +2043,7 @@
                       "prop": "shipping_attention",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_attention}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_attention}}",
                       "valueLabel": "",
                       "propLabel": "Attention"
                     }
@@ -1488,7 +2102,7 @@
                       "prop": "putaway_status",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.putaway_status}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.putaway_status}}",
                       "valueLabel": "",
                       "propLabel": "Putaway Status"
                     },
@@ -1496,7 +2110,7 @@
                       "prop": "plant_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.plant_id}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.plant_id}}",
                       "valueLabel": "",
                       "propLabel": "Plant"
                     },
@@ -1504,7 +2118,7 @@
                       "prop": "purchase_order_number",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.purchase_order_number}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.purchase_order_number}}",
                       "valueLabel": "",
                       "propLabel": "Purchase Order Number"
                     },
@@ -1512,7 +2126,7 @@
                       "prop": "po_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.po_id}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.po_id}}",
                       "valueLabel": "",
                       "propLabel": "PO ID"
                     },
@@ -1520,7 +2134,7 @@
                       "prop": "supplier_name",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.supplier_name}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.supplier_name}}",
                       "valueLabel": "",
                       "propLabel": "Supplier"
                     },
@@ -1528,7 +2142,7 @@
                       "prop": "currency_code",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.currency_code}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.currency_code}}",
                       "valueLabel": "",
                       "propLabel": "Currency Code"
                     },
@@ -1536,7 +2150,7 @@
                       "prop": "gr_billing_address",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_billing_address}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_billing_address}}",
                       "valueLabel": "",
                       "propLabel": "Billing"
                     },
@@ -1544,7 +2158,7 @@
                       "prop": "gr_shipping_address",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_shipping_address}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_shipping_address}}",
                       "valueLabel": "",
                       "propLabel": "Shipping"
                     },
@@ -1552,7 +2166,7 @@
                       "prop": "supplier_contact_person",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.supplier_contact_person}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.supplier_contact_person}}",
                       "valueLabel": "",
                       "propLabel": "Contact Person"
                     },
@@ -1560,7 +2174,7 @@
                       "prop": "supplier_contact_number",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.supplier_contact_number}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.supplier_contact_number}}",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
                     },
@@ -1568,7 +2182,7 @@
                       "prop": "supplier_email",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.supplier_email}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.supplier_email}}",
                       "valueLabel": "",
                       "propLabel": "Email Address"
                     },
@@ -1576,7 +2190,7 @@
                       "prop": "organization_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.organization_id}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.organization_id}}",
                       "valueLabel": "",
                       "propLabel": "Organization"
                     },
@@ -1584,7 +2198,7 @@
                       "prop": "reference_type",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.reference_type}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.reference_type}}",
                       "valueLabel": "",
                       "propLabel": "Reference Type"
                     },
@@ -1592,7 +2206,7 @@
                       "prop": "acc_integration_type",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.acc_integration_type}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.acc_integration_type}}",
                       "valueLabel": "",
                       "propLabel": "Acc Integration Type"
                     },
@@ -1600,7 +2214,7 @@
                       "prop": "project_id",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.project_id}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.project_id}}",
                       "valueLabel": "",
                       "propLabel": "Project"
                     },
@@ -1608,7 +2222,7 @@
                       "prop": "previous_status",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.previous_status}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.previous_status}}",
                       "valueLabel": "",
                       "propLabel": "Previous Status"
                     },
@@ -1616,7 +2230,7 @@
                       "prop": "batch_index",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.batch_index}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.batch_index}}",
                       "valueLabel": "",
                       "propLabel": "Batch Index"
                     },
@@ -1624,7 +2238,7 @@
                       "prop": "reference_doc",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.reference_doc}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.reference_doc}}",
                       "valueLabel": "",
                       "propLabel": "Reference Document"
                     },
@@ -1632,7 +2246,7 @@
                       "prop": "ref_no_1",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.ref_no_1}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.ref_no_1}}",
                       "valueLabel": "",
                       "propLabel": "Reference No 1"
                     },
@@ -1640,7 +2254,7 @@
                       "prop": "ref_no_2",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.ref_no_2}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.ref_no_2}}",
                       "valueLabel": "",
                       "propLabel": "Reference No 2"
                     },
@@ -1648,7 +2262,7 @@
                       "prop": "gr_no",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_no}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_no}}",
                       "valueLabel": "",
                       "propLabel": "Goods Receiving No"
                     },
@@ -1656,7 +2270,7 @@
                       "prop": "gr_no_type",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_no_type}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_no_type}}",
                       "valueLabel": "",
                       "propLabel": "规则"
                     },
@@ -1664,7 +2278,7 @@
                       "prop": "gr_received_by",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_received_by}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_received_by}}",
                       "valueLabel": "",
                       "propLabel": "Received By"
                     },
@@ -1672,7 +2286,7 @@
                       "prop": "gr_date",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_date}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_date}}",
                       "valueLabel": "",
                       "propLabel": "Received Date"
                     },
@@ -1680,7 +2294,7 @@
                       "prop": "assigned_to",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.assigned_to}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.assigned_to}}",
                       "valueLabel": "",
                       "propLabel": "Assign Putaway To"
                     },
@@ -1688,7 +2302,7 @@
                       "prop": "table_gr",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.table_gr}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.table_gr}}",
                       "valueLabel": "",
                       "propLabel": "Item Table"
                     },
@@ -1696,7 +2310,7 @@
                       "prop": "table_sn_records",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.table_sn_records}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.table_sn_records}}",
                       "valueLabel": "",
                       "propLabel": "Table SN"
                     },
@@ -1704,7 +2318,7 @@
                       "prop": "gr_remark1",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark1}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark1}}",
                       "valueLabel": "",
                       "propLabel": "Remark 1"
                     },
@@ -1712,7 +2326,7 @@
                       "prop": "gr_remark2",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark2}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark2}}",
                       "valueLabel": "",
                       "propLabel": "Remark 2"
                     },
@@ -1720,7 +2334,7 @@
                       "prop": "gr_remark3",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark3}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark3}}",
                       "valueLabel": "",
                       "propLabel": "Remark 3"
                     },
@@ -1728,7 +2342,7 @@
                       "prop": "gr_remark4",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark4}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark4}}",
                       "valueLabel": "",
                       "propLabel": "Remark 4"
                     },
@@ -1736,7 +2350,7 @@
                       "prop": "gr_remark5",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.gr_remark5}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.gr_remark5}}",
                       "valueLabel": "",
                       "propLabel": "Remark 5"
                     },
@@ -1744,7 +2358,7 @@
                       "prop": "billing_address_name",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_name}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_name}}",
                       "valueLabel": "",
                       "propLabel": "Address Name"
                     },
@@ -1752,7 +2366,7 @@
                       "prop": "billing_address_phone",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_phone}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_phone}}",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
                     },
@@ -1760,7 +2374,7 @@
                       "prop": "billing_address_line_1",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_line_1}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_line_1}}",
                       "valueLabel": "",
                       "propLabel": "Address"
                     },
@@ -1768,7 +2382,7 @@
                       "prop": "billing_address_line_2",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_line_2}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_line_2}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 2"
                     },
@@ -1776,7 +2390,7 @@
                       "prop": "billing_address_line_3",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_line_3}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_line_3}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 3"
                     },
@@ -1784,7 +2398,7 @@
                       "prop": "billing_address_line_4",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_line_4}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_line_4}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 4"
                     },
@@ -1792,7 +2406,7 @@
                       "prop": "billing_address_city",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_city}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_city}}",
                       "valueLabel": "",
                       "propLabel": "City"
                     },
@@ -1800,7 +2414,7 @@
                       "prop": "billing_postal_code",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_postal_code}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_postal_code}}",
                       "valueLabel": "",
                       "propLabel": "Postal Code"
                     },
@@ -1808,7 +2422,7 @@
                       "prop": "billing_address_state",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_state}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_state}}",
                       "valueLabel": "",
                       "propLabel": "State"
                     },
@@ -1816,7 +2430,7 @@
                       "prop": "billing_address_country",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_country}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_country}}",
                       "valueLabel": "",
                       "propLabel": "Country"
                     },
@@ -1824,7 +2438,7 @@
                       "prop": "billing_attention",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_attention}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_attention}}",
                       "valueLabel": "",
                       "propLabel": "Attention"
                     },
@@ -1832,7 +2446,7 @@
                       "prop": "billing_address_fax",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.billing_address_fax}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.billing_address_fax}}",
                       "valueLabel": "",
                       "propLabel": "Fax"
                     },
@@ -1840,7 +2454,7 @@
                       "prop": "shipping_address_fax",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_fax}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_fax}}",
                       "valueLabel": "",
                       "propLabel": "Fax"
                     },
@@ -1848,7 +2462,7 @@
                       "prop": "shipping_address_name",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_name}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_name}}",
                       "valueLabel": "",
                       "propLabel": "Address Name"
                     },
@@ -1856,7 +2470,7 @@
                       "prop": "shipping_address_phone",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_phone}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_phone}}",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
                     },
@@ -1864,7 +2478,7 @@
                       "prop": "shipping_address_line_1",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_line_1}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_line_1}}",
                       "valueLabel": "",
                       "propLabel": "Address"
                     },
@@ -1872,7 +2486,7 @@
                       "prop": "shipping_address_line_2",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_line_2}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_line_2}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 2"
                     },
@@ -1880,7 +2494,7 @@
                       "prop": "shipping_address_line_3",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_line_3}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_line_3}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 3"
                     },
@@ -1888,7 +2502,7 @@
                       "prop": "shipping_address_line_4",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_line_4}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_line_4}}",
                       "valueLabel": "",
                       "propLabel": "Address Line 4"
                     },
@@ -1896,7 +2510,7 @@
                       "prop": "shipping_address_city",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_city}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_city}}",
                       "valueLabel": "",
                       "propLabel": "City"
                     },
@@ -1904,7 +2518,7 @@
                       "prop": "shipping_postal_code",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_postal_code}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_postal_code}}",
                       "valueLabel": "",
                       "propLabel": "Postal Code"
                     },
@@ -1912,7 +2526,7 @@
                       "prop": "shipping_address_state",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_state}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_state}}",
                       "valueLabel": "",
                       "propLabel": "State"
                     },
@@ -1920,7 +2534,7 @@
                       "prop": "shipping_address_country",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_address_country}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_address_country}}",
                       "valueLabel": "",
                       "propLabel": "Country"
                     },
@@ -1928,45 +2542,644 @@
                       "prop": "shipping_attention",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_fill.data.allData.shipping_attention}}",
+                      "value": "{{node:code_node_GcPrep.data.gr.shipping_attention}}",
                       "valueLabel": "",
                       "propLabel": "Attention"
+                    },
+                    {
+                      "prop": "gr_idem_key",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_GcPrep.data.keyStore}}",
+                      "valueLabel": "",
+                      "propLabel": "Idempotency Key"
                     }
                   ]
                 }
               },
               "blocks": []
+            },
+            {
+              "id": "if_GcKeyDup",
+              "type": "if",
+              "data": {
+                "title": "IF Add with an idempotency key (a twin attempt?)",
+                "isValidator": true,
+                "nodeName": "IF Add with an idempotency key (a twin attempt?)",
+                "name": "IF Add with an idempotency key (a twin attempt?)",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1798200000023,
+                      "parentId": 1798200000024,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_GcPrep.data.keyCheck}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TGcKeyDup",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "sql_node_GcKeyDup",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "GRs saved with this key",
+                        "isValidator": true,
+                        "nodeName": "GRs saved with this key",
+                        "name": "GRs saved with this key",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT CAST(g.id AS CHAR) AS id, g.gr_no, g.gr_idem_key\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND SUBSTRING_INDEX(g.gr_idem_key, '#', 1) = '{{node:code_node_GcPrep.data.keySql}}'\n   AND g.is_deleted = 0\n ORDER BY g.id"
+                        },
+                        "response_json": [
+                          {
+                            "key": "hf2he5h2",
+                            "name": "id",
+                            "title": "id",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          },
+                          {
+                            "key": "2no5t86y",
+                            "name": "gr_no",
+                            "title": "gr_no",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          },
+                          {
+                            "key": "nnqgqlfa",
+                            "name": "gr_idem_key",
+                            "title": "gr_idem_key",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_GcKeyDup",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Is this attempt the twin?",
+                        "isValidator": true,
+                        "nodeName": "Is this attempt the twin?",
+                        "name": "Is this attempt the twin?",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Twin attempts with one key both added a GR: the oldest wins, this one is removed before it reserves anything\nconst rows = [{{node:sql_node_GcKeyDup.data}}][0] || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst markOf = String([{{node:code_node_GcPrep.data.keyStore}}][0] || \"\");\nconst mine = list.find((r) => String(r.gr_idem_key || \"\") === markOf) || null;\nconst first = list[0] || null;\nconst lose = Boolean(mine && first) && String(first.id) !== String(mine.id);\nconst no = first ? String(first.gr_no || \"\") : \"\";\nreturn {\n  lose: lose ? \"YES\" : \"NO\",\n  mine: lose ? String(mine.id) : \"0\",\n  myId: mine ? String(mine.id) : \"\",\n  winnerId: first ? String(first.id) : \"\",\n  winnerNo: no,\n  message: \"Goods Receiving \" + no + \" was already saved as Created.\",\n};"
+                        },
+                        "response_json": [
+                          {
+                            "key": "0onq3x2a",
+                            "name": "lose",
+                            "title": "lose",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          },
+                          {
+                            "key": "n2ew24qm",
+                            "name": "mine",
+                            "title": "mine",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          },
+                          {
+                            "key": "8g6x7dcj",
+                            "name": "myId",
+                            "title": "myId",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          },
+                          {
+                            "key": "5nh5uanm",
+                            "name": "winnerId",
+                            "title": "winnerId",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          },
+                          {
+                            "key": "uqgnwuq4",
+                            "name": "winnerNo",
+                            "title": "winnerNo",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          },
+                          {
+                            "key": "w8gysysz",
+                            "name": "message",
+                            "title": "message",
+                            "description": "",
+                            "isExpand": false,
+                            "children": [],
+                            "bsonType": "string"
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_GcKeyLose",
+                      "type": "if",
+                      "data": {
+                        "title": "IF a twin attempt saved it first",
+                        "isValidator": true,
+                        "nodeName": "IF a twin attempt saved it first",
+                        "name": "IF a twin attempt saved it first",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1798200000021,
+                              "parentId": 1798200000022,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_GcKeyDup.data.lose}}' == 'YES'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_TGcKeyLose",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_GcKeyLose",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Goods Receiving:Table:1901845517592285186",
+                                  "rules": {
+                                    "collectionId": "1901845517592285186",
+                                    "list": [
+                                      {
+                                        "id": 1798200000019,
+                                        "parentId": 1798200000020,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_GcKeyDup.data.mine}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Remove this twin GR (nothing reserved yet)",
+                                "isValidator": true,
+                                "nodeName": "Remove this twin GR (nothing reserved yet)",
+                                "name": "Remove this twin GR (nothing reserved yet)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "is_deleted",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": 1,
+                                      "valueLabel": "",
+                                      "propLabel": "删除状态"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "return_node_GcKeyLose",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return the first GR",
+                                "isValidator": true,
+                                "nodeName": "Return the first GR",
+                                "name": "Return the first GR",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "propLabel": "code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "200",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "propLabel": "message",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GcKeyDup.data.message}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "id",
+                                      "propLabel": "id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GcKeyDup.data.winnerId}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "gr_no",
+                                      "propLabel": "gr_no",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GcKeyDup.data.winnerNo}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "duplicate",
+                                      "propLabel": "duplicate",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "YES",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_FGcKeyLose",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FGcKeyDup",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
             }
           ]
         }
       ]
     },
     {
-      "id": "cn_poUpdates",
+      "id": "if_poUpdates",
+      "type": "if",
+      "data": {
+        "title": "IF PO hasUpdate",
+        "isValidator": true,
+        "nodeName": "IF PO hasUpdate",
+        "name": "IF PO hasUpdate",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798200000031,
+              "parentId": 1798200000032,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcQty.data.hasLineUpdates}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_poUpdates_t",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "loop_GcPoLines",
+              "type": "loop",
+              "data": {
+                "title": "Reserve on PO lines (slices of <= 250)",
+                "isValidator": true,
+                "nodeName": "Reserve on PO lines (slices of <= 250)",
+                "name": "Reserve on PO lines (slices of <= 250)",
+                "loopType": "Var",
+                "loopSeletSource": {
+                  "datasource": {
+                    "rules": {
+                      "collectionId": "",
+                      "list": [
+                        {
+                          "id": 1798200000029,
+                          "parentId": 1798200000030,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    }
+                  },
+                  "auto_refresh": 1,
+                  "auto_refresh_debounce": 100,
+                  "options": [],
+                  "props": {
+                    "value": "",
+                    "label": "",
+                    "image": "",
+                    "icon": "",
+                    "explain": ""
+                  },
+                  "remote": false,
+                  "remoteType": "datasource"
+                },
+                "loopSeletVar": {
+                  "type": "markdown",
+                  "code": "{{node:code_node_GcQty.data.slices}}"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "code_node_GcSlice",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "This slice (the loop item: <= 250 rows)",
+                    "isValidator": true,
+                    "nodeName": "This slice (the loop item: <= 250 rows)",
+                    "name": "This slice (the loop item: <= 250 rows)",
+                    "script": {
+                      "type": "javascript",
+                      "code": "// one slice of the write loop: the loop item itself ({ n, rows }), never the whole list again\nconst it = [{{node:loop_GcPoLines}}][0] || {};\nreturn { n: it.n || 0, rows: Array.isArray(it.rows) ? it.rows : [] };"
+                    },
+                    "response_json": [
+                      {
+                        "key": "dikvk1r1",
+                        "name": "n",
+                        "title": "n",
+                        "description": "",
+                        "isExpand": false,
+                        "children": [],
+                        "bsonType": "string"
+                      },
+                      {
+                        "key": "9hyiagt2",
+                        "name": "rows",
+                        "title": "rows",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "amr3p5m4",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "update_node_GcPoLines",
+                  "type": "update-node",
+                  "data": {
+                    "table_id": {
+                      "source": "Item Table(Purchase Order):Table:1939901372270747649",
+                      "rules": {
+                        "collectionId": "1939901372270747649",
+                        "list": [
+                          {
+                            "id": 1798200000027,
+                            "parentId": 1798200000028,
+                            "isTop": true,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "field",
+                            "value": "{{node:code_node_GcSlice.data.rows.id}}",
+                            "type": "leaf",
+                            "level": 1,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "In"
+                          }
+                        ]
+                      }
+                    },
+                    "fields": [],
+                    "condition": {},
+                    "title": "PO lines: created_received_qty (<= 250 per call)",
+                    "isValidator": true,
+                    "nodeName": "PO lines: created_received_qty (<= 250 per call)",
+                    "name": "PO lines: created_received_qty (<= 250 per call)",
+                    "props": {
+                      "modelName": "",
+                      "list": [
+                        {
+                          "prop": "id",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_GcSlice.data.rows.id}}",
+                          "valueLabel": "",
+                          "propLabel": "主键ID"
+                        },
+                        {
+                          "prop": "created_received_qty",
+                          "operator": "",
+                          "valueType": "field",
+                          "value": "{{node:code_node_GcSlice.data.rows.created_received_qty}}",
+                          "valueLabel": "",
+                          "propLabel": "Created Received Qty"
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_poUpdates_f",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_GcPoStatus",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "POs this GR left: lines as they are now",
+        "isValidator": true,
+        "nodeName": "POs this GR left: lines as they are now",
+        "name": "POs this GR left: lines as they are now",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(h.id AS CHAR) AS po_id,\n       SUM(COALESCE(p.created_received_qty, 0) > 0) AS reserved,\n       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')) AS countable,\n       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')\n           AND COALESCE(p.received_qty, 0) > 0) AS partially,\n       SUM(NOT (COALESCE(p.item_bundle_id, 0) <> 0 AND COALESCE(p.item_id, '') <> '')\n           AND COALESCE(p.received_qty, 0) > 0 AND p.received_qty >= COALESCE(p.quantity, 0)) AS fully\n  FROM JSON_TABLE(CONCAT('[', '{{node:code_node_GcQty.data.relPoCsv}}', ']'), '$[*]' COLUMNS (pid BIGINT PATH '$')) sel\n  JOIN purchase_order h ON h.id = sel.pid AND h.is_deleted = 0\n  JOIN purchase_order_2ukyuanr_sub p ON p.purchase_order_id = h.id AND p.is_deleted = 0\n WHERE h.tenant_id = '{{system:tenantId}}'\n GROUP BY h.id"
+        },
+        "response_json": [
+          {
+            "key": "c90poa8u",
+            "name": "po_id",
+            "title": "po_id",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "x3p62mdc",
+            "name": "reserved",
+            "title": "reserved",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "r1zr83mf",
+            "name": "countable",
+            "title": "countable",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "bdra1osm",
+            "name": "partially",
+            "title": "partially",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "sfs53ek6",
+            "name": "fully",
+            "title": "fully",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_GcPoHdr",
       "type": "code-node",
       "data": {
         "language": "javascript",
         "code": "",
         "timeout": 30000,
-        "title": "Calculate PO Reservation",
+        "title": "PO gr_status + the GR id for the answer",
         "isValidator": true,
-        "nodeName": "Calculate PO Reservation",
-        "name": "Calculate PO Reservation",
+        "nodeName": "PO gr_status + the GR id for the answer",
+        "name": "PO gr_status + the GR id for the answer",
         "script": {
           "type": "javascript",
-          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\n\n// table_gr and table_po are trees: an item bundle is one row with its items under\n// `children`. The bundle row and each of its items reserve against a purchase\n// order line of their own, so both levels are walked.\nconst flattenTree = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\nconst tableGR = flattenTree({{node:cn_fill.data.allData.table_gr}});\nconst poDataList = {{node:search_po.data.data}} || [];\nconst pageStatus = {{workflowparams:pageStatus}};\nconst origRaw = {{node:search_origGR.data.data}} || [];\nconst originalGR = Array.isArray(origRaw) ? (origRaw[0] || null) : origRaw;\nconst originalTableGR = flattenTree((originalGR && originalGR.table_gr) ? originalGR.table_gr : []);\n\nconst isParent = (r) => r.is_split === \"Yes\" && r.parent_or_child === \"Parent\";\nconst aggregate = (rows) => {\n  const m = new Map();\n  for (const gr of rows) {\n    if (isParent(gr)) continue;\n    const lid = gr.po_line_item_id;\n    if (!lid) continue;\n    m.set(lid, roundQty((m.get(lid) || 0) + parseFloat(gr.received_qty || 0)));\n  }\n  return m;\n};\n\nconst newAgg = aggregate(tableGR);\nconst oldAgg = pageStatus === \"Edit\" ? aggregate(originalTableGR) : new Map();\n\n// Written back as table_po, so the bundle's items are rebuilt under their own\n// line rather than lifted to the top level.\nconst applyReservation = (line) => {\n  const children = Array.isArray(line.children) ? line.children.map((child) => applyReservation(child)) : null;\n  const applyQty = roundQty((newAgg.get(line.id) || 0) - (oldAgg.get(line.id) || 0));\n\n  let updatedLine = line;\n\n  if (applyQty !== 0) {\n    const current = parseFloat(line.created_received_qty || 0);\n    updatedLine = { ...line, created_received_qty: Math.max(0, roundQty(current + applyQty)) };\n  }\n\n  if (children) {\n    updatedLine = { ...updatedLine, children };\n  }\n\n  return updatedLine;\n};\n\nconst poDataUpdates = [];\nfor (const po of poDataList) {\n  const lines = po.table_po || [];\n  const updatedLines = lines.map((line) => applyReservation(line));\n  poDataUpdates.push({ id: po.id, table_po: updatedLines, gr_status: \"Created\" });\n}\n\nreturn { poDataUpdates, hasUpdates: poDataUpdates.length > 0 ? 1 : 0 };"
+          "code": "// Created on every PO this GR reserves on (as before); a PO the edit left is recomputed from its lines\n// counted as GOODS_RECEIVING does (a bundle's items are not counted, the bundle line is)\nconst poGrStatus = (r) => {\n  const n = (v) => Number(v) || 0;\n  if (n(r.reserved) > 0) return \"Created\";\n  if (n(r.countable) > 0 && n(r.fully) === n(r.countable)) return \"Fully Received\";\n  if (n(r.partially) > 0) return \"Partially Received\";\n  return \"Cancelled\";\n};\nconst newPo = String([{{node:code_node_GcQty.data.newPoCsv}}][0] || \"0\").split(\",\").filter((v) => v !== \"0\" && v !== \"\");\nconst rows = [{{node:sql_node_GcPoStatus.data}}][0] || [];\nconst headers = newPo.map((id) => ({ id, gr_status: \"Created\" }));\nfor (const r of Array.isArray(rows) ? rows : [rows]) {\n  const id = String(r.po_id || \"\");\n  if (!id || newPo.includes(id)) continue;\n  headers.push({ id, gr_status: poGrStatus(r) });\n}\n// answer id: the add-node's id (a digit string), else the key read-back; never a number that may have lost digits\nconst editId = String([{{node:code_node_GcPrep.data.grId}}][0] || \"0\");\nconst keyedId = String([{{node:code_node_GcKeyDup.data.myId}}][0] || \"\");\nconst added = [{{node:add_gr.data.id}}][0];\nconst addedId = Array.isArray(added) ? added[0] : added;\nconst exact = typeof addedId === \"string\" && /^[0-9]{1,20}$/.test(addedId) ? addedId : \"\";\nconst grId = editId !== \"0\" ? editId : exact || keyedId;\nreturn { headers, hasHeaders: headers.length > 0 ? \"YES\" : \"NO\", grId };"
         },
         "response_json": [
           {
-            "key": "poDataUp",
-            "name": "poDataUpdates",
-            "title": "poDataUpdates",
+            "key": "f7vsjmas",
+            "name": "headers",
+            "title": "headers",
             "description": "",
             "bsonType": "array",
             "isExpand": true,
             "children": [
               {
-                "key": "poDatait",
+                "key": "21xak5u9",
                 "name": "items",
                 "title": "",
                 "description": "",
@@ -1978,50 +3191,59 @@
             ]
           },
           {
-            "key": "hasUpdat",
-            "name": "hasUpdates",
-            "title": "hasUpdates",
+            "key": "2sg4an9h",
+            "name": "hasHeaders",
+            "title": "hasHeaders",
             "description": "",
-            "bsonType": "int",
             "isExpand": false,
-            "children": []
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "c2ncm38r",
+            "name": "grId",
+            "title": "grId",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
           }
         ]
       },
       "blocks": []
     },
     {
-      "id": "if_poUpdates",
+      "id": "if_GcPoHdr",
       "type": "if",
       "data": {
-        "title": "IF PO hasUpdate",
+        "title": "IF PO headers to write",
         "isValidator": true,
-        "nodeName": "IF PO hasUpdate",
-        "name": "IF PO hasUpdate",
-        "condition_type": "ConditionRule",
-        "expression": { "type": "javascript", "code": "" },
+        "nodeName": "IF PO headers to write",
+        "name": "IF PO headers to write",
+        "condition_type": "Expression",
         "filter": {
           "list": [
             {
-              "id": 1780000000035,
-              "parentId": 1780000000036,
+              "id": 1798200000035,
+              "parentId": 1798200000036,
               "isTop": true,
-              "prop": "node.cn_poUpdates.data.hasUpdates",
-              "operator": "numberEqual",
-              "valueType": "value",
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
               "type": "leaf",
-              "level": 1,
-              "propLabel": "hasUpdates",
-              "valueLabel": "",
-              "operatorLabel": "Equal",
-              "value": 1
+              "level": 1
             }
           ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcPoHdr.data.hasHeaders}}' == 'YES'"
         }
       },
       "blocks": [
         {
-          "id": "if_poUpdates_t",
+          "id": "ifBlock_TGcPoHdr",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
@@ -2035,16 +3257,16 @@
                     "collectionId": "1902776039445217282",
                     "list": [
                       {
-                        "id": 1780000000033,
-                        "parentId": 1780000000034,
+                        "id": 1798200000033,
+                        "parentId": 1798200000034,
                         "isTop": true,
                         "prop": "id",
                         "operator": "in",
                         "valueType": "field",
-                        "value": "{{node:cn_poUpdates.data.poDataUpdates.id}}",
+                        "value": "{{node:code_node_GcPoHdr.data.headers.id}}",
                         "type": "leaf",
                         "level": 1,
-                        "propLabel": "id",
+                        "propLabel": "主键ID",
                         "valueLabel": "",
                         "operatorLabel": "In"
                       }
@@ -2053,34 +3275,26 @@
                 },
                 "fields": [],
                 "condition": {},
-                "title": "Update PO Reservation",
+                "title": "Update PO gr_status",
                 "isValidator": true,
-                "nodeName": "Update PO Reservation",
-                "name": "Update PO Reservation",
+                "nodeName": "Update PO gr_status",
+                "name": "Update PO gr_status",
                 "props": {
                   "modelName": "",
                   "list": [
                     {
                       "prop": "id",
-                      "valueType": "field",
-                      "value": "{{node:cn_poUpdates.data.poDataUpdates.id}}",
                       "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_GcPoHdr.data.headers.id}}",
                       "valueLabel": "",
                       "propLabel": "ID"
-                    },
-                    {
-                      "prop": "table_po",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:cn_poUpdates.data.poDataUpdates.table_po}}",
-                      "valueLabel": "",
-                      "propLabel": "Item Table"
                     },
                     {
                       "prop": "gr_status",
                       "operator": "",
                       "valueType": "field",
-                      "value": "{{node:cn_poUpdates.data.poDataUpdates.gr_status}}",
+                      "value": "{{node:code_node_GcPoHdr.data.headers.gr_status}}",
                       "valueLabel": "",
                       "propLabel": "GR Status"
                     }
@@ -2092,7 +3306,7 @@
           ]
         },
         {
-          "id": "if_poUpdates_f",
+          "id": "ifBlock_FGcPoHdr",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
@@ -2128,6 +3342,16 @@
               "value": "Goods Receiving saved as Created successfully.",
               "valueLabel": "",
               "propLabel": "message"
+            },
+            {
+              "prop": "id",
+              "propLabel": "id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_GcPoHdr.data.grId}}",
+              "valueLabel": ""
             }
           ]
         },

@@ -14,8 +14,11 @@ const { roots } = await import(`${CLI}/paths.mjs`);
 const { appendAudit } = await import(`${CLI}/audit.mjs`);
 
 const [idFile, wfId, requestFile, outFile] = process.argv.slice(2);
-if (!idFile || !/^[0-9]{1,20}$/.test(wfId || '') || !requestFile || !outFile) {
-  console.error('usage: node runas.mjs <identity.json> <workflowId> <request.json> <out.json>');
+// --test <flowgram.json>: run that exact JSON (doTest, nothing published) instead of the stored version
+const testAt = process.argv.indexOf('--test');
+const testFile = testAt > 0 ? process.argv[testAt + 1] : null;
+if (!idFile || !/^[0-9]{1,20}$/.test(wfId || '') || !requestFile || !outFile || (testAt > 0 && !testFile)) {
+  console.error('usage: node runas.mjs <identity.json> <workflowId> <request.json> <out.json> [--test <flowgram.json>]');
   process.exit(2);
 }
 const env = {};
@@ -40,14 +43,20 @@ const unsigned = b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64(claims);
 const token = unsigned + '.' + crypto.createHmac('sha256', env.BLADE_JWT_SECRET).update(unsigned).digest('base64url');
 
 const started = Date.now();
-const res = await fetch(BASE + `/su-code-workflow/workflow/run/${wfId}`, {
-  method: 'POST',
-  headers: { 'Blade-Auth': `bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
-  body: fs.readFileSync(requestFile, 'utf8'),
-});
+const res = testFile
+  ? await fetch(BASE + `/su-code-workflow/workflow/doTest/${wfId}`, {
+      method: 'POST',
+      headers: { 'Blade-Auth': `bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scriptJson: JSON.stringify(JSON.parse(fs.readFileSync(testFile, 'utf8'))), request: JSON.parse(fs.readFileSync(requestFile, 'utf8')), dryRun: false }),
+    })
+  : await fetch(BASE + `/su-code-workflow/workflow/run/${wfId}`, {
+      method: 'POST',
+      headers: { 'Blade-Auth': `bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: fs.readFileSync(requestFile, 'utf8'),
+    });
 const text = await res.text();
 fs.writeFileSync(outFile, text);
-appendAudit(roots(), { osUser: os.userInfo().username, profile: 'minted:' + who.tenant_id + ':' + who.account, endpoint: BASE, args: ['runas', wfId, requestFile], class: 'write',
+appendAudit(roots(), { osUser: os.userInfo().username, profile: 'minted:' + who.tenant_id + ':' + who.account, endpoint: BASE, args: ['runas', wfId, requestFile].concat(testFile ? ['--test', testFile] : []), class: 'write',
   account: who.account, client: 'saber3', result: `http:${res.status}`, durationMs: Date.now() - started });
 console.log(`${BASE} as ${who.account}@${who.tenant_id} HTTP ${res.status} ${Date.now() - started} ms`);
 console.log(text.slice(0, 1500));

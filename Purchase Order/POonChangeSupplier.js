@@ -21,44 +21,63 @@ const resolveItemDesc = (item, supplierId) => {
   return fallback;
 };
 
+// true: GET_ITEM_UNIT_PRICE_BULK (same contract); false: GET_ITEM_UNIT_PRICE.
+const USE_UNIT_PRICE_BULK = true;
+const UNIT_PRICE_WORKFLOW_ID = USE_UNIT_PRICE_BULK
+  ? "2110564019682578434"
+  : "2067818102244966401";
+
+const copyRow = (row) =>
+  Array.isArray(row.children)
+    ? { ...row, children: row.children.map(copyRow) }
+    : { ...row };
+
+// Prices merge into a costed copy of the table, written once, lines by key.
 const fetchLatestPricing = async (
   result,
   overwrite,
   itemById,
   itemIdByLine,
   supplierId,
+  keyByLine,
 ) => {
   const updates = {};
   for (const item of result) {
+    const key = keyByLine[item.line_index];
+    if (key === undefined) continue;
+    const update = updates[key] || (updates[key] = {});
+
     if (overwrite === "Yes") {
-      updates[`table_po.${item.line_index}.unit_price`] = item.unit_price;
-      updates[`table_po.${item.line_index}.quantity_uom`] = item.uom_id;
-      updates[`table_po.${item.line_index}.tax_preference`] = item.tax_rate;
-      updates[`table_po.${item.line_index}.tax_percent`] = item.tax_percent;
-      updates[`table_po.${item.line_index}.from_historical`] =
-        item.from_historical;
-      updates[`table_po.${item.line_index}.quantity`] = item.quantity;
-      updates[`table_po.${item.line_index}.discount`] = item.discount;
-      updates[`table_po.${item.line_index}.discount_uom`] = item.discount_uom;
+      update.unit_price = item.unit_price;
+      update.quantity_uom = item.uom_id;
+      update.tax_preference = item.tax_rate;
+      update.tax_percent = item.tax_percent;
+      update.from_historical = item.from_historical;
+      update.quantity = item.quantity;
+      update.discount = item.discount;
+      update.discount_uom = item.discount_uom;
 
       // Re-resolve the line description against the new supplier's binding.
       const masterId = itemIdByLine[item.line_index];
       const master = masterId ? itemById[String(masterId)] : null;
       if (master) {
-        updates[`table_po.${item.line_index}.item_desc`] = resolveItemDesc(
-          master,
-          supplierId,
-        );
+        update.item_desc = resolveItemDesc(master, supplierId);
       }
     }
 
-    updates[`table_po.${item.line_index}.max_price`] = item.max_price;
-    updates[`table_po.${item.line_index}.min_price`] = item.min_price;
-    updates[`table_po.${item.line_index}.moq_qty`] = item.moq;
+    update.max_price = item.max_price;
+    update.min_price = item.min_price;
+    update.moq_qty = item.moq;
   }
 
-  await this.setData(updates);
-  await this.triggerEvent("POcalculation");
+  const rows = (this.getValue("table_po") || []).map((row) =>
+    updates[row.fm_key]
+      ? Object.assign(copyRow(row), updates[row.fm_key])
+      : copyRow(row),
+  );
+  const header = this.triggerEvent("POcalculation", { calcRows: rows });
+
+  await this.setData({ table_po: rows, ...header });
 };
 
 (async () => {
@@ -69,7 +88,6 @@ const fetchLatestPricing = async (
   const newSupplierId = arguments[0].value;
 
   this.disabled("table_po", !newSupplierId);
-  this.getComponent('table_po').hideChildRecord();
 
   const tablePO = this.getValue("table_po");
 
@@ -81,20 +99,31 @@ const fetchLatestPricing = async (
       // supplier. Started here (not awaited) so the single batched fetch
       // overlaps the pricing workflow round-trip.
       const itemIdByLine = {};
+      const keyByLine = {};
       tablePO.forEach((line, index) => {
         if (line.item_id) itemIdByLine[index] = line.item_id;
+        keyByLine[index] = line.fm_key;
       });
       const itemIds = [...new Set(Object.values(itemIdByLine))];
-      const itemsPromise = itemIds.length
-        ? db
+      const idChunks = [];
+      for (let i = 0; i < itemIds.length; i += 500) {
+        idChunks.push(itemIds.slice(i, i + 500));
+      }
+      const itemsPromise = Promise.all(
+        idChunks.map((ids) =>
+          db
             .collection("Item")
-            .filter(new Filter().in("id", itemIds).build())
+            .field("material_desc,table_sup_item_bind")
+            .filter(new Filter().in("id", ids).build())
             .get()
-            .catch(() => ({ data: [] }))
-        : Promise.resolve({ data: [] });
+            .catch(() => ({ data: [] })),
+        ),
+      ).then((results) => ({
+        data: results.flatMap((res) => (res && res.data) || []),
+      }));
 
       await this.runWorkflow(
-        "2067818102244966401",
+        UNIT_PRICE_WORKFLOW_ID,
         {
           document_type: "PO",
           supp_cust_id: newSupplierId,
@@ -131,6 +160,7 @@ const fetchLatestPricing = async (
               itemById,
               itemIdByLine,
               newSupplierId,
+              keyByLine,
             );
 
           await this.$confirm(
@@ -153,6 +183,7 @@ const fetchLatestPricing = async (
                     itemById,
                     itemIdByLine,
                     newSupplierId,
+                    keyByLine,
                   );
 
                   done();
@@ -163,6 +194,7 @@ const fetchLatestPricing = async (
                     itemById,
                     itemIdByLine,
                     newSupplierId,
+                    keyByLine,
                   );
 
                   done();

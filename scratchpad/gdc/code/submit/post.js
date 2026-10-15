@@ -1,6 +1,7 @@
 // GD_COMPLETE_SUBMIT - Post: CREDIT_LIMIT_CHECK's answer (402 block / 403 override unless auto), then 405 / 406 / 407, the
 // quantity 400s and 412, as GOODS_DELIVERY returns them; else the queue rows: the GD's lock (gd_publish_step GDC|<gd> /
-// LOCK|<n>, unique: a concurrent twin fails its run), the COMPLETE_GD job (QUEUED), the GD Processing
+// LOCK|<n>, unique: a concurrent twin fails its run), the COMPLETE_GD job (QUEUED but not due for 2 minutes, so no worker
+// takes it before the GD is Processing; due.js makes it due right after), the GD Processing
 const submitPost = function submitPost(guard, entry, gate, cl) {
   const p = gate.post || {};
   const stop = (code, message) => answer("STOP", code, message, { lockRows: [], jobRows: [], gdRows: [], idemKey: "" });
@@ -33,7 +34,7 @@ const submitPost = function submitPost(guard, entry, gate, cl) {
     idemKey: key,
     lockRows: [{ job_id: "GDC|" + entry.gdId, organization_id: entry.organizationId, step_name: "LOCK|" + entry.lockN, step_status: "LOCK", attempt_count: 0, started_at: entry.dbNow, result_ref: key }],
     jobRows: [{ organization_id: entry.organizationId, plant_id: entry.plantId, command: "COMPLETE_GD", idempotency_key: key, job_status: "QUEUED", progress_percent: 0,
-      progress_message: "Queued for processing", attempt_count: 0, row_version: 0, cancel_requested: 0, request_payload: JSON.stringify(request),
+      progress_message: "Queued for processing", attempt_count: 0, row_version: 0, cancel_requested: 0, next_attempt_at: dbAddSeconds(entry.dbNow, 120), request_payload: JSON.stringify(request),
       causation_id: guard.causationId || guard.source, correlation_id: "GD|" + entry.gdId, line_count: num(entry.lineCount), queued_at: entry.dbNow }],
     gdRows: [{ id: entry.gdId, gd_status: "Processing" }],
   });

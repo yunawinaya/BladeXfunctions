@@ -3,6 +3,14 @@
 // a code -> rate map, so no second read is needed here.
 const REFRESH_RATES_WORKFLOW_ID = "2100436142094356481";
 
+const esc = (v) =>
+  String(v === null || v === undefined ? "" : v)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 const runRefreshWorkflow = async (organizationId) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
@@ -35,7 +43,7 @@ const runRefreshWorkflow = async (organizationId) => {
     await this.$confirm(
       `This fetches today's Bank Negara Malaysia rates and updates the ` +
         `exchange rates for <strong>every foreign currency in this organization</strong>, ` +
-        `not just ${currencyCode}.<br><br>Do you want to proceed?`,
+        `not just ${esc(currencyCode)}.<br><br>Do you want to proceed?`,
       "Refresh Exchange Rate",
       {
         confirmButtonText: "Yes, Refresh",

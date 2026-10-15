@@ -9,7 +9,7 @@ setTimeout(async () => {
   );
 
   const splitData = data.table_split;
-  const qtyByRow = parseFloat((qtyToPutaway / noOfSplit).toFixed(3));
+  const qtyByRow = parseFloat((qtyToPutaway / noOfSplit));
 
   for (const [index, split] of splitData.entries()) {
     split.store_in_qty = qtyByRow;

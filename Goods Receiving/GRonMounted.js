@@ -1,11 +1,9 @@
 const displayAddress = async () => {
-  const data = this.getValues();
-
   if (
-    data.gr_billing_name ||
-    data.gr_billing_cp ||
-    data.gr_billing_address ||
-    data.gr_shipping_address
+    this.getValue("gr_billing_name") ||
+    this.getValue("gr_billing_cp") ||
+    this.getValue("gr_billing_address") ||
+    this.getValue("gr_shipping_address")
   ) {
     this.display("address_grid");
   }
@@ -44,18 +42,20 @@ const isViewMode = async () => {
 const disabledEditField = async (status) => {
   if (status === "Draft") {
     // Draft status: Full editing allowed
-    const data = this.getValues();
-    data.table_gr.forEach(async (gr, index) => {
-      if (gr.item_id) {
+    // (enabled is the batch column's own default except on bundle lines)
+    const batchPaths = [];
+    this.getValue("table_gr").forEach((gr, index) => {
+      if (gr.item_id && gr.item_bundle_id) {
         if (
           !gr.item_batch_no &&
           gr.item_batch_no !== "Auto-generated batch number" &&
           gr.item_batch_no !== "-"
         ) {
-          this.disabled([`table_gr.${index}.item_batch_no`], false);
+          batchPaths.push(`table_gr.${index}.item_batch_no`);
         }
       }
     });
+    if (batchPaths.length > 0) this.disabled(batchPaths, false);
     this.disabled("reference_doc", false);
   } else if (status === "Created") {
     // Created status: Limited editing allowed (can re-save or complete)
@@ -111,16 +111,19 @@ const disabledEditField = async (status) => {
     );
 
     // Enable batch number editing where applicable
-    const data = this.getValues();
-    data.table_gr.forEach(async (gr, index) => {
+    // (enabled is the batch column's own default except on bundle lines)
+    const batchPaths = [];
+    this.getValue("table_gr").forEach((gr, index) => {
       if (
         gr.item_id &&
+        gr.item_bundle_id &&
         gr.item_batch_no !== "-" &&
         gr.item_batch_no !== "Auto-generated batch number"
       ) {
-        this.disabled([`table_gr.${index}.item_batch_no`], false);
+        batchPaths.push(`table_gr.${index}.item_batch_no`);
       }
     });
+    if (batchPaths.length > 0) this.disabled(batchPaths, false);
 
     // Show appropriate buttons for Created status
     this.hide(["button_save_as_draft", "button_completed"]);
@@ -218,20 +221,41 @@ const fetchReceivedQuantity = async () => {
   const status = this.getValue("gr_status");
   const currentGRNo = this.getValue("gr_no");
 
+  // One query per 500 PO lines instead of one per GR line.
+  const poLineIds = [
+    ...new Set(
+      tableGR
+        .map((item) => item.po_line_item_id)
+        .filter(Boolean)
+        .map(String),
+    ),
+  ];
+  const idChunks = [];
+  for (let i = 0; i < poLineIds.length; i += 500) {
+    idChunks.push(poLineIds.slice(i, i + 500));
+  }
+
   const resPOLineData = await Promise.all(
-    tableGR.map((item) =>
+    idChunks.map((ids) =>
       db
         .collection("purchase_order_2ukyuanr_sub")
-        .doc(item.po_line_item_id)
+        .filter(new Filter().in("id", ids).build())
         .get(),
     ),
   );
 
-  const poLineItemData = resPOLineData.map((response) => response.data[0]);
+  const poLineById = new Map();
+  resPOLineData.forEach((response) => {
+    (response?.data || []).forEach((line) =>
+      poLineById.set(String(line.id), line),
+    );
+  });
 
   const updatedTableGR = await Promise.all(
-    tableGR.map(async (item, index) => {
-      const poLine = poLineItemData[index];
+    tableGR.map(async (item) => {
+      const poLine = item.po_line_item_id
+        ? poLineById.get(String(item.po_line_item_id))
+        : undefined;
       const orderQty = poLine ? poLine.quantity || 0 : 0;
       const receivedQty = poLine ? poLine.received_qty || 0 : 0;
 
@@ -258,36 +282,29 @@ const fetchReceivedQuantity = async () => {
     }),
   );
 
-  this.setData({ table_gr: updatedTableGR });
+  await this.setData({ table_gr: updatedTableGR });
 };
 
 const viewSerialNumber = async () => {
   const tableGR = this.getValue("table_gr");
-  tableGR.forEach((gr, index) => {
-    if (gr.is_serialized_item === 1) {
-      this.display(`table_gr.select_serial_number`);
-      this.disabled(`table_gr.${index}.received_qty`, true);
-    } else {
-      this.disabled(`table_gr.${index}.received_qty`, false);
-    }
-  });
+  if (tableGR.some((gr) => gr.is_serialized_item === 1)) {
+    this.display(`table_gr.select_serial_number`);
+  }
 };
 
 const viewBaseQty = async () => {
   const tableGR = this.getValue("table_gr");
-  tableGR.forEach((gr) => {
-    if (gr.item_uom !== gr.base_item_uom) {
-      this.display([
-        "table_gr.ordered_qty_uom",
-        "table_gr.base_ordered_qty",
-        "table_gr.base_ordered_qty_uom",
-        "table_gr.to_received_qty_uom",
-        "table_gr.base_received_qty_uom",
-        "table_gr.base_received_qty",
-        "table_gr.base_item_uom",
-      ]);
-    }
-  });
+  if (tableGR.some((gr) => gr.item_uom !== gr.base_item_uom)) {
+    this.display([
+      "table_gr.ordered_qty_uom",
+      "table_gr.base_ordered_qty",
+      "table_gr.base_ordered_qty_uom",
+      "table_gr.to_received_qty_uom",
+      "table_gr.base_received_qty_uom",
+      "table_gr.base_received_qty",
+      "table_gr.base_item_uom",
+    ]);
+  }
 };
 
 const displayAssignedTo = async () => {
@@ -299,26 +316,16 @@ const displayAssignedTo = async () => {
       plant_id: plant,
       is_deleted: 0,
       movement_type: "Good Receiving",
+      putaway_required: 1,
     })
     .get();
 
-  const setup =
-    resPutAwaySetup && resPutAwaySetup.data.length > 0
-      ? resPutAwaySetup.data[0]
-      : null;
-
   setTimeout(() => {
-    if (setup && setup.putaway_required === 1) {
+    if (resPutAwaySetup && resPutAwaySetup.data.length > 0) {
       console.log("resPutaway", resPutAwaySetup.data);
       this.display("assigned_to");
     } else {
       this.hide("assigned_to");
-    }
-
-    if (setup && setup.show_hu === 1) {
-      this.display(["table_gr.select_hu", "table_gr.view_hu"]);
-    } else {
-      this.hide(["table_gr.select_hu", "table_gr.view_hu"]);
     }
   }, 30);
 };
@@ -358,51 +365,67 @@ const hideSerialNumberRecordTab = () => {
 const displayManufacturingAndExpiredDate = async (status, pageStatus) => {
   const tableGR = this.getValue("table_gr");
   if (tableGR.length === 0) return;
-  if (pageStatus === "Edit" || pageStatus === "Add") {
-    if (status === "Draft") {
-      for (const [index, item] of tableGR.entries()) {
-        if (item.item_batch_no !== "-") {
-          await this.display([
-            "table_gr.manufacturing_date",
-            "table_gr.expired_date",
-          ]);
-          await this.disabled(
-            [
-              `table_gr.${index}.manufacturing_date`,
-              `table_gr.${index}.expired_date`,
-            ],
-            false,
-          );
-        } else {
-          await this.disabled(
-            [
-              `table_gr.${index}.manufacturing_date`,
-              `table_gr.${index}.expired_date`,
-            ],
-            true,
-          );
-        }
-      }
-    } else {
-      for (const [index, item] of tableGR.entries()) {
-        if (item.item_batch_no !== "-") {
-          await this.display([
-            "table_gr.manufacturing_date",
-            "table_gr.expired_date",
-          ]);
-        }
-      }
-    }
-  } else {
-    for (const [index, item] of tableGR.entries()) {
-      if (item.item_batch_no !== "-") {
-        await this.display([
-          "table_gr.manufacturing_date",
-          "table_gr.expired_date",
-        ]);
-      }
-    }
+  if (tableGR.some((item) => item.item_batch_no !== "-")) {
+    this.display(["table_gr.manufacturing_date", "table_gr.expired_date"]);
   }
+  // The date columns already disable themselves on "-" lines; only bundle
+  // lines need an explicit state.
+  if ((pageStatus === "Edit" || pageStatus === "Add") && status === "Draft") {
+    const enablePaths = [];
+    const disablePaths = [];
+    tableGR.forEach((item, index) => {
+      if (!item.item_bundle_id) return;
+      (item.item_batch_no !== "-" ? enablePaths : disablePaths).push(
+        `table_gr.${index}.manufacturing_date`,
+        `table_gr.${index}.expired_date`,
+      );
+    });
+    if (enablePaths.length > 0) this.disabled(enablePaths, false);
+    if (disablePaths.length > 0) this.disabled(disablePaths, true);
+  }
+};
+
+const disabledItemBundleFields = async () => {
+  // The bundle row carries the bundle id and no item of its own; a bundle's
+  // items carry the bundle id and an item. Split children are matched by
+  // neither, so their fields are left exactly as the split logic set them.
+  const isBundleParentRow = (row) =>
+    Boolean(row.item_bundle_id) && !row.item_id;
+  const isBundleChildRow = (row) =>
+    Boolean(row.item_bundle_id) && Boolean(row.item_id);
+
+  // Behind func_processGRLineItem's own 50ms row pass, which re-enables these
+  // fields row by row — and reading the table only once it has run.
+  setTimeout(async () => {
+    const tableGR = this.getValue("table_gr") || [];
+    const paths = [];
+
+    for (const [index, gr] of tableGR.entries()) {
+      // The bundle row holds no stock and has no batch of its own, so neither
+      // date applies to it.
+      if (isBundleParentRow(gr)) {
+        paths.push(
+          `table_gr.${index}.manufacturing_date`,
+          `table_gr.${index}.expired_date`,
+        );
+      }
+
+      const bundleChildren = Array.isArray(gr.children) ? gr.children : [];
+
+      // A bundle's items take their quantity from the bundle row's, at the ratio
+      // the bundle was built with, so it is never typed in directly.
+      for (const [childIndex, child] of bundleChildren.entries()) {
+        if (!isBundleChildRow(child)) continue;
+
+        paths.push(
+          `table_gr.${index}.children.${childIndex}.received_qty`,
+          `table_gr.${index}.children.${childIndex}.base_received_qty`,
+        );
+      }
+    }
+
+    if (paths.length > 0) this.disabled(paths, true);
+  }, 150);
 };
 
 const checkAccIntegrationType = async (organizationId) => {
@@ -439,6 +462,7 @@ const checkAccIntegrationType = async (organizationId) => {
     }
 
     this.setData({ page_status: pageStatus });
+    this.getComponent("table_gr")?.hideChildRecord();
 
     switch (pageStatus) {
       case "Add":
@@ -447,7 +471,6 @@ const checkAccIntegrationType = async (organizationId) => {
         this.hide("button_completed");
         await setPlant(organizationId);
         await checkAccIntegrationType(organizationId);
-        await displayAssignedTo();
         await hideSerialNumberRecordTab();
         if (this.getValue("plant_id")) {
           this.disabled("reference_doc", false);
@@ -455,6 +478,8 @@ const checkAccIntegrationType = async (organizationId) => {
           await this.triggerEvent("func_processGRLineItem");
           await this.triggerEvent("onChange_Supplier");
         }
+
+        await disabledItemBundleFields();
 
         break;
 
@@ -479,10 +504,20 @@ const checkAccIntegrationType = async (organizationId) => {
         const fromConvert = this.getValue("from_convert");
         this.setData({ previous_status: status });
         if (fromConvert === "Yes") {
-          console.log("trigger func_processGRLineItem");
-          await this.triggerEvent("func_processGRLineItem");
-          await this.triggerEvent("onChange_Supplier");
+          // Saved lines are kept; only lines never enriched are filled in.
+          const hasNewLines = (this.getValue("table_gr") || []).some(
+            (gr) => !gr.inspection_required,
+          );
+          console.log("trigger func_processGRLineItem", hasNewLines);
+          await this.triggerEvent("func_processGRLineItem", {
+            newRowsOnly: true,
+          });
+          if (hasNewLines) {
+            await this.triggerEvent("onChange_Supplier");
+          }
         }
+
+        await disabledItemBundleFields();
         break;
 
       case "View":
@@ -493,6 +528,7 @@ const checkAccIntegrationType = async (organizationId) => {
         await displayAssignedTo();
         await hideSerialNumberRecordTab();
         await displayManufacturingAndExpiredDate(status, pageStatus);
+        await disabledItemBundleFields();
         break;
     }
   } catch (error) {

@@ -165,7 +165,7 @@ flowchart TD
 | `issuing_operation_faci` | **Plant** | tree select | ✓ | plant login: its own dept (locked) | org login only | Org dept tree, value `id`, label `dept_name` |
 | `stock_movement_no_type` | Numbering rule | select | | default rule (`is_default===1`), else `-9999` | yes on new | `流水号规则表` (`1994006139209117697`): value `id`, label `rule_name`; filter `business_type = "Item Assembly"`, `department_id = {{global:firstLvDeptId}}`, `is_draft = 0`. Prepend `{label:"Manual Input", value:-9999}` when the component allows manual input |
 | `stock_movement_no` | **Item Assembly No** | text | (server) | empty; sentinel on save | only when rule = `-9999` | — |
-| `item_id` | **BOM Item Code** | select | ✓ | — | yes | **Bill of Materials**: value `parent_material_code.id` (an **Item id**), label `parent_material_code.material_code`; filter org |
+| `item_id` | **BOM Item Code** | table select (Code / Name columns) | ✓ | — | yes | **Bill of Materials**: value `parent_material_code.id` (an **Item id**, never the BOM row `id`), label `parent_material_code.material_code`; filter org |
 | `item_name` | BOM Item Name | text | | from Item `material_name` | no | — |
 | `item_desc` | BOM Item Description | textarea | | from Item `material_desc` | yes | — |
 | `item_qty` | **Quantity** | number, min 0, 3 dp | ✓ | — | yes | — |
@@ -175,9 +175,10 @@ flowchart TD
 | `project_id` | Project | select | | — | yes | Project (`2085600321692696577`) id / `project_code` |
 | `storage_location_id` | **Storage Location** (receiving) | select | ✓ | item default bin, else plant default ([Part 5](#part-5--header-field-behaviour)) | once item chosen | `storage_location`: `plant_id = plant`, `storage_status = 1` |
 | `location_id` | **Bin Location** (receiving) | select | ✓ | item default bin, else plant default ([Part 5](#part-5--header-field-behaviour)) | once storage location chosen | `bin_location` id / `bin_location_combine`: `plant_id`, `storage_location_id`, `bin_status = 1` |
-| `batch_no` | Batch No | text | | — | **hidden on desktop** — see [Part 14](#part-14--edge-cases-gotchas-and-known-gaps) | — |
-| `manufacturing_date` | Manufacturing Date | date | | — | hidden on desktop | — |
-| `expired_date` | Expired Date | date | | — | hidden on desktop | — |
+| `inventory_category` | Inventory Category (receiving) | select | | `"Unrestricted"` | yes | static options `Unrestricted`, `Blocked` |
+| `batch_no` | Batch No | text | | — | batch item **not** on `According To System Settings` — see [Part 5](#batch-and-inventory-category-fields) | — |
+| `manufacturing_date` | Manufacturing Date | date | | — | any batch item | — |
+| `expired_date` | Expired Date | date | | — | any batch item | — |
 | `remarks`, `remarks_2`, `remarks_3` | Remarks 1–3 | textarea | | — | yes | — |
 | `reference_documents` | Reference Documents | file upload (max 9) | | — | yes | `/api/blade-resource/oss/endpoint/put-file` |
 
@@ -320,8 +321,8 @@ Fields locked when status ≠ Draft (`EDIT_DISABLED_FIELDS`):
 ```
 issuing_operation_faci, stock_movement_no, stock_movement_no_type, item_id, item_name,
 item_desc, item_qty, item_uom, issued_by, project_id, batch_no, manufacturing_date,
-expired_date, storage_location_id, location_id, item_assembly_date, reference_documents,
-remarks, remarks_2, remarks_3
+expired_date, storage_location_id, location_id, inventory_category, item_assembly_date,
+reference_documents, remarks, remarks_2, remarks_3
 ```
 
 Status badge colours on desktop: Draft = grey, Issued = teal, Completed = green, Fully Posted = green.
@@ -356,6 +357,21 @@ Query cost: when the item's bin wins, the `bin_location` lookup is skipped. On i
 ### BOM Item Code change
 
 Always rebuilds. A different product's components are meaningless, so the explosion runs unconditionally, with no prompt. It also re-runs the **receiving location chain** for the newly chosen item. The chain is stamped **before** the explosion's early returns (no active BOM / no consumable sub-materials / BOM base quantity 0), so an aborted explosion still leaves a correct receiving bin. If the value is cleared, clear `item_name`, `item_desc`, `item_uom` and `stock_movement`.
+
+### Batch and inventory category fields
+
+The assembled item is received into the header bin, batch and category. The batch fields follow the item's batch config:
+
+| Assembled item | `batch_no` | `manufacturing_date`, `expired_date` |
+|---|---|---|
+| `item_batch_management !== 1` | hidden | hidden |
+| batch, `batch_number_genaration === "According To System Settings"` | hidden (generated on completion) | shown |
+| batch, any other setting (Manual Input, or blank) | shown, **required to complete** | shown |
+
+- **Item change** reads `item_batch_management,batch_number_genaration` on the same Item fetch as the name and bin (no extra query), clears all three fields and shows or hides them. Clearing the item hides them. A Quantity change (`rescale`) leaves them alone.
+- **Edit Draft / Clone** fetch those two Item fields once to decide. A Clone also clears the three fields — a batch belongs to one assembly run.
+- **Past Draft and View** show only the fields that hold a value, so a generated batch number is visible after completion.
+- **`inventory_category`** offers `Unrestricted` and `Blocked` (the same two Misc Receipt allows), default `Unrestricted`. A record saved before the field existed loads as `Unrestricted`, which is how it was received.
 
 ### Quantity change (`ItemAssemblyOnChangeItemQty.js`)
 
@@ -393,11 +409,12 @@ Source: `ItemAssemblyOnChangeItem.js`. The whole explosion plus allocation costs
 carries `material_name` / `material_desc` / `based_uom`. Always resolve the assembled Item by id
 before filling `item_name`, `item_desc` and `item_uom` — reading them off the field model leaves
 all three blank. The same fetch also returns `table_default_bin` for the receiving-bin chain, so
-it costs one query, not two.
+it costs one query, not two. It also carries `item_batch_management` and `batch_number_genaration`
+for the [batch fields](#batch-and-inventory-category-fields).
 
 ### Step 1 — assembled item
 
-Set `item_name = material_name`, `item_desc = material_desc` and `item_uom = based_uom` from the Item, using fields `material_name,material_desc,based_uom`.
+Set `item_name = material_name`, `item_desc = material_desc` and `item_uom = based_uom` from the Item, using fields `material_name,material_desc,based_uom,table_default_bin,item_batch_management,batch_number_genaration`.
 
 ### Step 2 — pick the BOM
 
@@ -692,6 +709,7 @@ runWorkflow("2098335576774463489", { allData: data, saveAs: "Draft" | "Completed
     "manufacturing_date": null, "expired_date": null,
     "storage_location_id": "<id>",
     "location_id": "<receiving bin id>",
+    "inventory_category": "Unrestricted",   // or "Blocked"; blank/absent = "Unrestricted"
     "remarks": "", "remarks_2": "", "remarks_3": "",
     "reference_documents": [],
     "stock_movement": [
@@ -725,6 +743,7 @@ runWorkflow("2098335576774463489", { allData: data, saveAs: "Draft" | "Completed
      - Draft: the `'draft'` sentinel **only if the number is empty**.
      - Completed: the `'issued'` sentinel if the number is empty **or `storedStatus !== 'Completed'`**. Completing a Draft therefore **always issues a new number**, even if the Draft already had one.
    - Completed also sets `posted_status = 'Unposted'`.
+   - Blank `inventory_category` becomes `'Unrestricted'`.
 2. **Required fields** (`CHECK_REQUIRED_FIELD`) → **400**:
    - `stock_movement_no` (Item Assembly No), `issuing_operation_faci` (Plant), `item_id` (Item Code), `item_qty` (Quantity), `storage_location_id` (Storage Location), `location_id` (Bin Location)
    - `stock_movement` (BOM Components) with `item_selection` on each line
@@ -763,7 +782,8 @@ runWorkflow("2098335576774463489", { allData: data, saveAs: "Draft" | "Completed
 | a line has no pick with `sm_quantity > 0` | `Line {n} ({name}): no stock has been allocated.` |
 | `total_quantity` ≤ 0 | `Line {n} ({name}): quantity must be greater than zero.` |
 | `|total_quantity − Σ picks[].sm_quantity| > 0.0005` | `Line {n} ({name}): the quantity does not match the allocated stock. Re-enter the quantity or re-pick it.` |
-| assembled item is batch-managed, `batch_number_genaration === 'Manual Input'`, and `batch_no` empty or `'-'` | `This item is batch managed with manual numbering, so a Batch No is required.` |
+| assembled item is batch-managed, `batch_number_genaration !== 'According To System Settings'` (Manual Input **or blank**), and `batch_no` empty or `'-'` | `This item is batch managed with manual numbering, so a Batch No is required.` |
+| `inventory_category` not `Unrestricted` / `Blocked` | `Inventory Category must be Unrestricted or Blocked.` |
 
 > **Mobile callout.** Mirror the 401 rules on the client before calling, so the user sees problems early. The server remains the authority.
 
@@ -793,7 +813,7 @@ You don't call any of this yourself. It is here so you understand what the serve
 |---|---|
 | `item_batch_management !== 1` | no batch (`batch_number: ""`) |
 | batch, `batch_number_genaration === "According To System Settings"` | `GENERATE_BATCH` with `item_id`, `document_date = item_assembly_date`, `manufacturing_date`, `expired_date`. An empty result gives 400. |
-| batch, any other setting (Manual Input) | `batch_no` from the payload |
+| batch, any other setting (Manual Input, or blank) | `batch_no` from the payload — required, so never received unbatched |
 
 The resolved number is written to the header `batch_no` **before** stock moves.
 
@@ -826,7 +846,7 @@ So the finished good carries the **actual** FIFO / weighted-average value of the
 
 - `material_id = item_id`, `quantity = item_qty`, `material_uom = item_uom`
 - `transaction_type "IA"`, `trx_no`
-- `inventory_category "Unrestricted"`
+- `inventory_category` = header `inventory_category` (`Unrestricted` or `Blocked`)
 - `location_id` = header bin, `batch_number` (string), `unit_price` (above)
 - `doc_date`, `manufacturing_date`, `expired_date`
 - `remark` / `remark2` / `remark3` = header remarks
@@ -956,6 +976,8 @@ A Completed assembly with **no** live movements (its save failed before the issu
 **Header**
 - [ ] Plant change clears storage location, bin and **all lines**, then re-runs the receiving location chain (assembled item's `table_default_bin` for the plant, else the `Common` plant default).
 - [ ] Item change always re-runs explosion + auto-allocation and re-stamps the receiving bin — **always overwritten**, so a previous item's bin cannot stick.
+- [ ] Item change resets and shows/hides `batch_no` and the dates by the item's batch config; Edit Draft / Clone decide the same way on load.
+- [ ] `inventory_category`: `Unrestricted` (default) or `Blocked`.
 - [ ] Quantity change re-runs explosion + auto-allocation, but **prompts first when the table has been edited** (Re-scale / Keep), and leaves the header bin alone.
 - [ ] Project cascade with Overwrite / Keep; clearing the header never wipes lines.
 
@@ -1005,7 +1027,7 @@ Each item below was checked against the source on 2026-09-22.
 ### Desktop gaps — decide deliberately, don't copy blindly
 
 9. **The `sm_quantity` validator can fire for a row the dialog's grid no longer has.** `rule.field.split(".")[2]` indexes `sm_item_balance.table_item_balance` directly, and an out-of-range index used to throw `Cannot read properties of undefined (reading 'material_id')`. A thrown validator rejects `this.validate()` for the **whole form**, so the save died before `IA_SAVE` was ever called, reporting only `[object Object]`. It now `callback()`s out when the row is missing. If you port that validator, keep the guard — and never let a validator throw.
-10. **`batch_no` is hidden on desktop**, yet the server requires it for a batch-managed assembled item with Manual Input batch numbering (401). `manufacturing_date` / `expired_date` are also hidden but feed batch generation and the receipt. Recommendation: show `batch_no` when the assembled item has `item_batch_management === 1 && batch_number_genaration === "Manual Input"`, and show both dates for any batch-managed assembled item.
+10. **Batch fields follow the item's batch config** (desktop since 2026-10-14). The server requires `batch_no` for a Manual Input batch item (401); the dates feed batch generation and the receipt. Mirror the [show/hide rules](#batch-and-inventory-category-fields) rather than always showing the fields.
 11. **`requested_qty` is hidden on desktop and is no longer a target.** Showing it on mobile is optional and easy to misread as a requirement. If you do show it, label it as what the BOM asked for, not as what must be matched.
 12. **UOM conversion inconsistency** in the dialog (Part 8e). Don't port it.
 13. **BOM Item Code picker lists BOM rows**, not items. An item with several BOM versions appears several times, and inactive BOMs are listed too (explosion then warns). Consider de-duplicating by `parent_material_code` and filtering `is_active = 1`.
@@ -1063,6 +1085,7 @@ const EDIT_DISABLED_FIELDS = [
   "expired_date",
   "storage_location_id",
   "location_id",
+  "inventory_category",
   "item_assembly_date",
   "reference_documents",
   "net_weight",
@@ -1071,6 +1094,34 @@ const EDIT_DISABLED_FIELDS = [
   "remarks_2",
   "remarks_3",
 ];
+
+// Batch No is typed only under Manual Input; a System Settings batch is generated
+// on completion. Any batch item takes the dates.
+const showBatchFields = async (itemId) => {
+  if (!itemId) return;
+
+  const res = await db
+    .collection("item")
+    .where({ id: itemId })
+    .field("item_batch_management,batch_number_genaration")
+    .get();
+  const item = res.data?.[0];
+  if (item?.item_batch_management !== 1) return;
+
+  const fields = ["manufacturing_date", "expired_date"];
+  if (item.batch_number_genaration !== "According To System Settings") {
+    fields.push("batch_no");
+  }
+  this.display(fields);
+};
+
+// Past Draft the fields are read-only, so only the ones holding a value are shown.
+const showFilledBatchFields = () => {
+  const filled = ["batch_no", "manufacturing_date", "expired_date"].filter(
+    (field) => this.getValue(field)
+  );
+  if (filled.length) this.display(filled);
+};
 
 // Locking the components table is not enough on its own: this.disabled leaves the
 // toolbar's Add / Batch Add buttons and the per-row delete action clickable, so
@@ -1139,6 +1190,11 @@ const setPlant = (organizationId, pageStatus) => {
     this.setData({ page_status: pageStatus });
     const status = this.getValue("item_assembly_status");
 
+    // Assemblies saved before the field existed were all received Unrestricted.
+    if (pageStatus !== "Add" && !this.getValue("inventory_category")) {
+      this.setData({ inventory_category: "Unrestricted" });
+    }
+
     switch (pageStatus) {
       case "Add":
       case "Clone":
@@ -1155,6 +1211,16 @@ const setPlant = (organizationId, pageStatus) => {
         ]);
 
         setPlant(organizationId, pageStatus);
+
+        if (pageStatus === "Clone") {
+          // A batch belongs to one assembly run, so a clone starts without one.
+          this.setData({
+            batch_no: "",
+            manufacturing_date: null,
+            expired_date: null,
+          });
+          await showBatchFields(this.getValue("item_id"));
+        }
         break;
 
       case "Edit":
@@ -1181,12 +1247,16 @@ const setPlant = (organizationId, pageStatus) => {
           this.display(["button_completed", "comp_post_button"]);
           lockComponentsTable();
         }
+
+        if (status === "Draft") await showBatchFields(this.getValue("item_id"));
+        else showFilledBatchFields();
         break;
 
       case "View":
         showStatusHTML(status);
         this.disabled(EDIT_DISABLED_FIELDS, true);
         lockComponentsTable();
+        showFilledBatchFields();
         break;
     }
   } catch (error) {
@@ -1451,6 +1521,20 @@ const clearComponents = () => {
     item_uom: "",
     stock_movement: [],
   });
+};
+
+// Batch No is typed only under Manual Input; a System Settings batch is generated
+// on completion. Any batch item takes the dates.
+const applyBatchFields = (item) => {
+  const isBatch = item?.item_batch_management === 1;
+  const isManual =
+    isBatch && item.batch_number_genaration !== "According To System Settings";
+
+  this.setData({ batch_no: "", manufacturing_date: null, expired_date: null });
+  if (isManual) this.display(["batch_no"]);
+  else this.hide(["batch_no"]);
+  if (isBatch) this.display(["manufacturing_date", "expired_date"]);
+  else this.hide(["manufacturing_date", "expired_date"]);
 };
 
 const fetchByIds = (collection, ids, fields) => {
@@ -1842,6 +1926,7 @@ const componentsWereEdited = (currentRows, bomRows) => {
 
     if (!value) {
       clearComponents();
+      applyBatchFields(null);
       return;
     }
 
@@ -1865,7 +1950,7 @@ const componentsWereEdited = (currentRows, bomRows) => {
       fetchByIds(
         "item",
         [value],
-        "material_name,material_desc,based_uom,table_default_bin"
+        "material_name,material_desc,based_uom,table_default_bin,item_batch_management,batch_number_genaration"
       ),
       rescale
         ? Promise.resolve({ storageLocation: null, binLocation: null })
@@ -1896,6 +1981,7 @@ const componentsWereEdited = (currentRows, bomRows) => {
         location_id:
           parentDefaultBin?.binLocation || plantDefaults.binLocation || "",
       });
+      applyBatchFields(parentItem);
     }
 
     // A re-scale never clears the table: the components may be the user's own by
@@ -4267,91 +4353,87 @@ Embedded in `ItemAssemblyFullJSON.json` → `config.eventScript` key `evhzkk8e`,
 
 #### Inline: loose `sm_quantity` validator
 
-Embedded in `ItemAssemblyFullJSON.json` on `sm_item_balance.table_item_balance.sm_quantity` → `options.validator`.
+Embedded in `ItemAssemblyFullJSON.json` on `sm_item_balance.table_item_balance.sm_quantity`, identically in `options.validator` and `rules[0].func` (prod v28's hardened copy, applied to dev 2026-10-14).
 
 ```js
-const data = this.getValues();
+const data = this.getValues() || {};
 const stockMovement = data.stock_movement || [];
 const rowIndex = data.sm_item_balance?.row_index;
-const fieldParts = rule.field.split(".");
+
+const fieldParts = (rule?.field || "").split(".");
 const index = fieldParts[2];
-// The rule stays registered for rows the dialog's grid no longer has, so this
-// lookup can miss. Throwing here rejects this.validate() for the WHOLE form and
-// the save dies with an unreadable "[object Object]" -- there is simply nothing
-// to check when the row is gone.
+
+// A validation rule can remain registered after its grid row is removed.
 const row = data.sm_item_balance?.table_item_balance?.[index];
 if (!row) {
   callback();
   return;
 }
+
 const materialId = row.material_id;
 const balanceId = row.balance_id;
 const locationId = row.location_id;
 const category = row.category;
-
-const category_type = row.category ?? row.category_from;
-
-const unrestricted_field = row.unrestricted_qty;
-const reserved_field = row.reserved_qty;
-const quality_field = row.qualityinsp_qty;
-const blocked_field = row.block_qty;
+const categoryType = row.category ?? row.category_from;
 
 let selectedField;
 
-switch (category_type) {
+switch (categoryType) {
   case "Unrestricted":
-    selectedField = unrestricted_field;
+    selectedField = row.unrestricted_qty;
     break;
   case "Reserved":
-    selectedField = reserved_field;
+    selectedField = row.reserved_qty;
     break;
   case "Quality Inspection":
-    selectedField = quality_field;
+    selectedField = row.qualityinsp_qty;
     break;
   case "Blocked":
-    selectedField = blocked_field;
+    selectedField = row.block_qty;
     break;
   default:
     callback("Invalid category type");
     return;
 }
 
-// Sum already-confirmed allocations from OTHER stock_movement lines hitting the
-// same balance/location/category, so cross-line over-allocation is caught.
 let confirmedQuantity = 0;
 
 for (let i = 0; i < stockMovement.length; i++) {
   if (i === rowIndex) continue;
+
   const item = stockMovement[i];
   if (
     item.item_selection !== materialId ||
     !item.total_quantity ||
     !item.temp_qty_data
-  ) continue;
-
-  let tempDataParsed;
-  try {
-    tempDataParsed = JSON.parse(item.temp_qty_data);
-  } catch (e) {
+  ) {
     continue;
   }
-  if (!Array.isArray(tempDataParsed)) continue;
 
-  for (const tempItem of tempDataParsed) {
+  let allocations;
+  try {
+    allocations = JSON.parse(item.temp_qty_data);
+  } catch {
+    continue;
+  }
+
+  if (!Array.isArray(allocations)) continue;
+
+  for (const allocation of allocations) {
     if (
-      tempItem.material_id === materialId &&
-      tempItem.balance_id === balanceId &&
-      tempItem.location_id === locationId &&
-      tempItem.category === category &&
-      tempItem.sm_quantity > 0
+      allocation.material_id === materialId &&
+      allocation.balance_id === balanceId &&
+      allocation.location_id === locationId &&
+      allocation.category === category &&
+      Number(allocation.sm_quantity) > 0
     ) {
-      confirmedQuantity += tempItem.sm_quantity;
+      confirmedQuantity += Number(allocation.sm_quantity);
     }
   }
 }
 
-if (selectedField < value + confirmedQuantity) {
-  callback(`Quantity in ${category_type} is not enough.`);
+if (Number(selectedField) < Number(value) + confirmedQuantity) {
+  callback(`Quantity in ${categoryType} is not enough.`);
 } else {
   callback();
 }
@@ -4989,6 +5071,9 @@ Every `code-node` of `ItemAssemblySaveWorkflow.json`, in node order. `{{workflow
 #### `code_fillback` — fillbackHeaderFields
 
 ```js
+// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps
+// every client-configured scale intact while killing float residue.
+const q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));
 let allData = {{workflowparams:allData}};
 const saveAs = {{workflowparams:saveAs}};
 const pageStatus = {{workflowparams:pageStatus}};
@@ -4999,13 +5084,13 @@ const pageStatus = {{workflowparams:pageStatus}};
 // from it will crash a save.
 const formatNumber = (value) => {
   if (value === null || value === undefined || value === '') return 0;
-  return parseFloat(value).toFixed(3);
+  return parseFloat(value).toFixed(8);
 };
 
 const lines = [];
 for (const [index, line] of (allData.stock_movement || []).entries()) {
-  line.requested_qty = formatNumber(line.requested_qty);
-  line.total_quantity = formatNumber(line.total_quantity);
+  line.requested_qty = q8(line.requested_qty);
+  line.total_quantity = q8(line.total_quantity);
   line.organization_id = allData.organization_id;
   line.issuing_plant = allData.issuing_operation_faci || null;
   line.line_index = index + 1;
@@ -5015,7 +5100,10 @@ allData.stock_movement = lines;
 
 // item_qty is decimal(65,3) on the header -- MSI/MSR only format lines because
 // their header carries no quantity; this one does.
-allData.item_qty = formatNumber(allData.item_qty);
+allData.item_qty = q8(allData.item_qty);
+
+// Blank on assemblies saved before the field existed, and on mobile payloads.
+allData.inventory_category = allData.inventory_category || 'Unrestricted';
 
 const storedStatus = pageStatus === 'Add' ? 'Draft' : (allData.item_assembly_status || 'Draft');
 allData.item_assembly_status = saveAs;
@@ -5143,14 +5231,19 @@ for (let i = 0; i < lines.length && !message; i++) {
   }
 }
 
-// A manually-numbered batch item needs its batch before stock can be received.
+// Only a System Settings batch is generated here; any other batch item (Manual
+// Input, or no rule) must bring its own number or it is received unbatched.
 if (!message) {
   const assembled = itemMap[String(entry.item_id)];
   if (assembled && assembled.item_batch_management === 1 &&
-      assembled.batch_number_genaration === 'Manual Input' &&
+      assembled.batch_number_genaration !== 'According To System Settings' &&
       (!entry.batch_no || String(entry.batch_no).trim() === '' || entry.batch_no === '-')) {
     message = 'This item is batch managed with manual numbering, so a Batch No is required.';
   }
+}
+
+if (!message && ['Unrestricted', 'Blocked'].indexOf(entry.inventory_category) === -1) {
+  message = 'Inventory Category must be Unrestricted or Blocked.';
 }
 
 return { status: message ? 'Failed' : 'Passed', message: message };
@@ -5344,6 +5437,9 @@ return {
 #### `code_receipt_prep` — Receipt Prep
 
 ```js
+// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps
+// every client-configured scale intact while killing float residue.
+const q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));
 const entry = {{node:code_fillback.data.allData}};
 const items = {{node:search_items.data.data}} || [];
 const movements = {{node:search_movements.data.data}} || [];
@@ -5371,9 +5467,10 @@ return {
   organization_id: entry.organization_id,
   material_id: entry.item_id,
   material_uom: entry.item_uom,
-  quantity: parseFloat(itemQty.toFixed(3)),
-  unit_price: parseFloat((materialUnitCost + assemblyCost).toFixed(4)),
+  quantity: q8(itemQty),
+  unit_price: q8(materialUnitCost + assemblyCost),
   location_id: entry.location_id,
+  inventory_category: entry.inventory_category,
   batch_number: batchNumber,
   trx_no: persisted.stock_movement_no,
   doc_date: entry.item_assembly_date || null,

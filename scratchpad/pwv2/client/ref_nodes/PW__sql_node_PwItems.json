@@ -1,0 +1,24 @@
+{
+ "database_id": "",
+ "sql": "",
+ "params": {},
+ "title": "Get Items (UOM conversions)",
+ "isValidator": true,
+ "nodeName": "Get Items (UOM conversions)",
+ "name": "Get Items (UOM conversions)",
+ "script": {
+  "type": "sql",
+  "code": "SELECT JSON_OBJECT(\n         'id', CAST(i.id AS CHAR),\n         'based_uom', CAST(i.based_uom AS CHAR),\n         'item_batch_management', i.item_batch_management,\n         'material_costing_method', i.material_costing_method,\n         'table_uom_conversion', COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('alt_uom_id', CAST(u.alt_uom_id AS CHAR),\n                                                                           'base_qty', u.base_qty))\n                                             FROM item_mji552rc_sub u\n                                            WHERE u.Item_id = i.id\n                                              AND u.is_deleted = 0), JSON_ARRAY())\n       ) AS j\n  FROM item i\n WHERE i.tenant_id = '{{system:tenantId}}'\n   AND i.id IN ({{node:code_node_PwKeys.data.itemIdsCsv}})\n   AND i.is_deleted = 0"
+ },
+ "response_json": [
+  {
+   "key": "pwi2j",
+   "name": "j",
+   "title": "j",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ]
+}

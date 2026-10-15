@@ -1,0 +1,30 @@
+{
+ "table_id": {
+  "source": "Putaway Items(Transfer Order Putaway):Table:1939915310509170690",
+  "rules": {
+   "collectionId": "1939915310509170690",
+   "list": [
+    {
+     "id": 1773109739058,
+     "parentId": 1773109739057,
+     "isTop": true,
+     "prop": "transfer_order_putaway_id.id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:add_node_sjzNkA59.data.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 1000,
+ "title": "Get Table Putaway",
+ "isValidator": true,
+ "nodeName": "Get Table Putaway",
+ "name": "Get Table Putaway"
+}

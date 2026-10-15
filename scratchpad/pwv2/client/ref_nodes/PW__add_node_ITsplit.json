@@ -1,0 +1,319 @@
+{
+ "table_id": {
+  "source": "In Transit Detail:Table:2080477944160923650",
+  "rules": {
+   "collectionId": "2080477944160923650",
+   "list": [
+    {
+     "id": 1790000005000,
+     "parentId": 1790000005001,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "title": "Add Split In Transit Rows",
+ "isValidator": true,
+ "nodeName": "Add Split In Transit Rows",
+ "name": "Add Split In Transit Rows",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "doc_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.doc_type}}",
+    "valueLabel": "",
+    "propLabel": "Document Type"
+   },
+   {
+    "prop": "doc_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.doc_id}}",
+    "valueLabel": "",
+    "propLabel": "Document ID"
+   },
+   {
+    "prop": "doc_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.doc_no}}",
+    "valueLabel": "",
+    "propLabel": "Document Number"
+   },
+   {
+    "prop": "doc_line_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.doc_line_id}}",
+    "valueLabel": "",
+    "propLabel": "Document Line ID"
+   },
+   {
+    "prop": "line_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.line_no}}",
+    "valueLabel": "",
+    "propLabel": "Line No"
+   },
+   {
+    "prop": "parent_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.parent_id}}",
+    "valueLabel": "",
+    "propLabel": "Parent ID"
+   },
+   {
+    "prop": "parent_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.parent_no}}",
+    "valueLabel": "",
+    "propLabel": "Parent Number"
+   },
+   {
+    "prop": "parent_line_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.parent_line_id}}",
+    "valueLabel": "",
+    "propLabel": "Parent Line ID"
+   },
+   {
+    "prop": "material_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.material_id}}",
+    "valueLabel": "",
+    "propLabel": "Item ID"
+   },
+   {
+    "prop": "item_code",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.item_code}}",
+    "valueLabel": "",
+    "propLabel": "Item Code"
+   },
+   {
+    "prop": "item_name",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.item_name}}",
+    "valueLabel": "",
+    "propLabel": "Item Name"
+   },
+   {
+    "prop": "item_desc",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.item_desc}}",
+    "valueLabel": "",
+    "propLabel": "Item Description"
+   },
+   {
+    "prop": "item_uom",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.item_uom}}",
+    "valueLabel": "",
+    "propLabel": "UOM"
+   },
+   {
+    "prop": "batch_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.batch_id}}",
+    "valueLabel": "",
+    "propLabel": "Batch ID"
+   },
+   {
+    "prop": "handling_unit_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.handling_unit_id}}",
+    "valueLabel": "",
+    "propLabel": "Handling Unit ID"
+   },
+   {
+    "prop": "plant_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.plant_id}}",
+    "valueLabel": "",
+    "propLabel": "Plant ID"
+   },
+   {
+    "prop": "organization_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.organization_id}}",
+    "valueLabel": "",
+    "propLabel": "Organization ID"
+   },
+   {
+    "prop": "transit_bin",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.transit_bin}}",
+    "valueLabel": "",
+    "propLabel": "Transit Bin"
+   },
+   {
+    "prop": "from_plant_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.from_plant_id}}",
+    "valueLabel": "",
+    "propLabel": "From Plant ID"
+   },
+   {
+    "prop": "from_bin",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.from_bin}}",
+    "valueLabel": "",
+    "propLabel": "From Bin"
+   },
+   {
+    "prop": "from_category",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.from_category}}",
+    "valueLabel": "",
+    "propLabel": "From Category"
+   },
+   {
+    "prop": "to_plant_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.to_plant_id}}",
+    "valueLabel": "",
+    "propLabel": "To Plant ID"
+   },
+   {
+    "prop": "to_bin",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.to_bin}}",
+    "valueLabel": "",
+    "propLabel": "To Bin"
+   },
+   {
+    "prop": "to_category",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.to_category}}",
+    "valueLabel": "",
+    "propLabel": "To Category"
+   },
+   {
+    "prop": "transit_qty",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.transit_qty}}",
+    "valueLabel": "",
+    "propLabel": "Transit Quantity"
+   },
+   {
+    "prop": "received_qty",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.received_qty}}",
+    "valueLabel": "",
+    "propLabel": "Received Quantity"
+   },
+   {
+    "prop": "open_qty",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.open_qty}}",
+    "valueLabel": "",
+    "propLabel": "Open Quantity"
+   },
+   {
+    "prop": "status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.status}}",
+    "valueLabel": "",
+    "propLabel": "Status"
+   },
+   {
+    "prop": "transit_date",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.transit_date}}",
+    "valueLabel": "",
+    "propLabel": "Transit Date"
+   },
+   {
+    "prop": "received_date",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.received_date}}",
+    "valueLabel": "",
+    "propLabel": "Received Date"
+   },
+   {
+    "prop": "remark",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.remark}}",
+    "valueLabel": "",
+    "propLabel": "Remark"
+   },
+   {
+    "prop": "target_doc_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.target_doc_type}}",
+    "valueLabel": "",
+    "propLabel": "Target Document Type"
+   },
+   {
+    "prop": "target_doc_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.target_doc_id}}",
+    "valueLabel": "",
+    "propLabel": "Target Document ID"
+   },
+   {
+    "prop": "target_doc_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.target_doc_no}}",
+    "valueLabel": "",
+    "propLabel": "Target Document Number"
+   },
+   {
+    "prop": "target_doc_line_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.target_doc_line_id}}",
+    "valueLabel": "",
+    "propLabel": "Target Document Line ID"
+   },
+   {
+    "prop": "source_transit_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ITmatch.data.transitCreates.source_transit_id}}",
+    "valueLabel": "",
+    "propLabel": "Source Transit ID"
+   }
+  ]
+ }
+}

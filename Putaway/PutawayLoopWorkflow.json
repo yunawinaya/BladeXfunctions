@@ -193,7 +193,7 @@
             "name": "Data Preparation",
             "script": {
               "type": "javascript",
-              "code": "const arrayData = {{workflowparams:arrayData}}\nconst currentIndexRaw = {{node:get_cache_node_OMu4rhrM.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// table_putaway_item is a tree: an item bundle is one row with its items under\n// `children`. The bundle row holds no stock of its own, so the quantity that\n// makes a putaway worth completing can sit on an item under it — walk both.\nconst flattenPutawayRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// Validation: For saveAs \"Completed\", at least one item must have putaway_qty > 0\nif (saveAs === \"Completed\") {\n  const putawayRows = flattenPutawayRows(data.table_putaway_item);\n  const hasPutawayQty = putawayRows.length > 0 &&\n    putawayRows.some(item => item.putaway_qty > 0);\n\n  if (!hasPutawayQty) {\n    invalidMessage = \"Cannot complete putaway. At least one item must have putaway quantity greater than 0.\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\")\n    ) {\n      data.to_id = \"draft\";\n    }\n  } else {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\" ||\n        data.to_status === \"Draft\")\n    ) {\n      data.to_id = \"issued\";\n    }\n  }\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\n// Interpolated into sql_node_LockGate, and arrayData is caller-supplied.\n// Putaway ids are snowflake bigints, so digits-only is exact, not a guess;\n// \"0\" matches no row, which fails closed as \"under processing\".\nconst lockId = /^[0-9]+$/.test(String(data.id || \"\")) ? String(data.id) : \"0\";\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  lockId,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}"
+              "code": "const arrayData = {{workflowparams:arrayData}}\nconst currentIndexRaw = {{node:get_cache_node_OMu4rhrM.data}}\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = {{workflowparams:saveAs}}\nconst pageStatus = {{workflowparams:pageStatus}}\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// table_putaway_item is a tree: an item bundle is one row with its items under\n// `children`. The bundle row holds no stock of its own, so the quantity that\n// makes a putaway worth completing can sit on an item under it — walk both.\nconst flattenPutawayRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// Validation: For saveAs \"Completed\", at least one item must have putaway_qty > 0\nif (saveAs === \"Completed\") {\n  const putawayRows = flattenPutawayRows(data.table_putaway_item);\n  const hasPutawayQty = putawayRows.length > 0 &&\n    putawayRows.some(item => item.putaway_qty > 0);\n\n  if (!hasPutawayQty) {\n    invalidMessage = \"Cannot complete putaway. At least one item must have putaway quantity greater than 0.\";\n  }\n}\n\n// A Completed save of more than 500 lines is beyond this save (one stock call per line); refused before anything is written\nif (saveAs === \"Completed\" && invalidMessage === \"\") {\n  const lineCount = flattenPutawayRows(data.table_putaway_item).length;\n  if (lineCount > 500) {\n    invalidMessage = \"This putaway has \" + lineCount + \" lines. Completing more than 500 lines at once is not supported here.\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\")\n    ) {\n      data.to_id = \"draft\";\n    }\n  } else {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\" ||\n        data.to_status === \"Draft\")\n    ) {\n      data.to_id = \"issued\";\n    }\n  }\n}\n\nlet updatedStatus = {{workflowparams:saveAs}}\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\n// Interpolated into sql_node_LockGate, and arrayData is caller-supplied.\n// Putaway ids are snowflake bigints, so digits-only is exact, not a guess;\n// \"0\" matches no row, which fails closed as \"under processing\".\nconst lockId = /^[0-9]+$/.test(String(data.id || \"\")) ? String(data.id) : \"0\";\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  lockId,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}"
             },
             "response_json": [
               {
@@ -381,7 +381,7 @@
                     "name": "Get Updated Putaway Data",
                     "script": {
                       "type": "sql",
-                      "code": "SELECT id,\n       to_status,\n       COALESCE(is_processing, 0) AS is_processing,\n       TIMESTAMPDIFF(\n           SECOND,\n           update_time,\n           CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')\n       ) AS lock_age_sec\nFROM transfer_order_putaway\nWHERE id = '{{node:code_node_kku8SAT9.data.lockId}}'\n  AND is_deleted = 0\nLIMIT 1"
+                      "code": "SELECT p.id,\n       p.to_status,\n       COALESCE(p.is_processing, 0) AS is_processing,\n       TIMESTAMPDIFF(\n           SECOND,\n           p.update_time,\n           CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')\n       ) AS lock_age_sec,\n       (SELECT COUNT(*)\n          FROM gd_async_job j\n         WHERE j.tenant_id = p.tenant_id\n           AND j.command = 'COMPLETE_PUTAWAY'\n           AND j.causation_id = CAST(p.id AS CHAR) COLLATE utf8mb4_general_ci\n           AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n           AND j.is_deleted = 0) AS open_jobs,\n       (SELECT g.gr_status\n          FROM goods_receiving g\n         WHERE g.id = CAST(p.gr_no AS UNSIGNED)\n           AND g.is_deleted = 0\n         LIMIT 1) AS gr_status\nFROM transfer_order_putaway p\nWHERE p.id = {{node:code_node_kku8SAT9.data.lockId}}\n  AND p.is_deleted = 0\nLIMIT 1"
                     },
                     "response_json": [
                       {
@@ -419,6 +419,24 @@
                         "bsonType": "int",
                         "isExpand": false,
                         "children": []
+                      },
+                      {
+                        "key": "plg1jobs",
+                        "name": "open_jobs",
+                        "title": "open_jobs",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "plg2grst",
+                        "name": "gr_status",
+                        "title": "gr_status",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
                       }
                     ]
                   },
@@ -437,7 +455,7 @@
                     "name": "Lock Decision",
                     "script": {
                       "type": "javascript",
-                      "code": "const rows = {{node:sql_node_LockGate.data}} || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst row = list[0];\n\n// A crashed run can never release the mutex in-flow, so a lock this old is\n// treated as abandoned and taken over.\nconst STALE_SEC = 900;\n\n// 0 = free, take the lock   1 = held by a live run   2 = already Completed\nlet lockState = 1;\nlet staleRecovered = 0;\n\nif (row && row.id) {\n  if (row.to_status === \"Completed\") {\n    lockState = 2;\n  } else if (Number(row.is_processing) === 1) {\n    const age = Number(row.lock_age_sec);\n    // A negative or unparseable age means the clock assumption is off; stay\n    // locked rather than risk stealing a lock from a run still in progress.\n    if (isFinite(age) && age > STALE_SEC) {\n      lockState = 0;\n      staleRecovered = 1;\n    }\n  } else {\n    lockState = 0;\n  }\n}\n\nreturn {\n  lockState,\n  staleRecovered\n}\n"
+                      "code": "const rows = {{node:sql_node_LockGate.data}} || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst row = list[0];\n\n// A crashed run can never release the mutex in-flow, so a lock this old is\n// treated as abandoned and taken over.\nconst STALE_SEC = 900;\n\n// 0 = free, take the lock   1 = held by a live run   2 = already Completed\nlet lockState = 1;\nlet staleRecovered = 0;\n\nif (row && row.id) {\n  if (row.to_status === \"Completed\") {\n    lockState = 2;\n  } else if (Number(row.is_processing) === 1) {\n    const age = Number(row.lock_age_sec);\n    // A negative or unparseable age means the clock assumption is off; stay\n    // locked rather than risk stealing a lock from a run still in progress.\n    if (isFinite(age) && age > STALE_SEC) {\n      lockState = 0;\n      staleRecovered = 1;\n    }\n  } else {\n    lockState = 0;\n  }\n}\n\n// A background job of this putaway (Putaway V2) or its Goods Receiving still being saved in the background holds it:\n// the same answer as a live lock, so the mobile app keeps retrying\nif (row && row.id && lockState !== 2 && (Number(row.open_jobs) > 0 || String(row.gr_status || \"\") === \"Processing\")) {\n  lockState = 1;\n  staleRecovered = 0;\n}\n\nreturn {\n  lockState,\n  staleRecovered\n}\n"
                     },
                     "response_json": [
                       {
@@ -1247,7 +1265,7 @@
                       }
                     },
                     "condition": {},
-                    "limit": 100,
+                    "limit": 1000,
                     "title": "Get Table Putaway",
                     "isValidator": true,
                     "nodeName": "Get Table Putaway",
@@ -1473,14 +1491,6 @@
                                   "operator": "",
                                   "valueType": "field",
                                   "value": "{{node:code_node_pcHu3XnW.data.data.table_putaway_item}}",
-                                  "valueLabel": "",
-                                  "propLabel": "Putaway Items"
-                                },
-                                {
-                                  "prop": "table_putaway_records",
-                                  "operator": "",
-                                  "valueType": "field",
-                                  "value": "{{node:code_node_pcHu3XnW.data.data.table_putaway_records}}",
                                   "valueLabel": "",
                                   "propLabel": "Putaway Items"
                                 },

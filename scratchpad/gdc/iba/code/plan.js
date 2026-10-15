@@ -47,13 +47,34 @@ const bulkPlan = function bulkPlan(inp) {
   const fifo = num(inp.fifoLayers, ["fifo_available_quantity", "fifo_cost_price"]).map((r) => Object.assign(r, { batch_id: s(r.batch_id) === "0" ? null : r.batch_id }));
   const wa = num(inp.waRows, ["wa_quantity", "wa_cost_price"]).map((r) => Object.assign(r, { batch_id: s(r.batch_id) === "0" ? null : r.batch_id }));
 
+  // the tenant's number rules as configured now (defaults "Inventory Price" 4 / "Inventory Qty" 3, customisable per tenant
+  // and per column): decimals, precision_rule (1 half-up, 2 toward zero, 3 away from zero), store_raw_value = no rounding
+  const TABLE_OF = { "1902698977724317697": "item_balance", "1902718803880558594": "item_batch_balance", "1902947165008400386": "fifo_costing_history",
+    "1902948453171433474": "wa_costing_method", "1902259348776800257": "inventory_movement", "1902719754154655746": "batch" };
+  const precision = { price: null, qty: null, columns: {} };
+  let precisionProblem = "";
+  for (const r of arr(inp.precision)) {
+    const mode = Number(r.precision_rule);
+    const dp = Number(r.decimal_places);
+    if ([1, 2, 3].indexOf(mode) < 0 || !(dp >= 0)) {
+      precisionProblem = precisionProblem || "number rule " + s(r.rule_key || r.field_name) + ": precision_rule " + s(r.precision_rule) + ", decimals " + s(r.decimal_places);
+      continue;
+    }
+    const rule = Number(r.store_raw_value) === 1 || dp >= 8 ? { dp: null, mode: mode } : { dp: dp, mode: mode };
+    if (s(r.scope_type) === "2") {
+      if (TABLE_OF[s(r.table_id)] && s(r.field_name)) precision.columns[TABLE_OF[s(r.table_id)] + "." + s(r.field_name)] = rule;
+    } else if (s(r.rule_key) === "Inventory Price") precision.price = rule;
+    else if (s(r.rule_key) === "Inventory Qty") precision.qty = rule;
+  }
+
   let plan;
   let fromIntent = false;
   if (route0 === "RESUME") {
     plan = JSON.parse(s(inp.intentText));
     fromIntent = true;
   } else {
-    plan = planBulk({ operationKey: op, items, itemBalances: bal, batchBalances: batch, fifoLayers: fifo, waRows: wa, movements, nowText: s(inp.dbNow) });
+    if (precisionProblem) return { route: "FAIL", code: "400", result_code: "UNSUPPORTED_PRECISION", result_message: "The tenant's " + precisionProblem + " is not a rounding the platform documents" };
+    plan = planBulk({ operationKey: op, items, itemBalances: bal, batchBalances: batch, fifoLayers: fifo, waRows: wa, movements, nowText: s(inp.dbNow), precision: precision });
     if (!plan.ok) {
       return { route: "FAIL", code: "400", result_code: plan.failure.code, result_message: plan.failure.message + " (movement " + plan.failure.movement_key + ")", failure: plan.failure, results: plan.results };
     }
@@ -207,14 +228,14 @@ const bulkPlan = function bulkPlan(inp) {
   function naturalKey(t, c) {
     if (t === "item_balance") return [c.material_id, c.location_id, c.plant_id].join("|");
     if (t === "item_batch_balance") return [c.material_id, c.location_id, c.batch_id, c.plant_id].join("|");
-    if (t === "fifo") return [c.material_id, c.plant_id, c.batch_id, c.fifo_sequence].join("|");
+    if (t === "fifo") return [c.material_id, c.plant_id, c.batch_id, String(parseInt(c.fifo_sequence || 0, 10))].join("|");
     return [c.material_id, c.plant_id, c.batch_id].join("|");
   }
   function keyFields(t, c) {
     const k = { material_id: s(c.material_id), plant_id: s(c.plant_id) };
     if (t === "item_balance" || t === "item_batch_balance") k.location_id = s(c.location_id);
     if (t !== "item_balance") k.batch_id = c.batch_id === undefined || c.batch_id === null ? null : s(c.batch_id);
-    if (t === "fifo") k.fifo_sequence = s(c.fifo_sequence);
+    if (t === "fifo") k.fifo_sequence = String(parseInt(c.fifo_sequence || 0, 10));
     return k;
   }
   function valueFields(t, c) {
@@ -262,4 +283,5 @@ return bulkPlan({
   fifoLayers: [{{node:sql_node_IBfifo.data}}][0],
   waRows: [{{node:sql_node_IBwa.data}}][0],
   existingMovements: [{{node:sql_node_IBmv.data}}][0],
+  precision: [{{node:sql_node_IBprec.data}}][0],
 });

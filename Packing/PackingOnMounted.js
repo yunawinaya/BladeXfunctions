@@ -170,6 +170,19 @@ const pkgV2ShowJobState = async () => {
   if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PACKING"].includes(job.job_status)) {
     this.hide(["button_save_as_draft", "button_created", "button_completed"]);
     this.$message.warning("This Packing is being completed in the background (" + (job.result_message || job.job_status) + "). Reopen it in a moment.");
+    // no scheduled worker: every open starts it again (a run in progress holds the job's lease, so a second start does nothing)
+    try {
+      this.runWorkflow(
+        "2109924593737240578",
+        { job_id: String(job.job_id) },
+        (res) => {
+          if (((res && res.data) || {}).job_status === "COMPLETED") this.$message.success("The Packing was completed in the background. Reopen it to see it.");
+        },
+        (err) => console.error("Packing V2: worker start failed", err),
+      );
+    } catch (e) {
+      console.error("Packing V2: worker could not be started", e);
+    }
     return;
   }
   const seenKey = "pkgv2_seen_" + job.job_id;

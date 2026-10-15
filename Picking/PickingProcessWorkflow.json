@@ -2918,7 +2918,7 @@
                 "name": "Size Guard: line count per GD",
                 "script": {
                   "type": "sql",
-                  "code": "SELECT CAST(goods_delivery_id AS CHAR) AS gd_id,\n       COUNT(*) AS line_count\nFROM goods_delivery_fwii8mvb_sub\nWHERE goods_delivery_id IN ({{node:code_node_SizeGuardPrep.data.gdIdCsv}})\n  AND is_deleted = 0\nGROUP BY goods_delivery_id"
+                  "code": "SELECT CAST(goods_delivery_id AS CHAR) AS gd_id,\n       COUNT(*) AS line_count,\n       (SELECT COALESCE(NULLIF(g.delivery_no, ''), CAST(g.id AS CHAR))\n          FROM goods_delivery g\n         WHERE g.tenant_id = '{{system:tenantId}}'\n           AND g.id = goods_delivery_id\n           AND (g.gd_status = 'Processing'\n                OR EXISTS (SELECT 1\n                             FROM gd_async_job j\n                            WHERE j.tenant_id = g.tenant_id\n                              AND j.is_deleted = 0\n                              AND j.command IN ('EDIT_GD', 'COMPLETE_GD', 'COMPLETE_PACKING')\n                              AND j.correlation_id = CONCAT('GD|', g.id) COLLATE utf8mb4_general_ci\n                              AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')))) AS busy_no\nFROM goods_delivery_fwii8mvb_sub\nWHERE goods_delivery_id IN ({{node:code_node_SizeGuardPrep.data.gdIdCsv}})\n  AND is_deleted = 0\nGROUP BY goods_delivery_id"
                 },
                 "response_json": [
                   {
@@ -2936,6 +2936,15 @@
                     "title": "line_count",
                     "description": "",
                     "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "busyno01",
+                    "name": "busy_no",
+                    "title": "A GD being saved in the background",
+                    "description": "",
+                    "bsonType": "string",
                     "isExpand": false,
                     "children": []
                   }
@@ -2956,7 +2965,7 @@
                 "name": "Size Guard: refuse a full GD re-save above 500 lines (nothing written yet)",
                 "script": {
                   "type": "javascript",
-                  "code": "// GOODS_DELIVERY's full re-save took the dev server down on a 2,000-line GD (2026-10-09). The cases that still\n// need it (force complete, loading bay, a bin/batch move) are refused on a big GD before anything is written.\nconst MAX_SYNC_GD_LINES = 500;\nconst raw = {{node:sql_node_GdLineCount.data}};\nconst rows = Array.isArray(raw) ? raw : raw ? [raw] : [];\nconst lineCounts = {};\nlet maxLines = 0;\nfor (const r of rows) {\n  const n = Number(r.line_count) || 0;\n  lineCounts[String(r.gd_id)] = n;\n  if (n > maxLines) maxLines = n;\n}\n\nconst setupRaw = {{node:get_node_Uj1uV9PU.data.data}};\nconst setup = (Array.isArray(setupRaw) ? setupRaw[0] : setupRaw) || {};\nconst isForceComplete = Number({{workflowparams:isForceComplete}} || 0) === 1;\nconst isLoadingBay = Number(setup.is_loading_bay || 0) === 1;\nconst anyTempChanged = Number({{node:code_node_iES7iMKA.data.anyTempChanged}} || 0) === 1;\nconst needFullSave = isForceComplete || isLoadingBay || anyTempChanged ? 1 : 0;\n\nif (needFullSave === 1 && maxLines > MAX_SYNC_GD_LINES) {\n  const what = isForceComplete\n    ? \"Force Complete\"\n    : isLoadingBay\n      ? \"A loading bay move\"\n      : \"Moving picked stock to another bin or batch\";\n  return {\n    code: \"400\",\n    message: what + \" is not available yet for a Goods Delivery above \" + MAX_SYNC_GD_LINES +\n      \" lines (this one has \" + maxLines + \"). Nothing was saved.\",\n    lineCounts,\n    needFullSave,\n    maxLines,\n  };\n}\n\nreturn { code: \"200\", message: \"\", lineCounts, needFullSave, maxLines };\n"
+                  "code": "// GOODS_DELIVERY's full re-save took the dev server down on a 2,000-line GD (2026-10-09). The cases that still\n// need it (force complete, loading bay, a bin/batch move) are refused on a big GD before anything is written.\nconst MAX_SYNC_GD_LINES = 500;\nconst raw = {{node:sql_node_GdLineCount.data}};\nconst rows = Array.isArray(raw) ? raw : raw ? [raw] : [];\nconst lineCounts = {};\nlet maxLines = 0;\nfor (const r of rows) {\n  const n = Number(r.line_count) || 0;\n  lineCounts[String(r.gd_id)] = n;\n  if (n > maxLines) maxLines = n;\n}\n\nconst setupRaw = {{node:get_node_Uj1uV9PU.data.data}};\nconst setup = (Array.isArray(setupRaw) ? setupRaw[0] : setupRaw) || {};\nconst isForceComplete = Number({{workflowparams:isForceComplete}} || 0) === 1;\nconst isLoadingBay = Number(setup.is_loading_bay || 0) === 1;\nconst anyTempChanged = Number({{node:code_node_iES7iMKA.data.anyTempChanged}} || 0) === 1;\nconst needFullSave = isForceComplete || isLoadingBay || anyTempChanged ? 1 : 0;\n\n// A Goods Delivery on this Picking is being saved in the background (GD Edit V2 / GD Completed V2): nothing is written.\nconst busy = rows.map((r) => String(r.busy_no || \"\")).filter((x) => x);\nif (busy.length > 0) {\n  return { code: \"400\", message: \"Goods Delivery \" + busy[0] + \" is being saved in the background. Wait a moment, then try again.\", lineCounts, needFullSave, maxLines };\n}\n\nif (needFullSave === 1 && maxLines > MAX_SYNC_GD_LINES) {\n  const what = isForceComplete\n    ? \"Force Complete\"\n    : isLoadingBay\n      ? \"A loading bay move\"\n      : \"Moving picked stock to another bin or batch\";\n  return {\n    code: \"400\",\n    message: what + \" is not available yet for a Goods Delivery above \" + MAX_SYNC_GD_LINES +\n      \" lines (this one has \" + maxLines + \"). Nothing was saved.\",\n    lineCounts,\n    needFullSave,\n    maxLines,\n  };\n}\n\nreturn { code: \"200\", message: \"\", lineCounts, needFullSave, maxLines };\n"
                 },
                 "response_json": [
                   {

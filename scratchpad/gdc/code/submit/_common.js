@@ -14,3 +14,10 @@ const notEligible = (reason, lineCount, unsaved) =>
         : "This delivery has " + lineCount + " lines and cannot be completed in the background (" + reason + "); the classic completion handles at most " + MAX_OLD_PATH_LINES + " lines.",
       { reason: reason })
     : answer("NOT_ELIGIBLE", "300", reason, { reason: reason });
+const dbAddSeconds = function dbAddSeconds(text, seconds) {
+  const m = String(text || "").match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return "";
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);
+  const p = (n) => (n < 10 ? "0" : "") + n;
+  return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + ":" + p(d.getUTCSeconds());
+};

@@ -15,6 +15,9 @@ Catches the bug classes that the platform fails silently on:
                the platform emits {} for it and downstream reads null.
   UNUSED       a node whose output nothing references and which has no side effect
                (i.e. not a write / return / cache-set / loop / control node).
+  SQLSTART     a sql-node whose statement does not begin with SELECT / WITH (e.g. a parenthesized
+               UNION), or holds the keyword SET (e.g. CHARACTER SET) -> the platform refuses it at run time
+               ("Only SELECT/WITH statements are allowed" / "SQL contains a disallowed construct: SET").
 
 Usage:
     python3 scratchpad/validate.py <workflow.json> [<workflow.json> ...]
@@ -308,6 +311,14 @@ def check(path, only=None):
                     ("FORWARD", nid, f"references {ref!r} which executes later -> null")
                 )
 
+        if info["type"] == "sql-node":
+            sql = ((node.get("data") or {}).get("script") or {}).get("code") or ""
+            head = re.sub(r"^(\s|--[^\n]*\n|/\*.*?\*/)*", "", sql, flags=re.S)
+            if not re.match(r"(?i)(select|with)\b", head):
+                findings.append(("SQLSTART", nid, f"the platform runs only SELECT / WITH statements; this starts with {head[:20]!r}"))
+            if re.search(r"(?i)\bset\b", sql):
+                findings.append(("SQLSTART", nid, "the platform refuses the keyword SET anywhere (e.g. CHARACTER SET) - use CONVERT(x USING utf8mb4)"))
+
         if info["type"] == "code-node":
             script = ((node.get("data") or {}).get("script") or {}).get("code") or ""
             keys = returned_keys(script)
@@ -336,7 +347,7 @@ def check(path, only=None):
     print(f"\n=== {path}  ({len(index)} nodes)")
     if not findings:
         print("  clean")
-    order = ["MISSING", "FORWARD", "DIVERGENT", "UNDECLARED", "UNUSED", "CONDITIONAL"]
+    order = ["SQLSTART", "MISSING", "FORWARD", "DIVERGENT", "UNDECLARED", "UNUSED", "CONDITIONAL"]
     findings.sort(key=lambda f: (order.index(f[0]) if f[0] in order else 99, f[1]))
     for kind, nid, message in findings:
         print(f"  {kind:<12} {nid:<28} {message}")

@@ -86,6 +86,183 @@
       "blocks": []
     },
     {
+      "id": "code_node_GdBusyIds",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "GD Busy: the GDs of every Picking in this call",
+        "isValidator": true,
+        "nodeName": "GD Busy: the GDs of every Picking in this call",
+        "name": "GD Busy: the GDs of every Picking in this call",
+        "script": {
+          "type": "javascript",
+          "code": "// The GDs of every Picking in this call (digits only: interpolated into sql_node_GdBusy).\nconst items = {{workflowparams:arrayData}};\nconst ids = new Set();\nfor (const item of Array.isArray(items) ? items : []) {\n  for (const id of Array.isArray(item && item.gd_no) ? item.gd_no : []) {\n    if (/^[0-9]{1,20}$/.test(String(id))) ids.add(String(id));\n  }\n}\nreturn { gdIdSql: ids.size > 0 ? [...ids].join(\",\") : \"0\" };\n"
+        },
+        "response_json": [
+          {
+            "key": "gbids001",
+            "name": "gdIdSql",
+            "title": "GD ids (digits, comma-separated)",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_GdBusy",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "GD Busy: a GD being saved in the background (Processing, or an open edit / completion job)",
+        "isValidator": true,
+        "nodeName": "GD Busy: a GD being saved in the background (Processing, or an open edit / completion job)",
+        "name": "GD Busy: a GD being saved in the background (Processing, or an open edit / completion job)",
+        "script": {
+          "type": "sql",
+          "code": "SELECT COALESCE(NULLIF(g.delivery_no, ''), CAST(g.id AS CHAR)) AS gd_no\n  FROM goods_delivery g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id IN ({{node:code_node_GdBusyIds.data.gdIdSql}})\n   AND g.is_deleted = 0\n   AND (g.gd_status = 'Processing'\n                OR EXISTS (SELECT 1\n                             FROM gd_async_job j\n                            WHERE j.tenant_id = g.tenant_id\n                              AND j.is_deleted = 0\n                              AND j.command IN ('EDIT_GD', 'COMPLETE_GD', 'COMPLETE_PACKING')\n                              AND j.correlation_id = CONCAT('GD|', g.id) COLLATE utf8mb4_general_ci\n                              AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')))\n LIMIT 1"
+        },
+        "response_json": [
+          {
+            "key": "gbsql001",
+            "name": "gd_no",
+            "title": "GD No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_GdBusy",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "GD Busy: verdict",
+        "isValidator": true,
+        "nodeName": "GD Busy: verdict",
+        "name": "GD Busy: verdict",
+        "script": {
+          "type": "javascript",
+          "code": "// A Goods Delivery these Pickings name is being saved in the background (GD Edit V2 / GD Completed V2): refuse them all.\nconst raw = {{node:sql_node_GdBusy.data}};\nconst row = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter((r) => r && r.gd_no)[0];\nreturn row\n  ? { busy: 1, message: \"Goods Delivery \" + row.gd_no + \" is being saved in the background. Wait a moment, then try again.\" }\n  : { busy: 0, message: \"\" };\n"
+        },
+        "response_json": [
+          {
+            "key": "gbbusy01",
+            "name": "busy",
+            "title": "Busy",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gbmsg001",
+            "name": "message",
+            "title": "Message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GdBusy",
+      "type": "if",
+      "data": {
+        "title": "IF a GD is being saved in the background: answer 400, nothing written",
+        "isValidator": true,
+        "nodeName": "IF a GD is being saved in the background: answer 400, nothing written",
+        "name": "IF a GD is being saved in the background: answer 400, nothing written",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1791950000002,
+              "parentId": 1791950000001,
+              "isTop": true,
+              "prop": "node.code_node_GdBusy.data.busy",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "busy",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_GdBusyT",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_GdBusy",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_GdBusy.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_GdBusyF",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "code_node_uPSc7Syb",
       "type": "code-node",
       "data": {

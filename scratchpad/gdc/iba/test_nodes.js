@@ -203,6 +203,33 @@ t("RESUME after a run died mid-way: only what is left is written, then DONE", ()
   assert.strictEqual(p.mv.length, 3);
 });
 
+t("a FIFO layer an ADD creates reads back as '3.0' (a number in the varchar column): read-back DONE, resume adds no second layer", () => {
+  const op = "GRC|9100";
+  const add = [mv("A1", "501", "901", 2, { direction: "ADD", inventory_category: "Unrestricted", unit_price: 5, transaction_type: "GRN" })];
+  const reads = reads0();
+  const { ctx } = chain({ operation_key: op, mode: "APPLY", organization_id: ORG, movements: add }, [], reads, []);
+  const p = ctx.nodes.code_node_IBplan;
+  assert.strictEqual(p.route, "WRITE", p.result_message);
+  const created = p.ffNew || [];
+  assert.strictEqual(created.length, 1);
+  assert.strictEqual(created[0].fifo_sequence, "3");
+  const w = applyWrites(ctx, reads, { ff: 0 });
+  w.tables.fifo.push(Object.assign({ id: "3999" }, created[0], { fifo_sequence: "3.0", batch_id: "0" }));
+  ctx.nodes.sql_node_IBbalB = w.tables.bal;
+  ctx.nodes.sql_node_IBbatchB = w.tables.batch;
+  ctx.nodes.sql_node_IBfifoB = w.tables.fifo;
+  ctx.nodes.sql_node_IBwaB = w.tables.wa;
+  ctx.nodes.sql_node_IBmvB = w.movements.map((m) => ({ operation_effect_key: m.operation_effect_key }));
+  ctx.nodes.code_node_IBverify = run("verify.js", ctx);
+  assert.strictEqual(ctx.nodes.code_node_IBverify.route, "DONE", ctx.nodes.code_node_IBverify.problems);
+  const intent = p.intentRows.map((r) => Object.assign({ db_now: "x" }, r));
+  const lockRows = ["ITEM|501|901"].map((k, i) => ({ id: String(6100 + i), lock_key: k, free_token: 0, owner_operation_id: op, is_deleted: 0, lock_version: 1, db_now: "x" }));
+  const again = chain({ operation_key: op, mode: "APPLY", organization_id: ORG, movements: add }, intent, w.tables, lockRows,
+    w.movements.map((m) => ({ operation_effect_key: m.operation_effect_key }))).ctx.nodes.code_node_IBplan;
+  assert.notStrictEqual(again.route, "REVIEW", again.result_message);
+  assert.strictEqual((again.ffNew || []).length, 0);
+});
+
 t("RESUME refuses a row someone else changed under the plan", () => {
   const intent = fresh.ctx.nodes.code_node_IBplan.intentRows.map((r) => Object.assign({ db_now: "x" }, r));
   const reads = reads0();

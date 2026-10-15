@@ -1,0 +1,69 @@
+{
+ "database_id": "",
+ "sql": "",
+ "params": {},
+ "title": "Get Updated Putaway Data",
+ "isValidator": true,
+ "nodeName": "Get Updated Putaway Data",
+ "name": "Get Updated Putaway Data",
+ "script": {
+  "type": "sql",
+  "code": "SELECT p.id,\n       p.to_status,\n       COALESCE(p.is_processing, 0) AS is_processing,\n       TIMESTAMPDIFF(\n           SECOND,\n           p.update_time,\n           CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')\n       ) AS lock_age_sec,\n       (SELECT COUNT(*)\n          FROM gd_async_job j\n         WHERE j.tenant_id = p.tenant_id\n           AND j.command = 'COMPLETE_PUTAWAY'\n           AND j.causation_id = CAST(p.id AS CHAR) COLLATE utf8mb4_general_ci\n           AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n           AND j.is_deleted = 0) AS open_jobs,\n       (SELECT g.gr_status\n          FROM goods_receiving g\n         WHERE g.id = CAST(p.gr_no AS UNSIGNED)\n           AND g.is_deleted = 0\n         LIMIT 1) AS gr_status\nFROM transfer_order_putaway p\nWHERE p.id = {{node:code_node_kku8SAT9.data.lockId}}\n  AND p.is_deleted = 0\nLIMIT 1"
+ },
+ "response_json": [
+  {
+   "key": "lg1id000",
+   "name": "id",
+   "title": "Picking ID",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "lg2sts00",
+   "name": "to_status",
+   "title": "Picking Status",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "lg3proc0",
+   "name": "is_processing",
+   "title": "Is Processing",
+   "description": "",
+   "bsonType": "int",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "lg4age00",
+   "name": "lock_age_sec",
+   "title": "Lock Age Seconds",
+   "description": "",
+   "bsonType": "int",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "plg1jobs",
+   "name": "open_jobs",
+   "title": "open_jobs",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "plg2grst",
+   "name": "gr_status",
+   "title": "gr_status",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ]
+}

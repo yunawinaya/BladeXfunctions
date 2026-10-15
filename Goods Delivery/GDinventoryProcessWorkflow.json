@@ -4404,7 +4404,7 @@
                 "name": "Picking Record Preparation",
                 "script": {
                   "type": "javascript",
-                  "code": "const tableData = {{workflowparams:tableData}};\nconst saveAs = {{workflowparams:saveAs}};\n\n// newStamp = qty this save wants to claim (Created) or deliver (Completed)\n// priorStamp = qty this same GD previously stamped on the picking record\n//              (from prev_temp_qty_data, attached by code_node_Pgtw6zFL\n//              when editing a non-Draft GD).\nconst newStampMap = new Map();\nconst priorStampMap = new Map();\nconst pickingIdsSet = new Set();\n\nconst aggregateStamp = (jsonString, targetMap) => {\n  if (!jsonString) return;\n  try {\n    const parsed = JSON.parse(jsonString);\n    for (const temp of parsed) {\n      if (!temp.picking_record_id) continue;\n      const qty = parseFloat(temp.gd_quantity || temp.to_quantity || 0);\n      targetMap.set(\n        temp.picking_record_id,\n        (targetMap.get(temp.picking_record_id) || 0) + qty\n      );\n    }\n  } catch (e) {\n    console.error(\"Error parsing temp_qty_data:\", e);\n  }\n};\n\nfor (const item of tableData) {\n  if (item.line_to_id) {\n    pickingIdsSet.add(item.line_to_id);\n  }\n  // Skip building a new stamp on Cancelled (we only release the prior stamp).\n  if (saveAs !== \"Cancelled\") {\n    aggregateStamp(item.temp_qty_data, newStampMap);\n  }\n  aggregateStamp(item.prev_temp_qty_data, priorStampMap);\n}\n\nconst pickingRecordUpdates = [];\nconst touchedIds = new Set([...newStampMap.keys(), ...priorStampMap.keys()]);\nfor (const id of touchedIds) {\n  pickingRecordUpdates.push({\n    id: id,\n    qty: newStampMap.get(id) || 0,\n    priorQty: priorStampMap.get(id) || 0,\n  });\n}\n\nconst pickingIds = Array.from(pickingIdsSet);\n\nreturn {\n  pickingRecordUpdates: pickingRecordUpdates,\n  pickingIds: pickingIds,\n};\n"
+                  "code": "const tableData = {{workflowparams:tableData}};\nconst saveAs = {{workflowparams:saveAs}};\n\n// newStamp = qty this save wants to claim (Created) or deliver (Completed)\n// priorStamp = qty this same GD previously stamped on the picking record\n//              (from prev_temp_qty_data, attached by code_node_Pgtw6zFL\n//              when editing a non-Draft GD).\nconst newStampMap = new Map();\nconst priorStampMap = new Map();\nconst pickingIdsSet = new Set();\n\nconst aggregateStamp = (jsonString, targetMap) => {\n  if (!jsonString) return;\n  try {\n    const parsed = JSON.parse(jsonString);\n    for (const temp of parsed) {\n      if (!temp.picking_record_id) continue;\n      const qty = parseFloat(temp.gd_quantity || temp.to_quantity || 0);\n      targetMap.set(\n        temp.picking_record_id,\n        (targetMap.get(temp.picking_record_id) || 0) + qty\n      );\n    }\n  } catch (e) {\n    console.error(\"Error parsing temp_qty_data:\", e);\n  }\n};\n\nfor (const item of tableData) {\n  if (item.line_to_id) {\n    pickingIdsSet.add(item.line_to_id);\n  }\n  // Skip building a new stamp on Cancelled (we only release the prior stamp).\n  if (saveAs !== \"Cancelled\") {\n    aggregateStamp(item.temp_qty_data, newStampMap);\n  }\n  aggregateStamp(item.prev_temp_qty_data, priorStampMap);\n}\n\nconst pickingRecordUpdates = [];\nconst touchedIds = new Set([...newStampMap.keys(), ...priorStampMap.keys()]);\nfor (const id of touchedIds) {\n  pickingRecordUpdates.push({\n    id: id,\n    qty: newStampMap.get(id) || 0,\n    priorQty: priorStampMap.get(id) || 0,\n  });\n}\n\nconst pickingIds = Array.from(pickingIdsSet);\nconst recordIds = Array.from(touchedIds);\n\nreturn {\n  pickingRecordUpdates: pickingRecordUpdates,\n  pickingIds: pickingIds,\n  recordIds: recordIds.length > 0 ? recordIds : [\"0\"],\n};\n"
                 },
                 "response_json": [
                   {
@@ -4446,6 +4446,101 @@
                         "children": []
                       }
                     ]
+                  },
+                  {
+                    "key": "ob4r9c2k",
+                    "name": "recordIds",
+                    "title": "recordIds",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "ob8t1v6m",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "search_node_PkRec8Hd",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Picking Items(Transfer Order Picking):Table:1939915130372202497",
+                  "rules": {
+                    "collectionId": "1939915130372202497",
+                    "list": [
+                      {
+                        "id": 1779960000101,
+                        "parentId": 1779960000100,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_OBz5tEws.data.recordIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 500,
+                "title": "Get Stamped Picking Records",
+                "isValidator": true,
+                "nodeName": "Get Stamped Picking Records",
+                "name": "Get Stamped Picking Records"
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PkHdrIds",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Picking Header IDs",
+                "isValidator": true,
+                "nodeName": "Picking Header IDs",
+                "name": "Picking Header IDs",
+                "script": {
+                  "type": "javascript",
+                  "code": "const lineToIds = {{node:code_node_OBz5tEws.data.pickingIds}} || [];\nconst records = {{node:search_node_PkRec8Hd.data.data}} || [];\n\n// A line's picks can sit in Pickings other than its line_to_id (one PP line picked in several Pickings).\nconst ids = new Set(lineToIds.map(String));\nfor (const r of records) {\n  if (r.transfer_order_id) ids.add(String(r.transfer_order_id));\n}\n\nconst pickingIds = Array.from(ids);\n\nreturn {\n  pickingIds: pickingIds.length > 0 ? pickingIds : [\"0\"],\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "pk7h2d9q",
+                    "name": "pickingIds",
+                    "title": "pickingIds",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "pk3m8x1w",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
                   }
                 ]
               },
@@ -4467,7 +4562,7 @@
                         "prop": "id",
                         "operator": "in",
                         "valueType": "field",
-                        "value": "{{node:code_node_OBz5tEws.data.pickingIds}}",
+                        "value": "{{node:code_node_PkHdrIds.data.pickingIds}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "主键ID",
@@ -4499,7 +4594,7 @@
                 "name": "Calculate Delivery",
                 "script": {
                   "type": "javascript",
-                  "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst pickingRecordUpdates = {{node:code_node_OBz5tEws.data.pickingRecordUpdates}};\nconst pickings = {{node:search_node_68C0TVzK.data.data}};\nconst saveAs = {{workflowparams:saveAs}};\nconst isGDPP = {{workflowparams:isGDPP}};\n\n// newStamp = what this save wants to write on the picking record\n//            (delivered_qty add for Completed; reserved_qty replace for Created)\n// priorStamp = what this same GD had previously stamped (reserved) on the\n//              picking record, recovered from prev_temp_qty_data. Used to net\n//              out the reservation on Created->Completed and Created->Cancelled.\nconst newStampMap = new Map();\nconst priorStampMap = new Map();\nfor (const u of pickingRecordUpdates) {\n  newStampMap.set(u.id, parseFloat(u.qty) || 0);\n  priorStampMap.set(u.id, parseFloat(u.priorQty) || 0);\n}\n\nconst isCreatedSave = (isGDPP === 1 && saveAs === \"Created\");\nconst isCompletedSave = (isGDPP === 1 && saveAs === \"Completed\");\nconst isCancelledSave = (isGDPP === 1 && saveAs === \"Cancelled\");\n\n\nconst recordUpdates = [];\nconst headerUpdates = [];\n\nfor (const picking of pickings) {\n  const allRecords = picking.table_picking_records || [];\n\n  let allCompleted = true;\n  let anyDelivered = false;\n\n  for (const record of allRecords) {\n    const storeOutQty = parseFloat(record.store_out_qty || 0);\n    const existingDelivered = parseFloat(record.delivered_qty || 0);\n    const existingReserved = parseFloat(record.reserved_qty || 0);\n    const newStamp = newStampMap.get(record.id) || 0;\n    const priorStamp = priorStampMap.get(record.id) || 0;\n\n    let newDeliveredQty = existingDelivered;\n    let newReservedQty = existingReserved;\n    let changed = false;\n\n    if (isCreatedSave) {\n      // Replace this GD's reservation stamp: remove prior, add new.\n      newReservedQty = Math.max(0, q8(existingReserved - priorStamp + newStamp));\n      if (newReservedQty !== existingReserved) changed = true;\n    } else if (isCompletedSave) {\n      // Increment delivered_qty; also release any prior reservation that this\n      // GD held (Created -> Completed net swap).\n      newDeliveredQty = q8(existingDelivered + newStamp);\n      newReservedQty = Math.max(0, q8(existingReserved - priorStamp));\n      if (newStamp !== 0 || priorStamp !== 0) changed = true;\n    } else if (isCancelledSave) {\n      // Release this GD's prior reservation stamp; no delivery change.\n      newReservedQty = Math.max(0, q8(existingReserved - priorStamp));\n      if (priorStamp !== 0) changed = true;\n    } else {\n      // Non-GDPP path (or unexpected saveAs): preserve legacy behavior of\n      // incrementing delivered_qty by the new stamp.\n      newDeliveredQty = q8(existingDelivered + newStamp);\n      if (newStamp !== 0) changed = true;\n    }\n\n    let recordDeliveryStatus;\n    if (newDeliveredQty >= storeOutQty) {\n      recordDeliveryStatus = \"Fully Delivered\";\n    } else if (newDeliveredQty > 0) {\n      recordDeliveryStatus = \"Partially Delivered\";\n    } else {\n      recordDeliveryStatus = \"\";\n    }\n\n    if (changed) {\n      recordUpdates.push({\n        id: record.id,\n        delivered_qty: newDeliveredQty,\n        reserved_qty: newReservedQty,\n        delivery_status: recordDeliveryStatus,\n      });\n    }\n\n    if (newDeliveredQty > 0) anyDelivered = true;\n    if (newDeliveredQty < storeOutQty) allCompleted = false;\n  }\n\n  let headerDeliveryStatus;\n  if (allCompleted && anyDelivered) {\n    headerDeliveryStatus = \"Fully Delivered\";\n  } else if (anyDelivered) {\n    headerDeliveryStatus = \"Partially Delivered\";\n  } else {\n    headerDeliveryStatus = \"\";\n  }\n\n  headerUpdates.push({\n    id: picking.id,\n    delivery_status: headerDeliveryStatus,\n  });\n}\n\nreturn {\n  recordUpdates: recordUpdates,\n  isRecord: recordUpdates.length > 0 ? 1 : 0,\n  headerUpdates: headerUpdates,\n  isHeader: headerUpdates.length > 0 ? 1 : 0,\n};\n"
+                  "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst pickingRecordUpdates = {{node:code_node_OBz5tEws.data.pickingRecordUpdates}};\nconst pickings = {{node:search_node_68C0TVzK.data.data}} || [];\nconst saveAs = {{workflowparams:saveAs}};\nconst isGDPP = {{workflowparams:isGDPP}};\n\n// newStamp = what this save wants to write on the picking record\n//            (delivered_qty add for Completed; reserved_qty replace for Created)\n// priorStamp = what this same GD had previously stamped (reserved) on the\n//              picking record, recovered from prev_temp_qty_data. Used to net\n//              out the reservation on Created->Completed and Created->Cancelled.\nconst newStampMap = new Map();\nconst priorStampMap = new Map();\nfor (const u of pickingRecordUpdates) {\n  newStampMap.set(u.id, parseFloat(u.qty) || 0);\n  priorStampMap.set(u.id, parseFloat(u.priorQty) || 0);\n}\n\nconst isCreatedSave = (isGDPP === 1 && saveAs === \"Created\");\nconst isCompletedSave = (isGDPP === 1 && saveAs === \"Completed\");\nconst isCancelledSave = (isGDPP === 1 && saveAs === \"Cancelled\");\n\n\nconst recordUpdates = [];\nconst headerUpdates = [];\n\nfor (const picking of pickings) {\n  const allRecords = picking.table_picking_records || [];\n\n  let allCompleted = true;\n  let anyDelivered = false;\n\n  for (const record of allRecords) {\n    const storeOutQty = parseFloat(record.store_out_qty || 0);\n    const existingDelivered = parseFloat(record.delivered_qty || 0);\n    const existingReserved = parseFloat(record.reserved_qty || 0);\n    const newStamp = newStampMap.get(record.id) || 0;\n    const priorStamp = priorStampMap.get(record.id) || 0;\n\n    let newDeliveredQty = existingDelivered;\n    let newReservedQty = existingReserved;\n    let changed = false;\n\n    if (isCreatedSave) {\n      // Replace this GD's reservation stamp: remove prior, add new.\n      newReservedQty = Math.max(0, q8(existingReserved - priorStamp + newStamp));\n      if (newReservedQty !== existingReserved) changed = true;\n    } else if (isCompletedSave) {\n      // Increment delivered_qty; also release any prior reservation that this\n      // GD held (Created -> Completed net swap).\n      newDeliveredQty = q8(existingDelivered + newStamp);\n      newReservedQty = Math.max(0, q8(existingReserved - priorStamp));\n      if (newStamp !== 0 || priorStamp !== 0) changed = true;\n    } else if (isCancelledSave) {\n      // Release this GD's prior reservation stamp; no delivery change.\n      newReservedQty = Math.max(0, q8(existingReserved - priorStamp));\n      if (priorStamp !== 0) changed = true;\n    } else {\n      // Non-GDPP path (or unexpected saveAs): preserve legacy behavior of\n      // incrementing delivered_qty by the new stamp.\n      newDeliveredQty = q8(existingDelivered + newStamp);\n      if (newStamp !== 0) changed = true;\n    }\n\n    let recordDeliveryStatus;\n    if (newDeliveredQty >= storeOutQty) {\n      recordDeliveryStatus = \"Fully Delivered\";\n    } else if (newDeliveredQty > 0) {\n      recordDeliveryStatus = \"Partially Delivered\";\n    } else {\n      recordDeliveryStatus = \"\";\n    }\n\n    if (changed) {\n      recordUpdates.push({\n        id: record.id,\n        delivered_qty: newDeliveredQty,\n        reserved_qty: newReservedQty,\n        delivery_status: recordDeliveryStatus,\n      });\n    }\n\n    if (newDeliveredQty > 0) anyDelivered = true;\n    if (newDeliveredQty < storeOutQty) allCompleted = false;\n  }\n\n  let headerDeliveryStatus;\n  if (allCompleted && anyDelivered) {\n    headerDeliveryStatus = \"Fully Delivered\";\n  } else if (anyDelivered) {\n    headerDeliveryStatus = \"Partially Delivered\";\n  } else {\n    headerDeliveryStatus = \"\";\n  }\n\n  headerUpdates.push({\n    id: picking.id,\n    delivery_status: headerDeliveryStatus,\n  });\n}\n\nreturn {\n  recordUpdates: recordUpdates,\n  isRecord: recordUpdates.length > 0 ? 1 : 0,\n  headerUpdates: headerUpdates,\n  isHeader: headerUpdates.length > 0 ? 1 : 0,\n};\n"
                 },
                 "response_json": [
                   {

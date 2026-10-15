@@ -1,0 +1,3384 @@
+{
+ "request_json": [
+  {
+   "key": "rczgi47c",
+   "name": "operation",
+   "title": "operation",
+   "description": "SUBMIT (default) or STATUS",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "camkkvnk",
+   "name": "gr_id",
+   "title": "gr_id",
+   "description": "goods_receiving.id (digits)",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "jn7vf90b",
+   "name": "idempotency_key",
+   "title": "idempotency_key",
+   "description": "one per click and receipt (8-128 chars A-Z a-z 0-9 | : _ . -)",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "v24mn70d",
+   "name": "source",
+   "title": "source",
+   "description": "LIST (default)",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "3dyzqz8w",
+   "name": "route",
+   "title": "route",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "9nvo7cqs",
+   "name": "code",
+   "title": "code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "3aoddk4m",
+   "name": "message",
+   "title": "message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "6cfwredh",
+   "name": "reason",
+   "title": "reason",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "jah75jo1",
+   "name": "job_id",
+   "title": "job_id",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "3ybdzbl1",
+   "name": "job_status",
+   "title": "job_status",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "khdoz92x",
+   "name": "gr_id",
+   "title": "gr_id",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "4l70y8kx",
+   "name": "gr_no",
+   "title": "gr_no",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "xnd2z8q1",
+   "name": "line_count",
+   "title": "line_count",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "wgxhjr92",
+   "name": "progress_percent",
+   "title": "progress_percent",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "hoji0vpu",
+   "name": "progress_message",
+   "title": "progress_message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "a2srbycf",
+   "name": "error_code",
+   "title": "error_code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "c5ca4pi3",
+   "name": "error_message",
+   "title": "error_message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "wg992ees",
+   "name": "evidence",
+   "title": "evidence",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "title": "Start Node",
+    "isValidator": true,
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_VSguard",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Guard: operation (SUBMIT | STATUS), gr_id (digits), the client's idempotency key (one per click and\n// receipt), where it came from, session tenant + user\nconst submitGuard = function submitGuard(inp) {\n  const op = s(inp.operation).toUpperCase() || \"SUBMIT\";\n  const grId = s(inp.grId);\n  const key = s(inp.key);\n  const tenantId = s(inp.tenantId);\n  const bad = (why) => answer(\"REJECT\", \"400\", why, { operation: op, grId: \"0\", key: \"\", tenantId: \"0\", uid: \"\", source: \"\" });\n  if ([\"SUBMIT\", \"STATUS\"].indexOf(op) < 0) return bad(\"operation must be SUBMIT or STATUS\");\n  if (!digits(grId)) return bad(\"gr_id: digits only\");\n  if (!/^[A-Za-z0-9|:_.-]{8,128}$/.test(key)) return bad(\"idempotency_key: 8 to 128 characters of A-Z a-z 0-9 | : _ . -\");\n  if (!digits(tenantId)) return bad(\"no session tenant\");\n  return answer(\"CONTINUE\", \"\", \"\", { operation: op, grId: grId, key: key, tenantId: tenantId, uid: s(inp.uid), source: s(inp.source).replace(/[^A-Za-z_]/g, \"\").slice(0, 20) || \"LIST\" });\n};\nconst res = submitGuard({ operation: [{{workflowparams:operation}}][0], grId: [{{workflowparams:gr_id}}][0], key: [{{workflowparams:idempotency_key}}][0],\n  source: [{{workflowparams:source}}][0], tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] });\nconsole.log(\"submit guard\", JSON.stringify({ route: res.route, op: res.operation, gr: res.grId, message: res.message }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "hv2y7xi9",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "dggdt808",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "upnkalh2",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ce52ghac",
+      "name": "operation",
+      "title": "operation",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "a9j41bqg",
+      "name": "grId",
+      "title": "grId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "qwu1y6nr",
+      "name": "key",
+      "title": "key",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "a95r3rqw",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "zv38d3nc",
+      "name": "uid",
+      "title": "uid",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "s8rcndmw",
+      "name": "source",
+      "title": "source",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Guard: operation, gr_id, idempotency key, source, session tenant + user",
+    "isValidator": true,
+    "nodeName": "Guard: operation, gr_id, idempotency key, source, session tenant + user",
+    "name": "Guard: operation, gr_id, idempotency key, source, session tenant + user"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_VSreject",
+   "type": "if",
+   "data": {
+    "title": "IF the input is invalid: answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF the input is invalid: answer, write nothing",
+    "name": "IF the input is invalid: answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799200000001,
+       "parentId": 1799200000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_VSguard.data.route}}' == 'REJECT'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TVSreject",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_VSrejres",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Result: the answer of whichever node ended the run; after the queue writes, the read-back decides\nconst submitResult = function submitResult(guard, entry, src, back) {\n  const e = entry || {};\n  const r = src || {};\n  const out = { route: s(r.route), code: s(r.code), message: s(r.message), reason: s(r.reason), job_id: s(e.jobId), job_status: s(e.jobStatus), gr_id: s(guard.grId) === \"0\" ? \"\" : s(guard.grId),\n    gr_no: s(e.grNo), line_count: String(num(r.lineCount) || num(e.lineCount)), progress_percent: String(num(e.progressPercent)), progress_message: s(e.progressMessage),\n    error_code: s(e.errorCode), error_message: s(e.errorMessage), evidence: \"\" };\n  if (back) {\n    const b = list(back)[0] || {};\n    const ok = digits(b.job_id) && s(b.gr_status) === \"Processing\" && s(b.gr_v2_job_id) === s(b.job_id) && s(b.lock_ref) === guard.key;\n    Object.assign(out, ok\n      ? { route: \"QUEUED\", code: \"200\", message: \"Queued for processing\", job_id: s(b.job_id), job_status: s(b.job_status), progress_percent: \"0\", progress_message: \"Queued for processing\" }\n      : { route: \"STOP\", code: \"500\", message: \"The revert could not be queued: please try again.\", job_id: s(b.job_id), job_status: s(b.job_status) });\n  }\n  out.evidence = JSON.stringify({ v: 1, workflow: \"GR_REVERT_SUBMIT\", operation: s(guard.operation), route: out.route, code: out.code, reason: out.reason });\n  return out;\n};\nconst res = submitResult([{{node:code_node_VSguard.data}}][0], null, [{{node:code_node_VSguard.data}}][0], null);\nconsole.log(\"submit result\", JSON.stringify({ route: res.route, code: res.code, message: res.message, job: res.job_id }));\nreturn res;"
+        },
+        "response_json": [
+         {
+          "key": "qvm9fu7l",
+          "name": "route",
+          "title": "route",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "cek3x1ha",
+          "name": "code",
+          "title": "code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "zrgnhc5f",
+          "name": "message",
+          "title": "message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "1ld0uj5x",
+          "name": "reason",
+          "title": "reason",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "4lma6we6",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "pij4o0gc",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "kmkbos84",
+          "name": "gr_id",
+          "title": "gr_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "921vq2dt",
+          "name": "gr_no",
+          "title": "gr_no",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "r7f59xxr",
+          "name": "line_count",
+          "title": "line_count",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ijo9ppgz",
+          "name": "progress_percent",
+          "title": "progress_percent",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "zcvyl0r2",
+          "name": "progress_message",
+          "title": "progress_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "i13e07rn",
+          "name": "error_code",
+          "title": "error_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "auqtg6z8",
+          "name": "error_message",
+          "title": "error_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "azgnf63u",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Result (rejected input)",
+        "isValidator": true,
+        "nodeName": "Result (rejected input)",
+        "name": "Result (rejected input)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_VSrej",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (rejected input)",
+        "isValidator": true,
+        "nodeName": "Return (rejected input)",
+        "name": "Return (rejected input)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "route",
+           "propLabel": "route",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.route}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "reason",
+           "propLabel": "reason",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.reason}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gr_id",
+           "propLabel": "gr_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.gr_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gr_no",
+           "propLabel": "gr_no",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.gr_no}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "line_count",
+           "propLabel": "line_count",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.line_count}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_percent",
+           "propLabel": "progress_percent",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.progress_percent}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_message",
+           "propLabel": "progress_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.progress_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_code",
+           "propLabel": "error_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.error_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_message",
+           "propLabel": "error_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.error_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSrejres.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FVSreject",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "sql_node_VSfacts",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "Facts: the job of this key, the receipt, its line count, latest lock, open jobs of any kind, its latest REVERT_GR job, DB clock",
+    "isValidator": true,
+    "nodeName": "Facts: the job of this key, the receipt, its line count, latest lock, open jobs of any kind, its latest REVERT_GR job, DB clock",
+    "name": "Facts: the job of this key, the receipt, its line count, latest lock, open jobs of any kind, its latest REVERT_GR job, DB clock",
+    "script": {
+     "type": "sql",
+     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       (SELECT CAST(JSON_OBJECT('id', CAST(k.id AS CHAR), 'job_status', k.job_status, 'correlation_id', k.correlation_id, 'progress_percent', k.progress_percent,\n\t\t'progress_message', k.progress_message, 'error_code', k.error_code, 'error_message', k.error_message) AS CHAR) FROM gd_async_job k\n         WHERE k.tenant_id = '{{node:code_node_VSguard.data.tenantId}}' AND k.idempotency_key = '{{node:code_node_VSguard.data.key}}' AND k.is_deleted = 0 ORDER BY k.id DESC LIMIT 1) AS key_job,\n       CAST(g.id AS CHAR) AS gr_id, g.gr_no, g.gr_status, g.organization_id, CAST(g.plant_id AS CHAR) AS plant_id,\n       (SELECT COUNT(*) FROM goods_receiving_eg6l4ywi_sub l WHERE l.tenant_id = '{{node:code_node_VSguard.data.tenantId}}' AND l.goods_receiving_id = {{node:code_node_VSguard.data.grId}} AND l.is_deleted = 0) AS line_count,\n       (SELECT p.step_name FROM gd_publish_step p\n         WHERE p.tenant_id = '{{node:code_node_VSguard.data.tenantId}}' AND p.job_id = 'GRC|{{node:code_node_VSguard.data.grId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1) AS last_lock,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(o.id AS CHAR), 'job_status', o.job_status, 'correlation_id', o.correlation_id, 'progress_percent', o.progress_percent,\n\t\t'progress_message', o.progress_message, 'error_code', o.error_code, 'error_message', o.error_message)) AS CHAR) FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_VSguard.data.tenantId}}' AND o.is_deleted = 0 AND o.command IN ('COMPLETE_GR', 'REVERT_GR') AND o.correlation_id = 'GR|{{node:code_node_VSguard.data.grId}}' AND o.job_status IN ('QUEUED',\n\t\t'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GR', 'COMMITTING_REVERT', 'REQUIRES_REVIEW')) AS open_jobs,\n       (SELECT CAST(JSON_OBJECT('id', CAST(x.id AS CHAR), 'job_status', x.job_status, 'correlation_id', x.correlation_id, 'progress_percent', x.progress_percent,\n\t\t'progress_message', x.progress_message, 'error_code', x.error_code, 'error_message', x.error_message) AS CHAR) FROM gd_async_job x\n         WHERE x.tenant_id = '{{node:code_node_VSguard.data.tenantId}}' AND x.is_deleted = 0 AND x.command = 'REVERT_GR' AND x.correlation_id = 'GR|{{node:code_node_VSguard.data.grId}}' ORDER BY x.id DESC LIMIT 1) AS last_job\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN goods_receiving g\n    ON g.tenant_id = '{{node:code_node_VSguard.data.tenantId}}'\n   AND g.id = {{node:code_node_VSguard.data.grId}}\n   AND g.is_deleted = 0"
+    },
+    "response_json": [
+     {
+      "key": "lse04uqn",
+      "name": "db_now",
+      "title": "db_now",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "48xjomod",
+      "name": "key_job",
+      "title": "key_job",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2071ks8c",
+      "name": "gr_id",
+      "title": "gr_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rdzmtd98",
+      "name": "gr_no",
+      "title": "gr_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "x59ifcuo",
+      "name": "gr_status",
+      "title": "gr_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "put73tcq",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "h8txyswi",
+      "name": "plant_id",
+      "title": "plant_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "5gfvyxlj",
+      "name": "line_count",
+      "title": "line_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "40tyhhbj",
+      "name": "last_lock",
+      "title": "last_lock",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2wextrgc",
+      "name": "open_jobs",
+      "title": "open_jobs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "cq56uznj",
+      "name": "last_job",
+      "title": "last_job",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_VSentry",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Entry: STATUS answers from the job of this key, else the receipt's latest REVERT_GR job; a SUBMIT whose\n// key already has a job answers that job; else it goes on for a Completed / Received receipt with no open job of any kind\n// (a completion or a revert; REQUIRES_REVIEW counts as open: stock may be half-moved)\nconst submitEntry = function submitEntry(guard, factRows) {\n  const f = list(factRows)[0] || {};\n  const parse = (t) => {\n    try {\n      return t ? JSON.parse(t) : null;\n    } catch (e) {\n      return null;\n    }\n  };\n  const keyJob = parse(f.key_job);\n  const last = parse(f.last_job);\n  const open = list(parse(f.open_jobs)).filter((r) => s(r.id));\n  const grNo = s(f.gr_no);\n  const base = { tenantId: guard.tenantId, grId: guard.grId, grNo: grNo, grNoSql: grNo.replace(/\\\\/g, \"\\\\\\\\\").replace(/'/g, \"''\"), grStatus: s(f.gr_status),\n    organizationId: \"0\", plantId: \"0\", lineCount: num(f.line_count), dbNow: s(f.db_now), lockN: 1, reason: \"\", jobId: \"\", jobStatus: \"\", progressPercent: 0,\n    progressMessage: \"\", errorCode: \"\", errorMessage: \"\" };\n  const job = (j) => (j ? { jobId: s(j.id), jobStatus: s(j.job_status), progressPercent: num(j.progress_percent), progressMessage: s(j.progress_message), errorCode: s(j.error_code),\n    errorMessage: s(j.error_message) } : {});\n  if (keyJob) return Object.assign(base, job(keyJob), answer(\"STATUS\", \"200\", s(keyJob.progress_message) || s(keyJob.job_status)));\n  if (guard.operation === \"STATUS\") return Object.assign(base, job(last), answer(\"STATUS\", \"200\", last ? s(last.progress_message) : \"no revert job\"));\n  if (!s(f.gr_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Receiving record not found for this organization.\"));\n  const blocking = open[0];\n  if (blocking) {\n    const message = s(blocking.job_status) === \"REQUIRES_REVIEW\" ? \"This Goods Receiving stopped half-way in the background and is under review: please contact support.\"\n      : \"This Goods Receiving is being processed - please wait for it to finish.\";\n    return Object.assign(base, job(blocking), answer(\"BUSY\", \"409\", message));\n  }\n  const status = s(f.gr_status);\n  if (status !== \"Completed\" && status !== \"Received\") return Object.assign(base, answer(\"STOP\", \"400\", \"Only Completed or Received Goods Receiving can be reverted (this one is \" + (status || \"blank\") + \").\"));\n  // fail closed: only digits ever reach the SQL text after this node\n  if (!digits(f.organization_id) || !digits(f.plant_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"The Goods Receiving has no valid organization or plant.\"));\n  const m = s(f.last_lock).match(/^LOCK\\|([0-9]+)$/);\n  return Object.assign(base, answer(\"GO\", \"\", \"\"), { organizationId: s(f.organization_id), plantId: s(f.plant_id), lockN: m ? Number(m[1]) + 1 : 1 });\n};\nconst res = submitEntry([{{node:code_node_VSguard.data}}][0], [{{node:sql_node_VSfacts.data}}][0]);\nconsole.log(\"submit entry\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lock: res.lockN, job: res.jobId, lines: res.lineCount }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "gnf17kby",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "uukaska4",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "f0kc6sua",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "jlpkcrc6",
+      "name": "reason",
+      "title": "reason",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "b149hzxk",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "zubvi4kk",
+      "name": "grId",
+      "title": "grId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "u3c18js7",
+      "name": "grNo",
+      "title": "grNo",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "h3yf6nzl",
+      "name": "grNoSql",
+      "title": "grNoSql",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "tivw2u0f",
+      "name": "grStatus",
+      "title": "grStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "mbnvv3ay",
+      "name": "organizationId",
+      "title": "organizationId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "duui1fyu",
+      "name": "plantId",
+      "title": "plantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "57kd635i",
+      "name": "lineCount",
+      "title": "lineCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "7yk6jdec",
+      "name": "dbNow",
+      "title": "dbNow",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "sbwpksqd",
+      "name": "lockN",
+      "title": "lockN",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "z82ttt1h",
+      "name": "jobId",
+      "title": "jobId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "b2w3hts0",
+      "name": "jobStatus",
+      "title": "jobStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "l3egxlcy",
+      "name": "progressPercent",
+      "title": "progressPercent",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "hnbipfr8",
+      "name": "progressMessage",
+      "title": "progressMessage",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "vnepydaa",
+      "name": "errorCode",
+      "title": "errorCode",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "o663mbh4",
+      "name": "errorMessage",
+      "title": "errorMessage",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Entry: STATUS / this key's job; SUBMIT goes on for a Completed / Received receipt with no open job (BUSY / STOP otherwise)",
+    "isValidator": true,
+    "nodeName": "Entry: STATUS / this key's job; SUBMIT goes on for a Completed / Received receipt with no open job (BUSY / STOP otherwise)",
+    "name": "Entry: STATUS / this key's job; SUBMIT goes on for a Completed / Received receipt with no open job (BUSY / STOP otherwise)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_VSanswer",
+   "type": "if",
+   "data": {
+    "title": "IF answered here (STATUS / BUSY / STOP): answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF answered here (STATUS / BUSY / STOP): answer, write nothing",
+    "name": "IF answered here (STATUS / BUSY / STOP): answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799200000003,
+       "parentId": 1799200000004,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_VSentry.data.route}}' != 'GO'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TVSanswer",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_VSansres",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Result: the answer of whichever node ended the run; after the queue writes, the read-back decides\nconst submitResult = function submitResult(guard, entry, src, back) {\n  const e = entry || {};\n  const r = src || {};\n  const out = { route: s(r.route), code: s(r.code), message: s(r.message), reason: s(r.reason), job_id: s(e.jobId), job_status: s(e.jobStatus), gr_id: s(guard.grId) === \"0\" ? \"\" : s(guard.grId),\n    gr_no: s(e.grNo), line_count: String(num(r.lineCount) || num(e.lineCount)), progress_percent: String(num(e.progressPercent)), progress_message: s(e.progressMessage),\n    error_code: s(e.errorCode), error_message: s(e.errorMessage), evidence: \"\" };\n  if (back) {\n    const b = list(back)[0] || {};\n    const ok = digits(b.job_id) && s(b.gr_status) === \"Processing\" && s(b.gr_v2_job_id) === s(b.job_id) && s(b.lock_ref) === guard.key;\n    Object.assign(out, ok\n      ? { route: \"QUEUED\", code: \"200\", message: \"Queued for processing\", job_id: s(b.job_id), job_status: s(b.job_status), progress_percent: \"0\", progress_message: \"Queued for processing\" }\n      : { route: \"STOP\", code: \"500\", message: \"The revert could not be queued: please try again.\", job_id: s(b.job_id), job_status: s(b.job_status) });\n  }\n  out.evidence = JSON.stringify({ v: 1, workflow: \"GR_REVERT_SUBMIT\", operation: s(guard.operation), route: out.route, code: out.code, reason: out.reason });\n  return out;\n};\nconst res = submitResult([{{node:code_node_VSguard.data}}][0], [{{node:code_node_VSentry.data}}][0], [{{node:code_node_VSentry.data}}][0], null);\nconsole.log(\"submit result\", JSON.stringify({ route: res.route, code: res.code, message: res.message, job: res.job_id }));\nreturn res;"
+        },
+        "response_json": [
+         {
+          "key": "dp2rpn06",
+          "name": "route",
+          "title": "route",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "l7o7l4qw",
+          "name": "code",
+          "title": "code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "smdk5xxl",
+          "name": "message",
+          "title": "message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "uxpdyvm9",
+          "name": "reason",
+          "title": "reason",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "1h7tsxsf",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "zz0tfk7l",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "rkf8idnf",
+          "name": "gr_id",
+          "title": "gr_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "qv70lu7w",
+          "name": "gr_no",
+          "title": "gr_no",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "6zuhhnpj",
+          "name": "line_count",
+          "title": "line_count",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "fx9ber11",
+          "name": "progress_percent",
+          "title": "progress_percent",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ytxaiqf5",
+          "name": "progress_message",
+          "title": "progress_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "0jd6d2ju",
+          "name": "error_code",
+          "title": "error_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "6qqkxdlp",
+          "name": "error_message",
+          "title": "error_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "hbyjqi0d",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Result (entry)",
+        "isValidator": true,
+        "nodeName": "Result (entry)",
+        "name": "Result (entry)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_VSans",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (entry)",
+        "isValidator": true,
+        "nodeName": "Return (entry)",
+        "name": "Return (entry)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "route",
+           "propLabel": "route",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.route}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "reason",
+           "propLabel": "reason",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.reason}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gr_id",
+           "propLabel": "gr_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.gr_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gr_no",
+           "propLabel": "gr_no",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.gr_no}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "line_count",
+           "propLabel": "line_count",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.line_count}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_percent",
+           "propLabel": "progress_percent",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.progress_percent}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_message",
+           "propLabel": "progress_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.progress_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_code",
+           "propLabel": "error_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.error_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_message",
+           "propLabel": "error_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.error_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSansres.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FVSanswer",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "condition_all_VSread",
+   "type": "condition-all-node",
+   "data": {
+    "title": "The gate's reads in parallel (no row limits)",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cai_VShdr",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "hdr",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "hdr",
+      "name": "hdr",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_VShdr",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "The receipt (every schema field + gr_v2_job_id)",
+        "isValidator": true,
+        "nodeName": "The receipt (every schema field + gr_v2_job_id)",
+        "name": "The receipt (every schema field + gr_v2_job_id)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', g.`id`, 'purchase_order_number', g.`purchase_order_number`, 'supplier_contact_person', g.`supplier_contact_person`, 'supplier_contact_number',\n\t\tg.`supplier_contact_number`, 'supplier_email', g.`supplier_email`, 'gr_no', g.`gr_no`, 'gr_received_by', g.`gr_received_by`, 'gr_date', DATE_FORMAT(g.`gr_date`,\n\t\t'%Y-%m-%d %H:%i:%s'), 'create_user', g.`create_user`, 'create_dept', g.`create_dept`, 'create_time', SUBSTRING(DATE_FORMAT(g.`create_time`, '%Y-%m-%d %H:%i:%s.%f'),\n\t\t1, 23), 'update_user', g.`update_user`, 'update_time', SUBSTRING(DATE_FORMAT(g.`update_time`, '%Y-%m-%d %H:%i:%s.%f'), 1, 23), 'is_deleted', g.`is_deleted`, 'tenant_id',\n\t\tg.`tenant_id`, 'supplier_name', g.`supplier_name`, 'billing_address_state', g.`billing_address_state`, 'billing_postal_code', g.`billing_postal_code`, 'shipping_address_country',\n\t\tg.`shipping_address_country`, 'billing_address_line_1', g.`billing_address_line_1`, 'billing_address_city', g.`billing_address_city`, 'billing_address_line_4',\n\t\tg.`billing_address_line_4`, 'billing_address_line_3', g.`billing_address_line_3`, 'shipping_postal_code', g.`shipping_postal_code`, 'gr_shipping_address', g.`gr_shipping_address`,\n\t\t'shipping_address_city', g.`shipping_address_city`, 'billing_address_line_2', g.`billing_address_line_2`, 'shipping_address_line_4', g.`shipping_address_line_4`,\n\t\t'shipping_address_state', g.`shipping_address_state`, 'shipping_address_line_3', g.`shipping_address_line_3`, 'gr_billing_address', g.`gr_billing_address`, 'shipping_address_line_1',\n\t\tg.`shipping_address_line_1`, 'shipping_address_line_2', g.`shipping_address_line_2`, 'billing_address_country', g.`billing_address_country`, 'gr_status', g.`gr_status`,\n\t\t'plant_id', g.`plant_id`, 'organization_id', g.`organization_id`, 'pi_status', g.`pi_status`, 'currency_code', g.`currency_code`, 'gr_dockey', g.`gr_dockey`, 'reference_doc',\n\t\tg.`reference_doc`, 'return_status', g.`return_status`, 'billing_attention', g.`billing_attention`, 'shipping_address_phone', g.`shipping_address_phone`, 'billing_address_phone',\n\t\tg.`billing_address_phone`, 'shipping_address_name', g.`shipping_address_name`, 'billing_address_name', g.`billing_address_name`, 'shipping_attention', g.`shipping_attention`,\n\t\t'batch_index', g.`batch_index`, 'ref_no_1', g.`ref_no_1`, 'ref_no_2', g.`ref_no_2`, 'putaway_status', g.`putaway_status`, 'assigned_to', g.`assigned_to`, 'po_number_array',\n\t\tg.`po_number_array`, 'item_array', g.`item_array`, 'predefined_data', g.`predefined_data`, 'reference_type', g.`reference_type`, 'new_rows', g.`new_rows`, 'table_serial_number',\n\t\tg.`table_serial_number`, 'row_index', g.`row_index`, 'serial_number_qty', g.`serial_number_qty`, 'item_id', g.`item_id`, 'is_auto', g.`is_auto`, 'is_single', g.`is_single`,\n\t\t'item_code', g.`item_code`, 'total_quantity_uom', g.`total_quantity_uom`, 'item_name', g.`item_name`, 'total_quantity', g.`total_quantity`, 'total_quantity_uom_id',\n\t\tg.`total_quantity_uom_id`, 'total_qty_display', g.`total_qty_display`, 'item_image_url', g.`item_image_url`, 'gr_remark1', g.`gr_remark1`, 'gr_remark2', g.`gr_remark2`,\n\t\t'gr_remark3', g.`gr_remark3`, 'po_id', g.`po_id`, 'formula_result', g.`formula_result`, 'table_formula', g.`table_formula`, 'based_uom', g.`based_uom`, 'formula',\n\t\tg.`formula`, 'from_convert', g.`from_convert`, 'acc_integration_type', g.`acc_integration_type`, 'sub_tenant_id', g.`sub_tenant_id`, 'previous_status', g.`previous_status`,\n\t\t'gr_no_type', g.`gr_no_type`, 'gr_no_sn', g.`gr_no_sn`, 'table_hu', g.`table_hu`, 'location_id', g.`location_id`, 'storage_location_id', g.`storage_location_id`,\n\t\t'is_parent_split', g.`is_parent_split`, 'grn_uuid', g.`grn_uuid`, 'posted_status', g.`posted_status`, 'billing_address_fax', g.`billing_address_fax`, 'shipping_address_fax',\n\t\tg.`shipping_address_fax`, 'gr_remark4', g.`gr_remark4`, 'gr_remark5', g.`gr_remark5`, 'is_batch_item', g.`is_batch_item`, 'project_id', g.`project_id`, 'gr_idem_key',\n\t\tg.`gr_idem_key`, 'gr_v2_job_id', g.`gr_v2_job_id`) AS j\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{node:code_node_VSentry.data.tenantId}}' AND g.id = {{node:code_node_VSentry.data.grId}} AND g.is_deleted = 0"
+        },
+        "response_json": [
+         {
+          "key": "v2ghdmwh",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_VSlines",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "lines",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "lines",
+      "name": "lines",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_VSlines",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its lines (table_gr)",
+        "isValidator": true,
+        "nodeName": "Its lines (table_gr)",
+        "name": "Its lines (table_gr)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', l.`id`, 'goods_receiving_id', l.`goods_receiving_id`, 'item_id', l.`item_id`, 'item_name', l.`item_name`, 'received_qty', l.`received_qty`,\n\t\t'line_po_id', l.`line_po_id`, 'return_quantity', l.`return_quantity`, 'po_line_item_id', l.`po_line_item_id`, 'line_index', l.`line_index`, 'base_received_qty',\n\t\tl.`base_received_qty`, 'parent_index', l.`parent_index`, 'parent_or_child', l.`parent_or_child`, 'is_split', l.`is_split`, 'created_return_qty', l.`created_return_qty`,\n\t\t'parent_id', l.`parent_id`, 'item_bundle_id', l.`item_bundle_id`) AS j,\n       (SELECT i.serial_number_management FROM item i WHERE i.id = l.item_id AND i.tenant_id = l.tenant_id AND i.is_deleted = 0 LIMIT 1) AS sn\n  FROM goods_receiving_eg6l4ywi_sub l\n WHERE l.tenant_id = '{{node:code_node_VSentry.data.tenantId}}' AND l.goods_receiving_id = {{node:code_node_VSentry.data.grId}} AND l.is_deleted = 0\n ORDER BY l.id"
+        },
+        "response_json": [
+         {
+          "key": "3s5lsup7",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "uldxq5mk",
+          "name": "sn",
+          "title": "sn",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_VSmovs",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "movs",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "movs",
+      "name": "movs",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_VSmovs",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its stock movements (sql_node_grRvMovs)",
+        "isValidator": true,
+        "nodeName": "Its stock movements (sql_node_grRvMovs)",
+        "name": "Its stock movements (sql_node_grRvMovs)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(m.`id` AS CHAR), 'transaction_type', m.`transaction_type`, 'movement', m.`movement`, 'trx_no', m.`trx_no`, 'parent_trx_no', m.`parent_trx_no`,\n\t\t'item_id', CAST(m.`item_id` AS CHAR), 'plant_id', CAST(m.`plant_id` AS CHAR), 'bin_location_id', CAST(m.`bin_location_id` AS CHAR), 'batch_number_id', CAST(m.`batch_number_id` AS CHAR),\n\t\t'handling_unit_id', CAST(m.`handling_unit_id` AS CHAR), 'inventory_category', m.`inventory_category`, 'quantity', CAST(m.`quantity` AS CHAR), 'base_qty', CAST(m.`base_qty` AS CHAR),\n\t\t'uom_id', CAST(m.`uom_id` AS CHAR), 'base_uom_id', CAST(m.`base_uom_id` AS CHAR), 'unit_price', CAST(m.`unit_price` AS CHAR), 'costing_method_id', m.`costing_method_id`) AS j\n  FROM goods_receiving g\n  JOIN inventory_movement m\n    ON m.id > g.id AND m.organization_id = g.organization_id AND m.is_deleted = 0\n   AND (m.trx_no = g.gr_no OR COALESCE(m.parent_trx_no, '') = g.gr_no)\n WHERE g.tenant_id = '{{node:code_node_VSentry.data.tenantId}}' AND g.id = {{node:code_node_VSentry.data.grId}} AND g.is_deleted = 0\n ORDER BY m.id"
+        },
+        "response_json": [
+         {
+          "key": "00esmby3",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_node_VSgate",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// In-process copy of the platform's code-node contract, for bodies lifted by lift/lift.py (copy of scratchpad/pwv2/lift).\n// A token is replaced by its value (null when it has none); a node keeps only its declared keys; an object declared\n// `string` arrives as its JSON text; a number declared `int` is truncated toward zero, a boolean declared `int` arrives as\n// 1 / 0; null-valued keys are dropped at every depth. Every __v() is a fresh copy, as every substituted literal is.\n// A read V2 answers in full is set as __Uncapped(rows): __v hands it on as an empty array whose iteration yields every row,\n// so grRvBuild's fetch ceiling (rows.length >= 1000) stays inert while its for...of loops see all rows (lift.py checks\n// those reads are used no other way).\nconst __QUIET = { log() {}, error() {}, warn() {}, info() {}, debug() {} };\nconst __N = {};\nlet __CTX = {};\n\nfunction __clone(v) {\n  return v === undefined ? null : JSON.parse(JSON.stringify(v));\n}\n\nfunction __Uncapped(rows) {\n  this.rows = rows;\n}\n\nfunction __rowsView(rows) {\n  const view = [];\n  Object.defineProperty(view, Symbol.iterator, { value: () => rows[Symbol.iterator]() });\n  return view;\n}\n\nfunction __resolve(key) {\n  const dot = key.indexOf(\".\", key.indexOf(\":\") + 1);\n  let v = __CTX[dot < 0 ? key : key.slice(0, dot)];\n  if (dot >= 0) {\n    for (const p of key.slice(dot + 1).split(\".\")) {\n      if (v === null || v === undefined || v instanceof __Uncapped) return null;\n      v = v[p];\n    }\n  }\n  return v === undefined ? null : v;\n}\n\nfunction __v(key) {\n  const v = __resolve(key);\n  if (v instanceof __Uncapped) return __rowsView(__clone(v.rows));\n  return v === null ? null : __clone(v);\n}\n\nfunction __strip(v) {\n  if (Array.isArray(v)) return v.map(__strip);\n  if (v && typeof v === \"object\") {\n    const o = {};\n    for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== undefined) o[k] = __strip(v[k]);\n    return o;\n  }\n  return v;\n}\n\nfunction __platformOut(raw, decl) {\n  if (raw === null || raw === undefined || typeof raw !== \"object\") return {};\n  const r = JSON.parse(JSON.stringify(raw));\n  const o = {};\n  for (const [name, type] of decl) {\n    const v = r[name];\n    if (v === null || v === undefined) continue;\n    if (type === \"string\" && typeof v === \"object\") o[name] = JSON.stringify(v);\n    else if (type === \"int\" && typeof v === \"number\") o[name] = Math.trunc(v);\n    else if (type === \"int\" && typeof v === \"boolean\") o[name] = v ? 1 : 0;\n    else o[name] = v;\n  }\n  return __strip(o);\n}\n\nfunction __run(id) {\n  const n = __N[id];\n  if (!n) throw new Error(\"not lifted: \" + id);\n  const out = __platformOut(n.fn(), n.decl);\n  __CTX[\"node:\" + id] = { data: out };\n  return out;\n}\n\nfunction __set(key, value) {\n  __CTX[key] = value;\n}\n\nfunction __withContext(ctx, fn) {\n  const saved = __CTX;\n  __CTX = ctx;\n  try {\n    return fn();\n  } finally {\n    __CTX = saved;\n  }\n}\n// GENERATED by scratchpad/grrv/lift/lift.py from the deployed workflow JSON (GR_REVERT_COMPLETED dev v8 = repo).\n// Do not edit: re-run the script.\n// Goods Receiving/RevertCompletedGR/GRrevertCompletedWorkflow.json :: code_node_grRvParams\n__N[\"code_node_grRvParams\"] = { decl: [[\"grId\", \"string\"], [\"grNo\", \"string\"], [\"organizationId\", \"string\"], [\"grIdSql\", \"string\"], [\"grNoSql\", \"string\"], [\"orgSql\", \"string\"], [\"hasParams\", \"int\"]], fn: function () {\nconst console = __QUIET;\n// Guard everything that is interpolated into an sql-node here, in the code, not\n// in the SQL: those nodes substitute text before parsing, so an unguarded value\n// is a live injection surface. A guard failure substitutes a value that matches\n// no row rather than one that matches everything.\nconst S = (v) => (v === null || v === undefined ? \"\" : String(v).trim());\nconst digits = (v) => (/^[0-9]+$/.test(S(v)) ? S(v) : \"0\");\nconst token = (v) => (/^[A-Za-z0-9\\/\\-_. ]{1,64}$/.test(S(v)) ? S(v) : \"\");\n\nconst grId = S(__v(\"workflowparams:gr_id\"));\nconst grNo = S(__v(\"workflowparams:gr_no\"));\nconst organizationId = S(__v(\"workflowparams:organization_id\"));\n\nreturn {\n  grId,\n  grNo,\n  organizationId,\n  grIdSql: digits(grId),\n  grNoSql: token(grNo),\n  orgSql: token(organizationId),\n  hasParams: grId && grNo && organizationId && digits(grId) !== \"0\" && token(grNo) && token(organizationId) ? 1 : 0,\n};\n\n} };\n// Goods Receiving/RevertCompletedGR/GRrevertCompletedWorkflow.json :: code_node_grRvPrep\n__N[\"code_node_grRvPrep\"] = { decl: [[\"refuse\", \"int\"], [\"refuseMessage\", \"string\"], [\"grId\", \"string\"], [\"grIdList\", \"array\"], [\"grNo\", \"string\"], [\"organizationId\", \"string\"], [\"plantId\", \"string\"], [\"plantIdSql\", \"string\"], [\"minLiveIdSql\", \"string\"], [\"grIdSql\", \"string\"], [\"grNoSql\", \"string\"], [\"orgSql\", \"string\"], [\"itemIdsCsv\", \"string\"], [\"previousStatus\", \"string\"], [\"lines\", \"array\"], [\"liveRows\", \"array\"], [\"cycleRows\", \"array\"], [\"locations\", \"array\"], [\"partialRow\", \"int\"], [\"huOutRows\", \"array\"], [\"tupleAnchors\", \"any\"], [\"itemIds\", \"array\"], [\"batchIds\", \"array\"], [\"huIds\", \"array\"], [\"poIds\", \"array\"], [\"poLineIds\", \"array\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// Prep + cheap header refusals for \"Revert Completed Goods Receiving\".\n//\n// Everything the revert needs is DERIVED from what is on the record today; no\n// completion-time snapshot exists. The one non-obvious derivation is which of\n// this GR's GRN movement rows are still LIVE: a GR can be reverted, completed\n// again and reverted again, and a revert can fail half way through. So each\n// GRN-R reversal row is PAIRED with the GRN row it reversed, and the unpaired\n// GRN rows are the ones this run has to undo.\nconst EPS = 0.005;\nconst num = (v) => {\n  const n = parseFloat(v);\n  return Number.isFinite(n) ? n : 0;\n};\nconst asArr = (v) => (Array.isArray(v) ? v : v === null || v === undefined || v === \"\" ? [] : [v]);\nconst S = (v) => (v === null || v === undefined ? \"\" : String(v));\n// Snowflake ids are ~2e18, past JS's safe integer range, so ids are compared as\n// strings: same length sorts lexically, a longer string is always the larger id.\nconst cmpId = (a, b) => {\n  a = S(a);\n  b = S(b);\n  if (a.length !== b.length) return a.length - b.length;\n  return a < b ? -1 : a > b ? 1 : 0;\n};\nconst digits = (v) => (/^[0-9]+$/.test(S(v)) ? S(v) : \"0\");\n\nconst grRaw = __v(\"node:get_node_grRvGr.data.data\");\nconst gr = Array.isArray(grRaw) ? grRaw[0] || null : grRaw && grRaw.id ? grRaw : null;\nconst movRows = asArr(__v(\"node:sql_node_grRvMovs.data\"));\nconst grId = S(__v(\"node:code_node_grRvParams.data.grId\"));\nconst grNo = S(__v(\"node:code_node_grRvParams.data.grNo\"));\nconst orgId = S(__v(\"node:code_node_grRvParams.data.organizationId\"));\n\n// table_gr is a tree: an item bundle is ONE row with its items under `children`.\n// Every per-line rule downstream walks this flattened view, exactly as the\n// completion workflow's loopRows does.\nconst flattenGrRows = (rows) => {\n  const flat = [];\n  for (const row of rows || []) {\n    flat.push(row);\n    for (const child of Array.isArray(row.children) ? row.children : []) flat.push(child);\n  }\n  return flat;\n};\n\n// Row routing, copied verbatim from GRsaveWorkflow code_node_D9IbUV8t so the\n// revert reverses exactly the rows completion wrote.\nconst isSplitParent = (r) => r.is_split === \"Yes\" && r.parent_or_child === \"Parent\";\nconst isChild = (r) => r.parent_or_child === \"Child\";\nconst skipInventory = (r) => (!r.item_id || isSplitParent(r) ? 1 : 0);\nconst updatesPOLine = (r) => (isChild(r) ? 0 : 1);\nconst updatesOnOrder = (r) =>\n  isSplitParent(r) || (!isSplitParent(r) && !isChild(r) && skipInventory(r) === 0) ? 1 : 0;\nconst addsInventory = (r) =>\n  isChild(r) || (!isSplitParent(r) && skipInventory(r) === 0) ? 1 : 0;\n\nlet refuse = 0;\nlet refuseMessage = \"\";\nconst deny = (msg) => {\n  if (!refuse) {\n    refuse = 1;\n    refuseMessage = msg;\n  }\n};\n\nif (!gr || !gr.id) {\n  deny(\"Goods Receiving record not found for this organization.\");\n}\n\nconst status = gr ? S(gr.gr_status) : \"\";\nconst putawayStatus = gr ? S(gr.putaway_status) : \"\";\nconst piStatus = gr ? S(gr.pi_status).trim() : \"\";\nconst returnStatus = gr ? S(gr.return_status).trim() : \"\";\nconst postedStatus = gr ? S(gr.posted_status).trim() : \"\";\nconst lines = gr ? flattenGrRows(gr.table_gr) : [];\n// Above 500 lines this revert runs one SUBTRACT per movement for minutes and can stop half way: refused until the background revert takes it\nif (!refuse && lines.length > 500) {\n  deny(\"This Goods Receiving has \" + lines.length + \" lines. Reverting more than 500 lines is not supported yet.\");\n}\n\n// \"Completed\" and \"Received\" are the same inventory state: completion rewrites\n// the status to Received whenever a putaway is required or a line goes to\n// quality inspection, and the putaway later flips it back to Completed.\nif (!refuse && status !== \"Completed\" && status !== \"Received\") {\n  deny(\"Only Completed or Received Goods Receiving can be reverted (this one is \" + (status || \"blank\") + \").\");\n}\n// An invoice that was cancelled writes \"Cancelled\" back onto the GR, which is\n// not a live invoice.\nif (!refuse && piStatus !== \"\" && piStatus.toLowerCase() !== \"cancelled\") {\n  deny(\"Already invoiced (\" + piStatus + \"). Please cancel the purchase invoice first.\");\n}\nif (!refuse && returnStatus !== \"\" && returnStatus.toLowerCase() !== \"cancelled\") {\n  deny(\"A purchase return exists (\" + returnStatus + \"). Please cancel the purchase return first.\");\n}\nif (!refuse) {\n  for (const line of lines) {\n    if (num(line.return_quantity) > EPS || num(line.created_return_qty) > EPS) {\n      deny(\"A purchase return has already claimed quantity from this receipt.\");\n      break;\n    }\n  }\n}\nif (!refuse && postedStatus === \"Posted\") {\n  deny(\"This Goods Receiving has been posted to accounting and cannot be reverted.\");\n}\n// A finished putaway is not a reason to refuse. At a plant where putaway is\n// required the receipt is only ever marked Completed after its putaway\n// finishes, so refusing that would mean no completed receipt there could ever\n// be reverted. The stock is simply somewhere else, and the reversal follows it.\n// A putaway still running is different: the receipt sits at Received, someone\n// is working the document, and there is nothing to unwind until they stop.\nif (!refuse && putawayStatus === \"In Progress\") {\n  deny(\"Putaway is in progress. Finish or clear it before reverting this receipt.\");\n}\n\n// --- What this receipt still owns, and where that stock physically sits ------\nconst ownRows = movRows.filter(\n  (r) => S(r.trx_no) === grNo && (r.transaction_type === \"GRN\" || r.transaction_type === \"GRN-R\")\n);\n// The putaway's movements belong to this receipt's own chain, so they are\n// replayed rather than read as somebody else having used the stock.\nconst paRows = movRows.filter(\n  (r) => r.transaction_type === \"TO - PA\" && S(r.parent_trx_no) === grNo\n);\n\n// Replay this receipt's ledger. It puts stock in the receiving bin, a completed\n// putaway moves it on to its final bin and category, and an earlier revert may\n// already have taken some back out. Whatever is left over is what this run has\n// to remove, and it is removed from wherever the replay says it now is.\nconst locMap = {};\nconst bump = (r, qty) => {\n  const k =\n    S(r.item_id) + \"|\" + S(r.batch_number_id) + \"|\" + S(r.bin_location_id) + \"|\" + S(r.inventory_category);\n  if (!locMap[k]) {\n    locMap[k] = {\n      material_id: S(r.item_id),\n      batch_id: S(r.batch_number_id),\n      location_id: S(r.bin_location_id),\n      inventory_category: S(r.inventory_category),\n      base_uom_id: S(r.base_uom_id),\n      qty: 0,\n    };\n  }\n  locMap[k].qty = q8(locMap[k].qty + qty);\n};\nfor (const r of ownRows) bump(r, r.transaction_type === \"GRN\" ? num(r.base_qty) : -num(r.base_qty));\nfor (const r of paRows) bump(r, r.movement === \"IN\" ? num(r.base_qty) : -num(r.base_qty));\nconst locations = [];\nconst locSort = (l) => l.material_id + \"|\" + l.batch_id + \"|\" + l.location_id + \"|\" + l.inventory_category;\nfor (const k of Object.keys(locMap)) if (locMap[k].qty > EPS) locations.push(locMap[k]);\nlocations.sort((a, b) => (locSort(a) < locSort(b) ? -1 : locSort(a) > locSort(b) ? 1 : 0));\n\n// Which receipt rows are still outstanding. Rows are reversed oldest first and\n// each is finished before the next begins, so what is left is always a tail of\n// the current cycle. A cycle ends once a whole item and batch has been reversed,\n// which is what stops a receipt that was reverted, completed again and reverted\n// again from undoing the older set a second time.\nconst tupleOf = (r) => S(r.item_id) + \"|\" + S(r.batch_number_id);\nconst byTuple = {};\nfor (const r of ownRows) {\n  const t = tupleOf(r);\n  if (!byTuple[t]) byTuple[t] = [];\n  byTuple[t].push(r);\n}\nlet liveRows = [];\nlet cycleRows = [];\nlet partialRow = 0;\nfor (const t of Object.keys(byTuple)) {\n  const ordered = byTuple[t].slice().sort((a, b) => cmpId(a.id, b.id));\n  let outstanding = 0;\n  let cycle = [];\n  for (const r of ordered) {\n    if (r.transaction_type === \"GRN\") {\n      outstanding = q8(outstanding + num(r.base_qty));\n      cycle.push(r);\n      continue;\n    }\n    outstanding = q8(outstanding - num(r.base_qty));\n    if (outstanding <= EPS) {\n      outstanding = 0;\n      cycle = [];\n    }\n  }\n  cycleRows = cycleRows.concat(cycle);\n  let acc = 0;\n  const live = [];\n  for (let i = cycle.length - 1; i >= 0 && acc < outstanding - EPS; i--) {\n    live.unshift(cycle[i]);\n    acc = q8(acc + num(cycle[i].base_qty));\n  }\n  // A previous run that stopped between the two halves of a single split line\n  // leaves part of a row reversed. That cannot be finished automatically.\n  if (Math.abs(acc - outstanding) > EPS) partialRow = 1;\n  liveRows = liveRows.concat(live);\n}\nliveRows.sort((a, b) => cmpId(a.id, b.id));\n\n// Packaging deductions the handling-unit workflow made for this receipt, minus\n// any an earlier revert already put back.\nconst huOutAll = movRows.filter((r) => r.transaction_type === \"HU\" && S(r.parent_trx_no) === grNo);\nconst huReAll = movRows.filter((r) => r.transaction_type === \"HU-R\" && S(r.parent_trx_no) === grNo);\nconst reCount = {};\nfor (const r of huReAll) reCount[S(r.trx_no)] = (reCount[S(r.trx_no)] || 0) + 1;\nconst huOutRows = [];\nfor (const r of huOutAll) {\n  const k = S(r.trx_no);\n  if (reCount[k] > 0) {\n    reCount[k] -= 1;\n    continue;\n  }\n  huOutRows.push(r);\n}\n\n// Per-tuple anchor: the newest live receipt on that item and batch. Anything\n// posted on it afterwards, by anyone outside this receipt's own chain, means the\n// stock moved on.\nconst tupleAnchors = {};\nfor (const r of liveRows) {\n  const k = tupleOf(r);\n  if (!tupleAnchors[k] || cmpId(r.id, tupleAnchors[k]) > 0) tupleAnchors[k] = S(r.id);\n}\nlet minLiveId = \"\";\nfor (const r of liveRows) if (!minLiveId || cmpId(r.id, minLiveId) < 0) minLiveId = S(r.id);\nif (!minLiveId) minLiveId = grId;\n\n// --- Id sets for the second fetch round --------------------------------------\nconst uniq = (arr) => {\n  const seen = {};\n  const out = [];\n  for (const v of arr) {\n    const k = S(v);\n    if (!k || seen[k]) continue;\n    seen[k] = 1;\n    out.push(k);\n  }\n  return out;\n};\nconst itemIds = uniq(\n  lines.map((l) => l.item_id).concat(liveRows.map((r) => r.item_id)).concat(huOutRows.map((r) => r.item_id))\n);\nconst batchIds = uniq(liveRows.map((r) => r.batch_number_id));\nconst huIds = uniq(liveRows.map((r) => r.handling_unit_id));\nconst poIds = uniq(asArr(gr ? gr.po_id : []).concat(lines.map((l) => l.line_po_id)));\nconst poLineIds = uniq(lines.map((l) => l.po_line_item_id));\n// An empty array would match every row, so an impossible id is used instead.\nconst orNone = (arr) => (arr.length > 0 ? arr : [\"-1\"]);\n\n// Values interpolated into sql-node text are guarded here, not in the SQL.\nconst itemIdsCsv = itemIds.map(digits).filter((v) => v !== \"0\").join(\",\") || \"0\";\nconst plantId = gr ? S(gr.plant_id) : \"\";\n\nif (!refuse && liveRows.length === 0 && locations.length === 0) {\n  let needsInventory = 0;\n  for (const line of lines) if (addsInventory(line) === 1) needsInventory = 1;\n  if (needsInventory === 1) {\n    deny(\"No stock movements are left to reverse for this Goods Receiving. It may already have been reverted.\");\n  }\n}\n\nreturn {\n  refuse,\n  refuseMessage,\n  grId,\n  grIdList: [grId],\n  grNo,\n  organizationId: orgId,\n  plantId,\n  plantIdSql: digits(plantId),\n  minLiveIdSql: digits(minLiveId),\n  grIdSql: digits(grId),\n  grNoSql: S(__v(\"node:code_node_grRvParams.data.grNoSql\")),\n  orgSql: S(__v(\"node:code_node_grRvParams.data.orgSql\")),\n  itemIdsCsv,\n  previousStatus: gr ? S(gr.previous_status) : \"\",\n  lines,\n  liveRows,\n  cycleRows,\n  locations,\n  partialRow,\n  huOutRows,\n  tupleAnchors,\n  itemIds: orNone(itemIds),\n  batchIds: orNone(batchIds),\n  huIds: orNone(huIds),\n  poIds: orNone(poIds),\n  poLineIds: orNone(poLineIds),\n};\n\n} };\n// Goods Receiving/RevertCompletedGR/GRrevertCompletedWorkflow.json :: code_node_grRvBuild\n__N[\"code_node_grRvBuild\"] = { decl: [[\"hasConflicts\", \"int\"], [\"conflictCount\", \"int\"], [\"conflicts\", \"array\"], [\"subtracts\", \"array\"], [\"hasSubtracts\", \"int\"], [\"poLineUpdates\", \"array\"], [\"hasPoLineUpdates\", \"int\"], [\"onOrderUpdates\", \"array\"], [\"hasOnOrderUpdates\", \"int\"], [\"poHeaderUpdates\", \"array\"], [\"hasPoHeaderUpdates\", \"int\"], [\"putawayDeletes\", \"array\"], [\"hasPutawayDeletes\", \"int\"], [\"transitUpdates\", \"array\"], [\"hasTransitUpdates\", \"int\"], [\"qiDeletes\", \"array\"], [\"hasQiDeletes\", \"int\"], [\"batchDeletes\", \"array\"], [\"hasBatchDeletes\", \"int\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// Conflict detection + reverse payloads for \"Revert Completed Goods Receiving\".\n//\n// Nothing is written before this node has run. Every check below appends to\n// `conflicts` rather than returning early, so a blocked revert reports every\n// reason at once instead of one per attempt.\nconst EPS = 0.005;\nconst PRICE_EPS = 0.00005;\nconst num = (v) => {\n  const n = parseFloat(v);\n  return Number.isFinite(n) ? n : 0;\n};\nconst qtyStr = (v) => Math.max(0, q8(v)).toFixed(8);\nconst priceStr = (v) => Math.max(0, q8(v)).toFixed(8);\nconst S = (v) => (v === null || v === undefined ? \"\" : String(v));\nconst asArr = (v) => (Array.isArray(v) ? v : v === null || v === undefined || v === \"\" ? [] : [v]);\nconst cmpId = (a, b) => {\n  a = S(a);\n  b = S(b);\n  if (a.length !== b.length) return a.length - b.length;\n  return a < b ? -1 : a > b ? 1 : 0;\n};\nconst parseJson = (v) => {\n  if (Array.isArray(v) || (v && typeof v === \"object\")) return v;\n  try {\n    return JSON.parse(v);\n  } catch (e) {\n    return null;\n  }\n};\n\n// Category -> balance column, copied from SUBTRACT_INVENTORY code_node_TC1cqaOy.\n// An unrecognised category lands on unrestricted_qty, matching what ADD did.\nconst CATEGORY_FIELD_MAP = {\n  Unrestricted: \"unrestricted_qty\",\n  Reserved: \"reserved_qty\",\n  Blocked: \"block_qty\",\n  \"Quality Inspection\": \"qualityinsp_qty\",\n  \"In Transit\": \"intransit_qty\",\n};\nconst catField = (c) => CATEGORY_FIELD_MAP[S(c)] || \"unrestricted_qty\";\n\nconst grId = S(__v(\"node:code_node_grRvPrep.data.grId\"));\nconst grNo = S(__v(\"node:code_node_grRvPrep.data.grNo\"));\nconst plantId = S(__v(\"node:code_node_grRvPrep.data.plantId\"));\nconst organizationId = S(__v(\"node:code_node_grRvPrep.data.organizationId\"));\nconst lines = asArr(__v(\"node:code_node_grRvPrep.data.lines\"));\nconst liveRows = asArr(__v(\"node:code_node_grRvPrep.data.liveRows\")).slice().sort((a, b) => cmpId(a.id, b.id));\n// Everything the current receipt cycle posted, including rows a previous run\n// already reversed. The document's quantities are checked against these, so a\n// retry after a half-finished run is not mistaken for corrupted data.\nconst cycleRows = asArr(__v(\"node:code_node_grRvPrep.data.cycleRows\"));\nconst huOutRows = asArr(__v(\"node:code_node_grRvPrep.data.huOutRows\"));\n// Where this receipt's stock actually sits now, after any completed putaway\n// moved it on. Reversals come out of these places, not out of the receiving bin.\nconst locations = asArr(__v(\"node:code_node_grRvPrep.data.locations\"));\nconst partialRow = Number(__v(\"node:code_node_grRvPrep.data.partialRow\")) || 0;\nconst tupleAnchors = __v(\"node:code_node_grRvPrep.data.tupleAnchors\") || {};\n\nconst laterRows = asArr(__v(\"node:sql_node_grRvLater.data\"));\nconst fifoRows = asArr(__v(\"node:sql_node_grRvFifo.data\"));\nconst waRows = asArr(__v(\"node:sql_node_grRvWa.data\"));\nconst costCounts = asArr(__v(\"node:sql_node_grRvCostCounts.data\"));\nconst piRows = asArr(__v(\"node:search_node_grRvPi.data.data\"));\nconst batchBalRows = asArr(__v(\"node:search_node_grRvBatchBal.data.data\"));\nconst itemBalRows = asArr(__v(\"node:search_node_grRvItemBal.data.data\"));\nconst huRecords = asArr(__v(\"node:search_node_grRvHu.data.data\"));\nconst poRecords = asArr(__v(\"node:search_node_grRvPo.data.data\"));\nconst onOrderRows = asArr(__v(\"node:search_node_grRvOnOrder.data.data\"));\nconst itemRecords = asArr(__v(\"node:search_node_grRvItems.data.data\"));\nconst putawayRows = asArr(__v(\"node:search_node_grRvPutaway.data.data\"));\nconst qiRows = asArr(__v(\"node:search_node_grRvQi.data.data\"));\nconst transitRows = asArr(__v(\"node:search_node_grRvTransit.data.data\"));\nconst batchRows = asArr(__v(\"node:search_node_grRvBatch.data.data\"));\n\nconst docDate = new Date().toISOString();\n\nconst conflicts = [];\nconst flag = (type, id, message) => conflicts.push({ type: type, id: S(id), message: message });\n\n// A fetch that came back exactly at its ceiling may have hidden the very row\n// that proves the stock moved on, so it is treated as unverifiable.\nconst ceiling = (rows, limit, label) => {\n  if (rows.length >= limit) flag(\"fetch_truncated\", label, label + \" hit the fetch limit; the revert cannot be verified.\");\n};\nceiling(batchBalRows, 1000, \"Item Batch Balance\");\nceiling(itemBalRows, 1000, \"Item Balance\");\nceiling(onOrderRows, 1000, \"On Order\");\nceiling(itemRecords, 1000, \"Item\");\nceiling(transitRows, 1000, \"In Transit Detail\");\n\nconst isSplitParent = (r) => r.is_split === \"Yes\" && r.parent_or_child === \"Parent\";\nconst isChild = (r) => r.parent_or_child === \"Child\";\nconst skipInventory = (r) => (!r.item_id || isSplitParent(r) ? 1 : 0);\nconst updatesPOLine = (r) => (isChild(r) ? 0 : 1);\nconst updatesOnOrder = (r) =>\n  isSplitParent(r) || (!isSplitParent(r) && !isChild(r) && skipInventory(r) === 0) ? 1 : 0;\nconst addsInventory = (r) => (isChild(r) || (!isSplitParent(r) && skipInventory(r) === 0) ? 1 : 0);\nconst flattenTree = (rows) => {\n  const flat = [];\n  for (const row of rows || []) {\n    flat.push(row);\n    for (const child of Array.isArray(row.children) ? row.children : []) flat.push(child);\n  }\n  return flat;\n};\n\nconst itemById = {};\nfor (const it of itemRecords) itemById[S(it.id)] = it;\nconst nameOf = (itemId) => {\n  const it = itemById[S(itemId)];\n  return (it && (it.material_code || it.material_name)) || S(itemId);\n};\nconst tupleKey = (item, batch) => S(item) + \"|\" + S(batch);\nconst isStockControlled = (it) => !it || it.stock_control === null || it.stock_control === undefined || Number(it.stock_control) !== 0;\n\n// --- 1. A live purchase invoice, however it was raised ----------------------\nfor (const pi of piRows) {\n  const st = S(pi.pi_status).trim().toLowerCase();\n  const no = S(pi.purchase_invoice_no).trim();\n  // Cancelling an invoice appends \"-Cancelled\" to its number and sets its\n  // status, but a posted invoice has been seen keeping its old status, so the\n  // number is the more reliable of the two signals and both are honoured.\n  if (st === \"cancelled\" || /-cancelled$/i.test(no)) continue;\n  flag(\"invoiced\", pi.id, \"Purchase Invoice \" + no + \" (\" + (S(pi.pi_status) || \"Draft\") + \") refers to this receipt. Cancel it first.\");\n}\n\n// --- 2. Integrity: the movement rows must still describe this document ------\nconst receivedByItem = {};\nfor (const line of lines) {\n  if (addsInventory(line) !== 1) continue;\n  const it = itemById[S(line.item_id)];\n  if (!isStockControlled(it)) continue;\n  const k = S(line.item_id);\n  receivedByItem[k] = q8((receivedByItem[k] || 0) + (num(line.base_received_qty) || num(line.received_qty)));\n}\nconst postedByItem = {};\nfor (const r of cycleRows) {\n  const k = S(r.item_id);\n  postedByItem[k] = q8((postedByItem[k] || 0) + num(r.base_qty));\n}\nfor (const k of Object.keys(receivedByItem)) {\n  if (Math.abs((postedByItem[k] || 0) - receivedByItem[k]) > EPS) {\n    flag(\"integrity_qty\", k, \"Item \" + nameOf(k) + \": stock on hand from this receipt (\" + q8(postedByItem[k] || 0) + \") no longer matches the received quantity (\" + receivedByItem[k] + \").\");\n  }\n}\nfor (const line of lines) {\n  if (!isSplitParent(line)) continue;\n  const kids = lines.filter((c) => isChild(c) && c.parent_index === line.parent_index);\n  const sum = kids.reduce((s, c) => s + num(c.received_qty), 0);\n  if (Math.abs(sum - num(line.received_qty)) > EPS) {\n    flag(\"split_rollup_mismatch\", line.id, \"Split line for \" + nameOf(line.item_id) + \" no longer adds up to its child rows.\");\n  }\n}\n\n// --- 3. Item master drift that would make the reversal write the wrong thing -\nfor (const r of liveRows) {\n  const it = itemById[S(r.item_id)];\n  if (!it) {\n    flag(\"item_missing\", r.item_id, \"Item master \" + S(r.item_id) + \" no longer exists.\");\n    continue;\n  }\n  if (!isStockControlled(it)) {\n    flag(\"stock_control_changed\", r.item_id, \"Item \" + nameOf(r.item_id) + \" is no longer stock controlled, so its stock cannot be reversed.\");\n  }\n  if (S(r.costing_method_id) && S(it.material_costing_method) && S(r.costing_method_id) !== S(it.material_costing_method)) {\n    flag(\"costing_method_changed\", r.item_id, \"Item \" + nameOf(r.item_id) + \" changed costing method from \" + S(r.costing_method_id) + \" to \" + S(it.material_costing_method) + \".\");\n  }\n  // Stock is taken back out in base units, and SUBTRACT re-derives the base\n  // quantity from whatever unit it is handed, so the item's own base unit has to\n  // convert to itself one for one.\n  const convs = Array.isArray(it.table_uom_conversion) ? it.table_uom_conversion : [];\n  const baseConv = convs.find((c) => S(c.alt_uom_id) === S(it.based_uom));\n  if (baseConv && Math.abs(num(baseConv.base_qty) - 1) > 0.000001) {\n    flag(\"uom_conversion_changed\", r.item_id, \"Item \" + nameOf(r.item_id) + \" does not convert its own base unit one for one.\");\n  }\n}\nif (partialRow === 1) {\n  flag(\"partial_row_state\", grId, \"An earlier revert stopped part way through a single line of this receipt. It cannot be finished automatically.\");\n}\n\n// SUBTRACT_INVENTORY runs a costing-migration branch on every call. It only\n// writes when an item has rows in both costing tables, or rows only in the\n// table its method does not use. Refusing those makes the branch a no-op here.\nconst countBy = {};\nfor (const c of costCounts) countBy[S(c.t) + \"|\" + S(c.material_id)] = num(c.cnt);\nconst liveItemIds = [];\nfor (const r of liveRows) if (liveItemIds.indexOf(S(r.item_id)) === -1) liveItemIds.push(S(r.item_id));\nfor (const iid of liveItemIds) {\n  const it = itemById[iid];\n  const method = it ? S(it.material_costing_method) : \"\";\n  const nFifo = countBy[\"FIFO|\" + iid] || 0;\n  const nWa = countBy[\"WA|\" + iid] || 0;\n  if (nFifo > 0 && nWa > 0) {\n    flag(\"costing_inconsistent\", iid, \"Item \" + nameOf(iid) + \" has both FIFO and weighted-average costing rows; fix the costing data before reverting.\");\n  } else if (method === \"First In First Out\" && nFifo === 0 && nWa > 0) {\n    flag(\"costing_inconsistent\", iid, \"Item \" + nameOf(iid) + \" is FIFO but only has weighted-average costing rows.\");\n  } else if (method === \"Weighted Average\" && nWa === 0 && nFifo > 0) {\n    flag(\"costing_inconsistent\", iid, \"Item \" + nameOf(iid) + \" is weighted average but only has FIFO costing rows.\");\n  }\n}\n\n// --- 4. Has anything touched this stock since? ------------------------------\nfor (const lr of laterRows) {\n  const k = tupleKey(lr.item_id, lr.batch_id);\n  const anchor = tupleAnchors[k];\n  if (!anchor) continue;\n  if (cmpId(lr.max_id, anchor) <= 0) continue;\n  flag(\"later_movement\", lr.item_id, \"Item \" + nameOf(lr.item_id) + \" has been used since this receipt (latest: \" + S(lr.latest) + \").\");\n}\n\n// --- 5. Is the stock still sitting where the receipt put it? ----------------\nconst batchBalBy = {};\nfor (const b of batchBalRows) {\n  batchBalBy[S(b.material_id) + \"|\" + S(b.location_id) + \"|\" + S(b.batch_id) + \"|\" + S(b.plant_id)] = b;\n}\nconst itemBalBy = {};\nfor (const b of itemBalRows) {\n  itemBalBy[S(b.material_id) + \"|\" + S(b.location_id) + \"|\" + S(b.plant_id)] = b;\n}\nfor (const l of locations) {\n  const col = catField(l.inventory_category);\n  const itemBal = itemBalBy[S(l.material_id) + \"|\" + S(l.location_id) + \"|\" + plantId];\n  if (!itemBal) {\n    flag(\"balance_missing\", l.material_id, \"No stock balance row for \" + nameOf(l.material_id) + \" at the bin this receipt's stock is in.\");\n    continue;\n  }\n  if (num(itemBal[col]) < num(l.qty) - EPS) {\n    flag(\"balance_short\", l.material_id, \"Item \" + nameOf(l.material_id) + \" only has \" + q8(itemBal[col]) + \" left of the \" + q8(l.qty) + \" this receipt brought in.\");\n  }\n  if (S(l.batch_id)) {\n    // SUBTRACT reads the batch balance and dereferences it without a guard, so a\n    // missing row would fail mid-run rather than cleanly.\n    const bb = batchBalBy[S(l.material_id) + \"|\" + S(l.location_id) + \"|\" + S(l.batch_id) + \"|\" + plantId];\n    if (!bb) {\n      flag(\"balance_missing\", l.material_id, \"No batch balance row for \" + nameOf(l.material_id) + \" at the bin this receipt's stock is in.\");\n    } else if (num(bb[col]) < num(l.qty) - EPS) {\n      flag(\"balance_short\", l.material_id, \"The batch of \" + nameOf(l.material_id) + \" only has \" + q8(bb[col]) + \" left of the \" + q8(l.qty) + \" this receipt brought in.\");\n    }\n  }\n}\n\n// --- 6. Costing rows this receipt created ----------------------------------\nconst rowsByTuple = {};\nfor (const r of liveRows) {\n  const k = tupleKey(r.item_id, r.batch_number_id);\n  if (!rowsByTuple[k]) rowsByTuple[k] = [];\n  rowsByTuple[k].push(r);\n}\nconst fifoDeleteFor = {};\nconst waDeleteFor = {};\nconst waUpdateFor = {};\n\nfor (const k of Object.keys(rowsByTuple)) {\n  const rows = rowsByTuple[k];\n  const itemId = rows[0].item_id;\n  const batchId = S(rows[0].batch_number_id);\n  const it = itemById[S(itemId)];\n  const method = it ? S(it.material_costing_method) : \"\";\n\n  if (method === \"First In First Out\") {\n    // Every layer on this tuple newer than the receipt document is one of ours:\n    // an earlier receipt's layers have lower ids, a previous revert's are\n    // soft-deleted, and a later foreign receipt is already refused above.\n    const layers = fifoRows.filter((f) => S(f.material_id) === S(itemId) && S(f.batch_id) === batchId);\n    if (layers.length !== rows.length) {\n      flag(\"fifo_layer_mismatch\", itemId, \"Item \" + nameOf(itemId) + \" has \" + layers.length + \" costing layer(s) from this receipt but \" + rows.length + \" stock movement(s).\");\n      continue;\n    }\n    const used = {};\n    for (const r of rows) {\n      let hit = null;\n      for (const f of layers) {\n        if (used[S(f.id)]) continue;\n        if (Math.abs(num(f.fifo_initial_quantity) - num(r.base_qty)) > EPS) continue;\n        if (Math.abs(num(f.fifo_cost_price) - num(r.unit_price)) > PRICE_EPS) continue;\n        hit = f;\n        break;\n      }\n      if (!hit) {\n        flag(\"fifo_layer_mismatch\", itemId, \"No untouched costing layer matches the \" + q8(r.base_qty) + \" of \" + nameOf(itemId) + \" received here.\");\n        continue;\n      }\n      if (Math.abs(num(hit.fifo_available_quantity) - num(hit.fifo_initial_quantity)) > EPS) {\n        flag(\"fifo_layer_consumed\", itemId, \"The costing layer for \" + nameOf(itemId) + \" has already been drawn down (\" + q8(hit.fifo_available_quantity) + \" of \" + q8(hit.fifo_initial_quantity) + \" left).\");\n        continue;\n      }\n      used[S(hit.id)] = 1;\n      fifoDeleteFor[S(r.id)] = S(hit.id);\n    }\n  } else if (method === \"Weighted Average\") {\n    if (batchId) {\n      const rowsWa = waRows.filter((w) => S(w.material_id) === S(itemId) && S(w.batch_id) === batchId);\n      if (rowsWa.length !== rows.length) {\n        flag(\"wa_batch_row_mismatch\", itemId, \"Item \" + nameOf(itemId) + \" has \" + rowsWa.length + \" costing row(s) from this receipt but \" + rows.length + \" stock movement(s).\");\n        continue;\n      }\n      const used = {};\n      for (const r of rows) {\n        let hit = null;\n        for (const w of rowsWa) {\n          if (used[S(w.id)]) continue;\n          if (Math.abs(num(w.wa_quantity) - num(r.base_qty)) > EPS) continue;\n          if (Math.abs(num(w.wa_cost_price) - num(r.unit_price)) > PRICE_EPS) continue;\n          hit = w;\n          break;\n        }\n        if (!hit) {\n          flag(\"wa_batch_row_mismatch\", itemId, \"No untouched costing row matches the \" + q8(r.base_qty) + \" of \" + nameOf(itemId) + \" received here.\");\n          continue;\n        }\n        used[S(hit.id)] = 1;\n        waDeleteFor[S(r.id)] = S(hit.id);\n      }\n    } else {\n      // The receipt merged into one running average row. Undoing it means\n      // taking this receipt's quantity and value back out of that average.\n      const pool = waRows\n        .filter((w) => S(w.material_id) === S(itemId) && !S(w.batch_id))\n        .slice()\n        .sort((a, b) => cmpId(a.id, b.id));\n      const target = pool.length > 0 ? pool[pool.length - 1] : null;\n      if (!target) {\n        flag(\"wa_row_missing\", itemId, \"The weighted-average costing row for \" + nameOf(itemId) + \" no longer exists.\");\n        continue;\n      }\n      let B = 0;\n      let C = 0;\n      for (const r of rows) {\n        B = q8(B + num(r.base_qty));\n        C = C + num(r.base_qty) * num(r.unit_price);\n      }\n      const q1 = num(target.wa_quantity);\n      const p1 = num(target.wa_cost_price);\n      if (q1 < B - EPS) {\n        flag(\"wa_qty_short\", itemId, \"The weighted-average quantity for \" + nameOf(itemId) + \" (\" + q8(q1) + \") is below the \" + B + \" this receipt added.\");\n        continue;\n      }\n      const q0 = q8(q1 - B);\n      let p0 = p1;\n      if (q0 > 0.0005) {\n        p0 = q8((p1 * q1 - C) / q0);\n        if (p0 < 0) {\n          flag(\"wa_backsolve_negative\", itemId, \"Undoing the weighted-average cost for \" + nameOf(itemId) + \" would give a negative unit cost.\");\n          continue;\n        }\n      }\n      waUpdateFor[S(rows[rows.length - 1].id)] = {\n        id: S(target.id),\n        wa_quantity: q0 > 0.0005 ? qtyStr(q0) : \"0.00000000\",\n        wa_cost_price: priceStr(p0),\n      };\n    }\n  }\n}\n\n// --- 7. Handling units ------------------------------------------------------\nconst huById = {};\nfor (const h of huRecords) huById[S(h.id)] = h;\nconst huActionFor = {};\nfor (const r of liveRows) {\n  const huId = S(r.handling_unit_id);\n  if (!huId) continue;\n  const hu = huById[huId];\n  if (!hu) {\n    flag(\"hu_missing\", huId, \"Handling unit \" + huId + \" no longer exists.\");\n    continue;\n  }\n  if (S(hu.hu_status) !== \"Created\") {\n    flag(\"hu_status\", huId, \"Handling unit \" + S(hu.handling_no) + \" is \" + (S(hu.hu_status) || \"blank\") + \" and can no longer be unpacked.\");\n    continue;\n  }\n  if (S(hu.parent_hu_id) || S(hu.packing_id)) {\n    flag(\"hu_nested\", huId, \"Handling unit \" + S(hu.handling_no) + \" has been nested or packed.\");\n    continue;\n  }\n  // A completed putaway moves the handling unit along with its stock, so the\n  // bin to expect it in is wherever the replay says that stock now is.\n  const expectBins = locations\n    .filter((l) => S(l.material_id) === S(r.item_id) && S(l.batch_id) === S(r.batch_number_id))\n    .map((l) => S(l.location_id));\n  if (expectBins.length === 0) expectBins.push(S(r.bin_location_id));\n  if (expectBins.indexOf(S(hu.location_id)) === -1) {\n    flag(\"hu_moved\", huId, \"Handling unit \" + S(hu.handling_no) + \" has been moved to another bin.\");\n    continue;\n  }\n  const items = asArr(parseJson(hu.table_hu_items) || []).filter((i) => Number(i.is_deleted) !== 1);\n  // The handling unit is created after the stock is added, so a larger id means\n  // this receipt created it; a smaller one means the stock was loaded into a\n  // handling unit that already existed.\n  const createdHere = cmpId(hu.id, r.id) > 0;\n  if (createdHere) {\n    const ok =\n      items.length === 1 &&\n      S(items[0].material_id) === S(r.item_id) &&\n      S(items[0].batch_id) === S(r.batch_number_id) &&\n      Math.abs(num(items[0].quantity) - num(r.base_qty)) <= EPS;\n    if (!ok) {\n      flag(\"hu_items_mismatch\", huId, \"Handling unit \" + S(hu.handling_no) + \" no longer holds only this receipt's stock.\");\n      continue;\n    }\n    const packaging = huOutRows.find((o) => S(o.trx_no) === S(hu.handling_no));\n    huActionFor[S(r.id)] = {\n      action: \"delete\",\n      huId: huId,\n      handlingNo: S(hu.handling_no),\n      packaging: packaging\n        ? {\n            material_id: S(packaging.item_id),\n            quantity: q8(packaging.quantity),\n            material_uom: S(packaging.uom_id),\n            unit_price: q8(packaging.unit_price),\n            location_id: S(packaging.bin_location_id),\n            trx_no: S(packaging.trx_no),\n            itemData: itemById[S(packaging.item_id)] || null,\n          }\n        : null,\n    };\n  } else {\n    const mine = items.filter((i) => S(i.material_id) === S(r.item_id) && S(i.batch_id) === S(r.batch_number_id));\n    const held = mine.reduce((s, i) => s + num(i.quantity), 0);\n    if (mine.length === 0 || held < num(r.base_qty) - EPS) {\n      flag(\"hu_items_mismatch\", huId, \"Handling unit \" + S(hu.handling_no) + \" no longer holds the \" + q8(r.base_qty) + \" of \" + nameOf(r.item_id) + \" loaded from this receipt.\");\n      continue;\n    }\n    huActionFor[S(r.id)] = {\n      action: \"unload\",\n      huId: huId,\n      handlingNo: S(hu.handling_no),\n      plantId: S(hu.plant_id),\n      storageLocationId: S(hu.storage_location_id),\n      locationId: S(hu.location_id),\n      items: [\n        {\n          material_id: S(r.item_id),\n          balance_id: S(mine[0].balance_id),\n          batch_id: S(r.batch_number_id) || null,\n          quantity: q8(r.base_qty),\n        },\n      ],\n      packaging: null,\n    };\n  }\n}\n\n// --- 8. Documents the receipt created --------------------------------------\nconst putawayDeletes = [];\nfor (const to of putawayRows) {\n  const st = S(to.to_status);\n  if (Number(to.is_processing) === 1) {\n    flag(\"putaway_locked\", to.id, \"Putaway \" + S(to.to_id) + \" is being processed right now.\");\n    continue;\n  }\n  if (S(to.qi_id)) {\n    flag(\"putaway_progressed\", to.id, \"Putaway \" + S(to.to_id) + \" also covers a receiving inspection and cannot be withdrawn here.\");\n    continue;\n  }\n  if (st === \"Created\" || st === \"Draft\") {\n    const items = flattenTree(asArr(parseJson(to.table_putaway_item) || []));\n    const records = asArr(parseJson(to.table_putaway_records) || []);\n    if (records.length > 0 || items.some((i) => S(i.line_status) !== \"Open\" || num(i.putaway_qty) > EPS)) {\n      flag(\"putaway_progressed\", to.id, \"Putaway \" + S(to.to_id) + \" has already been started.\");\n      continue;\n    }\n  } else if (st !== \"Completed\") {\n    // In Progress means someone is part way through putting this stock away.\n    // The receipt is still at Received in that state, so there is nothing to\n    // revert until the putaway is either finished or cleared.\n    flag(\"putaway_progressed\", to.id, \"Putaway \" + S(to.to_id) + \" is \" + (st || \"blank\") + \". Finish or clear it before reverting this receipt.\");\n    continue;\n  }\n  putawayDeletes.push({ id: S(to.id) });\n}\n\nconst qiDeletes = [];\nfor (const lot of qiRows) {\n  if (S(lot.receiving_insp_status) !== \"Created\") {\n    flag(\"inspection_progressed\", lot.id, \"Inspection lot \" + S(lot.inspection_lot_no) + \" is \" + S(lot.receiving_insp_status) + \".\");\n    continue;\n  }\n  qiDeletes.push({ id: S(lot.id) });\n}\n\nconst transitUpdates = [];\nfor (const t of transitRows) {\n  const st = S(t.status);\n  if (st === \"Cancelled\") continue;\n  if (st === \"In Transit\" && Math.abs(num(t.open_qty) - num(t.transit_qty)) > EPS) {\n    flag(\"transit_consumed\", t.id, \"Part of the in-transit quantity for \" + nameOf(t.material_id) + \" has already been put away.\");\n    continue;\n  }\n  // Either still waiting to be put away, or closed by the putaway that is being\n  // withdrawn with this receipt. Both are cancelled.\n  transitUpdates.push({ id: S(t.id), status: \"Cancelled\", open_qty: \"0.00000000\" });\n}\n\n// A batch minted by a split parent is never looked up again on re-completion,\n// so leaving it behind would mint a second batch with the same number. Batches\n// created through the inventory workflow ARE looked up, so those are kept and\n// reused.\nconst liveBatchIds = {};\nfor (const r of liveRows) if (S(r.batch_number_id)) liveBatchIds[S(r.batch_number_id)] = 1;\nconst batchDeletes = [];\nfor (const b of batchRows) {\n  if (!S(b.parent_transaction_no)) continue;\n  if (!liveBatchIds[S(b.id)]) continue;\n  batchDeletes.push({ id: S(b.id) });\n}\n\n// --- 9. Purchase order side -------------------------------------------------\nconst recvByLine = {};\nconst baseByLine = {};\nconst resByLine = {};\nfor (const l of lines) {\n  const lid = S(l.po_line_item_id);\n  if (!lid) continue;\n  if (updatesPOLine(l) === 1) recvByLine[lid] = q8((recvByLine[lid] || 0) + num(l.received_qty));\n  if (updatesOnOrder(l) === 1) {\n    baseByLine[lid] = q8((baseByLine[lid] || 0) + (num(l.base_received_qty) || num(l.received_qty)));\n  }\n  if (!isSplitParent(l)) resByLine[lid] = q8((resByLine[lid] || 0) + num(l.received_qty));\n}\n\nconst poLineUpdates = [];\nconst updById = {};\nfor (const po of poRecords) {\n  for (const pl of flattenTree(po.table_po)) {\n    const lid = S(pl.id);\n    const recv = recvByLine[lid];\n    if (recv === undefined) continue;\n    const res = resByLine[lid] || 0;\n    const quantity = num(pl.quantity);\n    const newRecv = Math.max(0, q8(num(pl.received_qty) - recv));\n    const outstanding = Math.max(0, q8(quantity - newRecv));\n    const cur = S(pl.line_status);\n    let lineStatus;\n    if (cur === \"Cancelled\" || cur === \"Draft\") {\n      lineStatus = cur;\n    } else if (quantity > 0 && newRecv >= quantity - EPS) {\n      lineStatus = \"Completed\";\n    } else if (newRecv > EPS) {\n      lineStatus = \"Processing\";\n    } else {\n      lineStatus = \"Issued\";\n    }\n    const upd = {\n      id: lid,\n      received_qty: qtyStr(newRecv),\n      outstanding_quantity: qtyStr(outstanding),\n      line_status: lineStatus,\n      created_received_qty: qtyStr(num(pl.created_received_qty) + res),\n    };\n    poLineUpdates.push(upd);\n    updById[lid] = upd;\n  }\n}\nfor (const lid of Object.keys(recvByLine)) {\n  if (!updById[lid]) flag(\"po_line_missing\", lid, \"Purchase order line \" + lid + \" no longer exists.\");\n  if (Math.abs((resByLine[lid] || 0) - recvByLine[lid]) > EPS) {\n    flag(\"split_rollup_mismatch\", lid, \"Received and reserved quantities disagree for purchase order line \" + lid + \".\");\n  }\n}\n\nconst onOrderUpdates = [];\nfor (const oo of onOrderRows) {\n  const base = baseByLine[S(oo.po_line_id)];\n  if (base === undefined) continue;\n  const newRecv = Math.max(0, q8(num(oo.received_qty) - base));\n  onOrderUpdates.push({\n    id: S(oo.id),\n    received_qty: qtyStr(newRecv),\n    open_qty: qtyStr(Math.max(0, q8(num(oo.scheduled_qty) - newRecv))),\n  });\n}\n\n// An item bundle is ONE receivable line: the bundle row is counted, its items\n// are not. Same rule the completion workflow uses.\nconst isBundleChildLine = (item) => Boolean(item.item_bundle_id) && Boolean(item.item_id);\nconst poHeaderUpdates = [];\nfor (const po of poRecords) {\n  const tablePO = asArr(po.table_po).filter((i) => !isBundleChildLine(i));\n  if (tablePO.length === 0) continue;\n  let partially = 0;\n  let fully = 0;\n  for (const item of tablePO) {\n    const upd = updById[S(item.id)];\n    const quantity = num(item.quantity);\n    const receivedQty = upd ? num(upd.received_qty) : num(item.received_qty);\n    if (receivedQty > 0) {\n      partially++;\n      if (receivedQty >= quantity) fully++;\n    }\n  }\n  const curStatus = S(po.po_status);\n  let newPOStatus = curStatus;\n  if (fully === tablePO.length) {\n    newPOStatus = \"Completed\";\n  } else if (partially > 0) {\n    newPOStatus = \"Processing\";\n  } else if (curStatus === \"Processing\" || curStatus === \"Completed\") {\n    // Nothing is received against this purchase order any more, so it goes back\n    // to the state it had before the first receipt. Draft and Cancelled are\n    // left alone.\n    newPOStatus = \"Issued\";\n  }\n  poHeaderUpdates.push({\n    id: S(po.id),\n    po_status: newPOStatus,\n    gr_status: \"Created\",\n    partially_received: partially + \" / \" + tablePO.length,\n    fully_received: fully + \" / \" + tablePO.length,\n  });\n}\n\n// --- 10. Reverse payload ----------------------------------------------------\nconst subtracts = [];\nif (conflicts.length === 0) {\n  // Spread each outstanding receipt row across the places its stock now sits. A\n  // putaway can land one line in more than one bin, so a row can need more than\n  // one reversal. The costing and handling-unit work rides on the last of them,\n  // so it only happens once all of that row's stock is back out.\n  const poolByTuple = {};\n  for (const l of locations) {\n    const t = S(l.material_id) + \"|\" + S(l.batch_id);\n    if (!poolByTuple[t]) poolByTuple[t] = [];\n    poolByTuple[t].push({ loc: l, remaining: num(l.qty) });\n  }\n  let index = 0;\n  for (const r of liveRows) {\n    const pool = poolByTuple[S(r.item_id) + \"|\" + S(r.batch_number_id)] || [];\n    let need = q8(r.base_qty);\n    const parts = [];\n    for (const p of pool) {\n      if (need <= EPS) break;\n      if (p.remaining <= EPS) continue;\n      const take = q8(Math.min(need, p.remaining));\n      p.remaining = q8(p.remaining - take);\n      need = q8(need - take);\n      parts.push({ loc: p.loc, qty: take });\n    }\n    if (need > EPS) {\n      flag(\"stock_not_found\", r.item_id, \"Cannot account for \" + q8(need) + \" of \" + nameOf(r.item_id) + \" from this receipt.\");\n      continue;\n    }\n    for (let k = 0; k < parts.length; k++) {\n      const part = parts[k];\n      const last = k === parts.length - 1;\n      const hu = last ? huActionFor[S(r.id)] || null : null;\n      const waU = last ? waUpdateFor[S(r.id)] || null : null;\n      const fifoId = last ? fifoDeleteFor[S(r.id)] || \"\" : \"\";\n      const waDelId = last ? waDeleteFor[S(r.id)] || \"\" : \"\";\n      const pack = hu && hu.packaging ? hu.packaging : null;\n      subtracts.push({\n        index: index++,\n        material_id: S(r.item_id),\n        // Reversals are made in base units, out of the bin and category the\n        // stock is in now rather than the one the receipt first wrote.\n        quantity: part.qty,\n        material_uom: S(part.loc.base_uom_id) || S(r.base_uom_id),\n        unit_price: q8(r.unit_price),\n        inventory_category: S(part.loc.inventory_category),\n        location_id: S(part.loc.location_id),\n        batch_id: S(part.loc.batch_id) || null,\n        handling_unit_id: S(r.handling_unit_id),\n        parent_trx_no: S(r.parent_trx_no),\n        itemData: itemById[S(r.item_id)] || null,\n        doc_date: docDate,\n        failLabel:\n          \"Item \" + nameOf(r.item_id) + \" (\" + part.qty + \" \" + S(part.loc.inventory_category) + \")\",\n        fifoDeleteId: fifoId,\n        hasFifoDelete: fifoId ? 1 : 0,\n        waDeleteId: waDelId,\n        hasWaDelete: waDelId ? 1 : 0,\n        waUpdateId: waU ? waU.id : \"\",\n        waQuantity: waU ? qtyStr(waU.wa_quantity) : \"0.00000000\",\n        waCostPrice: waU ? priceStr(waU.wa_cost_price) : \"0.00000000\",\n        hasWaUpdate: waU ? 1 : 0,\n        huId: hu ? hu.huId : \"\",\n        huHandlingNo: hu ? hu.handlingNo : \"\",\n        huIsDelete: hu && hu.action === \"delete\" ? 1 : 0,\n        huIsUnload: hu && hu.action === \"unload\" ? 1 : 0,\n        huPlantId: hu && hu.plantId ? hu.plantId : plantId,\n        huStorageLocationId: hu && hu.storageLocationId ? hu.storageLocationId : \"\",\n        huLocationId: hu && hu.locationId ? hu.locationId : \"\",\n        huItems: hu && hu.items ? hu.items : [],\n        hasHuReadd: pack ? 1 : 0,\n        readdMaterialId: pack ? pack.material_id : \"\",\n        readdQuantity: pack ? q8(pack.quantity) : 0,\n        readdUom: pack ? pack.material_uom : \"\",\n        readdUnitPrice: pack ? q8(pack.unit_price) : 0,\n        readdLocationId: pack ? pack.location_id : \"\",\n        readdTrxNo: pack ? pack.trx_no : \"\",\n        readdItemData: pack ? pack.itemData : null,\n      });\n    }\n  }\n}\n\nconst hasConflicts = conflicts.length > 0 ? 1 : 0;\nconst gate = (arr) => (hasConflicts === 1 ? [] : arr);\nconst flagOf = (arr) => (hasConflicts === 0 && arr.length > 0 ? 1 : 0);\n\nconst outPoLines = gate(poLineUpdates);\nconst outOnOrder = gate(onOrderUpdates);\nconst outPoHeaders = gate(poHeaderUpdates);\nconst outPutaway = gate(putawayDeletes);\nconst outTransit = gate(transitUpdates);\nconst outQi = gate(qiDeletes);\nconst outBatch = gate(batchDeletes);\n\nreturn {\n  hasConflicts: hasConflicts,\n  conflictCount: conflicts.length,\n  conflicts: conflicts,\n  subtracts: subtracts,\n  hasSubtracts: flagOf(subtracts),\n  poLineUpdates: outPoLines,\n  hasPoLineUpdates: flagOf(outPoLines),\n  onOrderUpdates: outOnOrder,\n  hasOnOrderUpdates: flagOf(outOnOrder),\n  poHeaderUpdates: outPoHeaders,\n  hasPoHeaderUpdates: flagOf(outPoHeaders),\n  putawayDeletes: outPutaway,\n  hasPutawayDeletes: flagOf(outPutaway),\n  transitUpdates: outTransit,\n  hasTransitUpdates: flagOf(outTransit),\n  qiDeletes: outQi,\n  hasQiDeletes: flagOf(outQi),\n  batchDeletes: outBatch,\n  hasBatchDeletes: flagOf(outBatch),\n};\n\n} };\n// GR Revert Completed V2 - SQL rows (prepare/sql.py) -> the shapes GR_REVERT_COMPLETED's reads handed grRvPrep / grRvBuild\n// (checked against recorded runs by test/adapter_vs_recorded.js). Ids are exact digit strings (16+ digit numbers are read as\n// text BEFORE JSON.parse; a short bigint like gr_no_type -9999 stays a number, as the platform's serializer leaves it).\n// get / search-node rows: a column holding null or \"\" is absent, inside a JSON column only nulls go; nested subform rows drop\n// the system columns and their parent key, children nest under their parent_id, rows in id order; a get-node answers\n// {count:1,data:{...}} or {count:0,data:{}}, a search-node {total,count,data:[...]}. sql-node rows (movs / later / fifo / wa /\n// costcounts): the classic's select list, null columns absent.\nconst rvParse = (t) =>\n  JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\nconst rvS = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst rvList = (v) => (Array.isArray(v) ? v : v ? [v] : []);\nconst rvDigits = (v) => /^[0-9]{1,20}$/.test(rvS(v));\nconst rvNum = (v) => {\n  const n = parseFloat(v);\n  return Number.isFinite(n) ? n : 0;\n};\nconst rvQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst rvCmpId = (a, b) => {\n  a = rvS(a);\n  b = rvS(b);\n  if (a.length !== b.length) return a.length - b.length;\n  return a < b ? -1 : a > b ? 1 : 0;\n};\nconst rvStripNull = (v) => {\n  if (Array.isArray(v)) return v.map(rvStripNull);\n  if (v && typeof v === \"object\") {\n    const o = {};\n    for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== undefined) o[k] = rvStripNull(v[k]);\n    return o;\n  }\n  return v;\n};\nconst rvStrip = (row) => {\n  const o = {};\n  for (const k of Object.keys(row || {})) {\n    const v = row[k];\n    if (v === null || v === undefined || v === \"\") continue;\n    o[k] = typeof v === \"object\" ? rvStripNull(v) : v;\n  }\n  return o;\n};\nconst rvSqlRow = (row) => {\n  const o = {};\n  for (const k of Object.keys(row || {})) if (row[k] !== null && row[k] !== undefined) o[k] = row[k];\n  return o;\n};\nconst rvRows = (v) => rvList(v).filter((r) => r && r.j !== undefined && r.j !== null);\nconst rvJ = (r) => (typeof r.j === \"string\" ? rvParse(r.j) : r.j);\nconst rvObj = (r) => rvStrip(rvJ(r));\nconst rvSql = (v) => rvRows(v).map((r) => rvSqlRow(rvJ(r)));\nconst RV_NESTED_DROP = [\"create_user\", \"create_dept\", \"create_time\", \"update_user\", \"update_time\", \"tenant_id\", \"is_deleted\", \"sub_tenant_id\", \"sub_tenant_id_d_am5ft\"];\n// flat subform rows of one parent (id order) -> top-level rows carrying `children`\nconst rvTree = (rows, fk) => {\n  const top = [];\n  const byId = {};\n  for (const o of rows) {\n    const r = Object.assign({}, o);\n    for (const k of RV_NESTED_DROP.concat([fk])) delete r[k];\n    byId[o.id] = r;\n  }\n  for (const o of rows) {\n    const p = o.parent_id ? byId[o.parent_id] : null;\n    if (p) (p.children = p.children || []).push(byId[o.id]);\n    else top.push(byId[o.id]);\n  }\n  return top;\n};\n// (k, j) rows -> { <k>: [row, ...] }; children grouped under their parent's id\nconst rvKinds = (v) => {\n  const out = {};\n  for (const r of rvList(v)) if (r && r.k && r.j !== undefined && r.j !== null) (out[r.k] = out[r.k] || []).push(rvObj(r));\n  return out;\n};\nconst rvGroup = (rows, fk) => {\n  const out = {};\n  for (const r of rows || []) (out[rvS(r[fk])] = out[rvS(r[fk])] || []).push(r);\n  return out;\n};\nconst rvNest = (parents, children, fk, as) => {\n  const by = rvGroup(children, fk);\n  return (parents || []).map((p) => Object.assign({}, p, { [as]: rvTree(by[rvS(p.id)] || [], fk) }));\n};\n// a handling unit in the receipt's chain (grRvPrep's live rows / packaging deductions): those receipts stay with the classic\nconst rvHasHu = (prep) => rvList(prep.liveRows).some((r) => rvS(r.handling_unit_id) !== \"\") || rvList(prep.huOutRows).length > 0;\nconst rvGet = (row) => (row ? { count: 1, data: row } : { count: 0, data: {} });\nconst rvSearch = (rows) => ({ total: rows.length, count: rows.length, data: rows });\n\n// round 1 / SUBMIT: the receipt as get_node_grRvGr reads it (its lines nested in table_gr; serial receipts are not V2's, so\n// table_sn_records is empty), its movements (sql_node_grRvMovs), its putaways with their lines and records, inspection\n// lots, in-transit rows, batches (the search nodes), its latest lock; serialLines = lines whose item is serial-managed\nconst rvAdapt1 = function rvAdapt1(S) {\n  const hdr = rvRows(S.hdr).map(rvObj)[0] || null;\n  const lineRows = rvRows(S.lines);\n  const lines = lineRows.map(rvObj);\n  if (hdr) {\n    hdr.table_gr = rvTree(lines, \"goods_receiving_id\");\n    hdr.table_sn_records = [];\n  }\n  const to = rvKinds(S.putaway);\n  const putaway = rvNest(rvNest(to.TO, to.TOL, \"transfer_order_putaway_id\", \"table_putaway_item\"), to.TOR, \"transfer_order_putaway_id\", \"table_putaway_records\");\n  const lock = rvList(S.lock).filter((r) => r && r.step_name)[0] || null;\n  return {\n    gr: rvGet(hdr), hdr: hdr, lines: lines, serialLines: lineRows.filter((r) => Number(r.sn) === 1).length, movs: rvSql(S.movs),\n    putaway: rvSearch(putaway), qi: rvSearch(rvRows(S.qi).map(rvObj)), transit: rvSearch(rvRows(S.transit).map(rvObj)),\n    batches: rvSearch(rvRows(S.batches).map(rvObj)), lock: lock,\n  };\n};\n\n// round 2: grRvBuild's reads - the classic's sql-nodes (later, fifo, wa, costcounts) and search nodes (invoices, balances,\n// handling units with table_hu_items, purchase orders with table_po, on-order rows, items with table_uom_conversion)\nconst rvAdapt2 = function rvAdapt2(S) {\n  const hu = rvKinds(S.hu);\n  const po = rvKinds(S.po);\n  const it = rvKinds(S.items);\n  return {\n    later: rvSql(S.later), fifo: rvSql(S.fifo), wa: rvSql(S.wa), costcounts: rvSql(S.costcounts),\n    pi: rvSearch(rvRows(S.pi).map(rvObj)), bbal: rvSearch(rvRows(S.bbal).map(rvObj)), ibal: rvSearch(rvRows(S.ibal).map(rvObj)),\n    hu: rvSearch(rvNest(hu.HU, hu.HUI, \"handling_unit_id\", \"table_hu_items\")), po: rvSearch(rvNest(po.PO, po.POL, \"purchase_order_id\", \"table_po\")),\n    oo: rvSearch(rvRows(S.oo).map(rvObj)), items: rvSearch(rvNest(it.I, it.U, \"Item_id\", \"table_uom_conversion\")),\n  };\n};\n// GR Revert Completed V2 - grRvParams + grRvPrep (lifted) on the receipt as GR_REVERT_COMPLETED reads it, shared by the\n// PREPARE prep node and the SUBMIT gate. The classic's \"more than 500 lines\" refusal is its own guard, not V2's (V2 takes\n// up to 2,500 lines): above 500 lines the receipt's refusal is found again on slices of at most 500 lines, each with the\n// same header and movements - a header or movement refusal reads the same on every slice, the one line-based refusal that\n// precedes a header one (a purchase return) is found on the slice holding the line, so it wins, else any slice's answer\nconst RV_OLD_PATH_LINES = 500;\nconst RV_MAX_LINES = 2500;\nconst RV_RETURN_REFUSAL = \"A purchase return has already claimed quantity from this receipt.\";\nconst RV_LINE_GUARD = /^This Goods Receiving has \\d+ lines\\. Reverting more than 500 lines is not supported yet\\.$/;\n\n// gr: the receipt (get-node row with its table_gr tree) or null; params: what the classic's request carried\nconst rvRunPrep = function rvRunPrep(gr, movRows, params) {\n  const run = (g) => __withContext({\n    \"workflowparams:gr_id\": params.grId, \"workflowparams:gr_no\": params.grNo, \"workflowparams:organization_id\": params.organizationId,\n    \"node:get_node_grRvGr\": { data: rvGet(g) }, \"node:sql_node_grRvMovs\": { data: movRows },\n  }, () => ({ params: __run(\"code_node_grRvParams\"), prep: __run(\"code_node_grRvPrep\") }));\n  const full = run(gr);\n  const out = full.prep;\n  if (Number(out.refuse) !== 1 || !RV_LINE_GUARD.test(rvS(out.refuseMessage))) return { params: full.params, prep: out, slices: 0 };\n  const found = [];\n  let slices = 0;\n  let chunk = [];\n  let size = 0;\n  const flush = () => {\n    if (!chunk.length) return;\n    const o = run(Object.assign({}, gr, { table_gr: chunk })).prep;\n    slices++;\n    if (Number(o.refuse) === 1) found.push(rvS(o.refuseMessage));\n    chunk = [];\n    size = 0;\n  };\n  for (const row of gr.table_gr || []) {\n    const n = 1 + (Array.isArray(row.children) ? row.children.length : 0);\n    // a single bundle row of more than 500 items cannot be sliced: the classic's refusal stands\n    if (n > RV_OLD_PATH_LINES) return { params: full.params, prep: out, slices: -1 };\n    if (size + n > RV_OLD_PATH_LINES) flush();\n    chunk.push(row);\n    size += n;\n  }\n  flush();\n  out.refuse = found.length ? 1 : 0;\n  out.refuseMessage = !found.length ? \"\" : found.indexOf(RV_RETURN_REFUSAL) >= 0 ? RV_RETURN_REFUSAL : found[0];\n  return { params: full.params, prep: out, slices: slices };\n};\n\n// grRvPrep's id lists (orNone's \"-1\" when empty) -> comma-separated digits (\"0\" when empty); null when one is not an id\nconst rvIdsSql = (arr) => {\n  const ids = rvList(arr).map(rvS).filter((v) => v !== \"-1\");\n  if (ids.some((v) => !rvDigits(v))) return null;\n  return ids.length ? ids.join(\",\") : \"0\";\n};\n\nconst RV_PREP_SQL = [\"sqlMinLiveId\", \"sqlPlantId\", \"sqlItemIds\", \"sqlBatchIds\", \"sqlHuIds\", \"sqlPoIds\", \"sqlPoLineIds\"];\n\n// GR_REVERT_PREPARE - Prep (code_node_VPprep): the receipt this job locked -> grRvPrep (lifted) on it as the classic saw it\n// before the lock (gr_status = the job's previous status) -> its outputs (code_node_VPplan hands them to grRvBuild as\n// grRvPrep's went to it) + the digit-only values the second round of reads interpolates (sql*; \"0\" unless route GO and not\n// refused). FAIL: the job is not this run's (entry), the receipt is not Processing under it (GRV_NOT_LOCKED; unlockOk 0),\n// what V2 does not take (GRV_NOT_ELIGIBLE: handling units, serial items; GRV_TOO_LARGE above 2,500 lines), an id that is\n// not digits (GRV_INVALID_DATA). A grRvPrep refusal passes through (route GO, refuse 1: the plan answers it as GRV_400)\nconst rvPrep = function rvPrep(entry, S) {\n  const e = entry || {};\n  const req = e.request && typeof e.request === \"object\" ? e.request : {};\n  const prev = rvS(req.previousStatus);\n  const base = { route: \"FAIL\", code: \"\", message: \"\", unlockOk: 0, revertFrom: prev, lineCount: 0, refuse: 0, refuseMessage: \"\" };\n  for (const k of RV_PREP_SQL) base[k] = \"0\";\n  const fail = (code, message) => Object.assign(base, { route: \"FAIL\", code: code, message: message });\n  if (rvS(e.route) !== \"GO\") return fail(rvS(e.result_code) || \"GRV_INVALID_REQUEST\", rvS(e.result_message) || \"the job's request could not be read\");\n  if (!rvDigits(e.tenantId) || !rvDigits(e.grId) || !rvDigits(e.organizationId) || !rvDigits(e.jobId)) return fail(\"GRV_INVALID_DATA\", \"the job's tenant, receipt, organization or id is not an id\");\n  const A = rvAdapt1(S);\n  const gr = A.hdr;\n  if (!gr || !gr.id) return fail(\"GRV_INVALID_DATA\", \"Goods Receiving \" + e.grId + \" not found\");\n  const lock = A.lock || {};\n  const mine = rvS(gr.gr_status) === \"Processing\" && rvS(lock.result_ref) !== \"\" && rvS(lock.result_ref) === rvS(e.idempotencyKey) && rvS(gr.gr_v2_job_id) === rvS(e.jobId);\n  if (!mine) {\n    return fail(\"GRV_NOT_LOCKED\", \"the Goods Receiving is \" + (rvS(gr.gr_status) || \"blank\") + (rvS(gr.gr_v2_job_id) === rvS(e.jobId) ? \"\" : \" under job \" + (rvS(gr.gr_v2_job_id) || \"none\"))\n      + (rvS(lock.result_ref) === rvS(e.idempotencyKey) ? \"\" : \", its lock is not this job's\") + \": not Processing under this job\");\n  }\n  // from here a failure puts the receipt back to its status before the submit (this job holds its lock; nothing was written)\n  base.unlockOk = 1;\n  if (prev !== \"Completed\" && prev !== \"Received\") return fail(\"GRV_INVALID_REQUEST\", \"the job's previous status is \" + (prev || \"missing\"));\n  // get_node_grRvGr reads the receipt of the request's organization, at the status the classic would have found\n  const seen = rvS(gr.organization_id) === rvS(e.organizationId) ? Object.assign({}, gr, { gr_status: prev }) : null;\n  const run = rvRunPrep(seen, A.movs, { grId: e.grId, grNo: rvS(gr.gr_no), organizationId: e.organizationId });\n  const p = run.prep;\n  base.lineCount = rvList(p.lines).length;\n  if (Number(p.refuse) === 1) return Object.assign(base, { route: \"GO\", code: \"400\", message: rvS(p.refuseMessage), refuse: 1, refuseMessage: rvS(p.refuseMessage) });\n  const n = base.lineCount;\n  if (n > RV_MAX_LINES) return fail(\"GRV_TOO_LARGE\", \"This Goods Receiving has \" + n + \" lines. Reverting more than \" + RV_MAX_LINES + \" lines is not supported.\");\n  if (rvHasHu(p)) return fail(\"GRV_NOT_ELIGIBLE\", \"it has handling units: revert it with the classic revert\");\n  if (A.serialLines > 0) return fail(\"GRV_NOT_ELIGIBLE\", \"it has serial-numbered items: revert it with the classic revert\");\n  const sql = {\n    sqlMinLiveId: rvDigits(p.minLiveIdSql) && rvS(p.minLiveIdSql) !== \"0\" ? rvS(p.minLiveIdSql) : null,\n    sqlPlantId: rvDigits(p.plantId) ? rvS(p.plantId) : null,\n    sqlItemIds: rvIdsSql(p.itemIds), sqlBatchIds: rvIdsSql(p.batchIds), sqlHuIds: rvIdsSql(p.huIds), sqlPoIds: rvIdsSql(p.poIds), sqlPoLineIds: rvIdsSql(p.poLineIds),\n  };\n  const bad = RV_PREP_SQL.filter((k) => sql[k] === null);\n  if (bad.length) return fail(\"GRV_INVALID_DATA\", \"the receipt's \" + bad.map((k) => k.slice(3)).join(\", \") + \" are not all ids\");\n  return Object.assign(base, p, sql, { route: \"GO\", code: \"200\", message: \"prepared \" + n + \" lines, \" + rvList(p.liveRows).length + \" live receipt rows\",\n    unlockOk: 1, revertFrom: prev, lineCount: n, refuse: 0, refuseMessage: \"\" });\n};\n// GR_REVERT_SUBMIT - Gate (code_node_VSgate): grRvPrep (lifted, prep.js) on the stored receipt as GR_REVERT_COMPLETED would\n// read it -> STOP 400 with its refusal (same texts; its own \"more than 500 lines\" guard is not V2's); what V2 does not take -\n// a handling unit in the receipt's chain, a serial-managed item - NOT_ELIGIBLE (-> the classic GR_REVERT_COMPLETED) up to the\n// classic's 500 lines, STOP above; STOP above V2's 2,500 lines; else GO with the line count and the status it starts from.\n// Self-contained (rv* helpers from adapter.js / prep.js): it does not need submit/_common.js\nconst rvGate = function rvGate(entry, S) {\n  const e = entry || {};\n  const answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\", reason: \"\", lineCount: 0, previousStatus: \"\" }, extra || {});\n  if (rvS(e.route) !== \"GO\") return answer(\"STOP\", rvS(e.code) || \"400\", rvS(e.message) || \"the Goods Receiving cannot be reverted\");\n  if (!rvDigits(e.grId) || !rvDigits(e.organizationId)) return answer(\"STOP\", \"400\", \"The Goods Receiving has no valid organization or plant.\");\n  const A = rvAdapt1(S);\n  // get_node_grRvGr reads the receipt of the request's organization\n  const gr = A.hdr && A.hdr.id && rvS(A.hdr.organization_id) === rvS(e.organizationId) ? A.hdr : null;\n  const p = rvRunPrep(gr, A.movs, { grId: e.grId, grNo: gr ? rvS(gr.gr_no) : rvS(e.grNo), organizationId: e.organizationId }).prep;\n  const n = rvList(p.lines).length;\n  const extra = { lineCount: n, previousStatus: gr ? rvS(gr.gr_status) : \"\" };\n  if (Number(p.refuse) === 1) return answer(\"STOP\", \"400\", rvS(p.refuseMessage), extra);\n  const why = rvHasHu(p) ? \"it has handling units\" : A.serialLines > 0 ? \"it has serial-numbered items\" : \"\";\n  if (why && n > RV_OLD_PATH_LINES) {\n    return answer(\"STOP\", \"400\", \"This Goods Receiving has \" + n + \" lines and cannot be reverted in the background (\" + why + \"); the classic revert handles at most \"\n      + RV_OLD_PATH_LINES + \" lines.\", Object.assign({ reason: why }, extra));\n  }\n  if (why) return answer(\"NOT_ELIGIBLE\", \"300\", why, Object.assign({ reason: why }, extra));\n  if (n > RV_MAX_LINES) return answer(\"STOP\", \"400\", \"This Goods Receiving has \" + n + \" lines. Reverting more than \" + RV_MAX_LINES + \" lines is not supported.\", extra);\n  return answer(\"GO\", \"\", \"\", extra);\n};\nconst rvGateT0 = Date.now();\nconst rvGateRes = rvGate([{{node:code_node_VSentry.data}}][0], { hdr: [{{node:sql_node_VShdr.data}}][0], lines: [{{node:sql_node_VSlines.data}}][0], movs: [{{node:sql_node_VSmovs.data}}][0] });\nconsole.log(\"submit gate\", JSON.stringify({ route: rvGateRes.route, code: rvGateRes.code, message: rvGateRes.message, lines: rvGateRes.lineCount, ms: Date.now() - rvGateT0 }));\nreturn rvGateRes;"
+    },
+    "response_json": [
+     {
+      "key": "j9fc2kii",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2vgoubrw",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2882fj92",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "x9ey7eko",
+      "name": "reason",
+      "title": "reason",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "l1kmq2kg",
+      "name": "lineCount",
+      "title": "lineCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "re7vghg9",
+      "name": "previousStatus",
+      "title": "previousStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Gate: grRvPrep (lifted) - the classic's refusals, the handling-unit receipts the background revert does not take (-> classic / STOP)",
+    "isValidator": true,
+    "nodeName": "Gate: grRvPrep (lifted) - the classic's refusals, the handling-unit receipts the background revert does not take (-> classic / STOP)",
+    "name": "Gate: grRvPrep (lifted) - the classic's refusals, the handling-unit receipts the background revert does not take (-> classic / STOP)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_VSgateEnd",
+   "type": "if",
+   "data": {
+    "title": "IF the gate answered (NOT_ELIGIBLE / STOP): answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF the gate answered (NOT_ELIGIBLE / STOP): answer, write nothing",
+    "name": "IF the gate answered (NOT_ELIGIBLE / STOP): answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799200000005,
+       "parentId": 1799200000006,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_VSgate.data.route}}' != 'GO'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TVSgateEnd",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_VSgateres",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Result: the answer of whichever node ended the run; after the queue writes, the read-back decides\nconst submitResult = function submitResult(guard, entry, src, back) {\n  const e = entry || {};\n  const r = src || {};\n  const out = { route: s(r.route), code: s(r.code), message: s(r.message), reason: s(r.reason), job_id: s(e.jobId), job_status: s(e.jobStatus), gr_id: s(guard.grId) === \"0\" ? \"\" : s(guard.grId),\n    gr_no: s(e.grNo), line_count: String(num(r.lineCount) || num(e.lineCount)), progress_percent: String(num(e.progressPercent)), progress_message: s(e.progressMessage),\n    error_code: s(e.errorCode), error_message: s(e.errorMessage), evidence: \"\" };\n  if (back) {\n    const b = list(back)[0] || {};\n    const ok = digits(b.job_id) && s(b.gr_status) === \"Processing\" && s(b.gr_v2_job_id) === s(b.job_id) && s(b.lock_ref) === guard.key;\n    Object.assign(out, ok\n      ? { route: \"QUEUED\", code: \"200\", message: \"Queued for processing\", job_id: s(b.job_id), job_status: s(b.job_status), progress_percent: \"0\", progress_message: \"Queued for processing\" }\n      : { route: \"STOP\", code: \"500\", message: \"The revert could not be queued: please try again.\", job_id: s(b.job_id), job_status: s(b.job_status) });\n  }\n  out.evidence = JSON.stringify({ v: 1, workflow: \"GR_REVERT_SUBMIT\", operation: s(guard.operation), route: out.route, code: out.code, reason: out.reason });\n  return out;\n};\nconst res = submitResult([{{node:code_node_VSguard.data}}][0], [{{node:code_node_VSentry.data}}][0], [{{node:code_node_VSgate.data}}][0], null);\nconsole.log(\"submit result\", JSON.stringify({ route: res.route, code: res.code, message: res.message, job: res.job_id }));\nreturn res;"
+        },
+        "response_json": [
+         {
+          "key": "vqcwtnhy",
+          "name": "route",
+          "title": "route",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "xswgf2iv",
+          "name": "code",
+          "title": "code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "q7ohyp8u",
+          "name": "message",
+          "title": "message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "hyt02wwx",
+          "name": "reason",
+          "title": "reason",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "tzvdfdp7",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "uwrsc3tw",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "k0lgfjoq",
+          "name": "gr_id",
+          "title": "gr_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "dfg65rcj",
+          "name": "gr_no",
+          "title": "gr_no",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "z0cnj5df",
+          "name": "line_count",
+          "title": "line_count",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "j2sjujpp",
+          "name": "progress_percent",
+          "title": "progress_percent",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "d29gmsr4",
+          "name": "progress_message",
+          "title": "progress_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "3v0m0hmp",
+          "name": "error_code",
+          "title": "error_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "kgsqtskg",
+          "name": "error_message",
+          "title": "error_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ndtx7l8j",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Result (gate)",
+        "isValidator": true,
+        "nodeName": "Result (gate)",
+        "name": "Result (gate)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_VSgate",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (gate)",
+        "isValidator": true,
+        "nodeName": "Return (gate)",
+        "name": "Return (gate)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "route",
+           "propLabel": "route",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.route}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "reason",
+           "propLabel": "reason",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.reason}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gr_id",
+           "propLabel": "gr_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.gr_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gr_no",
+           "propLabel": "gr_no",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.gr_no}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "line_count",
+           "propLabel": "line_count",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.line_count}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_percent",
+           "propLabel": "progress_percent",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.progress_percent}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_message",
+           "propLabel": "progress_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.progress_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_code",
+           "propLabel": "error_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.error_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_message",
+           "propLabel": "error_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.error_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSgateres.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FVSgateEnd",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_VSpost",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Post: the queue rows - the receipt's lock (gd_publish_step GRC|<gr> / LOCK|<n>, result_ref = the\n// idempotency key; unique: a concurrent twin fails its run) and the REVERT_GR job (QUEUED but not due for 2 minutes, so no\n// worker takes it before the receipt is Processing under it; due.js makes it due after the read-back)\nconst submitPost = function submitPost(guard, entry, gate) {\n  if (s(gate.route) !== \"GO\") return answer(\"STOP\", s(gate.code) || \"400\", s(gate.message) || \"the gate did not answer\", { lockRows: [], jobRows: [] });\n  const request = { v: 1, source: guard.source, uid: guard.uid, previousStatus: entry.grStatus, grId: guard.grId, grNo: entry.grNo };\n  return answer(\"QUEUE\", \"200\", \"queued\", {\n    lockRows: [{ job_id: \"GRC|\" + guard.grId, organization_id: entry.organizationId, step_name: \"LOCK|\" + entry.lockN, step_status: \"LOCK\", attempt_count: 0, started_at: entry.dbNow,\n      result_ref: guard.key }],\n    jobRows: [{ organization_id: entry.organizationId, plant_id: entry.plantId, command: \"REVERT_GR\", idempotency_key: guard.key, job_status: \"QUEUED\", progress_percent: 0,\n      progress_message: \"Queued for processing\", attempt_count: 0, row_version: 0, cancel_requested: 0, next_attempt_at: dbAddSeconds(entry.dbNow, 120),\n      request_payload: JSON.stringify(request), causation_id: guard.grId, correlation_id: \"GR|\" + guard.grId, line_count: num(gate.lineCount) || entry.lineCount, queued_at: entry.dbNow }],\n  });\n};\nconst res = submitPost([{{node:code_node_VSguard.data}}][0], [{{node:code_node_VSentry.data}}][0], [{{node:code_node_VSgate.data}}][0]);\nconsole.log(\"submit post\", JSON.stringify({ route: res.route, code: res.code, message: res.message }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "r7sb813w",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "uk4qrbkt",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "7b6ju370",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "94vi28tt",
+      "name": "lockRows",
+      "title": "lockRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "y0z3p2gh",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "v46mr3ak",
+      "name": "jobRows",
+      "title": "jobRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "7gah5dy8",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     }
+    ],
+    "title": "Post: the queue rows (the receipt's lock, the job QUEUED 2 minutes ahead)",
+    "isValidator": true,
+    "nodeName": "Post: the queue rows (the receipt's lock, the job QUEUED 2 minutes ahead)",
+    "name": "Post: the queue rows (the receipt's lock, the job QUEUED 2 minutes ahead)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_VSpostEnd",
+   "type": "if",
+   "data": {
+    "title": "IF nothing to queue: answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF nothing to queue: answer, write nothing",
+    "name": "IF nothing to queue: answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799200000007,
+       "parentId": 1799200000008,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_VSpost.data.route}}' != 'QUEUE'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TVSpostEnd",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_VSpostres",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Result: the answer of whichever node ended the run; after the queue writes, the read-back decides\nconst submitResult = function submitResult(guard, entry, src, back) {\n  const e = entry || {};\n  const r = src || {};\n  const out = { route: s(r.route), code: s(r.code), message: s(r.message), reason: s(r.reason), job_id: s(e.jobId), job_status: s(e.jobStatus), gr_id: s(guard.grId) === \"0\" ? \"\" : s(guard.grId),\n    gr_no: s(e.grNo), line_count: String(num(r.lineCount) || num(e.lineCount)), progress_percent: String(num(e.progressPercent)), progress_message: s(e.progressMessage),\n    error_code: s(e.errorCode), error_message: s(e.errorMessage), evidence: \"\" };\n  if (back) {\n    const b = list(back)[0] || {};\n    const ok = digits(b.job_id) && s(b.gr_status) === \"Processing\" && s(b.gr_v2_job_id) === s(b.job_id) && s(b.lock_ref) === guard.key;\n    Object.assign(out, ok\n      ? { route: \"QUEUED\", code: \"200\", message: \"Queued for processing\", job_id: s(b.job_id), job_status: s(b.job_status), progress_percent: \"0\", progress_message: \"Queued for processing\" }\n      : { route: \"STOP\", code: \"500\", message: \"The revert could not be queued: please try again.\", job_id: s(b.job_id), job_status: s(b.job_status) });\n  }\n  out.evidence = JSON.stringify({ v: 1, workflow: \"GR_REVERT_SUBMIT\", operation: s(guard.operation), route: out.route, code: out.code, reason: out.reason });\n  return out;\n};\nconst res = submitResult([{{node:code_node_VSguard.data}}][0], [{{node:code_node_VSentry.data}}][0], [{{node:code_node_VSpost.data}}][0], null);\nconsole.log(\"submit result\", JSON.stringify({ route: res.route, code: res.code, message: res.message, job: res.job_id }));\nreturn res;"
+        },
+        "response_json": [
+         {
+          "key": "npaa0054",
+          "name": "route",
+          "title": "route",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "9prrnxtd",
+          "name": "code",
+          "title": "code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "nuyu1cbf",
+          "name": "message",
+          "title": "message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ht8o5ov8",
+          "name": "reason",
+          "title": "reason",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "0h3lmu8f",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ddwqypev",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "4ss08s70",
+          "name": "gr_id",
+          "title": "gr_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "jmivs5fm",
+          "name": "gr_no",
+          "title": "gr_no",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "dulpz5n7",
+          "name": "line_count",
+          "title": "line_count",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ch46w3de",
+          "name": "progress_percent",
+          "title": "progress_percent",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "81k79b15",
+          "name": "progress_message",
+          "title": "progress_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "gjx51cgo",
+          "name": "error_code",
+          "title": "error_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "322c8pzb",
+          "name": "error_message",
+          "title": "error_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "91xeopy3",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Result (post)",
+        "isValidator": true,
+        "nodeName": "Result (post)",
+        "name": "Result (post)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_VSpost",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (post)",
+        "isValidator": true,
+        "nodeName": "Return (post)",
+        "name": "Return (post)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "route",
+           "propLabel": "route",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.route}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "reason",
+           "propLabel": "reason",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.reason}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gr_id",
+           "propLabel": "gr_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.gr_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gr_no",
+           "propLabel": "gr_no",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.gr_no}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "line_count",
+           "propLabel": "line_count",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.line_count}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_percent",
+           "propLabel": "progress_percent",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.progress_percent}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_message",
+           "propLabel": "progress_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.progress_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_code",
+           "propLabel": "error_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.error_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_message",
+           "propLabel": "error_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.error_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_VSpostres.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FVSpostEnd",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "add_node_VSlock",
+   "type": "add-node",
+   "data": {
+    "table_id": {
+     "source": "GD Publish Step:Table:2105131615547461634",
+     "rules": {
+      "collectionId": "2105131615547461634",
+      "list": [
+       {
+        "id": 1799200000009,
+        "parentId": 1799200000010,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "fields": [],
+    "title": "LOCK: gd_publish_step GRC|<gr> / LOCK|<n> (unique tenant / job / step: a concurrent submit fails its run)",
+    "isValidator": true,
+    "nodeName": "LOCK: gd_publish_step GRC|<gr> / LOCK|<n> (unique tenant / job / step: a concurrent submit fails its run)",
+    "name": "LOCK: gd_publish_step GRC|<gr> / LOCK|<n> (unique tenant / job / step: a concurrent submit fails its run)",
+    "props": {
+     "modelName": "",
+     "list": [
+      {
+       "prop": "job_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.job_id}}",
+       "valueLabel": "",
+       "propLabel": "job_id"
+      },
+      {
+       "prop": "organization_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.organization_id}}",
+       "valueLabel": "",
+       "propLabel": "Organization"
+      },
+      {
+       "prop": "step_name",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.step_name}}",
+       "valueLabel": "",
+       "propLabel": "step_name"
+      },
+      {
+       "prop": "step_status",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.step_status}}",
+       "valueLabel": "",
+       "propLabel": "step_status"
+      },
+      {
+       "prop": "attempt_count",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.attempt_count}}",
+       "valueLabel": "",
+       "propLabel": "attempt_count"
+      },
+      {
+       "prop": "started_at",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.started_at}}",
+       "valueLabel": "",
+       "propLabel": "started_at"
+      },
+      {
+       "prop": "finished_at",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.finished_at}}",
+       "valueLabel": "",
+       "propLabel": "finished_at"
+      },
+      {
+       "prop": "inventory_operation_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.inventory_operation_id}}",
+       "valueLabel": "",
+       "propLabel": "inventory_operation_id"
+      },
+      {
+       "prop": "result_ref",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.result_ref}}",
+       "valueLabel": "",
+       "propLabel": "result_ref"
+      },
+      {
+       "prop": "error_code",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.error_code}}",
+       "valueLabel": "",
+       "propLabel": "error_code"
+      },
+      {
+       "prop": "error_message",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.lockRows.error_message}}",
+       "valueLabel": "",
+       "propLabel": "error_message"
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "add_node_VSjob",
+   "type": "add-node",
+   "data": {
+    "table_id": {
+     "source": "GD Async Job:Table:2104845286495150081",
+     "rules": {
+      "collectionId": "2104845286495150081",
+      "list": [
+       {
+        "id": 1799200000011,
+        "parentId": 1799200000012,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "fields": [],
+    "title": "Job insert: REVERT_GR QUEUED, due in 2 minutes (unique idempotency key: a twin click fails its run)",
+    "isValidator": true,
+    "nodeName": "Job insert: REVERT_GR QUEUED, due in 2 minutes (unique idempotency key: a twin click fails its run)",
+    "name": "Job insert: REVERT_GR QUEUED, due in 2 minutes (unique idempotency key: a twin click fails its run)",
+    "props": {
+     "modelName": "",
+     "list": [
+      {
+       "prop": "organization_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.organization_id}}",
+       "valueLabel": "",
+       "propLabel": "Organization"
+      },
+      {
+       "prop": "plant_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.plant_id}}",
+       "valueLabel": "",
+       "propLabel": "plant_id"
+      },
+      {
+       "prop": "command",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.command}}",
+       "valueLabel": "",
+       "propLabel": "command"
+      },
+      {
+       "prop": "idempotency_key",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.idempotency_key}}",
+       "valueLabel": "",
+       "propLabel": "idempotency_key"
+      },
+      {
+       "prop": "job_status",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.job_status}}",
+       "valueLabel": "",
+       "propLabel": "job_status"
+      },
+      {
+       "prop": "progress_percent",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.progress_percent}}",
+       "valueLabel": "",
+       "propLabel": "progress_percent"
+      },
+      {
+       "prop": "progress_message",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.progress_message}}",
+       "valueLabel": "",
+       "propLabel": "progress_message"
+      },
+      {
+       "prop": "attempt_count",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.attempt_count}}",
+       "valueLabel": "",
+       "propLabel": "attempt_count"
+      },
+      {
+       "prop": "row_version",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.row_version}}",
+       "valueLabel": "",
+       "propLabel": "row_version"
+      },
+      {
+       "prop": "cancel_requested",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.cancel_requested}}",
+       "valueLabel": "",
+       "propLabel": "cancel_requested"
+      },
+      {
+       "prop": "next_attempt_at",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.next_attempt_at}}",
+       "valueLabel": "",
+       "propLabel": "next_attempt_at"
+      },
+      {
+       "prop": "request_payload",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.request_payload}}",
+       "valueLabel": "",
+       "propLabel": "request_payload"
+      },
+      {
+       "prop": "causation_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.causation_id}}",
+       "valueLabel": "",
+       "propLabel": "causation_id"
+      },
+      {
+       "prop": "correlation_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.correlation_id}}",
+       "valueLabel": "",
+       "propLabel": "correlation_id"
+      },
+      {
+       "prop": "line_count",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.line_count}}",
+       "valueLabel": "",
+       "propLabel": "line_count"
+      },
+      {
+       "prop": "queued_at",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_VSpost.data.jobRows.queued_at}}",
+       "valueLabel": "",
+       "propLabel": "queued_at"
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_VSgrrow",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Receipt row: Processing under the job just inserted (gr_v2_job_id); the status it had before travels\n// in the job's request\nconst submitGrRow = function submitGrRow(guard, jobAdded) {\n  const job = list(jobAdded)[0] || {};\n  const jobId = s(job.id);\n  const ok = digits(jobId);\n  return { ok: ok ? \"YES\" : \"NO\", jobId: jobId, grRows: ok ? [{ id: guard.grId, gr_status: \"Processing\", gr_v2_job_id: jobId }] : [] };\n};\nconst res = submitGrRow([{{node:code_node_VSguard.data}}][0], [{{node:add_node_VSjob.data}}][0]);\nconsole.log(\"submit receipt row\", JSON.stringify({ ok: res.ok, job: res.jobId }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "ri41f2ic",
+      "name": "ok",
+      "title": "ok",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "itama91p",
+      "name": "jobId",
+      "title": "jobId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "p32ucq4t",
+      "name": "grRows",
+      "title": "grRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "oro5wphj",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     }
+    ],
+    "title": "Receipt row: Processing under the new job",
+    "isValidator": true,
+    "nodeName": "Receipt row: Processing under the new job",
+    "name": "Receipt row: Processing under the new job"
+   },
+   "blocks": []
+  },
+  {
+   "id": "cor_VSgr",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Receipt to lock?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YVSgr",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1799200000015,
+         "parentId": 1799200000016,
+         "isTop": true,
+         "prop": "node.code_node_VSgrrow.data.ok",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "ok",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_VSgr",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Goods Receiving:Table:1901845517592285186",
+         "rules": {
+          "collectionId": "1901845517592285186",
+          "list": [
+           {
+            "id": 1799200000013,
+            "parentId": 1799200000014,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_VSgrrow.data.grRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Goods Receiving Processing + gr_v2_job_id (the lock every writer honours)",
+        "isValidator": true,
+        "nodeName": "Goods Receiving Processing + gr_v2_job_id (the lock every writer honours)",
+        "name": "Goods Receiving Processing + gr_v2_job_id (the lock every writer honours)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_VSgrrow.data.grRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "gr_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_VSgrrow.data.grRows.gr_status}}",
+           "valueLabel": "",
+           "propLabel": "GR Status"
+          },
+          {
+           "prop": "gr_v2_job_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_VSgrrow.data.grRows.gr_v2_job_id}}",
+           "valueLabel": "",
+           "propLabel": "gr_v2_job_id"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NVSgr",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "sql_node_VSback",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "Read-back: the job of this key, its receipt's status / job link, its latest lock",
+    "isValidator": true,
+    "nodeName": "Read-back: the job of this key, its receipt's status / job link, its latest lock",
+    "name": "Read-back: the job of this key, its receipt's status / job link, its latest lock",
+    "script": {
+     "type": "sql",
+     "code": "SELECT CAST(j.id AS CHAR) AS job_id, j.job_status, j.correlation_id,\n       g.gr_status, g.gr_no, CAST(g.gr_v2_job_id AS CHAR) AS gr_v2_job_id,\n       (SELECT p.result_ref FROM gd_publish_step p\n         WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GRC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0\n         ORDER BY p.id DESC LIMIT 1) AS lock_ref\n  FROM gd_async_job j\n  LEFT JOIN goods_receiving g ON g.tenant_id = j.tenant_id AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED) AND g.is_deleted = 0\n WHERE j.tenant_id = '{{node:code_node_VSguard.data.tenantId}}' AND j.idempotency_key = '{{node:code_node_VSguard.data.key}}' AND j.is_deleted = 0\n ORDER BY j.id DESC LIMIT 1"
+    },
+    "response_json": [
+     {
+      "key": "s4rgi24o",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "u4vr8pzp",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0mrooast",
+      "name": "correlation_id",
+      "title": "correlation_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9mh908mg",
+      "name": "gr_status",
+      "title": "gr_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "qw38t3tf",
+      "name": "gr_no",
+      "title": "gr_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ys0ifdp8",
+      "name": "gr_v2_job_id",
+      "title": "gr_v2_job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "x90ktf77",
+      "name": "lock_ref",
+      "title": "lock_ref",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_VSdue",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Due: the receipt is Processing under this job (gr_v2_job_id) and its latest lock is this key (read\n// back) -> the job due now. If this run ends before the write, the job falls due by itself 2 minutes after the insert\nconst submitDue = function submitDue(guard, entry, back) {\n  const b = list(back)[0] || {};\n  const ok = digits(b.job_id) && s(b.gr_status) === \"Processing\" && s(b.gr_v2_job_id) === s(b.job_id) && s(b.lock_ref) === guard.key && s(b.job_status) === \"QUEUED\"\n    && s(b.correlation_id) === \"GR|\" + guard.grId;\n  return { dueRows: ok ? [{ id: s(b.job_id), next_attempt_at: entry.dbNow }] : [], needDue: ok ? \"YES\" : \"NO\" };\n};\nconst res = submitDue([{{node:code_node_VSguard.data}}][0], [{{node:code_node_VSentry.data}}][0], [{{node:sql_node_VSback.data}}][0]);\nconsole.log(\"submit due\", JSON.stringify({ due: res.needDue }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "vi7aqqod",
+      "name": "dueRows",
+      "title": "dueRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "rp6rng1c",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "p5094yg9",
+      "name": "needDue",
+      "title": "needDue",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Due: the receipt is Processing under this job's lock -> the job due now",
+    "isValidator": true,
+    "nodeName": "Due: the receipt is Processing under this job's lock -> the job due now",
+    "name": "Due: the receipt is Processing under this job's lock -> the job due now"
+   },
+   "blocks": []
+  },
+  {
+   "id": "cor_VSdue",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Job to make due?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YVSdue",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1799200000019,
+         "parentId": 1799200000020,
+         "isTop": true,
+         "prop": "node.code_node_VSdue.data.needDue",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needDue",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_VSdue",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Async Job:Table:2104845286495150081",
+         "rules": {
+          "collectionId": "2104845286495150081",
+          "list": [
+           {
+            "id": 1799200000017,
+            "parentId": 1799200000018,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_VSdue.data.dueRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Job due now (it was inserted 2 minutes ahead)",
+        "isValidator": true,
+        "nodeName": "Job due now (it was inserted 2 minutes ahead)",
+        "name": "Job due now (it was inserted 2 minutes ahead)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_VSdue.data.dueRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "next_attempt_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_VSdue.data.dueRows.next_attempt_at}}",
+           "valueLabel": "",
+           "propLabel": "next_attempt_at"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NVSdue",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_VSdoneres",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GR_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GR_REVERT_SUBMIT - Result: the answer of whichever node ended the run; after the queue writes, the read-back decides\nconst submitResult = function submitResult(guard, entry, src, back) {\n  const e = entry || {};\n  const r = src || {};\n  const out = { route: s(r.route), code: s(r.code), message: s(r.message), reason: s(r.reason), job_id: s(e.jobId), job_status: s(e.jobStatus), gr_id: s(guard.grId) === \"0\" ? \"\" : s(guard.grId),\n    gr_no: s(e.grNo), line_count: String(num(r.lineCount) || num(e.lineCount)), progress_percent: String(num(e.progressPercent)), progress_message: s(e.progressMessage),\n    error_code: s(e.errorCode), error_message: s(e.errorMessage), evidence: \"\" };\n  if (back) {\n    const b = list(back)[0] || {};\n    const ok = digits(b.job_id) && s(b.gr_status) === \"Processing\" && s(b.gr_v2_job_id) === s(b.job_id) && s(b.lock_ref) === guard.key;\n    Object.assign(out, ok\n      ? { route: \"QUEUED\", code: \"200\", message: \"Queued for processing\", job_id: s(b.job_id), job_status: s(b.job_status), progress_percent: \"0\", progress_message: \"Queued for processing\" }\n      : { route: \"STOP\", code: \"500\", message: \"The revert could not be queued: please try again.\", job_id: s(b.job_id), job_status: s(b.job_status) });\n  }\n  out.evidence = JSON.stringify({ v: 1, workflow: \"GR_REVERT_SUBMIT\", operation: s(guard.operation), route: out.route, code: out.code, reason: out.reason });\n  return out;\n};\nconst res = submitResult([{{node:code_node_VSguard.data}}][0], [{{node:code_node_VSentry.data}}][0], [{{node:code_node_VSpost.data}}][0], [{{node:sql_node_VSback.data}}][0]);\nconsole.log(\"submit result\", JSON.stringify({ route: res.route, code: res.code, message: res.message, job: res.job_id }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "j87e25hy",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "sxrubspf",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "hmutsf4e",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "mlle31ju",
+      "name": "reason",
+      "title": "reason",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "y719ap6k",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0z7c6ro5",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "j6fbz096",
+      "name": "gr_id",
+      "title": "gr_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "583gl6di",
+      "name": "gr_no",
+      "title": "gr_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6l8ezkzr",
+      "name": "line_count",
+      "title": "line_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "024crre5",
+      "name": "progress_percent",
+      "title": "progress_percent",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "wkko03xv",
+      "name": "progress_message",
+      "title": "progress_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "sm2sdpda",
+      "name": "error_code",
+      "title": "error_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2uyqpn9y",
+      "name": "error_message",
+      "title": "error_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "szxw10te",
+      "name": "evidence",
+      "title": "evidence",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Result (queued)",
+    "isValidator": true,
+    "nodeName": "Result (queued)",
+    "name": "Result (queued)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_node_VSdone",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return (queued)",
+    "isValidator": true,
+    "nodeName": "Return (queued)",
+    "name": "Return (queued)",
+    "response_value": {
+     "list": [
+      {
+       "prop": "route",
+       "propLabel": "route",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.route}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "propLabel": "message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "reason",
+       "propLabel": "reason",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.reason}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "job_id",
+       "propLabel": "job_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.job_id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "job_status",
+       "propLabel": "job_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.job_status}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "gr_id",
+       "propLabel": "gr_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.gr_id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "gr_no",
+       "propLabel": "gr_no",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.gr_no}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "line_count",
+       "propLabel": "line_count",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.line_count}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "progress_percent",
+       "propLabel": "progress_percent",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.progress_percent}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "progress_message",
+       "propLabel": "progress_message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.progress_message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "error_code",
+       "propLabel": "error_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.error_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "error_message",
+       "propLabel": "error_message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.error_message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "evidence",
+       "propLabel": "evidence",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_VSdoneres.data.evidence}}",
+       "valueLabel": ""
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "title": "End Node",
+    "isValidator": true,
+    "nodeName": "End Node",
+    "name": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

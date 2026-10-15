@@ -1,0 +1,762 @@
+{
+  "request_json": [
+    {
+      "key": "wf_req_action",
+      "name": "action",
+      "title": "Action",
+      "description": "cancel | delete",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_gr_id",
+      "name": "gr_id",
+      "title": "GR ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_gr_no",
+      "name": "gr_no",
+      "title": "GR Number",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "wf_req_po_id",
+      "name": "po_id",
+      "title": "PO ID(s)",
+      "description": "single id or array of ids",
+      "bsonType": "any",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": { "isValidator": true, "title": "Start Node" },
+      "blocks": []
+    },
+    {
+      "id": "code_node_CcGuardKey",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: the GR ids, digits only",
+        "isValidator": true,
+        "nodeName": "Guard: the GR ids, digits only",
+        "name": "Guard: the GR ids, digits only",
+        "script": {
+          "type": "javascript",
+          "code": "// Stored-status gate: the list only checks its own snapshot of the row, which can be stale (a repeated cancel released the PO reservation twice)\nconst raw = [{{workflowparams:gr_id}}][0];\nconst ids = (Array.isArray(raw) ? raw : [raw]).map((v) => String(v === null || v === undefined ? \"\" : v).trim());\nconst ok = ids.length > 0 && ids.every((v) => /^[0-9]{1,20}$/.test(v));\nreturn { idsCsv: ok ? ids.join(\",\") : \"0\", idCount: String(ok ? ids.length : 0) };"
+        },
+        "response_json": [
+          {
+            "key": "ccg1ids",
+            "name": "idsCsv",
+            "title": "idsCsv",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ccg2cnt",
+            "name": "idCount",
+            "title": "idCount",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_CcGuard",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Stored GR status",
+        "isValidator": true,
+        "nodeName": "Stored GR status",
+        "name": "Stored GR status",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(g.id AS CHAR) AS id, g.gr_no, g.gr_status\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id IN ({{node:code_node_CcGuardKey.data.idsCsv}})\n   AND g.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "ccg3id",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ccg4no",
+            "name": "gr_no",
+            "title": "gr_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ccg5st",
+            "name": "gr_status",
+            "title": "gr_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_CcGuardDecide",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: does the stored status allow this action?",
+        "isValidator": true,
+        "nodeName": "Guard: does the stored status allow this action?",
+        "name": "Guard: does the stored status allow this action?",
+        "script": {
+          "type": "javascript",
+          "code": "const rows = ([{{node:sql_node_CcGuard.data}}][0]) || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst wanted = Number({{node:code_node_CcGuardKey.data.idCount}}) || 0;\nconst isDelete = String([{{workflowparams:action}}][0] || \"\") === \"delete\";\nlet message = \"\";\nif (wanted === 0 || list.length < wanted) {\n  message = \"Goods Receiving not found - it may already have been deleted.\";\n} else {\n  for (const row of list) {\n    const status = String(row.gr_status || \"\");\n    const no = String(row.gr_no || \"\");\n    if (status === \"Processing\") {\n      message = \"Goods Receiving \" + no + \" is being processed in the background - please wait for it to finish.\";\n    } else if (isDelete && status !== \"Draft\" && status !== \"Cancelled\") {\n      message = \"Goods Receiving \" + no + \" cannot be deleted: only Draft or Cancelled receipts can be deleted (it is \" + (status || \"blank\") + \" now).\";\n    } else if (!isDelete && status !== \"Created\") {\n      message = \"Goods Receiving \" + no + \" cannot be cancelled: only Created receipts can be cancelled (it is \" + (status || \"blank\") + \" now).\";\n    }\n    if (message) break;\n  }\n}\nreturn { refuse: message ? \"YES\" : \"NO\", message };"
+        },
+        "response_json": [
+          {
+            "key": "ccg6ref",
+            "name": "refuse",
+            "title": "refuse",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ccg7msg",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_CcGuard",
+      "type": "if",
+      "data": {
+        "title": "IF the stored status refuses it",
+        "isValidator": true,
+        "nodeName": "IF the stored status refuses it",
+        "name": "IF the stored status refuses it",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798100000021,
+              "parentId": 1798100000022,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CcGuardDecide.data.refuse}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TCcGuard",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_CcGuard",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return refused",
+                "isValidator": true,
+                "nodeName": "Return refused",
+                "name": "Return refused",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CcGuardDecide.data.message}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FCcGuard",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_is_delete",
+      "type": "if",
+      "data": {
+        "title": "Is Delete?",
+        "isValidator": true,
+        "nodeName": "Is Delete?",
+        "name": "Is Delete?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1783400000001,
+              "parentId": 1783400000000,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{workflowparams:action}}' == 'delete'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "YqztXKYABhAzXyBipkJMM",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_delete",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1783400000011,
+                        "parentId": 1783400000010,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:gr_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Delete GR",
+                "isValidator": true,
+                "nodeName": "Delete GR",
+                "name": "Delete GR",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "is_deleted",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 1,
+                      "valueLabel": "",
+                      "propLabel": "删除状态"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_deleted",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Deleted",
+                "isValidator": true,
+                "nodeName": "Return Deleted",
+                "name": "Return Deleted",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "200",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "value": "Deleted",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "bgQfFhWiwFESxPZpn11jJ",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "parallel_fetch",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Parallel Fetch",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_gr",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "GR Data",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783400000101,
+                  "parentId": 1783400000100,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "GR Data",
+            "name": "GR Data",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "get_gr",
+              "type": "get-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1783400000111,
+                        "parentId": 1783400000110,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:gr_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "title": "Get GR Data",
+                "isValidator": true,
+                "nodeName": "Get GR Data",
+                "name": "Get GR Data"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_po",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "PO List",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783400000121,
+                  "parentId": 1783400000120,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "PO List",
+            "name": "PO List",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "search_po",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Order:Table:1902776039445217282",
+                  "rules": {
+                    "collectionId": "1902776039445217282",
+                    "list": [
+                      {
+                        "id": 1783400000131,
+                        "parentId": 1783400000130,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:po_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Get PO List",
+                "isValidator": true,
+                "nodeName": "Get PO List",
+                "name": "Get PO List"
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_reversals",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Compute PO Reversals",
+        "isValidator": true,
+        "nodeName": "Compute PO Reversals",
+        "name": "Compute PO Reversals",
+        "script": {
+          "type": "javascript",
+          "code": "const grRaw = {{node:get_gr.data.data}};\nconst gr = Array.isArray(grRaw) ? grRaw[0] : grRaw;\nconst poList = {{node:search_po.data.data}} || [];\n// table_gr and table_po are trees: an item bundle is ONE row with its items under\n// `children`. A bundle's items each reserved against a purchase order line of\n// their own, so each has to be released again -- read off the top level alone,\n// their share of created_received_qty stayed on the purchase order for good. A\n// row with no `children` yields just itself, so this is a no-op on a document\n// with no bundles and on one read back already flat.\nconst flattenRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    for (const child of Array.isArray(row.children) ? row.children : []) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// A bundle's items carry the bundle id and an item of their own. Read back flat\n// they sit at the top level, so this catches them in either shape.\nconst isBundleComponent = (row) =>\n  Boolean(row.item_bundle_id) && Boolean(row.item_id);\n\nconst grLines = flattenRows(gr && gr.table_gr);\nconst grNo = {{workflowparams:gr_no}} || \"\";\n\n// Total qty to reverse per PO line item.\nconst reversals = {};\nfor (const line of grLines) {\n  // Split-parent rows sum their children; counting them would double-reverse.\n  if (line.is_split === \"Yes\" && line.parent_or_child === \"Parent\") {\n    continue;\n  }\n  const lineId = line.po_line_item_id;\n  reversals[lineId] = (reversals[lineId] || 0) + parseFloat(line.received_qty || 0);\n}\n\nconst poUpdates = poList.map((po) => {\n  // Each entry remembers the position of its bundle line (-1 when it is not in a\n  // bundle) so what is written back keeps the shape it arrived in.\n  const flat = [];\n  for (const row of po.table_po || []) {\n    const position = flat.length;\n    flat.push({ row, parent: -1, nested: false });\n\n    for (const child of Array.isArray(row.children) ? row.children : []) {\n      flat.push({ row: child, parent: position, nested: true });\n    }\n  }\n\n  const applied = flat.map(({ row, parent, nested }) => {\n    const rev = reversals[row.id] || 0;\n    if (rev > 0) {\n      const cur = parseFloat(row.created_received_qty || 0);\n      // toFixed STRING: raw float output breaks the DB multipleOf check.\n      return { row: Object.assign({}, row, { created_received_qty: Math.max(0, cur - rev).toFixed(8) }), parent, nested };\n    }\n    return { row: Object.assign({}, row), parent, nested };\n  });\n\n  // Written back in the shape it arrived in.\n  const items = [];\n  for (const [index, entry] of applied.entries()) {\n    if (entry.nested) continue;\n\n    const children = applied\n      .filter((candidate) => candidate.nested && candidate.parent === index)\n      .map((candidate) => candidate.row);\n\n    if (children.length > 0) {\n      items.push(Object.assign({}, entry.row, { children }));\n    } else if (Array.isArray(entry.row.children)) {\n      items.push(Object.assign({}, entry.row, { children: [] }));\n    } else {\n      items.push(entry.row);\n    }\n  }\n\n  // Any line at all can still hold a reservation, a bundle's items included.\n  const hasRemainingCreated = applied.some((e) => (parseFloat(e.row.created_received_qty) || 0) > 0);\n\n  // Received status is decided on the bundle line, never on its items -- the same\n  // rule the forward path uses when it updates the purchase order after a receipt.\n  const countable = applied.filter((e) => e.parent === -1 && !isBundleComponent(e.row)).map((e) => e.row);\n  const allCompleted = countable.every((i) => (parseFloat(i.received_qty) || 0) >= (parseFloat(i.quantity) || 0));\n  const anyProcessing = countable.some((i) => (parseFloat(i.received_qty) || 0) > 0 && (parseFloat(i.received_qty) || 0) < (parseFloat(i.quantity) || 0));\n\n  let grStatus;\n  if (hasRemainingCreated) {\n    grStatus = \"Created\";\n  } else if (allCompleted) {\n    grStatus = \"Fully Received\";\n  } else if (anyProcessing) {\n    grStatus = \"Partially Received\";\n  } else {\n    grStatus = \"Cancelled\";\n  }\n\n  return { po_id: po.id, table_po: items, gr_status: grStatus };\n});\n\nreturn {\n  poUpdates: poUpdates,\n  cancelledGrNo: grNo.endsWith(\"-Cancelled\") ? grNo : grNo + \"-Cancelled\"\n};"
+        },
+        "response_json": [
+          {
+            "key": "wf_poupdates",
+            "name": "poUpdates",
+            "title": "poUpdates",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "wf_cancelledgrno",
+            "name": "cancelledGrNo",
+            "title": "cancelledGrNo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "loop_po",
+      "type": "loop",
+      "data": {
+        "title": "Loop PO Updates",
+        "isValidator": true,
+        "nodeName": "Loop PO Updates",
+        "name": "Loop PO Updates",
+        "loopType": "Var",
+        "loopSeletSource": {
+          "datasource": {
+            "rules": {
+              "collectionId": "",
+              "list": [
+                {
+                  "id": 1783400000201,
+                  "parentId": 1783400000200,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            }
+          },
+          "auto_refresh": 1,
+          "auto_refresh_debounce": 100,
+          "options": [],
+          "props": {
+            "value": "",
+            "label": "",
+            "image": "",
+            "icon": "",
+            "explain": ""
+          },
+          "remote": false,
+          "remoteType": "datasource",
+          "limit_count": ""
+        },
+        "loopSeletVar": {
+          "type": "markdown",
+          "code": "{{node:code_reversals.data.poUpdates}}"
+        }
+      },
+      "blocks": [
+        {
+          "id": "update_node_po",
+          "type": "update-node",
+          "data": {
+            "table_id": {
+              "source": "Purchase Order:Table:1902776039445217282",
+              "rules": {
+                "collectionId": "1902776039445217282",
+                "list": [
+                  {
+                    "id": 1783400000211,
+                    "parentId": 1783400000210,
+                    "isTop": true,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:loop_po.po_id}}",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                  }
+                ]
+              }
+            },
+            "fields": [],
+            "condition": {},
+            "title": "Reverse PO Quantities",
+            "isValidator": true,
+            "nodeName": "Reverse PO Quantities",
+            "name": "Reverse PO Quantities",
+            "props": {
+              "modelName": "",
+              "list": [
+                {
+                  "prop": "table_po",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_po.table_po}}",
+                  "valueLabel": "",
+                  "propLabel": "Purchase Order Table"
+                },
+                {
+                  "prop": "gr_status",
+                  "operator": "",
+                  "valueType": "field",
+                  "value": "{{node:loop_po.gr_status}}",
+                  "valueLabel": "",
+                  "propLabel": "GR Status"
+                }
+              ]
+            }
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_gr",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Goods Receiving:Table:1901845517592285186",
+          "rules": {
+            "collectionId": "1901845517592285186",
+            "list": [
+              {
+                "id": 1783400000301,
+                "parentId": 1783400000300,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{workflowparams:gr_id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Cancel GR",
+        "isValidator": true,
+        "nodeName": "Cancel GR",
+        "name": "Cancel GR",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "gr_status",
+              "operator": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": "",
+              "propLabel": "GR Status"
+            },
+            {
+              "prop": "gr_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_reversals.data.cancelledGrNo}}",
+              "valueLabel": "",
+              "propLabel": "Goods Receiving Number"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_success",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Success",
+        "isValidator": true,
+        "nodeName": "Return Success",
+        "name": "Return Success",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "200",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "value",
+              "value": "Cancelled",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": { "isValidator": true, "title": "End Node" },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

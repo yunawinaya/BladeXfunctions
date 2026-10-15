@@ -1,0 +1,30 @@
+{
+ "table_id": {
+  "source": "Transfer Order Putaway:Table:1937714890958053378",
+  "rules": {
+   "collectionId": "1937714890958053378",
+   "list": [
+    {
+     "id": 1773126473331,
+     "parentId": 1773126473330,
+     "isTop": true,
+     "prop": "gr_no",
+     "operator": "equal",
+     "valueType": "field",
+     "value": "{{workflowparams:allData.gr_no}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "Reference Document No",
+     "valueLabel": "",
+     "operatorLabel": "Equal"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "Get Other Putaways",
+ "isValidator": true,
+ "nodeName": "Get Other Putaways",
+ "name": "Get Other Putaways"
+}

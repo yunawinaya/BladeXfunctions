@@ -1,0 +1,2493 @@
+{
+ "request_json": [
+  {
+   "key": "jxeqrd4s",
+   "name": "job_id",
+   "title": "job_id",
+   "description": "gd_async_job.id (digits) of a COMPLETE_PUTAWAY job the worker holds",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "m7lahij6",
+   "name": "job_id",
+   "title": "job_id",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "sj43mist",
+   "name": "job_status",
+   "title": "job_status",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "j0a3j3ch",
+   "name": "result_code",
+   "title": "result_code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "1rwvilxv",
+   "name": "result_message",
+   "title": "result_message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "mzlw4mk5",
+   "name": "evidence",
+   "title": "evidence",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "title": "Start Node",
+    "isValidator": true,
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_PPguard",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// PUTAWAY_BULK_PREPARE - Guard: job_id (digits), session tenant\nconst prepareGuard = function prepareGuard(input) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const jobId = s(input.jobId);\n  const tenantId = s(input.systemTenantId);\n  const bad = (why) => ({ route: \"REJECT\", jobId: \"0\", tenantId: \"0\", result_code: \"PWC_INVALID_DATA\", result_message: why });\n  if (!/^[0-9]{1,20}$/.test(jobId)) return bad(\"job_id: digits only\");\n  if (!/^[0-9]{1,20}$/.test(tenantId)) return bad(\"no session tenant\");\n  return { route: \"CONTINUE\", jobId: jobId, tenantId: tenantId, result_code: \"\", result_message: \"\" };\n};\nconst res = prepareGuard({ jobId: [{{workflowparams:job_id}}][0], systemTenantId: [{{system:tenantId}}][0] });\nconsole.log(\"prepare guard\", JSON.stringify(res));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "kbim0l5a",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "m9tlo71q",
+      "name": "jobId",
+      "title": "jobId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "x2j9vagm",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "bn182ku0",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "32uzcvig",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Guard: job_id (digits), session tenant",
+    "isValidator": true,
+    "nodeName": "Guard: job_id (digits), session tenant",
+    "name": "Guard: job_id (digits), session tenant"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_PPreject",
+   "type": "if",
+   "data": {
+    "title": "IF the input is invalid: answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF the input is invalid: answer, write nothing",
+    "name": "IF the input is invalid: answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1798800000001,
+       "parentId": 1798800000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_PPguard.data.route}}' == 'REJECT'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TPPreject",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_PPrej",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "return { job_id: \"\", job_status: \"\", result_code: [{{node:code_node_PPguard.data.result_code}}][0], result_message: [{{node:code_node_PPguard.data.result_message}}][0], evidence: JSON.stringify({ v: 1, workflow: \"PUTAWAY_BULK_PREPARE\", path: \"REJECTED_INPUT\" }) };"
+        },
+        "response_json": [
+         {
+          "key": "1ko3bh6z",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "fzmgfpak",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ei3w5c6x",
+          "name": "result_code",
+          "title": "result_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "nax09br6",
+          "name": "result_message",
+          "title": "result_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "2dv8kvi9",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Answer (rejected input)",
+        "isValidator": true,
+        "nodeName": "Answer (rejected input)",
+        "name": "Answer (rejected input)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_PPrej",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (rejected input)",
+        "isValidator": true,
+        "nodeName": "Return (rejected input)",
+        "name": "Return (rejected input)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPrej.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPrej.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "result_code",
+           "propLabel": "result_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPrej.data.result_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "result_message",
+           "propLabel": "result_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPrej.data.result_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPrej.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FPPreject",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "sql_node_PPjob",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "The job (+ DB clock, lease flag, request)",
+    "isValidator": true,
+    "nodeName": "The job (+ DB clock, lease flag, request)",
+    "name": "The job (+ DB clock, lease flag, request)",
+    "script": {
+     "type": "sql",
+     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id, j.organization_id, j.command, j.job_status, j.lease_owner, (j.lease_expires_at > n.t) AS lease_live, j.row_version, j.attempt_count,\n       j.idempotency_key, j.correlation_id, j.request_payload, j.is_deleted\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_PPguard.data.tenantId}}'\n   AND j.id = {{node:code_node_PPguard.data.jobId}}"
+    },
+    "response_json": [
+     {
+      "key": "7hpbxks1",
+      "name": "db_now",
+      "title": "db_now",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "nof6tvwh",
+      "name": "id",
+      "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "qrhkehh2",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9jw8066q",
+      "name": "command",
+      "title": "command",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6re4u2z5",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "it0u33ll",
+      "name": "lease_owner",
+      "title": "lease_owner",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "492zsuj7",
+      "name": "lease_live",
+      "title": "lease_live",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9k4ohgxp",
+      "name": "row_version",
+      "title": "row_version",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "zgdvvjxf",
+      "name": "attempt_count",
+      "title": "attempt_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "7iar4nfs",
+      "name": "idempotency_key",
+      "title": "idempotency_key",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "8269fkwi",
+      "name": "correlation_id",
+      "title": "correlation_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "h2yf8cpx",
+      "name": "request_payload",
+      "title": "request_payload",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6ina97ak",
+      "name": "is_deleted",
+      "title": "is_deleted",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_PPentry",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// PUTAWAY_BULK_PREPARE - Entry: a COMPLETE_PUTAWAY job the worker holds (VALIDATING under a live lease); its correlation ->\n// the putaway; its request (the confirmation, who confirms, the receipt, the putaway's update_time after SUBMIT's lock)\nconst prepareEntry = function prepareEntry(guard, rows, uuid) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const base = { route: \"NOOP\", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: \"0\", toId: \"0\", grId: \"0\", idempotencyKey: \"\", rowVersion: 0, dbNow: \"\", nonce: \"\",\n    request: {}, result_code: \"\", result_message: \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PWC_INVALID_DATA\", result_message: \"job \" + guard.jobId + \" not found\" });\n  if (s(job.command) !== \"COMPLETE_PUTAWAY\") return Object.assign(base, { result_code: \"PWC_INVALID_DATA\", result_message: \"job command is \" + s(job.command) });\n  if (s(job.job_status) !== \"VALIDATING\") return Object.assign(base, { result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + s(job.job_status) + \": only a VALIDATING job is prepared\" });\n  if (String(job.lease_live) !== \"1\") return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the worker's lease on the job has expired: not prepared\" });\n  const common = { jobId: s(job.id), organizationId: s(job.organization_id), idempotencyKey: s(job.idempotency_key), rowVersion: Number(job.row_version) || 0, dbNow: s(job.db_now),\n    nonce: s(uuid).replace(/[^0-9A-Za-z]/g, \"\").slice(0, 8) };\n  let req = null;\n  try {\n    req = JSON.parse(s(job.request_payload));\n  } catch (e) {\n    req = null;\n  }\n  const m = s(job.correlation_id).match(/^TO\\|([0-9]{1,20})$/);\n  if (!m || !req || typeof req !== \"object\" || !/^[0-9]{1,20}$/.test(s(req.grId)) || !/^[0-9]{1,20}$/.test(common.organizationId)) {\n    return Object.assign(base, common, { route: \"FAIL\", toId: m ? m[1] : \"0\", result_code: \"PWC_INVALID_REQUEST\", result_message: \"the job's request could not be read\" });\n  }\n  return Object.assign(base, common, { route: \"GO\", toId: m[1], grId: s(req.grId), request: req, result_message: \"complete Putaway \" + s(req.toNo || m[1]) });\n};\nconst guard = [{{node:code_node_PPguard.data}}][0];\nconst res = prepareEntry(guard, [{{node:sql_node_PPjob.data}}][0], [{{system:uuid}}][0]);\nconsole.log(\"prepare entry\", JSON.stringify({ route: res.route, to: res.toId, result: res.result_code, message: res.result_message }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "18k269dt",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "lngdnabr",
+      "name": "jobId",
+      "title": "jobId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6kgd7kvo",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ocem3qof",
+      "name": "organizationId",
+      "title": "organizationId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "emz84h0a",
+      "name": "toId",
+      "title": "toId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9t7cqxdk",
+      "name": "grId",
+      "title": "grId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "fxgevexh",
+      "name": "idempotencyKey",
+      "title": "idempotencyKey",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ydwed2bd",
+      "name": "rowVersion",
+      "title": "rowVersion",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "oki2rvv8",
+      "name": "dbNow",
+      "title": "dbNow",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "qja58pmr",
+      "name": "nonce",
+      "title": "nonce",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "n8ep3rdi",
+      "name": "request",
+      "title": "request",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "csq8r8s9",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ip0rwo28",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Entry: a VALIDATING COMPLETE_PUTAWAY job under a live lease; its correlation -> the putaway; its request",
+    "isValidator": true,
+    "nodeName": "Entry: a VALIDATING COMPLETE_PUTAWAY job under a live lease; its correlation -> the putaway; its request",
+    "name": "Entry: a VALIDATING COMPLETE_PUTAWAY job under a live lease; its correlation -> the putaway; its request"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_PPnoop",
+   "type": "if",
+   "data": {
+    "title": "IF the job is not this run's to prepare: answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF the job is not this run's to prepare: answer, write nothing",
+    "name": "IF the job is not this run's to prepare: answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1798800000003,
+       "parentId": 1798800000004,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_PPentry.data.route}}' == 'NOOP'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TPPnoop",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_PPnoop",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "const e = [{{node:code_node_PPentry.data}}][0] || {};\nreturn { job_id: e.jobId || \"\", job_status: \"\", result_code: e.result_code || \"\", result_message: e.result_message || \"\", evidence: JSON.stringify({ v: 1, workflow: \"PUTAWAY_BULK_PREPARE\", path: \"NOOP\" }) };"
+        },
+        "response_json": [
+         {
+          "key": "kznb8nhy",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "vo4acvw5",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "xzb6if0t",
+          "name": "result_code",
+          "title": "result_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "111ux8k4",
+          "name": "result_message",
+          "title": "result_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "qajicigi",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Answer (not prepared)",
+        "isValidator": true,
+        "nodeName": "Answer (not prepared)",
+        "name": "Answer (not prepared)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_PPnoop",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (not prepared)",
+        "isValidator": true,
+        "nodeName": "Return (not prepared)",
+        "name": "Return (not prepared)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPnoop.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPnoop.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "result_code",
+           "propLabel": "result_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPnoop.data.result_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "result_message",
+           "propLabel": "result_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPnoop.data.result_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PPnoop.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FPPnoop",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "condition_all_PPread",
+   "type": "condition-all-node",
+   "data": {
+    "title": "Set-based reads in parallel (no row limits)",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cai_PPhdr",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "hdr",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "hdr",
+      "name": "hdr",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPhdr",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "The putaway (every schema field)",
+        "isValidator": true,
+        "nodeName": "The putaway (every schema field)",
+        "name": "The putaway (every schema field)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', h.`id`, 'to_status', h.`to_status`, 'plant_id', h.`plant_id`, 'to_id', h.`to_id`, 'movement_type', h.`movement_type`, 'ref_doc_type', h.`ref_doc_type`,\n\t\t'gr_no', h.`gr_no`, 'receiving_no', h.`receiving_no`, 'supplier_id', h.`supplier_id`, 'assigned_to', h.`assigned_to`, 'created_by', h.`created_by`, 'created_at',\n\t\tDATE_FORMAT(h.`created_at`, '%Y-%m-%d %H:%i:%s'), 'organization_id', h.`organization_id`, 'ref_doc', h.`ref_doc`, 'remarks', h.`remarks`, 'create_user', h.`create_user`,\n\t\t'create_dept', h.`create_dept`, 'create_time', SUBSTRING(DATE_FORMAT(h.`create_time`, '%Y-%m-%d %H:%i:%s.%f'), 1, 23), 'update_user', h.`update_user`, 'update_time',\n\t\tSUBSTRING(DATE_FORMAT(h.`update_time`, '%Y-%m-%d %H:%i:%s.%f'), 1, 23), 'is_deleted', h.`is_deleted`, 'tenant_id', h.`tenant_id`, 'quality_insp_no', h.`quality_insp_no`,\n\t\t'qi_id', h.`qi_id`, 'sub_tenant_id', h.`sub_tenant_id`, 'to_id_sn', h.`to_id_sn`, 'to_id_type', h.`to_id_type`, 'previous_status', h.`previous_status`, 'is_processing',\n\t\th.`is_processing`, 'project_id', h.`project_id`) AS j\n  FROM transfer_order_putaway h WHERE h.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND h.id = {{node:code_node_PPentry.data.toId}} AND h.is_deleted = 0"
+        },
+        "response_json": [
+         {
+          "key": "0adac97e",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPlines",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "lines",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "lines",
+      "name": "lines",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPlines",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its lines",
+        "isValidator": true,
+        "nodeName": "Its lines",
+        "name": "Its lines",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', l.`id`, 'line_index', l.`line_index`, 'item_code', l.`item_code`, 'item_name', l.`item_name`, 'item_desc', l.`item_desc`, 'batch_no', l.`batch_no`,\n\t\t'source_inv_category', l.`source_inv_category`, 'received_qty', l.`received_qty`, 'item_uom', l.`item_uom`, 'source_bin', l.`source_bin`, 'qty_to_putaway', l.`qty_to_putaway`,\n\t\t'pending_process_qty', l.`pending_process_qty`, 'putaway_qty', l.`putaway_qty`, 'target_location', l.`target_location`, 'remark', l.`remark`, 'button_split_d_mchzv',\n\t\tl.`button_split_d_mchzv`, 'line_status', l.`line_status`, 'is_split', l.`is_split`, 'parent_or_child', l.`parent_or_child`, 'parent_index', l.`parent_index`, 'unit_price',\n\t\tl.`unit_price`, 'total_price', l.`total_price`, 'po_no', l.`po_no`, 'qi_no', l.`qi_no`, 'target_inv_category', l.`target_inv_category`, 'serial_numbers', l.`serial_numbers`,\n\t\t'is_serialized_item', l.`is_serialized_item`, 'select_serial_number', l.`select_serial_number`, 'select_serial_numbers_d_prsys', l.`select_serial_numbers_d_prsys`,\n\t\t'storage_location', l.`storage_location`, 'hu_data', l.`hu_data`, 'gr_line_id', l.`gr_line_id`, 'handling_unit_id', l.`handling_unit_id`, 'project_id', l.`project_id`,\n\t\t'parent_id', l.`parent_id`, 'item_bundle_id', l.`item_bundle_id`) AS j\n  FROM transfer_order_putaway_jz8m9w3h_sub l WHERE l.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND l.transfer_order_putaway_id = {{node:code_node_PPentry.data.toId}} AND l.is_deleted = 0\n ORDER BY l.id"
+        },
+        "response_json": [
+         {
+          "key": "ozdko99o",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPrecords",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "records",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "records",
+      "name": "records",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPrecords",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its records",
+        "isValidator": true,
+        "nodeName": "Its records",
+        "name": "Its records",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', r.`id`, 'item_code', r.`item_code`, 'item_name', r.`item_name`, 'item_desc', r.`item_desc`, 'batch_no', r.`batch_no`, 'source_inv_category',\n\t\tr.`source_inv_category`, 'store_in_qty', r.`store_in_qty`, 'item_uom', r.`item_uom`, 'target_location', r.`target_location`, 'remark', r.`remark`, 'confirmed_by',\n\t\tr.`confirmed_by`, 'confirmed_at', DATE_FORMAT(r.`confirmed_at`, '%Y-%m-%d %H:%i:%s'), 'line_index', r.`line_index`, 'target_inv_category', r.`target_inv_category`,\n\t\t'serial_numbers', r.`serial_numbers`, 'parent_id', r.`parent_id`, 'job_line_key', r.`job_line_key`) AS j\n  FROM transfer_order_putaway_vrqs3cmr_sub r\n WHERE r.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND r.transfer_order_putaway_id = {{node:code_node_PPentry.data.toId}} AND r.is_deleted = 0\n ORDER BY r.id"
+        },
+        "response_json": [
+         {
+          "key": "e8u1h8if",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPgr",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "gr",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "gr",
+      "name": "gr",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPgr",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its receipt",
+        "isValidator": true,
+        "nodeName": "Its receipt",
+        "name": "Its receipt",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(g.`id` AS CHAR), 'gr_no', g.`gr_no`, 'gr_status', g.`gr_status`, 'putaway_status', g.`putaway_status`, 'organization_id', g.`organization_id`,\n\t\t'plant_id', CAST(g.`plant_id` AS CHAR), 'update_time', SUBSTRING(DATE_FORMAT(g.`update_time`, '%Y-%m-%d %H:%i:%s.%f'), 1, 23)) AS j\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND g.id = {{node:code_node_PPentry.data.grId}} AND g.is_deleted = 0"
+        },
+        "response_json": [
+         {
+          "key": "vr2esgfz",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPitems",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "items",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "items",
+      "name": "items",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPitems",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Items of its lines",
+        "isValidator": true,
+        "nodeName": "Items of its lines",
+        "name": "Items of its lines",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_MERGE_PRESERVE(JSON_OBJECT('id', CAST(i.`id` AS CHAR), 'based_uom', CAST(i.`based_uom` AS CHAR), 'item_batch_management', i.`item_batch_management`, 'material_costing_method',\n\t\ti.`material_costing_method`, 'serial_number_management', i.`serial_number_management`, 'stock_control', i.`stock_control`, 'material_code', i.`material_code`),\n\t\tJSON_OBJECT('table_uom_conversion', COALESCE(\n         (SELECT JSON_ARRAYAGG(JSON_OBJECT('alt_uom_id', CAST(u.`alt_uom_id` AS CHAR), 'base_qty', u.`base_qty`)) OVER (ORDER BY u.id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n            FROM item_mji552rc_sub u WHERE u.Item_id = i.id AND u.is_deleted = 0 LIMIT 1), JSON_ARRAY()))) AS j\n  FROM item i\n WHERE i.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND i.is_deleted = 0\n   AND i.id IN (SELECT l.item_code FROM transfer_order_putaway_jz8m9w3h_sub l WHERE l.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND l.transfer_order_putaway_id = {{node:code_node_PPentry.data.toId}} AND l.is_deleted = 0 AND l.item_code IS NOT NULL)\n ORDER BY i.id"
+        },
+        "response_json": [
+         {
+          "key": "39vescas",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPtransit",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "transit",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "transit",
+      "name": "transit",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPtransit",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "The receipt's in-transit rows (every status)",
+        "isValidator": true,
+        "nodeName": "The receipt's in-transit rows (every status)",
+        "name": "The receipt's in-transit rows (every status)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT u.j FROM (\nSELECT t.id AS k, JSON_OBJECT('id', CAST(t.`id` AS CHAR), 'doc_type', t.`doc_type`, 'doc_id', t.`doc_id`, 'doc_no', t.`doc_no`, 'doc_line_id', t.`doc_line_id`, 'line_no',\n\t\tt.`line_no`, 'parent_id', t.`parent_id`, 'parent_no', t.`parent_no`, 'parent_line_id', t.`parent_line_id`, 'material_id', CAST(t.`material_id` AS CHAR), 'item_code',\n\t\tt.`item_code`, 'item_name', t.`item_name`, 'item_desc', t.`item_desc`, 'item_uom', CAST(t.`item_uom` AS CHAR), 'batch_id', CAST(t.`batch_id` AS CHAR), 'handling_unit_id',\n\t\tt.`handling_unit_id`, 'plant_id', CAST(t.`plant_id` AS CHAR), 'organization_id', t.`organization_id`, 'transit_bin', CAST(t.`transit_bin` AS CHAR), 'from_plant_id',\n\t\tCAST(t.`from_plant_id` AS CHAR), 'from_bin', CAST(t.`from_bin` AS CHAR), 'from_category', t.`from_category`, 'to_plant_id', CAST(t.`to_plant_id` AS CHAR), 'to_bin',\n\t\tCAST(t.`to_bin` AS CHAR), 'to_category', t.`to_category`, 'transit_qty', t.`transit_qty`, 'received_qty', t.`received_qty`, 'open_qty', t.`open_qty`, 'status',\n\t\tt.`status`, 'transit_date', DATE_FORMAT(t.`transit_date`, '%Y-%m-%d %H:%i:%s'), 'received_date', DATE_FORMAT(t.`received_date`, '%Y-%m-%d %H:%i:%s'), 'remark',\n\t\tt.`remark`, 'target_doc_type', t.`target_doc_type`, 'target_doc_id', t.`target_doc_id`, 'target_doc_no', t.`target_doc_no`, 'target_doc_line_id', t.`target_doc_line_id`,\n\t\t'source_transit_id', t.`source_transit_id`) AS j\n  FROM in_transit_detail t\n WHERE t.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND t.doc_id = '{{node:code_node_PPentry.data.grId}}' AND t.organization_id = '{{node:code_node_PPentry.data.organizationId}}' AND t.is_deleted = 0 AND t.status = 'In Transit'\nUNION ALL\nSELECT t.id AS k, JSON_OBJECT('id', CAST(t.`id` AS CHAR), 'status', t.`status`, 'material_id', CAST(t.`material_id` AS CHAR), 'batch_id', CAST(t.`batch_id` AS CHAR),\n\t\t'transit_bin', CAST(t.`transit_bin` AS CHAR)) AS j\n  FROM in_transit_detail t\n WHERE t.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND t.doc_id = '{{node:code_node_PPentry.data.grId}}' AND t.organization_id = '{{node:code_node_PPentry.data.organizationId}}' AND t.is_deleted = 0\n   AND (t.status IS NULL OR t.status <> 'In Transit')\n) u\n ORDER BY u.k"
+        },
+        "response_json": [
+         {
+          "key": "izu7j03e",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPothers",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "others",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "others",
+      "name": "others",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPothers",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "The receipt's putaways",
+        "isValidator": true,
+        "nodeName": "The receipt's putaways",
+        "name": "The receipt's putaways",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(p.id AS CHAR), 'to_status', p.to_status) AS j\n  FROM transfer_order_putaway p\n WHERE p.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND p.gr_no = '{{node:code_node_PPentry.data.grId}}' AND p.is_deleted = 0\n ORDER BY p.id"
+        },
+        "response_json": [
+         {
+          "key": "s6cz7qfo",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPqi",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "qi",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "qi",
+      "name": "qi",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPqi",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "The receipt's QI lots",
+        "isValidator": true,
+        "nodeName": "The receipt's QI lots",
+        "name": "The receipt's QI lots",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(b.id AS CHAR), 'receiving_insp_status', b.receiving_insp_status) AS j\n  FROM basic_inspection_lot b\n WHERE b.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND b.goods_receiving_no = '{{node:code_node_PPentry.data.grId}}' AND b.is_deleted = 0\n ORDER BY b.id"
+        },
+        "response_json": [
+         {
+          "key": "umdgx17c",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPsetup",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "setup",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "setup",
+      "name": "setup",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPsetup",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "putaway_setup",
+        "isValidator": true,
+        "nodeName": "putaway_setup",
+        "name": "putaway_setup",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(s.`id` AS CHAR), 'plant_id', CAST(s.`plant_id` AS CHAR), 'organization_id', s.`organization_id`, 'movement_type', s.`movement_type`,\n\t\t'putaway_required', s.`putaway_required`, 'auto_trigger_to', s.`auto_trigger_to`, 'auto_completed_gr', s.`auto_completed_gr`, 'putaway_mode', s.`putaway_mode`,\n\t\t'default_loading_bay', CAST(s.`default_loading_bay` AS CHAR), 'is_loading_bay', s.`is_loading_bay`, 'storage_location_id', CAST(s.`storage_location_id` AS CHAR),\n\t\t'category', s.`category`, 'show_hu', s.`show_hu`) AS j\n  FROM putaway_setup s\n WHERE s.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND s.is_deleted = 0 AND s.plant_id = (SELECT h.plant_id FROM transfer_order_putaway h WHERE h.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND h.id = {{node:code_node_PPentry.data.toId}} AND h.is_deleted = 0) AND s.organization_id = '{{node:code_node_PPentry.data.organizationId}}'\n ORDER BY s.id"
+        },
+        "response_json": [
+         {
+          "key": "4lv0k44m",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPbbal",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "bbal",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "bbal",
+      "name": "bbal",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPbbal",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Source batch balances (the ADD's dates)",
+        "isValidator": true,
+        "nodeName": "Source batch balances (the ADD's dates)",
+        "name": "Source batch balances (the ADD's dates)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(b.`id` AS CHAR), 'material_id', CAST(b.`material_id` AS CHAR), 'location_id', CAST(b.`location_id` AS CHAR), 'batch_id', CAST(b.`batch_id` AS CHAR),\n\t\t'plant_id', CAST(b.`plant_id` AS CHAR), 'organization_id', b.`organization_id`, 'manufacturing_date', DATE_FORMAT(b.`manufacturing_date`, '%Y-%m-%d %H:%i:%s'),\n\t\t'expired_date', DATE_FORMAT(b.`expired_date`, '%Y-%m-%d %H:%i:%s')) AS j\n  FROM item_batch_balance b\n WHERE b.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND b.is_deleted = 0 AND b.organization_id = '{{node:code_node_PPentry.data.organizationId}}' AND b.plant_id = (SELECT h.plant_id FROM transfer_order_putaway h WHERE h.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND h.id = {{node:code_node_PPentry.data.toId}} AND h.is_deleted = 0)\n   AND (b.material_id, b.location_id, b.batch_id) IN (SELECT l.item_code, l.source_bin, l.batch_no FROM transfer_order_putaway_jz8m9w3h_sub l WHERE l.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND l.transfer_order_putaway_id = {{node:code_node_PPentry.data.toId}} AND l.is_deleted = 0\n        AND l.batch_no IS NOT NULL AND l.source_bin IS NOT NULL)\n ORDER BY b.id"
+        },
+        "response_json": [
+         {
+          "key": "fyf6fbuk",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_PPlock",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "lock",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "lock",
+      "name": "lock",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_PPlock",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its latest completion lock",
+        "isValidator": true,
+        "nodeName": "Its latest completion lock",
+        "name": "Its latest completion lock",
+        "script": {
+         "type": "sql",
+         "code": "SELECT p.step_name, p.result_ref\n  FROM gd_publish_step p\n WHERE p.tenant_id = '{{node:code_node_PPentry.data.tenantId}}' AND p.job_id = CONCAT('PWC|', '{{node:code_node_PPentry.data.toId}}') AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0\n ORDER BY p.id DESC\n LIMIT 1"
+        },
+        "response_json": [
+         {
+          "key": "ojq43qbj",
+          "name": "step_name",
+          "title": "step_name",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "o1b3aohd",
+          "name": "result_ref",
+          "title": "result_ref",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_node_PPplan",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// In-process copy of the platform's code-node contract, for bodies lifted by lift/lift.py (copy of scratchpad/grv2/lift).\n// A token is replaced by its value (null when it has none); a node keeps only its declared keys; an object declared\n// `string` arrives as its JSON text; a number declared `int` is truncated toward zero (prod on_order_purchase_order rows\n// show D9IbUV8t's onOrderQty 10.92 / 30.68 / 0.5 arriving as 10 / 30 / 0), a boolean declared `int` arrives as 1 / 0\n// (PUTAWAY qfSZO0bi's hasAnyQuantity, recorded runs); null-valued keys are dropped at every depth.\n// Every __v() is a fresh copy, as every substituted literal is.\nconst __QUIET = { log() {}, error() {}, warn() {}, info() {}, debug() {} };\nconst __N = {};\nlet __CTX = {};\n\nfunction __clone(v) {\n  return v === undefined ? null : JSON.parse(JSON.stringify(v));\n}\n\nfunction __resolve(key) {\n  const dot = key.indexOf(\".\", key.indexOf(\":\") + 1);\n  let v = __CTX[dot < 0 ? key : key.slice(0, dot)];\n  if (dot >= 0) {\n    for (const p of key.slice(dot + 1).split(\".\")) {\n      if (v === null || v === undefined) return null;\n      v = v[p];\n    }\n  }\n  return v === undefined ? null : v;\n}\n\nfunction __v(key) {\n  const v = __resolve(key);\n  return v === null ? null : __clone(v);\n}\n\nfunction __strip(v) {\n  if (Array.isArray(v)) return v.map(__strip);\n  if (v && typeof v === \"object\") {\n    const o = {};\n    for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== undefined) o[k] = __strip(v[k]);\n    return o;\n  }\n  return v;\n}\n\nfunction __platformOut(raw, decl) {\n  if (raw === null || raw === undefined || typeof raw !== \"object\") return {};\n  const r = JSON.parse(JSON.stringify(raw));\n  const o = {};\n  for (const [name, type] of decl) {\n    const v = r[name];\n    if (v === null || v === undefined) continue;\n    if (type === \"string\" && typeof v === \"object\") o[name] = JSON.stringify(v);\n    else if (type === \"int\" && typeof v === \"number\") o[name] = Math.trunc(v);\n    else if (type === \"int\" && typeof v === \"boolean\") o[name] = v ? 1 : 0;\n    else o[name] = v;\n  }\n  return __strip(o);\n}\n\nfunction __run(id) {\n  const n = __N[id];\n  if (!n) throw new Error(\"not lifted: \" + id);\n  const out = __platformOut(n.fn(), n.decl);\n  __CTX[\"node:\" + id] = { data: out };\n  return out;\n}\n\nfunction __set(key, value) {\n  __CTX[key] = value;\n}\n\nfunction __withContext(ctx, fn) {\n  const saved = __CTX;\n  __CTX = ctx;\n  try {\n    return fn();\n  } finally {\n    __CTX = saved;\n  }\n}\n// GENERATED by scratchpad/pwv2/lift/lift.py from the deployed workflow JSON (PUTAWAY_LOOP dev v16 = repo,\n// PUTAWAY dev v34 = repo, CHECK_REQUIRED_FIELD v8). Do not edit: re-run the script.\n// Putaway/PutawayLoopWorkflow.json :: code_node_kku8SAT9\n__N[\"code_node_kku8SAT9\"] = { decl: [[\"data\", \"any\"], [\"nextIndex\", \"int\"], [\"updatedStatus\", \"string\"], [\"invalidMessage\", \"string\"], [\"isInvalid\", \"int\"], [\"lockId\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst arrayData = __v(\"workflowparams:arrayData\")\nconst currentIndexRaw = __v(\"node:get_cache_node_OMu4rhrM.data\")\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0\nconst saveAs = __v(\"workflowparams:saveAs\")\nconst pageStatus = __v(\"workflowparams:pageStatus\")\n\nlet data = arrayData[index];\nlet invalidMessage = \"\";\n\n// table_putaway_item is a tree: an item bundle is one row with its items under\n// `children`. The bundle row holds no stock of its own, so the quantity that\n// makes a putaway worth completing can sit on an item under it — walk both.\nconst flattenPutawayRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// Validation: For saveAs \"Completed\", at least one item must have putaway_qty > 0\nif (saveAs === \"Completed\") {\n  const putawayRows = flattenPutawayRows(data.table_putaway_item);\n  const hasPutawayQty = putawayRows.length > 0 &&\n    putawayRows.some(item => item.putaway_qty > 0);\n\n  if (!hasPutawayQty) {\n    invalidMessage = \"Cannot complete putaway. At least one item must have putaway quantity greater than 0.\";\n  }\n}\n\n// A Completed save of more than 500 lines is beyond this save (one stock call per line); refused before anything is written\nif (saveAs === \"Completed\" && invalidMessage === \"\") {\n  const lineCount = flattenPutawayRows(data.table_putaway_item).length;\n  if (lineCount > 500) {\n    invalidMessage = \"This putaway has \" + lineCount + \" lines. Completing more than 500 lines at once is not supported here.\";\n  }\n}\n\nif (saveAs !== \"Cancelled\") {\n  if (saveAs === \"Draft\") {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\")\n    ) {\n      data.to_id = \"draft\";\n    }\n  } else {\n    if (\n      data.to_id_type !== -9999 &&\n      (!data.to_id ||\n        data.to_id === null ||\n        data.to_id === \"\" ||\n        data.to_status === \"Draft\")\n    ) {\n      data.to_id = \"issued\";\n    }\n  }\n}\n\nlet updatedStatus = __v(\"workflowparams:saveAs\")\nif (saveAs === \"Completed\" && pageStatus === \"Add\") {\n  updatedStatus = \"Created\"\n}\n\n// Interpolated into sql_node_LockGate, and arrayData is caller-supplied.\n// Putaway ids are snowflake bigints, so digits-only is exact, not a guess;\n// \"0\" matches no row, which fails closed as \"under processing\".\nconst lockId = /^[0-9]+$/.test(String(data.id || \"\")) ? String(data.id) : \"0\";\n\nreturn {\n  data,\n  updatedStatus,\n  nextIndex: index + 1,\n  invalidMessage,\n  lockId,\n  isInvalid: invalidMessage === \"\" ? 0 : 1\n}\n} };\n// Putaway/PutawayLoopWorkflow.json :: code_node_0rV4kqmz\n__N[\"code_node_0rV4kqmz\"] = { decl: [[\"required_fields\", \"string\"], [\"data\", \"string\"]], fn: function () {\nconst console = __QUIET;\nreturn {\n  required_fields: JSON.stringify([\n      { name: \"plant_id\", label: \"Plant\" },\n      { name: \"to_id\", label: \"Transfer Order No\" },\n      { name: \"ref_doc_type\", label: \"Reference Document Type\" },\n      {\n        name: \"table_putaway_item\",\n        label: \"Putaway Items\",\n        isArray: true,\n        arrayType: \"object\",\n        arrayFields: [],\n      },\n]),\n  data: JSON.stringify({\n    plant_id: __v(\"node:code_node_kku8SAT9.data.data.plant_id\"),\n    to_id: __v(\"node:code_node_kku8SAT9.data.data.to_id\"),\n    ref_doc_type: __v(\"node:code_node_kku8SAT9.data.data.ref_doc_type\"),\n    table_putaway_item: __v(\"node:code_node_kku8SAT9.data.data.table_putaway_item\"),\n  })\n}\n} };\n// Putaway/PutawayLoopWorkflow.json :: code_node_pcHu3XnW\n__N[\"code_node_pcHu3XnW\"] = { decl: [[\"data\", \"any\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nlet data = __v(\"node:code_node_kku8SAT9.data.data\")\n\n// Helper function to format qty and price fields to 3 decimal places\n\n// table_putaway_item is a tree: an item bundle is one row with its items under\n// `children`. The items are stock lines in their own right, so their quantities\n// are formatted the same way — and rebuilt under the row they belong to, so the\n// tree is what gets written to the document.\nconst formatPutawayLine = (item) => {\n  const formatted = {\n    ...item,\n    received_qty: q8(item.received_qty),\n    qty_to_putaway: q8(item.qty_to_putaway),\n    putaway_qty: q8(item.putaway_qty),\n    pending_process_qty: q8(item.pending_process_qty),\n  };\n\n  if (Array.isArray(item.children)) {\n    formatted.children = item.children.map((child) => formatPutawayLine(child));\n  }\n\n  return formatted;\n};\n\n// Format qty fields in table_putaway_item\nif (data.table_putaway_item && data.table_putaway_item.length > 0) {\n  data.table_putaway_item = data.table_putaway_item.map(formatPutawayLine);\n}\n\n// Format qty fields in table_putaway_records if exists\nif (data.table_putaway_records && data.table_putaway_records.length > 0) {\n  data.table_putaway_records = data.table_putaway_records.map(item => ({\n    ...item,\n    store_in_qty: q8(item.store_in_qty),\n  }));\n}\n\nreturn {\n  data\n}\n} };\n// Putaway/PutawayLoopWorkflow.json :: code_node_XZtMB79F\n__N[\"code_node_XZtMB79F\"] = { decl: [[\"putawayData\", \"any\"]], fn: function () {\nconst console = __QUIET;\nconst pageStatus = __v(\"workflowparams:pageStatus\")\n\nlet putawayData = __v(\"node:code_node_kku8SAT9.data.data\")\n  \nif (pageStatus === 'Add') {\n  const rawData = __v(\"node:add_node_sjzNkA59.data\")\n  putawayData = rawData[0]\n  putawayData.table_putaway_item = __v(\"node:search_node_hrs91pu9.data.data\")\n}\n\nreturn {\n  putawayData\n}\n} };\n// scratchpad/pwv2/lift/src/CHECK_REQUIRED_FIELD.v8.json :: code_node_AeSdXE85\n__N[\"code_node_AeSdXE85\"] = { decl: [[\"status\", \"string\"], [\"message\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst validateForm = (data, requiredFields) => {\n  const missingFields = [];\n\n  requiredFields.forEach((field) => {\n    const value = data[field.name];\n\n    // Handle non-array fields (unchanged)\n    if (!field.isArray) {\n      if (validateField(value, field)) {\n        missingFields.push(field.label);\n      }\n      return;\n    }\n\n    // Handle array fields\n    if (!Array.isArray(value)) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    if (value.length === 0) {\n      missingFields.push(`${field.label}`);\n      return;\n    }\n\n    // Check each item in the array\n    if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n      value.forEach((item, index) => {\n        field.arrayFields.forEach((subField) => {\n          const subValue = item[subField.name];\n          if (validateField(subValue, subField)) {\n            missingFields.push(\n              `${subField.label} (in ${field.label} #${index + 1})`\n            );\n          }\n        });\n      });\n    }\n  });\n\n  return missingFields;\n};\n\nconst validateField = (value, field) => {\n  if (value === undefined || value === null) return true;\n  if (typeof value === \"string\") return value.trim() === \"\";\n  if (typeof value === \"number\") return value <= 0;\n  if (Array.isArray(value)) return value.length === 0;\n  if (typeof value === \"object\") return Object.keys(value).length === 0;\n  return !value;\n};\n\nconst entry = JSON.parse(__v(\"workflowparams:entry\"));\nconst requiredFields = JSON.parse(__v(\"workflowparams:required_fields\"));\nconst missingFields = validateForm(entry, requiredFields);\n\nif(missingFields.length === 0){\n  return {\n    status: 'Passed',\n    message: ''\n  }\n} else {\n  return {\n    status: 'Failed',\n    message: 'Validation Error: ' + missingFields.join(', ')\n  }\n}\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_M7IX2sBi\n__N[\"code_node_M7IX2sBi\"] = { decl: [[\"id\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst allData = __v(\"workflowparams:allData\");\nconst id = allData.id;\nconst updateTime = allData.update_time;\n\nreturn {\n  id: id + updateTime\n}\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_S8GL6e4o\n__N[\"code_node_S8GL6e4o\"] = { decl: [[\"isValid\", \"int\"], [\"errorMessage\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst allData = __v(\"workflowparams:allData\");\n\nconst errors = [];\n\n// table_putaway_item is a tree: an item bundle is one row with its items under\n// `children`. The items are stock lines in their own right and are validated as\n// such. Split children are flat siblings, so `children` only ever means a bundle.\nconst flattenPutawayRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// The bundle row carries the bundle id and no item code. It holds no stock — no\n// bin, nothing of its own to store away — so none of the checks below apply.\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.item_code;\n\nconst items = flattenPutawayRows(allData.table_putaway_item);\n\nfor (let index = 0; index < items.length; index++) {\n  const item = items[index];\n\n  // Skip cancelled items\n  if (item.line_status === 'Cancelled') continue;\n\n  // Skip parent items with split children\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n\n  // Skip item bundle rows\n  if (isBundleParentRow(item)) continue;\n\n  const putawayQty = parseFloat(item.putaway_qty) || 0;\n  const pendingProcessQty = parseFloat(item.pending_process_qty) || 0;\n\n  // Validate putaway_qty doesn't exceed pending_process_qty\n  if (putawayQty > pendingProcessQty) {\n    errors.push(\n      `Putaway quantity (${putawayQty}) cannot be greater than pending quantity (${pendingProcessQty}) for item ${item.item_code || '#' + (index + 1)}`\n    );\n  }\n\n  // Validate putaway_qty is not negative\n  if (putawayQty < 0) {\n    errors.push(\n      `Putaway quantity cannot be negative for item ${item.item_code || '#' + (index + 1)}`\n    );\n  }\n\n  // Check target location for items with putaway_qty > 0 (non-split items only)\n  if (item.is_split === 'No' && putawayQty > 0) {\n    if (!item.target_location || item.target_location === null || item.target_location === '') {\n      errors.push(\n        `Target Location is required for item ${item.item_code || '#' + (index + 1)} (Putaway Qty: ${putawayQty})`\n      );\n    }\n  }\n}\n\n// The stored lines decide what is still pending: a stale screen (a mobile copy opened before another confirmation)\n// must not post a line twice. Quantities are grouped the way code_node_KbJLkjP8 applies them (\"<line> - <n>\" split\n// children count against their line).\nconst storedRaw = [__v(\"node:get_node_C64LC1sr.data.data\")][0];\nconst stored = Array.isArray(storedRaw) ? storedRaw[0] || {} : storedRaw || {};\n// lines that share a line_index count together (code_node_KbJLkjP8 reduces every one of them)\nconst storedPending = {};\nconst storedName = {};\nfor (const row of flattenPutawayRows(stored.table_putaway_item)) {\n  const k = String(row.line_index);\n  storedPending[k] = (storedPending[k] || 0) + (parseFloat(row.pending_process_qty) || 0);\n  if (!storedName[k] && row.item_name) storedName[k] = row.item_name;\n}\nconst claimed = {};\nfor (const item of items) {\n  if (item.line_status === 'Cancelled') continue;\n  if (item.parent_or_child === 'Parent' && item.is_split === 'Yes') continue;\n  if (isBundleParentRow(item)) continue;\n  const qty = parseFloat(item.putaway_qty) || 0;\n  if (qty <= 0) continue;\n  const lineIndex = String(item.line_index);\n  const key = lineIndex.includes(' - ') ? lineIndex.split(' - ')[0] : lineIndex;\n  claimed[key] = (claimed[key] || 0) + qty;\n}\nfor (const key of Object.keys(claimed)) {\n  if (storedPending[key] === undefined) continue;\n  const pending = storedPending[key];\n  if (claimed[key] - pending > 0.0005) {\n    errors.push(\n      `Putaway quantity (${claimed[key]}) cannot be greater than the pending quantity (${pending}) of line ${key}${storedName[key] ? ' (' + storedName[key] + ')' : ''} - it may already have been put away; please reload the putaway.`\n    );\n  }\n}\n\nconst isValid = errors.length === 0 ? 1 : 0;\n\nreturn {\n  isValid: isValid,\n  errors: errors,\n  errorMessage: errors.join('; ')\n};\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_qfSZO0bi\n__N[\"code_node_qfSZO0bi\"] = { decl: [[\"records\", \"array\"], [\"totalOriginalQuantity\", \"int\"], [\"totalPutawayQuantity\", \"int\"], [\"hasAnyQuantity\", \"int\"], [\"itemsToProcess\", \"array\"], [\"uniqueItemCodes\", \"array\"], [\"grId\", \"string\"], [\"organizationId\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst allData = __v(\"workflowparams:allData\");\n\nconst records = [];\nconst itemsToProcess = []; // Items with putaway_qty > 0 for inventory processing\nlet totalOriginalQuantity = 0;\nlet totalPutawayQuantity = 0;\nlet hasAnyQuantity = false;\n\n// table_putaway_item is a tree: an item bundle is one row with its items under\n// `children`. Split children are flat siblings, so `children` only ever means a\n// bundle.\n//\n// The bundle row carries the bundle id and no item code. It holds no stock, so\n// it moves none — but it stays in the putaway records exactly as it stands in\n// the putaway items, with its own items underneath it.\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.item_code;\n\nconst isSkippedRow = (item) =>\n  // Skip cancelled items, and parent items with split children (process\n  // children instead)\n  item.line_status === 'Cancelled' ||\n  (item.parent_or_child === 'Parent' && item.is_split === 'Yes');\n\nconst buildRecord = (item, putawayQty) => ({\n  line_index: item.line_index,\n  item_code: item.item_code,\n  item_name: item.item_name,\n  item_desc: item.item_desc || '',\n  batch_no: item.batch_no || '',\n  source_inv_category: item.source_inv_category,\n  target_inv_category: item.target_inv_category,\n  store_in_qty: putawayQty,\n  item_uom: item.item_uom,\n  source_bin: item.source_bin || '',\n  target_location: item.target_location || '',\n  remark: item.remark || '',\n  line_status: 'Confirmed',\n  confirmed_by: __v(\"workflowparams:confirmed_by\") || \"\",\n  confirmed_at: new Date().toISOString().replace(\"T\", \" \").slice(0, 19),\n});\n\n// One line: its totals, its putaway record, and its entry for inventory\n// processing. Returns the record, or null when the line puts nothing away.\nconst processLine = (item) => {\n  if (isSkippedRow(item)) return null;\n\n  const putawayQty = parseFloat(item.putaway_qty) || 0;\n\n  // Track totals for parent items only\n  if (item.parent_or_child !== 'Child') {\n    totalOriginalQuantity += parseFloat(item.qty_to_putaway) || 0;\n  }\n  totalPutawayQuantity += putawayQty;\n\n  // Only create records for items with quantity\n  if (putawayQty <= 0) return null;\n\n  hasAnyQuantity = true;\n\n  // The bundle row moves no stock, so it gets a record but no inventory entry.\n  // The items under it are what actually move.\n  if (!isBundleParentRow(item)) {\n    itemsToProcess.push({\n      putaway_line_id: item.id || '',\n      item_code: item.item_code,\n      item_uom: item.item_uom,\n      putaway_qty: putawayQty,\n      source_bin: item.source_bin || '',\n      storage_location: item.storage_location || '',\n      target_location: item.target_location || '',\n      batch_no: item.batch_no || '',\n      source_inv_category: item.source_inv_category,\n      target_inv_category: item.target_inv_category,\n      unit_price: parseFloat(item.unit_price) || 0,\n      hu_data: item.hu_data || '',\n    });\n  }\n\n  return buildRecord(item, putawayQty);\n};\n\nfor (const item of allData.table_putaway_item) {\n  const record = processLine(item);\n\n  // A bundle keeps its items under `children` in the putaway records too, so\n  // the records read the same way the items do.\n  const bundleChildren = Array.isArray(item.children) ? item.children : [];\n  const childRecords = [];\n\n  for (const child of bundleChildren) {\n    const childRecord = processLine(child);\n\n    if (childRecord) {\n      childRecords.push(childRecord);\n    }\n  }\n\n  if (record) {\n    if (childRecords.length > 0) {\n      record.children = childRecords;\n    }\n\n    records.push(record);\n  } else {\n    // The row itself put nothing away this run; anything its items did put away\n    // is kept rather than dropped along with it.\n    for (const childRecord of childRecords) {\n      records.push(childRecord);\n    }\n  }\n}\n\n// Extract unique item codes for Item master lookup\nconst uniqueItemCodes = [...new Set(itemsToProcess.map(i => i.item_code))];\n\nreturn {\n  records,\n  itemsToProcess,\n  uniqueItemCodes,\n  grId: allData.gr_no || '',\n  organizationId: allData.organization_id || '',\n  totalOriginalQuantity,\n  totalPutawayQuantity,\n  hasAnyQuantity\n};\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_KbJLkjP8\n__N[\"code_node_KbJLkjP8\"] = { decl: [[\"updatedItems\", \"array\"], [\"combinedRecords\", \"array\"], [\"toStatus\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst originalPutawayData = __v(\"node:get_node_C64LC1sr.data.data\");\nconst allData = __v(\"workflowparams:allData\");\nconst newRecords = __v(\"node:code_node_qfSZO0bi.data.records\");\n\nconst originalItems = [...(originalPutawayData.table_putaway_item || [])];\nconst originalRecords = originalPutawayData.table_putaway_records || [];\n\nconst workflowItemMap = {};\nfor (const item of allData.table_putaway_item) {\n  workflowItemMap[String(item.line_index)] = item;\n}\n\n// Both the items and the records are trees: an item bundle is one row with its\n// items under `children`. Split children are flat siblings, so `children` only\n// ever means a bundle.\nconst flattenRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// Calculate total putaway quantity per PARENT from new records\nconst parentPutawayMap = {};\nfor (const record of flattenRows(newRecords)) {\n  const lineIndexStr = String(record.line_index);\n  const parentLineIndex = lineIndexStr.includes(' - ')\n    ? lineIndexStr.split(' - ')[0]\n    : lineIndexStr;\n  const current = parentPutawayMap[parentLineIndex] || 0;\n  parentPutawayMap[parentLineIndex] = current + (parseFloat(record.store_in_qty) || 0);\n}\n\n// Applied to every line, bundle row and bundle item alike. A bundle's items are\n// lines in their own right, and their line_index is \"{parent}-{child}\", which\n// carries no \" - \" and so is keyed on its own rather than folded into the parent\n// the way a split child is.\nconst updateLine = (originalItem) => {\n  const lineIndexStr = String(originalItem.line_index);\n  const totalPutawayQty = parentPutawayMap[lineIndexStr] || 0;\n  const currentPending = parseFloat(originalItem.pending_process_qty) || 0;\n  const newPendingQty = Math.max(0, currentPending - totalPutawayQty);\n\n  let lineStatus;\n  if (originalItem.line_status === 'Cancelled') {\n    lineStatus = 'Cancelled';\n  } else if (newPendingQty === 0 && totalPutawayQty > 0) {\n    lineStatus = 'Completed';\n  } else if (totalPutawayQty > 0) {\n    lineStatus = 'In Progress';\n  } else {\n    lineStatus = originalItem.line_status || 'Open';\n  }\n\n  // Only reset form fields for lines actually processed this run; untouched lines keep their original target_location/remark/split state.\n  if (totalPutawayQty > 0) {\n    return {\n      ...originalItem,\n      pending_process_qty: newPendingQty,\n      line_status: lineStatus,\n      putaway_qty: 0,\n      target_location: '',\n      remark: '',\n      is_split: 'No',\n      parent_or_child: 'Parent'\n    };\n  }\n\n  return {\n    ...originalItem,\n    pending_process_qty: newPendingQty,\n    line_status: lineStatus\n  };\n};\n\n// The bundle row carries the bundle id and no item code.\nconst isBundleParentRow = (row) =>\n  Boolean(row.item_bundle_id) && !row.item_code;\n\n// Update each original item (parents only)\nconst updatedItems = originalItems.map(originalItem => {\n  const bundleChildren = Array.isArray(originalItem.children)\n    ? originalItem.children\n    : [];\n\n  if (!isBundleParentRow(originalItem) || bundleChildren.length === 0) {\n    return updateLine(originalItem);\n  }\n\n  const updatedChildren = bundleChildren.map(child => updateLine(child));\n  const updatedParent = updateLine(originalItem);\n\n  const allChildrenDone = updatedChildren.every(\n    child => child.line_status === 'Completed' || child.line_status === 'Cancelled'\n  );\n\n  // A bundle is not put away until every item under it is, however its own\n  // quantity happened to work out.\n  if (!allChildrenDone && updatedParent.line_status === 'Completed') {\n    updatedParent.line_status = 'In Progress';\n  }\n\n  return { ...updatedParent, children: updatedChildren };\n});\n\nconst combinedRecords = [...originalRecords, ...newRecords];\n\n// Calculate overall to_status\nlet toStatus;\nconst allCompleted = updatedItems.every(item =>\n  item.line_status === 'Completed' || item.line_status === 'Cancelled'\n);\nconst anyInProgress = updatedItems.some(item =>\n  item.line_status === 'In Progress' || item.line_status === 'Completed'\n);\n\nif (allCompleted) {\n  toStatus = 'Completed';\n} else if (anyInProgress) {\n  toStatus = 'In Progress';\n} else {\n  toStatus = 'Open';\n}\n\nreturn { updatedItems, combinedRecords, toStatus };\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_M7XzDZ48\n__N[\"code_node_M7XzDZ48\"] = { decl: [[\"inventoryMovements\", \"array\"], [\"inventoryMovementsLength\", \"int\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst allData = __v(\"workflowparams:allData\");\nconst itemsToProcess = __v(\"node:code_node_qfSZO0bi.data.itemsToProcess\");\nconst itemMasterData = __v(\"node:code_node_PwItems.data.items\") || [];\n\n// Helper: round to 3 decimal places\n\n// Build item master lookup map\nconst itemMasterMap = {};\nfor (const item of itemMasterData) {\n  itemMasterMap[item.id] = item;\n}\n\n// Array to collect inventory movements for loop processing\nconst inventoryMovements = [];\n\nfor (const mat of itemsToProcess) {\n  const itemData = itemMasterMap[mat.item_code];\n\n  if (!itemData) {\n    continue;\n  }\n\n  // UOM conversion\n  let basedQty = mat.putaway_qty;\n  if (mat.item_uom !== itemData.based_uom && itemData.table_uom_conversion) {\n    for (const uom of itemData.table_uom_conversion) {\n      if (mat.item_uom === uom.alt_uom_id) {\n        basedQty = q8(mat.putaway_qty * uom.base_qty);\n        break;\n      }\n    }\n  }\n  basedQty = q8(basedQty);\n\n  const isBatchManaged = itemData.item_batch_management === 1;\n\n  // OUT movement from source_bin\n  inventoryMovements.push({\n    movement: \"OUT\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    bin_location_id: mat.source_bin,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.source_inv_category,\n    target_bin: mat.target_location,\n    target_category: mat.target_inv_category,\n    target_doc_line_id: mat.putaway_line_id || \"\",\n    unit_price: q8(mat.unit_price),\n    total_price: q8(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n  });\n\n  // IN movement to target_location\n  inventoryMovements.push({\n    movement: \"IN\",\n    item_id: mat.item_code,\n    item_uom: mat.item_uom,\n    based_uom: itemData.based_uom,\n    quantity: mat.putaway_qty,\n    based_qty: basedQty,\n    storage_location: mat.storage_location,\n    bin_location_id: mat.target_location,\n    batch_id: mat.batch_no || null,\n    inventory_category: mat.target_inv_category,\n    unit_price: q8(mat.unit_price),\n    total_price: q8(mat.unit_price * basedQty),\n    costing_method_id: itemData.material_costing_method || \"\",\n    is_batch_managed: isBatchManaged ? 1 : 0,\n    transaction_type: \"TO - PA\",\n    trx_no: allData.to_id,\n    parent_trx_no: allData.receiving_no || \"\",\n    plant_id: allData.plant_id,\n    organization_id: allData.organization_id,\n    hu_data: mat.hu_data || \"\",\n  });\n}\n\nreturn {\n  inventoryMovements: inventoryMovements,\n  inventoryMovementsLength: inventoryMovements.length\n};\n\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_ITmatch\n__N[\"code_node_ITmatch\"] = { decl: [[\"transitUpdates\", \"array\"], [\"transitUpdatesLength\", \"int\"], [\"hasTransitUpdates\", \"int\"], [\"transitCreates\", \"array\"], [\"transitCreatesLength\", \"int\"], [\"hasTransitCreates\", \"int\"], [\"shortages\", \"array\"], [\"hasShortage\", \"int\"], [\"message\", \"string\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// toFixed(3) STRINGS: the serializer emits full-precision floats that\n// BigDecimal multipleOf rejects, and Number()/parseFloat() do not fix it.\nconst qtyStr = (v) => Math.max(0, q8(v)).toFixed(8);\n\n// The ledger stores 3dp. A base -> alt -> base round trip on a fractional UOM\n// conversion comes back high (GRbaseReceivedQty divides, code_node_M7XzDZ48\n// multiplies again: 1 / 7 -> 0.143 -> x7 = 1.001), and a split putaway\n// accumulates one such error per child. Anything at or under this is a rounding\n// artefact, not a real shortage, and must not 400 the putaway.\nconst QTY_EPS = 0.005;\n\nconst allData = __v(\"workflowparams:allData\");\nconst movements = __v(\"node:code_node_M7XzDZ48.data.inventoryMovements\") || [];\n\nconst rowsRaw = __v(\"node:code_node_PwTransit.data.rows\");\nconst allRows = Array.isArray(rowsRaw) ? rowsRaw : (rowsRaw ? [rowsRaw] : []);\n\n// Goods Receivings completed before this ledger existed hold In-Transit stock with\n// no rows behind it. Blocking their putaway would be an operational break, so fall\n// through silently and let the inventory workflows behave as they always did.\nif (allRows.length === 0) {\n  return {\n    transitUpdates: [], transitUpdatesLength: 0, hasTransitUpdates: 0,\n    transitCreates: [], transitCreatesLength: 0, hasTransitCreates: 0,\n    shortages: [], hasShortage: 0,\n    message: \"No in-transit ledger rows for this GR (legacy document) - skipped\"\n  };\n}\n\nconst keyOf = (mat, batch, bin) =>\n  String(mat || \"\") + \"|\" + String(batch || \"\") + \"|\" + String(bin || \"\");\n\n// Two structures off the same fetch, deliberately built from different slices:\n//\n//   trackedTuples - every tuple this GR has EVER staged, whatever its status.\n//     A tuple in here but absent from the pool has been fully consumed, so a\n//     second claim on it is a double-consumption and must 400.\n//   pool - only rows still open. The FIFO stock actually available to draw down.\n//\n// A tuple in NEITHER is untracked, and is skipped rather than shorted. Two ways\n// that happens: Quality Inspection stock released by QIsaveAsCompleted.js, which\n// appends its lines to this same putaway record, and legacy lines on a GR that\n// predates the ledger. The ledger simply has no opinion about that stock.\nconst trackedTuples = {};\nconst pool = {};\nfor (const r of allRows) {\n  const k = keyOf(r.material_id, r.batch_id, r.transit_bin);\n  trackedTuples[k] = 1;\n  if (r.status !== \"In Transit\") continue;\n  if (!pool[k]) pool[k] = [];\n  pool[k].push({ row: r, remaining: q8(r.open_qty), slices: [] });\n}\nfor (const k in pool) {\n  pool[k].sort((a, b) => {\n    const da = String(a.row.transit_date || \"\");\n    const db = String(b.row.transit_date || \"\");\n    if (da !== db) return da < db ? -1 : 1;\n    return (parseInt(a.row.line_no, 10) || 0) - (parseInt(b.row.line_no, 10) || 0);\n  });\n}\n\n// Demand is accumulated against the shared pool across every line of this\n// putaway, so two lines drawing on one balance cannot both pass -- the stateless\n// per-row check is exactly what let the PT double-commit through.\nconst shortages = [];\nfor (const m of movements) {\n  if (m.movement !== \"OUT\") continue;\n  if (m.inventory_category !== \"In Transit\") continue;\n\n  const k = keyOf(m.item_id, m.batch_id, m.bin_location_id);\n\n  // Untracked tuple: this GR never staged this stock through the ledger.\n  if (!trackedTuples[k]) continue;\n\n  let need = q8(m.based_qty);\n  const bucket = pool[k] || [];\n\n  for (const entry of bucket) {\n    if (need <= 0) break;\n    if (entry.remaining <= 0) continue;\n    const take = q8(Math.min(entry.remaining, need));\n    if (take <= 0) continue;\n    entry.remaining = q8(entry.remaining - take);\n    entry.slices.push({\n      qty: take,\n      to_bin: m.target_bin || null,\n      to_category: m.target_category || \"\",\n      target_doc_line_id: m.target_doc_line_id || \"\"\n    });\n    need = q8(need - take);\n  }\n\n  if (need > QTY_EPS) {\n    shortages.push({\n      material_id: m.item_id,\n      batch_id: m.batch_id || \"\",\n      bin_location: m.bin_location_id,\n      shortage: qtyStr(need)\n    });\n  }\n}\n\nif (shortages.length > 0) {\n  const f = shortages[0];\n  return {\n    transitUpdates: [], transitUpdatesLength: 0, hasTransitUpdates: 0,\n    transitCreates: [], transitCreatesLength: 0, hasTransitCreates: 0,\n    shortages: shortages, hasShortage: 1,\n    message: \"Insufficient in-transit quantity for item \" + f.material_id +\n      \" at bin \" + f.bin_location + \" (short by \" + f.shortage +\n      \"). This putaway would consume stock already claimed by another transfer order.\"\n  };\n}\n\nconst receivedDate = new Date().toISOString().split(\"T\")[0];\nconst targetDocId = allData.id || \"\";\nconst targetDocNo = allData.to_id || \"\";\n\nconst cloneOf = (r) => ({\n  doc_type: r.doc_type, doc_id: r.doc_id, doc_no: r.doc_no, doc_line_id: r.doc_line_id,\n  line_no: r.line_no,\n  parent_id: r.parent_id, parent_no: r.parent_no, parent_line_id: r.parent_line_id,\n  material_id: r.material_id, item_code: r.item_code, item_name: r.item_name,\n  item_desc: r.item_desc, item_uom: r.item_uom, batch_id: r.batch_id,\n  handling_unit_id: r.handling_unit_id, plant_id: r.plant_id,\n  organization_id: r.organization_id, transit_bin: r.transit_bin,\n  from_plant_id: r.from_plant_id, from_bin: r.from_bin, from_category: r.from_category,\n  to_plant_id: r.to_plant_id, to_category: r.to_category,\n  transit_date: r.transit_date, remark: r.remark,\n  source_transit_id: r.source_transit_id || r.id\n});\n\nconst transitUpdates = [];\nconst transitCreates = [];\n\nfor (const k in pool) {\n  for (const entry of pool[k]) {\n    if (entry.slices.length === 0) continue;\n    const r = entry.row;\n\n    // The first slice closes the original row in place; further slices become\n    // their own closed rows chained by source_transit_id, and any leftover stays\n    // open. Same split shape as on_reserved_gd's partial delivery, so each\n    // portion keeps its own destination bin.\n    const first = entry.slices[0];\n    transitUpdates.push({\n      id: r.id,\n      transit_qty: qtyStr(first.qty),\n      received_qty: qtyStr(q8((r.received_qty || 0) + first.qty)),\n      open_qty: qtyStr(0),\n      status: \"Received\",\n      received_date: receivedDate,\n      to_bin: first.to_bin,\n      to_category: first.to_category,\n      target_doc_type: \"Putaway\",\n      target_doc_id: targetDocId,\n      target_doc_no: targetDocNo,\n      target_doc_line_id: first.target_doc_line_id\n    });\n\n    for (let i = 1; i < entry.slices.length; i++) {\n      const s = entry.slices[i];\n      const row = cloneOf(r);\n      row.to_bin = s.to_bin;\n      row.to_category = s.to_category;\n      row.transit_qty = qtyStr(s.qty);\n      row.received_qty = qtyStr(s.qty);\n      row.open_qty = qtyStr(0);\n      row.status = \"Received\";\n      row.received_date = receivedDate;\n      row.target_doc_type = \"Putaway\";\n      row.target_doc_id = targetDocId;\n      row.target_doc_no = targetDocNo;\n      row.target_doc_line_id = s.target_doc_line_id;\n      transitCreates.push(row);\n    }\n\n    if (entry.remaining > 0) {\n      const row = cloneOf(r);\n      row.to_bin = null;\n      row.transit_qty = qtyStr(entry.remaining);\n      row.received_qty = qtyStr(0);\n      row.open_qty = qtyStr(entry.remaining);\n      row.status = \"In Transit\";\n      row.received_date = null;\n      row.target_doc_type = \"\";\n      row.target_doc_id = \"\";\n      row.target_doc_no = \"\";\n      row.target_doc_line_id = \"\";\n      transitCreates.push(row);\n    }\n  }\n}\n\nreturn {\n  transitUpdates,\n  transitUpdatesLength: transitUpdates.length,\n  hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  transitCreates,\n  transitCreatesLength: transitCreates.length,\n  hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  shortages: [],\n  hasShortage: 0,\n  message: \"In transit ledger: \" + transitUpdates.length + \" closed, \" +\n    transitCreates.length + \" created\"\n};\n\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_ds7jurnq\n__N[\"code_node_ds7jurnq\"] = { decl: [[\"grNo\", \"string\"], [\"grPutawayStatus\", \"string\"], [\"allTOsCompleted\", \"int\"], [\"grStatus\", \"string\"], [\"allQICompleted\", \"int\"], [\"isAutoCompleteGR\", \"int\"], [\"isGRCompleted\", \"int\"]], fn: function () {\nconst console = __QUIET;\nconst allData = __v(\"workflowparams:allData\");\nconst currentToStatus = __v(\"node:code_node_KbJLkjP8.data.toStatus\");\nconst putawaySetup = __v(\"node:get_node_ca2032Ub.data.data\");\nconst otherPutawayTOs = __v(\"node:search_node_SVMdNd3K.data.data\") || [];\nconst qiLots = __v(\"node:search_node_T5BGLPpK.data.data\") || [];\n\nconst currentToId = String(allData.id);\nconst grNo = allData.gr_no;\n\n// Check if auto_completed_gr is enabled\nconst isAutoCompleteGR = putawaySetup && putawaySetup.auto_completed_gr === 1 ? 1 : 0;\n\n// Check if ALL putaway TOs are completed\nlet allTOsCompleted = 1;\n\n// Current TO status (use the calculated status, not database status)\nif (currentToStatus !== 'Completed') {\n  allTOsCompleted = 0;\n}\n\n// Check other TOs (excluding current one by ID comparison)\nfor (const to of otherPutawayTOs) {\n  // Skip current TO - use String() to ensure consistent comparison\n  if (String(to.id) === currentToId) {\n    continue;\n  }\n  \n  // Check if this other TO is not completed\n  if (to.to_status !== 'Completed') {\n    allTOsCompleted = 0;\n    break;\n  }\n}\n\n// Check if ALL QI lots are completed\nlet allQICompleted = 1;\nif (qiLots.length > 0) {\n  for (const qi of qiLots) {\n    if (qi.receiving_insp_status !== 'Completed') {\n      allQICompleted = 0;\n      break;\n    }\n  }\n}\n\n// Determine GR putaway status and gr_status\nlet grPutawayStatus;\nlet grStatus = \"Received\";\nlet isGRCompleted = 0;\n\nif (allTOsCompleted === 1 && allQICompleted === 1) {\n  grPutawayStatus = 'Completed';\n  if (isAutoCompleteGR === 1) {\n    grStatus = 'Completed';\n    isGRCompleted = 1;\n  }\n} else {\n  grPutawayStatus = 'In Progress';\n}\n\nreturn {\n  grNo: grNo,\n  grPutawayStatus: grPutawayStatus,\n  grStatus: grStatus,\n  allTOsCompleted: allTOsCompleted,\n  allQICompleted: allQICompleted,\n  isAutoCompleteGR: isAutoCompleteGR,\n  isGRCompleted: isGRCompleted\n};\n\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_dofqVRSn\n__N[\"code_node_dofqVRSn\"] = { decl: [[\"data\", \"any\"], [\"movement\", \"string\"], [\"nextIndex\", \"int\"], [\"index\", \"int\"], [\"huData\", \"any\"], [\"huId\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst inventoryMovements = __v(\"node:code_node_M7XzDZ48.data.inventoryMovements\") || [];\nconst currentIndexRaw = __v(\"node:get_cache_node_CqyAlkUh.data\");\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst data = inventoryMovements[index];\nconst movement = data.movement;\nconst huData = data.hu_data && data.hu_data !== \"\" ? JSON.parse(data.hu_data) : null;\n\nreturn {\n  data,\n  movement,\n  index,\n  nextIndex: index + 1,\n  huData,\n  huId: huData?.handling_unit_id || \"\",\n}\n\n} };\n// Putaway/PutawayProcessWorkflow.json :: code_node_4Baken82\n__N[\"code_node_4Baken82\"] = { decl: [[\"manufacturing_date\", \"string\"], [\"expired_date\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst subtractDataRaw = __v(\"node:get_cache_node_BztKo01z.data\");\nconst subtractData = JSON.parse(subtractDataRaw);\n\nreturn {\n  manufacturing_date: subtractData.manufacturing_date || \"\",\n  expired_date: subtractData.expired_date || \"\",\n}\n} };\n// Putaway Completion V2 - SQL rows (prepare/sql.py) -> the exact shapes PUTAWAY's nodes handed its code nodes (checked\n// against recorded runs by test/adapter_vs_recorded.js): get_node_C64LC1sr (the stored TO, its lines and records nested,\n// bundle items under `children`), get_node_ca2032Ub (putaway_setup), code_node_PwItems / code_node_PwTransit (the Phase 0\n// bridges' rows), search_node_SVMdNd3K / search_node_T5BGLPpK (the columns code_node_ds7jurnq reads). Ids are exact digit\n// strings (16+ digit numbers read as text BEFORE JSON.parse), decimals numbers, JSON columns parsed; a column holding null\n// or \"\" is absent, while inside a JSON column only nulls go; a get-node answers {count:1,data:{...}} or {count:0,data:{}};\n// a search-node {total,count,data:[...]}.\nconst pwParse = (t) =>\n  JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\nconst pwStripNull = (v) => {\n  if (Array.isArray(v)) return v.map(pwStripNull);\n  if (v && typeof v === \"object\") {\n    const o = {};\n    for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== undefined) o[k] = pwStripNull(v[k]);\n    return o;\n  }\n  return v;\n};\nconst pwStrip = (row) => {\n  const o = {};\n  for (const k of Object.keys(row || {})) {\n    const v = row[k];\n    if (v === null || v === undefined || v === \"\") continue;\n    o[k] = typeof v === \"object\" ? pwStripNull(v) : v;\n  }\n  return o;\n};\nconst pwRows = (v) => (Array.isArray(v) ? v : v ? [v] : []).filter((r) => r && r.j !== undefined && r.j !== null);\nconst pwObj = (r) => pwStrip(typeof r.j === \"string\" ? pwParse(r.j) : r.j);\nconst pwS = (v) => (v === undefined || v === null ? \"\" : String(v));\n// flat sub-table rows (parent_id) -> top-level rows carrying `children`, in id order (rows come id-ordered from the SQL)\nconst pwTree = (rows) => {\n  const top = [];\n  const byId = {};\n  for (const o of rows) byId[o.id] = Object.assign({}, o);\n  for (const o of rows) {\n    const r = byId[o.id];\n    const p = o.parent_id ? byId[o.parent_id] : null;\n    if (p) (p.children = p.children || []).push(r);\n    else top.push(r);\n  }\n  return top;\n};\nconst pwGet = (row) => (row ? { count: 1, data: row } : { count: 0, data: {} });\nconst pwSearch = (rows) => ({ total: rows.length, count: rows.length, data: rows });\n// code_node_PwItems: the Item fields code_node_M7XzDZ48 reads; the eligibility flags are kept apart\nconst PW_ITEM_FLAGS = [\"serial_number_management\", \"stock_control\", \"material_code\"];\nconst pwItems = (rowsIn) => {\n  const items = [];\n  const flags = {};\n  for (const r of pwRows(rowsIn)) {\n    const o = typeof r.j === \"string\" ? pwParse(r.j) : r.j;\n    if (!o || !o.id) continue;\n    const f = {};\n    for (const k of PW_ITEM_FLAGS) {\n      f[k] = o[k] === undefined ? null : o[k];\n      delete o[k];\n    }\n    flags[pwS(o.id)] = f;\n    const conv = Array.isArray(o.table_uom_conversion) ? o.table_uom_conversion : [];\n    o.table_uom_conversion = conv.map((c) => ({\n      alt_uom_id: c.alt_uom_id === null || c.alt_uom_id === undefined ? c.alt_uom_id : String(c.alt_uom_id),\n      base_qty: c.base_qty === null || c.base_qty === undefined ? c.base_qty : Number(c.base_qty),\n    }));\n    if (o.item_batch_management !== null && o.item_batch_management !== undefined) o.item_batch_management = Number(o.item_batch_management);\n    for (const k of Object.keys(o)) if (o[k] === null || o[k] === \"\") delete o[k];\n    items.push(pwStripNull(o));\n  }\n  return { items: items, flags: flags };\n};\n// code_node_PwTransit: decimals and line_no as numbers, NULL / \"\" left out\nconst pwTransit = (rowsIn) => {\n  const rows = [];\n  for (const r of pwRows(rowsIn)) {\n    const o = typeof r.j === \"string\" ? pwParse(r.j) : r.j;\n    if (!o || !o.id) continue;\n    for (const k of Object.keys(o)) if (o[k] === null || o[k] === \"\") delete o[k];\n    for (const k of [\"transit_qty\", \"received_qty\", \"open_qty\", \"line_no\"]) if (o[k] !== undefined) o[k] = Number(o[k]);\n    rows.push(o);\n  }\n  return rows;\n};\nconst pwBbalKey = (material, location, batch) => pwS(material) + \"|\" + pwS(location) + \"|\" + pwS(batch);\n\nconst pwAdapt = function pwAdapt(S) {\n  const hdr = pwRows(S.hdr).map(pwObj)[0] || null;\n  const lines = pwRows(S.lines).map(pwObj);\n  const records = pwRows(S.records).map(pwObj);\n  // the TO as get_node_C64LC1sr reads it: header columns, then its two subforms (trees)\n  let to = null;\n  if (hdr) {\n    to = Object.assign({}, hdr);\n    to.table_putaway_item = pwTree(lines);\n    to.table_putaway_records = pwTree(records);\n  }\n  const it = pwItems(S.items);\n  const setup = pwRows(S.setup).map(pwObj)[0] || null;\n  const bbal = {};\n  // SUBTRACT_INVENTORY's get_node_GjRiq3dT answers the first row of a key (lowest id)\n  for (const b of pwRows(S.bbal).map(pwObj)) {\n    const k = pwBbalKey(b.material_id, b.location_id, b.batch_id);\n    if (!bbal[k]) bbal[k] = b;\n  }\n  const lockRow = (Array.isArray(S.lock) ? S.lock : S.lock ? [S.lock] : []).filter((r) => r && r.step_name)[0] || null;\n  const costRows = pwRows(S.cost).map(pwObj);\n  const hrow = (Array.isArray(S.hdr) ? S.hdr : S.hdr ? [S.hdr] : [])[0] || {};\n  return {\n    to: pwGet(to),\n    hdr: hdr,\n    lines: lines,\n    records: records,\n    items: it.items,\n    itemFlags: it.flags,\n    transit: pwTransit(S.transit),\n    setup: pwGet(setup),\n    others: pwSearch(pwRows(S.others).map(pwObj)),\n    qi: pwSearch(pwRows(S.qi).map(pwObj)),\n    gr: pwRows(S.gr).map(pwObj)[0] || null,\n    bbal: bbal,\n    lock: lockRow,\n    // SUBMIT_SQL only: the costing-migration pairs, the classic lock's age, the GR's status\n    cost: costRows,\n    lockAgeSec: hrow.lock_age_sec === undefined || hrow.lock_age_sec === null ? null : Number(hrow.lock_age_sec),\n    grStatus: pwS(hrow.gr_status),\n  };\n};\n// Putaway Completion V2 - the classic Completed path (PUTAWAY_LOOP dev v16 Edit prep -> PUTAWAY dev v34) run in-process on\n// the lifted deployed bodies (lift/runtime.js), and the confirmation contract that feeds it.\n//\n// The request's `lines` (per stored TO line id; a split names its parent line's id) + the stored TO rebuild the allData\n// the desktop form sent the classic (pwRebuild). pwChain runs the lifted bodies in the deployed order (if-nodes by id in\n// comments): PUTAWAY_LOOP kku8SAT9 / 0rV4kqmz + CHECK_REQUIRED_FIELD / pcHu3XnW / XZtMB79F, then PUTAWAY M7IX2sBi /\n// S8GL6e4o / qfSZO0bi / KbJLkjP8 / M7XzDZ48 / ITmatch / ds7jurnq and per movement dofqVRSn (+ 4Baken82 on the IN). The\n// classic's SUBTRACT_INVENTORY / ADD_INVENTORY calls become the parameter sets they would have been sent; the SUBTRACT's\n// answer the ADD reads (its dates) is the source item_batch_balance row's, as code_node_DUBS9GZF answers it.\nconst PW_CATEGORIES = [\"Unrestricted\", \"Reserved\", \"Blocked\", \"Quality Inspection\", \"In Transit\"];\nconst PW_MAX_ROWS = 2500;\nconst PW_DIG = /^[0-9]{1,20}$/;\nconst PW_GUARD_500 = /^This putaway has \\d+ lines\\. Completing more than 500 lines at once is not supported here\\.$/;\n\nconst pwStr = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst pwNum = (v) => Number(v || 0);\nconst pwClone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));\nconst pwFlat = (rows) => (rows || []).flatMap((r) => [r].concat(Array.isArray(r.children) ? r.children : []));\n\n// Stored top-level lines that share a line_index: the lifted bodies key on line_index (S8GL6e4o's stored check,\n// KbJLkjP8's per-line totals), so each such line runs under its own alias \"<line_index>#<id>\" and every output is mapped\n// back. Lines with a unique line_index are untouched.\nconst pwAliases = function pwAliases(lines) {\n  const count = {};\n  for (const l of lines || []) count[pwStr(l.line_index)] = (count[pwStr(l.line_index)] || 0) + 1;\n  const byId = {};\n  for (const l of lines || []) if (count[pwStr(l.line_index)] > 1) byId[pwStr(l.id)] = pwStr(l.line_index) + \"#\" + pwStr(l.id);\n  return byId;\n};\nconst pwUnalias = (text, aliases) => {\n  let t = pwStr(text);\n  for (const id of Object.keys(aliases || {})) t = t.split(aliases[id]).join(aliases[id].slice(0, aliases[id].length - id.length - 1));\n  return t;\n};\n\n// The request's confirmation -> rows per stored line. Each entry: { id | parent_id, qty, target_location, storage_location,\n// target_inv_category, remark }; `id` = put the line away on one bin, `parent_id` = one row of a split of that line (in\n// order). -> { ok, code, message, byLine: { <line id>: { split: bool, rows: [...] } }, count }\nconst pwRequestRows = function pwRequestRows(request, storedById) {\n  const bad = (message) => ({ ok: false, code: \"400\", message: message, byLine: {}, count: 0 });\n  const lines = request && Array.isArray(request.lines) ? request.lines : null;\n  if (!lines || !lines.length) return bad(\"Cannot complete putaway. At least one item must have putaway quantity greater than 0.\");\n  const byLine = {};\n  for (let i = 0; i < lines.length; i++) {\n    const e = lines[i] || {};\n    const at = \"line \" + (i + 1) + \": \";\n    const own = pwStr(e.id).trim();\n    const parent = pwStr(e.parent_id).trim();\n    if (!!own === !!parent) return bad(at + \"name the putaway line by id, or its split parent by parent_id\");\n    const lineId = own || parent;\n    if (!PW_DIG.test(lineId)) return bad(at + \"the line id must be digits\");\n    if (!storedById[lineId]) return bad(at + \"line \" + lineId + \" is not a line of this putaway; please reload the putaway.\");\n    const qty = typeof e.qty === \"number\" ? e.qty : typeof e.qty === \"string\" && e.qty.trim() !== \"\" ? Number(e.qty) : NaN;\n    if (!isFinite(qty) || qty <= 0) return bad(at + \"the quantity must be a number greater than 0\");\n    for (const f of [\"target_location\", \"storage_location\"]) {\n      if (e[f] !== undefined && e[f] !== null && pwStr(e[f]) !== \"\" && !PW_DIG.test(pwStr(e[f]))) return bad(at + f + \" must be an id\");\n    }\n    if (e.target_inv_category !== undefined && e.target_inv_category !== null && pwStr(e.target_inv_category) !== \"\" &&\n      PW_CATEGORIES.indexOf(pwStr(e.target_inv_category)) < 0) return bad(at + \"unknown target category \" + pwStr(e.target_inv_category));\n    const slot = (byLine[lineId] = byLine[lineId] || { split: !!parent, rows: [] });\n    if (slot.split !== !!parent || (!parent && slot.rows.length)) return bad(at + \"line \" + lineId + \" is both put away whole and split, or named twice\");\n    const row = { qty: qty };\n    for (const f of [\"target_location\", \"storage_location\", \"target_inv_category\", \"remark\"]) if (e[f] !== undefined && e[f] !== null) row[f] = pwStr(e[f]);\n    slot.rows.push(row);\n  }\n  return { ok: true, code: \"\", message: \"\", byLine: byLine, count: lines.length };\n};\n\n// allData as the desktop Putaway form sends it on Completed (onClick_workflowComplete -> this.getValues()): the stored\n// header, the stored lines with this confirmation on them, the stored records. A line not confirmed puts nothing away\n// (putaway_qty 0). A split line becomes the form's onClick_save_split shape: the parent (is_split Yes, no bins) and its\n// children \"<line_index> - <n>\" (parent_or_child Child, the child's quantity as qty_to_putaway / pending / putaway, no\n// handling unit); every row keeps its stored line id (children: their parent's).\nconst pwRebuild = function pwRebuild(to, req, aliases) {\n  const header = Object.assign({}, to);\n  delete header.table_putaway_item;\n  delete header.table_putaway_records;\n  const lineIndex = (l) => (aliases[pwStr(l.id)] !== undefined ? aliases[pwStr(l.id)] : l.line_index);\n  const out = [];\n  let rowCount = 0;\n  for (const stored of to.table_putaway_item || []) {\n    const base = pwClone(stored);\n    base.line_index = lineIndex(stored);\n    const slot = req.byLine[pwStr(stored.id)];\n    if (!slot) {\n      base.putaway_qty = 0;\n      out.push(base);\n      continue;\n    }\n    if (!slot.split) {\n      const r = slot.rows[0];\n      base.putaway_qty = r.qty;\n      for (const f of [\"target_location\", \"storage_location\", \"target_inv_category\", \"remark\"]) if (r[f] !== undefined) base[f] = r[f];\n      out.push(base);\n      rowCount++;\n      continue;\n    }\n    const total = Number(slot.rows.reduce((t, r) => t + r.qty, 0).toFixed(8));\n    out.push(Object.assign(base, { is_split: \"Yes\", parent_or_child: \"Parent\", qty_to_putaway: total, putaway_qty: total, storage_location: \"\", target_location: \"\" }));\n    slot.rows.forEach((r, k) => {\n      const child = pwClone(stored);\n      delete child.children;\n      Object.assign(child, {\n        line_index: lineIndex(stored) + \" - \" + (k + 1), received_qty: 0, qty_to_putaway: r.qty, pending_process_qty: r.qty, putaway_qty: r.qty,\n        storage_location: r.storage_location !== undefined ? r.storage_location : \"\", target_location: r.target_location !== undefined ? r.target_location : \"\",\n        remark: r.remark !== undefined ? r.remark : \"\", is_split: \"No\", parent_or_child: \"Child\", hu_data: \"\", handling_unit_id: \"\",\n      });\n      if (r.target_inv_category !== undefined) child.target_inv_category = r.target_inv_category;\n      out.push(child);\n      rowCount++;\n    });\n  }\n  const stripEmpty = (o) => {\n    for (const k of Object.keys(o)) if (o[k] === null || o[k] === undefined) delete o[k];\n    return o;\n  };\n  return { allData: Object.assign(header, { table_putaway_item: out.map(stripEmpty), table_putaway_records: pwClone(to.table_putaway_records || []) }), rowCount: rowCount };\n};\n\n// What the background completion does not take (the classic save does, at most 500 lines): -> [reason] (empty = eligible)\nconst pwEligibility = function pwEligibility(A, req, costRows) {\n  const reasons = [];\n  const to = A.to.data || {};\n  const lines = pwFlat(to.table_putaway_item);\n  const why = (code, text) => {\n    if (!reasons.some((r) => r.code === code)) reasons.push({ code: code, text: text });\n  };\n  if (pwStr(to.to_status) === \"Draft\" || !pwStr(to.to_id) || [\"draft\", \"issued\"].indexOf(pwStr(to.to_id)) >= 0) why(\"DRAFT\", \"a Draft putaway is numbered by the classic save\");\n  if (lines.some((l) => pwStr(l.item_bundle_id) || (Array.isArray(l.children) && l.children.length))) why(\"BUNDLE\", \"it has item bundles\");\n  // a split saved In Progress stores its rows as lines (the classic's update_node_YJRu1B3c): not a shape V2 rebuilds\n  if (lines.some((l) => pwStr(l.parent_or_child) === \"Child\" || pwStr(l.is_split) === \"Yes\")) why(\"SPLIT_STORED\", \"it has split rows saved without confirming them\");\n  if (req.count > PW_MAX_ROWS) why(\"TOO_MANY_ROWS\", \"this confirmation has \" + req.count + \" rows; the background completion takes at most \" + PW_MAX_ROWS);\n  const flags = {};\n  for (const c of costRows || []) flags[pwStr(c.material_id) + \"|\" + (pwStr(c.batch_id) === \"0\" ? \"\" : pwStr(c.batch_id))] = c;\n  const byId = {};\n  for (const l of lines) byId[pwStr(l.id)] = l;\n  for (const id of Object.keys(req.byLine)) {\n    const l = byId[id] || {};\n    if (pwStr(l.hu_data) || pwStr(l.handling_unit_id)) why(\"HU\", \"it puts away handling units\");\n    const f = A.itemFlags[pwStr(l.item_code)] || {};\n    if (pwNum(l.is_serialized_item) === 1 || pwNum(f.serial_number_management) === 1) why(\"SERIAL\", \"it puts away serial-numbered items\");\n    // INVENTORY_BULK_APPLY moves a priced isMovingInv-1 line without touching its costing rows; unpriced, it refuses UNSUPPORTED_COSTING\n    if (flags[pwStr(l.item_code) + \"|\" + pwStr(l.batch_no)] && !(Number((parseFloat(l.unit_price) || 0).toFixed(8)) > 0)) why(\"COSTING\", \"an item with costing rows waiting for migration has no unit price on its line\");\n  }\n  return reasons;\n};\n\nconst pwChain = function pwChain(IN) {\n  const R = IN.reads || {};\n  const out = { route: \"PLANNED\", code: \"200\", message: \"\", ran: [], calls: [] };\n  const run = (id) => {\n    const o = __run(id);\n    out.ran.push(id);\n    return o;\n  };\n  const read = (id, value) => __set(\"node:\" + id, { data: value });\n  const stop = (code, message) => Object.assign(out, { route: \"STOP\", code: code, message: message || \"\" });\n  const putawayData = { value: null };\n  const loopCtx = {\n    \"system:tenantId\": IN.tenantId, \"system:uuid\": IN.uuid,\n    \"workflowparams:arrayData\": [IN.allData], \"workflowparams:saveAs\": \"Completed\", \"workflowparams:pageStatus\": \"Edit\",\n  };\n  if (IN.confirmedBy !== undefined && IN.confirmedBy !== null) loopCtx[\"workflowparams:confirmed_by\"] = IN.confirmedBy;\n  out.ctx = { loop: loopCtx };\n\n  const loop = () => {\n    // set_cache_node_3D7Mwerq \"0\" -> get_cache_node_OMu4rhrM (the first and only arrayData item)\n    read(\"get_cache_node_OMu4rhrM\", \"0\");\n    const prep = run(\"code_node_kku8SAT9\");\n    // if_oGDoWIZe: isInvalid == 1 -> return_node_6htNCd4h (400). The classic's 500-line refusal is not the background\n    // completion's (it takes up to PW_MAX_ROWS rows)\n    if (pwNum(prep.isInvalid) === 1 && !PW_GUARD_500.test(pwStr(prep.invalidMessage))) return stop(\"400\", prep.invalidMessage);\n    const req = run(\"code_node_0rV4kqmz\");\n    // workflow_node_iwEQbtDk -> CHECK_REQUIRED_FIELD (v8): its one code node, in its own context\n    const chk = __withContext({ \"system:tenantId\": IN.tenantId, \"workflowparams:entry\": req.data, \"workflowparams:required_fields\": req.required_fields },\n      () => __run(\"code_node_AeSdXE85\"));\n    out.ran.push(\"code_node_AeSdXE85\");\n    read(\"workflow_node_iwEQbtDk\", { data: chk });\n    // if_iaIxbIxT: status == Failed -> return_node_5loG03ZM (400)\n    if (pwStr(chk.status) === \"Failed\") return stop(\"400\", chk.message);\n    run(\"code_node_pcHu3XnW\");\n    // condition_or_node_item_iXJ6ZN1A (saveAs Completed) -> code_node_XZtMB79F -> workflow_node_tCxXH6MO (PUTAWAY)\n    putawayData.value = run(\"code_node_XZtMB79F\").putawayData || {};\n    return null;\n  };\n  __withContext(loopCtx, loop);\n  if (out.route !== \"PLANNED\") return out;\n\n  const pwCtx = { \"system:tenantId\": IN.tenantId, \"system:uuid\": IN.uuid, \"workflowparams:allData\": putawayData.value };\n  if (IN.confirmedBy !== undefined && IN.confirmedBy !== null) pwCtx[\"workflowparams:confirmed_by\"] = IN.confirmedBy;\n  out.ctx.putaway = pwCtx;\n  const putaway = () => {\n    run(\"code_node_M7IX2sBi\");\n    read(\"get_node_ca2032Ub\", R.setup || { count: 0, data: {} });\n    read(\"get_node_C64LC1sr\", R.to || { count: 0, data: {} });\n    const v = run(\"code_node_S8GL6e4o\");\n    // if_v5bYSdo9: isValid == 0 -> return_node_p3kLaRSX (400)\n    if (pwNum(v.isValid) === 0) return stop(\"400\", v.errorMessage);\n    if (IN.gatesOnly) {\n      out.route = \"GATES\";\n      return null;\n    }\n    out.records = run(\"code_node_qfSZO0bi\");\n    // code_node_PwKeys -> sql_node_PwItems / sql_node_PwTransit -> the bridges: PREPARE's own reads, same shapes\n    read(\"code_node_PwItems\", { items: R.items || [] });\n    read(\"code_node_PwTransit\", { rows: R.transit || [] });\n    out.lines = run(\"code_node_KbJLkjP8\");\n    const mv = run(\"code_node_M7XzDZ48\");\n    out.transit = run(\"code_node_ITmatch\");\n    // if_ITshort: hasShortage == 1 -> return_node_ITshort (400)\n    if (pwNum(out.transit.hasShortage) === 1) return stop(\"400\", out.transit.message);\n    read(\"search_node_SVMdNd3K\", R.others || { total: 0, count: 0, data: [] });\n    read(\"search_node_T5BGLPpK\", R.qi || { total: 0, count: 0, data: [] });\n    out.gr = run(\"code_node_ds7jurnq\");\n    // loop_2zWUDmG7 over inventoryMovements: set_cache_node_sMkxQnjC \"0\", then dofqVRSn's nextIndex. Each iteration hands\n    // dofqVRSn its own movement as a one-item list at index 0 (the whole list would be copied once per movement: O(n^2));\n    // the loop index the classic sends as `index` is the iteration's\n    const list = mv.inventoryMovements || [];\n    const whole = __CTX[\"node:code_node_M7XzDZ48\"];\n    for (let i = 0; i < list.length; i++) {\n      __CTX[\"node:code_node_M7XzDZ48\"] = { data: { inventoryMovements: [list[i]], inventoryMovementsLength: 1 } };\n      read(\"get_cache_node_CqyAlkUh\", \"0\");\n      const d = run(\"code_node_dofqVRSn\");\n      d.index = i;\n      d.nextIndex = i + 1;\n      const m = d.data || {};\n      const params = {\n        plant_id: m.plant_id, organization_id: m.organization_id, material_id: m.item_id, quantity: m.quantity, material_uom: m.item_uom,\n        unit_price: m.unit_price, transaction_type: m.transaction_type, trx_no: m.trx_no, parent_trx_no: m.parent_trx_no,\n        inventory_category: m.inventory_category, location_id: m.bin_location_id, batch_id: m.batch_id, index: d.index, isMovingInv: 1,\n        handling_unit_id: d.huId,\n      };\n      const mov = pwStr(d.movement);\n      if (mov === \"OUT\") {\n        // workflow_node_MIAAZc1J (SUBTRACT_INVENTORY): its answer, as the classic caches it for the IN (set_cache_node_TQ0cOvRy)\n        const src = m.batch_id ? (R.bbal || {})[pwBbalKey(m.item_id, m.bin_location_id, m.batch_id)] : null;\n        const answer = { code: \"200\" };\n        if (src && pwStr(src.manufacturing_date)) answer.manufacturing_date = src.manufacturing_date;\n        if (src && pwStr(src.expired_date)) answer.expired_date = src.expired_date;\n        for (const k of Object.keys(params)) if (params[k] === undefined || params[k] === null) delete params[k];\n        out.calls.push({ index: i, direction: \"SUBTRACT\", params: params, source: m, answer: answer });\n        read(\"workflow_node_MIAAZc1J\", answer);\n        out.lastSubtract = JSON.stringify(answer);\n      } else if (mov === \"IN\") {\n        read(\"get_cache_node_BztKo01z\", out.lastSubtract === undefined ? null : out.lastSubtract);\n        const dates = run(\"code_node_4Baken82\");\n        params.manufacturing_date = dates.manufacturing_date;\n        params.expired_date = dates.expired_date;\n        for (const k of Object.keys(params)) if (params[k] === undefined || params[k] === null) delete params[k];\n        out.calls.push({ index: i, direction: \"ADD\", params: params, source: m });\n        // code_node_qiSKhKkT / workflow_node_3k3T7tUz (handling units): not eligible, never reached with hu_data\n        if (pwStr(m.hu_data)) return stop(\"NOT_ELIGIBLE\", \"handling units are put away by the classic save\");\n      } else {\n        // condition_or_node_item_H4UIuRmd -> return_node_EiegwJay\n        return stop(\"400\", \"Invalid movement\");\n      }\n    }\n    __CTX[\"node:code_node_M7XzDZ48\"] = whole;\n    return null;\n  };\n  __withContext(pwCtx, putaway);\n  return out;\n};\n\n// PUTAWAY_ASYNC_SUBMIT's gates on the request + the stored TO (SUBMIT_SQL rows, pwAdapt): the stored status / classic lock\n// (PUTAWAY_LOOP's LockDecide texts), the contract, what V2 does not take, then the lifted gates in the classic order:\n// kku8SAT9 (400), CHECK_REQUIRED_FIELD (400), S8GL6e4o (400, against the STORED pending quantity).\n// G = { request: { lines }, S: SUBMIT_SQL rows, tenantId, confirmedBy }\n// -> { route: \"STOP\" | \"NOT_ELIGIBLE\" | \"GO\", code, message, reasons: [{code, text}], rowCount, lineCount }\nconst pwGates = function pwGates(G) {\n  const A = pwAdapt(G.S || {});\n  const res = (route, code, message, extra) => Object.assign({ route: route, code: code, message: message || \"\", reasons: [], rowCount: 0, lineCount: 0 }, extra || {});\n  if (!A.to.count) return res(\"NOT_ELIGIBLE\", \"NOT_ELIGIBLE\", \"a putaway that is not saved yet is completed by the classic save\", { reasons: [{ code: \"ADD_MODE\", text: \"the putaway is not saved yet\" }] });\n  const to = A.to.data;\n  const status = pwStr(to.to_status);\n  if (status === \"Completed\") return res(\"STOP\", \"400\", \"The current putaway is already Completed\");\n  if (status === \"Cancelled\") return res(\"STOP\", \"400\", \"The current putaway is Cancelled\");\n  // code_node_LockDecide: a classic run holding the lock (is_processing, younger than 900 s) or the GR being saved in the\n  // background answers \"under processing\"\n  if ((pwNum(to.is_processing) === 1 && !(A.lockAgeSec !== null && isFinite(A.lockAgeSec) && A.lockAgeSec > 900)) || A.grStatus === \"Processing\") {\n    return res(\"STOP\", \"400\", \"The current putaway is under processing\");\n  }\n  const storedById = {};\n  for (const l of pwFlat(to.table_putaway_item)) storedById[pwStr(l.id)] = l;\n  const req = pwRequestRows(G.request || {}, storedById);\n  if (!req.ok) return res(\"STOP\", req.code, req.message);\n  const lineCount = pwFlat(to.table_putaway_item).length;\n  const reasons = pwEligibility(A, req, A.cost);\n  if (reasons.length) {\n    return res(\"NOT_ELIGIBLE\", \"NOT_ELIGIBLE\", \"this putaway is completed by the classic save: \" + reasons.map((r) => r.text).join(\"; \"),\n      { reasons: reasons, rowCount: req.count, lineCount: lineCount });\n  }\n  const aliases = pwAliases(to.table_putaway_item);\n  const storedAliased = pwClone(to);\n  for (const l of storedAliased.table_putaway_item || []) if (aliases[pwStr(l.id)] !== undefined) l.line_index = aliases[pwStr(l.id)];\n  const rb = pwRebuild(storedAliased, req, aliases);\n  const out = pwChain({\n    allData: rb.allData, confirmedBy: G.confirmedBy, tenantId: G.tenantId, uuid: \"PWS\", gatesOnly: true,\n    reads: { to: { count: 1, data: storedAliased }, setup: { count: 0, data: {} } },\n  });\n  if (out.route !== \"GATES\") return res(out.route === \"NOT_ELIGIBLE\" ? \"NOT_ELIGIBLE\" : \"STOP\", out.code, pwUnalias(out.message, aliases), { rowCount: rb.rowCount, lineCount: lineCount });\n  return res(\"GO\", \"200\", \"\", { rowCount: rb.rowCount, lineCount: lineCount });\n};\n// PUTAWAY_BULK_PREPARE - Plan: the stored TO (locked by this job's SUBMIT) + the job's confirmation -> the classic allData\n// (pwRebuild) -> PUTAWAY's Completed path on the lifted bodies (pwChain) -> the manifest COMMIT works from, its parts as\n// gd_publish_step rows (P|<nonce>|<PART>|<nnn>, 400,000 characters each). Ends READY or FAIL (unlockOk 1: the job holds the\n// TO's lock and nothing was written, so a failure releases it).\n// Manifest parts:\n//   ENGINE { operation_key \"PWC|<job>\", movements: per confirmed row a SUBTRACT at the source then an ADD at the target,\n//            exactly the SUBTRACT_INVENTORY / ADD_INVENTORY parameters the classic sent, + movement_key / direction }\n//   TO     { to_status, lines: [{ id, before: {<col>: stored}, after: {<col>: new} }] (the columns KbJLkjP8 changes),\n//            records: [new table_putaway_records rows, record columns only, + transfer_order_putaway_id, job_line_key] }\n//   IT     { updates: [ITmatch.transitUpdates + before (the row as read)], creates: [ITmatch.transitCreates + job_line_key] }\n//   GR     { id, putaway_status, gr_status, before: { putaway_status, gr_status } }   (code_node_ds7jurnq)\n// Decimals of the TO rows are toFixed(8) strings (the in-transit rows already are: ITmatch's qtyStr).\nconst PW_LINE_PATCH = { pending_process_qty: \"dec\", putaway_qty: \"dec\", line_status: \"str\", target_location: \"id\", remark: \"str\", is_split: \"str\", parent_or_child: \"str\" };\nconst PW_RECORD_COLS = { line_index: \"str\", item_code: \"id\", item_name: \"str\", item_desc: \"str\", batch_no: \"id\", source_inv_category: \"str\",\n  target_inv_category: \"str\", store_in_qty: \"dec\", item_uom: \"id\", target_location: \"id\", remark: \"str\", confirmed_by: \"str\", confirmed_at: \"str\" };\nconst PW_CHUNK = 400000;\n\n// A = pwAdapt(SQL rows), or the same shapes taken from a recorded run (test/chain_parity.js)\nconst pwPlanA = function pwPlanA(entry, A) {\n  const s = pwStr;\n  const base = { route: \"FAIL\", code: \"\", message: \"\", payload: \"\", partRows: [], lineCount: 0, movementCount: 0, toId: s(entry.toId), unlockOk: 0 };\n  const fail = (code, message) => Object.assign(base, { code: code, message: message });\n  const req = entry.request && typeof entry.request === \"object\" ? entry.request : {};\n  const jobId = s(entry.jobId);\n  if (!A.to.count) return fail(\"PWC_TO_NOT_FOUND\", \"Putaway \" + s(entry.toId) + \" not found\");\n  const to = A.to.data;\n  // this job's SUBMIT holds the TO: is_processing 1 and the latest LOCK row carries the job's idempotency key\n  const mine = A.lock && s(A.lock.result_ref) !== \"\" && s(A.lock.result_ref) === s(entry.idempotencyKey);\n  if (pwNum(to.is_processing) !== 1 || !mine) return fail(\"PWC_NOT_LOCKED\", \"Putaway \" + s(to.to_id) + \" is not locked by this job\" + (mine ? \" (is_processing is off)\" : \"\"));\n  base.unlockOk = 1;\n  if (s(to.to_status) === \"Completed\" || s(to.to_status) === \"Cancelled\") return fail(\"PWC_TO_\" + s(to.to_status).toUpperCase(), \"The current putaway is already \" + s(to.to_status));\n  if (s(to.gr_no) !== s(entry.grId)) return fail(\"PWC_GR_CHANGED\", \"the putaway's Goods Receiving is not \" + s(entry.grId));\n  if (!A.gr) return fail(\"PWC_GR_NOT_FOUND\", \"Goods Receiving \" + s(entry.grId) + \" not found\");\n  if (s(A.gr.gr_status) === \"Processing\") return fail(\"PWC_GR_PROCESSING\", \"The current putaway is under processing (its Goods Receiving is being saved in the background)\");\n  if (s(req.recordedUpdateTime) && s(req.recordedUpdateTime) !== s(to.update_time)) {\n    return fail(\"PWC_TO_CHANGED\", \"the putaway was changed after it was submitted (\" + s(to.update_time) + \"): please confirm it again\");\n  }\n  const storedLines = pwFlat(to.table_putaway_item);\n  const storedById = {};\n  for (const l of storedLines) storedById[s(l.id)] = l;\n  const rq = pwRequestRows(req, storedById);\n  if (!rq.ok) return fail(\"PWC_INVALID_REQUEST\", rq.message);\n  const reasons = pwEligibility(A, rq, []);\n  if (reasons.length) return fail(\"PWC_NOT_ELIGIBLE\", \"this putaway is completed by the classic save: \" + reasons.map((r) => r.text).join(\"; \"));\n\n  const aliases = pwAliases(to.table_putaway_item);\n  const stored = pwClone(to);\n  for (const l of stored.table_putaway_item || []) if (aliases[s(l.id)] !== undefined) l.line_index = aliases[s(l.id)];\n  const rb = pwRebuild(stored, rq, aliases);\n  const out = pwChain({\n    allData: rb.allData, confirmedBy: s(req.confirmedBy), tenantId: s(entry.tenantId), uuid: \"PWC\" + jobId,\n    reads: { to: { count: 1, data: stored }, setup: A.setup, items: A.items, transit: A.transit, others: A.others, qi: A.qi, bbal: A.bbal },\n  });\n  if (out.route !== \"PLANNED\") return fail(out.route === \"NOT_ELIGIBLE\" ? \"PWC_NOT_ELIGIBLE\" : \"PWC_VALIDATION_\" + s(out.code), pwUnalias(out.message, aliases));\n\n  // ENGINE: the classic's calls in order, paired SUBTRACT -> ADD\n  const toProcess = (out.records && out.records.itemsToProcess) || [];\n  const movements = [];\n  let pair = 0;\n  for (let i = 0; i < out.calls.length; i++) {\n    const c = out.calls[i];\n    if (c.direction === \"SUBTRACT\") pair++;\n    else if (!out.calls[i - 1] || out.calls[i - 1].direction !== \"SUBTRACT\") return fail(\"PWC_PLAN_BROKEN\", \"an ADD without its SUBTRACT at movement \" + i);\n    movements.push(Object.assign({ movement_key: \"M\" + pair + (c.direction === \"ADD\" ? \".2\" : \"\"), direction: c.direction }, c.params));\n  }\n  // M7XzDZ48 drops a row whose item it cannot read (the classic then records it and moves no stock): refuse instead\n  if (pair !== toProcess.length) {\n    const known = {};\n    for (const it of A.items) known[s(it.id)] = true;\n    const lost = toProcess.filter((t) => !known[s(t.item_code)]).map((t) => s(t.item_code) || \"(none)\");\n    return fail(\"PWC_ITEM_NOT_FOUND\", \"the item of \" + (toProcess.length - pair) + \" confirmed row(s) could not be read (\" + lost.slice(0, 5).join(\", \") + \")\");\n  }\n\n  // TO: the columns KbJLkjP8 changed, per stored line (line_index back from its alias)\n  const empty = (v) => v === undefined || v === null || v === \"\";\n  const dec = (v) => (empty(v) ? null : Number(parseFloat(v).toFixed(8)).toFixed(8));\n  const val = (kind, v) => (kind === \"dec\" ? dec(v) : kind === \"id\" ? (empty(v) ? null : s(v)) : empty(v) ? \"\" : s(v));\n  const same = (kind, a, b) => (kind === \"dec\" ? (empty(a) && empty(b)) || (!empty(a) && !empty(b) && Number(a) === Number(b)) : (empty(a) && empty(b)) || s(a) === s(b));\n  const lines = [];\n  const outside = [];\n  for (const u of pwFlat((out.lines && out.lines.updatedItems) || [])) {\n    const o = storedById[s(u.id)];\n    if (!o) return fail(\"PWC_PLAN_BROKEN\", \"KbJLkjP8 answered line \" + s(u.id) + \", which is not stored\");\n    const before = {};\n    const after = {};\n    for (const c of new Set(Object.keys(u).concat(Object.keys(o)))) {\n      if (c === \"children\") continue;\n      const nv = c === \"line_index\" ? pwUnalias(u[c], aliases) : u[c];\n      const kind = PW_LINE_PATCH[c] || \"str\";\n      if (same(kind, nv, o[c])) continue;\n      if (!PW_LINE_PATCH[c]) {\n        outside.push(c);\n        continue;\n      }\n      before[c] = val(kind, o[c]);\n      after[c] = val(kind, nv);\n    }\n    if (Object.keys(after).length) lines.push({ id: s(u.id), before: before, after: after });\n  }\n  if (outside.length) return fail(\"PWC_UNEXPECTED_PATCH\", \"the completion would also change line columns \" + [...new Set(outside)].join(\", \"));\n  if (pwFlat((out.lines && out.lines.updatedItems) || []).length !== storedLines.length) return fail(\"PWC_PLAN_BROKEN\", \"the completion would add or drop lines\");\n  // records: qfSZO0bi's (KbJLkjP8 appends them to the stored ones), each with its rerun key\n  const records = pwFlat(out.records.records || []).map((r, i) => {\n    const row = { transfer_order_putaway_id: s(to.id) };\n    for (const c of Object.keys(PW_RECORD_COLS)) row[c] = val(PW_RECORD_COLS[c], c === \"line_index\" ? pwUnalias(r[c], aliases) : r[c]);\n    row.job_line_key = jobId + \"|\" + (i + 1);\n    return row;\n  });\n  // IT: ITmatch's updates (with the row as read: P0 / P3 compare it) and creates (each with its rerun key)\n  const readIt = {};\n  for (const t of A.transit) readIt[s(t.id)] = t;\n  const itUpdates = (out.transit.transitUpdates || []).map((u) => {\n    const r = readIt[s(u.id)] || {};\n    return Object.assign({}, u, { before: { status: r.status === undefined ? null : r.status, open_qty: r.open_qty === undefined ? null : r.open_qty,\n      received_qty: r.received_qty === undefined ? null : r.received_qty, transit_qty: r.transit_qty === undefined ? null : r.transit_qty } });\n  });\n  const itCreates = (out.transit.transitCreates || []).map((c, i) => Object.assign({}, c, { job_line_key: jobId + \"|\" + (i + 1) }));\n  const gr = { id: s(A.gr.id), putaway_status: s(out.gr.grPutawayStatus), gr_status: s(out.gr.grStatus),\n    before: { putaway_status: A.gr.putaway_status === undefined ? null : A.gr.putaway_status, gr_status: A.gr.gr_status === undefined ? null : A.gr.gr_status } };\n\n  const parts = {\n    ENGINE: { operation_key: \"PWC|\" + jobId, organization_id: s(to.organization_id), movements: movements },\n    TO: { id: s(to.id), to_status: s(out.lines.toStatus), before: { to_status: s(to.to_status), update_time: s(to.update_time) }, lines: lines, records: records },\n    IT: { updates: itUpdates, creates: itCreates },\n    GR: gr,\n  };\n  const nonce = (s(entry.nonce).replace(/[^0-9A-Za-z]/g, \"\") + \"00000000\").slice(0, 8);\n  const partRows = [];\n  const manifestParts = {};\n  for (const [name, value] of Object.entries(parts)) {\n    const text = JSON.stringify(value);\n    const names = [];\n    for (let at = 0, n = 1; at < text.length || n === 1; at += PW_CHUNK, n++) {\n      const step = \"P|\" + nonce + \"|\" + name + \"|\" + String(n).padStart(3, \"0\");\n      names.push(step);\n      partRows.push({ job_id: jobId, organization_id: s(to.organization_id), step_name: step, step_status: \"PAYLOAD\", attempt_count: 0, result_ref: text.slice(at, at + PW_CHUNK) });\n    }\n    manifestParts[name] = names;\n  }\n  const manifest = {\n    v: 1, prepared_by: \"PUTAWAY_BULK_PREPARE\", job_id: jobId, to_id: s(to.id), to_no: s(to.to_id), gr_id: s(A.gr.id), gr_no: s(to.receiving_no),\n    organization_id: s(to.organization_id), plant_id: s(to.plant_id), source: s(req.source), nonce: nonce, parts: manifestParts,\n    counts: { rows: rb.rowCount, movements: movements.length, records: records.length, lines: lines.length, itUpdates: itUpdates.length, itCreates: itCreates.length },\n  };\n  Object.defineProperty(base, \"__parts\", { value: parts, enumerable: false });\n  Object.defineProperty(base, \"__chain\", { value: out, enumerable: false });\n  return Object.assign(base, {\n    route: \"READY\", code: \"200\", message: \"Planned \" + movements.length + \" movements for \" + rb.rowCount + \" rows of \" + storedLines.length + \" lines\",\n    payload: JSON.stringify(manifest), partRows: partRows, lineCount: storedLines.length, movementCount: movements.length,\n  });\n};\nconst pwPlan = function pwPlan(entry, S) {\n  return pwPlanA(entry, pwAdapt(S));\n};\nconst entry = [{{node:code_node_PPentry.data}}][0];\nconst S = {\n  hdr: [{{node:sql_node_PPhdr.data}}][0], lines: [{{node:sql_node_PPlines.data}}][0], records: [{{node:sql_node_PPrecords.data}}][0],\n  gr: [{{node:sql_node_PPgr.data}}][0], items: [{{node:sql_node_PPitems.data}}][0], transit: [{{node:sql_node_PPtransit.data}}][0],\n  others: [{{node:sql_node_PPothers.data}}][0], qi: [{{node:sql_node_PPqi.data}}][0], setup: [{{node:sql_node_PPsetup.data}}][0],\n  bbal: [{{node:sql_node_PPbbal.data}}][0], lock: [{{node:sql_node_PPlock.data}}][0],\n};\nlet res;\nif (entry.route !== \"GO\") res = { route: \"FAIL\", code: entry.result_code, message: entry.result_message, payload: \"\", partRows: [], lineCount: 0, movementCount: 0, toId: entry.toId, unlockOk: 0 };\nelse res = pwPlan(entry, S);\nconsole.log(\"prepare plan\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lines: res.lineCount, movements: res.movementCount, parts: res.partRows.length, unlock: res.unlockOk }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "r79lsjza",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "czq9fqm9",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "h4xy59hn",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "y5oqdy2x",
+      "name": "payload",
+      "title": "payload",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "xy4dlsp0",
+      "name": "partRows",
+      "title": "partRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "78ky2yjp",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "a9ssee6i",
+      "name": "lineCount",
+      "title": "lineCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "w1zjtrad",
+      "name": "movementCount",
+      "title": "movementCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "3qh99g08",
+      "name": "toId",
+      "title": "toId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ta7n37ig",
+      "name": "unlockOk",
+      "title": "unlockOk",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Plan: the stored putaway + the confirmation -> PUTAWAY's Completed path (lifted) -> the manifest and its parts",
+    "isValidator": true,
+    "nodeName": "Plan: the stored putaway + the confirmation -> PUTAWAY's Completed path (lifted) -> the manifest and its parts",
+    "name": "Plan: the stored putaway + the confirmation -> PUTAWAY's Completed path (lifted) -> the manifest and its parts"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_PPready",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// PUTAWAY_BULK_PREPARE - Ready: the plan -> READY_TO_COMMIT (manifest; the worker's lease is kept) or FAILED (lease released)\n// with the putaway released when this job holds its lock. Nothing else was written\nconst prepareReady = function prepareReady(entry, plan) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  const p = plan || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const fail = (code, message, unlock) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{ id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not completed: \" + message).slice(0, 250), row_version: (Number(e.rowVersion) || 0) + 1,\n      error_code: code, error_message: message, error_details: JSON.stringify({ step: \"PUTAWAY_BULK_PREPARE\" }), lease_owner: null, lease_expires_at: null, finished_at: s(e.dbNow) || null }],\n    needUnlock: unlock ? \"YES\" : \"NO\", unlockRows: unlock ? [{ id: s(e.toId), is_processing: 0 }] : [], result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  if (s(p.route) !== \"READY\") return fail(s(p.code) || s(e.result_code) || \"PWC_PLAN_FAILED\", s(p.message) || s(e.result_message) || \"the completion could not be planned\", String(p.unlockOk) === \"1\" && /^[0-9]{1,20}$/.test(s(e.toId)));\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{ id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to complete: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0 }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst p = { route: [{{node:code_node_PPplan.data.route}}][0], code: [{{node:code_node_PPplan.data.code}}][0], message: [{{node:code_node_PPplan.data.message}}][0],\n  payload: [{{node:code_node_PPplan.data.payload}}][0], lineCount: [{{node:code_node_PPplan.data.lineCount}}][0], unlockOk: [{{node:code_node_PPplan.data.unlockOk}}][0] };\nconst res = prepareReady([{{node:code_node_PPentry.data}}][0], p);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "0pvq0ke3",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "jrtbs0pu",
+      "name": "needParts",
+      "title": "needParts",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "gtzrbjlk",
+      "name": "needReady",
+      "title": "needReady",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "yppm3hgc",
+      "name": "readyRows",
+      "title": "readyRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "lxkmmbox",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "t2nkbbqn",
+      "name": "needJobUpd",
+      "title": "needJobUpd",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "e1err4su",
+      "name": "jobRows",
+      "title": "jobRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "djn19sw3",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "thv5dpgv",
+      "name": "needUnlock",
+      "title": "needUnlock",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "apgeoz09",
+      "name": "unlockRows",
+      "title": "unlockRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "wt528whc",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "a6fnzlmd",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "29du9i89",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "al30f667",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Ready: READY_TO_COMMIT (+ manifest, parts) or FAILED (+ the putaway released when this job holds its lock)",
+    "isValidator": true,
+    "nodeName": "Ready: READY_TO_COMMIT (+ manifest, parts) or FAILED (+ the putaway released when this job holds its lock)",
+    "name": "Ready: READY_TO_COMMIT (+ manifest, parts) or FAILED (+ the putaway released when this job holds its lock)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "cor_PPparts",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Payload parts to write?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YPPparts",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1798800000007,
+         "parentId": 1798800000008,
+         "isTop": true,
+         "prop": "node.code_node_PPready.data.needParts",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needParts",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "add_node_PPparts",
+       "type": "add-node",
+       "data": {
+        "table_id": {
+         "source": "GD Publish Step:Table:2105131615547461634",
+         "rules": {
+          "collectionId": "2105131615547461634",
+          "list": [
+           {
+            "id": 1798800000005,
+            "parentId": 1798800000006,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "title": "Payload parts: gd_publish_step P|<run nonce>|<PART>|<nnn>",
+        "isValidator": true,
+        "nodeName": "Payload parts: gd_publish_step P|<run nonce>|<PART>|<nnn>",
+        "name": "Payload parts: gd_publish_step P|<run nonce>|<PART>|<nnn>",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "job_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPplan.data.partRows.job_id}}",
+           "valueLabel": "",
+           "propLabel": "job_id"
+          },
+          {
+           "prop": "organization_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPplan.data.partRows.organization_id}}",
+           "valueLabel": "",
+           "propLabel": "Organization"
+          },
+          {
+           "prop": "step_name",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPplan.data.partRows.step_name}}",
+           "valueLabel": "",
+           "propLabel": "step_name"
+          },
+          {
+           "prop": "step_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPplan.data.partRows.step_status}}",
+           "valueLabel": "",
+           "propLabel": "step_status"
+          },
+          {
+           "prop": "attempt_count",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPplan.data.partRows.attempt_count}}",
+           "valueLabel": "",
+           "propLabel": "attempt_count"
+          },
+          {
+           "prop": "result_ref",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPplan.data.partRows.result_ref}}",
+           "valueLabel": "",
+           "propLabel": "result_ref"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NPPparts",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "cor_PPready",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Job READY_TO_COMMIT to write?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YPPready",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1798800000011,
+         "parentId": 1798800000012,
+         "isTop": true,
+         "prop": "node.code_node_PPready.data.needReady",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needReady",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_PPready",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Async Job:Table:2104845286495150081",
+         "rules": {
+          "collectionId": "2104845286495150081",
+          "list": [
+           {
+            "id": 1798800000009,
+            "parentId": 1798800000010,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_PPready.data.readyRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Job READY_TO_COMMIT + manifest (the worker's lease is kept)",
+        "isValidator": true,
+        "nodeName": "Job READY_TO_COMMIT + manifest (the worker's lease is kept)",
+        "name": "Job READY_TO_COMMIT + manifest (the worker's lease is kept)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "job_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.job_status}}",
+           "valueLabel": "",
+           "propLabel": "job_status"
+          },
+          {
+           "prop": "progress_percent",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.progress_percent}}",
+           "valueLabel": "",
+           "propLabel": "progress_percent"
+          },
+          {
+           "prop": "progress_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.progress_message}}",
+           "valueLabel": "",
+           "propLabel": "progress_message"
+          },
+          {
+           "prop": "row_version",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.row_version}}",
+           "valueLabel": "",
+           "propLabel": "row_version"
+          },
+          {
+           "prop": "error_code",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.error_code}}",
+           "valueLabel": "",
+           "propLabel": "error_code"
+          },
+          {
+           "prop": "error_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.error_message}}",
+           "valueLabel": "",
+           "propLabel": "error_message"
+          },
+          {
+           "prop": "error_details",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.error_details}}",
+           "valueLabel": "",
+           "propLabel": "error_details"
+          },
+          {
+           "prop": "prepared_payload",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.prepared_payload}}",
+           "valueLabel": "",
+           "propLabel": "prepared_payload"
+          },
+          {
+           "prop": "line_count",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.readyRows.line_count}}",
+           "valueLabel": "",
+           "propLabel": "line_count"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NPPready",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "cor_PPunlock",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Putaway to release?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YPPunlock",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1798800000015,
+         "parentId": 1798800000016,
+         "isTop": true,
+         "prop": "node.code_node_PPready.data.needUnlock",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needUnlock",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_PPunlock",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Transfer Order Putaway:Table:1937714890958053378",
+         "rules": {
+          "collectionId": "1937714890958053378",
+          "list": [
+           {
+            "id": 1798800000013,
+            "parentId": 1798800000014,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_PPready.data.unlockRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Putaway released (is_processing 0; nothing was written)",
+        "isValidator": true,
+        "nodeName": "Putaway released (is_processing 0; nothing was written)",
+        "name": "Putaway released (is_processing 0; nothing was written)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.unlockRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "is_processing",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.unlockRows.is_processing}}",
+           "valueLabel": "",
+           "propLabel": "is_processing"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NPPunlock",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "cor_PPfail",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Job FAILED to write?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YPPfail",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1798800000019,
+         "parentId": 1798800000020,
+         "isTop": true,
+         "prop": "node.code_node_PPready.data.needJobUpd",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needJobUpd",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_PPfail",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Async Job:Table:2104845286495150081",
+         "rules": {
+          "collectionId": "2104845286495150081",
+          "list": [
+           {
+            "id": 1798800000017,
+            "parentId": 1798800000018,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_PPready.data.jobRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Job FAILED with the reason (lease released)",
+        "isValidator": true,
+        "nodeName": "Job FAILED with the reason (lease released)",
+        "name": "Job FAILED with the reason (lease released)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "job_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.job_status}}",
+           "valueLabel": "",
+           "propLabel": "job_status"
+          },
+          {
+           "prop": "progress_percent",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.progress_percent}}",
+           "valueLabel": "",
+           "propLabel": "progress_percent"
+          },
+          {
+           "prop": "progress_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.progress_message}}",
+           "valueLabel": "",
+           "propLabel": "progress_message"
+          },
+          {
+           "prop": "attempt_count",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.attempt_count}}",
+           "valueLabel": "",
+           "propLabel": "attempt_count"
+          },
+          {
+           "prop": "next_attempt_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.next_attempt_at}}",
+           "valueLabel": "",
+           "propLabel": "next_attempt_at"
+          },
+          {
+           "prop": "lease_owner",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.lease_owner}}",
+           "valueLabel": "",
+           "propLabel": "lease_owner"
+          },
+          {
+           "prop": "lease_expires_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.lease_expires_at}}",
+           "valueLabel": "",
+           "propLabel": "lease_expires_at"
+          },
+          {
+           "prop": "row_version",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.row_version}}",
+           "valueLabel": "",
+           "propLabel": "row_version"
+          },
+          {
+           "prop": "error_code",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.error_code}}",
+           "valueLabel": "",
+           "propLabel": "error_code"
+          },
+          {
+           "prop": "error_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.error_message}}",
+           "valueLabel": "",
+           "propLabel": "error_message"
+          },
+          {
+           "prop": "error_details",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.error_details}}",
+           "valueLabel": "",
+           "propLabel": "error_details"
+          },
+          {
+           "prop": "finished_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PPready.data.jobRows.finished_at}}",
+           "valueLabel": "",
+           "propLabel": "finished_at"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NPPfail",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "sql_node_PPback",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "Read-back: the job after the write (the truth)",
+    "isValidator": true,
+    "nodeName": "Read-back: the job after the write (the truth)",
+    "name": "Read-back: the job after the write (the truth)",
+    "script": {
+     "type": "sql",
+     "code": "SELECT CAST(j.id AS CHAR) AS id, j.job_status, j.progress_message, j.error_code, j.error_message FROM gd_async_job j WHERE j.tenant_id = '{{node:code_node_PPguard.data.tenantId}}' AND j.id = {{node:code_node_PPguard.data.jobId}}"
+    },
+    "response_json": [
+     {
+      "key": "n62v8vds",
+      "name": "id",
+      "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "uu0evi3s",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "u66kmj3f",
+      "name": "progress_message",
+      "title": "progress_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "hoqs2hcx",
+      "name": "error_code",
+      "title": "error_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "zowzjga9",
+      "name": "error_message",
+      "title": "error_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_PPresult",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// PUTAWAY_BULK_PREPARE - Result: the job read back after the write is the answer (READY_TO_COMMIT / FAILED)\nconst prepareResult = function prepareResult(guard, entry, ready, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const e = entry || {};\n  const r = ready || {};\n  return {\n    job_id: guard.jobId, job_status: job ? s(job.job_status) : \"\", result_code: s(r.result_code) || s(e.result_code), result_message: s(r.result_message) || s(e.result_message),\n    evidence: JSON.stringify({ v: 1, workflow: \"PUTAWAY_BULK_PREPARE\", entry: s(e.route), ready: s(r.route) }),\n  };\n};\nconst res = prepareResult([{{node:code_node_PPguard.data}}][0], [{{node:code_node_PPentry.data}}][0], [{{node:code_node_PPready.data}}][0], [{{node:sql_node_PPback.data}}][0]);\nconsole.log(\"prepare result\", JSON.stringify(res));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "ff24z5x7",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "hcr32eo3",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "cdrl101f",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ryuz11ne",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "wukzgchr",
+      "name": "evidence",
+      "title": "evidence",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Result",
+    "isValidator": true,
+    "nodeName": "Result",
+    "name": "Result"
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_node_PPdone",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return",
+    "isValidator": true,
+    "nodeName": "Return",
+    "name": "Return",
+    "response_value": {
+     "list": [
+      {
+       "prop": "job_id",
+       "propLabel": "job_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PPresult.data.job_id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "job_status",
+       "propLabel": "job_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PPresult.data.job_status}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "result_code",
+       "propLabel": "result_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PPresult.data.result_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "result_message",
+       "propLabel": "result_message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PPresult.data.result_message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "evidence",
+       "propLabel": "evidence",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PPresult.data.evidence}}",
+       "valueLabel": ""
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "title": "End Node",
+    "isValidator": true,
+    "nodeName": "End Node",
+    "name": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

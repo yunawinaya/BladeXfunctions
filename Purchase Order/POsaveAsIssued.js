@@ -20,6 +20,57 @@ const escapeHtml = (s) =>
       })[c],
   );
 
+const findFieldMessage = (obj) => {
+  // Base case: if current object has the structure we want
+  if (obj && typeof obj === "object") {
+    // Check for the specific error structure: { "table_so.1dz9gq2q.so_item_price": { "message": "..." } }
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+        const value = obj[key];
+        // If value has a message property, return it
+        if (value && typeof value === "object" && value.message) {
+          return value.message;
+        }
+        // Recursively search
+        const found = findFieldMessage(value);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+};
+// The save payload without what PO_SAVE never reads: each line's copies of the item's UOM table (alt_uom is kept as one
+// JSON layer with the four keys Goods Receiving reads - it gained a layer on every form load - and table_uom_conversion
+// is dropped), the header fields Fillback copies onto every line itself, and the status banners. Built once; the
+// workflow's prompts re-send this same object.
+const poSlimPayload = (values) => {
+  const dropHeader = ["draft_status", "issued_status", "processing_status", "completed_status", "cancelled_status"];
+  const dropLine = ["table_uom_conversion", "supplier_id", "plant_id", "payment_term_id", "shipping_preference_id", "billing_state_id",
+    "billing_country_id", "shipping_state_id", "shipping_country_id", "organization_id", "po_created_by"];
+  const altUom = (v) => {
+    if (v === undefined || v === null || v === "") return v;
+    try {
+      let x = v;
+      for (let i = 0; i < 64 && typeof x === "string"; i++) x = JSON.parse(x);
+      const keep = (c) => (c && typeof c === "object" ? { alt_uom_id: c.alt_uom_id, alt_qty: c.alt_qty, base_qty: c.base_qty, base_uom_id: c.base_uom_id } : c);
+      return JSON.stringify(Array.isArray(x) ? x.map(keep) : keep(x));
+    } catch (e) {
+      return v;
+    }
+  };
+  const slimLine = (row) => {
+    const out = {};
+    for (const k of Object.keys(row || {})) if (!dropLine.includes(k)) out[k] = row[k];
+    if ("alt_uom" in out) out.alt_uom = altUom(out.alt_uom);
+    if (Array.isArray(row && row.children)) out.children = row.children.map(slimLine);
+    return out;
+  };
+  const out = {};
+  for (const k of Object.keys(values || {})) if (!dropHeader.includes(k)) out[k] = values[k];
+  out.table_po = Array.isArray(values && values.table_po) ? values.table_po.map(slimLine) : values && values.table_po;
+  return out;
+};
+
 const saveWorkflow = async (data) => {
   await this.runWorkflow(
     "2069257894280118274",
@@ -29,6 +80,31 @@ const saveWorkflow = async (data) => {
       // a user decision — so it does NOT trigger the platform's error toast.
       const out = (res && res.data && res.data.data) || (res && res.data) || {};
       const soConfirm = Number(out.so_confirm);
+
+      if (Number(out.pi_confirm) === 405) {
+        // 405 - Direct Invoice PO with a 0 total: confirm before its PI is created.
+        this.hideLoading();
+        const proceed = await this.$confirm(
+          `${escapeHtml(out.msg)}`,
+          `0 total amount detected`,
+          {
+            confirmButtonText: "Proceed",
+            cancelButtonText: "Cancel",
+            type: "error",
+            dangerouslyUseHTMLString: true,
+          },
+        )
+          .then(() => true)
+          .catch(() => false);
+        if (!proceed) {
+          this.hideLoading();
+          return;
+        }
+        this.showLoading("Saving Purchase Orders...");
+        data.create_pi = "Yes";
+        await saveWorkflow(data);
+        return;
+      }
 
       if (soConfirm === 406) {
         // Not eligible (item not in Item Alias / currency mismatch).
@@ -162,15 +238,33 @@ const saveWorkflow = async (data) => {
         return;
       }
 
-      // Normal success.
-      this.$message.success(`${this.isEdit ? "Update" : "Add"} successfully`);
+      // Saved, but waiting in the approval flow.
+      if (res && res.enteredSlotApproval) {
+        this.hideLoading();
+        await this.$alert(
+          "This Purchase Order requires approval.<br><br>It has been saved and is pending approval.",
+          "Approval Required",
+          {
+            confirmButtonText: "OK",
+            dangerouslyUseHTMLString: true,
+            type: "info",
+          },
+        );
+      }
+
+      // Normal success. A Direct Invoice PO also names the PI it created.
+      this.$message.success(
+        out.pi_no
+          ? `${this.isEdit ? "Update" : "Add"} successfully. Purchase Invoice ${out.pi_no} created`
+          : `${this.isEdit ? "Update" : "Add"} successfully`,
+      );
       closeDialog();
     },
     async (error) => {
       this.hideLoading();
       console.error(error);
-      if (error.data?.code === 402) {
-        // 402 - Existing draft GR/PI: delete then retry
+      if (error.data?.code === 404) {
+        // 404 - Existing draft GR/PI (end_draft_404 in the save workflow): delete then retry
         const proceed = await this.$confirm(
           `${escapeHtml(error.data.msg)}<br><br><strong>Do you wish to continue?</strong>`,
           `Existing draft records detected`,
@@ -216,6 +310,13 @@ const saveWorkflow = async (data) => {
           },
         );
         closeDialog();
+      } else if (error.data?.code === 402) {
+        // 402 - Unit price outside min/max and no approval needed
+        await this.$alert(escapeHtml(error.data.msg).replace(/&lt;br&gt;/g, "<br>"), "Invalid Unit Price", {
+          confirmButtonText: "OK",
+          type: "error",
+          dangerouslyUseHTMLString: true,
+        });
       } else {
         this.$message.error(error.data?.msg || error.toString());
       }
@@ -224,24 +325,73 @@ const saveWorkflow = async (data) => {
 };
 
 (async () => {
-  this.showLoading("Saving Purchase Orders...");
-  const data = this.getValues();
-  let entry = data;
-  console.log("data", data);
-  for (const [index, lineItem] of data.table_po.entries()) {
-    await this.validate(`table_po.${index}.unit_price`);
+  try {
+    this.showLoading("Saving Purchase Orders...");
+    const data = this.getValues();
+    let entry = data;
+    console.log("data", data);
+    // Unit price is not validated here: min/max price is checked by the save workflow,
+    // which either routes it to approval or rejects it with 402. Every line's quantity in
+    // one pass: a call per line re-walked (and deep-copied) the whole table each time.
+    if (data.table_po.length > 0) {
+      await this.validate(data.table_po.map((lineItem, index) => `table_po.${index}.quantity`));
+    }
+
+    //Check Min/ Max qty before save
+    const  qtyErrors = [];
+
+    for(const [index, lineItem] of data.table_po.entries()){
+      const quantity = parseFloat(lineItem.quantity) || 0;
+      const minQty = parseFloat(lineItem.min_qty) || 0;
+      const maxQty = parseFloat(lineItem.max_qty) || 0;
+
+      if(minQty > 0 && quantity < minQty){
+        qtyErrors.push(
+          `Line ${index + 1}: Quantity ${quantity} is below Min Qty ${minQty}`,
+        );
+      }
+      
+      if(maxQty > 0 && quantity > maxQty){
+        qtyErrors.push(
+          `Line ${index + 1}: Quantity ${quantity} exceeds Max Qty ${maxQty}`,
+        );
+      }
+    }
+
+    if(qtyErrors.length > 0){
+      this.hideLoading();
+
+      await this.$alert(
+        qtyErrors.join("<br>"),
+        "Invalid Quantity",
+        {
+          confirmButtonText: "OK",
+          type: 'error',
+          dangerouslyUseHTMLString: true,
+        },
+      );
+
+      return;
+    }
+
+    entry.po_status = "Issued";
+
+    const cleanData = poSlimPayload(entry);
+
+    await saveWorkflow(cleanData);
+  } catch (error) {
+    console.error("error", error);
+    this.hideLoading();
+    // Try to get message from standard locations first
+    let errorMessage = "";
+
+    if (error && typeof error === "object") {
+      errorMessage = findFieldMessage(error) || error.toString();
+    } else {
+      errorMessage = error.toString() || error.message;
+    }
+
+    this.$message.error(errorMessage);
+    console.error(errorMessage);
   }
-
-  entry.po_status = "Issued";
-
-  const {
-    draft_status,
-    issued_status,
-    processing_status,
-    completed_status,
-    cancelled_status,
-    ...cleanData
-  } = entry;
-
-  await saveWorkflow(cleanData);
 })();

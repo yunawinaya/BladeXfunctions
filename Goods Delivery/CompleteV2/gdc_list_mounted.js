@@ -16,8 +16,8 @@
     })
   }
 
-// GD Completion V2: there is no scheduled worker - a completion still waiting (a retry, a closed browser) moves on when
-// the list opens (at most every 2 minutes per browser)
+// GD Completion V2 + GD Edit V2: there is no scheduled worker - a completion or an edit still waiting (a retry, a closed
+// browser, an expired hold) moves on when the list opens (at most every 2 minutes per browser)
 (() => {
   const KEY = "gdc_worker_kick_at";
   let last = 0;
@@ -28,23 +28,24 @@
   try {
     localStorage.setItem(KEY, String(Date.now()));
   } catch (e) {}
-  const tick = (round) => {
+  const tick = (workflowId, round) => {
     try {
       this.runWorkflow(
-        "2110182645714518018", // GD_COMPLETE_WORKER
+        workflowId,
         {},
         (w) => {
           const processed = Number((w && w.data && w.data.processed) || 0);
           if (processed > 0) {
             this.refresh();
-            if (round < 40) tick(round + 1);
+            if (round < 40) tick(workflowId, round + 1);
           }
         },
-        (e) => console.error("GD Completion V2: worker tick failed", e),
+        (e) => console.error("GD V2: worker tick failed", workflowId, e),
       );
     } catch (e) {
-      console.error("GD Completion V2: worker could not be started", e);
+      console.error("GD V2: worker could not be started", workflowId, e);
     }
   };
-  tick(1);
+  tick("2110182645714518018", 1); // GD_COMPLETE_WORKER
+  tick("2110618789356687361", 1); // GD_EDIT_WORKER
 })();

@@ -16,6 +16,20 @@ const closeDialog = () => {
   }
 };
 
+// Add only: one key per new GR on this page; every re-send reuses it.
+const createdKey = () => {
+  let key = (this.models["_data"] || {}).gr_created_key;
+  if (!key) {
+    key =
+      "GRCR-" +
+      Date.now().toString(36) +
+      "-" +
+      Math.random().toString(36).slice(2, 12);
+    this.models["_data"] = { ...this.models["_data"], gr_created_key: key };
+  }
+  return key;
+};
+
 const runGRWorkflow = async (data, continueZero, continueOvercommit) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
@@ -26,6 +40,9 @@ const runGRWorkflow = async (data, continueZero, continueOvercommit) => {
         pageStatus: data.page_status,
         continueZero: continueZero,
         continueOvercommit: continueOvercommit,
+        ...(data.page_status === "Add"
+          ? { idempotency_key: createdKey() }
+          : {}),
       },
       (res) => {
         console.log("Save as Created workflow response:", res);

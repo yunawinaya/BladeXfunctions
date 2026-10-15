@@ -54,10 +54,9 @@ const gsStructural = function gsStructural(R, stored) {
       return [];
     }
   };
+  // the classic save stamps the Picking a line is linked to (GD_UNUSED_FN_NEW Branch 4)
   for (const r of gsFlat(stored.table_gd).filter((x) => x.material_id)) {
-    const temps = arr(r.temp_qty_data);
-    if (temps.some((t) => t && s(t.handling_unit_id)) || arr(r.temp_hu_data).length) return "it has handling-unit allocations (not supported yet)";
-    if (temps.concat(arr(r.prev_temp_qty_data)).some((t) => t && s(t.picking_record_id))) return "its allocations come from a Picking (not supported yet)";
+    if ((digits(r.line_to_id) && s(r.line_to_id) !== "0") || arr(r.temp_qty_data).concat(arr(r.prev_temp_qty_data)).some((t) => t && s(t.picking_record_id))) return "it is linked to a Picking";
   }
   return "";
 };

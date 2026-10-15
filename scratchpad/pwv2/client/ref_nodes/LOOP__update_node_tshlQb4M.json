@@ -1,0 +1,43 @@
+{
+ "table_id": {
+  "source": "Transfer Order Putaway:Table:1937714890958053378",
+  "rules": {
+   "collectionId": "1937714890958053378",
+   "list": [
+    {
+     "id": 1773108830162,
+     "parentId": 1773108830161,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_kku8SAT9.data.data.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update Putaway Processing",
+ "isValidator": true,
+ "nodeName": "Update Putaway Processing",
+ "name": "Update Putaway Processing",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "is_processing",
+    "valueType": "value",
+    "value": 1,
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "Is Processing"
+   }
+  ]
+ }
+}

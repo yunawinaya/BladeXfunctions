@@ -1,0 +1,9 @@
+[
+ {
+  "key": "f3c41lqz",
+  "action": "js",
+  "options": {
+   "func": "(async () => {\n  if (arguments[0].value) {\n    this.disabled(\n      [\"table_po.\" + arguments[0].rowIndex + \".tax_percent\"],\n      false\n    );\n\n    if (arguments[0].fieldModel) {\n      this.setData({ [\"table_po.\" + arguments[0].rowIndex + \".tax_percent\"]: ''})\n    }\n  } else {\n    this.disabled(\n      [\"table_po.\" + arguments[0].rowIndex + \".tax_percent\"],\n      true\n    );\n\n    this.setData({ [\"table_po.\" + arguments[0].rowIndex + \".tax_percent\"]: ''})\n  }\n\n  this.refreshFieldOptionData([`table_po.${arguments[0].rowIndex}.tax_percent`]);\n})();"
+  }
+ }
+]

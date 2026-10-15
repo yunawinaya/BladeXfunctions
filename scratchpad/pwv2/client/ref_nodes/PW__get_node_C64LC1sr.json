@@ -1,0 +1,29 @@
+{
+ "table_id": {
+  "source": "Transfer Order Putaway:Table:1937714890958053378",
+  "rules": {
+   "collectionId": "1937714890958053378",
+   "list": [
+    {
+     "id": 1773123882959,
+     "parentId": 1773123882958,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{workflowparams:allData.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Get Original Putaway",
+ "isValidator": true,
+ "nodeName": "Get Original Putaway",
+ "name": "Get Original Putaway"
+}

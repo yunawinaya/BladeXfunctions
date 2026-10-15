@@ -1,0 +1,43 @@
+{
+ "table_id": {
+  "source": "Goods Receiving:Table:1901845517592285186",
+  "rules": {
+   "collectionId": "1901845517592285186",
+   "list": [
+    {
+     "id": 1773122107536,
+     "parentId": 1773122107535,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_OrU3f9fg.data.grId}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update GR",
+ "isValidator": true,
+ "nodeName": "Update GR",
+ "name": "Update GR",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "putaway_status",
+    "valueType": "value",
+    "value": "Created",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "Putaway Status"
+   }
+  ]
+ }
+}

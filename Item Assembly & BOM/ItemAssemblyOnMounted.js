@@ -26,6 +26,7 @@ const EDIT_DISABLED_FIELDS = [
   "expired_date",
   "storage_location_id",
   "location_id",
+  "inventory_category",
   "item_assembly_date",
   "reference_documents",
   "net_weight",
@@ -34,6 +35,34 @@ const EDIT_DISABLED_FIELDS = [
   "remarks_2",
   "remarks_3",
 ];
+
+// Batch No is typed only under Manual Input; a System Settings batch is generated
+// on completion. Any batch item takes the dates.
+const showBatchFields = async (itemId) => {
+  if (!itemId) return;
+
+  const res = await db
+    .collection("item")
+    .where({ id: itemId })
+    .field("item_batch_management,batch_number_genaration")
+    .get();
+  const item = res.data?.[0];
+  if (item?.item_batch_management !== 1) return;
+
+  const fields = ["manufacturing_date", "expired_date"];
+  if (item.batch_number_genaration !== "According To System Settings") {
+    fields.push("batch_no");
+  }
+  this.display(fields);
+};
+
+// Past Draft the fields are read-only, so only the ones holding a value are shown.
+const showFilledBatchFields = () => {
+  const filled = ["batch_no", "manufacturing_date", "expired_date"].filter(
+    (field) => this.getValue(field)
+  );
+  if (filled.length) this.display(filled);
+};
 
 // Locking the components table is not enough on its own: this.disabled leaves the
 // toolbar's Add / Batch Add buttons and the per-row delete action clickable, so
@@ -102,6 +131,11 @@ const setPlant = (organizationId, pageStatus) => {
     this.setData({ page_status: pageStatus });
     const status = this.getValue("item_assembly_status");
 
+    // Assemblies saved before the field existed were all received Unrestricted.
+    if (pageStatus !== "Add" && !this.getValue("inventory_category")) {
+      this.setData({ inventory_category: "Unrestricted" });
+    }
+
     switch (pageStatus) {
       case "Add":
       case "Clone":
@@ -118,6 +152,16 @@ const setPlant = (organizationId, pageStatus) => {
         ]);
 
         setPlant(organizationId, pageStatus);
+
+        if (pageStatus === "Clone") {
+          // A batch belongs to one assembly run, so a clone starts without one.
+          this.setData({
+            batch_no: "",
+            manufacturing_date: null,
+            expired_date: null,
+          });
+          await showBatchFields(this.getValue("item_id"));
+        }
         break;
 
       case "Edit":
@@ -144,12 +188,16 @@ const setPlant = (organizationId, pageStatus) => {
           this.display(["button_completed", "comp_post_button"]);
           lockComponentsTable();
         }
+
+        if (status === "Draft") await showBatchFields(this.getValue("item_id"));
+        else showFilledBatchFields();
         break;
 
       case "View":
         showStatusHTML(status);
         this.disabled(EDIT_DISABLED_FIELDS, true);
         lockComponentsTable();
+        showFilledBatchFields();
         break;
     }
   } catch (error) {

@@ -1,0 +1,52 @@
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Run Putaway Workflow",
+ "isValidator": true,
+ "nodeName": "Run Putaway Workflow",
+ "name": "Run Putaway Workflow",
+ "workflow": {
+  "source": "PUTAWAY:Workflow:2031249915811270657",
+  "rules": {
+   "collectionId": "2031249915811270657",
+   "list": [
+    {
+     "id": 1773122802026,
+     "parentId": 1773122802025,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "allData",
+    "propLabel": "allData",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_XZtMB79F.data.putawayData}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "confirmed_by",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{workflowparams:confirmed_by}}",
+    "valueLabel": "",
+    "propLabel": "confirmed_by"
+   }
+  ]
+ }
+}

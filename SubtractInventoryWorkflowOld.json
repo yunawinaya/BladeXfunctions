@@ -3758,7 +3758,7 @@
                                             "name": "wa_quantity",
                                             "title": "wa_quantity",
                                             "description": "",
-                                            "bsonType": "int",
+                                            "bsonType": "decimal",
                                             "isExpand": false,
                                             "children": []
                                           },

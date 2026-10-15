@@ -1,0 +1,25 @@
+[
+ {
+  "key": "uurom90x",
+  "action": "refreshFieldOptionData",
+  "options": {
+   "condition": "",
+   "isCondition": false,
+   "field": "table_po.tax_percent",
+   "valueTypes": {},
+   "dataSource": {
+    "args": {}
+   }
+  }
+ },
+ {
+  "key": "70b0zb3a",
+  "action": "triggerEvent",
+  "options": {
+   "condition": "",
+   "isCondition": false,
+   "functionName": "POcalculation",
+   "functionParams": ""
+  }
+ }
+]
