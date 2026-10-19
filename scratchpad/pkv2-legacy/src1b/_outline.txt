@@ -1,0 +1,141 @@
+start [start-node] Start Node
+code_node_UDOp8D9x [code-node] Unique Index
+get_node_jEllcWiJ [get-node] Get Original Picking
+get_node_Uj1uV9PU [get-node] Get Picking Setup
+if_os041JOX [if] IF Picking Plan
+  if_block_3rtgi7Ya [ifBlock] true
+    code_node_Q3hWck9R [code-node] Create Table Picking Records
+    code_node_hojzwwoL [code-node] Calculate Updated Items & Status
+    search_node_6FNmsgp3 [search-node] Get PP Lines
+    code_node_4NJwHkhZ [code-node] Extract All Location Batch IDs
+    search_node_aKzC4Dkj [search-node] Get HUs
+    search_node_apbSGyG3 [search-node] Get Locations
+    search_node_LOxCODhY [search-node] Get Batchs
+    code_node_PpSibPrep [code-node] Sibling Picking Records (PP): ids for the query
+    sql_node_PpSibRecs [sql-node] Sibling Picking Records (PP)
+    code_node_AGoxWP7x [code-node] PP Lines Preparation
+    if_x0piPXaQ [if] IF Error
+      if_block_TpQ-ERt7 [ifBlock] true
+        return_node_DZ6uDNjX [return-node] Return Data
+      if_block_GHyiGWby [ifBlock] false
+    update_node_GJdqxzq0 [update-node] Update PP Lines
+    update_node_JBvmArxy [update-node] Update Picking
+    search_node_cERaaVGY [search-node] Get PP Datas
+    code_node_Qxtc1i6K [code-node] PP Data Update
+    set_cache_node_eHnntVHT [set-cache-node] Set PP Index
+    set_cache_PpFailInit [set-cache-node] Init PP Failures
+    loop_MAHOgT3B [loop] Loop PP Datas
+      get_cache_node_6yG35O6H [get-cache-node] Get PP Index
+      code_node_m6aQZaut [code-node] PP Data Preparation
+      workflow_node_panolpM5 [workflow-node] Run Created PP workflow
+      if_jQQEMOPo [if] IF Error
+        ifBlock_AViOhIdy [ifBlock] true
+          get_cache_PpFailA [get-cache-node] Get PP Failures
+          code_node_PpFailA [code-node] Collect PP Failure
+          set_cache_PpFailA [set-cache-node] Set PP Failures
+        ifBlock_KItw5ugn [ifBlock] false
+      if_K5e9XtXj [if] IF Completed
+        if_block_h4gDV4ze [ifBlock] true
+          update_node_NvJg9Fcd [update-node] Update PP Completed
+        if_block_9drQcoRM [ifBlock] false
+      set_cache_node_0j1AlCqm [set-cache-node] Set PP Index
+    get_cache_PpFailSum [get-cache-node] Get PP Failures
+    code_node_PpFailSum [code-node] Picking Verdict
+    return_node_C0mqcxCx [return-node] Return Data
+  if_block_NGUmIvsw [ifBlock] false
+    code_node_oHIIKfiw [code-node] Create Table Picking Records
+    code_node_Z5JH4g2u [code-node] Calculate Updated Items & Status
+    search_node_krPmTbfL [search-node] Get GD Lines
+    code_node_AmGrGNBz [code-node] Extract All Location Batch IDs
+    search_node_ko6ZYIQp [search-node] Get HUs
+    search_node_kUwlb6md [search-node] Get Locations
+    search_node_kdhCN7Yu [search-node] Get Batchs
+    code_node_iES7iMKA [code-node] GD Lines Preparation
+    if_LoadingBayErr [if] IF Error
+      if_block_LBErrTrue [ifBlock] true
+        return_node_LoadingBayErr [return-node] Return Data
+      if_block_LBErrFalse [ifBlock] false
+    code_node_SizeGuardPrep [code-node] Size Guard: the GDs on this Picking (ids for the line count)
+    sql_node_GdLineCount [sql-node] Size Guard: line count per GD
+    code_node_SizeGuard [code-node] Size Guard: refuse a full GD re-save above 500 lines (nothing written yet)
+    if_SizeGuard [if] IF Too Large For A Full GD Re-save
+      if_block_SizeGuardT [ifBlock] true
+        return_node_SizeGuard [return-node] Return Data
+      if_block_SizeGuardF [ifBlock] false
+    update_node_o19MykBA [update-node] Update Picking
+    update_node_JXfFIqqv [update-node] Update GD Lines
+    if_MNGate [if] IF Full Picking
+      if_block_MNGateTrue [ifBlock] true
+        code_node_SibPrep [code-node] Sibling Picking Records: ids for the query
+        sql_node_SibRecs [sql-node] Sibling Picking Records
+        code_node_MNRecompute [code-node] Recompute M:N Picked Qty
+        if_MNHasUpdates [if] IF Has Updates
+          if_block_MNHasUpdatesTrue [ifBlock] true
+            update_node_MNPicked [update-node] Update M:N Picked Qty
+          if_block_MNHasUpdatesFalse [ifBlock] false
+      if_block_MNGateFalse [ifBlock] false
+    code_node_ClampMsg [code-node] Clamp Message
+    search_node_c7BtNx91 [search-node] Get GD Datas
+    code_node_B3E0xodz [code-node] GD Data Update
+    code_node_GdPlan [code-node] GD Plan: header-only updates, the rest through the loop
+    if_GdStatusRows [if] IF Header-Only Updates
+      if_GdStatusRowsT [ifBlock] true
+        update_node_GdPickHdr [update-node] Update GD Picking Status (headers only)
+      if_GdStatusRowsF [ifBlock] false
+    set_cache_GdFailInit [set-cache-node] Init GD Failures
+    if_GdLoopItems [if] IF GDs Need The GD Workflow
+      if_GdLoopItemsT [ifBlock] true
+        loop_zRdd7yAf [loop] Loop GD Datas
+          code_node_9rK80jNQ [code-node] GD Data Preparation
+          if_9oBTzuRX [if] IF Auto Complete GD
+            if_block_f6k6UqTd [ifBlock] true
+              workflow_node_Cd96wivg [workflow-node] Run Complete GD workflow
+              if_iF1mpbqT [if] IF Error
+                if_block_lLdqApOW [ifBlock] true
+                  get_cache_GdFailA [get-cache-node] Get GD Failures
+                  code_node_GdFailA [code-node] Collect GD Failure
+                  set_cache_GdFailA [set-cache-node] Set GD Failures
+                if_block_bflyjyId [ifBlock] false
+            if_block_VheLY2zW [ifBlock] false
+              if_GdRouteCreated [if] IF Full GD Re-save Needed
+                if_block_GdCreatedT [ifBlock] true
+                  workflow_node_4c98bf8x [workflow-node] Run Created GD workflow
+                  if_jCnVaUJt [if] IF Error
+                    ifBlock_gvyNNAi4 [ifBlock] true
+                      get_cache_GdFailB [get-cache-node] Get GD Failures
+                      code_node_GdFailB [code-node] Collect GD Failure
+                      set_cache_GdFailB [set-cache-node] Set GD Failures
+                    ifBlock_4bNcmv9J [ifBlock] false
+                if_block_GdCreatedF [ifBlock] false
+                  get_cache_GdFailC [get-cache-node] Get GD Failures
+                  code_node_GdFailC [code-node] Collect GD Skip
+                  set_cache_GdFailC [set-cache-node] Set GD Failures
+      if_GdLoopItemsF [ifBlock] false
+    get_cache_GdFailSum [get-cache-node] Get GD Failures
+    code_node_GdFailSum [code-node] Picking Verdict
+    get_node_V4PP8WJI [get-node] Get Packing Setup
+    code_node_pMVdQBEQ [code-node] Check & Prepare Packing Data
+    search_node_FXknErTg [search-node] Get Existing Packing
+    if_7-Z6vlOS [if] IF Auto Packing
+      if_block_6RaiH2gK [ifBlock] true
+        get_node_P2TpS5kS [get-node] Get Packing Format
+        search_node_mUPqqQph [search-node] Get HU Master
+        search_node_i5v6z7Hu [search-node] Get SO Data
+        code_node_LrhKQlZV [code-node] SO Data
+        code_node_gudzrvMQ [code-node] Enrich Packing List
+        if_PkCreates [if] IF hasCreates
+          if_PkCreates_t [ifBlock] true
+            code_node_PkSlices [code-node] Packing Slices
+            loop_PkCreates [loop] Loop Packing Creates (25 per call)
+              code_node_PkSlice [code-node] Packing Slice
+              add_node_LcxwYc7z [add-node] Add Packing Data
+          if_PkCreates_f [ifBlock] false
+        if_PkUpdates [if] IF hasUpdates
+          if_PkUpdates_t [ifBlock] true
+            loop_PackingUpdates [loop] Loop Packing Updates
+              update_node_Mt4SJsF8 [update-node] Update Packing Data
+          if_PkUpdates_f [ifBlock] false
+        return_node_8pe4Lsgp [return-node] Return Data
+      if_block_79nTqFVt [ifBlock] false
+    return_node_cl1D8jrf [return-node] Return Data
+end [end-node] End Node

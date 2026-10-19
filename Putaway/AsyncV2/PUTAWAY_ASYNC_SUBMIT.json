@@ -40,7 +40,7 @@
    "key": "h0sgxzt7",
    "name": "request",
    "title": "request",
-   "description": "{ source, lines: [{ id | parent_id, qty, target_location, target_inv_category, remark, storage_location }] }",
+   "description": "{ source, lines: [{ id | parent_id, qty, target_location, target_inv_category, remark, storage_location }], ref_doc? }",
    "bsonType": "any",
    "isExpand": false,
    "children": []
@@ -182,7 +182,7 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// PUTAWAY_ASYNC_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic confirmation refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_ROWS = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// PUTAWAY_ASYNC_SUBMIT - Guard: operation (SUBMIT | STATUS), to_id (digits), the client's idempotency key (one per click and\n// content), who confirms (the session nickname: {{global:nickname}} is null inside a workflow), the confirmation request\n// ({ source, lines: [{ id | parent_id, qty, target_location, target_inv_category, remark, storage_location }] }), session\nconst submitGuard = function submitGuard(inp) {\n  const op = s(inp.operation).toUpperCase() || \"SUBMIT\";\n  const toId = s(inp.toId);\n  const key = s(inp.key);\n  const tenantId = s(inp.tenantId);\n  const bad = (why) => answer(\"REJECT\", \"400\", why, { operation: op, toId: \"0\", key: \"\", tenantId: \"0\", uid: \"\", confirmedBy: \"\", request: {} });\n  if ([\"SUBMIT\", \"STATUS\"].indexOf(op) < 0) return bad(\"operation must be SUBMIT or STATUS\");\n  if (!digits(toId)) return bad(\"to_id: digits only\");\n  if (!/^[A-Za-z0-9|:_.-]{8,128}$/.test(key)) return bad(\"idempotency_key: 8 to 128 characters of A-Z a-z 0-9 | : _ . -\");\n  if (!digits(tenantId)) return bad(\"no session tenant\");\n  let req = inp.request;\n  if (typeof req === \"string\") {\n    try {\n      req = JSON.parse(req);\n    } catch (e) {\n      req = null;\n    }\n  }\n  req = req && typeof req === \"object\" ? req : {};\n  if (op === \"SUBMIT\" && !Array.isArray(req.lines)) return bad(\"request.lines: the rows to put away\");\n  return answer(\"CONTINUE\", \"\", \"\", { operation: op, toId: toId, key: key, tenantId: tenantId, uid: s(inp.uid), confirmedBy: s(inp.confirmedBy).slice(0, 200),\n    request: { source: s(req.source) || \"FORM\", lines: Array.isArray(req.lines) ? req.lines : [] } });\n};\nconst res = submitGuard({ operation: [{{workflowparams:operation}}][0], toId: [{{workflowparams:to_id}}][0], key: [{{workflowparams:idempotency_key}}][0],\n  confirmedBy: [{{workflowparams:confirmed_by}}][0], request: [{{workflowparams:request}}][0], tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] });\nconsole.log(\"submit guard\", JSON.stringify({ route: res.route, op: res.operation, to: res.toId, rows: (res.request.lines || []).length, message: res.message }));\nreturn res;"
+     "code": "// PUTAWAY_ASYNC_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic confirmation refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_ROWS = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// PUTAWAY_ASYNC_SUBMIT - Guard: operation (SUBMIT | STATUS), to_id (digits), the client's idempotency key (one per click and\n// content), who confirms (the session nickname: {{global:nickname}} is null inside a workflow), the confirmation request\n// ({ source, lines: [{ id | parent_id, qty, target_location, target_inv_category, remark, storage_location }] }), session\nconst submitGuard = function submitGuard(inp) {\n  const op = s(inp.operation).toUpperCase() || \"SUBMIT\";\n  const toId = s(inp.toId);\n  const key = s(inp.key);\n  const tenantId = s(inp.tenantId);\n  const bad = (why) => answer(\"REJECT\", \"400\", why, { operation: op, toId: \"0\", key: \"\", tenantId: \"0\", uid: \"\", confirmedBy: \"\", request: {} });\n  if ([\"SUBMIT\", \"STATUS\"].indexOf(op) < 0) return bad(\"operation must be SUBMIT or STATUS\");\n  if (!digits(toId)) return bad(\"to_id: digits only\");\n  if (!/^[A-Za-z0-9|:_.-]{8,128}$/.test(key)) return bad(\"idempotency_key: 8 to 128 characters of A-Z a-z 0-9 | : _ . -\");\n  if (!digits(tenantId)) return bad(\"no session tenant\");\n  let req = inp.request;\n  if (typeof req === \"string\") {\n    try {\n      req = JSON.parse(req);\n    } catch (e) {\n      req = null;\n    }\n  }\n  req = req && typeof req === \"object\" ? req : {};\n  if (op === \"SUBMIT\" && !Array.isArray(req.lines)) return bad(\"request.lines: the rows to put away\");\n  // the putaway's attachments as the user leaves them (the whole list); absent = keep what the putaway has\n  const refDoc = req.ref_doc;\n  if (refDoc !== undefined && refDoc !== null && (!Array.isArray(refDoc) || refDoc.length > 100 || refDoc.some((f) => !f || typeof f !== \"object\" || Array.isArray(f)) ||\n    JSON.stringify(refDoc).length > 200000)) return bad(\"request.ref_doc: the attachment list (at most 100 file objects)\");\n  const request = { source: s(req.source) || \"FORM\", lines: Array.isArray(req.lines) ? req.lines : [] };\n  if (Array.isArray(refDoc)) request.ref_doc = refDoc;\n  return answer(\"CONTINUE\", \"\", \"\", { operation: op, toId: toId, key: key, tenantId: tenantId, uid: s(inp.uid), confirmedBy: s(inp.confirmedBy).slice(0, 200),\n    request: request });\n};\nconst res = submitGuard({ operation: [{{workflowparams:operation}}][0], toId: [{{workflowparams:to_id}}][0], key: [{{workflowparams:idempotency_key}}][0],\n  confirmedBy: [{{workflowparams:confirmed_by}}][0], request: [{{workflowparams:request}}][0], tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] });\nconsole.log(\"submit guard\", JSON.stringify({ route: res.route, op: res.operation, to: res.toId, rows: (res.request.lines || []).length, message: res.message }));\nreturn res;"
     },
     "response_json": [
      {
@@ -1951,7 +1951,7 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// PUTAWAY_ASYNC_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic confirmation refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_ROWS = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// PUTAWAY_ASYNC_SUBMIT - Post: the queue rows - the putaway's lock (gd_publish_step PWC|<to> / LOCK|<n>, result_ref = the\n// idempotency key; unique: a concurrent twin fails its run), the COMPLETE_PUTAWAY job (QUEUED but not due for 2 minutes,\n// so no worker takes it before the putaway is locked; due.js makes it due after the read-back) and is_processing 1\nconst submitPost = function submitPost(guard, entry, gate) {\n  if (s(gate.route) !== \"GO\") return answer(\"STOP\", s(gate.code) || \"400\", s(gate.message), { lockRows: [], jobRows: [], toRows: [] });\n  const request = { v: 1, source: guard.request.source, uid: guard.uid, toId: guard.toId, toNo: entry.toNo, grId: entry.grId, confirmedBy: guard.confirmedBy,\n    lines: guard.request.lines };\n  return answer(\"QUEUE\", \"200\", \"queued\", {\n    lockRows: [{ job_id: \"PWC|\" + guard.toId, organization_id: entry.organizationId, step_name: \"LOCK|\" + entry.lockN, step_status: \"LOCK\", attempt_count: 0, started_at: entry.dbNow,\n      result_ref: guard.key }],\n    jobRows: [{ organization_id: entry.organizationId, plant_id: entry.plantId, command: \"COMPLETE_PUTAWAY\", idempotency_key: guard.key, job_status: \"QUEUED\", progress_percent: 0,\n      progress_message: \"Queued for processing\", attempt_count: 0, row_version: 0, cancel_requested: 0, next_attempt_at: dbAddSeconds(entry.dbNow, 120),\n      request_payload: JSON.stringify(request), causation_id: guard.toId, correlation_id: \"TO|\" + guard.toId, line_count: num(gate.rowCount), queued_at: entry.dbNow }],\n    toRows: [{ id: guard.toId, is_processing: 1 }],\n  });\n};\nconst res = submitPost([{{node:code_node_PSguard.data}}][0], [{{node:code_node_PSentry.data}}][0], [{{node:code_node_PSgate.data}}][0]);\nconsole.log(\"submit post\", JSON.stringify({ route: res.route, code: res.code, message: res.message }));\nreturn res;"
+     "code": "// PUTAWAY_ASYNC_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic confirmation refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_ROWS = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// PUTAWAY_ASYNC_SUBMIT - Post: the queue rows - the putaway's lock (gd_publish_step PWC|<to> / LOCK|<n>, result_ref = the\n// idempotency key; unique: a concurrent twin fails its run), the COMPLETE_PUTAWAY job (QUEUED but not due for 2 minutes,\n// so no worker takes it before the putaway is locked; due.js makes it due after the read-back) and is_processing 1\nconst submitPost = function submitPost(guard, entry, gate) {\n  if (s(gate.route) !== \"GO\") return answer(\"STOP\", s(gate.code) || \"400\", s(gate.message), { lockRows: [], jobRows: [], toRows: [], needDoc: \"NO\", docToId: \"\", refDoc: [] });\n  // the confirmation's attachments are saved with the lock (before the read-back records the putaway's update_time)\n  const refDoc = guard.request && Array.isArray(guard.request.ref_doc) ? guard.request.ref_doc : null;\n  const request = { v: 1, source: guard.request.source, uid: guard.uid, toId: guard.toId, toNo: entry.toNo, grId: entry.grId, confirmedBy: guard.confirmedBy,\n    lines: guard.request.lines };\n  return answer(\"QUEUE\", \"200\", \"queued\", {\n    lockRows: [{ job_id: \"PWC|\" + guard.toId, organization_id: entry.organizationId, step_name: \"LOCK|\" + entry.lockN, step_status: \"LOCK\", attempt_count: 0, started_at: entry.dbNow,\n      result_ref: guard.key }],\n    jobRows: [{ organization_id: entry.organizationId, plant_id: entry.plantId, command: \"COMPLETE_PUTAWAY\", idempotency_key: guard.key, job_status: \"QUEUED\", progress_percent: 0,\n      progress_message: \"Queued for processing\", attempt_count: 0, row_version: 0, cancel_requested: 0, next_attempt_at: dbAddSeconds(entry.dbNow, 120),\n      request_payload: JSON.stringify(request), causation_id: guard.toId, correlation_id: \"TO|\" + guard.toId, line_count: num(gate.rowCount), queued_at: entry.dbNow }],\n    toRows: [{ id: guard.toId, is_processing: 1 }],\n    needDoc: refDoc ? \"YES\" : \"NO\",\n    docToId: refDoc ? guard.toId : \"\",\n    refDoc: refDoc || [],\n  });\n};\nconst res = submitPost([{{node:code_node_PSguard.data}}][0], [{{node:code_node_PSentry.data}}][0], [{{node:code_node_PSgate.data}}][0]);\nconsole.log(\"submit post\", JSON.stringify({ route: res.route, code: res.code, message: res.message }));\nreturn res;"
     },
     "response_json": [
      {
@@ -2040,6 +2040,33 @@
         "children": []
        }
       ]
+     },
+     {
+      "key": "ppij9125",
+      "name": "needDoc",
+      "title": "needDoc",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "1bhurln6",
+      "name": "docToId",
+      "title": "docToId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "maei6j98",
+      "name": "refDoc",
+      "title": "refDoc",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
      }
     ],
     "title": "Post: the queue rows (lock, the job QUEUED 2 minutes ahead, is_processing 1)",
@@ -2745,6 +2772,121 @@
     }
    },
    "blocks": []
+  },
+  {
+   "id": "cor_PSdoc",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Attachments sent with the confirmation?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YPSdoc",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1798900000017,
+         "parentId": 1798900000018,
+         "isTop": true,
+         "prop": "node.code_node_PSpost.data.needDoc",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needDoc",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_PSdoc",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Transfer Order Putaway:Table:1937714890958053378",
+         "rules": {
+          "collectionId": "1937714890958053378",
+          "list": [
+           {
+            "id": 1798900000015,
+            "parentId": 1798900000016,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_PSpost.data.docToId}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "The putaway's attachments (ref_doc) as the confirmation leaves them",
+        "isValidator": true,
+        "nodeName": "The putaway's attachments (ref_doc) as the confirmation leaves them",
+        "name": "The putaway's attachments (ref_doc) as the confirmation leaves them",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "ref_doc",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_PSpost.data.refDoc}}",
+           "valueLabel": "",
+           "propLabel": "ref_doc"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NPSdoc",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
   },
   {
    "id": "sql_node_PSback",

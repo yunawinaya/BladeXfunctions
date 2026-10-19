@@ -21,8 +21,14 @@ const submitGuard = function submitGuard(inp) {
   }
   req = req && typeof req === "object" ? req : {};
   if (op === "SUBMIT" && !Array.isArray(req.lines)) return bad("request.lines: the rows to put away");
+  // the putaway's attachments as the user leaves them (the whole list); absent = keep what the putaway has
+  const refDoc = req.ref_doc;
+  if (refDoc !== undefined && refDoc !== null && (!Array.isArray(refDoc) || refDoc.length > 100 || refDoc.some((f) => !f || typeof f !== "object" || Array.isArray(f)) ||
+    JSON.stringify(refDoc).length > 200000)) return bad("request.ref_doc: the attachment list (at most 100 file objects)");
+  const request = { source: s(req.source) || "FORM", lines: Array.isArray(req.lines) ? req.lines : [] };
+  if (Array.isArray(refDoc)) request.ref_doc = refDoc;
   return answer("CONTINUE", "", "", { operation: op, toId: toId, key: key, tenantId: tenantId, uid: s(inp.uid), confirmedBy: s(inp.confirmedBy).slice(0, 200),
-    request: { source: s(req.source) || "FORM", lines: Array.isArray(req.lines) ? req.lines : [] } });
+    request: request });
 };
 const res = submitGuard({ operation: [{{workflowparams:operation}}][0], toId: [{{workflowparams:to_id}}][0], key: [{{workflowparams:idempotency_key}}][0],
   confirmedBy: [{{workflowparams:confirmed_by}}][0], request: [{{workflowparams:request}}][0], tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] });

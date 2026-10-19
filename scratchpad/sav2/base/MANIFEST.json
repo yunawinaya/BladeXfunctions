@@ -1,0 +1,209 @@
+{
+ "pulled_from": "dev (.dbtools/db --dev, SELECT only); prod compared by normalized JSON",
+ "files": {
+  "STOCK_ADJUSTMENT.v24.json": {
+   "id": "2032025505853816833",
+   "role": "base of the guarded classic; lifted bodies (O4tWJ5JH, qrsgEz2F, GmKmvMGe, SZmrixfL)",
+   "history_id": "2110228630964666369",
+   "created": "2026-10-14 12:38:06.430000",
+   "md5": "3dfb9cda8942f005d7d1c4e5bba6a68c",
+   "designing": [
+    {
+     "v": 12,
+     "same": false
+    }
+   ],
+   "prod_version": 18,
+   "prod_same_normalized": true,
+   "prod_md5": "3dfb9cda8942f005d7d1c4e5bba6a68c"
+  },
+  "STOCK_COUNT.v10.json": {
+   "id": "2066808904123076610",
+   "role": "base of the guarded classic; lifted review bodies (prep, build_sa, mark, fillback)",
+   "history_id": "2110228629832204290",
+   "created": "2026-10-14 12:38:06.161000",
+   "md5": "25ff6866a69279b20244270275d03eea",
+   "designing": [],
+   "prod_version": 10,
+   "prod_same_normalized": true,
+   "prod_md5": "58a37aa79383811c74456736b95b762e"
+  },
+  "CHECK_REQUIRED_FIELD.v8.json": {
+   "id": "1988831880511062018",
+   "role": "lifted in SUBMIT",
+   "history_id": "1996161689612054530",
+   "created": "2025-12-03 18:16:48.351000",
+   "md5": "c3c37c0e255bb39851347b527f7a8199",
+   "designing": [
+    {
+     "v": 9,
+     "same": true
+    }
+   ],
+   "prod_version": 8,
+   "prod_same_normalized": true,
+   "prod_md5": "c3c37c0e255bb39851347b527f7a8199"
+  },
+  "REORDER_SET_REDIS.v21.json": {
+   "id": "2065256261729759233",
+   "role": "called by COMMIT A4 (SA_COMPLETED)",
+   "history_id": "2108088661821145089",
+   "created": "2026-10-08 14:54:38.027000",
+   "md5": "0104913c99e85f2792fa87c6fb4e5863",
+   "designing": [
+    {
+     "v": 6,
+     "same": false
+    }
+   ],
+   "prod_version": 20,
+   "prod_same_normalized": false,
+   "prod_md5": "51d0f925e8934fd024bd6625d6cda8e6"
+  },
+  "GLOBAL_INVENTORY_VALIDATION.v11.json": {
+   "id": "2056291728334573570",
+   "role": "its WA 'no costing record' text = SUBMIT's STOP message",
+   "history_id": "2102249942294065154",
+   "created": "2026-09-22 12:13:38.815000",
+   "md5": "248c9eb105a5a69d3334fd0a997f2424",
+   "designing": [],
+   "prod_version": 11,
+   "prod_same_normalized": true,
+   "prod_md5": "248c9eb105a5a69d3334fd0a997f2424"
+  },
+  "INVENTORY_BULK_APPLY.v7.json": {
+   "id": "2109916822821744641",
+   "role": "the engine, called unchanged by COMMIT A2",
+   "history_id": "2110579632329101313",
+   "created": "2026-10-15 11:52:51.677000",
+   "md5": "cf6ba1fb737d3ca9f9d5213844b33d5c",
+   "designing": [],
+   "prod": "absent"
+  },
+  "INVENTORY_LOCK_TOKENS.v4.json": {
+   "id": "2105936479113383937",
+   "role": "called by the engine; reference for the COST-lock proposal",
+   "history_id": "2106258413689417729",
+   "created": "2026-10-03 13:41:52.869000",
+   "md5": "65c09474fceb6b15470194fdc888e675",
+   "designing": [],
+   "prod": "absent"
+  },
+  "ADD_INVENTORY.v65.json": {
+   "id": "2012005532688723970",
+   "role": "classic IN callee; parity reference",
+   "history_id": "2100854466608758786",
+   "created": "2026-09-18 15:48:31.484000",
+   "md5": "5fcf78a1a39eff466033c381513d5527",
+   "designing": [
+    {
+     "v": 59,
+     "same": false
+    },
+    {
+     "v": 60,
+     "same": false
+    },
+    {
+     "v": 61,
+     "same": false
+    },
+    {
+     "v": 62,
+     "same": false
+    },
+    {
+     "v": 63,
+     "same": false
+    }
+   ],
+   "prod_version": 65,
+   "prod_same_normalized": true,
+   "prod_md5": "5fcf78a1a39eff466033c381513d5527"
+  },
+  "SUBTRACT_INVENTORY.v59.json": {
+   "id": "2012096660219564034",
+   "role": "classic OUT callee; parity reference (prod v58 differs)",
+   "history_id": "2106937625105862657",
+   "created": "2026-10-05 10:40:49.490000",
+   "md5": "a6b5a04125b9ebacd63596239f3ad3b7",
+   "designing": [
+    {
+     "v": 46,
+     "same": false
+    },
+    {
+     "v": 49,
+     "same": false
+    },
+    {
+     "v": 52,
+     "same": false
+    },
+    {
+     "v": 53,
+     "same": false
+    }
+   ],
+   "prod_version": 58,
+   "prod_same_normalized": false,
+   "prod_md5": "4ab79c01b5c04296f9f530b0ee773aad"
+  },
+  "sa_form_v313.json": {
+   "table_id": "1902274108952006658",
+   "history_id": "2102289602609278977",
+   "created": "2026-09-22 14:51:15",
+   "md5": "ddd894ebd404ea1882b194a953b8c863",
+   "working_copy_same": true,
+   "prod_version": 313,
+   "prod_same_normalized": true,
+   "prod_md5": "ddd894ebd404ea1882b194a953b8c863"
+  },
+  "sc_form_v497.json": {
+   "table_id": "1970062686583369729",
+   "history_id": "2110230634776625154",
+   "created": "2026-10-14 12:46:04",
+   "md5": "6147568920da601517412f8b8c976baa",
+   "working_copy_same": true,
+   "prod_version": 490,
+   "prod_same_normalized": false,
+   "prod_md5": "dcf684ea501f5516dabb0b9fb8f8896f"
+  },
+  "schema_stock_adjustment.json": {
+   "table_id": "1902274108952006658",
+   "md5": "479b43247ceaa1127e8abcc8b2193310"
+  },
+  "schema_stock_adjustment_1dknywqh_sub.json": {
+   "table_id": "1942861580035698690",
+   "md5": "415570d841633dc6bdd966b0e318fd48"
+  },
+  "schema_stock_count.json": {
+   "table_id": "1970062686583369729",
+   "md5": "76392b37ffff0a87a23d4ff47fb98e17"
+  },
+  "schema_stock_count_h4c9e1cl_sub.json": {
+   "table_id": "1978655864896823297",
+   "md5": "72ff0914174fbb761468c8233a670b01"
+  },
+  "sa_list_v57.json": {
+   "page_id": "1902690404764073986",
+   "history_id": "2109476595890372610",
+   "created": "2026-10-12 10:49:47",
+   "md5": "d2b02e1a20184613d7d15a8ec0973e00",
+   "designing": [],
+   "prod_version": 55,
+   "prod_same_normalized": false,
+   "prod_md5": "f9d0729f481b88c327c2a8f3a66b8d24"
+  },
+  "sc_list_v38.json": {
+   "page_id": "1970076277973823489",
+   "history_id": "2108050582923051010",
+   "created": "2026-10-08 12:23:19",
+   "md5": "6d025bf926bf63b6dd742931362cd0bb",
+   "designing": [],
+   "prod_version": 37,
+   "prod_same_normalized": false,
+   "prod_md5": "c89e1d91d30e29de922399412bf436d4"
+  }
+ }
+}

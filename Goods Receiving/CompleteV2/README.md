@@ -62,6 +62,10 @@ What the user sees:
 - On-order quantities are exact to 8 dp. The classic truncated them to whole numbers until GOODS_RECEIVING v101 on dev.
   Prod still truncates until the paste in `prod-hotfix/2026-10-15-int-decimal-truncation/`.
 - Inventory movements carry `operation_effect_key` (`GRC|<job>|<movement>`), so the engine can replay safely.
+- Since INVENTORY_BULK_APPLY v8 (dev 2026-10-16) the stock step also takes `COST|<material>|<plant>` for every receipt line
+  of a FIFO / Weighted Average item. Two background jobs touching the same item at the same plant (GR, GD or Stock
+  Adjustment) now run one after the other: under load the C2 step waits (`LOCK_BUSY`, retried), which is expected. Without
+  it, concurrent receipts lost weighted-average updates and duplicated FIFO sequences (`scratchpad/sav2/race/EVIDENCE.md`).
 - `previous_status` is `'Draft'` after Add → Completed; the classic writes `''`. This has no effect: the form resets
   it on open and Revert only reports it.
 

@@ -1,8 +1,8 @@
 // Picking form - Save as Completed through the background save (PICKING_ASYNC_SUBMIT -> PICKING_ASYNC_WORKER).
-// Sends only the lines with a picked quantity; the server re-reads everything else from the stored Picking. Any case the
-// background save does not handle yet (a new Picking, a Draft, a bin / batch move, mobile split data, or what the server
-// answers NOT_ELIGIBLE: Picking Plan, Full Picking, Loading Bay, Auto Complete GD) runs the old onSave_Completed unchanged.
-// The workflow ids are dev ids.
+// Sends only the lines with a picked quantity, each with the bin / batch it is picked into (Loading Bay, swaps: stage 1c);
+// the server re-reads everything else from the stored Picking. Any case the background save does not handle yet (a new
+// Picking, a Draft, mobile split data, or what the server answers NOT_ELIGIBLE: Picking Plan, Auto Complete GD, a move it
+// leaves to the classic save) runs the old onSave_Completed unchanged. The workflow ids are dev ids.
 const PK_V2_WF = {
   SUBMIT: "2109531449614647297",
   WORKER: "2109531412499251201",
@@ -79,8 +79,6 @@ const oldPath = async (why) => {
       const qty = parseFloat(row.picked_qty) || 0;
       if (qty <= 0) continue;
       if (row._is_split_entry || (Array.isArray(row._mobile_locations) && row._mobile_locations.length)) return oldPath("split rows");
-      const moved = (row.target_location && String(row.target_location) !== String(row.source_bin || "")) || (row.target_batch && String(row.target_batch) !== String(row.batch_no || ""));
-      if (moved) return oldPath("a bin / batch move");
       lines.push({
         row_id: String(row.id),
         qty: qty,

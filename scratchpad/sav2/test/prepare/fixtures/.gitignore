@@ -1,0 +1,3 @@
+# tenant data (recorded runs, re-read rows): local only, never committed
+*
+!.gitignore

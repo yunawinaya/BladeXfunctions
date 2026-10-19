@@ -12,6 +12,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "phase0"))
 sys.path.insert(0, os.path.join(HERE, ".."))
 from lib import ROOT, save  # noqa: E402
+sys.path.insert(0, os.path.join(HERE, "..", "..", "cfwipe"))
+from patch_cf import patch_exact  # noqa: E402  (an edit that leaves the custom fields out keeps them)
 
 CREATED_REL = "Goods Receiving/GRsaveAsCreatedWorkflow.json"
 CANCEL_REL = "Bulk Actions/Procurement/Goods Receiving/GRcancelWorkflow.json"
@@ -292,6 +294,9 @@ def build_created():
 
     update_gr = retarget("update_gr", True)
     add_gr = retarget("add_gr", False)
+    for n in (update_gr, add_gr):  # the header custom fields (dev v14), last as published
+        n["data"]["props"]["list"].append({"prop": "custom_fields_e9609s2l", "operator": "", "valueType": "field",
+                                           "value": "{{node:%s.data.gr.custom_fields_e9609s2l}}" % P, "valueLabel": "", "propLabel": "custom_fields_e9609s2l"})
     mapped = {p["prop"] for p in add_gr["data"]["props"]["list"]}
     import re
     prep_fields = set(re.search(r"const FIELDS = \[(.*?)\];", body("created/prep.js"), re.S).group(1).replace('"', "").replace("\n", "").replace(" ", "").split(","))
@@ -342,6 +347,7 @@ def build_created():
     doc["nodes"] = [old["start"], prep, if_size, key_hit] + stored_nodes + [if_zero, if_invalid, if_validate, reads, qty, if_qty, if_over, if_edit,
                     if_lines, po_status, po_hdr, if_hdr, ok, old["end"]]
     index(doc)
+    doc = patch_exact("GR_CREATED", doc)
     write(CREATED_REL, doc)
     return base, doc
 

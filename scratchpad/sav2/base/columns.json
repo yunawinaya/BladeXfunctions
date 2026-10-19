@@ -1,0 +1,1445 @@
+{
+ "columns": {
+  "stock_adjustment": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "adjustment_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_type",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjusted_by",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_remarks",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "reference_documents",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_name",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "row_index",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "table_item_balance",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_adjustment_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "posted_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "acc_integration_type",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_adjustment",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_uom",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_serialized",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_remarks3",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_remarks2",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "table_item_balance_raw",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "search_batch",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_count_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "previous_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_no_type",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_no_sn",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "current_table_uom",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "project_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "stock_adjustment_1dknywqh_sub": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "stock_adjustment_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_name",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_desc",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_reason",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "total_quantity",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "uom_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "unit_price",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "adj_summary",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_remarks",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "balance_index",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "line_index",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_category",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_single_serial",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_serialized_item",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_remark2",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_remark3",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_remark",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "project_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "stock_count": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "page_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "count_type",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "count_method",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "start_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "end_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "blind_count",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_item_balance_d_judga",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "location",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_batch_balance_d_jfvgg",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_id_d_sc4d5",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "bin_location_id_d_jtniz",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_balance",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_balance",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_list",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "user_assignees",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "cancelled_status",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "review_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "issued_status",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "draft_status",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "processing_status",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_count_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "assignees",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "work_group_assignees",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "completed_status",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "table_stock_count",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_count_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_count_remark3",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_count_remark2",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_count_remark",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "total_counted",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjustment_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "total_variance",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "recount_status",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "to_be_reviewed_status",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "in_review_status",
+    "type": "text",
+    "nullable": "YES"
+   },
+   {
+    "name": "storage_location",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "storage_location_id",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_count_no_sn",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_count_no_type",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "stock_count_h4c9e1cl_sub": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "stock_count_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_name",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_desc",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "location_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "system_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "count_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "variance_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "variance_percentage",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "uom_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "base_uom_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "line_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "attachment",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "remarks",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "table_uom_conversion",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "balance_index",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_category",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "line_index",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_serialized",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_single",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_counted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "review_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "adjusted_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "balance_distribution",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "gd_async_job": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "command",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "idempotency_key",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "payload_hash",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "confirmation_token",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "confirmation_hash",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "correlation_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "causation_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "submitted_dept_ids",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "submitted_role_ids",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "source_so_ids",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "source_so_no",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "line_count",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "job_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "progress_percent",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "progress_message",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "attempt_count",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "next_attempt_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "lease_owner",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "lease_expires_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "cancel_requested",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "row_version",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_code",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_message",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_details",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "request_payload",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "prepared_payload",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "gd_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "gd_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "picking_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "picking_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "queued_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "started_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "gd_committed_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "picking_ready_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "finished_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   }
+  ],
+  "gd_publish_step": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "job_id",
+    "type": "varchar(32)",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(32)",
+    "nullable": "YES"
+   },
+   {
+    "name": "step_name",
+    "type": "varchar(32)",
+    "nullable": "YES"
+   },
+   {
+    "name": "step_status",
+    "type": "varchar(16)",
+    "nullable": "YES"
+   },
+   {
+    "name": "attempt_count",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "started_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "finished_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "inventory_operation_id",
+    "type": "varchar(64)",
+    "nullable": "YES"
+   },
+   {
+    "name": "result_ref",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_code",
+    "type": "varchar(64)",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_message",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   }
+  ],
+  "fifo_costing_history": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "fifo_cost_price",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "fifo_initial_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "fifo_available_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "fifo_sequence",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "wa_costing_method": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "wa_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "updated_at",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "created_at",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "wa_cost_price",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "inventory_balance_lock": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(32)",
+    "nullable": "YES"
+   },
+   {
+    "name": "lock_key",
+    "type": "varchar(128)",
+    "nullable": "YES"
+   },
+   {
+    "name": "balance_type",
+    "type": "varchar(16)",
+    "nullable": "YES"
+   },
+   {
+    "name": "owner_operation_id",
+    "type": "varchar(64)",
+    "nullable": "YES"
+   },
+   {
+    "name": "claimed_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "lock_version",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "last_released_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "last_owner_operation_id",
+    "type": "varchar(64)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "free_token",
+    "type": "int",
+    "nullable": "YES"
+   }
+  ]
+ },
+ "indexes": {
+  "stock_adjustment": {
+   "UNIQUE Document Number": [
+    "adjustment_no",
+    "organization_id"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "stock_adjustment_1dknywqh_sub": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "stock_count": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "stock_count_h4c9e1cl_sub": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "gd_async_job": {
+   "GD Lookup": [
+    "organization_id",
+    "gd_id"
+   ],
+   "UNIQUE Idempotency Key": [
+    "tenant_id",
+    "organization_id",
+    "idempotency_key"
+   ],
+   "Lease Recovery": [
+    "job_status",
+    "lease_expires_at"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ],
+   "Worker Poll": [
+    "job_status",
+    "next_attempt_at"
+   ]
+  },
+  "gd_publish_step": {
+   "UNIQUE Job Step": [
+    "tenant_id",
+    "job_id",
+    "step_name"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ],
+   "Step Review": [
+    "step_status",
+    "started_at"
+   ]
+  },
+  "fifo_costing_history": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "wa_costing_method": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "inventory_balance_lock": {
+   "UNIQUE Lock Key": [
+    "tenant_id",
+    "organization_id",
+    "lock_key"
+   ],
+   "Lock Owner": [
+    "owner_operation_id"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ],
+   "Stale Lock": [
+    "claimed_at"
+   ],
+   "Taken Token": [
+    "balance_type",
+    "free_token",
+    "update_time"
+   ]
+  }
+ }
+}

@@ -59,6 +59,7 @@ const buildGrRow = (
     line_po_no: sourceItem.line_po_no,
     line_po_id: sourceItem.line_po_id,
     po_line_item_id: sourceItem.po_line_item_id,
+    custom_fields_d7o7rdkd: sourceItem.custom_fields_d7o7rdkd,
 
     // Pricing
     unit_price: sourceItem.unit_price,
@@ -170,7 +171,7 @@ const buildGrRow = (
 
     const tableGR = data.table_gr;
     const currentItem = tableGR[rowIndex];
-    const remainingQty = parseFloat((receivedQty - totalStoreInQty).toFixed(3));
+    const remainingQty = parseFloat((receivedQty - totalStoreInQty));
     const parentIndex = currentItem.parent_index ?? rowIndex;
 
     // Determine if split is needed

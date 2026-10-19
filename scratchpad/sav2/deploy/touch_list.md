@@ -1,0 +1,25 @@
+# SA V2 / SC Review V2 — dev touch list (what this work changed on DEV; ships to PROD in the 10-20/21 full deployment)
+
+| When (MYT) | Item | Id | Dev version | What | Verified |
+|---|---|---|---|---|---|
+| 2026-10-16 20:06 | STOCK_ADJUSTMENT (workflow) | 2032025505853816833 | v24 → **v25** | base v24 + 7 guard nodes before code_node_O4tWJ5JH: stored `Processing` → 400; > 500 entries (non-Draft) → 400; a balance_index > 60,000 bytes → 400. Refusals = return node {code "400", message} (the SA form's shape). Every base node byte-identical. Backup `~/Documents/ASC-dev/workflow-backups/dev/STOCK_ADJUSTMENT/v24_20261016T120649.enabled.json` | smoke + 2 probes (refusal / pass-through to the classic's own required-field check), `wf --dev deployed` IDENTICAL |
+| 2026-10-16 20:06 | STOCK_COUNT (workflow; mobile's STOCK_COUNT_SAVE) | 2066808904123076610 | v10 → **v11** | base v10 + 7 guard nodes before cond_save_as: a count with a `Processing` SA → 400 (every saveAs); a Review that would build an SA with > 500 approved-variance lines → 400 (classic prep's predicates incl. createAdjustment). Refusals = end node code 400 + msg. Every base node byte-identical. Backup `.../STOCK_COUNT/v10_20261016T120650.enabled.json` | 2 probes incl. a mobile-shaped save (pageStatus object), IDENTICAL |
+
+| 2026-10-16 20:11 | SA form (stock_adjustment) | 1902274108952006658 | v313 → **v314** | switches OFF: Completed / Completed & Post buttons rebound to saV2_onClick_completed(_post) (switch OFF → `triggerEvent` of the unchanged classic rule events); onClick_draft re-reads the stored status on Edit (refuses non-Draft); status filter + Processing / Cancelled badges; Post hidden for Processing / Cancelled; gated Processing view in mounted; hidden fields sa_v2_job_id / sa_idem_key → columns created (varchar 255). Backup `.../SA_FORM/v313_20261016T121155.enabled.json` | `.dbtools/form status` IDENTICAL; columns present; 451 offline checks |
+| 2026-10-16 20:11 | SA list | 1902690404764073986 | v57 → **v58** | mounted = worker kick gated by ASYNC_SA_ENABLED (OFF → nothing); Processing (+ Cancelled) badge in the status columns. Backup `.../SA_LIST/v57_...` | IDENTICAL |
+| 2026-10-16 20:11 | SC form (stock_count) | 1970062686583369729 | v497 → **v498** | switches OFF: Review button rebound to scV2_onButtonReviewClick = the classic body + ONE line (`if (SC_V2_ON && …) return;`); mounted gated Processing-SA view. Backup `.../SC_FORM/v497_...` | IDENTICAL |
+| 2026-10-16 20:11 | SC list | 1970076277973823489 | v38 → **v39** | mounted = gated worker kick (OFF → nothing). Backup `.../SC_LIST/v38_...` | IDENTICAL |
+
+| 2026-10-16 20:43 | SA_V2_SUBMIT / _WORKER / _PREPARE / _COMMIT (new) | 2111074320177860610 / 2111074368689180673 / 2111074403720007681 / 2111074444748689410 | empty shells → **v3** each | the background workflows; inert while the client switches are OFF (nothing calls them). First attempt: WORKER publish failed "rootNode is null" because its callees PREPARE / COMMIT were still empty — publish order PREPARE → COMMIT → WORKER → SUBMIT. NOTE: COMMIT's shell was created under the name SA_V2_PREPARE (user to rename to SA_V2_COMMIT). | smokes (STATUS / IDLE / SA_INVALID_DATA ×2) write nothing; all 4 IDENTICAL |
+
+| 2026-10-16 20:54 | SA_V2_COMMIT | 2111074444748689410 | v3 → **v4** | A2: an engine answer with no code, or 400 without a result_code (the platform envelope of a dead engine run, e.g. the first-use COST seed race on engine v8) → lockWait when no intents / retry when intents; real 400 refusals + 500 unchanged. Backup `.../SA_V2_COMMIT/v3_20261016T125428.enabled.json` | smoke + IDENTICAL; 1,142 COMMIT + 32 WORKER interpreter checks |
+
+| 2026-10-16 21:27 | **SWITCH ON** (user: "switch it on and carry it to prod next week"): SA form / SA list / SC form / SC list | (as above) | v314 → **v315**, v58 → **v59**, v498 → **v499**, v39 → **v40** | ASYNC_SA_ENABLED / ASYNC_SC_REVIEW_ENABLED = true (thresholds 50) + real SA_V2_SUBMIT / SA_V2_WORKER ids. SA completions > 50 entries and SC reviews > 50 approved-variance lines go V2; ≤ 50 → classic via triggerEvent; mobile unchanged. Backups `.../SA_FORM/v314_…`, `SA_LIST/v58_…`, `SC_FORM/v498_…`, `SC_LIST/v39_…` (switch-OFF builds) | 479 client checks (incl. shipped-ON sanity: 50 → classic, 51 → SUBMIT); all 4 IDENTICAL |
+
+**Ships ON to prod in the 10-20/21 full deployment** together with the engine COST-lock fix (INVENTORY_BULK_APPLY v10, TOKENS v5, SEED v5 — eb).
+Live V2 tests on dev 2026-10-16 21:47-21:58 (tenant 496474): twins T1 / T2 / T3 0 tables differ, F1 nothing moved, 2k SC Review
+RECONCILED (93 s worker time). Test data only (items SAV2T-*, STC/20261016/0011-0013, SA/20261016/0010-0017); no workflow / form change.
+Pending: the user's browser click-through.
+Told before publishing: Packing V2, Putaway V2 Mobile (STOCK_COUNT is the mobile save).
+Rollback (dev): paste the backup in the designer, or wf_upload the backup file.
+Prod post-deploy SELECT checks (after the cut): STOCK_ADJUSTMENT / STOCK_COUNT enabled script = these files.

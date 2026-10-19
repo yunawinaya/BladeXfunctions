@@ -19,7 +19,7 @@ const convertBaseToAlt = (baseQty, conv, uom) => {
   if (!Array.isArray(conv) || conv.length === 0 || !uom) return baseQty;
   const c = conv.find((x) => x.alt_uom_id === uom);
   if (!c || !c.base_qty) return baseQty;
-  return Math.round((baseQty / c.base_qty) * 1000) / 1000;
+  return baseQty / c.base_qty;
 };
 const convertQuantityFromTo = (val, conv, fromUOM, toUOM, baseUOM) => {
   if (!val || fromUOM === toUOM) return val;
@@ -46,7 +46,8 @@ const pickedInOrderUom = convertQuantityFromTo(
   cache ? cache.based_uom : orderUom,
 );
 
-if (pending_process_qty < pickedInOrderUom) {
+// Half a 0.001 step: float residue (32.94999999999999 shown as 32.950) must not reject an exact pick.
+if (pickedInOrderUom - pending_process_qty > 0.0005) {
   window.validationState[index] = false;
   callback("Quantity is not enough to pick");
 } else {

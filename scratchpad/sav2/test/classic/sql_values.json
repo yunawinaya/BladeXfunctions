@@ -1,0 +1,5 @@
+{
+ "*": {"tenantId": "000000"},
+ "STOCK_ADJUSTMENT": {"saId": "2094647004894920705"},
+ "STOCK_COUNT": {"scId": "2110229071278505985", "materialIdCsv": "0", "orgIdSql": "0"}
+}

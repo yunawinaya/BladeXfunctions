@@ -1,7 +1,8 @@
-"""live_so_clone.py <tenant> <so_id> <qty_per_line> <out_request.json>: an SO_SAVE request that clones an Issued-able copy of a
+"""live_so_clone.py <tenant> <so_id> <qty_per_line> <out_request.json> [--repeat=N]: an SO_SAVE request that clones an Issued-able copy of a
 stored Sales Order, as the SO form's Clone + Issue would send it: page_status Clone, no ids, a new number from the same
 rule (so_no '' + so_no_type), every line at <qty_per_line> with its amounts (price x qty) and the header totals recomputed,
-the delivery / production counters and statuses reset. Reads read-only (dev); the request goes to the session scratchpad.
+the delivery / production counters and statuses reset; --repeat=N lists the source's lines N times, in order (a scale test).
+Reads read-only (dev); the request goes to the session scratchpad.
 Ids of 16+ digits go out as strings (the platform hands code JSON text: a bare 19-digit number would lose precision).
 """
 import importlib.util, json, sys
@@ -14,6 +15,7 @@ g = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(g)
 
 tenant, so_id, qty, out = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4]
+repeat = int(([a[9:] for a in sys.argv[5:] if a.startswith("--repeat=")] or ["1"])[0])
 assert tenant.isdigit() and so_id.isdigit()
 
 
@@ -40,6 +42,7 @@ for k in SYS + ["so_no"]:
     h.pop(k, None)
 h.update({"so_no": "", "so_status": "Issued", "gd_status": None, "si_status": "Not Created", "production_status": "Not Created", "partially_delivered": None,
           "fully_delivered": None, "page_status": "Clone", "previous_status": None})
+lines = [json.loads(json.dumps(l)) for _ in range(repeat) for l in lines]
 table = []
 total = 0.0
 for i, l in enumerate(lines):

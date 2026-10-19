@@ -81,9 +81,9 @@ assert.strictEqual(r.out.code, "406"); assert.ok(/processed in the background/.t
 r = run("same GD Processing, price only", { status: "Processing", lines: 3, change: "price" });
 assert.notStrictEqual(r.out.code, "406");
 r = run(`whole GD (${n} lines), qty reduced`, { status: "Created", lines: n, change: "reduce" });
-assert.strictEqual(r.out.code, "406"); assert.ok(/up to 500 lines/.test(r.out.message)); assert.ok(!r.calls.some((c) => c.startsWith("GOODS_DELIVERY")));
+assert.strictEqual(r.out.code, "406"); assert.ok(/up to (500|1,000) lines/.test(r.out.message)); assert.ok(!r.calls.some((c) => c.startsWith("GOODS_DELIVERY")));
 r = run(`whole GD (${n} lines), new SO line (pass B)`, { status: "Created", lines: n, passNo: 2, addLine: true });
-assert.strictEqual(r.out.code, "406"); assert.ok(/more than a Sales Order change can update \(500\)/.test(r.out.message)); assert.ok(!r.calls.some((c) => c.startsWith("GOODS_DELIVERY")));
+assert.strictEqual(r.out.code, "406"); assert.ok(/more than a Sales Order change can update \((500|1,000)\)/.test(r.out.message)); assert.ok(!r.calls.some((c) => c.startsWith("GOODS_DELIVERY")));
 r = run("small GD (3 lines), new SO line (pass B)", { status: "Created", lines: 3, passNo: 2, addLine: true });
 assert.ok(r.calls.includes("GOODS_DELIVERY(4 lines)"), "a small append still re-saves the GD");
 console.log("all cascade scenarios passed");

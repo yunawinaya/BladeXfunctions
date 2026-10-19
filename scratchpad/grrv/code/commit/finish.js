@@ -6,7 +6,7 @@ const commitFinish = function commitFinish(entry, lockRows) {
   const message = "Goods Receiving " + s(entry.grNo) + " reverted to Created";
   return {
     freeRows: free, needFree: free.length ? "YES" : "NO",
-    jobRows: [jobRow(entry, { job_status: "COMPLETED", progress_percent: 100, progress_message: message.slice(0, 250), finished_at: entry.dbNow })],
+    jobRows: [jobRow(entry, { job_status: "COMPLETED", progress_percent: 100, progress_message: message.slice(0, 250), finished_at: endNow(entry) })],
     result_message: message,
   };
 };

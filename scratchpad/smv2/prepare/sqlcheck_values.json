@@ -1,0 +1,13 @@
+{
+ "*": {},
+ "LOT_V2_PREPARE": {
+  "tenantId": "000000",
+  "jobId": "2111017038339244033",
+  "lotId": "2105231525751984129",
+  "organizationId": "1123598813738675201"
+ },
+ "missing_cols": {
+  "g.lot_v2_job_id": "NULL",
+  "h.lot_v2_job_id": "NULL"
+ }
+}

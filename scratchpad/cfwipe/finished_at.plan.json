@@ -1,0 +1,24 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GR_COMPLETE_COMMIT",
+   "dataId": "2110545758094004226",
+   "file": "Goods Receiving/CompleteV2/GR_COMPLETE_COMMIT.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/fin/before/GR_COMPLETE_COMMIT.json"
+  },
+  {
+   "name": "GR_REVERT_COMMIT",
+   "dataId": "2110563921229680642",
+   "file": "Goods Receiving/RevertV2/GR_REVERT_COMMIT.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/fin/before/GR_REVERT_COMMIT.json"
+  },
+  {
+   "name": "PUTAWAY_BULK_COMMIT",
+   "dataId": "2110545933231362050",
+   "file": "Putaway/AsyncV2/PUTAWAY_BULK_COMMIT.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/fin/before/PUTAWAY_BULK_COMMIT.json"
+  }
+ ]
+}

@@ -59,16 +59,16 @@ const grPlan = function grPlan(entry, S, opts) {
     return fail("GRC_NOT_LOCKED", "Goods Receiving is " + s(stored.gr_status) + (mine ? "" : ", locked by another submit") + ": not Processing under this job");
   }
   if (s(stored.organization_id) !== s(entry.organizationId)) return fail("GRC_INVALID_REQUEST", "the Goods Receiving belongs to another organization");
+  // from here a failure puts the GR back to its previous status (this job holds its lock)
+  base.unlockOk = 1;
   // a Created receipt's reservation is the one SUBMIT read from its lines before it stored the form's (code_node_origReserved's
   // rule): the stored lines are the new ones by now, so it is never recomputed here
   const origReserved = prev === "Created" ? req.origReserved : {};
   if (!origReserved || typeof origReserved !== "object" || Array.isArray(origReserved)) return fail("GRC_INVALID_REQUEST", "the job carries no reservation map for a Created Goods Receiving");
-  // SUBMIT issued the number (a Draft's, as the classic fill-back does): a sentinel or a moved number is not this job's GR
+  // SUBMIT issued the number (a Draft's, as the classic fill-back does) and relinked it into the request: a sentinel or another number fails
   const no = s(stored.gr_no);
   if (no === "" || no === "draft" || no === "issued") return fail("GRC_NO_NUMBER", "the Goods Receiving has no number yet (" + (no || "empty") + ")");
   if (s(req.grNo) !== "" && s(req.grNo) !== no) return fail("GRC_INVALID_REQUEST", "the Goods Receiving number is " + no + ", the job was submitted for " + s(req.grNo));
-  // from here a failure puts the GR back to its previous status (this job holds its lock)
-  base.unlockOk = 1;
 
   // NOT_ELIGIBLE (SUBMIT routes these to the classic save; checked again on what was stored)
   const flat = (rows) => (rows || []).flatMap((r) => [r].concat(Array.isArray(r.children) ? r.children : []));

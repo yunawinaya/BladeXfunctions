@@ -56,6 +56,9 @@ const bulkGuard = function bulkGuard(inp) {
     balTuples["[" + mat + "," + loc + "," + plant + "]"] = true;
     costPairs["[" + mat + "," + plant + "]"] = true;
     lockKeys["ITEM|" + mat + "|" + loc] = true;
+    // plant-level FIFO / WA rows: written by every movement that is not a category move (core.js isMovingInv 0)
+    const moving = m.isMovingInv === undefined || m.isMovingInv === null ? 0 : Number(m.isMovingInv);
+    if (moving !== 1) lockKeys["COST|" + mat + "|" + plant] = true;
     if (batch) {
       batchTuples["[" + mat + "," + loc + "," + batch + "," + plant + "]"] = true;
       lockKeys["BATCH|" + mat + "|" + loc + "|" + batch] = true;

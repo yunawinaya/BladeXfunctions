@@ -1597,6 +1597,186 @@
               },
               "blocks": [
                 {
+                  "id": "code_node_PwRefDoc",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "script": {
+                      "type": "javascript",
+                      "code": "// The attachments of this confirmation: a Completed save adds the files it carries to the putaway's (an empty list adds nothing)\nconst data = [{{node:code_node_kku8SAT9.data.data}}][0] || {};\nconst pageStatus = [{{workflowparams:pageStatus}}][0];\nconst sent = Array.isArray(data.ref_doc) ? data.ref_doc.filter((f) => f && typeof f === \"object\" && !Array.isArray(f)) : [];\nconst write = pageStatus === \"Edit\" && /^[0-9]+$/.test(String(data.id || \"\")) && sent.length > 0 ? \"YES\" : \"NO\";\nreturn { write };"
+                    },
+                    "response_json": [
+                      {
+                        "key": "0adac97e",
+                        "name": "write",
+                        "title": "write",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ],
+                    "title": "Attachments of this confirmation to keep?",
+                    "isValidator": true,
+                    "nodeName": "Attachments of this confirmation to keep?",
+                    "name": "Attachments of this confirmation to keep?"
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "if_PwRefDoc",
+                  "type": "if",
+                  "data": {
+                    "title": "IF the confirmation carries attachments",
+                    "isValidator": true,
+                    "nodeName": "IF the confirmation carries attachments",
+                    "name": "IF the confirmation carries attachments",
+                    "condition_type": "Expression",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1797800000001,
+                          "parentId": 1797800000002,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "",
+                          "valueType": "",
+                          "value": "",
+                          "type": "leaf",
+                          "level": 1
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "type": "javascript",
+                      "code": "'{{node:code_node_PwRefDoc.data.write}}' == 'YES'"
+                    }
+                  },
+                  "blocks": [
+                    {
+                      "id": "ifBlock_TPwRefDoc",
+                      "type": "ifBlock",
+                      "data": { "title": "true" },
+                      "blocks": [
+                        {
+                          "id": "sql_node_PwRefDocStored",
+                          "type": "sql-node",
+                          "data": {
+                            "title": "The putaway's stored attachments",
+                            "isValidator": true,
+                            "nodeName": "The putaway's stored attachments",
+                            "name": "The putaway's stored attachments",
+                            "database_id": "",
+                            "sql": "",
+                            "params": {},
+                            "script": {
+                              "type": "sql",
+                              "code": "SELECT CAST(p.ref_doc AS CHAR) AS ref_doc\n  FROM transfer_order_putaway p\n WHERE p.tenant_id = '{{system:tenantId}}'\n   AND p.id = {{node:code_node_kku8SAT9.data.lockId}}\n   AND p.is_deleted = 0"
+                            },
+                            "response_json": [
+                              {
+                                "key": "ozdko99o",
+                                "name": "ref_doc",
+                                "title": "ref_doc",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ]
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "code_node_PwRefDocMerge",
+                          "type": "code-node",
+                          "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "script": {
+                              "type": "javascript",
+                              "code": "// The putaway's attachments after this confirmation: what it has, then the files the confirmation carries (once each)\nconst data = [{{node:code_node_kku8SAT9.data.data}}][0] || {};\nconst rows = [{{node:sql_node_PwRefDocStored.data}}][0];\nconst row = (Array.isArray(rows) ? rows[0] : rows) || {};\nlet stored = [];\ntry {\n  const x = typeof row.ref_doc === \"string\" ? JSON.parse(row.ref_doc) : row.ref_doc;\n  stored = Array.isArray(x) ? x : [];\n} catch (e) {\n  stored = [];\n}\nconst idOf = (f) => String(f.url || f.link || f.key || f.name || JSON.stringify(f));\nconst files = stored.filter((f) => f && typeof f === \"object\" && !Array.isArray(f));\nconst seen = new Set(files.map(idOf));\nfor (const f of Array.isArray(data.ref_doc) ? data.ref_doc : []) {\n  if (!f || typeof f !== \"object\" || Array.isArray(f) || seen.has(idOf(f))) continue;\n  seen.add(idOf(f));\n  files.push(f);\n}\nreturn { entry: { ref_doc: files } };"
+                            },
+                            "response_json": [
+                              {
+                                "key": "e8u1h8if",
+                                "name": "entry",
+                                "title": "entry",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "children": []
+                              }
+                            ],
+                            "title": "Stored attachments + this confirmation's files",
+                            "isValidator": true,
+                            "nodeName": "Stored attachments + this confirmation's files",
+                            "name": "Stored attachments + this confirmation's files"
+                          },
+                          "blocks": []
+                        },
+                        {
+                          "id": "update_node_PwRefDoc",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Transfer Order Putaway:Table:1937714890958053378",
+                              "rules": {
+                                "collectionId": "1937714890958053378",
+                                "list": [
+                                  {
+                                    "id": 1797800000011,
+                                    "parentId": 1797800000012,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_kku8SAT9.data.data.id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Save the confirmation's attachments (ref_doc)",
+                            "isValidator": true,
+                            "nodeName": "Save the confirmation's attachments (ref_doc)",
+                            "name": "Save the confirmation's attachments (ref_doc)",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "ref_doc",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PwRefDocMerge.data.entry.ref_doc}}",
+                                  "operator": "",
+                                  "valueLabel": "",
+                                  "propLabel": "Reference Document"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "ifBlock_FPwRefDoc",
+                      "type": "ifBlock",
+                      "data": { "title": "false" },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
                   "id": "code_node_XZtMB79F",
                   "type": "code-node",
                   "data": {

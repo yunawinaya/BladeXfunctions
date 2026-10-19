@@ -9,7 +9,7 @@ const commitFinish = function commitFinish(entry, c6, si) {
     stepRows: [doneRow(entry, "C6_AFTER", called ? "SI " + (siFailed ? "failed: " + s(si.message) : s(si.si_no) || "skipped") : "no SI")],
     jobRows: [jobRow(entry, { job_status: "COMPLETED", progress_percent: 100, progress_message: message.slice(0, 250), error_code: siFailed ? "GDC_AUTO_SI_FAILED" : null,
       error_message: siFailed ? "The delivery was completed, but the Sales Invoice could not be created automatically: " + s(si.message) : null,
-      error_details: siFailed ? JSON.stringify({ step: "C6_SI", code: s(si.code), message: s(si.message) }) : null, finished_at: entry.dbNow })],
+      error_details: siFailed ? JSON.stringify({ step: "C6_SI", code: s(si.code), message: s(si.message) }) : null, finished_at: endNow(entry) })],
     result_message: message, siFailed: siFailed ? 1 : 0,
   };
 };

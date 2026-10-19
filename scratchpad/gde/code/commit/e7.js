@@ -18,7 +18,7 @@ const commitFinish = function commitFinish(entry, manifest) {
   const message = "Goods Delivery " + s(entry.gdNo) + " saved" + (s(notes.pickingReversalNote) ? ". " + s(notes.pickingReversalNote) : "");
   return {
     stepRows: [doneRow(entry, "E7_AFTER", "")],
-    jobRows: [jobRow(entry, { job_status: "COMPLETED", progress_percent: 100, progress_message: message.slice(0, 250), finished_at: entry.dbNow })],
+    jobRows: [jobRow(entry, { job_status: "COMPLETED", progress_percent: 100, progress_message: message.slice(0, 250), finished_at: endNow(entry) })],
     result_message: message,
   };
 };

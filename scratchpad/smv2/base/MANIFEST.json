@@ -1,0 +1,93 @@
+{
+ "pulled_from": "dev (.dbtools/db --dev, SELECT only)",
+ "files": {
+  "SM_LOCATION_TRANSFER.v82.json": {
+   "source": "su_code_workflow_history id 2108117825977176065 (data_id 2013133675374927874, version 82, status enabled, created 2026-10-08 16:50:31.306000)",
+   "md5": "48690c5886be1917615d1133aeadcaac",
+   "chars": 195320,
+   "su_code_workflow": "version 82 md5 48690c5886be1917615d1133aeadcaac",
+   "designing_rows": [
+    {
+     "version": 83,
+     "md5": "48690c5886be1917615d1133aeadcaac",
+     "same_as_v82": true
+    }
+   ],
+   "pretty_copy": "SM_LOCATION_TRANSFER.v82.pretty.json (json indent=1; for reading only - lift/compare from the raw file)",
+   "vs_prod_hotfix_2026_10_08": {
+    "file": "prod-hotfix/2026-10-08-bug-register/SM_LOCATION_TRANSFER.PROD.json",
+    "nodes_dev": 219,
+    "nodes_prod_file": 219,
+    "only_dev": [],
+    "only_prod_file": [],
+    "type_differs": [],
+    "script_bodies_compared": 27,
+    "script_body_differs": [],
+    "node_data_differs": []
+   }
+  },
+  "lot_form_v107.json": {
+   "source": "su_code_tables_history id 2105236667519897601 (data_id 2013791389687349250 = sm_location_transfer, version 107, status enabled, created 2026-09-30 18:01:50)",
+   "md5": "f39c5369d4e9c2202adb92cf93be669b",
+   "chars": 875392,
+   "su_code_tables.form_json_same": true
+  },
+  "lot_schema_header.json": {
+   "source": "su_code_tables.schema_json id 2013791389687349250 (sm_location_transfer), current",
+   "md5": "80a099aba94dad525d81e1cc9e38c686",
+   "chars": 109536
+  },
+  "lot_schema_lines.json": {
+   "source": "su_code_tables.schema_json id 2013831779991814146 (sm_location_transfer_d2c7o1jd_sub), current",
+   "md5": "afc23b81e815f935c1f4845c5c7a3109",
+   "chars": 19553
+  },
+  "lot_list_v47.json": {
+   "source": "su_code_pages_history id 2109477145172230146 (data_id 2013863255693197313, version 47, status enabled, created 2026-10-12 10:51:58)",
+   "md5": "0591082ab9bec10388151639009aec16",
+   "chars": 78816,
+   "su_code_pages": "version 47 md5 0591082ab9bec10388151639009aec16",
+   "designing": [
+    {
+     "id": "2109832002601205762",
+     "version": 48,
+     "created": "2026-10-13 10:22:03",
+     "md5": "816e13b6268344817fe5879cb76091fa",
+     "chars": 78937,
+     "same_as_v47": false,
+     "file": "lot_list_v48_designing.json (NOT live; someone's draft - not resolved here)"
+    }
+   ]
+  },
+  "CHECK_REQUIRED_FIELD.v8.json": {
+   "source": "su_code_workflow_history id 1996161689612054530 (data_id 1988831880511062018, version 8, enabled)",
+   "md5": "c3c37c0e255bb39851347b527f7a8199",
+   "chars": 3313
+  },
+  "GLOBAL_INVENTORY_VALIDATION.v11.json": {
+   "source": "su_code_workflow_history id 2102249942294065154 (data_id 2056291728334573570, version 11, enabled)",
+   "md5": "248c9eb105a5a69d3334fd0a997f2424",
+   "chars": 24128
+  },
+  "INVENTORY_BULK_APPLY.v7.json": {
+   "source": "su_code_workflow_history id 2110579632329101313 (data_id 2109916822821744641, version 7, enabled)",
+   "md5": "cf6ba1fb737d3ca9f9d5213844b33d5c",
+   "chars": 180772
+  },
+  "columns.json": {
+   "source": "information_schema.columns / statistics on dev",
+   "tables": [
+    "sm_location_transfer",
+    "sm_location_transfer_d2c7o1jd_sub",
+    "in_transit_detail",
+    "gd_async_job",
+    "gd_publish_step"
+   ],
+   "unique_index_tables": [
+    "gd_async_job",
+    "gd_publish_step",
+    "sm_location_transfer"
+   ]
+  }
+ }
+}

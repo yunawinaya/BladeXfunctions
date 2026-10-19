@@ -64,6 +64,19 @@ const confirmationOf = (rows) => {
   return { lines: lines, unexpressible: false };
 };
 
+// the putaway's attachments as the form shows them (the whole list): saved with the confirmation
+const refDocOf = (v) => {
+  let x = v;
+  if (typeof x === "string") {
+    try {
+      x = JSON.parse(x);
+    } catch (e) {
+      x = null;
+    }
+  }
+  return Array.isArray(x) ? x : null;
+};
+
 // one key per click and content (the putaway as opened + the confirmation): a lost answer re-sent with the same key finds
 // the same job; a failed job gets the next generation (a new key, a new job)
 const idemKey = (data, lines, gen) => {
@@ -83,7 +96,7 @@ const idemKey = (data, lines, gen) => {
     const hex = (x) => ("00000000" + x.toString(16)).slice(-8);
     return hex(h1) + hex(h2);
   };
-  const content = { to_id: str(data.id), update_time: str(data.update_time), lines: lines };
+  const content = { to_id: str(data.id), update_time: str(data.update_time), lines: lines, ref_doc: refDocOf(data.ref_doc) };
   return ("PWC:" + str(data.organization_id) + ":" + str(data.id) + ":" + hash(canon(content)) + ":" + gen).replace(/[^A-Za-z0-9|:_.-]/g, "-").slice(0, 128);
 };
 
@@ -110,7 +123,7 @@ const submit = async (data, lines, gen) => {
     to_id: str(data.id),
     idempotency_key: idemKey(data, lines, gen),
     confirmed_by: this.getVarGlobal("nickname"),
-    request: { source: "FORM", lines: lines },
+    request: refDocOf(data.ref_doc) ? { source: "FORM", lines: lines, ref_doc: refDocOf(data.ref_doc) } : { source: "FORM", lines: lines },
   };
   let res = null;
   try {
@@ -215,6 +228,7 @@ const showOpenJob = async () => {
       to_status: this.getValue("to_status"),
       organization_id: this.getValue("organization_id"),
       update_time: this.getValue("update_time"),
+      ref_doc: this.getValue("ref_doc"),
     };
     const rows = this.getValue("table_putaway_item") || [];
     if (data.page_status !== "Edit" || !str(data.id) || data.to_status === "Draft") return classic("page " + data.page_status + " / " + data.to_status);

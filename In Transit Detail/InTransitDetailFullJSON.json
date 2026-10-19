@@ -2751,6 +2751,7 @@
     "deps": {},
     "paramsDeps": {},
     "labelSuffix": true,
-    "indexs": []
+    "indexs": [],
+    "allow_print_use": false
   }
 }

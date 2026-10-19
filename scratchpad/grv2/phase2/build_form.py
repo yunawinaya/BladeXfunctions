@@ -136,6 +136,7 @@ def diff_paths(a, b, path=""):
 
 
 if __name__ == "__main__":
+    sys.exit("Superseded: its v1472 base would undo the live GR form (v1475); scratchpad/grv2/switchon/build_switchon.py builds it now.")
     dev, form, mirrors = build()
     text = render(form, "indent")
     assert json.loads(text) == form

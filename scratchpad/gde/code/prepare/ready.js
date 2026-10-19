@@ -11,6 +11,7 @@ const prepareReady = function prepareReady(entry, plan, engine) {
     const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);
     return d.toISOString().slice(0, 19).replace("T", " ");
   };
+  const endNow = (x) => (Number(x.jsAt) > 0 ? addSeconds(x.dbNow, Math.max(0, Math.floor((Date.now() - Number(x.jsAt)) / 1000))) : "") || x.dbNow;
   const e = entry || {}, p = plan || {}, g = engine || {};
   const base = { route: "FAIL", needParts: "NO", needReady: "NO", readyRows: [], needHold: "NO", holdRows: [], needJobUpd: "NO", jobRows: [], needUnlock: "NO", unlockRows: [], needPickUnlock: "NO", pickUnlockRows: [],
     result_code: "", result_message: "", job_status: "" };
@@ -19,7 +20,7 @@ const prepareReady = function prepareReady(entry, plan, engine) {
   const fail = (code, message, details) => Object.assign(base, {
     needJobUpd: "YES",
     jobRows: [{ id: s(e.jobId), job_status: "FAILED", progress_percent: 0, progress_message: ("Not saved: " + message).slice(0, 250), row_version: (Number(e.rowVersion) || 0) + 1,
-      error_code: code, error_message: message, error_details: JSON.stringify(Object.assign({ step: "GD_EDIT_PREPARE" }, details || {})), lease_owner: null, lease_expires_at: null, finished_at: s(e.dbNow) || null }],
+      error_code: code, error_message: message, error_details: JSON.stringify(Object.assign({ step: "GD_EDIT_PREPARE" }, details || {})), lease_owner: null, lease_expires_at: null, finished_at: s(endNow(e)) || null }],
     needUnlock: String(p.unlockOk) === "1" ? "YES" : "NO",
     unlockRows: String(p.unlockOk) === "1" ? [{ id: s(p.gdId), gd_status: s(req.stored_status) || "Created" }] : [],
     needPickUnlock: s(p.pickUnlockId) ? "YES" : "NO", pickUnlockRows: s(p.pickUnlockId) ? [{ id: s(p.pickUnlockId), is_processing: 0 }] : [],

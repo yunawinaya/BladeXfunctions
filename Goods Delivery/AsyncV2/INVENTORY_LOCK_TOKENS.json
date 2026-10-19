@@ -526,7 +526,7 @@
         "name": "Give-back: re-read the rows by id (tenant, organization, real balance types, not deleted)",
         "script": {
           "type": "sql",
-          "code": "SELECT CAST(id AS CHAR) AS id,\n       lock_key,\n       balance_type,\n       free_token,\n       owner_operation_id,\n       lock_version,\n       last_owner_operation_id,\n       is_deleted,\n       DATE_FORMAT(update_time, '%Y-%m-%d %H:%i:%s.%f') AS updated_at,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_YVrnLoAI.data.tenantId}}'\n   AND organization_id = '{{node:code_node_YVrnLoAI.data.organizationId}}'\n   AND id IN ({{node:code_node_YVrnLoAI.data.idListSql}})\n   AND balance_type IN ('ITEM', 'BATCH', 'HU', 'RESERVATION')\n   AND is_deleted = 0\n ORDER BY lock_key"
+          "code": "SELECT CAST(id AS CHAR) AS id,\n       lock_key,\n       balance_type,\n       free_token,\n       owner_operation_id,\n       lock_version,\n       last_owner_operation_id,\n       is_deleted,\n       DATE_FORMAT(update_time, '%Y-%m-%d %H:%i:%s.%f') AS updated_at,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_YVrnLoAI.data.tenantId}}'\n   AND organization_id = '{{node:code_node_YVrnLoAI.data.organizationId}}'\n   AND id IN ({{node:code_node_YVrnLoAI.data.idListSql}})\n   AND balance_type IN ('ITEM', 'BATCH', 'HU', 'RESERVATION', 'COST')\n   AND is_deleted = 0\n ORDER BY lock_key"
         },
         "response_json": [
           {

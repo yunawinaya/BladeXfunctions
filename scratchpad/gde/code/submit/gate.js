@@ -46,6 +46,13 @@ const submitGateOn = function submitGateOn(guard, entry, R, form, K) {
     total: fill.gd_total === undefined ? null : fill.gd_total, qtyStop: s(out.qtyStop), delta: delta, pickingId: s(pk.id), pickingReversalNote: s(out.pickingReversalNote),
   });
 };
+// a Picking whose device lock is stale (entry.staleLocks): the lifted reconcile reads it released, as PREPARE reads our own lock
+const gsUnstale = function gsUnstale(R, stale) {
+  const ids = (Array.isArray(stale) ? stale : []).map(String);
+  const p = (R.pick || {}).data;
+  if (p && p.id !== undefined && ids.indexOf(String(p.id)) >= 0) p.is_processing = 0;
+  return R;
+};
 const submitGate = function submitGate(guard, entry, S, form, K) {
-  return submitGateOn(guard, entry, geAdapt(S), form, K);
+  return submitGateOn(guard, entry, gsUnstale(geAdapt(S), entry.staleLocks), form, K);
 };

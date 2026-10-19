@@ -1,8 +1,8 @@
 """Switch-on of the inbound V2 paths in the browser: GR Save as Completed, GR list Revert, Putaway Completed.
 
-Bases = the dev-enabled versions, pulled read-only into this folder (GR form v1473, GR list page v208, Putaway form v365,
+Bases = the dev-enabled versions, pulled read-only into this folder (GR form v1475, GR list page v212, Putaway form v366,
 Putaway list page v32). Each gets its V2 handler with the switch true (+ workflow ids); the two lists also start their
-worker when they open. Writes the repo paste files + .js mirrors, then lists every path that differs from dev (must be
+worker when they open. A base that already carries a handler (the live version, re-seeded) takes it from the repo mirror. Writes the repo paste files + .js mirrors, then lists every path that differs from dev (must be
 only the intended ones).
   python3 build_switchon.py [--write]
 """
@@ -19,9 +19,9 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
 sys.path.insert(0, os.path.join(HERE, ".."))
 from fmt import render  # noqa: E402
 
-GR_FORM = (os.path.join(HERE, "gr_form_v1473.json"), os.path.join(ROOT, "Goods Receiving", "GRfullJSON.json"))
-GR_LIST = (os.path.join(HERE, "gr_list_v210.json"), os.path.join(ROOT, "Bulk Actions", "Procurement", "Goods Receiving", "GRlistPageJSON.json"))
-PW_FORM = (os.path.join(HERE, "pw_form_v365.json"), os.path.join(ROOT, "Putaway", "PutawayFullJSON.json"))
+GR_FORM = (os.path.join(HERE, "gr_form_v1475.json"), os.path.join(ROOT, "Goods Receiving", "GRfullJSON.json"))
+GR_LIST = (os.path.join(HERE, "gr_list_v212.json"), os.path.join(ROOT, "Bulk Actions", "Procurement", "Goods Receiving", "GRlistPageJSON.json"))
+PW_FORM = (os.path.join(HERE, "pw_form_v366.json"), os.path.join(ROOT, "Putaway", "PutawayFullJSON.json"))
 PW_LIST = (os.path.join(HERE, "pw_list_v32.json"), os.path.join(ROOT, "Putaway", "PutawayListPageJSON.json"))
 GRC = os.path.join(ROOT, "Goods Receiving", "CompleteV2", "grc_onClick_completed.js")
 GRV = os.path.join(ROOT, "Goods Receiving", "RevertV2", "grv_list_RevertCompletedGR.js")
@@ -77,7 +77,8 @@ def find_model(n, model):
 
 
 def append_kick(mounted, kick):
-    assert kick.strip() not in mounted, "the kick is already in mounted"
+    if kick.strip() in mounted:  # a base that already carries it (the live version, re-seeded)
+        return mounted
     return mounted.rstrip("\n") + "\n\n" + kick
 
 
@@ -85,10 +86,14 @@ def gr_form(rng):
     dev = json.load(open(GR_FORM[0], encoding="utf-8"))
     form = copy.deepcopy(dev)
     h = by_name(form)
-    assert "grc_onClick_completed" not in h and "onClick_workflowCompleted" in h
     btn = find_model(form, "button_save_as_comp")
-    assert btn["events"]["onClick"] == h["onClick_workflowCompleted"]["key"], btn["events"]
     func = switch_on(read(GRC), "ASYNC_COMPLETE_ENABLED")
+    if "grc_onClick_completed" in h:  # the live base carries it: the repo mirror is the handler's source
+        assert btn["events"]["onClick"] == h["grc_onClick_completed"]["key"], btn["events"]
+        h["grc_onClick_completed"]["func"] = func
+        return dev, form, {GRC: func}
+    assert "onClick_workflowCompleted" in h
+    assert btn["events"]["onClick"] == h["onClick_workflowCompleted"]["key"], btn["events"]
     key = new_key(form, rng)
     form["config"]["eventScript"].append({"key": key, "name": "grc_onClick_completed", "func": func, "type": "js"})
     btn["events"]["onClick"] = key
@@ -109,12 +114,11 @@ def pw_form():
     dev = json.load(open(PW_FORM[0], encoding="utf-8"))
     form = copy.deepcopy(dev)
     e = by_name(form)["pwV2_onClick_completed"]
-    func = switch_on(e["func"], "ASYNC_PUTAWAY_ENABLED")
+    # the base (live v366) is switched on already; the repo mirror is the handler's source from here on
+    func = read(PWV)
+    assert func.count("const ASYNC_PUTAWAY_ENABLED = true;") == 1
     for k, v in PW_IDS.items():
-        old = '%s: "0", // PUTAWAY_ASYNC_%s' % (k, k)
-        assert func.count(old) == 1, old
-        func = func.replace(old, '%s: "%s", // PUTAWAY_ASYNC_%s' % (k, v, k))
-    assert read(PWV) in (e["func"], func), "the repo mirror is neither the deployed pwV2_onClick_completed nor its switched-on build"
+        assert func.count('%s: "%s", // PUTAWAY_ASYNC_%s' % (k, v, k)) == 1, k
     e["func"] = func
     return dev, form, {PWV: func}
 

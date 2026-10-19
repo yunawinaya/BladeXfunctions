@@ -16,8 +16,8 @@
     })
   }
 
-// GD Completion V2 + GD Edit V2: there is no scheduled worker - a completion or an edit still waiting (a retry, a closed
-// browser, an expired hold) moves on when the list opens (at most every 2 minutes per browser)
+// GD Created / Completion / Edit V2: there is no scheduled worker - a save, a completion, an edit or a Picking still waiting (a
+// retry, a closed browser, an expired hold) moves on when the list opens (at most every 2 minutes per browser)
 (() => {
   const KEY = "gdc_worker_kick_at";
   let last = 0;
@@ -28,16 +28,15 @@
   try {
     localStorage.setItem(KEY, String(Date.now()));
   } catch (e) {}
-  const tick = (workflowId, round) => {
+  const tick = (workflowId, round, moved) => {
     try {
       this.runWorkflow(
         workflowId,
         {},
         (w) => {
-          const processed = Number((w && w.data && w.data.processed) || 0);
-          if (processed > 0) {
+          if (moved((w && w.data) || {})) {
             this.refresh();
-            if (round < 40) tick(workflowId, round + 1);
+            if (round < 40) tick(workflowId, round + 1, moved);
           }
         },
         (e) => console.error("GD V2: worker tick failed", workflowId, e),
@@ -46,6 +45,10 @@
       console.error("GD V2: worker could not be started", workflowId, e);
     }
   };
-  tick("2110182645714518018", 1); // GD_COMPLETE_WORKER
-  tick("2110618789356687361", 1); // GD_EDIT_WORKER
+  const processed = (d) => Number(d.processed || 0) > 0;
+  tick("2110182645714518018", 1, processed); // GD_COMPLETE_WORKER
+  tick("2110618789356687361", 1, processed); // GD_EDIT_WORKER
+  tick("2104840667119411201", 1, processed); // GD_ASYNC_WORKER (GD Created)
+  // GD_PICKING_OUTBOX_CONSUMER, poll mode: the tenant's earliest due Picking of a created delivery; DONE / DONE_NONE = one handled
+  tick("2105134245397041153", 1, (d) => /^DONE/.test(String(d.consumer_route || "")));
 })();

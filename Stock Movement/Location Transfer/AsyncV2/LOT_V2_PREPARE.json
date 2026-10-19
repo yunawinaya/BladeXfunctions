@@ -1,0 +1,2358 @@
+{
+ "request_json": [
+  {
+   "key": "sj43mist",
+   "name": "job_id",
+   "title": "job_id",
+   "description": "gd_async_job.id (digits) of a VALIDATING SAVE_LOT job the worker holds",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "j0a3j3ch",
+   "name": "job_id",
+   "title": "job_id",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "1rwvilxv",
+   "name": "job_status",
+   "title": "job_status",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "mzlw4mk5",
+   "name": "result_code",
+   "title": "result_code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "7xs5mhwe",
+   "name": "result_message",
+   "title": "result_message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "yjlmbwa4",
+   "name": "evidence",
+   "title": "evidence",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "title": "Start Node",
+    "isValidator": true,
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_LPguard",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// LOT_V2_PREPARE - Guard: job_id (digits), session tenant\nconst prepareGuard = function prepareGuard(input) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const jobId = s(input.jobId);\n  const tenantId = s(input.systemTenantId);\n  const bad = (why) => ({ route: \"REJECT\", jobId: \"0\", tenantId: \"0\", result_code: \"LOT_INVALID_DATA\", result_message: why });\n  if (!/^[0-9]{1,20}$/.test(jobId)) return bad(\"job_id: digits only\");\n  if (!/^[0-9]{1,20}$/.test(tenantId)) return bad(\"no session tenant\");\n  return { route: \"CONTINUE\", jobId: jobId, tenantId: tenantId, result_code: \"\", result_message: \"\" };\n};\nconst res = prepareGuard({ jobId: [{{workflowparams:job_id}}][0], systemTenantId: [{{system:tenantId}}][0] });\nconsole.log(\"prepare guard\", JSON.stringify(res));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "fyf6fbuk",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ojq43qbj",
+      "name": "jobId",
+      "title": "jobId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "o1b3aohd",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "kbim0l5a",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "m9tlo71q",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Guard: job_id (digits), session tenant",
+    "isValidator": true,
+    "nodeName": "Guard: job_id (digits), session tenant",
+    "name": "Guard: job_id (digits), session tenant"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_LPreject",
+   "type": "if",
+   "data": {
+    "title": "IF the input is invalid: answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF the input is invalid: answer, write nothing",
+    "name": "IF the input is invalid: answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799100000001,
+       "parentId": 1799100000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_LPguard.data.route}}' == 'REJECT'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TLPreject",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_LPrej",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "return { job_id: \"\", job_status: \"\", result_code: [{{node:code_node_LPguard.data.result_code}}][0], result_message: [{{node:code_node_LPguard.data.result_message}}][0], evidence: JSON.stringify({ v: 1, workflow: \"LOT_V2_PREPARE\", path: \"REJECTED_INPUT\" }) };"
+        },
+        "response_json": [
+         {
+          "key": "x2j9vagm",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "bn182ku0",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "32uzcvig",
+          "name": "result_code",
+          "title": "result_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "1ko3bh6z",
+          "name": "result_message",
+          "title": "result_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "fzmgfpak",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Answer (rejected input)",
+        "isValidator": true,
+        "nodeName": "Answer (rejected input)",
+        "name": "Answer (rejected input)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_LPrej",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (rejected input)",
+        "isValidator": true,
+        "nodeName": "Return (rejected input)",
+        "name": "Return (rejected input)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPrej.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPrej.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "result_code",
+           "propLabel": "result_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPrej.data.result_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "result_message",
+           "propLabel": "result_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPrej.data.result_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPrej.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FLPreject",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "sql_node_LPjob",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "The job (+ DB clock, lease flag, request; the LOT an unlinked SUBMIT left Processing)",
+    "isValidator": true,
+    "nodeName": "The job (+ DB clock, lease flag, request; the LOT an unlinked SUBMIT left Processing)",
+    "name": "The job (+ DB clock, lease flag, request; the LOT an unlinked SUBMIT left Processing)",
+    "script": {
+     "type": "sql",
+     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id, j.organization_id, j.command, j.job_status, j.lease_owner, (j.lease_expires_at > n.t) AS lease_live, j.row_version,\n       j.attempt_count, j.idempotency_key, j.correlation_id, j.request_payload, j.is_deleted,\n       (SELECT CAST(MAX(g.id) AS CHAR) FROM sm_location_transfer g\n         WHERE g.tenant_id = '{{node:code_node_LPguard.data.tenantId}}' AND g.lot_v2_job_id = '{{node:code_node_LPguard.data.jobId}}' AND g.stock_movement_status = 'Processing' AND g.is_deleted = 0) AS linked_lot\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_LPguard.data.tenantId}}'\n   AND j.id = {{node:code_node_LPguard.data.jobId}}"
+    },
+    "response_json": [
+     {
+      "key": "ei3w5c6x",
+      "name": "db_now",
+      "title": "db_now",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "nax09br6",
+      "name": "id",
+      "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2dv8kvi9",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "7hpbxks1",
+      "name": "command",
+      "title": "command",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "nof6tvwh",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "qrhkehh2",
+      "name": "lease_owner",
+      "title": "lease_owner",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9jw8066q",
+      "name": "lease_live",
+      "title": "lease_live",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6re4u2z5",
+      "name": "row_version",
+      "title": "row_version",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "it0u33ll",
+      "name": "attempt_count",
+      "title": "attempt_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "492zsuj7",
+      "name": "idempotency_key",
+      "title": "idempotency_key",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9k4ohgxp",
+      "name": "correlation_id",
+      "title": "correlation_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "zgdvvjxf",
+      "name": "request_payload",
+      "title": "request_payload",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "7iar4nfs",
+      "name": "is_deleted",
+      "title": "is_deleted",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "8269fkwi",
+      "name": "linked_lot",
+      "title": "linked_lot",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_LPentry",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// SM V2 / Location Transfer - helpers every package uses (SUBMIT, PREPARE, COMMIT, WORKER, client). Included into a code\n// node by the builders (v2build.include_js drops the \"if (typeof module\" line); every top-level name carries the lot / LOT_\n// prefix so the file concatenates with a step's own helpers (s, q8, list, digits, parseJ) without a redeclaration.\nconst lotS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// q8: the 8-dp rounding of COMPUTED quantities (the LOT classic's own q8); a NUMBER\nconst lotQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// the ledger's decimal text (code_node_LOTmainCompute / uht83Wzh qtyStr): never negative, 8 dp, a STRING\nconst lotQtyStr = (v) => Math.max(0, lotQ8(v)).toFixed(8);\nconst lotDigits = (v) => /^[0-9]{1,20}$/.test(lotS(v));\n// a bigint id as a digit string: a digit string as is (leading/trailing blanks trimmed), a SAFE non-negative integer\n// number as its digits; anything else (a 19-digit id that already went through a JS number, \"\", null, text) -> \"\"\nconst lotIdStr = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"\";\n  const t = lotS(v);\n  return /^[0-9]{1,20}$/.test(t) ? t : \"\";\n};\n// JSON text with every bare 16+ digit integer TOKEN read as a STRING (snowflake ids survive); only whole integer tokens\n// (after [ , : or the start; before , ] } or the end) - never the fraction digits of a float such as 0.30000000000000004;\n// null when it does not parse\nconst lotParseJ = (t) => {\n  if (t === undefined || t === null) return null;\n  if (typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst lotList = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r !== undefined && r !== null);\n// a JSON-text-or-array column (temp_qty_data, temp_hu_data, reference_documents): the array, [] when empty / not a list\nconst lotJsonList = (v) => {\n  if (Array.isArray(v)) return v;\n  const t = lotS(v);\n  if (!t) return [];\n  const p = lotParseJ(t);\n  return Array.isArray(p) ? p : [];\n};\n// sql-node rows: JSON_OBJECT rows ({ j: \"<json>\" }) or already-plain objects -> plain objects (ids of 16+ digits as strings)\nconst lotRows = (rows) => lotList(rows).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? lotParseJ(r.j) : r)).filter((r) => r && typeof r === \"object\");\n// code_node_yPlLXIZW's normalizeCategory (UNR / BLK -> the stored names); \"\" stays \"\" (the classic then reads \"Unrestricted\")\nconst lotCategory = (c) => (c === \"UNR\" ? \"Unrestricted\" : c === \"BLK\" ? \"Blocked\" : lotS(c));\nconst lotDbAddSeconds = function lotDbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// the bounded statuses a LOT job may restore (CONTRACT.md \"prevStatus\"): anything else = unknown = no unlock, REQUIRES_REVIEW\nconst LOT_PREV_STATUSES = [\"Draft\", \"In Progress\"];\nconst lotPrevStatusOk = (v) => LOT_PREV_STATUSES.indexOf(lotS(v)) >= 0;\n// the payload part rows of one value: step_name <prefix><nnn>, 400,000 characters each (GR / Putaway V2's chunking)\nconst LOT_CHUNK = 400000;\nconst lotPartRows = function lotPartRows(jobId, organizationId, prefix, value, status) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += LOT_CHUNK, n++) {\n    out.push({ job_id: lotS(jobId), organization_id: lotS(organizationId), step_name: prefix + String(n).padStart(3, \"0\"), step_status: status || \"PAYLOAD\", attempt_count: 0,\n      result_ref: text.slice(at, at + LOT_CHUNK) });\n  }\n  return out;\n};\n// a part's chunk rows (step_name <prefix>nnn) joined in step-name order -> the value; null when there is no row, undefined\n// when the joined text does not parse (GR's joinChunks)\nconst lotJoinChunks = function lotJoinChunks(rows, prefix) {\n  const mine = lotList(rows).filter((r) => lotS(r.step_name).indexOf(prefix) === 0).sort((a, b) => (lotS(a.step_name) < lotS(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  const p = lotParseJ(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  return p === null ? undefined : p;\n};\n// LOT_V2_PREPARE - Entry: a VALIDATING SAVE_LOT job the worker holds (live lease); its correlation LOT|<id> -> the LOT; its request.\n// No correlation (SUBMIT stopped before \"link\"): FAILED, the LOT it left Processing (lot_v2_job_id) back to prevStatus. A request\n// whose prevStatus is not Draft / In Progress: REQUIRES_REVIEW, no unlock (CONTRACT.md section 2)\nconst prepareEntry = function prepareEntry(guard, rows, uuid) {\n  const job = lotList(rows).filter((r) => r && lotS(r.id))[0] || null;\n  const base = { route: \"NOOP\", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: \"0\", lotId: \"0\", idempotencyKey: \"\", rowVersion: 0, attempts: 0, dbNow: \"\", nonce: \"\",\n    request: {}, action: \"\", prevStatus: \"\", saveAs: \"\", unlockRows: [], result_code: \"\", result_message: \"\" };\n  if (!job || String(job.is_deleted) === \"1\") return Object.assign(base, { result_code: \"LOT_INVALID_DATA\", result_message: \"job \" + guard.jobId + \" not found\" });\n  if (lotS(job.command) !== \"SAVE_LOT\") return Object.assign(base, { result_code: \"LOT_INVALID_DATA\", result_message: \"job command is \" + lotS(job.command) });\n  if (lotS(job.job_status) !== \"VALIDATING\") return Object.assign(base, { result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + lotS(job.job_status) + \": only a VALIDATING job is prepared\" });\n  if (String(job.lease_live) !== \"1\") return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the worker's lease on the job has expired: not prepared\" });\n  const req = lotParseJ(lotS(job.request_payload));\n  const common = { jobId: lotS(job.id), organizationId: lotDigits(job.organization_id) ? lotS(job.organization_id) : \"0\", idempotencyKey: lotS(job.idempotency_key),\n    rowVersion: Number(job.row_version) || 0, attempts: Number(job.attempt_count) || 0, dbNow: lotS(job.db_now), jsAt: String(Date.now()), nonce: (lotS(uuid).replace(/[^0-9A-Za-z]/g, \"\") + \"00000000\").slice(0, 8) };\n  const prev = req && typeof req === \"object\" ? lotS(req.prevStatus) : \"\";\n  if (!lotPrevStatusOk(prev)) {\n    return Object.assign(base, common, { route: \"REVIEW\", result_code: \"LOT_PREV_STATUS_UNKNOWN\", result_message: \"Under review: the status to restore is unknown. Please contact support.\" });\n  }\n  const m = lotS(job.correlation_id).match(/^LOT\\|([0-9]{1,20})$/);\n  if (!m) {\n    const stray = lotDigits(job.linked_lot) ? [{ id: lotS(job.linked_lot), stock_movement_status: prev }] : [];\n    return Object.assign(base, common, { route: \"FAIL\", prevStatus: prev, unlockRows: stray, result_code: \"LOT_INVALID_REQUEST\",\n      result_message: \"The save stopped before the Location Transfer was linked to its job: please save it again.\" });\n  }\n  return Object.assign(base, common, { route: \"GO\", lotId: m[1], request: req, action: lotS(req.action), prevStatus: prev, saveAs: lotS(req.saveAs),\n    result_message: lotS(req.action) + \" Location Transfer \" + (lotS(req.lotNo) || m[1]) });\n};\nconst guard = [{{node:code_node_LPguard.data}}][0];\nconst res = prepareEntry(guard, [{{node:sql_node_LPjob.data}}][0], [{{system:uuid}}][0]);\nconsole.log(\"prepare entry\", JSON.stringify({ route: res.route, lot: res.lotId, action: res.action, result: res.result_code, message: res.result_message }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "h2yf8cpx",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6ina97ak",
+      "name": "jobId",
+      "title": "jobId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "18k269dt",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "lngdnabr",
+      "name": "organizationId",
+      "title": "organizationId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6kgd7kvo",
+      "name": "lotId",
+      "title": "lotId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ocem3qof",
+      "name": "idempotencyKey",
+      "title": "idempotencyKey",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "emz84h0a",
+      "name": "rowVersion",
+      "title": "rowVersion",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9t7cqxdk",
+      "name": "attempts",
+      "title": "attempts",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "fxgevexh",
+      "name": "dbNow",
+      "title": "dbNow",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "jsee7a08",
+      "name": "jsAt",
+      "title": "jsAt",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ydwed2bd",
+      "name": "nonce",
+      "title": "nonce",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "oki2rvv8",
+      "name": "request",
+      "title": "request",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "qja58pmr",
+      "name": "action",
+      "title": "action",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "n8ep3rdi",
+      "name": "prevStatus",
+      "title": "prevStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "csq8r8s9",
+      "name": "saveAs",
+      "title": "saveAs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ip0rwo28",
+      "name": "unlockRows",
+      "title": "unlockRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "kznb8nhy",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "vo4acvw5",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "xzb6if0t",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Entry: a VALIDATING SAVE_LOT job under a live lease; its correlation -> the LOT; its request (prevStatus, action)",
+    "isValidator": true,
+    "nodeName": "Entry: a VALIDATING SAVE_LOT job under a live lease; its correlation -> the LOT; its request (prevStatus, action)",
+    "name": "Entry: a VALIDATING SAVE_LOT job under a live lease; its correlation -> the LOT; its request (prevStatus, action)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_LPnoop",
+   "type": "if",
+   "data": {
+    "title": "IF the job is not this run's to prepare: answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF the job is not this run's to prepare: answer, write nothing",
+    "name": "IF the job is not this run's to prepare: answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799100000003,
+       "parentId": 1799100000004,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_LPentry.data.route}}' == 'NOOP'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TLPnoop",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_LPnoop",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "const e = [{{node:code_node_LPentry.data}}][0] || {};\nreturn { job_id: e.jobId || \"\", job_status: \"\", result_code: e.result_code || \"\", result_message: e.result_message || \"\", evidence: JSON.stringify({ v: 1, workflow: \"LOT_V2_PREPARE\", path: \"NOOP\" }) };"
+        },
+        "response_json": [
+         {
+          "key": "111ux8k4",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "qajicigi",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "r79lsjza",
+          "name": "result_code",
+          "title": "result_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "czq9fqm9",
+          "name": "result_message",
+          "title": "result_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "h4xy59hn",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Answer (not prepared)",
+        "isValidator": true,
+        "nodeName": "Answer (not prepared)",
+        "name": "Answer (not prepared)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_LPnoop",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (not prepared)",
+        "isValidator": true,
+        "nodeName": "Return (not prepared)",
+        "name": "Return (not prepared)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPnoop.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPnoop.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "result_code",
+           "propLabel": "result_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPnoop.data.result_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "result_message",
+           "propLabel": "result_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPnoop.data.result_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_LPnoop.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FLPnoop",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "condition_all_LPread",
+   "type": "condition-all-node",
+   "data": {
+    "title": "Set-based reads in parallel (no row limits)",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cai_LPparts",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "SUBMIT's payload parts of the job (S|..|LINES)",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "SUBMIT's payload parts of the job (S|..|LINES)",
+      "name": "SUBMIT's payload parts of the job (S|..|LINES)",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_LPparts",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "SUBMIT's payload parts of the job (S|..|LINES)",
+        "isValidator": true,
+        "nodeName": "SUBMIT's payload parts of the job (S|..|LINES)",
+        "name": "SUBMIT's payload parts of the job (S|..|LINES)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT p.step_name, p.result_ref\n  FROM gd_publish_step p\n WHERE p.tenant_id = '{{node:code_node_LPentry.data.tenantId}}'\n   AND p.job_id = '{{node:code_node_LPentry.data.jobId}}'\n   AND p.step_name LIKE 'S|%'\n   AND p.is_deleted = 0\n ORDER BY p.step_name"
+        },
+        "response_json": [
+         {
+          "key": "0adac97e",
+          "name": "step_name",
+          "title": "step_name",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ozdko99o",
+          "name": "result_ref",
+          "title": "result_ref",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_LPhdr",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "The Location Transfer header",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "The Location Transfer header",
+      "name": "The Location Transfer header",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_LPhdr",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "The Location Transfer header",
+        "isValidator": true,
+        "nodeName": "The Location Transfer header",
+        "name": "The Location Transfer header",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(h.id AS CHAR), 'stock_movement_no', h.stock_movement_no, 'stock_movement_no_type', CAST(h.stock_movement_no_type AS CHAR),\n       'stock_movement_status', h.stock_movement_status, 'issuing_operation_faci', CAST(h.issuing_operation_faci AS CHAR),\n       'receiving_operation_faci', CAST(h.receiving_operation_faci AS CHAR), 'organization_id', h.organization_id,\n       'issue_date', DATE_FORMAT(h.issue_date, '%Y-%m-%d %H:%i:%s'), 'is_production_order', h.is_production_order, 'movement_type', h.movement_type,\n       'movement_reason', h.movement_reason, 'issued_by', h.issued_by, 'tenant_id', h.tenant_id, 'lot_v2_job_id', CAST(h.lot_v2_job_id AS CHAR)) AS j\n  FROM sm_location_transfer h\n WHERE h.tenant_id = '{{node:code_node_LPentry.data.tenantId}}'\n   AND h.id = {{node:code_node_LPentry.data.lotId}}\n   AND h.is_deleted = 0"
+        },
+        "response_json": [
+         {
+          "key": "e8u1h8if",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_LPlines",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Its stored lines (line_index order)",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Its stored lines (line_index order)",
+      "name": "Its stored lines (line_index order)",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_LPlines",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its stored lines (line_index order)",
+        "isValidator": true,
+        "nodeName": "Its stored lines (line_index order)",
+        "name": "Its stored lines (line_index order)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(l.id AS CHAR), 'line_index', l.line_index, 'item_selection', l.item_selection, 'item_name', l.item_name,\n       'quantity_uom', CAST(l.quantity_uom AS CHAR), 'location_id', CAST(l.location_id AS CHAR), 'storage_location_id', CAST(l.storage_location_id AS CHAR),\n       'temp_qty_data', l.temp_qty_data, 'total_quantity', l.total_quantity, 'organization_id', l.organization_id, 'issuing_plant', CAST(l.issuing_plant AS CHAR),\n       'receiving_plant', CAST(l.receiving_plant AS CHAR), 'item_remark', l.item_remark, 'parent_id', CAST(l.parent_id AS CHAR),\n       'item_bundle_id', l.item_bundle_id) AS j\n  FROM sm_location_transfer_d2c7o1jd_sub l WHERE l.tenant_id = '{{node:code_node_LPentry.data.tenantId}}' AND l.sm_location_transfer_id = {{node:code_node_LPentry.data.lotId}} AND l.is_deleted = 0\n ORDER BY CAST(l.line_index AS UNSIGNED), l.id"
+        },
+        "response_json": [
+         {
+          "key": "vr2esgfz",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_LPtransit",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Its In Transit rows (every status)",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Its In Transit rows (every status)",
+      "name": "Its In Transit rows (every status)",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_LPtransit",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its In Transit rows (every status)",
+        "isValidator": true,
+        "nodeName": "Its In Transit rows (every status)",
+        "name": "Its In Transit rows (every status)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(t.id AS CHAR), 'doc_type', t.doc_type, 'doc_id', t.doc_id, 'doc_no', t.doc_no, 'doc_line_id', t.doc_line_id,\n       'line_no', t.line_no, 'material_id', CAST(t.material_id AS CHAR), 'item_code', t.item_code, 'item_uom', CAST(t.item_uom AS CHAR),\n       'batch_id', CAST(t.batch_id AS CHAR), 'handling_unit_id', t.handling_unit_id, 'plant_id', CAST(t.plant_id AS CHAR), 'organization_id', t.organization_id,\n       'transit_bin', CAST(t.transit_bin AS CHAR), 'from_bin', CAST(t.from_bin AS CHAR), 'from_category', t.from_category, 'to_bin', CAST(t.to_bin AS CHAR),\n       'to_category', t.to_category, 'transit_qty', CAST(t.transit_qty AS CHAR), 'received_qty', CAST(t.received_qty AS CHAR),\n       'open_qty', CAST(t.open_qty AS CHAR), 'status', t.status, 'transit_date', DATE_FORMAT(t.transit_date, '%Y-%m-%d %H:%i:%s'),\n       'received_date', DATE_FORMAT(t.received_date, '%Y-%m-%d %H:%i:%s')) AS j\n  FROM in_transit_detail t\n WHERE t.tenant_id = '{{node:code_node_LPentry.data.tenantId}}'\n   AND t.doc_id = '{{node:code_node_LPentry.data.lotId}}'\n   AND t.organization_id = '{{node:code_node_LPentry.data.organizationId}}'\n   AND t.is_deleted = 0\n ORDER BY t.id"
+        },
+        "response_json": [
+         {
+          "key": "39vescas",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_LPitems",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Items of its lines",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Items of its lines",
+      "name": "Items of its lines",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_LPitems",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Items of its lines",
+        "isValidator": true,
+        "nodeName": "Items of its lines",
+        "name": "Items of its lines",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(i.id AS CHAR), 'material_code', i.material_code, 'material_name', i.material_name, 'material_desc', i.material_desc) AS j\n  FROM item i\n WHERE i.tenant_id = '{{node:code_node_LPentry.data.tenantId}}'\n   AND i.is_deleted = 0\n   AND i.id IN (SELECT CAST(l.item_selection AS UNSIGNED) FROM sm_location_transfer_d2c7o1jd_sub l WHERE l.tenant_id = '{{node:code_node_LPentry.data.tenantId}}' AND l.sm_location_transfer_id = {{node:code_node_LPentry.data.lotId}} AND l.is_deleted = 0)\n ORDER BY i.id"
+        },
+        "response_json": [
+         {
+          "key": "izu7j03e",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_LPbins",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "The plant's bins (LABELS)",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "The plant's bins (LABELS)",
+      "name": "The plant's bins (LABELS)",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_LPbins",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "The plant's bins (LABELS)",
+        "isValidator": true,
+        "nodeName": "The plant's bins (LABELS)",
+        "name": "The plant's bins (LABELS)",
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT('id', CAST(b.id AS CHAR), 'bin', b.bin_location_combine) AS j\n  FROM bin_location b\n WHERE b.tenant_id = '{{node:code_node_LPentry.data.tenantId}}'\n   AND b.is_deleted = 0\n   AND b.plant_id = (SELECT h.issuing_operation_faci FROM sm_location_transfer h WHERE h.tenant_id = '{{node:code_node_LPentry.data.tenantId}}' AND h.id = {{node:code_node_LPentry.data.lotId}} AND h.is_deleted = 0)\n ORDER BY b.id"
+        },
+        "response_json": [
+         {
+          "key": "s6cz7qfo",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cai_LPlock",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Its latest document lock",
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": "",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Its latest document lock",
+      "name": "Its latest document lock",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_LPlock",
+       "type": "sql-node",
+       "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Its latest document lock",
+        "isValidator": true,
+        "nodeName": "Its latest document lock",
+        "name": "Its latest document lock",
+        "script": {
+         "type": "sql",
+         "code": "SELECT p.step_name, p.result_ref\n  FROM gd_publish_step p\n WHERE p.tenant_id = '{{node:code_node_LPentry.data.tenantId}}'\n   AND p.job_id = 'SMLT|{{node:code_node_LPentry.data.lotId}}'\n   AND p.step_name LIKE 'LOCK|%'\n   AND p.is_deleted = 0\n ORDER BY p.id DESC\n LIMIT 1"
+        },
+        "response_json": [
+         {
+          "key": "umdgx17c",
+          "name": "step_name",
+          "title": "step_name",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "4lv0k44m",
+          "name": "result_ref",
+          "title": "result_ref",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_node_LPplan",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// SM V2 / Location Transfer - helpers every package uses (SUBMIT, PREPARE, COMMIT, WORKER, client). Included into a code\n// node by the builders (v2build.include_js drops the \"if (typeof module\" line); every top-level name carries the lot / LOT_\n// prefix so the file concatenates with a step's own helpers (s, q8, list, digits, parseJ) without a redeclaration.\nconst lotS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// q8: the 8-dp rounding of COMPUTED quantities (the LOT classic's own q8); a NUMBER\nconst lotQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// the ledger's decimal text (code_node_LOTmainCompute / uht83Wzh qtyStr): never negative, 8 dp, a STRING\nconst lotQtyStr = (v) => Math.max(0, lotQ8(v)).toFixed(8);\nconst lotDigits = (v) => /^[0-9]{1,20}$/.test(lotS(v));\n// a bigint id as a digit string: a digit string as is (leading/trailing blanks trimmed), a SAFE non-negative integer\n// number as its digits; anything else (a 19-digit id that already went through a JS number, \"\", null, text) -> \"\"\nconst lotIdStr = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"\";\n  const t = lotS(v);\n  return /^[0-9]{1,20}$/.test(t) ? t : \"\";\n};\n// JSON text with every bare 16+ digit integer TOKEN read as a STRING (snowflake ids survive); only whole integer tokens\n// (after [ , : or the start; before , ] } or the end) - never the fraction digits of a float such as 0.30000000000000004;\n// null when it does not parse\nconst lotParseJ = (t) => {\n  if (t === undefined || t === null) return null;\n  if (typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst lotList = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r !== undefined && r !== null);\n// a JSON-text-or-array column (temp_qty_data, temp_hu_data, reference_documents): the array, [] when empty / not a list\nconst lotJsonList = (v) => {\n  if (Array.isArray(v)) return v;\n  const t = lotS(v);\n  if (!t) return [];\n  const p = lotParseJ(t);\n  return Array.isArray(p) ? p : [];\n};\n// sql-node rows: JSON_OBJECT rows ({ j: \"<json>\" }) or already-plain objects -> plain objects (ids of 16+ digits as strings)\nconst lotRows = (rows) => lotList(rows).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? lotParseJ(r.j) : r)).filter((r) => r && typeof r === \"object\");\n// code_node_yPlLXIZW's normalizeCategory (UNR / BLK -> the stored names); \"\" stays \"\" (the classic then reads \"Unrestricted\")\nconst lotCategory = (c) => (c === \"UNR\" ? \"Unrestricted\" : c === \"BLK\" ? \"Blocked\" : lotS(c));\nconst lotDbAddSeconds = function lotDbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// the bounded statuses a LOT job may restore (CONTRACT.md \"prevStatus\"): anything else = unknown = no unlock, REQUIRES_REVIEW\nconst LOT_PREV_STATUSES = [\"Draft\", \"In Progress\"];\nconst lotPrevStatusOk = (v) => LOT_PREV_STATUSES.indexOf(lotS(v)) >= 0;\n// the payload part rows of one value: step_name <prefix><nnn>, 400,000 characters each (GR / Putaway V2's chunking)\nconst LOT_CHUNK = 400000;\nconst lotPartRows = function lotPartRows(jobId, organizationId, prefix, value, status) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += LOT_CHUNK, n++) {\n    out.push({ job_id: lotS(jobId), organization_id: lotS(organizationId), step_name: prefix + String(n).padStart(3, \"0\"), step_status: status || \"PAYLOAD\", attempt_count: 0,\n      result_ref: text.slice(at, at + LOT_CHUNK) });\n  }\n  return out;\n};\n// a part's chunk rows (step_name <prefix>nnn) joined in step-name order -> the value; null when there is no row, undefined\n// when the joined text does not parse (GR's joinChunks)\nconst lotJoinChunks = function lotJoinChunks(rows, prefix) {\n  const mine = lotList(rows).filter((r) => lotS(r.step_name).indexOf(prefix) === 0).sort((a, b) => (lotS(a.step_name) < lotS(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  const p = lotParseJ(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  return p === null ? undefined : p;\n};\n// In-process copy of the platform's code-node contract, for bodies lifted by lift/lift.py (copy of scratchpad/grv2/lift).\n// A token is replaced by its value (null when it has none); a node keeps only its declared keys; an object declared\n// `string` arrives as its JSON text; a number declared `int` is truncated toward zero (prod on_order_purchase_order rows\n// show D9IbUV8t's onOrderQty 10.92 / 30.68 / 0.5 arriving as 10 / 30 / 0), a boolean declared `int` arrives as 1 / 0\n// (PUTAWAY qfSZO0bi's hasAnyQuantity, recorded runs); null-valued keys are dropped at every depth.\n// Every __v() is a fresh copy, as every substituted literal is.\nconst __QUIET = { log() {}, error() {}, warn() {}, info() {}, debug() {} };\nconst __N = {};\nlet __CTX = {};\n\nfunction __clone(v) {\n  return v === undefined ? null : JSON.parse(JSON.stringify(v));\n}\n\nfunction __resolve(key) {\n  const dot = key.indexOf(\".\", key.indexOf(\":\") + 1);\n  let v = __CTX[dot < 0 ? key : key.slice(0, dot)];\n  if (dot >= 0) {\n    for (const p of key.slice(dot + 1).split(\".\")) {\n      if (v === null || v === undefined) return null;\n      v = v[p];\n    }\n  }\n  return v === undefined ? null : v;\n}\n\nfunction __v(key) {\n  const v = __resolve(key);\n  return v === null ? null : __clone(v);\n}\n\nfunction __strip(v) {\n  if (Array.isArray(v)) return v.map(__strip);\n  if (v && typeof v === \"object\") {\n    const o = {};\n    for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== undefined) o[k] = __strip(v[k]);\n    return o;\n  }\n  return v;\n}\n\nfunction __platformOut(raw, decl) {\n  if (raw === null || raw === undefined || typeof raw !== \"object\") return {};\n  const r = JSON.parse(JSON.stringify(raw));\n  const o = {};\n  for (const [name, type] of decl) {\n    const v = r[name];\n    if (v === null || v === undefined) continue;\n    if (type === \"string\" && typeof v === \"object\") o[name] = JSON.stringify(v);\n    else if (type === \"int\" && typeof v === \"number\") o[name] = Math.trunc(v);\n    else if (type === \"int\" && typeof v === \"boolean\") o[name] = v ? 1 : 0;\n    else o[name] = v;\n  }\n  return __strip(o);\n}\n\nfunction __run(id) {\n  const n = __N[id];\n  if (!n) throw new Error(\"not lifted: \" + id);\n  const out = __platformOut(n.fn(), n.decl);\n  __CTX[\"node:\" + id] = { data: out };\n  return out;\n}\n\nfunction __set(key, value) {\n  __CTX[key] = value;\n}\n\nfunction __withContext(ctx, fn) {\n  const saved = __CTX;\n  __CTX = ctx;\n  try {\n    return fn();\n  } finally {\n    __CTX = saved;\n  }\n}\n// GENERATED by scratchpad/smv2/lib/lift/lift.py from lift/lift.json (LOT_V2_PREPARE): the classic SM_LOCATION_TRANSFER v82 bodies, verbatim. Do not edit: re-run the script.\n// base/SM_LOCATION_TRANSFER.v82.json :: code_node_yPlLXIZW\n__N[\"code_node_yPlLXIZW\"] = { decl: [[\"allData\", \"any\"], [\"flatLines\", \"array\"], [\"stock_movement_status\", \"string\"], [\"is_production_order\", \"int\"]], fn: function () {\nconst console = __QUIET;\nlet allData = __v(\"workflowparams:allData\")\nconst updatedSM = []\nconst saveAs = __v(\"workflowparams:saveAs\")\n\nif (saveAs === \"Cancelled\") {\n  const rawData = __v(\"node:get_node_czmdH3Jw.data.data\")\n  allData = Array.isArray(rawData) ? rawData[0] : rawData\n}\n\n// Auto-allocated lines come back from the allocation loop keyed by fm_key. The\n// token resolves to null when that branch did not run (Draft, Cancelled, or\n// nothing to allocate), which merges to a no-op.\nconst rawAllocated = __v(\"node:get_cache_node_LOTallocOut.data\");\nlet allocatedLines = [];\n\nif (rawAllocated) {\n  if (typeof rawAllocated === \"string\") {\n    try { allocatedLines = JSON.parse(rawAllocated); } catch (e) { allocatedLines = []; }\n  } else if (Array.isArray(rawAllocated)) {\n    allocatedLines = rawAllocated;\n  }\n}\n\nconst allocatedByKey = {};\nfor (const line of allocatedLines) {\n  if (line && line.fm_key !== undefined && line.fm_key !== null) {\n    allocatedByKey[String(line.fm_key)] = line;\n  }\n}\n\nconst applyAllocation = (row) => {\n  const match = allocatedByKey[String(row.fm_key)];\n  if (!match) return;\n  // Only ever fills a line the user left empty; a hand-picked line is untouched.\n  if (row.temp_qty_data && String(row.temp_qty_data).trim() !== \"\" &&\n      String(row.temp_qty_data).trim() !== \"[]\") return;\n  row.temp_qty_data = match.temp_qty_data;\n  row.total_quantity = match.total_quantity;\n};\n\nconst normalizeCategory = (cat) => {\n  if (cat === \"UNR\") return \"Unrestricted\"\n  if (cat === \"BLK\") return \"Blocked\"\n  return cat\n}\n\n// stock_movement is a tree once an item bundle is added: one parent row per\n// bundle, with the bundle's items under `children`. The tree is left intact on\n// allData so it is persisted the way the form built it. flatLines is the view\n// every computation node walks instead, because a bundle CHILD moves stock while\n// the item-less bundle PARENT does not.\nconst isBundleParent = (row) =>\n  Boolean(row.item_bundle_id && !row.parent_fm_key)\n\n// Parent then its children, so line_index follows the order the user sees.\nconst walkedLines = []\nfor (const row of allData.stock_movement || []) {\n  walkedLines.push(row)\n  for (const child of (Array.isArray(row.children) ? row.children : [])) {\n    walkedLines.push(child)\n  }\n}\n\nconst flatLines = []\n\n// The rows here are references into the tree, so stamping them updates what is\n// persisted as well as what flatLines hands downstream.\nwalkedLines.forEach((smLineItem, index) => {\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  // Numbered across the whole walk, so a child never collides with a parent.\n  smLineItem.line_index = index + 1;\n\n  applyAllocation(smLineItem)\n\n  smLineItem.category = normalizeCategory(smLineItem.category)\n\n  if (smLineItem.temp_qty_data) {\n    try {\n      const parsed = JSON.parse(smLineItem.temp_qty_data)\n      if (Array.isArray(parsed)) {\n        for (const row of parsed) {\n          row.category = normalizeCategory(row.category)\n        }\n        smLineItem.temp_qty_data = JSON.stringify(parsed)\n      }\n    } catch (e) {\n      // leave as-is if not valid JSON\n    }\n  }\n\n  updatedSM.push(smLineItem)\n\n  if (!isBundleParent(smLineItem)) flatLines.push(smLineItem)\n})\n\nif (__v(\"workflowparams:pageStatus\") === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\n// On cancel, flag the still-issued document number with a -Cancelled suffix\n// (matches the GD/PP/SO cancel convention) so the number is visually flagged\n// and freed for reuse. Idempotent. Runs before the cancel compute reads\n// stock_movement_no for the reversal movements' trx_no, so those carry it too.\nif (\n  saveAs === \"Cancelled\" &&\n  typeof allData.stock_movement_no === \"string\" &&\n  allData.stock_movement_no &&\n  !allData.stock_movement_no.endsWith(\"-Cancelled\")\n) {\n  allData.stock_movement_no = allData.stock_movement_no + \"-Cancelled\";\n}\n\nreturn {\n  allData: allData,\n  // Bundle parents excluded; every real movement line, tree or not.\n  flatLines: flatLines,\n  stock_movement_status: allData.stock_movement_status,\n  is_production_order: allData.is_production_order\n}\n\n} };\n// base/SM_LOCATION_TRANSFER.v82.json :: code_node_uht83Wzh\n__N[\"code_node_uht83Wzh\"] = { decl: [[\"isDifferent\", \"int\"], [\"movements\", \"array\"], [\"movementsLength\", \"int\"], [\"transitCreates\", \"array\"], [\"hasTransitCreates\", \"int\"], [\"transitUpdates\", \"array\"], [\"hasTransitUpdates\", \"int\"], [\"shortages\", \"array\"], [\"hasShortage\", \"int\"], [\"materialIds\", \"array\"], [\"plant_id\", \"string\"], [\"organization_id\", \"string\"], [\"stock_movement_no\", \"string\"], [\"doc_date\", \"string\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst qtyStr = (v) => Math.max(0, q8(v)).toFixed(8);\n// The ledger stores 3dp; at or under this a reconcile shortfall is a rounding\n// artefact, not a real shortage. Matches code_node_LOTmainCompute.\nconst QTY_EPS = 0.005;\n\nconst currentData = __v(\"node:code_node_yPlLXIZW.data.allData\");\nconst initialData = __v(\"node:get_node_Ij7YbXCA.data.data\") || {};\nconst openRaw = __v(\"node:search_node_LOTitOpenRecon.data.data\");\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\n\nconst ctx = {\n  docId: currentData.id || \"\",\n  docNo: currentData.stock_movement_no || \"\",\n  plantId: currentData.issuing_operation_faci,\n  orgId: currentData.organization_id,\n  docDate: currentData.issue_date,\n};\n\n// Reconcile adjusts stock this document already staged; a Draft never staged any.\nif ((initialData.stock_movement_status || currentData.stock_movement_status) !== \"In Progress\") {\n  return {\n    isDifferent: 0, movements: [], movementsLength: 0,\n    transitCreates: [], hasTransitCreates: 0,\n    transitUpdates: [], hasTransitUpdates: 0,\n    shortages: [], hasShortage: 0, materialIds: [],\n    plant_id: ctx.plantId, organization_id: ctx.orgId,\n    stock_movement_no: ctx.docNo, doc_date: ctx.docDate,\n  };\n}\n\nconst lineStaging = (line) => {\n  const D = line.location_id;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  const byKey = {};\n  for (const e of entries) {\n    const qty = q8(e.sm_quantity); if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    const k = `${mat}|${e.location_id}|${e.batch_id || \"\"}|${e.category || \"Unrestricted\"}`;\n    if (byKey[k]) byKey[k].qty = q8(byKey[k].qty + qty);\n    else byKey[k] = { material_id: mat, source: e.location_id, batch_id: e.batch_id || null,\n      category: e.category || \"Unrestricted\", qty, material_uom: e.material_uom || line.quantity_uom,\n      handling_unit_id: e.handling_unit_id || null, manufacturing_date: e.manufacturing_date || null,\n      expired_date: e.expired_date || null };\n  }\n  return { D, byKey };\n};\n\n// Persisted rows come back in the same tree shape they were saved in, so they\n// are flattened here too -- duplicated inline, per repo convention.\nconst flattenSmRows = (rows) => {\n  const out = [];\n  for (const row of rows || []) {\n    out.push(row);\n    for (const child of (Array.isArray(row.children) ? row.children : [])) {\n      out.push(child);\n    }\n  }\n  return out;\n};\nconst initLines = {}; for (const l of flattenSmRows(initialData.stock_movement)) if (l.id) initLines[l.id] = l;\nconst curLines = {}; for (const l of flattenSmRows(currentData.stock_movement)) if (l.id) curLines[l.id] = l;\nconst allIds = Object.keys(initLines).concat(Object.keys(curLines).filter(x => !initLines[x]));\n\nconst movements = [];\nconst materialSet = {};\nconst transitDelta = new Map();\nconst bumpTransit = (mat, batch, bin, delta, meta) => {\n  const k = `${mat}|${batch || \"\"}|${bin}`;\n  const cur = transitDelta.get(k);\n  if (cur) cur.delta = q8(cur.delta + delta);\n  else transitDelta.set(k, { delta: q8(delta), material: mat, batch: batch || null, bin, meta });\n};\nconst pushPair = (base, subCat, subLoc, addCat, addLoc, qty) => {\n  if (qty <= 0) return;\n  materialSet[base.material_id] = true;\n  movements.push({ material_id: base.material_id, batch_id: base.batch_id, quantity: q8(qty),\n    material_uom: base.material_uom, handling_unit_id: base.handling_unit_id,\n    manufacturing_date: base.manufacturing_date, expired_date: base.expired_date,\n    subtractCategory: subCat, subtractLocation: subLoc, addCategory: addCat, addLocation: addLoc });\n};\n\nfor (const id of allIds) {\n  const init = initLines[id] ? lineStaging(initLines[id]) : null;\n  const cur = curLines[id] ? lineStaging(curLines[id]) : null;\n\n  if (init && cur && init.D !== cur.D) {\n    const keys = {}; for (const k in init.byKey) keys[k] = 1; for (const k in cur.byKey) keys[k] = 1;\n    for (const k in keys) {\n      const a = cur.byKey[k], b = init.byKey[k]; const base = a || b;\n      const cq = a ? a.qty : 0, iq = b ? b.qty : 0; const common = Math.min(cq, iq);\n      if (common > 0) { pushPair(base, \"In Transit\", init.D, \"In Transit\", cur.D, common);\n        bumpTransit(base.material_id, base.batch_id, init.D, -common, base);\n        bumpTransit(base.material_id, base.batch_id, cur.D, +common, base); }\n      if (cq > iq) { pushPair(base, base.category, base.source, \"In Transit\", cur.D, cq - iq);\n        bumpTransit(base.material_id, base.batch_id, cur.D, +(cq - iq), base); }\n      else if (iq > cq) { pushPair(base, \"In Transit\", init.D, base.category, base.source, iq - cq);\n        bumpTransit(base.material_id, base.batch_id, init.D, -(iq - cq), base); }\n    }\n    continue;\n  }\n\n  const D = (cur || init).D;\n  const keys = {};\n  if (init) for (const k in init.byKey) keys[k] = 1;\n  if (cur) for (const k in cur.byKey) keys[k] = 1;\n  for (const k in keys) {\n    const a = cur ? cur.byKey[k] : null, b = init ? init.byKey[k] : null; const base = a || b;\n    const cq = a ? a.qty : 0, iq = b ? b.qty : 0; const d = q8(cq - iq);\n    if (d > 0) { pushPair(base, base.category, base.source, \"In Transit\", D, d); bumpTransit(base.material_id, base.batch_id, D, +d, base); }\n    else if (d < 0) { pushPair(base, \"In Transit\", D, base.category, base.source, -d); bumpTransit(base.material_id, base.batch_id, D, d, base); }\n  }\n}\n\nconst rows = openRows.filter((r) => r.status === \"In Transit\");\nconst byKey = new Map();\nfor (const r of rows) { const k = `${r.material_id}|${r.batch_id || \"\"}|${r.transit_bin}`; if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(r); }\nfor (const [, l] of byKey) l.sort((a, b) => { const da = String(a.transit_date || \"\"), db = String(b.transit_date || \"\"); if (da !== db) return da < db ? -1 : 1; return (a.line_no || 0) - (b.line_no || 0); });\n\nconst transitUpdates = [], transitCreates = [], shortages = [];\n// A Location Transfer staged before this ledger existed has no rows of any status\n// (search_node_LOTitOpenRecon is deliberately unfiltered by status, so this means\n// \"never tracked\", not \"already consumed\"). Writing rows for an edit delta would\n// leave it half-tracked -- the tuple becomes tracked, but only for the delta,\n// while completion still demands the full staged quantity, which is exactly the\n// shortage 400 that code_node_LOTmainCompute's per-tuple skip exists to avoid.\n// The inventory reconcile below still runs: only the ledger writes are suppressed,\n// so movements/isDifferent are unaffected and a legacy document stays legacy.\nconst isLegacyDoc = openRows.length === 0;\nfor (const [k, info] of (isLegacyDoc ? [] : transitDelta)) {\n  const delta = info.delta, material = info.material, batch = info.batch, bin = info.bin, meta = info.meta;\n  if (delta === 0) continue;\n  const list = byKey.get(k) || [];\n  if (delta > 0) {\n    if (list.length > 0) { const r = list[0]; const nq = q8(r.open_qty + delta);\n      transitUpdates.push({ id: r.id, transit_qty: qtyStr(nq), open_qty: qtyStr(nq), status: \"In Transit\", received_date: null }); r.open_qty = nq; }\n    else transitCreates.push({ doc_type: \"Location Transfer\", doc_id: ctx.docId, doc_no: ctx.docNo, doc_line_id: \"\", line_no: 0,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\", material_id: material, item_code: \"\", item_name: \"\", item_desc: \"\",\n      item_uom: meta.material_uom, batch_id: batch, handling_unit_id: meta.handling_unit_id, plant_id: ctx.plantId,\n      organization_id: ctx.orgId, transit_bin: bin, from_plant_id: ctx.plantId, from_bin: null, from_category: null,\n      to_plant_id: ctx.plantId, to_bin: bin, to_category: \"Unrestricted\", transit_qty: qtyStr(delta), received_qty: qtyStr(0),\n      open_qty: qtyStr(delta), status: \"In Transit\", transit_date: ctx.docDate, received_date: null, remark: \"\",\n      target_doc_type: \"Location Transfer\", target_doc_id: ctx.docId, target_doc_no: ctx.docNo, target_doc_line_id: \"\", source_transit_id: \"\" });\n  } else {\n    let need = -delta;\n    for (const r of list) { if (need <= 0) break; if (r.open_qty <= 0) continue; const take = q8(Math.min(r.open_qty, need)); const nq = q8(r.open_qty - take);\n      transitUpdates.push({ id: r.id, transit_qty: qtyStr(nq), open_qty: qtyStr(nq), status: nq <= 0 ? \"Cancelled\" : \"In Transit\", received_date: null }); r.open_qty = nq; need = q8(need - take); }\n    if (need > QTY_EPS) shortages.push({ material_id: material, batch_id: batch, bin, shortage: qtyStr(need) });\n  }\n}\n\nreturn {\n  isDifferent: movements.length > 0 ? 1 : 0,\n  movements, movementsLength: movements.length,\n  transitCreates, hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  transitUpdates, hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  shortages, hasShortage: shortages.length > 0 ? 1 : 0,\n  materialIds: Object.keys(materialSet),\n  plant_id: ctx.plantId, organization_id: ctx.orgId, stock_movement_no: ctx.docNo, doc_date: ctx.docDate,\n};\n\n} };\n// base/SM_LOCATION_TRANSFER.v82.json :: code_node_LOTreconEnrich\n__N[\"code_node_LOTreconEnrich\"] = { decl: [[\"enrichedCreates\", \"array\"]], fn: function () {\nconst console = __QUIET;\nconst creates = __v(\"node:code_node_uht83Wzh.data.transitCreates\") || [];\nconst itemsRaw = __v(\"node:search_node_LOTitItemsRecon.data.data\") || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\n// The compute nodes build the ledger rows before items are fetched, so\n// item_code/name/desc arrive empty. Fill them from the item master here.\nconst map = {};\nfor (const it of items) if (it && it.id) map[String(it.id)] = it;\nconst enrichedCreates = creates.map((c) => {\n  const it = map[String(c.material_id)];\n  if (!it) return c;\n  return Object.assign({}, c, {\n    item_code: it.material_code || \"\",\n    item_name: it.material_name || \"\",\n    item_desc: it.material_desc || \"\",\n  });\n});\nreturn { enrichedCreates };\n\n} };\n// base/SM_LOCATION_TRANSFER.v82.json :: code_node_LOTmainDocId\n__N[\"code_node_LOTmainDocId\"] = { decl: [[\"docId\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst pageStatus = __v(\"workflowparams:pageStatus\");\nlet docId = \"\";\nif (pageStatus === \"Add\") {\n  const rd = __v(\"node:add_node_xxQX3uMU.data\");\n  const rec = Array.isArray(rd) ? rd[0] : rd;\n  docId = (rec && rec.id) ? rec.id : \"\";\n} else {\n  docId = __v(\"node:code_node_yPlLXIZW.data.allData.id\") || \"\";\n}\nreturn { docId: docId };\n\n} };\n// base/SM_LOCATION_TRANSFER.v82.json :: code_node_LOTmainCompute\n__N[\"code_node_LOTmainCompute\"] = { decl: [[\"phase\", \"string\"], [\"movements\", \"array\"], [\"movementsLength\", \"int\"], [\"transitCreates\", \"array\"], [\"hasTransitCreates\", \"int\"], [\"transitUpdates\", \"array\"], [\"hasTransitUpdates\", \"int\"], [\"shortages\", \"array\"], [\"hasShortage\", \"int\"], [\"materialIds\", \"array\"], [\"plant_id\", \"string\"], [\"organization_id\", \"string\"], [\"stock_movement_no\", \"string\"], [\"doc_date\", \"string\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst qtyStr = (v) => Math.max(0, q8(v)).toFixed(8);\n// The ledger stores 3dp. A base -> alt -> base round trip on a fractional UOM\n// conversion comes back high, so at or under this is a rounding artefact, not a\n// real shortage, and must not 400 the completion.\nconst QTY_EPS = 0.005;\n\nconst page_status = __v(\"workflowparams:pageStatus\");\nconst status = __v(\"node:code_node_yPlLXIZW.data.stock_movement_status\");\nconst saveAs = __v(\"workflowparams:saveAs\");\n\nlet allData;\nif (page_status === \"Add\") {\n  const rd = __v(\"node:add_node_xxQX3uMU.data\");\n  allData = Array.isArray(rd) ? rd[0] : rd;\n} else if (page_status === \"Edit\" && status === \"Draft\") {\n  allData = __v(\"node:get_node_lvTzXllZ.data.data\");\n} else {\n  allData = __v(\"node:code_node_yPlLXIZW.data.allData\");\n}\n\nconst openRaw = __v(\"node:search_node_LOTitOpenMain.data.data\");\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\n\n// flatLines: bundle children included, item-less bundle parents excluded.\nconst lines = __v(\"node:code_node_yPlLXIZW.data.flatLines\") || [];\n\n// doc_line_id fix (same class as GR): on a fresh (Add) save the add-node response\n// carries no subform row ids, so line.id is empty. Re-read the persisted doc and\n// resolve each line's id by its persisted line_index. (Edit+Draft already reads the\n// persisted doc via get_node_lvTzXllZ, so this is a no-op there.)\nconst persistedRaw = __v(\"node:get_node_LOTmainLines.data.data\");\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\n// Persisted rows come back in the same tree shape they were saved in, so they\n// are flattened here too -- duplicated inline, per repo convention.\nconst flattenSmRows = (rows) => {\n  const out = [];\n  for (const row of rows || []) {\n    out.push(row);\n    for (const child of (Array.isArray(row.children) ? row.children : [])) {\n      out.push(child);\n    }\n  }\n  return out;\n};\nconst persistedLines = flattenSmRows((persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : []);\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\nconst plantId = allData.issuing_operation_faci;\nconst orgId = allData.organization_id;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// STAGE = Draft->In Progress; COMPLETE = In Progress->Completed; DIRECT = Draft->Completed\nconst phase =\n  saveAs === \"In Progress\" && status === \"Draft\" ? \"STAGE\"\n    : saveAs === \"Completed\" && status === \"In Progress\" ? \"COMPLETE\"\n      : \"DIRECT\";\n\nconst movements = [];\nconst transitCreates = [];\nconst materialSet = {};\n\nfor (const line of lines) {\n  const D = line.location_id;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  for (const e of entries) {\n    const qty = q8(e.sm_quantity);\n    if (qty <= 0) continue;\n    const S = e.location_id;\n    const C = e.category || \"Unrestricted\";\n    const mat = e.material_id || line.item_selection;\n    const batchId = e.batch_id || null;\n    const hu = e.handling_unit_id || null;\n    materialSet[mat] = true;\n    const base = {\n      material_id: mat, batch_id: batchId, quantity: qty,\n      material_uom: e.material_uom || line.quantity_uom, handling_unit_id: hu,\n      manufacturing_date: e.manufacturing_date || null, expired_date: e.expired_date || null,\n    };\n    if (phase === \"STAGE\") {\n      // -C@S, +InTransit@D (relocated to destination)\n      movements.push({ ...base, subtractCategory: C, subtractLocation: S, addCategory: \"In Transit\", addLocation: D });\n      transitCreates.push({\n        doc_type: \"Location Transfer\", doc_id: docId, doc_no: docNo, doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\",\n        line_no: line.line_index, parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n        material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\",\n        item_uom: base.material_uom, batch_id: batchId, handling_unit_id: hu,\n        plant_id: plantId, organization_id: orgId, transit_bin: D,\n        from_plant_id: plantId, from_bin: S, from_category: C,\n        to_plant_id: plantId, to_bin: D, to_category: C,\n        transit_qty: qtyStr(qty), received_qty: qtyStr(0), open_qty: qtyStr(qty),\n        status: \"In Transit\", transit_date: docDate, received_date: null, remark: line.item_remark || \"\",\n        target_doc_type: \"Location Transfer\", target_doc_id: docId, target_doc_no: docNo,\n        target_doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\", source_transit_id: \"\",\n      });\n    } else if (phase === \"COMPLETE\") {\n      // -InTransit@D (relocated), +C@D\n      movements.push({ ...base, subtractCategory: \"In Transit\", subtractLocation: D, addCategory: C, addLocation: D });\n    } else {\n      // DIRECT: -C@S, +C@D\n      movements.push({ ...base, subtractCategory: C, subtractLocation: S, addCategory: C, addLocation: D });\n    }\n  }\n}\n\n// ledger close on COMPLETE: consume this doc's open rows FIFO with a guard.\nconst transitUpdates = [];\nconst shortages = [];\nif (phase === \"COMPLETE\") {\n  const key = (m, b, d) => `${m || \"\"}|${b || \"\"}|${d || \"\"}`;\n  // search_node_LOTitOpenMain returns EVERY row for this doc, any status, so two\n  // structures come off it:\n  //\n  //   trackedTuples - every tuple this doc has ever staged. A tuple in here but\n  //     absent from pool is fully consumed, so a second claim is a\n  //     double-consumption and must 400.\n  //   pool - open rows only. The FIFO stock actually available to draw down.\n  //\n  // A tuple in NEITHER is untracked: a Location Transfer staged before this\n  // ledger existed holds In Transit stock at D with no rows behind it. Blocking\n  // its completion would strand that stock, so those tuples fall through and the\n  // inventory workflows behave as they always did. code_node_uht83Wzh refuses to\n  // backfill such a document precisely so it cannot end up half-tracked.\n  const trackedTuples = {};\n  const pool = {};\n  for (const r of openRows) {\n    const k = key(r.material_id, r.batch_id, r.transit_bin);\n    trackedTuples[k] = 1;\n    if (r.status !== \"In Transit\") continue;\n    if (!pool[k]) pool[k] = [];\n    pool[k].push({ row: r, remaining: q8(r.open_qty), consumed: 0 });\n  }\n  for (const k in pool) pool[k].sort((a, b) => {\n    const da = String(a.row.transit_date || \"\"), db = String(b.row.transit_date || \"\");\n    if (da !== db) return da < db ? -1 : 1;\n    return (a.row.line_no || 0) - (b.row.line_no || 0);\n  });\n  for (const m of movements) {\n    const mk = key(m.material_id, m.batch_id, m.addLocation);\n    // Untracked tuple: this document never staged this stock through the ledger.\n    if (!trackedTuples[mk]) continue;\n    let need = q8(m.quantity);\n    const bucket = pool[mk] || [];\n    for (const ent of bucket) {\n      if (need <= 0) break;\n      if (ent.remaining <= 0) continue;\n      const take = q8(Math.min(ent.remaining, need));\n      ent.remaining = q8(ent.remaining - take);\n      ent.consumed = q8(ent.consumed + take);\n      need = q8(need - take);\n    }\n    if (need > QTY_EPS) shortages.push({ material_id: m.material_id, batch_id: m.batch_id || \"\", bin: m.addLocation, shortage: qtyStr(need) });\n  }\n  for (const k in pool) for (const ent of pool[k]) {\n    if (!ent.consumed) continue;\n    const r = ent.row;\n    transitUpdates.push({\n      id: r.id,\n      received_qty: qtyStr(q8((r.received_qty || 0) + ent.consumed)),\n      open_qty: qtyStr(ent.remaining),\n      status: ent.remaining <= 0 ? \"Received\" : \"In Transit\",\n      received_date: ent.remaining <= 0 ? docDate : null,\n    });\n  }\n}\n\nreturn {\n  phase, movements, movementsLength: movements.length,\n  transitCreates, hasTransitCreates: transitCreates.length > 0 ? 1 : 0,\n  transitUpdates, hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  shortages, hasShortage: shortages.length > 0 ? 1 : 0,\n  materialIds: Object.keys(materialSet),\n  plant_id: plantId, organization_id: orgId, stock_movement_no: docNo, doc_date: docDate,\n};\n\n} };\n// base/SM_LOCATION_TRANSFER.v82.json :: code_node_LOTmainEnrich\n__N[\"code_node_LOTmainEnrich\"] = { decl: [[\"enrichedCreates\", \"array\"]], fn: function () {\nconst console = __QUIET;\nconst creates = __v(\"node:code_node_LOTmainCompute.data.transitCreates\") || [];\nconst itemsRaw = __v(\"node:search_node_LOTitItemsMain.data.data\") || [];\nconst items = Array.isArray(itemsRaw) ? itemsRaw : [itemsRaw];\n// The compute nodes build the ledger rows before items are fetched, so\n// item_code/name/desc arrive empty. Fill them from the item master here.\nconst map = {};\nfor (const it of items) if (it && it.id) map[String(it.id)] = it;\nconst enrichedCreates = creates.map((c) => {\n  const it = map[String(c.material_id)];\n  if (!it) return c;\n  return Object.assign({}, c, {\n    item_code: it.material_code || \"\",\n    item_name: it.material_name || \"\",\n    item_desc: it.material_desc || \"\",\n  });\n});\nreturn { enrichedCreates };\n\n} };\n// base/SM_LOCATION_TRANSFER.v82.json :: code_node_LOTcancelCompute\n__N[\"code_node_LOTcancelCompute\"] = { decl: [[\"movements\", \"array\"], [\"movementsLength\", \"int\"], [\"transitUpdates\", \"array\"], [\"hasTransitUpdates\", \"int\"], [\"materialIds\", \"array\"], [\"plant_id\", \"string\"], [\"organization_id\", \"string\"], [\"stock_movement_no\", \"string\"], [\"doc_date\", \"string\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst qtyStr = (v) => Math.max(0, q8(v)).toFixed(8);\n\nconst allData = __v(\"node:code_node_yPlLXIZW.data.allData\");\nconst openRaw = __v(\"node:search_node_LOTitOpenCancel.data.data\");\nconst openRows = Array.isArray(openRaw) ? openRaw : (openRaw ? [openRaw] : []);\n\n// flatLines: bundle children included, item-less bundle parents excluded.\nconst lines = __v(\"node:code_node_yPlLXIZW.data.flatLines\") || [];\nconst movements = [];\nconst materialSet = {};\n\n// Cancel reverses the In-Progress staged state: subtract In Transit at the\n// destination bin (relocated; was source), add the ORIGINAL category back at the\n// source bin (fix: the old workflow hardcoded \"Unrestricted\").\nfor (const line of lines) {\n  const D = line.location_id;\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  for (const e of entries) {\n    const qty = q8(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    materialSet[mat] = true;\n    movements.push({\n      material_id: mat,\n      batch_id: e.batch_id || null,\n      quantity: qty,\n      material_uom: e.material_uom || line.quantity_uom,\n      subtractCategory: \"In Transit\",\n      subtractLocation: D,\n      addCategory: e.category || \"Unrestricted\",\n      addLocation: e.location_id,\n      handling_unit_id: e.handling_unit_id || null,\n      manufacturing_date: e.manufacturing_date || null,\n      expired_date: e.expired_date || null,\n    });\n  }\n}\n\nconst transitUpdates = [];\nfor (const r of openRows) {\n  if (r.status !== \"In Transit\") continue;\n  transitUpdates.push({ id: r.id, open_qty: qtyStr(0), status: \"Cancelled\" });\n}\n\nreturn {\n  movements,\n  movementsLength: movements.length,\n  transitUpdates,\n  hasTransitUpdates: transitUpdates.length > 0 ? 1 : 0,\n  materialIds: Object.keys(materialSet),\n  plant_id: allData.issuing_operation_faci,\n  organization_id: allData.organization_id,\n  stock_movement_no: allData.stock_movement_no,\n  doc_date: allData.issue_date,\n};\n\n} };\n// base/SM_LOCATION_TRANSFER.v82.json :: code_node_0njluBVP\n__N[\"code_node_0njluBVP\"] = { decl: [[\"updates\", \"array\"]], fn: function () {\nconst console = __QUIET;\n// flatLines: bundle children included, item-less bundle parents excluded.\nconst tableSM = __v(\"node:code_node_yPlLXIZW.data.flatLines\")\n\nconst uniqueItemIds = [\n  ...new Set(\n    tableSM\n      .filter((item) => item.item_selection)\n      .map((item) => item.item_selection),\n  ),\n];\n\nconst date = new Date().toISOString();\nconst updates = [];\n\nfor (const itemId of uniqueItemIds) {\n  updates.push({\n    id: itemId,\n    last_transaction_date: date,\n  });\n}\n\nreturn {\n  updates: updates,\n};\n\n} };\n// LOT_V2_PREPARE - SQL rows (prepare/sql.py) -> the shapes the classic's read nodes handed its code nodes (CONTRACT.md section 9):\n//   lotAdaptDoc     the get-node document: header + stock_movement nested in line_index order (bundle children under `children`);\n//                   bigint ids digit strings, decimals numbers, null / \"\" columns absent; stock_movement_status = the job's prevStatus\n//                   (NEVER Processing: it turns STAGE into DIRECT and skips the reconcile)\n//   lotAdaptLedger  search-node in_transit_detail rows: decimals and line_no numbers, ids exact strings, null / \"\" keys absent\n//   lotAdaptItems   search-node Item rows (id, material_code, material_name, material_desc)\nconst lotDrop = (o) => {\n  const r = {};\n  for (const k of Object.keys(o || {})) {\n    const v = o[k];\n    if (v === null || v === undefined || v === \"\") continue;\n    r[k] = v;\n  }\n  return r;\n};\nconst lotAdaptDoc = function lotAdaptDoc(hdrRow, lineRows, prevStatus) {\n  const h = lotDrop(hdrRow);\n  delete h.lot_v2_job_id;\n  h.stock_movement_status = prevStatus;\n  const lines = lotList(lineRows).map(lotDrop);\n  const byId = {};\n  for (const l of lines) byId[lotS(l.id)] = l;\n  const top = [];\n  for (const l of lines) {\n    const p = l.parent_id ? byId[lotS(l.parent_id)] : null;\n    if (p && p !== l) (p.children = p.children || []).push(l);\n    else top.push(l);\n  }\n  h.stock_movement = top;\n  return h;\n};\nconst LOT_IT_NUM = [\"transit_qty\", \"received_qty\", \"open_qty\", \"line_no\"];\nconst lotAdaptLedger = (rows) => lotList(rows).map((r) => {\n  const o = lotDrop(r);\n  for (const k of LOT_IT_NUM) if (o[k] !== undefined) o[k] = Number(o[k]);\n  return o;\n});\nconst lotAdaptItems = (rows) => lotList(rows).map(lotDrop);\n// LOT_V2_PREPARE - Plan: the stored LOT (locked by this job's SUBMIT) + the job's request (+ SUBMIT's S|..|LINES part for COMPLETE /\n// EDIT) -> the classic v82 compute run on the lifted bodies (lotChain) -> the manifest COMMIT executes and its parts as\n// gd_publish_step rows P|<nonce>|<PART>|<nnn> (CONTRACT.md sections 5 and 9). Ends READY or FAIL (unlockOk 1: the job holds the\n// LOT's lock and nothing was written, so a failure puts the LOT back to prevStatus).\nconst LOT_BUILT = [\"DIRECT\", \"STAGE\", \"COMPLETE\", \"CANCEL\", \"EDIT\"];\nconst LOT_ACTIONS = { DIRECT: [\"Draft\", \"Completed\"], STAGE: [\"Draft\", \"In Progress\"], COMPLETE: [\"In Progress\", \"Completed\"], EDIT: [\"In Progress\", \"In Progress\"],\n  CANCEL: [\"In Progress\", \"Cancelled\"] };\nconst LOT_MAX_MOVES = 5000;\n// add_node_LOTmainCreate / add_node_LOTreconCreate props, in order\nconst LOT_IT_CREATE = [\"doc_type\", \"doc_id\", \"doc_no\", \"doc_line_id\", \"line_no\", \"parent_id\", \"parent_no\", \"parent_line_id\", \"material_id\", \"item_code\", \"item_name\",\n  \"item_desc\", \"item_uom\", \"batch_id\", \"handling_unit_id\", \"plant_id\", \"organization_id\", \"transit_bin\", \"from_plant_id\", \"from_bin\", \"from_category\", \"to_plant_id\",\n  \"to_bin\", \"to_category\", \"transit_qty\", \"received_qty\", \"open_qty\", \"status\", \"transit_date\", \"received_date\", \"remark\", \"target_doc_type\", \"target_doc_id\",\n  \"target_doc_no\", \"target_doc_line_id\", \"source_transit_id\"];\nconst lotDate19 = (v) => {\n  const t = lotS(v);\n  return /^\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}/.test(t) ? t.slice(0, 19) : t || null;\n};\n// the entries the compute bodies walk, parsed exactly as they parse them\nconst lotEntriesOf = (line) => {\n  let entries = [];\n  try {\n    entries = JSON.parse(line.temp_qty_data || \"[]\");\n  } catch (e) {\n    entries = [];\n  }\n  return Array.isArray(entries) ? entries : [];\n};\n// LOTmainCompute / LOTcancelCompute push one movement per entry with sm_quantity > 0, line by line: the line of each movement\nconst lotMainSources = (lines) => {\n  const out = [];\n  for (const line of lotList(lines)) for (const e of lotEntriesOf(line)) if (lotQ8(e.sm_quantity) > 0) out.push({ line: line });\n  return out;\n};\n// code_node_uht83Wzh's walk (same order, same pushPair rule), recording the line of each movement it pushes\nconst lotReconSources = (currentData, initialData) => {\n  const flat = (rows) => {\n    const out = [];\n    for (const row of rows || []) {\n      out.push(row);\n      for (const child of Array.isArray(row.children) ? row.children : []) out.push(child);\n    }\n    return out;\n  };\n  const staging = (line) => {\n    const byKey = {};\n    for (const e of lotEntriesOf(line)) {\n      const qty = lotQ8(e.sm_quantity);\n      if (qty <= 0) continue;\n      const k = `${e.material_id || line.item_selection}|${e.location_id}|${e.batch_id || \"\"}|${e.category || \"Unrestricted\"}`;\n      if (byKey[k]) byKey[k].qty = lotQ8(byKey[k].qty + qty);\n      else byKey[k] = { qty: qty };\n    }\n    const st = {};\n    st.D = line.location_id;\n    st.byKey = byKey;\n    return st;\n  };\n  const initLines = {};\n  for (const l of flat((initialData || {}).stock_movement)) if (l.id) initLines[l.id] = l;\n  const curLines = {};\n  for (const l of flat((currentData || {}).stock_movement)) if (l.id) curLines[l.id] = l;\n  const allIds = Object.keys(initLines).concat(Object.keys(curLines).filter((x) => !initLines[x]));\n  const out = [];\n  for (const id of allIds) {\n    const init = initLines[id] ? staging(initLines[id]) : null;\n    const cur = curLines[id] ? staging(curLines[id]) : null;\n    const push = (qty) => {\n      if (qty > 0) out.push({ line: curLines[id] || initLines[id] });\n    };\n    const keys = {};\n    if (init) for (const k in init.byKey) keys[k] = 1;\n    if (cur) for (const k in cur.byKey) keys[k] = 1;\n    if (init && cur && init.D !== cur.D) {\n      for (const k in keys) {\n        const cq = cur.byKey[k] ? cur.byKey[k].qty : 0;\n        const iq = init.byKey[k] ? init.byKey[k].qty : 0;\n        const common = Math.min(cq, iq);\n        if (common > 0) push(common);\n        if (cq > iq) push(cq - iq);\n        else if (iq > cq) push(iq - cq);\n      }\n      continue;\n    }\n    for (const k in keys) {\n      const cq = cur && cur.byKey[k] ? cur.byKey[k].qty : 0;\n      const iq = init && init.byKey[k] ? init.byKey[k].qty : 0;\n      const d = lotQ8(cq - iq);\n      if (d > 0) push(d);\n      else if (d < 0) push(-d);\n    }\n  }\n  return out;\n};\n// COMPLETE fold step 1: the reconcile's ledger writes applied to the rows the main compute reads (creates get ids new:<k>), in the\n// form the classic's re-read would have handed on (decimals numbers, null / \"\" keys absent, transit_date without a fraction)\nconst lotApplyRecon = (ledger, recon, creates) => {\n  const rows = ledger.map((r) => Object.assign({}, r));\n  const byId = {};\n  for (const r of rows) byId[lotS(r.id)] = r;\n  for (const u of lotList(recon.transitUpdates)) {\n    const r = byId[lotS(u.id)];\n    if (!r) return null;\n    r.transit_qty = Number(u.transit_qty);\n    r.open_qty = Number(u.open_qty);\n    r.status = u.status;\n  }\n  lotList(creates).forEach((c, i) => {\n    const r = lotDrop(Object.assign({}, c, { id: \"new:\" + (i + 1) }));\n    for (const k of LOT_IT_NUM) if (r[k] !== undefined) r[k] = Number(r[k]);\n    if (r.transit_date !== undefined) r.transit_date = lotDate19(r.transit_date);\n    rows.push(r);\n  });\n  return rows;\n};\nconst lotItCreate = (c, key) => {\n  const o = {};\n  for (const k of LOT_IT_CREATE) {\n    const v = c[k] === undefined ? null : c[k];\n    o[k] = (k === \"transit_date\" || k === \"received_date\") && v !== null ? lotDate19(v) : v;\n  }\n  o.job_line_key = key;\n  return o;\n};\n\n// the classic SM_LOCATION_TRANSFER v82 path of one action on the lifted bodies; reads = the rebuilt get-node document, the ledger\n// rows, the items (pageStatus Edit: the document exists after SUBMIT, so the classic's Add branches are never taken)\nconst lotChain = function lotChain(IN) {\n  const out = { route: \"PLANNED\", code: \"\", message: \"\" };\n  const get = { data: { count: 1, data: IN.doc } };\n  const search = (rows) => ({ data: { total: rows.length, count: rows.length, data: rows } });\n  const ctx = {\n    \"workflowparams:allData\": IN.allData, \"workflowparams:saveAs\": IN.saveAs, \"workflowparams:pageStatus\": \"Edit\", \"system:uuid\": IN.uuid,\n    \"node:get_node_czmdH3Jw\": get, \"node:get_node_Ij7YbXCA\": get, \"node:get_node_lvTzXllZ\": get, \"node:get_node_LOTmainLines\": get,\n  };\n  const stop = (code, message) => Object.assign(out, { route: \"STOP\", code: code, message: message });\n  return __withContext(ctx, () => {\n    out.fill = __run(\"code_node_yPlLXIZW\");\n    if (IN.action === \"CANCEL\") {\n      // search_node_LOTitOpenCancel: this document's In Transit rows\n      ctx[\"node:search_node_LOTitOpenCancel\"] = search(IN.ledger.filter((r) => r.status === \"In Transit\"));\n      out.cancel = __run(\"code_node_LOTcancelCompute\");\n      return out;\n    }\n    let ledger = IN.ledger;\n    if (IN.action === \"COMPLETE\" || IN.action === \"EDIT\") {\n      ctx[\"node:search_node_LOTitOpenRecon\"] = search(ledger);\n      out.recon = __run(\"code_node_uht83Wzh\");\n      // if_LOTreconShort -> return_node_LOTreconShort\n      if (Number(out.recon.hasShortage) === 1) return stop(\"LOT_RECON_SHORTAGE\", \"In Transit reconcile shortage on Location Transfer edit.\");\n      ctx[\"node:search_node_LOTitItemsRecon\"] = search(IN.items);\n      out.reconEnrich = __run(\"code_node_LOTreconEnrich\");\n      // EDIT: update_node_TxDhhT03 then return_node_uyJo2Ej7 (no main compute, no Item date stamp)\n      if (IN.action === \"EDIT\") return out;\n      ledger = lotApplyRecon(ledger, out.recon, out.reconEnrich.enrichedCreates);\n      if (!ledger) return stop(\"LOT_PLAN_BROKEN\", \"The save could not be prepared: the reconcile names an In Transit row that was not read.\");\n    }\n    ctx[\"node:search_node_LOTitOpenMain\"] = search(ledger);\n    out.docId = __run(\"code_node_LOTmainDocId\");\n    out.main = __run(\"code_node_LOTmainCompute\");\n    // if_LOTmainShort -> return_node_LOTmainShort\n    if (Number(out.main.hasShortage) === 1) return stop(\"LOT_TRANSIT_SHORTAGE\", \"Insufficient In Transit quantity to complete this Location Transfer.\");\n    ctx[\"node:search_node_LOTitItemsMain\"] = search(IN.items);\n    out.mainEnrich = __run(\"code_node_LOTmainEnrich\");\n    out.items = __run(\"code_node_0njluBVP\");\n    return out;\n  });\n};\n\nconst lotPrepPlan = function lotPrepPlan(entry, S, own) {\n  const s = lotS;\n  const jobId = s(entry.jobId);\n  const base = { route: \"FAIL\", code: \"\", message: \"\", payload: \"\", partRows: [], lineCount: 0, movementCount: 0, unlockOk: 0 };\n  const fail = (code, message) => Object.assign(base, { code: code, message: message });\n  const broken = (why) => fail(\"LOT_PLAN_BROKEN\", \"The save could not be prepared: \" + why);\n  if (s(entry.route) !== \"GO\") return fail(s(entry.result_code), s(entry.result_message));\n  const req = entry.request && typeof entry.request === \"object\" ? entry.request : {};\n  const lotId = s(entry.lotId);\n  const hdr = lotRows(S.hdr)[0] || null;\n  if (!hdr) return fail(\"LOT_NOT_FOUND\", \"Location Transfer not found - it may have been deleted.\");\n  // the job owns the LOT: Processing, lot_v2_job_id = this job, the latest LOCK row carries this job's idempotency key\n  const lock = lotList(S.lock).filter((r) => r && s(r.step_name))[0] || null;\n  const key = s(entry.idempotencyKey);\n  if (s(hdr.stock_movement_status) !== \"Processing\" || s(hdr.lot_v2_job_id) !== jobId || !lock || !key || s(lock.result_ref) !== key) {\n    return fail(\"LOT_NOT_LOCKED\", \"The Location Transfer is no longer locked by this save: nothing was moved.\");\n  }\n  base.unlockOk = 1;\n  if (own) own.locked = 1;\n  const action = s(entry.action);\n  const prev = s(entry.prevStatus);\n  const saveAs = s(entry.saveAs);\n  const want = LOT_ACTIONS[action];\n  if (!want || want[0] !== prev || want[1] !== saveAs) return fail(\"LOT_INVALID_REQUEST\", \"The save could not be prepared: the job's request names no valid action (\" + action + \").\");\n  if (LOT_BUILT.indexOf(action) < 0) return fail(\"LOT_ACTION_NOT_BUILT\", \"This kind of save (\" + action + \") is not available in the background yet: please save it again.\");\n  const orgId = s(hdr.organization_id);\n  if (!lotDigits(orgId) || !lotDigits(hdr.issuing_operation_faci)) return broken(\"the Location Transfer has no organization or plant.\");\n  // the ledger read is scoped by the job's organization (the classic: the LOT's)\n  if (s(entry.organizationId) !== orgId) return broken(\"the job's organization is not the Location Transfer's.\");\n\n  const doc = lotAdaptDoc(hdr, lotRows(S.lines), prev);\n  const ledgerRaw = lotRows(S.transit);\n  const ledger = lotAdaptLedger(ledgerRaw);\n  const items = lotAdaptItems(lotRows(S.items));\n  let allData = doc;\n  if (action === \"COMPLETE\" || action === \"EDIT\") {\n    // S|<nonce>|LINES|<nnn> (SUBMIT): the header props and the filled-back lines L2 writes = the incoming document\n    const names = lotList(req.parts && req.parts.LINES).map(s);\n    const rows = lotList(S.parts).filter((r) => names.indexOf(s(r.step_name)) >= 0).sort((a, b) => (s(a.step_name) < s(b.step_name) ? -1 : 1));\n    if (!names.length || rows.length !== names.length) return broken(\"its lines part is missing.\");\n    const part = lotParseJ(rows.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n    if (!part || typeof part !== \"object\" || s(part.lotId) !== lotId || !Array.isArray(part.stock_movement) || !part.header || typeof part.header !== \"object\") {\n      return broken(\"its lines part cannot be read.\");\n    }\n    allData = Object.assign({}, doc, part.header, { id: doc.id, stock_movement_no: doc.stock_movement_no, stock_movement_status: prev, stock_movement: part.stock_movement });\n  }\n\n  let out;\n  try {\n    out = lotChain({ action: action, saveAs: saveAs, allData: allData, doc: doc, ledger: ledger, items: items, uuid: \"LOT\" + jobId });\n  } catch (e) {\n    return broken(String((e && e.message) || e).slice(0, 200));\n  }\n  if (out.route !== \"PLANNED\") return fail(out.code, out.message);\n  const flat = lotList(out.fill.flatLines);\n  const rowCount = lotMainSources(flat).length;\n\n  // ENGINE: one SUBTRACT M<n> (unpriced) + ADD M<n>.2 (unit_price_from) per classic movement; COMPLETE: the reconcile pairs first\n  const groups = [];\n  if (out.recon) groups.push({ c: out.recon, mv: lotList(out.recon.movements), src: lotReconSources(out.fill.allData, doc) });\n  if (action !== \"EDIT\") {\n    const c = action === \"CANCEL\" ? out.cancel : out.main;\n    groups.push({ c: c, mv: lotList(c.movements), src: lotMainSources(flat) });\n  }\n  const bins = {};\n  for (const b of lotRows(S.bins)) bins[s(b.id)] = s(b.bin);\n  const itemById = {};\n  for (const it of items) itemById[s(it.id)] = it;\n  const movements = [];\n  const labels = {};\n  let n = 0;\n  for (const g of groups) {\n    if (g.src.length !== g.mv.length) return broken(\"the movements do not match the lines (\" + g.mv.length + \" / \" + g.src.length + \").\");\n    for (let i = 0; i < g.mv.length; i++) {\n      const m = g.mv[i];\n      const line = g.src[i].line || {};\n      const mk = \"M\" + ++n;\n      const common = { plant_id: s(g.c.plant_id), organization_id: s(g.c.organization_id), material_id: lotIdStr(m.material_id), quantity: lotQ8(m.quantity),\n        material_uom: lotIdStr(m.material_uom) || (typeof m.material_uom === \"number\" ? \"\" : s(m.material_uom)) || null, transaction_type: \"LOT\",\n        trx_no: s(g.c.stock_movement_no) };\n      const tail = { batch_id: lotIdStr(m.batch_id) || null, manufacturing_date: m.manufacturing_date || null, expired_date: m.expired_date || null,\n        doc_date: g.c.doc_date === undefined || g.c.doc_date === null ? null : g.c.doc_date, isMovingInv: 1, handling_unit_id: m.handling_unit_id || null };\n      const sub = Object.assign({ movement_key: mk, direction: \"SUBTRACT\" }, common, { inventory_category: s(m.subtractCategory), location_id: lotIdStr(m.subtractLocation) }, tail);\n      const add = Object.assign({ movement_key: mk + \".2\", direction: \"ADD\" }, common, { inventory_category: s(m.addCategory), location_id: lotIdStr(m.addLocation) }, tail,\n        { unit_price_from: mk });\n      if (!lotDigits(sub.material_id) || !lotDigits(sub.plant_id) || !lotDigits(sub.location_id) || !lotDigits(add.location_id) || (m.batch_id && !sub.batch_id) ||\n        !(sub.quantity > 0) || sub.organization_id !== orgId || !sub.trx_no || (typeof m.material_uom === \"number\" && !sub.material_uom)) {\n        return broken(\"movement \" + mk + \" (line \" + s(line.line_index) + \") has no valid item, bin, batch, quantity or number.\");\n      }\n      const it = itemById[s(m.material_id)] || {};\n      const label = (side, cat, binId) => ({ line_index: s(line.line_index), line_id: s(line.id), item_code: s(it.material_code), item_name: s(line.item_name) || s(it.material_name),\n        bin: bins[binId] || binId, bin_id: binId, category: cat, side: side });\n      labels[mk] = label(\"from\", sub.inventory_category, sub.location_id);\n      labels[mk + \".2\"] = label(\"to\", add.inventory_category, add.location_id);\n      movements.push(sub, add);\n    }\n  }\n  if (movements.length > LOT_MAX_MOVES) {\n    return fail(\"LOT_SPLIT_REQUIRED\", \"This Location Transfer has \" + rowCount + \" stock rows (\" + movements.length +\n      \" stock movements). At most 2,500 rows and 5,000 movements can be saved at once - please split the transfer.\");\n  }\n\n  // IT: creates (complete rows + job_line_key), updates { id, source, before (as read), after (the columns the classic node writes) }\n  const rawById = {};\n  for (const r of ledgerRaw) rawById[s(r.id)] = r;\n  const beforeOf = (id, cols) => {\n    const r = rawById[id] || {};\n    const o = {};\n    for (const c of cols) o[c] = r[c] === undefined || r[c] === null ? null : c === \"received_date\" ? lotDate19(r[c]) : r[c];\n    return o;\n  };\n  const keyN = {};\n  const jlk = (lineId) => {\n    const k = lotDigits(lineId) ? s(lineId) : \"0\";\n    keyN[k] = (keyN[k] || 0) + 1;\n    return jobId + \"|\" + k + \"|\" + keyN[k];\n  };\n  const creates = [];\n  const updates = [];\n  if (action === \"STAGE\") for (const c of lotList(out.mainEnrich.enrichedCreates)) creates.push(lotItCreate(c, jlk(c.doc_line_id)));\n  if (action === \"CANCEL\") {\n    for (const u of lotList(out.cancel.transitUpdates)) {\n      if (!rawById[s(u.id)]) return broken(\"In Transit row \" + s(u.id) + \" was not read.\");\n      updates.push({ id: s(u.id), source: \"CANCEL\", before: beforeOf(s(u.id), [\"open_qty\", \"status\"]), after: { open_qty: s(u.open_qty), status: s(u.status) } });\n    }\n  }\n  if (action === \"COMPLETE\" || action === \"EDIT\") {\n    const reconCreates = lotList(out.reconEnrich.enrichedCreates).map((c) => Object.assign({}, c));\n    const reconUpd = {};\n    for (const u of lotList(out.recon.transitUpdates)) reconUpd[s(u.id)] = u;\n    const mainAfter = {};\n    for (const u of action === \"COMPLETE\" ? lotList(out.main.transitUpdates) : []) {\n      const after = { received_qty: s(u.received_qty), open_qty: s(u.open_qty), status: s(u.status), received_date: u.received_date ? lotDate19(u.received_date) : null };\n      const id = s(u.id);\n      if (/^new:[0-9]+$/.test(id)) {\n        // a create then a close = one insert carrying the closed values\n        const c = reconCreates[Number(id.slice(4)) - 1];\n        if (!c) return broken(\"the completion closes a reconcile row that was not created.\");\n        Object.assign(c, after);\n      } else mainAfter[id] = after;\n    }\n    for (const id of Object.keys(reconUpd)) {\n      const r = reconUpd[id];\n      if (!rawById[id]) return broken(\"In Transit row \" + id + \" was not read.\");\n      const radj = { transit_qty: s(r.transit_qty), open_qty: s(r.open_qty), status: s(r.status) };\n      if (mainAfter[id]) {\n        // an adjust then a close = one update\n        updates.push({ id: id, source: \"FOLD\", before: beforeOf(id, [\"transit_qty\", \"received_qty\", \"open_qty\", \"status\", \"received_date\"]),\n          after: Object.assign({ transit_qty: radj.transit_qty }, mainAfter[id]) });\n        delete mainAfter[id];\n      } else updates.push({ id: id, source: \"RECON\", before: beforeOf(id, [\"transit_qty\", \"open_qty\", \"status\"]), after: radj });\n    }\n    for (const id of Object.keys(mainAfter)) {\n      if (!rawById[id]) return broken(\"In Transit row \" + id + \" was not read.\");\n      updates.push({ id: id, source: \"MAIN\", before: beforeOf(id, [\"received_qty\", \"open_qty\", \"status\", \"received_date\"]), after: mainAfter[id] });\n    }\n    for (const c of reconCreates) creates.push(lotItCreate(c, jlk(c.doc_line_id)));\n  }\n\n  // HDR: the header's final write (L4); CANCEL also the number (update_node_u5YASPXU)\n  const hdrPart = { id: lotId, before: { stock_movement_status: \"Processing\" }, after: { stock_movement_status: saveAs } };\n  if (action === \"CANCEL\") {\n    hdrPart.before.stock_movement_no = s(hdr.stock_movement_no);\n    hdrPart.after.stock_movement_no = s(out.fill.allData && out.fill.allData.stock_movement_no);\n    if (!hdrPart.after.stock_movement_no) return broken(\"the cancelled number is empty.\");\n  }\n  // ITEMS: code_node_0njluBVP's updates (DIRECT, STAGE, COMPLETE)\n  const itemDates = out.items ? lotList(out.items.updates).map((u) => ({ id: s(u.id), last_transaction_date: s(u.last_transaction_date) })) : [];\n\n  const parts = {\n    ENGINE: { operation_key: \"SMLT|\" + jobId, mode: \"APPLY\", organization_id: orgId, movements: movements },\n    LABELS: labels,\n    IT: { creates: creates, updates: updates },\n    HDR: hdrPart,\n    ITEMS: { itemDates: itemDates },\n  };\n  const nonce = (s(entry.nonce).replace(/[^0-9A-Za-z]/g, \"\") + \"00000000\").slice(0, 8);\n  const partRows = [];\n  const manifestParts = {};\n  for (const name of Object.keys(parts)) {\n    const rows = lotPartRows(jobId, orgId, \"P|\" + nonce + \"|\" + name + \"|\", parts[name], \"PAYLOAD\");\n    manifestParts[name] = rows.map((r) => r.step_name);\n    for (const r of rows) partRows.push(r);\n  }\n  const storedLines = lotList(doc.stock_movement).reduce((t, l) => t + 1 + lotList(l.children).length, 0);\n  const lineCount = Math.max(Number(req.lineCount) || 0, storedLines, flat.length);\n  const manifest = {\n    v: 1, prepared_by: \"LOT_V2_PREPARE\", job_id: jobId, lot_id: lotId, lot_no: s(hdr.stock_movement_no), action: action, prevStatus: prev, saveAs: saveAs,\n    organization_id: orgId, plant_id: s(hdr.issuing_operation_faci), nonce: nonce, lineCount: lineCount, lineFingerprint: s(req.lineFingerprint),\n    incomingFingerprint: s(req.incomingFingerprint), parts: manifestParts, sparts: req.parts && typeof req.parts === \"object\" ? req.parts : {},\n    counts: { lines: flat.length, rows: rowCount, movements: movements.length, itCreates: creates.length, itUpdates: updates.length, items: itemDates.length },\n  };\n  return Object.assign(base, {\n    route: \"READY\", code: \"200\", message: action + \": \" + movements.length + \" movements for \" + rowCount + \" stock rows of \" + flat.length + \" lines\",\n    payload: JSON.stringify(manifest), partRows: partRows, lineCount: lineCount, movementCount: movements.length,\n  });\n};\nconst entry = [{{node:code_node_LPentry.data}}][0];\nconst S = { parts: [{{node:sql_node_LPparts.data}}][0], hdr: [{{node:sql_node_LPhdr.data}}][0], lines: [{{node:sql_node_LPlines.data}}][0], transit: [{{node:sql_node_LPtransit.data}}][0], items: [{{node:sql_node_LPitems.data}}][0], bins: [{{node:sql_node_LPbins.data}}][0], lock: [{{node:sql_node_LPlock.data}}][0] };\nconst own = { locked: 0 };\nlet res;\ntry {\n  res = lotPrepPlan(entry, S, own);\n} catch (e) {\n  // unlock only when the throw came after the lock-owner check passed\n  res = { route: \"FAIL\", code: \"LOT_PLAN_BROKEN\", message: \"The save could not be prepared: \" + String((e && e.message) || e).slice(0, 200), payload: \"\", partRows: [],\n    lineCount: 0, movementCount: 0, unlockOk: own.locked === 1 ? 1 : 0 };\n}\nconsole.log(\"prepare plan\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lines: res.lineCount, movements: res.movementCount, parts: res.partRows.length, unlock: res.unlockOk }));\nreturn { route: res.route, code: res.code, message: res.message, payload: res.payload, partRows: res.partRows, lineCount: res.lineCount,\n  movementCount: res.movementCount, unlockOk: res.unlockOk };"
+    },
+    "response_json": [
+     {
+      "key": "y5oqdy2x",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "xy4dlsp0",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "78ky2yjp",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "a9ssee6i",
+      "name": "payload",
+      "title": "payload",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "w1zjtrad",
+      "name": "partRows",
+      "title": "partRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "3qh99g08",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "ta7n37ig",
+      "name": "lineCount",
+      "title": "lineCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0pvq0ke3",
+      "name": "movementCount",
+      "title": "movementCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "jrtbs0pu",
+      "name": "unlockOk",
+      "title": "unlockOk",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Plan: the stored LOT (+ SUBMIT's lines) -> the classic v82 compute (lifted) -> the manifest and its parts",
+    "isValidator": true,
+    "nodeName": "Plan: the stored LOT (+ SUBMIT's lines) -> the classic v82 compute (lifted) -> the manifest and its parts",
+    "name": "Plan: the stored LOT (+ SUBMIT's lines) -> the classic v82 compute (lifted) -> the manifest and its parts"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_LPready",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// SM V2 / Location Transfer - helpers every package uses (SUBMIT, PREPARE, COMMIT, WORKER, client). Included into a code\n// node by the builders (v2build.include_js drops the \"if (typeof module\" line); every top-level name carries the lot / LOT_\n// prefix so the file concatenates with a step's own helpers (s, q8, list, digits, parseJ) without a redeclaration.\nconst lotS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// q8: the 8-dp rounding of COMPUTED quantities (the LOT classic's own q8); a NUMBER\nconst lotQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// the ledger's decimal text (code_node_LOTmainCompute / uht83Wzh qtyStr): never negative, 8 dp, a STRING\nconst lotQtyStr = (v) => Math.max(0, lotQ8(v)).toFixed(8);\nconst lotDigits = (v) => /^[0-9]{1,20}$/.test(lotS(v));\n// a bigint id as a digit string: a digit string as is (leading/trailing blanks trimmed), a SAFE non-negative integer\n// number as its digits; anything else (a 19-digit id that already went through a JS number, \"\", null, text) -> \"\"\nconst lotIdStr = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"\";\n  const t = lotS(v);\n  return /^[0-9]{1,20}$/.test(t) ? t : \"\";\n};\n// JSON text with every bare 16+ digit integer TOKEN read as a STRING (snowflake ids survive); only whole integer tokens\n// (after [ , : or the start; before , ] } or the end) - never the fraction digits of a float such as 0.30000000000000004;\n// null when it does not parse\nconst lotParseJ = (t) => {\n  if (t === undefined || t === null) return null;\n  if (typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst lotList = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r !== undefined && r !== null);\n// a JSON-text-or-array column (temp_qty_data, temp_hu_data, reference_documents): the array, [] when empty / not a list\nconst lotJsonList = (v) => {\n  if (Array.isArray(v)) return v;\n  const t = lotS(v);\n  if (!t) return [];\n  const p = lotParseJ(t);\n  return Array.isArray(p) ? p : [];\n};\n// sql-node rows: JSON_OBJECT rows ({ j: \"<json>\" }) or already-plain objects -> plain objects (ids of 16+ digits as strings)\nconst lotRows = (rows) => lotList(rows).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? lotParseJ(r.j) : r)).filter((r) => r && typeof r === \"object\");\n// code_node_yPlLXIZW's normalizeCategory (UNR / BLK -> the stored names); \"\" stays \"\" (the classic then reads \"Unrestricted\")\nconst lotCategory = (c) => (c === \"UNR\" ? \"Unrestricted\" : c === \"BLK\" ? \"Blocked\" : lotS(c));\nconst lotDbAddSeconds = function lotDbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// the bounded statuses a LOT job may restore (CONTRACT.md \"prevStatus\"): anything else = unknown = no unlock, REQUIRES_REVIEW\nconst LOT_PREV_STATUSES = [\"Draft\", \"In Progress\"];\nconst lotPrevStatusOk = (v) => LOT_PREV_STATUSES.indexOf(lotS(v)) >= 0;\n// the payload part rows of one value: step_name <prefix><nnn>, 400,000 characters each (GR / Putaway V2's chunking)\nconst LOT_CHUNK = 400000;\nconst lotPartRows = function lotPartRows(jobId, organizationId, prefix, value, status) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += LOT_CHUNK, n++) {\n    out.push({ job_id: lotS(jobId), organization_id: lotS(organizationId), step_name: prefix + String(n).padStart(3, \"0\"), step_status: status || \"PAYLOAD\", attempt_count: 0,\n      result_ref: text.slice(at, at + LOT_CHUNK) });\n  }\n  return out;\n};\n// a part's chunk rows (step_name <prefix>nnn) joined in step-name order -> the value; null when there is no row, undefined\n// when the joined text does not parse (GR's joinChunks)\nconst lotJoinChunks = function lotJoinChunks(rows, prefix) {\n  const mine = lotList(rows).filter((r) => lotS(r.step_name).indexOf(prefix) === 0).sort((a, b) => (lotS(a.step_name) < lotS(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  const p = lotParseJ(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  return p === null ? undefined : p;\n};\n// LOT_V2_PREPARE - Ready: the plan -> READY_TO_COMMIT (manifest; the worker's lease is kept), FAILED (lease released; the LOT back to\n// prevStatus when this job holds its lock and nothing was written) or REQUIRES_REVIEW (prevStatus unknown: no unlock)\n// finished_at = the real end time (bladexfunctions-a6's recipe): the entry's DB clock + the seconds since it ran\nconst dbAddSeconds = lotDbAddSeconds;\nconst endNow = (entry) => (Number(entry.jsAt) > 0 ? dbAddSeconds(entry.dbNow, Math.max(0, Math.floor((Date.now() - Number(entry.jsAt)) / 1000))) : \"\") || entry.dbNow;\nconst prepareReady = function prepareReady(entry, plan) {\n  const s = lotS;\n  const e = entry || {};\n  const p = plan || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const end = (status, code, message, unlock) => {\n    const rows = lotPrevStatusOk(e.prevStatus) ? unlock.filter((u) => lotDigits(u.id)).map((u) => ({ id: s(u.id), stock_movement_status: s(e.prevStatus) })) : [];\n    const review = status === \"REQUIRES_REVIEW\" || (unlock.length > 0 && !rows.length);\n    const st = review ? \"REQUIRES_REVIEW\" : \"FAILED\";\n    const c = review && status !== \"REQUIRES_REVIEW\" ? \"LOT_PREV_STATUS_UNKNOWN\" : code;\n    const msg = review && status !== \"REQUIRES_REVIEW\" ? \"Under review: the status to restore is unknown. Please contact support.\" : message;\n    return Object.assign(base, {\n      needJobUpd: \"YES\",\n      jobRows: [{ id: s(e.jobId), job_status: st, progress_percent: 0, progress_message: ((st === \"FAILED\" ? \"Not completed: \" : \"\") + msg).slice(0, 250),\n        attempt_count: Number(e.attempts) || 0, next_attempt_at: null, lease_owner: null, lease_expires_at: null, row_version: (Number(e.rowVersion) || 0) + 1, error_code: c,\n        error_message: msg, error_details: JSON.stringify({ step: \"LOT_V2_PREPARE\", action: s(e.action) }), finished_at: endNow(e) || null }],\n      needUnlock: !review && rows.length ? \"YES\" : \"NO\", unlockRows: !review ? rows : [], result_code: c, result_message: msg, job_status: st,\n    });\n  };\n  if (s(e.route) === \"REVIEW\") return end(\"REQUIRES_REVIEW\", s(e.result_code), s(e.result_message), []);\n  if (s(e.route) === \"FAIL\") return end(\"FAILED\", s(e.result_code) || \"LOT_INVALID_REQUEST\", s(e.result_message), lotList(e.unlockRows));\n  if (s(p.route) !== \"READY\") {\n    const unlock = String(p.unlockOk) === \"1\" ? [{ id: s(e.lotId) }] : [];\n    return end(\"FAILED\", s(p.code) || \"LOT_PLAN_FAILED\", s(p.message) || \"The save could not be prepared.\", unlock);\n  }\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{ id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to save: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0 }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst p = { route: [{{node:code_node_LPplan.data.route}}][0], code: [{{node:code_node_LPplan.data.code}}][0], message: [{{node:code_node_LPplan.data.message}}][0],\n  payload: [{{node:code_node_LPplan.data.payload}}][0], lineCount: [{{node:code_node_LPplan.data.lineCount}}][0], unlockOk: [{{node:code_node_LPplan.data.unlockOk}}][0] };\nconst res = prepareReady([{{node:code_node_LPentry.data}}][0], p);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, status: res.job_status, result: res.result_code, message: res.result_message }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "gtzrbjlk",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "yppm3hgc",
+      "name": "needParts",
+      "title": "needParts",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "lxkmmbox",
+      "name": "needReady",
+      "title": "needReady",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "t2nkbbqn",
+      "name": "readyRows",
+      "title": "readyRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "e1err4su",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "djn19sw3",
+      "name": "needJobUpd",
+      "title": "needJobUpd",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "thv5dpgv",
+      "name": "jobRows",
+      "title": "jobRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "apgeoz09",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "wt528whc",
+      "name": "needUnlock",
+      "title": "needUnlock",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "a6fnzlmd",
+      "name": "unlockRows",
+      "title": "unlockRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "29du9i89",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "al30f667",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "n62v8vds",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "uu0evi3s",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Ready: READY_TO_COMMIT (+ manifest, parts) or FAILED (+ the LOT back to prevStatus) / REQUIRES_REVIEW",
+    "isValidator": true,
+    "nodeName": "Ready: READY_TO_COMMIT (+ manifest, parts) or FAILED (+ the LOT back to prevStatus) / REQUIRES_REVIEW",
+    "name": "Ready: READY_TO_COMMIT (+ manifest, parts) or FAILED (+ the LOT back to prevStatus) / REQUIRES_REVIEW"
+   },
+   "blocks": []
+  },
+  {
+   "id": "cor_LPparts",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Manifest parts to write?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YLPparts",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1799100000007,
+         "parentId": 1799100000008,
+         "isTop": true,
+         "prop": "node.code_node_LPready.data.needParts",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needParts",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "add_node_LPparts",
+       "type": "add-node",
+       "data": {
+        "table_id": {
+         "source": "GD Publish Step:Table:2105131615547461634",
+         "rules": {
+          "collectionId": "2105131615547461634",
+          "list": [
+           {
+            "id": 1799100000005,
+            "parentId": 1799100000006,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "title": "Manifest parts: gd_publish_step P|<run nonce>|<PART>|<nnn>",
+        "isValidator": true,
+        "nodeName": "Manifest parts: gd_publish_step P|<run nonce>|<PART>|<nnn>",
+        "name": "Manifest parts: gd_publish_step P|<run nonce>|<PART>|<nnn>",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "job_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPplan.data.partRows.job_id}}",
+           "valueLabel": "",
+           "propLabel": "job_id"
+          },
+          {
+           "prop": "organization_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPplan.data.partRows.organization_id}}",
+           "valueLabel": "",
+           "propLabel": "Organization"
+          },
+          {
+           "prop": "step_name",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPplan.data.partRows.step_name}}",
+           "valueLabel": "",
+           "propLabel": "step_name"
+          },
+          {
+           "prop": "step_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPplan.data.partRows.step_status}}",
+           "valueLabel": "",
+           "propLabel": "step_status"
+          },
+          {
+           "prop": "attempt_count",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPplan.data.partRows.attempt_count}}",
+           "valueLabel": "",
+           "propLabel": "attempt_count"
+          },
+          {
+           "prop": "result_ref",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPplan.data.partRows.result_ref}}",
+           "valueLabel": "",
+           "propLabel": "result_ref"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NLPparts",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "cor_LPready",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Job READY_TO_COMMIT to write?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YLPready",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1799100000011,
+         "parentId": 1799100000012,
+         "isTop": true,
+         "prop": "node.code_node_LPready.data.needReady",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needReady",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_LPready",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Async Job:Table:2104845286495150081",
+         "rules": {
+          "collectionId": "2104845286495150081",
+          "list": [
+           {
+            "id": 1799100000009,
+            "parentId": 1799100000010,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_LPready.data.readyRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Job READY_TO_COMMIT + manifest (the worker's lease is kept)",
+        "isValidator": true,
+        "nodeName": "Job READY_TO_COMMIT + manifest (the worker's lease is kept)",
+        "name": "Job READY_TO_COMMIT + manifest (the worker's lease is kept)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "job_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.job_status}}",
+           "valueLabel": "",
+           "propLabel": "job_status"
+          },
+          {
+           "prop": "progress_percent",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.progress_percent}}",
+           "valueLabel": "",
+           "propLabel": "progress_percent"
+          },
+          {
+           "prop": "progress_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.progress_message}}",
+           "valueLabel": "",
+           "propLabel": "progress_message"
+          },
+          {
+           "prop": "row_version",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.row_version}}",
+           "valueLabel": "",
+           "propLabel": "row_version"
+          },
+          {
+           "prop": "error_code",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.error_code}}",
+           "valueLabel": "",
+           "propLabel": "error_code"
+          },
+          {
+           "prop": "error_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.error_message}}",
+           "valueLabel": "",
+           "propLabel": "error_message"
+          },
+          {
+           "prop": "error_details",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.error_details}}",
+           "valueLabel": "",
+           "propLabel": "error_details"
+          },
+          {
+           "prop": "prepared_payload",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.prepared_payload}}",
+           "valueLabel": "",
+           "propLabel": "prepared_payload"
+          },
+          {
+           "prop": "line_count",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.readyRows.line_count}}",
+           "valueLabel": "",
+           "propLabel": "line_count"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NLPready",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "cor_LPunlock",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Location Transfer to release?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YLPunlock",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1799100000015,
+         "parentId": 1799100000016,
+         "isTop": true,
+         "prop": "node.code_node_LPready.data.needUnlock",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needUnlock",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_LPunlock",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Location Transfer:Table:2013791389687349250",
+         "rules": {
+          "collectionId": "2013791389687349250",
+          "list": [
+           {
+            "id": 1799100000013,
+            "parentId": 1799100000014,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_LPready.data.unlockRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Location Transfer back to its status before the save (nothing was moved)",
+        "isValidator": true,
+        "nodeName": "Location Transfer back to its status before the save (nothing was moved)",
+        "name": "Location Transfer back to its status before the save (nothing was moved)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.unlockRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "stock_movement_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.unlockRows.stock_movement_status}}",
+           "valueLabel": "",
+           "propLabel": "Stock Movement Status"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NLPunlock",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "cor_LPfail",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Job FAILED / REQUIRES_REVIEW to write?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YLPfail",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1799100000019,
+         "parentId": 1799100000020,
+         "isTop": true,
+         "prop": "node.code_node_LPready.data.needJobUpd",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needJobUpd",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_LPfail",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Async Job:Table:2104845286495150081",
+         "rules": {
+          "collectionId": "2104845286495150081",
+          "list": [
+           {
+            "id": 1799100000017,
+            "parentId": 1799100000018,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_LPready.data.jobRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Job FAILED / REQUIRES_REVIEW with the reason (lease released)",
+        "isValidator": true,
+        "nodeName": "Job FAILED / REQUIRES_REVIEW with the reason (lease released)",
+        "name": "Job FAILED / REQUIRES_REVIEW with the reason (lease released)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "job_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.job_status}}",
+           "valueLabel": "",
+           "propLabel": "job_status"
+          },
+          {
+           "prop": "progress_percent",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.progress_percent}}",
+           "valueLabel": "",
+           "propLabel": "progress_percent"
+          },
+          {
+           "prop": "progress_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.progress_message}}",
+           "valueLabel": "",
+           "propLabel": "progress_message"
+          },
+          {
+           "prop": "attempt_count",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.attempt_count}}",
+           "valueLabel": "",
+           "propLabel": "attempt_count"
+          },
+          {
+           "prop": "next_attempt_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.next_attempt_at}}",
+           "valueLabel": "",
+           "propLabel": "next_attempt_at"
+          },
+          {
+           "prop": "lease_owner",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.lease_owner}}",
+           "valueLabel": "",
+           "propLabel": "lease_owner"
+          },
+          {
+           "prop": "lease_expires_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.lease_expires_at}}",
+           "valueLabel": "",
+           "propLabel": "lease_expires_at"
+          },
+          {
+           "prop": "row_version",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.row_version}}",
+           "valueLabel": "",
+           "propLabel": "row_version"
+          },
+          {
+           "prop": "error_code",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.error_code}}",
+           "valueLabel": "",
+           "propLabel": "error_code"
+          },
+          {
+           "prop": "error_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.error_message}}",
+           "valueLabel": "",
+           "propLabel": "error_message"
+          },
+          {
+           "prop": "error_details",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.error_details}}",
+           "valueLabel": "",
+           "propLabel": "error_details"
+          },
+          {
+           "prop": "finished_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LPready.data.jobRows.finished_at}}",
+           "valueLabel": "",
+           "propLabel": "finished_at"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NLPfail",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "sql_node_LPback",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "Read-back: the job after the write (the truth)",
+    "isValidator": true,
+    "nodeName": "Read-back: the job after the write (the truth)",
+    "name": "Read-back: the job after the write (the truth)",
+    "script": {
+     "type": "sql",
+     "code": "SELECT CAST(j.id AS CHAR) AS id, j.job_status, j.progress_message, j.error_code, j.error_message\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_LPguard.data.tenantId}}'\n   AND j.id = {{node:code_node_LPguard.data.jobId}}"
+    },
+    "response_json": [
+     {
+      "key": "u66kmj3f",
+      "name": "id",
+      "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "hoqs2hcx",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "zowzjga9",
+      "name": "progress_message",
+      "title": "progress_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ff24z5x7",
+      "name": "error_code",
+      "title": "error_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "hcr32eo3",
+      "name": "error_message",
+      "title": "error_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_LPresult",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// LOT_V2_PREPARE - Result: the job read back after the write is the answer (READY_TO_COMMIT / FAILED / REQUIRES_REVIEW)\nconst prepareResult = function prepareResult(guard, entry, ready, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const e = entry || {};\n  const r = ready || {};\n  return {\n    job_id: guard.jobId, job_status: job ? s(job.job_status) : \"\", result_code: s(r.result_code) || s(e.result_code), result_message: s(r.result_message) || s(e.result_message),\n    evidence: JSON.stringify({ v: 1, workflow: \"LOT_V2_PREPARE\", entry: s(e.route), action: s(e.action), ready: s(r.route) }),\n  };\n};\nconst res = prepareResult([{{node:code_node_LPguard.data}}][0], [{{node:code_node_LPentry.data}}][0], [{{node:code_node_LPready.data}}][0], [{{node:sql_node_LPback.data}}][0]);\nconsole.log(\"prepare result\", JSON.stringify(res));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "cdrl101f",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ryuz11ne",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "wukzgchr",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "jxeqrd4s",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "m7lahij6",
+      "name": "evidence",
+      "title": "evidence",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Result",
+    "isValidator": true,
+    "nodeName": "Result",
+    "name": "Result"
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_node_LPdone",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return",
+    "isValidator": true,
+    "nodeName": "Return",
+    "name": "Return",
+    "response_value": {
+     "list": [
+      {
+       "prop": "job_id",
+       "propLabel": "job_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_LPresult.data.job_id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "job_status",
+       "propLabel": "job_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_LPresult.data.job_status}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "result_code",
+       "propLabel": "result_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_LPresult.data.result_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "result_message",
+       "propLabel": "result_message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_LPresult.data.result_message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "evidence",
+       "propLabel": "evidence",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_LPresult.data.evidence}}",
+       "valueLabel": ""
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "title": "End Node",
+    "isValidator": true,
+    "nodeName": "End Node",
+    "name": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

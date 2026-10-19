@@ -74,6 +74,16 @@ const back = (o) => [Object.assign({ job_id: "2110000000000000555", job_status: 
 ok(submitDue(guardE, { dbNow: "2026-10-14 10:00:00" }, back()).needDue === "YES", "due ok");
 ok(submitDue(guardE, { dbNow: "2026-10-14 10:00:00" }, back({ lock_ref: "other" })).needDue === "NO", "due wrong lock");
 ok(submitDue(guardE, { dbNow: "2026-10-14 10:00:00" }, back({ correlation_id: "" })).needDue === "NO", "due unlinked");
+const { submitRelink } = load(["relink.js"], ["submitRelink"]);
+const jobRow = (req) => [{ id: "2110000000000000555", request_payload: JSON.stringify(Object.assign({ v: 1, previousStatus: "Draft", mode: "EDIT", grId: "2110000000000000777", origReserved: {} }, req)) }];
+let rl = submitRelink(guardE, back({ gr_no: "GR/202610160012" }), jobRow({ grNo: "Draft-GR-202610160001" }));
+ok(rl.needRelink === "YES" && rl.relinkRows[0].id === "2110000000000000555" && JSON.parse(rl.relinkRows[0].request_payload).grNo === "GR/202610160012"
+  && JSON.parse(rl.relinkRows[0].request_payload).grId === "2110000000000000777", "relink: a Draft's number issued at the write", rl);
+ok(submitRelink(guardE, back(), jobRow({ grNo: "GR-9" })).needRelink === "NO", "relink: Created, the number unchanged");
+ok(submitRelink({ pageStatus: "Add" }, back({ gr_no: "GR-10" }), jobRow({ grNo: "" })).needRelink === "NO", "relink: Add (link.js does it)");
+ok(submitRelink(guardE, back({ job_id: "2110000000000000999" }), jobRow({ grNo: "Draft-1" })).needRelink === "NO", "relink: another job read back");
+ok(submitRelink(guardE, back({ gr_no: "" }), jobRow({ grNo: "Draft-1" })).needRelink === "NO", "relink: no number read back");
+ok(submitRelink(guardE, back({ gr_no: "GR-10" }), [{ id: "2110000000000000555", request_payload: "not json" }]).needRelink === "NO", "relink: unreadable request");
 const { submitResult } = load(["result.js"], ["submitResult"]);
 let o = submitResult(guardE, { grId: "2110000000000000100" }, { route: "QUEUE", code: "200", idemKey: KEY }, back());
 ok(o.route === "QUEUED" && o.gr_id === "2110000000000000777" && o.gr_no === "GR-9" && o.job_id === "2110000000000000555", "result queued", o);

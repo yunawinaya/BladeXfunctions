@@ -52,37 +52,83 @@ const geAllocLoop = function geAllocLoop(A) {
   const rows = list(pre.rowsNeedingAllocation);
   const col = __run("code_node_SqL4Tv8v");
   read("search_node_pltmkkw3", search(list(A.uoms).filter((u) => ids(col.uomIds).has(s(u.id)))));
-  read("search_node_nbpWEAFx", search(list(A.bins).filter((b) => s(b.plant_id) === s(pre.plantId) && s(b.organization_id) === s(pre.organizationId))));
+  const binsS = search(list(A.bins).filter((b) => s(b.plant_id) === s(pre.plantId) && s(b.organization_id) === s(pre.organizationId)));
+  read("search_node_nbpWEAFx", binsS);
   const mats = new Set(rows.map((r) => s(r.materialId)));
   const huItems = list(A.huItems).filter((h) => mats.has(s(h.material_id)));
   read("search_node_D8ZGHKZI", search(huItems));
   const huIds = new Set(huItems.map((h) => s(h.handling_unit_id)));
   const plant = s(__v("workflowparams:allData.plant_id")), org = s(__v("workflowparams:allData.organization_id"));
-  read("search_node_l8oiJ60B", search(list(A.hus).filter((h) => s(h.plant_id) === plant && s(h.organization_id) === org && huIds.has(s(h.id)))));
-  // set_cache_node_qbPyqWAt / zI6dkbWZ / cysmSDlD
-  let tableGD = cached(__v("workflowparams:allData.table_gd")), tracker = {}, index = 0;
+  const husS = search(list(A.hus).filter((h) => s(h.plant_id) === plant && s(h.organization_id) === org && huIds.has(s(h.id))));
+  read("search_node_l8oiJ60B", husS);
+  // set_cache_node_qbPyqWAt / zI6dkbWZ / cysmSDlD. The per-row nodes run in a context holding only what they read
+  // (test/test_alloc_fast.js pins it): every __v copies its value, so the whole table / allData per row was O(n^2).
+  let T = cached(__v("workflowparams:allData.table_gd")), tracker = {};
+  const orig = pre.rowsNeedingAllocation;
+  const light = Array.isArray(orig) ? orig.map((r) => (r && typeof r === "object" ? { materialId: r.materialId } : r)) : orig;
+  const xc = __v("node:search_node_xc9mUWL8");
+  const loopCtx = {
+    "workflowparams:allData": { is_select_picking: __v("workflowparams:allData.is_select_picking"), id: __v("workflowparams:allData.id"), gd_status: __v("workflowparams:allData.gd_status") },
+    "node:code_picking_defaults": { data: { effectiveSetup: __v("node:code_picking_defaults.data.effectiveSetup") } },
+    "node:search_node_l8oiJ60B": { data: husS },
+    "node:search_node_pltmkkw3": { data: __v("node:search_node_pltmkkw3.data") },
+    // code_node_hifFKzmo only finds a bin by id for its bin_location_combine
+    "node:search_node_nbpWEAFx": { data: search(binsS.data.map((b) => (b.bin_location_combine === undefined ? { id: b.id } : { id: b.id, bin_location_combine: b.bin_location_combine }))) },
+  };
+  if (xc !== null) loopCtx["node:search_node_xc9mUWL8"] = xc;
   for (let i = 0; i < rows.length; i++) {
-    read("get_cache_node_6hmHAVwX", cached(tableGD));
-    read("get_cache_node_QGhmYUxQ", cached(tracker));
-    read("get_cache_node_ih80ef3f", index);
-    __run("code_node_aay7z3VT");
-    const P = __run("code_node_Htpcyp8t");
-    // workflow_node_NwRLmxNW: the params as the callee receives them (a JSON text declared string arrives parsed)
-    const p = {};
-    for (const k of Object.keys(P)) p[k] = typeof P[k] === "string" && /^[[{]/.test(P[k]) ? cached(P[k]) : P[k];
-    const ga = geGlobalAllocation(p, A);
-    read("workflow_node_NwRLmxNW", ga);
-    // if_0xdt03Q7 -> return_node_5P3FRqSV
-    if (s(ga.code) === "400") return { stop: { code: "400", message: s(ga.message) } };
-    const b = __run("code_node_1Ya3sACY");
-    // if_2-JyKcnS: Get Batch No only when a batch id came back (else the node keeps its last output, as on the platform)
-    if (b.batch_id !== undefined && b.batch_id !== null && b.batch_id !== "") read("search_node_xc9mUWL8", search(list(A.batches).filter((x) => ids(b.batch_id).has(s(x.id)))));
-    __run("code_node_hifFKzmo");
-    const u = __run("code_node_56IOJIBu");
-    tableGD = cached(u.tableGD);
-    tracker = __v("node:code_node_56IOJIBu.data.updatedTracker");
-    tracker = cached(tracker);
-    index = __v("node:code_node_aay7z3VT.data.nextIndex");
+    const r = __withContext(loopCtx, () => {
+      // row i (code_node_aay7z3VT's index runs 0, 1, 2 ...): code_node_aay7z3VT reads rowsNeedingAllocation[index], so it gets
+      // that row alone at index 0; code_node_Htpcyp8t maps every row to its material, so it gets the materials only
+      const one = Array.isArray(orig) && i < orig.length;
+      read("code_node_kJx9p9Nh", { rowsNeedingAllocation: one ? [orig[i]] : orig });
+      read("get_cache_node_ih80ef3f", one ? 0 : i);
+      __run("code_node_aay7z3VT");
+      read("code_node_kJx9p9Nh", { rowsNeedingAllocation: light });
+      // the tracker is read and rewritten for the row's own material only: that entry goes in, and comes back merged
+      const sliced = one && orig[i] && typeof orig[i] === "object" && tracker !== null && typeof tracker === "object";
+      const mk = sliced ? String(orig[i].materialId) : "";
+      read("get_cache_node_QGhmYUxQ", sliced ? (Object.prototype.hasOwnProperty.call(tracker, mk) ? { [mk]: tracker[mk] } : {}) : tracker);
+      read("get_cache_node_6hmHAVwX", T);
+      const P = __run("code_node_Htpcyp8t");
+      // workflow_node_NwRLmxNW: the params as the callee receives them (a JSON text declared string arrives parsed)
+      const p = {};
+      for (const k of Object.keys(P)) p[k] = typeof P[k] === "string" && /^[[{]/.test(P[k]) ? cached(P[k]) : P[k];
+      const ga = geGlobalAllocation(p, A);
+      read("workflow_node_NwRLmxNW", ga);
+      // if_0xdt03Q7 -> return_node_5P3FRqSV
+      if (s(ga.code) === "400") return { stop: { code: "400", message: s(ga.message) } };
+      const b = __run("code_node_1Ya3sACY");
+      // if_2-JyKcnS: Get Batch No only when a batch id came back (else the node keeps its last output, as on the platform)
+      if (b.batch_id !== undefined && b.batch_id !== null && b.batch_id !== "") read("search_node_xc9mUWL8", search(list(A.batches).filter((x) => ids(b.batch_id).has(s(x.id)))));
+      const h = __run("code_node_hifFKzmo");
+      // updateRowInTableGd writes its row and the cross-line rows only: it gets just the top-level rows holding them, its
+      // indexes renumbered in that short table's flat walk, and the rows it returns go back in place
+      const touched = new Set([h.rowIndex].concat(Object.keys(h.crossLineUpdates || {}).map((x) => parseInt(x))));
+      const keep = [], at = {};
+      let f = 0, c = 0;
+      T.forEach((row, k) => {
+        const span = 1 + (row && Array.isArray(row.children) ? row.children.length : 0);
+        let hit = false;
+        for (let x = f; x < f + span; x++) if (touched.has(x)) hit = true;
+        if (hit) { keep.push(k); for (let x = 0; x < span; x++) at[f + x] = c + x; c += span; }
+        f += span;
+      });
+      const to = (v) => (Object.prototype.hasOwnProperty.call(at, v) ? at[v] : -1);
+      const cl = {};
+      for (const [k, v] of Object.entries(h.crossLineUpdates || {})) if (to(parseInt(k)) >= 0) cl[to(parseInt(k))] = v;
+      read("code_node_hifFKzmo", Object.assign({}, h, { rowIndex: to(h.rowIndex), crossLineUpdates: cl }));
+      read("get_cache_node_6hmHAVwX", keep.map((k) => T[k]));
+      const u = __run("code_node_56IOJIBu");
+      keep.forEach((k, j) => { T[k] = u.tableGD[j]; });
+      // the platform's output keeps no null keys: from the first row on, the whole table comes back that way
+      if (i === 0) T = __strip(T);
+      const out = u.updatedTracker === undefined ? null : u.updatedTracker;
+      if (sliced && out !== null && typeof out === "object") for (const k of Object.keys(out)) tracker[k] = out[k];
+      else tracker = out;
+      return null;
+    });
+    if (r && r.stop) return r;
   }
-  return { tableGD: cached(tableGD) };
+  return { tableGD: T };
 };

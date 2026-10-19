@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "mzlw4mk5",
+   "key": "7xs5mhwe",
    "name": "job_id",
    "title": "job_id",
    "description": "gd_async_job.id (digits) of a COMPLETE_GD job the worker holds",
@@ -12,7 +12,7 @@
  ],
  "response_json": [
   {
-   "key": "7xs5mhwe",
+   "key": "yjlmbwa4",
    "name": "job_id",
    "title": "job_id",
    "description": "",
@@ -20,7 +20,7 @@
    "isExpand": false
   },
   {
-   "key": "yjlmbwa4",
+   "key": "ztsj1g51",
    "name": "job_status",
    "title": "job_status",
    "description": "",
@@ -28,7 +28,7 @@
    "isExpand": false
   },
   {
-   "key": "ztsj1g51",
+   "key": "qjjbvoeb",
    "name": "result_code",
    "title": "result_code",
    "description": "",
@@ -36,7 +36,7 @@
    "isExpand": false
   },
   {
-   "key": "qjjbvoeb",
+   "key": "vqk4d0xo",
    "name": "result_message",
    "title": "result_message",
    "description": "",
@@ -44,7 +44,7 @@
    "isExpand": false
   },
   {
-   "key": "vqk4d0xo",
+   "key": "ugfqpxx0",
    "name": "evidence",
    "title": "evidence",
    "description": "",
@@ -458,7 +458,7 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GD_COMPLETE_PREPARE - Entry: a COMPLETE_GD job the worker holds (VALIDATING under a live lease); its request -> the GD.\n// A request that cannot be read fails the job.\nconst prepareEntry = function prepareEntry(guard, rows, uuid) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const base = { route: \"NOOP\", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: \"0\", gdId: \"0\", idempotencyKey: \"\", rowVersion: 0, dbNow: \"\", nonce: \"\", request: {}, result_code: \"\", result_message: \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDC_INVALID_DATA\", result_message: \"job \" + guard.jobId + \" not found\" });\n  if (s(job.command) !== \"COMPLETE_GD\") return Object.assign(base, { result_code: \"GDC_INVALID_DATA\", result_message: \"job command is \" + s(job.command) });\n  if (s(job.job_status) !== \"VALIDATING\") return Object.assign(base, { result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + s(job.job_status) + \": only a VALIDATING job is prepared\" });\n  if (String(job.lease_live) !== \"1\") return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the worker's lease on the job has expired: not prepared\" });\n  const common = { jobId: s(job.id), organizationId: s(job.organization_id), idempotencyKey: s(job.idempotency_key), rowVersion: Number(job.row_version) || 0, dbNow: s(job.db_now), nonce: s(uuid).replace(/[^0-9A-Za-z]/g, \"\").slice(0, 8) };\n  let req = null;\n  try {\n    req = JSON.parse(s(job.request_payload));\n  } catch (e) {\n    req = null;\n  }\n  const gdId = req && typeof req === \"object\" ? s(req.gd_id) : \"\";\n  if (!/^[0-9]{1,20}$/.test(gdId) || s(job.correlation_id) !== \"GD|\" + gdId || !/^[0-9]{1,20}$/.test(common.organizationId)) {\n    return Object.assign(base, common, { route: \"FAIL\", result_code: \"GDC_INVALID_REQUEST\", result_message: \"the job's request could not be read\" });\n  }\n  return Object.assign(base, common, { route: \"GO\", gdId: gdId, request: req, result_message: \"complete Goods Delivery \" + s(req.gd_no || gdId) });\n};\nconst guard = [{{node:code_node_GCguard.data}}][0];\nconst res = prepareEntry(guard, [{{node:sql_node_GCjob.data}}][0], [{{system:uuid}}][0]);\nconsole.log(\"prepare entry\", JSON.stringify({ route: res.route, gd: res.gdId, result: res.result_code, message: res.result_message }));\nreturn res;"
+     "code": "// GD_COMPLETE_PREPARE - Entry: a COMPLETE_GD job the worker holds (VALIDATING under a live lease); its request -> the GD.\n// A request that cannot be read fails the job.\nconst prepareEntry = function prepareEntry(guard, rows, uuid) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const base = { route: \"NOOP\", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: \"0\", gdId: \"0\", idempotencyKey: \"\", rowVersion: 0, dbNow: \"\", jsAt: \"\", nonce: \"\", request: {}, result_code: \"\", result_message: \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDC_INVALID_DATA\", result_message: \"job \" + guard.jobId + \" not found\" });\n  if (s(job.command) !== \"COMPLETE_GD\") return Object.assign(base, { result_code: \"GDC_INVALID_DATA\", result_message: \"job command is \" + s(job.command) });\n  if (s(job.job_status) !== \"VALIDATING\") return Object.assign(base, { result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + s(job.job_status) + \": only a VALIDATING job is prepared\" });\n  if (String(job.lease_live) !== \"1\") return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the worker's lease on the job has expired: not prepared\" });\n  const common = { jobId: s(job.id), organizationId: s(job.organization_id), idempotencyKey: s(job.idempotency_key), rowVersion: Number(job.row_version) || 0, dbNow: s(job.db_now), jsAt: String(Date.now()), nonce: s(uuid).replace(/[^0-9A-Za-z]/g, \"\").slice(0, 8) };\n  let req = null;\n  try {\n    req = JSON.parse(s(job.request_payload));\n  } catch (e) {\n    req = null;\n  }\n  const gdId = req && typeof req === \"object\" ? s(req.gd_id) : \"\";\n  if (!/^[0-9]{1,20}$/.test(gdId) || s(job.correlation_id) !== \"GD|\" + gdId || !/^[0-9]{1,20}$/.test(common.organizationId)) {\n    return Object.assign(base, common, { route: \"FAIL\", result_code: \"GDC_INVALID_REQUEST\", result_message: \"the job's request could not be read\" });\n  }\n  return Object.assign(base, common, { route: \"GO\", gdId: gdId, request: req, result_message: \"complete Goods Delivery \" + s(req.gd_no || gdId) });\n};\nconst guard = [{{node:code_node_GCguard.data}}][0];\nconst res = prepareEntry(guard, [{{node:sql_node_GCjob.data}}][0], [{{system:uuid}}][0]);\nconsole.log(\"prepare entry\", JSON.stringify({ route: res.route, gd: res.gdId, result: res.result_code, message: res.result_message }));\nreturn res;"
     },
     "response_json": [
      {
@@ -535,6 +535,15 @@
      },
      {
       "key": "a9ssee6i",
+      "name": "jsAt",
+      "title": "jsAt",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "w1zjtrad",
       "name": "nonce",
       "title": "nonce",
       "description": "",
@@ -543,7 +552,7 @@
       "children": []
      },
      {
-      "key": "w1zjtrad",
+      "key": "3qh99g08",
       "name": "request",
       "title": "request",
       "description": "",
@@ -552,7 +561,7 @@
       "children": []
      },
      {
-      "key": "3qh99g08",
+      "key": "ta7n37ig",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -561,7 +570,7 @@
       "children": []
      },
      {
-      "key": "ta7n37ig",
+      "key": "0pvq0ke3",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -627,7 +636,7 @@
         },
         "response_json": [
          {
-          "key": "0pvq0ke3",
+          "key": "jrtbs0pu",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -636,7 +645,7 @@
           "children": []
          },
          {
-          "key": "jrtbs0pu",
+          "key": "gtzrbjlk",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -645,7 +654,7 @@
           "children": []
          },
          {
-          "key": "gtzrbjlk",
+          "key": "yppm3hgc",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -654,7 +663,7 @@
           "children": []
          },
          {
-          "key": "yppm3hgc",
+          "key": "lxkmmbox",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -663,7 +672,7 @@
           "children": []
          },
          {
-          "key": "lxkmmbox",
+          "key": "t2nkbbqn",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -1680,11 +1689,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GD_COMPLETE_PREPARE - Ready: the plan + the engine's PLAN answer -> READY_TO_COMMIT (manifest; the worker's lease is kept)\n// or FAILED (lease released) with the GD back to Created when this job holds its lock. Nothing else was written.\nconst prepareReady = function prepareReady(entry, plan, engine) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  const p = plan || {};\n  const g = engine || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const fail = (code, message, details) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{\n      id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not completed: \" + message).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: code, error_message: message,\n      error_details: JSON.stringify(Object.assign({ step: \"GD_COMPLETE_PREPARE\" }, details || {})),\n      lease_owner: null, lease_expires_at: null, finished_at: s(e.dbNow) || null,\n    }],\n    needUnlock: String(p.unlockOk) === \"1\" ? \"YES\" : \"NO\",\n    unlockRows: String(p.unlockOk) === \"1\" ? [{ id: s(p.gdId), gd_status: \"Created\" }] : [],\n    result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  if (s(p.route) !== \"ENGINE\") return fail(s(p.code) || \"GDC_PLAN_FAILED\", s(p.message) || \"the completion could not be planned\");\n  if (s(g.code) !== \"200\") return fail(\"GDC_INVENTORY_\" + (s(g.result_code) || \"FAILED\"), s(g.message) || \"the inventory plan failed\", { engine: { code: s(g.code), result_code: s(g.result_code) } });\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{\n      id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to complete: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null,\n      prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0,\n    }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst p = { route: [{{node:code_node_GCplan.data.route}}][0], code: [{{node:code_node_GCplan.data.code}}][0], message: [{{node:code_node_GCplan.data.message}}][0],\n  payload: [{{node:code_node_GCplan.data.payload}}][0], lineCount: [{{node:code_node_GCplan.data.lineCount}}][0], gdId: [{{node:code_node_GCplan.data.gdId}}][0],\n  unlockOk: [{{node:code_node_GCplan.data.unlockOk}}][0] };\nconst g = { code: [{{node:workflow_node_GCengine.data.code}}][0], result_code: [{{node:workflow_node_GCengine.data.result_code}}][0], message: [{{node:workflow_node_GCengine.data.message}}][0] };\nconst res = prepareReady([{{node:code_node_GCentry.data}}][0], p, g);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
+     "code": "// GD_COMPLETE_PREPARE - Ready: the plan + the engine's PLAN answer -> READY_TO_COMMIT (manifest; the worker's lease is kept)\n// or FAILED (lease released) with the GD back to Created when this job holds its lock. Nothing else was written.\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst endNow = (entry) => (Number(entry.jsAt) > 0 ? dbAddSeconds(entry.dbNow, Math.max(0, Math.floor((Date.now() - Number(entry.jsAt)) / 1000))) : \"\") || entry.dbNow;\nconst prepareReady = function prepareReady(entry, plan, engine) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  const p = plan || {};\n  const g = engine || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const fail = (code, message, details) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{\n      id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not completed: \" + message).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: code, error_message: message,\n      error_details: JSON.stringify(Object.assign({ step: \"GD_COMPLETE_PREPARE\" }, details || {})),\n      lease_owner: null, lease_expires_at: null, finished_at: s(endNow(e)) || null,\n    }],\n    needUnlock: String(p.unlockOk) === \"1\" ? \"YES\" : \"NO\",\n    unlockRows: String(p.unlockOk) === \"1\" ? [{ id: s(p.gdId), gd_status: \"Created\" }] : [],\n    result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  if (s(p.route) !== \"ENGINE\") return fail(s(p.code) || \"GDC_PLAN_FAILED\", s(p.message) || \"the completion could not be planned\");\n  if (s(g.code) !== \"200\") return fail(\"GDC_INVENTORY_\" + (s(g.result_code) || \"FAILED\"), s(g.message) || \"the inventory plan failed\", { engine: { code: s(g.code), result_code: s(g.result_code) } });\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{\n      id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to complete: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null,\n      prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0,\n    }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst p = { route: [{{node:code_node_GCplan.data.route}}][0], code: [{{node:code_node_GCplan.data.code}}][0], message: [{{node:code_node_GCplan.data.message}}][0],\n  payload: [{{node:code_node_GCplan.data.payload}}][0], lineCount: [{{node:code_node_GCplan.data.lineCount}}][0], gdId: [{{node:code_node_GCplan.data.gdId}}][0],\n  unlockOk: [{{node:code_node_GCplan.data.unlockOk}}][0] };\nconst g = { code: [{{node:workflow_node_GCengine.data.code}}][0], result_code: [{{node:workflow_node_GCengine.data.result_code}}][0], message: [{{node:workflow_node_GCengine.data.message}}][0] };\nconst res = prepareReady([{{node:code_node_GCentry.data}}][0], p, g);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
     },
     "response_json": [
      {
-      "key": "t2nkbbqn",
+      "key": "e1err4su",
       "name": "route",
       "title": "route",
       "description": "",
@@ -1693,7 +1702,7 @@
       "children": []
      },
      {
-      "key": "e1err4su",
+      "key": "djn19sw3",
       "name": "needParts",
       "title": "needParts",
       "description": "",
@@ -1702,7 +1711,7 @@
       "children": []
      },
      {
-      "key": "djn19sw3",
+      "key": "thv5dpgv",
       "name": "needReady",
       "title": "needReady",
       "description": "",
@@ -1711,7 +1720,7 @@
       "children": []
      },
      {
-      "key": "thv5dpgv",
+      "key": "apgeoz09",
       "name": "readyRows",
       "title": "readyRows",
       "description": "",
@@ -1719,7 +1728,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "apgeoz09",
+        "key": "wt528whc",
         "name": "items",
         "title": "",
         "description": "",
@@ -1731,7 +1740,7 @@
       ]
      },
      {
-      "key": "wt528whc",
+      "key": "a6fnzlmd",
       "name": "needJobUpd",
       "title": "needJobUpd",
       "description": "",
@@ -1740,7 +1749,7 @@
       "children": []
      },
      {
-      "key": "a6fnzlmd",
+      "key": "29du9i89",
       "name": "jobRows",
       "title": "jobRows",
       "description": "",
@@ -1748,7 +1757,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "29du9i89",
+        "key": "al30f667",
         "name": "items",
         "title": "",
         "description": "",
@@ -1760,7 +1769,7 @@
       ]
      },
      {
-      "key": "al30f667",
+      "key": "n62v8vds",
       "name": "needUnlock",
       "title": "needUnlock",
       "description": "",
@@ -1769,7 +1778,7 @@
       "children": []
      },
      {
-      "key": "n62v8vds",
+      "key": "uu0evi3s",
       "name": "unlockRows",
       "title": "unlockRows",
       "description": "",
@@ -1777,7 +1786,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "uu0evi3s",
+        "key": "u66kmj3f",
         "name": "items",
         "title": "",
         "description": "",
@@ -1789,7 +1798,7 @@
       ]
      },
      {
-      "key": "u66kmj3f",
+      "key": "hoqs2hcx",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -1798,7 +1807,7 @@
       "children": []
      },
      {
-      "key": "hoqs2hcx",
+      "key": "zowzjga9",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -1807,7 +1816,7 @@
       "children": []
      },
      {
-      "key": "zowzjga9",
+      "key": "ff24z5x7",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2512,7 +2521,7 @@
     },
     "response_json": [
      {
-      "key": "ff24z5x7",
+      "key": "hcr32eo3",
       "name": "id",
       "title": "id",
       "description": "",
@@ -2521,7 +2530,7 @@
       "children": []
      },
      {
-      "key": "hcr32eo3",
+      "key": "cdrl101f",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2530,7 +2539,7 @@
       "children": []
      },
      {
-      "key": "cdrl101f",
+      "key": "ryuz11ne",
       "name": "progress_message",
       "title": "progress_message",
       "description": "",
@@ -2539,7 +2548,7 @@
       "children": []
      },
      {
-      "key": "ryuz11ne",
+      "key": "wukzgchr",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -2548,7 +2557,7 @@
       "children": []
      },
      {
-      "key": "wukzgchr",
+      "key": "jxeqrd4s",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -2573,7 +2582,7 @@
     },
     "response_json": [
      {
-      "key": "jxeqrd4s",
+      "key": "m7lahij6",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -2582,7 +2591,7 @@
       "children": []
      },
      {
-      "key": "m7lahij6",
+      "key": "sj43mist",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2591,7 +2600,7 @@
       "children": []
      },
      {
-      "key": "sj43mist",
+      "key": "j0a3j3ch",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -2600,7 +2609,7 @@
       "children": []
      },
      {
-      "key": "j0a3j3ch",
+      "key": "1rwvilxv",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -2609,7 +2618,7 @@
       "children": []
      },
      {
-      "key": "1rwvilxv",
+      "key": "mzlw4mk5",
       "name": "evidence",
       "title": "evidence",
       "description": "",

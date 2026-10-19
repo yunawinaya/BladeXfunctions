@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "thfgs3xt",
+   "key": "qg3ophpv",
    "name": "job_id",
    "title": "job_id",
    "description": "optional: gd_async_job.id (digits) to drive this job only (the form's / SO save's kick); empty: the oldest due EDIT_GD jobs of the session tenant (at most 5 per tick)",
@@ -12,7 +12,7 @@
  ],
  "response_json": [
   {
-   "key": "6c19cukx",
+   "key": "9mv4esif",
    "name": "worker_route",
    "title": "worker_route",
    "description": "",
@@ -20,7 +20,7 @@
    "isExpand": false
   },
   {
-   "key": "g0tyxmlb",
+   "key": "v7s7il42",
    "name": "processed",
    "title": "processed",
    "description": "",
@@ -28,7 +28,7 @@
    "isExpand": false
   },
   {
-   "key": "6cn2sc69",
+   "key": "uqajjl0w",
    "name": "jobs",
    "title": "jobs",
    "description": "",
@@ -36,7 +36,7 @@
    "isExpand": false
   },
   {
-   "key": "o6lz4vu0",
+   "key": "lza85lvy",
    "name": "job_id",
    "title": "job_id",
    "description": "",
@@ -44,7 +44,7 @@
    "isExpand": false
   },
   {
-   "key": "vzcmjho3",
+   "key": "510lo1q7",
    "name": "job_status",
    "title": "job_status",
    "description": "",
@@ -52,7 +52,7 @@
    "isExpand": false
   },
   {
-   "key": "lzg70tnf",
+   "key": "h5byzo4x",
    "name": "result_code",
    "title": "result_code",
    "description": "",
@@ -60,7 +60,7 @@
    "isExpand": false
   },
   {
-   "key": "y5m8ou9y",
+   "key": "ft1zvvtj",
    "name": "result_message",
    "title": "result_message",
    "description": "",
@@ -68,7 +68,7 @@
    "isExpand": false
   },
   {
-   "key": "zem21015",
+   "key": "9s8imkly",
    "name": "gd_id",
    "title": "gd_id",
    "description": "",
@@ -76,7 +76,7 @@
    "isExpand": false
   },
   {
-   "key": "86mckaii",
+   "key": "c1x3j0ba",
    "name": "evidence",
    "title": "evidence",
    "description": "",
@@ -451,7 +451,7 @@
     "name": "Poll: the due EDIT_GD jobs of the tenant (at most 5, oldest first; an expired hold is due; no live lease / claim row) + DB clock",
     "script": {
      "type": "sql",
-     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       x.id, x.organization_id, x.gd_id, x.stored_status, x.pick_id, x.job_status, x.progress_percent, x.progress_message, x.attempt_count, x.next_attempt_at,\n       x.lease_owner, x.lease_expires_at, x.dead_lease, x.row_version, x.error_code, x.error_message, x.error_details, x.claim_id, x.claim_started_at, x.claim_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN (SELECT CAST(j.id AS CHAR) AS id,\n                    j.organization_id,\n                    (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n                    JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n                    (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n                    j.job_status,\n                    j.progress_percent,\n                    j.progress_message,\n                    j.attempt_count,\n                    DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n                    j.lease_owner,\n                    DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n                    (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= NOW(3)) AS dead_lease,\n                    j.row_version,\n                    j.error_code,\n                    j.error_message,\n                    j.error_details,\n                    CAST(c.id AS CHAR) AS claim_id,\n                    DATE_FORMAT(c.started_at, '%Y-%m-%d %H:%i:%s') AS claim_started_at,\n                    c.result_ref AS claim_owner,\n                    j.create_time AS created\n               FROM gd_async_job j\n               LEFT JOIN gd_publish_step c\n                 ON c.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n                AND c.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n                AND c.step_name = (CONCAT('W0_CLAIM_', j.row_version) COLLATE utf8mb4_general_ci)\n                AND c.is_deleted = 0\n               LEFT JOIN goods_delivery g\n                 ON g.tenant_id = j.tenant_id\n                AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n                AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n               LEFT JOIN gd_publish_step lk\n                 ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                              WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n               LEFT JOIN transfer_order t\n                 ON t.tenant_id = j.tenant_id\n                AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)\n              WHERE j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n                AND j.is_deleted = 0\n                AND j.command = 'EDIT_GD'\n                AND ({{node:code_node_GWguard.data.jobId}} = 0 OR j.id = {{node:code_node_GWguard.data.jobId}})\n                AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'HELD')\n                AND (j.lease_expires_at IS NULL OR j.lease_expires_at <= NOW(3))\n                AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW(3))\n                AND (c.id IS NULL OR c.started_at <= NOW(3) - INTERVAL 10 MINUTE)\n              ORDER BY j.create_time, j.id\n              LIMIT 5) x\n    ON 1 = 1"
+     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       x.id, x.organization_id, x.gd_id, x.stored_status, x.pick_id, x.job_status, x.progress_percent, x.progress_message, x.attempt_count, x.next_attempt_at,\n       x.lease_owner, x.lease_expires_at, x.dead_lease, x.row_version, x.error_code, x.error_message, x.error_details, x.claim_id, x.claim_started_at, x.claim_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN (SELECT CAST(j.id AS CHAR) AS id,\n                    j.organization_id,\n                    (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n                    JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n                    (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n                    j.job_status,\n                    j.progress_percent,\n                    j.progress_message,\n                    j.attempt_count,\n                    DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n                    j.lease_owner,\n                    DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n                    (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= NOW(3)) AS dead_lease,\n                    j.row_version,\n                    j.error_code,\n                    j.error_message,\n                    j.error_details,\n                    CAST(c.id AS CHAR) AS claim_id,\n                    DATE_FORMAT(c.started_at, '%Y-%m-%d %H:%i:%s') AS claim_started_at,\n                    c.result_ref AS claim_owner,\n                    j.create_time AS created\n               FROM gd_async_job j\n               LEFT JOIN gd_publish_step c\n                 ON c.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n                AND c.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n                AND c.step_name = (CONCAT('W0_CLAIM_', j.row_version) COLLATE utf8mb4_general_ci)\n                AND c.is_deleted = 0\n               LEFT JOIN goods_delivery g\n                 ON g.tenant_id = j.tenant_id\n                AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n                AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n               LEFT JOIN gd_publish_step lk\n                 ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                              WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n               LEFT JOIN transfer_order t\n                 ON t.tenant_id = j.tenant_id\n                AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)\n              WHERE j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n                AND j.is_deleted = 0\n                AND j.command = 'EDIT_GD'\n                AND ({{node:code_node_GWguard.data.jobId}} = 0 OR j.id = {{node:code_node_GWguard.data.jobId}})\n                AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'HELD')\n                AND (j.lease_expires_at IS NULL OR j.lease_expires_at <= NOW(3))\n                AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW(3))\n                AND (c.id IS NULL OR c.started_at <= NOW(3) - INTERVAL 10 MINUTE)\n                AND ({{node:code_node_GWguard.data.jobId}} <> 0 OR NOT EXISTS (SELECT 1 FROM gd_publish_step r WHERE r.tenant_id = j.tenant_id AND r.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n                                                 AND r.step_name = 'RELEASE' AND r.is_deleted = 0 AND r.started_at > NOW(3) - INTERVAL 10 SECOND))\n              ORDER BY j.create_time, j.id\n              LIMIT 5) x\n    ON 1 = 1"
     },
     "response_json": [
      {
@@ -784,8 +784,8 @@
        "collectionId": "",
        "list": [
         {
-         "id": 1798300000091,
-         "parentId": 1798300000092,
+         "id": 1798300000107,
+         "parentId": 1798300000108,
          "isTop": true,
          "prop": "",
          "operator": "",
@@ -842,7 +842,7 @@
       "name": "Tick: the FRESH read of the planned jobs (state, lease, backoff, claim row, unlocks) + the lease end of a claim made now",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.organization_id,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= n.t) AS dead_lease,\n       (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due_now,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       CAST(cw.id AS CHAR) AS claim_id,\n       DATE_FORMAT(cw.started_at, '%Y-%m-%d %H:%i:%s') AS claim_started_at,\n       cw.result_ref AS claim_owner,\n       (cw.id IS NOT NULL AND cw.started_at > n.t - INTERVAL 10 MINUTE) AS claim_live\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.is_deleted = 0\n   AND j.id IN ({{node:code_node_GWplan.data.jobIdsSql}})\n  LEFT JOIN gd_publish_step cw\n    ON cw.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND cw.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n   AND cw.step_name = (CONCAT('W0_CLAIM_', j.row_version) COLLATE utf8mb4_general_ci)\n   AND cw.is_deleted = 0\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.organization_id,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= n.t) AS dead_lease,\n       (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due_now,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       CAST(cw.id AS CHAR) AS claim_id,\n       DATE_FORMAT(cw.started_at, '%Y-%m-%d %H:%i:%s') AS claim_started_at,\n       cw.result_ref AS claim_owner,\n       (cw.id IS NOT NULL AND cw.started_at > n.t - INTERVAL 10 MINUTE) AS claim_live\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.is_deleted = 0\n   AND j.id IN ({{node:code_node_GWplan.data.jobIdsSql}})\n  LEFT JOIN gd_publish_step cw\n    ON cw.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND cw.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n   AND cw.step_name = (CONCAT('W0_CLAIM_', j.row_version) COLLATE utf8mb4_general_ci)\n   AND cw.is_deleted = 0\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
       },
       "response_json": [
        {
@@ -2032,7 +2032,7 @@
       "name": "Read-back: the job after the lease write",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
       },
       "response_json": [
        {
@@ -3037,7 +3037,7 @@
           "name": "Read-back: the job after prepare (the truth)",
           "script": {
            "type": "sql",
-           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
           },
           "response_json": [
            {
@@ -3876,7 +3876,7 @@
       "name": "The job before the publish decision",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
       },
       "response_json": [
        {
@@ -4283,7 +4283,7 @@
           "name": "Read-back: the job after the publish (the truth)",
           "script": {
            "type": "sql",
-           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
           },
           "response_json": [
            {
@@ -5113,7 +5113,7 @@
       "name": "The job after the first call (the split decision)",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
       },
       "response_json": [
        {
@@ -5520,7 +5520,7 @@
           "name": "Read-back: the job after the second publish (the truth)",
           "script": {
            "type": "sql",
-           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
           },
           "response_json": [
            {
@@ -6350,7 +6350,7 @@
       "name": "The job after the second call (the split decision)",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
       },
       "response_json": [
        {
@@ -6757,7 +6757,7 @@
           "name": "Read-back: the job after the third publish (the truth)",
           "script": {
            "type": "sql",
-           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
           },
           "response_json": [
            {
@@ -7575,6 +7575,1243 @@
      ]
     },
     {
+     "id": "sql_node_GWsplit3",
+     "type": "sql-node",
+     "data": {
+      "database_id": "",
+      "sql": "",
+      "params": {},
+      "title": "The job after the third call (the split decision)",
+      "isValidator": true,
+      "nodeName": "The job after the third call (the split decision)",
+      "name": "The job after the third call (the split decision)",
+      "script": {
+       "type": "sql",
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+      },
+      "response_json": [
+       {
+        "key": "hkjtgfl2",
+        "name": "db_now",
+        "title": "db_now",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "l58lxof4",
+        "name": "id",
+        "title": "id",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "luswheza",
+        "name": "job_status",
+        "title": "job_status",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "gzvjfmqp",
+        "name": "progress_percent",
+        "title": "progress_percent",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "reafbwps",
+        "name": "progress_message",
+        "title": "progress_message",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "y2efxzlz",
+        "name": "attempt_count",
+        "title": "attempt_count",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "792t688v",
+        "name": "next_attempt_at",
+        "title": "next_attempt_at",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "ow65snb4",
+        "name": "lease_owner",
+        "title": "lease_owner",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "r10u8hzj",
+        "name": "lease_expires_at",
+        "title": "lease_expires_at",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "eblhsx3e",
+        "name": "lease_live",
+        "title": "lease_live",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "2wkfzuqa",
+        "name": "row_version",
+        "title": "row_version",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "8kt2dygr",
+        "name": "error_code",
+        "title": "error_code",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "ntnygtp6",
+        "name": "error_message",
+        "title": "error_message",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "qauqq18x",
+        "name": "error_details",
+        "title": "error_details",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "ccxt9msw",
+        "name": "gd_id",
+        "title": "gd_id",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "0ssx4irr",
+        "name": "stored_status",
+        "title": "stored_status",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "thfgs3xt",
+        "name": "pick_id",
+        "title": "pick_id",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "6c19cukx",
+        "name": "finished_at",
+        "title": "finished_at",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       }
+      ]
+     },
+     "blocks": []
+    },
+    {
+     "id": "code_node_GWsplit3",
+     "type": "code-node",
+     "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "script": {
+       "type": "javascript",
+       "code": "// GD_EDIT_WORKER - Next publish: GD_EDIT_COMMIT ended SPLIT (COMMITTING_GD under a SPLIT| hand-over lease, no next attempt)\n// -> call it again in this tick (phase B: lines, reservations, sales orders; phase C: Picking, header, after); decided from\n// the job row alone\nconst workerSplitResume = function workerSplitResume(guard, mid, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (s(mid.route) !== \"PUBLISH\" || !job) return Object.assign(base, { result_message: \"no publish call in this iteration\" });\n  const split = s(job.job_status) === \"COMMITTING_GD\" && s(job.lease_owner).indexOf(\"SPLIT|\") === 0 && !s(job.next_attempt_at);\n  if (!split) return Object.assign(base, { result_message: \"job is \" + s(job.job_status) + (s(job.lease_owner) ? \" (lease \" + s(job.lease_owner) + \")\" : \"\") + \": no further publish call\" });\n  return Object.assign(base, { route: \"PUBLISH\", result_message: \"split: the next GD_EDIT_COMMIT call of this tick\" });\n};\nconst guard = [{{node:code_node_GWguard.data}}][0];\nconst mid = [{{node:code_node_GWsplit2.data}}][0];\nconst res = workerSplitResume(guard, mid, [{{node:sql_node_GWsplit3.data}}][0]);\nconsole.log(\"worker split\", JSON.stringify(res));\nreturn res;"
+      },
+      "response_json": [
+       {
+        "key": "g0tyxmlb",
+        "name": "route",
+        "title": "route",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "6cn2sc69",
+        "name": "dbNow",
+        "title": "dbNow",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "o6lz4vu0",
+        "name": "jobId",
+        "title": "jobId",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "vzcmjho3",
+        "name": "jobStatus",
+        "title": "jobStatus",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       },
+       {
+        "key": "lzg70tnf",
+        "name": "result_message",
+        "title": "result_message",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       }
+      ],
+      "title": "Next publish: split a third time -> the fourth call",
+      "isValidator": true,
+      "nodeName": "Next publish: split a third time -> the fourth call",
+      "name": "Next publish: split a third time -> the fourth call"
+     },
+     "blocks": []
+    },
+    {
+     "id": "if_GWpub4",
+     "type": "if",
+     "data": {
+      "title": "IF GD_EDIT_COMMIT ended SPLIT a third time: the fourth call",
+      "isValidator": true,
+      "nodeName": "IF GD_EDIT_COMMIT ended SPLIT a third time: the fourth call",
+      "name": "IF GD_EDIT_COMMIT ended SPLIT a third time: the fourth call",
+      "condition_type": "Expression",
+      "filter": {
+       "list": [
+        {
+         "id": 1798300000105,
+         "parentId": 1798300000106,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "type": "javascript",
+       "code": "'{{node:code_node_GWsplit3.data.route}}' == 'PUBLISH'"
+      }
+     },
+     "blocks": [
+      {
+       "id": "ifBlock_TGWpub4",
+       "type": "ifBlock",
+       "data": {
+        "title": "true"
+       },
+       "blocks": [
+        {
+         "id": "workflow_node_GWpub4",
+         "type": "workflow-node",
+         "data": {
+          "workflow_id": "",
+          "workflow_name": "",
+          "input_params": {},
+          "title": "GD_EDIT_COMMIT again after its third SPLIT",
+          "isValidator": true,
+          "nodeName": "GD_EDIT_COMMIT again after its third SPLIT",
+          "name": "GD_EDIT_COMMIT again after its third SPLIT",
+          "workflow": {
+           "source": "GD_EDIT_COMMIT:Workflow:2110618866011787266",
+           "rules": {
+            "collectionId": "2110618866011787266",
+            "list": [
+             {
+              "id": 1798300000091,
+              "parentId": 1798300000092,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+             }
+            ]
+           }
+          },
+          "remote": true,
+          "remoteType": "innerdatasource",
+          "body_params": {
+           "list": [
+            {
+             "prop": "job_id",
+             "propLabel": "job_id",
+             "operator": "",
+             "operatorLabel": "",
+             "valueType": "field",
+             "valueTypeLabel": "",
+             "value": "{{node:code_node_GWpick.data.jobId}}",
+             "valueLabel": ""
+            }
+           ]
+          }
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_node_GWpub4Resp",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "script": {
+           "type": "javascript",
+           "code": "// GD_EDIT_WORKER - The fourth publish response, normalized (evidence only: the job row read right after is the truth)\nconst calleeEcho = function calleeEcho(raw, fields) {\n  const s = (v) => (v === undefined || v === null ? \"\" : typeof v === \"object\" ? JSON.stringify(v) : String(v));\n  const r0 = raw && typeof raw === \"object\" ? raw : {};\n  const r = r0.result_code === undefined && r0.job_status === undefined && r0.data && typeof r0.data === \"object\" ? r0.data : r0;\n  const out = { called: \"YES\" };\n  for (const f of fields) out[f] = s(r[f]);\n  return out;\n};\nconst res = calleeEcho([{{node:workflow_node_GWpub4.data}}][0] || {}, [\"job_id\", \"job_status\", \"result_code\", \"result_message\", \"path\"]);\nconsole.log(\"fourth publish response\", JSON.stringify(res));\nreturn res;"
+          },
+          "response_json": [
+           {
+            "key": "y5m8ou9y",
+            "name": "called",
+            "title": "called",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "zem21015",
+            "name": "job_id",
+            "title": "job_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "86mckaii",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "bb44pbqd",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "srwkzdv0",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "pn8hyqhv",
+            "name": "path",
+            "title": "path",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           }
+          ],
+          "title": "The fourth publish response, normalized (evidence; the job row decides)",
+          "isValidator": true,
+          "nodeName": "The fourth publish response, normalized (evidence; the job row decides)",
+          "name": "The fourth publish response, normalized (evidence; the job row decides)"
+         },
+         "blocks": []
+        },
+        {
+         "id": "sql_node_GWpub4Back",
+         "type": "sql-node",
+         "data": {
+          "database_id": "",
+          "sql": "",
+          "params": {},
+          "title": "Read-back: the job after the fourth publish (the truth)",
+          "isValidator": true,
+          "nodeName": "Read-back: the job after the fourth publish (the truth)",
+          "name": "Read-back: the job after the fourth publish (the truth)",
+          "script": {
+           "type": "sql",
+           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND SUBSTRING(DATE_FORMAT(t.update_time, '%Y-%m-%d %H:%i:%s.%f'), 1, 23) = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload,\n\t\t'$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version'))) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_GWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_GWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)\n  LEFT JOIN transfer_order t\n    ON t.tenant_id = j.tenant_id\n   AND t.id = CAST(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_id')), '') AS UNSIGNED)"
+          },
+          "response_json": [
+           {
+            "key": "2112a6bk",
+            "name": "db_now",
+            "title": "db_now",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "p990h1m3",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "7f1rfhrr",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "y3wlonrh",
+            "name": "progress_percent",
+            "title": "progress_percent",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "e53anq2k",
+            "name": "progress_message",
+            "title": "progress_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "bqiht49c",
+            "name": "attempt_count",
+            "title": "attempt_count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "0t68y34g",
+            "name": "next_attempt_at",
+            "title": "next_attempt_at",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "6q3styed",
+            "name": "lease_owner",
+            "title": "lease_owner",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "n2vob2gl",
+            "name": "lease_expires_at",
+            "title": "lease_expires_at",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "9offm73x",
+            "name": "lease_live",
+            "title": "lease_live",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "lgxjjlka",
+            "name": "row_version",
+            "title": "row_version",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "u0kls6yr",
+            "name": "error_code",
+            "title": "error_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "7jlp28v3",
+            "name": "error_message",
+            "title": "error_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "cqtn4dij",
+            "name": "error_details",
+            "title": "error_details",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "uljw1f9r",
+            "name": "gd_id",
+            "title": "gd_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "ue5gue0q",
+            "name": "stored_status",
+            "title": "stored_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "6x62bbl7",
+            "name": "pick_id",
+            "title": "pick_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "zijeody7",
+            "name": "finished_at",
+            "title": "finished_at",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           }
+          ]
+         },
+         "blocks": []
+        },
+        {
+         "id": "code_node_GWpub4After",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "script": {
+           "type": "javascript",
+           "code": "// GD_EDIT_WORKER - After fourth publish: GD_EDIT_COMMIT writes the job itself; the worker writes only when the call answered\n// without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any write, so\n// nothing was saved: a hard code -> FAILED + the unlocks the fresh read allows (GD to its stored status, our Picking); no\n// code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDE_INVALID_REQUEST\", \"GDE_INVALID_DATA\", \"GDE_GD_NOT_FOUND\", \"GDE_NOT_LOCKED\", \"GDE_NOT_ELIGIBLE\", \"GDE_PLAN_FAILED\", \"GDE_PICKING_CHANGED\", \"GDE_PICKING_MISMATCH\",\n    \"GDE_RES_UNREAD\", \"GDE_NO_AFTER_IMAGE\", \"GDE_STALE\", \"GDE_SO_REFUSED\", \"JOB_ILLEGAL_TRANSITION\"],\n};\n// a refusal PREPARE / COMMIT answers that no retry changes: the list, an inventory refusal, a GOODS_DELIVERY stop (GDE_400 ...)\nconst isHard = function isHard(code) {\n  const c = String(code || \"\");\n  return PKC.hard.indexOf(c) >= 0 || /^GDE_(INVENTORY_[A-Z0-9_]+|[0-9]{3})$/.test(c);\n};\n// the unlocks a job row read by wjob_sql allows: gd_id is the GD while Processing under this job's lock, pick_id our Picking\n// while still at the version this job locked it at ('0' otherwise)\nconst unlockOf = function unlockOf(r) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const id = (v) => (/^[0-9]{1,20}$/.test(s(v)) && s(v) !== \"0\" ? s(v) : \"\");\n  const gd = id((r || {}).gd_id), pk = id((r || {}).pick_id);\n  return { gd: gd ? [{ id: gd, gd_status: s(r.stored_status) === \"Draft\" ? \"Draft\" : \"Created\" }] : [], pick: pk ? [{ id: pk, is_processing: 0 }] : [] };\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", pickUnlockRows: [], needPickUnlock: \"NO\", publishRoute: s(r.path), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDE_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = isHard(r.result_code) ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"GDE_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"GD_EDIT_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"GD_EDIT_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = unlockOf(job);\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not saved: the edit could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_EDIT_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock.gd, needUnlock: unlock.gd.length ? \"YES\" : \"NO\", pickUnlockRows: unlock.pick, needPickUnlock: unlock.pick.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"GDE_TRANSIENT\", result_message: \"GD_EDIT_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_GWguard.data}}][0];\nconst own = [{{node:code_node_GWown.data}}][0];\nconst mid = [{{node:code_node_GWsplit3.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_GWpub4Resp.data}}][0], [{{node:sql_node_GWpub4Back.data}}][0]);\nconsole.log(\"worker after fourth publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
+          },
+          "response_json": [
+           {
+            "key": "idcind17",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "2ht0gwoz",
+            "name": "dbNow",
+            "title": "dbNow",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "dsaidqwg",
+            "name": "jobId",
+            "title": "jobId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "99j8nlz9",
+            "name": "jobStatus",
+            "title": "jobStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "k2ptmlbs",
+            "name": "jobRows",
+            "title": "jobRows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "anuusvon",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "u4g69c3b",
+            "name": "needJobUpd",
+            "title": "needJobUpd",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "663r1wxg",
+            "name": "unlockRows",
+            "title": "unlockRows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "5pzxm3oe",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "9cr5ri4v",
+            "name": "needUnlock",
+            "title": "needUnlock",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "pd9c8p1g",
+            "name": "pickUnlockRows",
+            "title": "pickUnlockRows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "pa0gf4sf",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "isArrayItem": true,
+              "children": []
+             }
+            ]
+           },
+           {
+            "key": "z2aen8au",
+            "name": "needPickUnlock",
+            "title": "needPickUnlock",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "fkg3r0pn",
+            "name": "publishRoute",
+            "title": "publishRoute",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "r2nrh2hl",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "r5dvhzxm",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "zyc8x7o0",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           }
+          ],
+          "title": "After the fourth publish: COMMIT wrote the job itself; the worker writes only when nothing was saved",
+          "isValidator": true,
+          "nodeName": "After the fourth publish: COMMIT wrote the job itself; the worker writes only when nothing was saved",
+          "name": "After the fourth publish: COMMIT wrote the job itself; the worker writes only when nothing was saved"
+         },
+         "blocks": []
+        },
+        {
+         "id": "cor_GWpub4Job",
+         "type": "condition-or-node",
+         "data": {
+          "title": "Job row to write after the fourth publish?",
+          "filter": {
+           "list": []
+          },
+          "expression": {
+           "code": ""
+          },
+          "displayContent": "sdk.form.setCondition"
+         },
+         "blocks": [
+          {
+           "id": "cori_YGWpub4Job",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "YES",
+            "filter": {
+             "list": [
+              {
+               "id": 1798300000095,
+               "parentId": 1798300000096,
+               "isTop": true,
+               "prop": "node.code_node_GWpub4After.data.needJobUpd",
+               "operator": "equal",
+               "valueType": "value",
+               "value": "YES",
+               "type": "leaf",
+               "level": 1,
+               "propLabel": "needJobUpd",
+               "valueLabel": "",
+               "operatorLabel": "Equal"
+              }
+             ]
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "YES",
+            "name": "YES",
+            "condition_type": "ConditionRule"
+           },
+           "blocks": [
+            {
+             "id": "update_node_GWpub4Job",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "GD Async Job:Table:2104845286495150081",
+               "rules": {
+                "collectionId": "2104845286495150081",
+                "list": [
+                 {
+                  "id": 1798300000093,
+                  "parentId": 1798300000094,
+                  "isTop": true,
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_GWpub4After.data.jobRows.id}}",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "主键ID",
+                  "valueLabel": "",
+                  "operatorLabel": "In"
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Job: FAILED (a hard code) / retry with backoff (lease released)",
+              "isValidator": true,
+              "nodeName": "Job: FAILED (a hard code) / retry with backoff (lease released)",
+              "name": "Job: FAILED (a hard code) / retry with backoff (lease released)",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.id}}",
+                 "valueLabel": "",
+                 "propLabel": "主键ID"
+                },
+                {
+                 "prop": "job_status",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.job_status}}",
+                 "valueLabel": "",
+                 "propLabel": "job_status"
+                },
+                {
+                 "prop": "progress_percent",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.progress_percent}}",
+                 "valueLabel": "",
+                 "propLabel": "progress_percent"
+                },
+                {
+                 "prop": "progress_message",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.progress_message}}",
+                 "valueLabel": "",
+                 "propLabel": "progress_message"
+                },
+                {
+                 "prop": "attempt_count",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.attempt_count}}",
+                 "valueLabel": "",
+                 "propLabel": "attempt_count"
+                },
+                {
+                 "prop": "next_attempt_at",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.next_attempt_at}}",
+                 "valueLabel": "",
+                 "propLabel": "next_attempt_at"
+                },
+                {
+                 "prop": "lease_owner",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.lease_owner}}",
+                 "valueLabel": "",
+                 "propLabel": "lease_owner"
+                },
+                {
+                 "prop": "lease_expires_at",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.lease_expires_at}}",
+                 "valueLabel": "",
+                 "propLabel": "lease_expires_at"
+                },
+                {
+                 "prop": "row_version",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.row_version}}",
+                 "valueLabel": "",
+                 "propLabel": "row_version"
+                },
+                {
+                 "prop": "error_code",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.error_code}}",
+                 "valueLabel": "",
+                 "propLabel": "error_code"
+                },
+                {
+                 "prop": "error_message",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.error_message}}",
+                 "valueLabel": "",
+                 "propLabel": "error_message"
+                },
+                {
+                 "prop": "error_details",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.error_details}}",
+                 "valueLabel": "",
+                 "propLabel": "error_details"
+                },
+                {
+                 "prop": "finished_at",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.jobRows.finished_at}}",
+                 "valueLabel": "",
+                 "propLabel": "finished_at"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "cori_NGWpub4Job",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "NO",
+            "isDefault": true,
+            "filter": {
+             "list": []
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.otherCondition"
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "cor_GWpub4Unlock",
+         "type": "condition-or-node",
+         "data": {
+          "title": "GD lock to release after the fourth publish?",
+          "filter": {
+           "list": []
+          },
+          "expression": {
+           "code": ""
+          },
+          "displayContent": "sdk.form.setCondition"
+         },
+         "blocks": [
+          {
+           "id": "cori_YGWpub4Unlock",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "YES",
+            "filter": {
+             "list": [
+              {
+               "id": 1798300000099,
+               "parentId": 1798300000100,
+               "isTop": true,
+               "prop": "node.code_node_GWpub4After.data.needUnlock",
+               "operator": "equal",
+               "valueType": "value",
+               "value": "YES",
+               "type": "leaf",
+               "level": 1,
+               "propLabel": "needUnlock",
+               "valueLabel": "",
+               "operatorLabel": "Equal"
+              }
+             ]
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "YES",
+            "name": "YES",
+            "condition_type": "ConditionRule"
+           },
+           "blocks": [
+            {
+             "id": "update_node_GWpub4Unlock",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "Goods Delivery:Table:1902054888473481218",
+               "rules": {
+                "collectionId": "1902054888473481218",
+                "list": [
+                 {
+                  "id": 1798300000097,
+                  "parentId": 1798300000098,
+                  "isTop": true,
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_GWpub4After.data.unlockRows.id}}",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "主键ID",
+                  "valueLabel": "",
+                  "operatorLabel": "In"
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Goods Delivery back to its stored status (nothing was saved)",
+              "isValidator": true,
+              "nodeName": "Goods Delivery back to its stored status (nothing was saved)",
+              "name": "Goods Delivery back to its stored status (nothing was saved)",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.unlockRows.id}}",
+                 "valueLabel": "",
+                 "propLabel": "主键ID"
+                },
+                {
+                 "prop": "gd_status",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.unlockRows.gd_status}}",
+                 "valueLabel": "",
+                 "propLabel": "GD Status"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "cori_NGWpub4Unlock",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "NO",
+            "isDefault": true,
+            "filter": {
+             "list": []
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.otherCondition"
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "cor_GWpub4PickUnlock",
+         "type": "condition-or-node",
+         "data": {
+          "title": "Our Picking lock to release after the fourth publish?",
+          "filter": {
+           "list": []
+          },
+          "expression": {
+           "code": ""
+          },
+          "displayContent": "sdk.form.setCondition"
+         },
+         "blocks": [
+          {
+           "id": "cori_YGWpub4PickUnlock",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "YES",
+            "filter": {
+             "list": [
+              {
+               "id": 1798300000103,
+               "parentId": 1798300000104,
+               "isTop": true,
+               "prop": "node.code_node_GWpub4After.data.needPickUnlock",
+               "operator": "equal",
+               "valueType": "value",
+               "value": "YES",
+               "type": "leaf",
+               "level": 1,
+               "propLabel": "needPickUnlock",
+               "valueLabel": "",
+               "operatorLabel": "Equal"
+              }
+             ]
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "YES",
+            "name": "YES",
+            "condition_type": "ConditionRule"
+           },
+           "blocks": [
+            {
+             "id": "update_node_GWpub4PickUnlock",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "Transfer Order Picking:Table:1935556443668959233",
+               "rules": {
+                "collectionId": "1935556443668959233",
+                "list": [
+                 {
+                  "id": 1798300000101,
+                  "parentId": 1798300000102,
+                  "isTop": true,
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_GWpub4After.data.pickUnlockRows.id}}",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "主键ID",
+                  "valueLabel": "",
+                  "operatorLabel": "In"
+                 }
+                ]
+               }
+              },
+              "fields": [],
+              "condition": {},
+              "title": "Picking is_processing = 0 (still at the version this job locked)",
+              "isValidator": true,
+              "nodeName": "Picking is_processing = 0 (still at the version this job locked)",
+              "name": "Picking is_processing = 0 (still at the version this job locked)",
+              "props": {
+               "modelName": "",
+               "list": [
+                {
+                 "prop": "id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.pickUnlockRows.id}}",
+                 "valueLabel": "",
+                 "propLabel": "主键ID"
+                },
+                {
+                 "prop": "is_processing",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_GWpub4After.data.pickUnlockRows.is_processing}}",
+                 "valueLabel": "",
+                 "propLabel": "is_processing"
+                }
+               ]
+              }
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "cori_NGWpub4PickUnlock",
+           "type": "condition-or-node-item",
+           "data": {
+            "title": "NO",
+            "isDefault": true,
+            "filter": {
+             "list": []
+            },
+            "expression": {
+             "code": ""
+            },
+            "displayContent": "sdk.form.otherCondition"
+           },
+           "blocks": []
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "id": "ifBlock_FGWpub4",
+       "type": "ifBlock",
+       "data": {
+        "title": "false"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
      "id": "set_cache_GWidxN",
      "type": "set-cache-node",
      "data": {
@@ -7612,7 +8849,7 @@
     },
     "response_json": [
      {
-      "key": "hkjtgfl2",
+      "key": "f9o5liph",
       "name": "id",
       "title": "id",
       "description": "",
@@ -7621,7 +8858,7 @@
       "children": []
      },
      {
-      "key": "l58lxof4",
+      "key": "noqlvw0w",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -7630,7 +8867,7 @@
       "children": []
      },
      {
-      "key": "luswheza",
+      "key": "gyyao3oe",
       "name": "attempt_count",
       "title": "attempt_count",
       "description": "",
@@ -7639,7 +8876,7 @@
       "children": []
      },
      {
-      "key": "gzvjfmqp",
+      "key": "tz4ssi68",
       "name": "lease_owner",
       "title": "lease_owner",
       "description": "",
@@ -7648,7 +8885,7 @@
       "children": []
      },
      {
-      "key": "reafbwps",
+      "key": "o47ydegz",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -7657,7 +8894,7 @@
       "children": []
      },
      {
-      "key": "y2efxzlz",
+      "key": "sqg5kvh9",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -7666,7 +8903,7 @@
       "children": []
      },
      {
-      "key": "792t688v",
+      "key": "834re6tv",
       "name": "gd_id",
       "title": "gd_id",
       "description": "",
@@ -7691,7 +8928,7 @@
     },
     "response_json": [
      {
-      "key": "ow65snb4",
+      "key": "uyd3j1cw",
       "name": "worker_route",
       "title": "worker_route",
       "description": "",
@@ -7700,7 +8937,7 @@
       "children": []
      },
      {
-      "key": "r10u8hzj",
+      "key": "i4lr1cor",
       "name": "processed",
       "title": "processed",
       "description": "",
@@ -7709,7 +8946,7 @@
       "children": []
      },
      {
-      "key": "eblhsx3e",
+      "key": "l5y0g5e9",
       "name": "jobs",
       "title": "jobs",
       "description": "",
@@ -7718,7 +8955,7 @@
       "children": []
      },
      {
-      "key": "2wkfzuqa",
+      "key": "17q24hi7",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -7727,7 +8964,7 @@
       "children": []
      },
      {
-      "key": "8kt2dygr",
+      "key": "tv478e30",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -7736,7 +8973,7 @@
       "children": []
      },
      {
-      "key": "ntnygtp6",
+      "key": "0401rhuz",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -7745,7 +8982,7 @@
       "children": []
      },
      {
-      "key": "qauqq18x",
+      "key": "yry4c3jy",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -7754,7 +8991,7 @@
       "children": []
      },
      {
-      "key": "ccxt9msw",
+      "key": "vqdsl7rc",
       "name": "gd_id",
       "title": "gd_id",
       "description": "",
@@ -7763,7 +9000,7 @@
       "children": []
      },
      {
-      "key": "0ssx4irr",
+      "key": "p4793ek1",
       "name": "evidence",
       "title": "evidence",
       "description": "",

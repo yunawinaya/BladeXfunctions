@@ -1,0 +1,73 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SA_V2_PREPARE",
+   "dataId": "2111074403720007681",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Adjustment/AsyncV2/SA_V2_PREPARE.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "SA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "SA_V2_COMMIT",
+   "dataId": "2111074444748689410",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Adjustment/AsyncV2/SA_V2_COMMIT.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "SA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "SA_V2_WORKER",
+   "dataId": "2111074368689180673",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Adjustment/AsyncV2/SA_V2_WORKER.json",
+   "smoke": {
+    "request": {
+     "job_id": ""
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  },
+  {
+   "name": "SA_V2_SUBMIT",
+   "dataId": "2111074320177860610",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Adjustment/AsyncV2/SA_V2_SUBMIT.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "source": "FORM",
+     "saveAs": "",
+     "pageStatus": "",
+     "sa_id": "2094647004894920705",
+     "sc_id": "",
+     "idempotency_key": "",
+     "form": "",
+     "organization_id": "",
+     "nickname": "",
+     "adjustment_date": "",
+     "create_adjustment": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  }
+ ]
+}

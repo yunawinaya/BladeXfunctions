@@ -56,6 +56,7 @@
   "supplier_uuid",
   "supplier_website",
   "switch_save_as_default",
-  "unique_branch_code"
+  "unique_branch_code",
+  "custom_fields_csihktvh"
  ]
 }

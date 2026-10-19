@@ -1,0 +1,40 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SA_FORM",
+   "kind": "form",
+   "dataId": "1902274108952006658",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Adjustment/AsyncV2/SAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/sav2/base/sa_form_v313.json",
+   "acceptDrift": [
+    "/config/allow_print_use"
+   ]
+  },
+  {
+   "name": "SA_LIST",
+   "kind": "page",
+   "dataId": "1902690404764073986",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Adjustment/AsyncV2/SAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/sav2/base/sa_list_v57.json"
+  },
+  {
+   "name": "SC_FORM",
+   "kind": "form",
+   "dataId": "1970062686583369729",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Count/AsyncV2/SCform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/sav2/base/sc_form_v497.json",
+   "acceptDrift": [
+    "/config/allow_print_use"
+   ]
+  },
+  {
+   "name": "SC_LIST",
+   "kind": "page",
+   "dataId": "1970076277973823489",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Count/AsyncV2/SClistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/sav2/base/sc_list_v38.json"
+  }
+ ]
+}

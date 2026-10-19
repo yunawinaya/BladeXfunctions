@@ -2105,6 +2105,230 @@
           "data": { "title": "true" },
           "blocks": [
             {
+              "id": "code_node_CfNeed1",
+              "type": "code-node",
+              "data": {
+                "title": "Custom fields this edit leaves out? (header + lines)",
+                "isValidator": true,
+                "nodeName": "Custom fields this edit leaves out? (header + lines)",
+                "name": "Custom fields this edit leaves out? (header + lines)",
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_fillback.data.entry.custom_fields_b3w85tmv}}][0];\nconst lines = [{{node:code_fillback.data.entry.table_po}}][0];\nconst rawId = [{{node:code_fillback.data.entry.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_va4w0xz3\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
+                },
+                "response_json": [
+                  {
+                    "key": "a9ssee6i",
+                    "name": "need",
+                    "title": "need",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "w1zjtrad",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_CfNeed1",
+              "type": "if",
+              "data": {
+                "title": "IF the edit leaves custom fields out",
+                "isValidator": true,
+                "nodeName": "IF the edit leaves custom fields out",
+                "name": "IF the edit leaves custom fields out",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1799100006003,
+                      "parentId": 1799100006004,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_CfNeed1.data.need}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TCfNeed1",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "get_node_CfStored1",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Purchase Order:Table:1902776039445217282",
+                          "rules": {
+                            "collectionId": "1902776039445217282",
+                            "list": [
+                              {
+                                "id": 1799100006001,
+                                "parentId": 1799100006002,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "equal",
+                                "valueType": "field",
+                                "value": "{{node:code_node_CfNeed1.data.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "Equal"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "The stored record (custom fields by name)",
+                        "isValidator": true,
+                        "nodeName": "The stored record (custom fields by name)",
+                        "name": "The stored record (custom fields by name)"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_CfFill1",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_fillback.data.entry.custom_fields_b3w85tmv}}][0];\nconst lines = [{{node:code_fillback.data.entry.table_po}}][0];\nconst got = [{{node:get_node_CfStored1.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = null;\nconst storedRows = flat(stored[\"table_po\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_b3w85tmv\"]) ? null : stored[\"custom_fields_b3w85tmv\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "3qh99g08",
+                            "name": "ok",
+                            "title": "ok",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "ta7n37ig",
+                            "name": "cf",
+                            "title": "cf",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "0pvq0ke3",
+                            "name": "lines",
+                            "title": "lines",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "jrtbs0pu",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ],
+                        "title": "Stored custom fields for what the edit left out",
+                        "isValidator": true,
+                        "nodeName": "Stored custom fields for what the edit left out",
+                        "name": "Stored custom fields for what the edit left out"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FCfNeed1",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "code_node_CfOut1",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill1.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_fillback.data.entry.custom_fields_b3w85tmv}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_fillback.data.entry.table_po}}][0] };"
+                },
+                "response_json": [
+                  {
+                    "key": "gtzrbjlk",
+                    "name": "cf",
+                    "title": "cf",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "yppm3hgc",
+                    "name": "lines",
+                    "title": "lines",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "lxkmmbox",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  }
+                ],
+                "title": "Custom fields to write (payload, or stored where left out)",
+                "isValidator": true,
+                "nodeName": "Custom fields to write (payload, or stored where left out)",
+                "name": "Custom fields to write (payload, or stored where left out)"
+              },
+              "blocks": []
+            },
+            {
               "id": "update_po",
               "type": "update-node",
               "data": {
@@ -2382,7 +2606,7 @@
                     {
                       "prop": "table_po",
                       "valueType": "field",
-                      "value": "{{node:code_fillback.data.entry.table_po}}",
+                      "value": "{{node:code_node_CfOut1.data.lines}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "table_po"
@@ -2762,6 +2986,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "create_pi"
+                    },
+                    {
+                      "prop": "custom_fields_b3w85tmv",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CfOut1.data.cf}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "custom_fields_b3w85tmv"
                     }
                   ]
                 }
@@ -3461,6 +3693,14 @@
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "create_pi"
+                    },
+                    {
+                      "prop": "custom_fields_b3w85tmv",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.custom_fields_b3w85tmv}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "custom_fields_b3w85tmv"
                     }
                   ]
                 }
@@ -7596,7 +7836,7 @@
                 "name": "Direct PI Map PI Data",
                 "script": {
                   "type": "javascript",
-                  "code": "// Direct Invoice: one Completed PI for the PO just issued. The mapping is the one\n// PO_CONVERT_PI uses (5. Map PI Data), cut down to a single PO.\nconst po = {{node:get_direct_pi_po.data.data}} || {};\nconst convertTo = \"completed\";\nconst docFormat = {{node:get_direct_pi_format.data.data}} || {};\n\n// A relation column can come back as an object rather than an id. An id-typed\n// column on the invoice that receives null fails a BigInt conversion, so an\n// empty one is blanked rather than written as null.\nconst referenceId = (value) => {\n  if (value && typeof value === \"object\") return value.id || null;\n  return value || null;\n};\n\nconst toNumber = (value) => parseFloat(value) || 0;\n\nconst round8 = (value) => Math.round(toNumber(value) * 100000000) / 100000000;\n\n// The invoice date on the engine's own clock. toISOString() would shift it to\n// UTC, which before 08:00 local is a day early.\nconst localDateString = (date) => {\n  const pad = (n) => String(n).padStart(2, \"0\");\n\n  return [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join(\"-\");\n};\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// A bundle is one PO line with the bundle's items beneath it, and it is\n// invoiced as a whole. table_po arrives either with the items nested under the\n// bundle line's `children`, or as flat rows pointing back through parent_id,\n// so both are read and turned into one list with each bundle's items directly\n// after their bundle. table_pi is built as a tree again: the bundle is one row\n// carrying its items under `children`, as the PI form hands it to PI_SAVE.\n// ==========================================================================\nconst flattenPoLines = (lines) => {\n  const rows = lines || [];\n\n  const childrenOf = (line) => {\n    const nested = Array.isArray(line.children) ? line.children : [];\n    if (nested.length > 0) return nested;\n\n    return rows.filter(\n      (row) =>\n        row.parent_id !== undefined &&\n        row.parent_id !== null &&\n        row.parent_id !== \"\" &&\n        String(row.parent_id) === String(line.id),\n    );\n  };\n\n  const claimed = new Set();\n\n  rows.forEach((line) => {\n    childrenOf(line).forEach((child) => {\n      if (child && child.id !== undefined && child.id !== null) {\n        claimed.add(String(child.id));\n      }\n    });\n  });\n\n  const flat = [];\n\n  rows.forEach((line) => {\n    if (claimed.has(String(line.id))) return;\n\n    flat.push({ line: line, parentId: null });\n\n    childrenOf(line).forEach((child) => {\n      flat.push({ line: child, parentId: String(line.id) });\n    });\n  });\n\n  return flat;\n};\n\n// What is left to invoice on a PO line, the same figure the PI form offers\n// when a PO is picked there. PI_SAVE checks it again before it saves.\nconst remainingQty = (line) =>\n  Math.max(0, toNumber(line.quantity) - toNumber(line.invoice_qty));\n\nconst exchangeRateOf = (po) => toNumber(po.exchange_rate) || 1;\n\nconst mapLineItem = (line, po, lineIndex, plantID) => {\n  const invoiceQty = remainingQty(line);\n  const orderQty = toNumber(line.quantity);\n  const unitPrice = toNumber(line.unit_price);\n\n  // The PO line's amounts are for its whole quantity; the invoice carries the\n  // share of them that is still to be invoiced.\n  const ratio = orderQty > 0 ? invoiceQty / orderQty : 0;\n  let discount = toNumber(line.discount);\n\n  if (line.discount_uom === \"Amount\") {\n    discount = discount * ratio;\n  }\n\n  return {\n    material_id: referenceId(line.item_id) || \"\",\n    material_name: line.item_name,\n    item_bundle_id: referenceId(line.item_bundle_id) || \"\",\n    item_desc: line.item_desc || \"\",\n    more_desc: line.more_desc || \"\",\n    purchase_order_no: po.purchase_order_no,\n    order_qty: round8(orderQty),\n    received_qty: round8(line.received_qty),\n    invoice_qty: round8(invoiceQty),\n    available_inv_qty: round8(invoiceQty),\n    quantity_uom: referenceId(line.quantity_uom) || \"\",\n    order_unit_price: round8(unitPrice),\n    order_gross: round8(unitPrice * invoiceQty),\n    order_discount: round8(discount),\n    discount_uom: line.discount_uom,\n    discount_amount: round8(toNumber(line.discount_amount) * ratio),\n    tax_preference: referenceId(line.tax_preference) || \"\",\n    tax_percent: line.tax_percent,\n    tax_amount: round8(toNumber(line.tax_amount) * ratio),\n    tax_inclusive: line.tax_inclusive,\n    invoice_amount: round8(toNumber(line.po_amount) * ratio),\n    line_remark_1: line.line_remark_1 || \"\",\n    line_remark_2: line.line_remark_2 || \"\",\n    goods_receiving_no: \"\",\n    gr_line_id: \"\",\n    line_gr_id: \"\",\n    line_po_id: po.id,\n    po_line_id: line.id,\n    item_category_id: referenceId(line.item_category_id) || \"\",\n    line_index: lineIndex,\n    plant_id: plantID,\n    tariff_id: line.tariff_id,\n    payment_term_id: referenceId(po.po_payment_terms) || \"\",\n    further_description: line.further_description || \"\",\n    project_id: line.project_id ?? null,\n  };\n};\n\n// The invoice lines for one order, numbered on from `lineNumber`. A line with\n// nothing left to invoice is left out, and a bundle line left out takes its\n// items with it.\nconst buildPiLines = (po, lineNumber, plantID) => {\n  const lines = [];\n  const rowByPoLine = {};\n\n  for (const entry of flattenPoLines(po.table_po)) {\n    const parentRow = entry.parentId ? rowByPoLine[entry.parentId] : null;\n\n    if (entry.parentId && !parentRow) continue;\n    if (remainingQty(entry.line) <= 0) continue;\n\n    if (parentRow) {\n      if (!Array.isArray(parentRow.children)) parentRow.children = [];\n\n      parentRow.children.push(\n        mapLineItem(\n          entry.line,\n          po,\n          `${parentRow.line_index}-${parentRow.children.length + 1}`,\n          plantID,\n        ),\n      );\n      continue;\n    }\n\n    lineNumber++;\n\n    const row = mapLineItem(entry.line, po, lineNumber, plantID);\n    lines.push(row);\n    rowByPoLine[String(entry.line.id)] = row;\n  }\n\n  // A bundle is worth what its items come to, which is how the PO totals it,\n  // so the bundle line's amounts are replaced by the sum of its items.\n  for (const row of lines) {\n    if (!Array.isArray(row.children) || row.children.length === 0) continue;\n\n    const sumOf = (key) =>\n      row.children.reduce((total, child) => total + toNumber(child[key]), 0);\n    const bundleQty = toNumber(row.invoice_qty);\n\n    row.order_gross = round8(sumOf(\"order_gross\"));\n    row.discount_amount = round8(sumOf(\"discount_amount\"));\n    row.tax_amount = round8(sumOf(\"tax_amount\"));\n    row.invoice_amount = round8(sumOf(\"invoice_amount\"));\n    row.order_unit_price = bundleQty > 0 ? round8(row.order_gross / bundleQty) : 0;\n  }\n\n  return { lines, lineNumber };\n};\n\n// Totals are counted on the top-level lines only: a bundle is counted once,\n// through its bundle line.\nconst calculateTotals = (lines, exchangeRate) => {\n  const sumOf = (key) => lines.reduce((total, line) => total + toNumber(line[key]), 0);\n  const invoiceTotal = sumOf(\"invoice_amount\");\n\n  return {\n    invoice_subtotal: round8(sumOf(\"order_gross\")),\n    invoice_total_discount: round8(sumOf(\"discount_amount\")),\n    invoice_taxes_amount: round8(sumOf(\"tax_amount\")),\n    invoice_total: round8(invoiceTotal),\n    myr_total_amount: round8(invoiceTotal * exchangeRate),\n  };\n};\n\nconst mapHeaderData = (record, pos, lines, plantID) => {\n  const currency = record.po_currency;\n  const exchangeRate = exchangeRateOf(record);\n  const totals = calculateTotals(lines, exchangeRate);\n\n  return {\n    page_status: \"Add\",\n    pi_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    purchase_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    purchase_invoice_no_type: docFormat.id,\n    invoice_date: localDateString(new Date()),\n    supplier_name: referenceId(record.po_supplier_id),\n    plant_id: plantID,\n    organization_id: record.organization_id,\n    acc_integration_type: record.acc_integration_type,\n    previous_status: \"\",\n    po_id: pos.map((po) => po.id),\n    po_no_display: pos.map((po) => po.purchase_order_no).join(\", \"),\n    gr_id: [],\n    gr_no_display: \"\",\n    currency_code: currency,\n    exchange_rate: exchangeRate,\n    exchange_rate_currency: currency,\n    exchange_rate_myr: \"MYR\",\n    total_gross_currency: currency,\n    total_discount_currency: currency,\n    total_tax_currency: currency,\n    total_amount_currency: currency,\n    total_amount_myr: \"MYR\",\n    invoice_payment_term_id: referenceId(record.po_payment_terms) || \"\",\n    pi_description: record.po_description || \"Purchase\",\n    created_source: record.created_source,\n    wa_number: record.wa_number,\n    wa_group: record.wa_group,\n    remarks: record.po_remark,\n    remarks2: record.po_remark2,\n    remarks3: record.po_remark3,\n    remarks4: record.po_remark4,\n    remarks5: record.po_remark5,\n    pi_billing_address: record.po_billing_address,\n    pi_shipping_address: record.po_shipping_address,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n    project_id: record.project_id ?? null,\n    table_pi: lines,\n    ...totals,\n  };\n};\n\nconst plantID = referenceId(po.po_plant);\nconst { lines } = buildPiLines(po, 0, plantID);\nconst piData = lines.length > 0 ? mapHeaderData(po, [po], lines, plantID) : null;\n\nconsole.log(\"Direct PI - lines\", lines.length, \"for\", po.purchase_order_no);\n\nreturn {\n  piData,\n  hasLines: lines.length > 0,\n};\n"
+                  "code": "// Direct Invoice: one Completed PI for the PO just issued. The mapping is the one\n// PO_CONVERT_PI uses (5. Map PI Data), cut down to a single PO.\nconst po = {{node:get_direct_pi_po.data.data}} || {};\nconst convertTo = \"completed\";\nconst docFormat = {{node:get_direct_pi_format.data.data}} || {};\n\n// A relation column can come back as an object rather than an id. An id-typed\n// column on the invoice that receives null fails a BigInt conversion, so an\n// empty one is blanked rather than written as null.\nconst referenceId = (value) => {\n  if (value && typeof value === \"object\") return value.id || null;\n  return value || null;\n};\n\nconst toNumber = (value) => parseFloat(value) || 0;\n\n// Custom fields travel as one object; a JSON column can arrive as text, and a NULL one is left off the row.\nconst customFields = (value) => {\n  if (typeof value === \"string\") {\n    try {\n      value = JSON.parse(value);\n    } catch (e) {\n      return {};\n    }\n  }\n  return value && typeof value === \"object\" && !Array.isArray(value) ? value : {};\n};\n\nconst round8 = (value) => Math.round(toNumber(value) * 100000000) / 100000000;\n\n// The invoice date on the engine's own clock. toISOString() would shift it to\n// UTC, which before 08:00 local is a day early.\nconst localDateString = (date) => {\n  const pad = (n) => String(n).padStart(2, \"0\");\n\n  return [date.getFullYear(), pad(date.getMonth() + 1), pad(date.getDate())].join(\"-\");\n};\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// A bundle is one PO line with the bundle's items beneath it, and it is\n// invoiced as a whole. table_po arrives either with the items nested under the\n// bundle line's `children`, or as flat rows pointing back through parent_id,\n// so both are read and turned into one list with each bundle's items directly\n// after their bundle. table_pi is built as a tree again: the bundle is one row\n// carrying its items under `children`, as the PI form hands it to PI_SAVE.\n// ==========================================================================\nconst flattenPoLines = (lines) => {\n  const rows = lines || [];\n\n  const childrenOf = (line) => {\n    const nested = Array.isArray(line.children) ? line.children : [];\n    if (nested.length > 0) return nested;\n\n    return rows.filter(\n      (row) =>\n        row.parent_id !== undefined &&\n        row.parent_id !== null &&\n        row.parent_id !== \"\" &&\n        String(row.parent_id) === String(line.id),\n    );\n  };\n\n  const claimed = new Set();\n\n  rows.forEach((line) => {\n    childrenOf(line).forEach((child) => {\n      if (child && child.id !== undefined && child.id !== null) {\n        claimed.add(String(child.id));\n      }\n    });\n  });\n\n  const flat = [];\n\n  rows.forEach((line) => {\n    if (claimed.has(String(line.id))) return;\n\n    flat.push({ line: line, parentId: null });\n\n    childrenOf(line).forEach((child) => {\n      flat.push({ line: child, parentId: String(line.id) });\n    });\n  });\n\n  return flat;\n};\n\n// What is left to invoice on a PO line, the same figure the PI form offers\n// when a PO is picked there. PI_SAVE checks it again before it saves.\nconst remainingQty = (line) =>\n  Math.max(0, toNumber(line.quantity) - toNumber(line.invoice_qty));\n\nconst exchangeRateOf = (po) => toNumber(po.exchange_rate) || 1;\n\nconst mapLineItem = (line, po, lineIndex, plantID) => {\n  const invoiceQty = remainingQty(line);\n  const orderQty = toNumber(line.quantity);\n  const unitPrice = toNumber(line.unit_price);\n\n  // The PO line's amounts are for its whole quantity; the invoice carries the\n  // share of them that is still to be invoiced.\n  const ratio = orderQty > 0 ? invoiceQty / orderQty : 0;\n  let discount = toNumber(line.discount);\n\n  if (line.discount_uom === \"Amount\") {\n    discount = discount * ratio;\n  }\n\n  return {\n    material_id: referenceId(line.item_id) || \"\",\n    material_name: line.item_name,\n    item_bundle_id: referenceId(line.item_bundle_id) || \"\",\n    item_desc: line.item_desc || \"\",\n    more_desc: line.more_desc || \"\",\n    purchase_order_no: po.purchase_order_no,\n    order_qty: round8(orderQty),\n    received_qty: round8(line.received_qty),\n    invoice_qty: round8(invoiceQty),\n    available_inv_qty: round8(invoiceQty),\n    quantity_uom: referenceId(line.quantity_uom) || \"\",\n    order_unit_price: round8(unitPrice),\n    order_gross: round8(unitPrice * invoiceQty),\n    order_discount: round8(discount),\n    discount_uom: line.discount_uom,\n    discount_amount: round8(toNumber(line.discount_amount) * ratio),\n    tax_preference: referenceId(line.tax_preference) || \"\",\n    tax_percent: line.tax_percent,\n    tax_amount: round8(toNumber(line.tax_amount) * ratio),\n    tax_inclusive: line.tax_inclusive,\n    invoice_amount: round8(toNumber(line.po_amount) * ratio),\n    line_remark_1: line.line_remark_1 || \"\",\n    line_remark_2: line.line_remark_2 || \"\",\n    goods_receiving_no: \"\",\n    gr_line_id: \"\",\n    line_gr_id: \"\",\n    line_po_id: po.id,\n    po_line_id: line.id,\n    item_category_id: referenceId(line.item_category_id) || \"\",\n    line_index: lineIndex,\n    plant_id: plantID,\n    tariff_id: line.tariff_id,\n    payment_term_id: referenceId(po.po_payment_terms) || \"\",\n    further_description: line.further_description || \"\",\n    project_id: line.project_id ?? null,\n    custom_fields_y78jfz24: customFields(line.custom_fields_va4w0xz3),\n  };\n};\n\n// The invoice lines for one order, numbered on from `lineNumber`. A line with\n// nothing left to invoice is left out, and a bundle line left out takes its\n// items with it.\nconst buildPiLines = (po, lineNumber, plantID) => {\n  const lines = [];\n  const rowByPoLine = {};\n\n  for (const entry of flattenPoLines(po.table_po)) {\n    const parentRow = entry.parentId ? rowByPoLine[entry.parentId] : null;\n\n    if (entry.parentId && !parentRow) continue;\n    if (remainingQty(entry.line) <= 0) continue;\n\n    if (parentRow) {\n      if (!Array.isArray(parentRow.children)) parentRow.children = [];\n\n      parentRow.children.push(\n        mapLineItem(\n          entry.line,\n          po,\n          `${parentRow.line_index}-${parentRow.children.length + 1}`,\n          plantID,\n        ),\n      );\n      continue;\n    }\n\n    lineNumber++;\n\n    const row = mapLineItem(entry.line, po, lineNumber, plantID);\n    lines.push(row);\n    rowByPoLine[String(entry.line.id)] = row;\n  }\n\n  // A bundle is worth what its items come to, which is how the PO totals it,\n  // so the bundle line's amounts are replaced by the sum of its items.\n  for (const row of lines) {\n    if (!Array.isArray(row.children) || row.children.length === 0) continue;\n\n    const sumOf = (key) =>\n      row.children.reduce((total, child) => total + toNumber(child[key]), 0);\n    const bundleQty = toNumber(row.invoice_qty);\n\n    row.order_gross = round8(sumOf(\"order_gross\"));\n    row.discount_amount = round8(sumOf(\"discount_amount\"));\n    row.tax_amount = round8(sumOf(\"tax_amount\"));\n    row.invoice_amount = round8(sumOf(\"invoice_amount\"));\n    row.order_unit_price = bundleQty > 0 ? round8(row.order_gross / bundleQty) : 0;\n  }\n\n  return { lines, lineNumber };\n};\n\n// Totals are counted on the top-level lines only: a bundle is counted once,\n// through its bundle line.\nconst calculateTotals = (lines, exchangeRate) => {\n  const sumOf = (key) => lines.reduce((total, line) => total + toNumber(line[key]), 0);\n  const invoiceTotal = sumOf(\"invoice_amount\");\n\n  return {\n    invoice_subtotal: round8(sumOf(\"order_gross\")),\n    invoice_total_discount: round8(sumOf(\"discount_amount\")),\n    invoice_taxes_amount: round8(sumOf(\"tax_amount\")),\n    invoice_total: round8(invoiceTotal),\n    myr_total_amount: round8(invoiceTotal * exchangeRate),\n  };\n};\n\nconst mapHeaderData = (record, pos, lines, plantID) => {\n  const currency = record.po_currency;\n  const exchangeRate = exchangeRateOf(record);\n  const totals = calculateTotals(lines, exchangeRate);\n\n  return {\n    page_status: \"Add\",\n    pi_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    purchase_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    purchase_invoice_no_type: docFormat.id,\n    invoice_date: localDateString(new Date()),\n    supplier_name: referenceId(record.po_supplier_id),\n    plant_id: plantID,\n    organization_id: record.organization_id,\n    acc_integration_type: record.acc_integration_type,\n    previous_status: \"\",\n    po_id: pos.map((po) => po.id),\n    po_no_display: pos.map((po) => po.purchase_order_no).join(\", \"),\n    gr_id: [],\n    gr_no_display: \"\",\n    currency_code: currency,\n    exchange_rate: exchangeRate,\n    exchange_rate_currency: currency,\n    exchange_rate_myr: \"MYR\",\n    total_gross_currency: currency,\n    total_discount_currency: currency,\n    total_tax_currency: currency,\n    total_amount_currency: currency,\n    total_amount_myr: \"MYR\",\n    invoice_payment_term_id: referenceId(record.po_payment_terms) || \"\",\n    pi_description: record.po_description || \"Purchase\",\n    created_source: record.created_source,\n    wa_number: record.wa_number,\n    wa_group: record.wa_group,\n    remarks: record.po_remark,\n    remarks2: record.po_remark2,\n    remarks3: record.po_remark3,\n    remarks4: record.po_remark4,\n    remarks5: record.po_remark5,\n    pi_billing_address: record.po_billing_address,\n    pi_shipping_address: record.po_shipping_address,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n    project_id: record.project_id ?? null,\n    custom_fields_d10wd6ob: customFields(record.custom_fields_b3w85tmv),\n    table_pi: lines,\n    ...totals,\n  };\n};\n\nconst plantID = referenceId(po.po_plant);\nconst { lines } = buildPiLines(po, 0, plantID);\nconst piData = lines.length > 0 ? mapHeaderData(po, [po], lines, plantID) : null;\n\nconsole.log(\"Direct PI - lines\", lines.length, \"for\", po.purchase_order_no);\n\nreturn {\n  piData,\n  hasLines: lines.length > 0,\n};\n"
                 },
                 "response_json": [
                   {

@@ -5,7 +5,8 @@
 // <out_request.json>.changes.json (the lines and their before / after) for the checker. Tenant data: session scratchpad only.
 // --remove=<k,...>: also drop those top-level lines (1-based, the form's order), as the row delete does; the changes file keeps
 // each removed row. --add-from=<changes.json>: also append a fresh line for each row an earlier --remove dropped (the fields a
-// line converted from its SO line carries, no allocation: the save allocates it).
+// line converted from its SO line carries, no allocation: the save allocates it). --set=<k>:<qty>,...: also set those lines'
+// quantity (a raise adds to the last allocation entry, the same bin; use n = 0).
 const fs = require("fs"), vm = require("vm");
 const R = "/Users/yunawinaya/Developer/BladeXfunctions/";
 const D = __dirname + "/..";
@@ -16,6 +17,7 @@ const n = Number(nArg || 3);
 const step = Number(pos[3] || 1);   // how much each line drops
 const removeAt = flag("remove").split(",").filter(Boolean).map(Number);
 const addFrom = flag("add-from");
+const setAt = flag("set").split(",").filter(Boolean).map((x) => x.split(":").map(Number));
 const S = JSON.parse(fs.readFileSync(readsFile, "utf8"));
 const F = JSON.parse(fs.readFileSync(R + "scratchpad/gdc/lift/fields.json", "utf8"));
 const sb = { console, JSON, Math, Number, String, Array, Object, Set, Map, parseFloat, parseInt, isNaN, isFinite, Boolean, Error, RegExp, Date };
@@ -32,25 +34,36 @@ const form = JSON.parse(JSON.stringify(stored));
 const parse = (t) => { try { const v = JSON.parse(t || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
 const rows = form.table_gd.flatMap((r) => [r].concat(r.children || []));
 const changes = [];
-for (const l of rows) {
-  if (changes.length >= n) break;
-  const t = parse(l.temp_qty_data);
-  if (!l.material_id || !t.length || Number(l.gd_qty) <= step || t.reduce((k, e) => k + Number(e.gd_quantity), 0) < step) continue;
+const setQty = (l, t, qty) => {
+  const delta = qty - Number(l.gd_qty);
   const was = { gd_qty: l.gd_qty, base_qty: l.base_qty, gd_delivered_qty: l.gd_delivered_qty, gd_undelivered_qty: l.gd_undelivered_qty, temp_qty_data: l.temp_qty_data };
   const factor = Number(l.gd_qty) ? Number(l.base_qty) / Number(l.gd_qty) : 1;
-  l.gd_qty = Number(l.gd_qty) - step;
+  l.gd_qty = qty;
   l.base_qty = Number((l.gd_qty * factor).toFixed(8));
-  l.gd_delivered_qty = Number(l.gd_delivered_qty) - step;
-  l.gd_undelivered_qty = Number(l.gd_undelivered_qty) + step;
+  l.gd_delivered_qty = Number(l.gd_delivered_qty) + delta;
+  l.gd_undelivered_qty = Number(l.gd_undelivered_qty) - delta;
   // the allocation shrinks from its last entry backwards (an emptied entry is dropped)
-  let left = step;
+  let left = -delta;
   for (let i = t.length - 1; i >= 0 && left > 0; i--) { const take = Math.min(left, Number(t[i].gd_quantity)); t[i].gd_quantity = Number(t[i].gd_quantity) - take; left -= take; }
+  if (delta > 0) t[t.length - 1].gd_quantity = Number(t[t.length - 1].gd_quantity) + delta;
   t.splice(0, t.length, ...t.filter((e) => Number(e.gd_quantity) > 0));
   l.temp_qty_data = JSON.stringify(t);
   changes.push({ id: String(l.id), material_id: String(l.material_id), so_line_item_id: String(l.so_line_item_id || ""), before: was,
     after: { gd_qty: l.gd_qty, base_qty: l.base_qty, gd_delivered_qty: l.gd_delivered_qty, gd_undelivered_qty: l.gd_undelivered_qty, temp_qty_data: l.temp_qty_data } });
+};
+for (const l of rows) {
+  if (changes.length >= n) break;
+  const t = parse(l.temp_qty_data);
+  if (!l.material_id || !t.length || Number(l.gd_qty) <= step || t.reduce((k, e) => k + Number(e.gd_quantity), 0) < step) continue;
+  setQty(l, t, Number(l.gd_qty) - step);
 }
 if (changes.length < n) throw new Error("only " + changes.length + " line(s) fit");
+for (const [k, qty] of setAt) {
+  const l = form.table_gd[k - 1];
+  const t = l ? parse(l.temp_qty_data) : [];
+  if (!l || !l.material_id || !t.length || !(qty > 0) || t.reduce((a, e) => a + Number(e.gd_quantity), 0) < Number(l.gd_qty) - qty) throw new Error("line " + k + " cannot take " + qty);
+  setQty(l, t, qty);
+}
 for (const k of removeAt.slice().sort((a, b) => b - a)) {
   if (!(k >= 1 && k <= form.table_gd.length)) throw new Error("no line " + k);
   const [row] = form.table_gd.splice(k - 1, 1);
@@ -70,7 +83,7 @@ if (addFrom) {
   }
 }
 // n = 0 alone, or a 5th positional argument "remark": the header's remark changes too
-if ((n === 0 && !removeAt.length && !addFrom) || pos[4] === "remark") { const was = form.order_remark; form.order_remark = (was || "") + " (GD Edit V2 live test)"; changes.push({ header: "order_remark", before: was === undefined ? null : was, after: form.order_remark }); }
+if ((n === 0 && !removeAt.length && !addFrom && !setAt.length) || pos[4] === "remark") { const was = form.order_remark; form.order_remark = (was || "") + " (GD Edit V2 live test)"; changes.push({ header: "order_remark", before: was === undefined ? null : was, after: form.order_remark }); }
 const req = { operation: "SUBMIT", gd_id: String(stored.id), source: "FORM", answers: { needCL: "required", continueZero: "", confirmPickReversal: "" }, form: form };
 fs.writeFileSync(outFile, JSON.stringify(req));
 fs.writeFileSync(outFile + ".changes.json", JSON.stringify(changes, null, 1));

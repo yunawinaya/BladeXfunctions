@@ -51,6 +51,15 @@ ticking while ticks find work), and when the list opens (at most every 2 minutes
 - A handling unit that no longer holds the delivered qty fails the job at C0, before anything moves (GD back to
   Created); the classic save fails at its HU node after the stock moved.
 
+## Locks (engine v8, 2026-10-16)
+
+The engine locks each bin (`ITEM|material|bin`, `BATCH|...`) and, since v8, each item's plant-level cost rows
+(`COST|material|plant`, every movement that is not a category move). Two completions, or a completion and a GR / Stock
+Adjustment V2, that share an item at the same plant now run one after the other, even in different bins: the second
+waits (C2 `GDC_LOCK_WAIT`, 8 tries, up to 5 min apart) and fails with nothing written if the lock never frees. An
+operation stuck in REQUIRES_REVIEW keeps its locks, so it now blocks that item plant-wide until the review is resolved.
+Why: without the COST lock, overlapping operations lost FIFO / WA updates (`scratchpad/sav2/race/EVIDENCE.md`).
+
 ## Tested on dev (tenant 711077, 2026-10-14)
 
 | Test | Result |

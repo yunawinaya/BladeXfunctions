@@ -119,7 +119,7 @@
         "timeout": 30000,
         "script": {
           "type": "javascript",
-          "code": "// PICKING_ASYNC_SUBMIT - Guard: the inputs, the request's shape (at most 2,000 lines), the session tenant\nconst MAX_LINES = 2000;\nconst submitGuard = function submitGuard(input) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const inp = input || {};\n  const tenantId = s(inp.systemTenantId);\n  const pickingId = s(inp.pickingId);\n  const org = s(inp.organizationId);\n  const op = s(inp.operation).toUpperCase() || \"CONFIRM\";\n  const key = s(inp.idempotencyKey);\n  const bad = (why) => ({ route: \"REJECT\", tenantId: \"0\", pickingId: \"0\", organizationId: \"0\", operation: op, idempotencyKey: \"\", request: \"\", lineCount: 0, result_code: \"400\", result_message: why });\n  if (!/^[0-9]{1,20}$/.test(tenantId)) return bad(\"no session tenant\");\n  if (!/^[0-9]{1,20}$/.test(pickingId)) return bad(\"picking_id: digits only\");\n  if (!/^[0-9]{1,20}$/.test(org)) return bad(\"organization_id: digits only\");\n  // STATUS: read-only, the Picking's latest job for the form (the browser cannot read gd_async_job itself)\n  if (op === \"STATUS\") return { route: \"STATUS\", tenantId: tenantId, pickingId: pickingId, organizationId: org, operation: op, idempotencyKey: \"\", request: \"\", lineCount: 0, result_code: \"\", result_message: \"\" };\n  if (!/^[A-Za-z0-9:_|-]{16,128}$/.test(key)) return bad(\"idempotency_key: 16-128 of A-Z a-z 0-9 : _ | -\");\n  if (op !== \"CONFIRM\" && op !== \"PICK_ALL_REMAINING\") return bad(\"operation must be CONFIRM or PICK_ALL_REMAINING\");\n  let payload = inp.payload;\n  if (typeof payload === \"string\") {\n    try {\n      payload = payload ? JSON.parse(payload) : {};\n    } catch (e) {\n      return bad(\"payload is not valid JSON\");\n    }\n  }\n  payload = payload && typeof payload === \"object\" ? payload : {};\n  const id = (v) => (/^[0-9]{1,20}$/.test(s(v)) ? s(v) : \"\");\n  const lines = [];\n  for (const ln of Array.isArray(payload.lines) ? payload.lines : []) {\n    const rowId = id(ln && ln.row_id);\n    const qty = Number(ln && ln.qty);\n    if (!rowId) return bad(\"a line has no row_id\");\n    if (!isFinite(qty) || qty < 0) return bad(\"line \" + rowId + \": the picked quantity is not a number\");\n    if (qty === 0) continue;\n    // a unit / bin / batch that is not an id would silently pick in the order unit or from the wrong place: refuse it\n    for (const k of [\"pick_uom\", \"target_location_id\", \"target_batch_id\"]) if (s(ln[k]) && !id(ln[k])) return bad(\"line \" + rowId + \": \" + k + \" is not an id\");\n    const out = { row_id: rowId, qty: qty, pick_uom: id(ln.pick_uom) };\n    // sent = the form's value (\"\" = no move); not sent = PREPARE reads the stored line\n    for (const k of [\"target_location_id\", \"target_batch_id\"]) if (Object.prototype.hasOwnProperty.call(ln, k)) out[k] = id(ln[k]);\n    for (const k of [\"remark\", \"remark_2\", \"remark_3\"]) if (ln[k] !== undefined && ln[k] !== null) out[k] = String(ln[k]);\n    if (Array.isArray(ln.attachment)) out.attachment = ln.attachment;\n    lines.push(out);\n  }\n  if (op === \"CONFIRM\" && !lines.length) return bad(\"Cannot complete picking. At least one item must have picked quantity greater than 0.\");\n  if (lines.length > MAX_LINES) return bad(\"this confirmation has \" + lines.length + \" picked lines; the maximum is \" + MAX_LINES);\n  const headerPatch = payload.header_patch && typeof payload.header_patch === \"object\" && !Array.isArray(payload.header_patch) ? payload.header_patch : {};\n  const request = { v: 1, operation: op, picking_id: pickingId, confirmed_by: s(inp.confirmedBy).slice(0, 100), lines: op === \"CONFIRM\" ? lines : [], header_patch: headerPatch };\n  return { route: \"CONTINUE\", tenantId: tenantId, pickingId: pickingId, organizationId: org, operation: op, idempotencyKey: key, request: JSON.stringify(request), lineCount: request.lines.length, result_code: \"\", result_message: \"\" };\n};\nconst res = submitGuard({ pickingId: [{{workflowparams:picking_id}}][0], organizationId: [{{workflowparams:organization_id}}][0], operation: [{{workflowparams:operation}}][0], idempotencyKey: [{{workflowparams:idempotency_key}}][0], payload: [{{workflowparams:payload}}][0], confirmedBy: [{{workflowparams:confirmed_by}}][0], systemTenantId: [{{system:tenantId}}][0] });\nconsole.log(\"submit guard\", JSON.stringify({ route: res.route, picking: res.pickingId, op: res.operation, lines: res.lineCount, message: res.result_message }));\nreturn res;"
+          "code": "// PICKING_ASYNC_SUBMIT - Guard: the inputs, the request's shape (at most 2,000 lines), the session tenant\nconst MAX_LINES = 2000;\nconst submitGuard = function submitGuard(input) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const inp = input || {};\n  const tenantId = s(inp.systemTenantId);\n  const pickingId = s(inp.pickingId);\n  const org = s(inp.organizationId);\n  const op = s(inp.operation).toUpperCase() || \"CONFIRM\";\n  const key = s(inp.idempotencyKey);\n  const bad = (why) => ({ route: \"REJECT\", tenantId: \"0\", pickingId: \"0\", organizationId: \"0\", operation: op, idempotencyKey: \"\", request: \"\", lineCount: 0, moveRowsJson: \"[]\", result_code: \"400\", result_message: why });\n  if (!/^[0-9]{1,20}$/.test(tenantId)) return bad(\"no session tenant\");\n  if (!/^[0-9]{1,20}$/.test(pickingId)) return bad(\"picking_id: digits only\");\n  if (!/^[0-9]{1,20}$/.test(org)) return bad(\"organization_id: digits only\");\n  // STATUS: read-only, the Picking's latest job for the form (the browser cannot read gd_async_job itself)\n  if (op === \"STATUS\") return { route: \"STATUS\", tenantId: tenantId, pickingId: pickingId, organizationId: org, operation: op, idempotencyKey: \"\", request: \"\", lineCount: 0, moveRowsJson: \"[]\", result_code: \"\", result_message: \"\" };\n  if (!/^[A-Za-z0-9:_|-]{16,128}$/.test(key)) return bad(\"idempotency_key: 16-128 of A-Z a-z 0-9 : _ | -\");\n  if (op !== \"CONFIRM\" && op !== \"PICK_ALL_REMAINING\") return bad(\"operation must be CONFIRM or PICK_ALL_REMAINING\");\n  let payload = inp.payload;\n  if (typeof payload === \"string\") {\n    try {\n      payload = payload ? JSON.parse(payload) : {};\n    } catch (e) {\n      return bad(\"payload is not valid JSON\");\n    }\n  }\n  payload = payload && typeof payload === \"object\" ? payload : {};\n  const id = (v) => (/^[0-9]{1,20}$/.test(s(v)) ? s(v) : \"\");\n  const lines = [];\n  for (const ln of Array.isArray(payload.lines) ? payload.lines : []) {\n    const rowId = id(ln && ln.row_id);\n    const qty = Number(ln && ln.qty);\n    if (!rowId) return bad(\"a line has no row_id\");\n    if (!isFinite(qty) || qty < 0) return bad(\"line \" + rowId + \": the picked quantity is not a number\");\n    if (qty === 0) continue;\n    // a unit / bin / batch that is not an id would silently pick in the order unit or from the wrong place: refuse it\n    for (const k of [\"pick_uom\", \"target_location_id\", \"target_batch_id\"]) if (s(ln[k]) && !id(ln[k])) return bad(\"line \" + rowId + \": \" + k + \" is not an id\");\n    const out = { row_id: rowId, qty: qty, pick_uom: id(ln.pick_uom) };\n    // sent = the form's value (\"\" = no move); not sent = PREPARE reads the stored line\n    for (const k of [\"target_location_id\", \"target_batch_id\"]) if (Object.prototype.hasOwnProperty.call(ln, k)) out[k] = id(ln[k]);\n    for (const k of [\"remark\", \"remark_2\", \"remark_3\"]) if (ln[k] !== undefined && ln[k] !== null) out[k] = String(ln[k]);\n    if (Array.isArray(ln.attachment)) out.attachment = ln.attachment;\n    lines.push(out);\n  }\n  if (op === \"CONFIRM\" && !lines.length) return bad(\"Cannot complete picking. At least one item must have picked quantity greater than 0.\");\n  if (lines.length > MAX_LINES) return bad(\"this confirmation has \" + lines.length + \" picked lines; the maximum is \" + MAX_LINES);\n  const headerPatch = payload.header_patch && typeof payload.header_patch === \"object\" && !Array.isArray(payload.header_patch) ? payload.header_patch : {};\n  const request = { v: 1, operation: op, picking_id: pickingId, confirmed_by: s(inp.confirmedBy).slice(0, 100), lines: op === \"CONFIRM\" ? lines : [], header_patch: headerPatch };\n  // sql_node_PSmove's input, digits only: a sent target (\"0\" = sent empty, no move) or null (not sent: the stored line's)\n  const sent = (o, k) => (Object.prototype.hasOwnProperty.call(o, k) ? o[k] || \"0\" : null);\n  const moveRows = request.lines.map((l) => ({ r: l.row_id, l: sent(l, \"target_location_id\"), b: sent(l, \"target_batch_id\") }));\n  return { route: \"CONTINUE\", tenantId: tenantId, pickingId: pickingId, organizationId: org, operation: op, idempotencyKey: key, request: JSON.stringify(request), lineCount: request.lines.length, moveRowsJson: JSON.stringify(moveRows), result_code: \"\", result_message: \"\" };\n};\nconst res = submitGuard({ pickingId: [{{workflowparams:picking_id}}][0], organizationId: [{{workflowparams:organization_id}}][0], operation: [{{workflowparams:operation}}][0], idempotencyKey: [{{workflowparams:idempotency_key}}][0], payload: [{{workflowparams:payload}}][0], confirmedBy: [{{workflowparams:confirmed_by}}][0], systemTenantId: [{{system:tenantId}}][0] });\nconsole.log(\"submit guard\", JSON.stringify({ route: res.route, picking: res.pickingId, op: res.operation, lines: res.lineCount, message: res.result_message }));\nreturn res;"
         },
         "response_json": [
           {
@@ -189,6 +189,15 @@
             "key": "umdgx17c",
             "name": "lineCount",
             "title": "lineCount",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psgmvrws",
+            "name": "moveRowsJson",
+            "title": "The picked rows' sent targets for sql_node_PSmove (digits / null)",
             "description": "",
             "bsonType": "string",
             "isExpand": false,
@@ -824,6 +833,143 @@
       "blocks": []
     },
     {
+      "id": "sql_node_PSmove",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "1c moves: the picked rows that move or lack a bay bin, and each moved GD's facts",
+        "isValidator": true,
+        "nodeName": "1c moves: the picked rows that move or lack a bay bin, and each moved GD's facts",
+        "name": "1c moves: the picked rows that move or lack a bay bin, and each moved GD's facts",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST('R' AS CHAR) AS kind,\n       CAST(x.id AS CHAR) AS row_id,\n       CAST(x.gd_id AS CHAR) AS gd_id,\n       CAST(x.moved AS CHAR) AS moved,\n       CAST(x.bay_bad AS CHAR) AS bay_bad,\n       CAST(x.handling_unit_id AS CHAR) AS hu,\n       CAST(x.label AS CHAR) AS label,\n       CAST(NULL AS CHAR) AS delivery_no,\n       CAST(NULL AS CHAR) AS line_count,\n       CAST(NULL AS CHAR) AS serial_items,\n       CAST(NULL AS CHAR) AS select_picking,\n       CAST(NULL AS CHAR) AS linked,\n       CAST(NULL AS CHAR) AS other_job\n  FROM (SELECT e.*,\n       (e.src > 0 AND e.loc > 0 AND e.loc <> e.src) OR (e.bat0 > 0 AND e.bat > 0 AND e.bat <> e.bat0) AS moved,\n       (e.loc IS NULL OR e.loc = 0 OR e.loc = e.src) AS bay_bad\n  FROM (SELECT l.id, l.gd_id, l.handling_unit_id,\n               COALESCE(NULLIF(l.item_name, ''), CAST(l.item_code AS CHAR)) AS label,\n               COALESCE(l.source_bin, 0) AS src,\n               COALESCE(l.batch_no, 0) AS bat0,\n               COALESCE(CASE WHEN p.r IS NOT NULL AND p.pl IS NOT NULL THEN NULLIF(p.pl, 0) ELSE NULLIF(l.target_location, 0) END, l.source_bin) AS loc,\n               COALESCE(CASE WHEN p.r IS NOT NULL AND p.pb IS NOT NULL THEN NULLIF(p.pb, 0) ELSE NULLIF(l.target_batch, 0) END, l.batch_no) AS bat\n          FROM transfer_order_jz8m9w3h_sub l\n          LEFT JOIN JSON_TABLE('{{node:code_node_PSguard.data.moveRowsJson}}', '$[*]' COLUMNS (r BIGINT PATH '$.r', pl BIGINT PATH '$.l', pb BIGINT PATH '$.b')) p\n            ON p.r = l.id\n         WHERE l.tenant_id = '{{node:code_node_PSguard.data.tenantId}}'\n           AND l.transfer_order_id = {{node:code_node_PSguard.data.pickingId}}\n           AND l.is_deleted = 0\n           AND COALESCE(l.line_status, '') <> 'Cancelled'\n           AND (('{{node:code_node_PSguard.data.operation}}' = 'PICK_ALL_REMAINING' AND l.pending_process_qty > 0) OR p.r IS NOT NULL)) e) x\n WHERE x.moved = 1\n    OR (x.bay_bad = 1\n        AND (SELECT COALESCE(ps.is_loading_bay, 0) FROM picking_setup ps\n              WHERE ps.tenant_id = '{{node:code_node_PSguard.data.tenantId}}' AND ps.organization_id = '{{node:code_node_PSguard.data.organizationId}}'\n                AND ps.is_deleted = 0\n              ORDER BY ps.id LIMIT 1) = 1)\nUNION ALL\nSELECT CAST('G' AS CHAR),\n       CAST(NULL AS CHAR),\n       CAST(g.id AS CHAR),\n       CAST(NULL AS CHAR),\n       CAST(NULL AS CHAR),\n       CAST(NULL AS CHAR),\n       CAST(NULL AS CHAR),\n       CAST(g.delivery_no AS CHAR),\n       CAST((SELECT COUNT(*) FROM goods_delivery_fwii8mvb_sub gl\n              WHERE gl.tenant_id = g.tenant_id AND gl.goods_delivery_id = g.id AND gl.is_deleted = 0) AS CHAR),\n       CAST((SELECT COUNT(*) FROM goods_delivery_fwii8mvb_sub gl JOIN item i ON i.id = gl.material_id\n              WHERE gl.tenant_id = g.tenant_id AND gl.goods_delivery_id = g.id AND gl.is_deleted = 0 AND i.serial_number_management = 1) AS CHAR),\n       CAST(COALESCE(g.is_select_picking, 0) AS CHAR),\n       CAST((SELECT COUNT(*) FROM document_linkage d\n              WHERE d.tenant_id = g.tenant_id AND d.is_deleted = 0 AND d.target_doc_type = 'Sales Order' AND d.link_status = 'Linked'\n                AND (d.target_doc_id IN (SELECT gl.line_so_id FROM goods_delivery_fwii8mvb_sub gl\n                                          WHERE gl.tenant_id = g.tenant_id AND gl.goods_delivery_id = g.id AND gl.is_deleted = 0 AND gl.line_so_id IS NOT NULL)\n                     OR d.target_doc_id IN (SELECT CAST(js.s AS CHAR) COLLATE utf8mb4_general_ci\n                                              FROM JSON_TABLE(IF(JSON_VALID(g.so_id), g.so_id, '[]'), '$[*]' COLUMNS (s BIGINT PATH '$')) js))) AS CHAR),\n       CAST((SELECT COUNT(*) FROM gd_async_job j\n               JOIN transfer_order t2 ON t2.tenant_id = j.tenant_id AND t2.id = CAST(j.picking_id AS UNSIGNED)\n               JOIN JSON_TABLE(IF(JSON_VALID(t2.gd_no), t2.gd_no, '[]'), '$[*]' COLUMNS (gid VARCHAR(32) PATH '$')) jt ON CAST(jt.gid AS UNSIGNED) = g.id\n              WHERE j.tenant_id = g.tenant_id AND j.command = 'CONFIRM_PICKING' AND j.is_deleted = 0\n                AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PICKING', 'REQUIRES_REVIEW')\n                AND j.picking_id <> '{{node:code_node_PSguard.data.pickingId}}') AS CHAR)\n  FROM goods_delivery g\n WHERE g.tenant_id = '{{node:code_node_PSguard.data.tenantId}}'\n   AND g.id IN (SELECT y.gd_id FROM (SELECT e.*,\n       (e.src > 0 AND e.loc > 0 AND e.loc <> e.src) OR (e.bat0 > 0 AND e.bat > 0 AND e.bat <> e.bat0) AS moved,\n       (e.loc IS NULL OR e.loc = 0 OR e.loc = e.src) AS bay_bad\n  FROM (SELECT l.id, l.gd_id, l.handling_unit_id,\n               COALESCE(NULLIF(l.item_name, ''), CAST(l.item_code AS CHAR)) AS label,\n               COALESCE(l.source_bin, 0) AS src,\n               COALESCE(l.batch_no, 0) AS bat0,\n               COALESCE(CASE WHEN p.r IS NOT NULL AND p.pl IS NOT NULL THEN NULLIF(p.pl, 0) ELSE NULLIF(l.target_location, 0) END, l.source_bin) AS loc,\n               COALESCE(CASE WHEN p.r IS NOT NULL AND p.pb IS NOT NULL THEN NULLIF(p.pb, 0) ELSE NULLIF(l.target_batch, 0) END, l.batch_no) AS bat\n          FROM transfer_order_jz8m9w3h_sub l\n          LEFT JOIN JSON_TABLE('{{node:code_node_PSguard.data.moveRowsJson}}', '$[*]' COLUMNS (r BIGINT PATH '$.r', pl BIGINT PATH '$.l', pb BIGINT PATH '$.b')) p\n            ON p.r = l.id\n         WHERE l.tenant_id = '{{node:code_node_PSguard.data.tenantId}}'\n           AND l.transfer_order_id = {{node:code_node_PSguard.data.pickingId}}\n           AND l.is_deleted = 0\n           AND COALESCE(l.line_status, '') <> 'Cancelled'\n           AND (('{{node:code_node_PSguard.data.operation}}' = 'PICK_ALL_REMAINING' AND l.pending_process_qty > 0) OR p.r IS NOT NULL)) e) y WHERE y.moved = 1)"
+        },
+        "response_json": [
+          {
+            "key": "psmv0kd1",
+            "name": "kind",
+            "title": "kind",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0ri2",
+            "name": "row_id",
+            "title": "row_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0gd3",
+            "name": "gd_id",
+            "title": "gd_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0mv4",
+            "name": "moved",
+            "title": "moved",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0bb5",
+            "name": "bay_bad",
+            "title": "bay_bad",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0hu6",
+            "name": "hu",
+            "title": "hu",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0lb7",
+            "name": "label",
+            "title": "label",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0dn8",
+            "name": "delivery_no",
+            "title": "delivery_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0lc9",
+            "name": "line_count",
+            "title": "line_count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0sia",
+            "name": "serial_items",
+            "title": "serial_items",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0spb",
+            "name": "select_picking",
+            "title": "select_picking",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0lkc",
+            "name": "linked",
+            "title": "linked",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "psmv0ojd",
+            "name": "other_job",
+            "title": "other_job",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "code_node_PSdecide",
       "type": "code-node",
       "data": {
@@ -832,7 +978,7 @@
         "timeout": 30000,
         "script": {
           "type": "javascript",
-          "code": "// PICKING_ASYNC_SUBMIT - Decide: the Picking, its setup and its jobs -> CREATE the job (+ the Picking lock), RETURN the job\n// this key already made, NOT_ELIGIBLE (the form runs the old save instead) or REJECT (a message, nothing written).\n// Stage switches: a case whose stage is off goes back to the old save.\nconst ASYNC_PICKING_ENABLED = true;\nconst STAGE = { FULL_PICKING: true, LOADING_BAY: false, BIN_MOVES: false, AUTO_COMPLETE_GD: false, PICKING_PLAN: false };\nconst LOCK_STALE_SEC = 900;\nconst submitDecide = function submitDecide(guard, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const n = (v) => Number(v) || 0;\n  const f = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r)[0] || {};\n  const base = { route: \"REJECT\", jobRows: [], needJob: \"NO\", lockRows: [], needLock: \"NO\", result_code: \"400\", result_message: \"\", job_id: \"\", job_status: \"\" };\n  const reject = (why) => Object.assign({}, base, { result_message: why });\n  const old = (why) => Object.assign({}, base, { route: \"NOT_ELIGIBLE\", result_code: \"NOT_ELIGIBLE\", result_message: why });\n  const keyJob = s(f.key_job).split(\"|\");\n  if (keyJob[0]) return Object.assign({}, base, { route: \"RETURN\", result_code: \"200\", result_message: \"already submitted\", job_id: keyJob[0], job_status: keyJob[1] || \"\" });\n  if (!ASYNC_PICKING_ENABLED) return old(\"the background save is switched off\");\n  if (!s(f.id) || String(f.is_deleted) === \"1\") return reject(\"Picking not found\");\n  if (s(f.organization_id) !== guard.organizationId) return reject(\"the Picking belongs to another organization\");\n  const status = s(f.to_status);\n  if (status === \"Completed\") return reject(\"Picking is already completed\");\n  if (status === \"Cancelled\") return reject(\"Picking is cancelled. Unable to process picking.\");\n  // a Goods Delivery this Picking names is being saved in the background (GD Edit V2 / GD Completed V2)\n  if (s(f.gd_busy)) return reject(\"Goods Delivery \" + s(f.gd_busy) + \" is being saved in the background. Wait a moment, then try again.\");\n  if (status === \"Draft\") return old(\"a Draft Picking is completed by the classic save\");\n  const openJob = s(f.open_job).split(\"|\");\n  if (openJob[0]) {\n    if (openJob[1] === \"REQUIRES_REVIEW\") return reject(\"A previous confirmation of this Picking stopped half-way and is under review (job \" + openJob[0] + \"). Please contact support before picking again.\");\n    return reject(\"This Picking is still being confirmed in the background (job \" + openJob[0] + \"). Wait a moment, then reopen it.\");\n  }\n  if (n(f.is_processing) === 1 && n(f.lock_age_sec) <= LOCK_STALE_SEC) return reject(\"Picking is under processing. Please try again later.\");\n  if (s(f.picking_after) === \"Sales Order\" && !STAGE.PICKING_PLAN) return old(\"Picking Plan pickings use the classic save\");\n  if (n(f.allow_full_picking) === 1 && !STAGE.FULL_PICKING) return old(\"Full Picking uses the classic save\");\n  if ((n(f.setup_loading_bay) === 1 || n(f.is_loading_bay) === 1) && !STAGE.LOADING_BAY) return old(\"Loading Bay uses the classic save\");\n  if (n(f.auto_completed_gd) === 1 && !STAGE.AUTO_COMPLETE_GD) return old(\"Auto Complete GD uses the classic save\");\n  if (guard.operation === \"PICK_ALL_REMAINING\" && n(f.moved_rows) > 0 && !STAGE.BIN_MOVES) return old(n(f.moved_rows) + \" line(s) move stock to another bin or batch: the classic save\");\n  const dbNow = s(f.db_now);\n  return Object.assign({}, base, {\n    route: \"CREATE\",\n    jobRows: [{ organization_id: guard.organizationId, plant_id: s(f.plant_id), command: \"CONFIRM_PICKING\", idempotency_key: guard.idempotencyKey, job_status: \"QUEUED\", progress_percent: 0, progress_message: \"Queued for processing\", attempt_count: 0, row_version: 0, cancel_requested: 0, request_payload: guard.request, picking_id: guard.pickingId, picking_no: s(f.to_id), line_count: guard.lineCount, queued_at: dbNow }],\n    needJob: \"YES\", lockRows: [{ id: guard.pickingId, is_processing: 1 }], needLock: \"YES\", result_code: \"200\", result_message: \"queued\", job_status: \"QUEUED\",\n  });\n};\nconst guard = [{{node:code_node_PSguard.data}}][0];\nconst res = submitDecide(guard, [{{node:sql_node_PSfacts.data}}][0]);\nconsole.log(\"submit decide\", JSON.stringify({ route: res.route, code: res.result_code, message: res.result_message, job: res.job_id }));\nreturn res;"
+          "code": "// PICKING_ASYNC_SUBMIT - Decide: the Picking, its setup and its jobs -> CREATE the job (+ the Picking lock), RETURN the job\n// this key already made, NOT_ELIGIBLE (the form runs the old save instead) or REJECT (a message, nothing written).\n// Stage switches: a case whose stage is off goes back to the old save. 1c (LOADING_BAY, BIN_MOVES): sql_node_PSmove's rows.\nconst ASYNC_PICKING_ENABLED = true;\nconst STAGE = { FULL_PICKING: true, LOADING_BAY: true, BIN_MOVES: true, AUTO_COMPLETE_GD: false, PICKING_PLAN: false };\nconst LOCK_STALE_SEC = 900;\nconst MAX_MOVED_GDS = 25;\nconst MAX_MOVED_LINES = 500;\nconst submitDecide = function submitDecide(guard, rows, moveRows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const n = (v) => Number(v) || 0;\n  const f = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r)[0] || {};\n  const base = { route: \"REJECT\", jobRows: [], needJob: \"NO\", lockRows: [], needLock: \"NO\", result_code: \"400\", result_message: \"\", job_id: \"\", job_status: \"\" };\n  const reject = (why) => Object.assign({}, base, { result_message: why });\n  const old = (why) => Object.assign({}, base, { route: \"NOT_ELIGIBLE\", result_code: \"NOT_ELIGIBLE\", result_message: why });\n  const keyJob = s(f.key_job).split(\"|\");\n  if (keyJob[0]) return Object.assign({}, base, { route: \"RETURN\", result_code: \"200\", result_message: \"already submitted\", job_id: keyJob[0], job_status: keyJob[1] || \"\" });\n  if (!ASYNC_PICKING_ENABLED) return old(\"the background save is switched off\");\n  if (!s(f.id) || String(f.is_deleted) === \"1\") return reject(\"Picking not found\");\n  if (s(f.organization_id) !== guard.organizationId) return reject(\"the Picking belongs to another organization\");\n  const status = s(f.to_status);\n  if (status === \"Completed\") return reject(\"Picking is already completed\");\n  if (status === \"Cancelled\") return reject(\"Picking is cancelled. Unable to process picking.\");\n  // a Goods Delivery this Picking names is being saved in the background (GD Edit V2 / GD Completed V2)\n  if (s(f.gd_busy)) return reject(\"Goods Delivery \" + s(f.gd_busy) + \" is being saved in the background. Wait a moment, then try again.\");\n  if (status === \"Draft\") return old(\"a Draft Picking is completed by the classic save\");\n  const openJob = s(f.open_job).split(\"|\");\n  if (openJob[0]) {\n    if (openJob[1] === \"REQUIRES_REVIEW\") return reject(\"A previous confirmation of this Picking stopped half-way and is under review (job \" + openJob[0] + \"). Please contact support before picking again.\");\n    return reject(\"This Picking is still being confirmed in the background (job \" + openJob[0] + \"). Wait a moment, then reopen it.\");\n  }\n  if (n(f.is_processing) === 1 && n(f.lock_age_sec) <= LOCK_STALE_SEC) return reject(\"Picking is under processing. Please try again later.\");\n  if (s(f.picking_after) === \"Sales Order\" && !STAGE.PICKING_PLAN) return old(\"Picking Plan pickings use the classic save\");\n  if (n(f.allow_full_picking) === 1 && !STAGE.FULL_PICKING) return old(\"Full Picking uses the classic save\");\n  // Loading Bay is the setup's flag, as classic PICKING passes it (the Picking's own copy counts only while the stage is off)\n  const bay = n(f.setup_loading_bay) === 1;\n  if (!STAGE.LOADING_BAY && (bay || n(f.is_loading_bay) === 1)) return old(\"Loading Bay uses the classic save\");\n  if (bay && n(f.auto_completed_gd) === 1) return reject(\"Picking Setup has both Loading Bay and Auto Complete GD enabled. Auto Complete GD skips the Created state that the loading bay move depends on, which would strand the reserved stock at the source bin. Please turn off Auto Complete GD.\");\n  if (n(f.auto_completed_gd) === 1 && !STAGE.AUTO_COMPLETE_GD) return old(\"Auto Complete GD uses the classic save\");\n  const mv = (Array.isArray(moveRows) ? moveRows : moveRows ? [moveRows] : []).filter((r) => r);\n  const R = mv.filter((r) => s(r.kind) === \"R\");\n  const GDS = mv.filter((r) => s(r.kind) === \"G\");\n  if (bay) {\n    const missing = R.filter((r) => n(r.bay_bad) === 1).map((r) => s(r.label)).filter((x, i, a) => x && a.indexOf(x) === i);\n    if (missing.length) return reject(\"Loading Bay is enabled but Target Location is missing (or the same as the source bin) on these picked items: \" + missing.join(\", \") + \". Set a loading bay bin on every picked line before completing.\");\n  }\n  const moved = R.filter((r) => n(r.moved) === 1);\n  if (moved.length) {\n    if (!bay && !STAGE.BIN_MOVES) return old(moved.length + \" line(s) move stock to another bin or batch: the classic save\");\n    if (n(f.allow_full_picking) === 1) return old(\"Full Picking with a bin / batch move uses the classic save\");\n    if (moved.some((r) => s(r.hu))) return old(\"a moved line is in a handling unit: the classic save\");\n    for (const g of GDS) {\n      if (n(g.serial_items) > 0) return old(\"Goods Delivery \" + s(g.delivery_no) + \" has serial-numbered items: the classic save\");\n      if (n(g.select_picking) === 1) return old(\"Goods Delivery \" + s(g.delivery_no) + \" uses select picking: the classic save\");\n      if (n(g.linked) > 0) return old(\"Goods Delivery \" + s(g.delivery_no) + \" is linked to internal trading: the classic save\");\n    }\n    if (GDS.length > MAX_MOVED_GDS) return reject(\"This confirmation moves stock on \" + GDS.length + \" deliveries; at most \" + MAX_MOVED_GDS + \" can be saved together. Confirm it in smaller Pickings.\");\n    const lines = GDS.reduce((k, g) => k + n(g.line_count), 0);\n    if (lines > MAX_MOVED_LINES) return reject(\"Moving picked stock to another bin or batch is not available yet above \" + MAX_MOVED_LINES + \" delivery lines in one confirmation (these deliveries have \" + lines + \"). Nothing was saved.\");\n    const busy = GDS.find((g) => n(g.other_job) > 0);\n    if (busy) return reject(\"Goods Delivery \" + s(busy.delivery_no) + \" is being confirmed on another Picking in the background. Wait a moment, then try again.\");\n  }\n  const dbNow = s(f.db_now);\n  // PREPARE moves stock only on a job these switches cleared (a stored target can appear after SUBMIT)\n  let request = guard.request;\n  try { request = JSON.stringify(Object.assign(JSON.parse(guard.request), { moves: (bay ? STAGE.LOADING_BAY : STAGE.BIN_MOVES) ? 1 : 0 })); } catch (e) { request = guard.request; }\n  return Object.assign({}, base, {\n    route: \"CREATE\",\n    jobRows: [{ organization_id: guard.organizationId, plant_id: s(f.plant_id), command: \"CONFIRM_PICKING\", idempotency_key: guard.idempotencyKey, job_status: \"QUEUED\", progress_percent: 0, progress_message: \"Queued for processing\", attempt_count: 0, row_version: 0, cancel_requested: 0, request_payload: request, picking_id: guard.pickingId, picking_no: s(f.to_id), line_count: guard.lineCount, queued_at: dbNow }],\n    needJob: \"YES\", lockRows: [{ id: guard.pickingId, is_processing: 1 }], needLock: \"YES\", result_code: \"200\", result_message: \"queued\", job_status: \"QUEUED\",\n  });\n};\nconst guard = [{{node:code_node_PSguard.data}}][0];\nconst res = submitDecide(guard, [{{node:sql_node_PSfacts.data}}][0], [{{node:sql_node_PSmove.data}}][0]);\nconsole.log(\"submit decide\", JSON.stringify({ route: res.route, code: res.result_code, message: res.result_message, job: res.job_id }));\nreturn res;"
         },
         "response_json": [
           {

@@ -28,5 +28,7 @@ const submitEntry = function submitEntry(guard, factRows) {
   if (status !== "Created" && status !== "Draft") return Object.assign(base, answer("STOP", "400", "Goods Delivery is " + (status || "without a status") + ": only a Created or Draft delivery can be saved as Created"));
   if (!digits(f.organization_id)) return Object.assign(base, answer("STOP", "400", "Goods Delivery has no organization"));
   const m = s(f.last_lock).match(/^LOCK\|([0-9]+)$/);
-  return Object.assign(base, answer("GO", "", ""), { lockN: m ? Number(m[1]) + 1 : 1 });
+  // a device lock older than PICKING_LOOP's takeover is not a device's any more: the gate reads it released, post.js takes it over
+  const staleLocks = picks.filter((p) => num(p.is_processing) === 1 && num(p.lock_age_sec) > PICK_LOCK_STALE_SEC).map((p) => s(p.id)).filter(digits);
+  return Object.assign(base, answer("GO", "", ""), { lockN: m ? Number(m[1]) + 1 : 1, staleLocks: staleLocks });
 };

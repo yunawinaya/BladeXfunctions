@@ -89,5 +89,13 @@ it("ready: a plan failure without our lock -> FAILED, nothing unlocked", () => {
   const r = call("prepareReady", entryOf(), { route: "FAIL", code: "GDE_NOT_LOCKED", message: "x", gdId: GD, unlockOk: 0, pickUnlockId: "" }, {});
   assert.strictEqual(r.needUnlock, "NO"); assert.strictEqual(r.needPickUnlock, "NO");
 });
+const T0 = Date.UTC(2026, 9, 16, 2, 0, 0);
+const withClock = (t, f) => { const real = ctx.Date; ctx.Date = class extends real { static now() { return t; } }; try { return f(); } finally { ctx.Date = real; } };
+it("ready: FAILED stamps the run's real end: the DB clock at entry + the seconds since (the entry's jsAt)", () => {
+  const e = withClock(T0, () => entryOf());
+  const r = withClock(T0 + 30500, () => call("prepareReady", e, planOk, { code: "400", result_code: "INSUFFICIENT_STOCK", message: "short" }));
+  assert.strictEqual(e.jsAt, String(T0)); assert.strictEqual(r.jobRows[0].finished_at, "2026-10-15 10:00:30");
+});
+
 console.log((mutate ? "[mutant " + mutate + "] " : "") + (n - failed) + "/" + n + " passed");
 process.exit(failed ? 1 : 0);

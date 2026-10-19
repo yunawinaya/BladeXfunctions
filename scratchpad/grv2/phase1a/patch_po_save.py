@@ -14,14 +14,29 @@ Applied to the dev-IDENTICAL v39 copy in base/PO_SAVE.v39.json; writes "Purchase
 Usage: python3 patch_po_save.py"""
 import json
 import os
+import sys
 
 from wf import (HERE, absent, body, code, end_error, find, if_, insert_after, insert_before, locate, loop, parallel, remove,
                 repoint_all, replace_in_code, save, set_code, set_expr, set_filter_value, set_param, set_prop_value, sql)
 
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+sys.path.insert(0, os.path.join(ROOT, "scratchpad", "cfwipe"))
+from patch_cf import patch_exact  # noqa: E402
 BASE = os.path.join(HERE, "base", "PO_SAVE.v39.json")
 OUT = os.path.join(ROOT, "Purchase Order", "POsaveWorkflow.json")
 FID = 1797100000001  # filter ids of the new if / loop nodes: 1797100000001..
+CF_HELPER = """// Custom fields travel as one object; a JSON column can arrive as text, and a NULL one is left off the row.
+const customFields = (value) => {
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch (e) {
+      return {};
+    }
+  }
+  return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+};
+"""
 
 
 def fid(n):
@@ -235,7 +250,23 @@ const poLineItem = ([{{node:sql_oo_lines.data}}][0] || []).filter((r) => !r.pare
     assert get_po_full["data"]["table_id"]["rules"]["list"][0]["value"] == "{{node:code_resolve_latest.data.poData.id}}"
     lst, i = locate(doc, "po_par_so_fetch")
     lst.insert(i, get_po_full)
-    return doc
+
+    # ---------------------------------------------------------------- 7. custom fields (bladexfunctions-58, live since dev v43)
+    for nid in ("add_po", "update_po"):
+        props = find(doc, nid)["data"]["props"]["list"]
+        assert not any(c["prop"] == "custom_fields_b3w85tmv" for c in props)
+        props.append({"prop": "custom_fields_b3w85tmv", "operator": "", "valueType": "field", "value": "{{node:code_fillback.data.entry.custom_fields_b3w85tmv}}",
+                      "valueLabel": "", "propLabel": "custom_fields_b3w85tmv"})
+    pi_map = find(doc, "code_direct_pi_map")
+    replace_in_code(pi_map, "const toNumber = (value) => parseFloat(value) || 0;\n", "const toNumber = (value) => parseFloat(value) || 0;\n\n" + CF_HELPER)
+    replace_in_code(pi_map, '    further_description: line.further_description || "",\n    project_id: line.project_id ?? null,\n  };',
+                    '    further_description: line.further_description || "",\n    project_id: line.project_id ?? null,\n'
+                    "    custom_fields_y78jfz24: customFields(line.custom_fields_va4w0xz3),\n  };")
+    replace_in_code(pi_map, "    project_id: record.project_id ?? null,\n    table_pi: lines,",
+                    "    project_id: record.project_id ?? null,\n    custom_fields_d10wd6ob: customFields(record.custom_fields_b3w85tmv),\n    table_pi: lines,")
+
+    # ---------------------------------------------------------------- 8. an edit that leaves the custom fields out keeps them (dev v44)
+    return patch_exact("PO_SAVE", doc)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,24 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GR_COMPLETE_PREPARE",
+   "dataId": "2110545716310347777",
+   "file": "Goods Receiving/CompleteV2/GR_COMPLETE_PREPARE.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/prepfin/before/GR_COMPLETE_PREPARE.json"
+  },
+  {
+   "name": "GR_REVERT_PREPARE",
+   "dataId": "2110563883002793986",
+   "file": "Goods Receiving/RevertV2/GR_REVERT_PREPARE.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/prepfin/before/GR_REVERT_PREPARE.json"
+  },
+  {
+   "name": "PUTAWAY_BULK_PREPARE",
+   "dataId": "2110545896879329281",
+   "file": "Putaway/AsyncV2/PUTAWAY_BULK_PREPARE.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/prepfin/before/PUTAWAY_BULK_PREPARE.json"
+  }
+ ]
+}

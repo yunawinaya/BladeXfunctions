@@ -6,9 +6,11 @@
 //           removed: [id], layout: [{ref: id | "+n", children: [id | "+n"]}] }
 const geDelta = function geDelta(form, stored, kinds) {
   const H = kinds.header, L = kinds.line;
+  // JSON with sorted keys: a MySQL json column keeps its own key order
+  const sorted = (key, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, kk) => ((o[kk] = x[kk]), o), {}) : x);
   const norm = (v, k) => {
     const x = gcColValue(v, k);
-    return x === undefined ? null : typeof x === "object" ? JSON.stringify(x) : x;
+    return x === undefined ? null : typeof x === "object" ? JSON.stringify(x, sorted) : x;
   };
   const eq = (a, b) => (a === null && b === null) || (a !== null && b !== null && (typeof a === "number" || typeof b === "number" ? Math.abs(Number(a) - Number(b)) < 1e-9 : String(a) === String(b)));
   const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);

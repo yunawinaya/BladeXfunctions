@@ -6,7 +6,7 @@ Every workflow runs as a real user of the Packing's tenant, through the project 
 
 | File | What |
 |---|---|
-| `PKG_TEST_ADD_HU_ROWS.json` | Workflow (dev 2110203761799593985). Inserts completed HU rows into a Created Packing that has none: the rows the form's bulk completion writes through its client data API. Refuses anything else. |
+| `PKG_TEST_ADD_HU_ROWS.json` | Workflow, DELETED from dev 2026-10-16 so it cannot reach prod in the full deployment; re-create it from this file (new shell id) to use it again. Was dev 2110203761799593985, v4. Inserts HU rows into a Created Packing that has none: completed rows (the ones the form's bulk completion writes through its client data API), or, with `hu_status: "Packed"` and no `handling_unit_id`, pending rows as a Save as Created leaves them (optional `hu_material_id`, `hu_type`, `hu_uom`). Refuses anything else. |
 | `autopack.py` | `plan`: splits the Packing's source rows into N HUs, writing one REPACKING_PROCESS request per HU (as `PackingTableHUCompleted` sends it) and its `temp_data` (as `PackingBulkPickItems` builds it). `rows`: from the REPACKING answers, writes the `PKG_TEST_ADD_HU_ROWS` and `PACKING_ASYNC_SUBMIT` requests. |
 | `snap.py` | Read-only snapshot of everything a Packing completion can write (Packing, GD, SO, reservations, balances, HUs, movements, job, steps, operation), and a diff of two snapshots. |
 

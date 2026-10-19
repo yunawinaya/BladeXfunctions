@@ -12,8 +12,12 @@ const [tenant, soId, gdId, ...want] = argv;
 // a mutant runs a mutated copy of the repo's SO_CASCADE (code nodes hold their code JSON-encoded)
 const MUT = {
   cancel_off: ["{ heldJobs: [], cancelJobs: held }", "{ heldJobs: [], cancelJobs: [] }"],
-  route_classic: ["if (!ref || s(a.route) === \"NOT_ELIGIBLE\") route = \"CLASSIC\";", "if (true) route = \"CLASSIC\";"],
+  route_classic: ["if (!ref || s([{{node:code_cd_gde_args.data.enabled}}][0]) !== \"YES\" || s(a.route) === \"NOT_ELIGIBLE\") route = \"CLASSIC\";", "if (true) route = \"CLASSIC\";"],
   held_any: ["const held = String(w.job_status || \"\") === \"HELD\";", "const held = true;"],
+  cap_off: ["big: on && lines > 500 ? \"Y\" : \"N\", ask: on && lines <= 500 ? \"Y\" : \"N\"", "big: \"N\", ask: on ? \"Y\" : \"N\""],
+  fallback_off: ["FALLBACK.indexOf(s(w.result_code)) >= 0", "false"],
+  collect_ignores_fallback: ["if (rt.route === \"V2\" && fb.fallback !== \"YES\") {", "if (rt.route === \"V2\") {"],
+  switch_ignored: ["s([{{node:code_cd_gde_args.data.enabled}}][0]) !== \"YES\" || ", ""],
 };
 let DIR = R + "Sales Order";
 if (mutate) {
@@ -25,6 +29,18 @@ if (mutate) {
   DIR = fs.mkdtempSync(path.join(os.tmpdir(), "cascade-mut-"));
   fs.writeFileSync(DIR + "/SOcascadeDownstreamWorkflow.json", t);
 }
+// the cascade switch flipped off (GDE_CASCADE_ENABLED = false): a copy of the repo's SO_CASCADE, made once
+let offDir = "";
+const OFF_DIR = () => {
+  if (offDir) return offDir;
+  const fs = require("fs"), os = require("os"), path = require("path");
+  const enc = (x) => JSON.stringify(x).slice(1, -1);
+  const t = fs.readFileSync(DIR + "/SOcascadeDownstreamWorkflow.json", "utf8");
+  if (t.indexOf(enc("const GDE_CASCADE_ENABLED = true;")) < 0) throw new Error("no GDE_CASCADE_ENABLED switch in SO_CASCADE");
+  offDir = fs.mkdtempSync(path.join(os.tmpdir(), "cascade-off-"));
+  fs.writeFileSync(offDir + "/SOcascadeDownstreamWorkflow.json", t.split(enc("const GDE_CASCADE_ENABLED = true;")).join(enc("const GDE_CASCADE_ENABLED = false;")));
+  return offDir;
+};
 const live = (sql) => JSON.parse(cp.execFileSync(R + ".dbtools/db", ["--dev", "--json", "--limit", "100000", sql], { maxBuffer: 1 << 30, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).replace(/^[^\[]*/, ""));
 const T = `tenant_id = '${tenant}'`;
 const str = (rows) => rows.map((r) => Object.fromEntries(Object.entries(r).map(([k, v]) => [k, typeof v === "number" && Math.abs(v) > 2 ** 53 ? String(v) : v])));
@@ -52,7 +68,7 @@ function run(label, o) {
   if (o.addLine) next = next.concat([Object.assign({}, keepSo.find((s) => s.item_name), { id: "9990000000000000001", so_quantity: 2, delivered_qty: 0, planned_qty: 0 })]);
   const calls = [];
   let submits = 0;
-  const e = new Engine({ dir: DIR, db: { tenantId: tenant, insert: (t, r) => r, update: (t, r) => r.length },
+  const e = new Engine({ dir: o.off ? OFF_DIR() : DIR, db: { tenantId: tenant, insert: (t, r) => r, update: (t, r) => r.length },
     mocks: {
       sql: new Proxy({}, { get: () => () => items }),
       read: {
@@ -133,8 +149,9 @@ const scenarios = {
   },
   BIG: () => {
     const pad = Array.from({ length: 520 }, (_, i) => Object.assign({}, L[2], { id: String(2110000000000100000 + i), so_line_item_id: L[2].so_line_item_id }));
-    const r = run("a delivery above 500 lines is no longer refused by the cascade (the background save takes it)", { gds: [one([L[0]].concat(pad))], reduce: [L[0].so_line_item_id] });
-    assert.strictEqual(r.out.code, "200", r.out.message); assert.ok(r.calls.some((c) => /^SUBMIT\(SUBMIT,CASCADE,\d+,521 lines/.test(c)), r.calls.join(" | "));
+    const r = run("a delivery above 500 lines: refused before the background save (SO_SAVE commits it in the same request)", { gds: [one([L[0]].concat(pad))], reduce: [L[0].so_line_item_id] });
+    assert.strictEqual(r.out.code, "406"); assert.ok(/521 lines: a Sales Order change can update a delivery of up to 500 lines/.test(r.out.message), r.out.message);
+    assert.ok(!r.calls.some((c) => /^SUBMIT|^WORKER|^GOODS_DELIVERY/.test(c)), r.calls.join(" | "));
   },
   NOREFBIG: () => {
     const pad = Array.from({ length: 520 }, (_, i) => Object.assign({}, L[2], { id: String(2110000000000100000 + i), so_line_item_id: L[2].so_line_item_id }));
@@ -142,6 +159,54 @@ const scenarios = {
     assert.strictEqual(r.out.code, "406"); assert.ok(/up to 500 lines/.test(r.out.message), r.out.message); assert.ok(!r.calls.some((c) => /^GOODS_DELIVERY/.test(c)), r.calls.join(" | "));
     const b = run("pass B, no cascade_ref, above 500 lines: the new line is not appended classically", { passNo: 2, gds: [one(pad.slice(0, 501))], addLine: true, ref: null });
     assert.strictEqual(b.out.code, "406"); assert.ok(/more than a Sales Order change can update \(500\)/.test(b.out.message), b.out.message); assert.ok(!b.calls.some((c) => /^GOODS_DELIVERY/.test(c)));
+  },
+  // a delivery past 500 lines is refused before GD_EDIT_SUBMIT: SO_SAVE commits the edit in the same request (55 s gateway);
+  // SO_SAVE + SO_CASCADE + SUBMIT + PREPARE at 2,000 lines in one request took dev down on 2026-10-16
+  CAP: () => {
+    const pad = Array.from({ length: 500 }, (_, i) => Object.assign({}, L[2], { id: String(2110000000000100000 + i), so_line_item_id: L[2].so_line_item_id }));
+    const r = run("a delivery above 500 lines: refused with the reason, nothing submitted", { gds: [one([L[0]].concat(pad))], reduce: [L[0].so_line_item_id] });
+    assert.strictEqual(r.out.code, "406"); assert.ok(/501 lines: a Sales Order change can update a delivery of up to 500 lines/.test(r.out.message), r.out.message);
+    assert.ok(!r.calls.some((c) => /^SUBMIT|^WORKER|^GOODS_DELIVERY/.test(c)), r.calls.join(" | ")); assert.deepStrictEqual(r.out.heldJobs, []);
+  },
+  // the inventory engine refuses data the classic save handles (PREPARE FAILED, the delivery put back): that delivery goes to the
+  // classic save instead; a stock shortage stays the cascade's refusal; above 500 lines the classic cap refuses it
+  FALLBACK: () => {
+    const fb = (code) => (j) => ({ job_status: "FAILED", job_id: j, result_code: code, result_message: "FAILED: Item 1 has costing rows that need migration" });
+    for (const code of ["GDE_INVENTORY_UNSUPPORTED_COSTING", "GDE_INVENTORY_DUPLICATE_BALANCE", "GDE_INVENTORY_UNSUPPORTED_PRICE"]) {
+      const r = run("engine refusal " + code + ": the classic save takes the delivery", { gds: [one(L)], reduce: [L[0].so_line_item_id], worker: fb(code) });
+      assert.strictEqual(r.out.code, "200", r.out.message); assert.ok(r.calls.includes("GOODS_DELIVERY(3 lines)"), r.calls.join(" | "));
+      assert.deepStrictEqual(r.out.heldJobs, []); assert.ok(!r.calls.some((c) => /^CANCEL/.test(c)), r.calls.join(" | "));
+    }
+    const n = run("a stock shortage: no fallback", { gds: [one(L)], reduce: [L[0].so_line_item_id], worker: (j) => ({ job_status: "FAILED", job_id: j, result_code: "GDE_INVENTORY_INSUFFICIENT", result_message: "short" }) });
+    assert.strictEqual(n.out.code, "406"); assert.ok(!n.calls.some((c) => /^GOODS_DELIVERY/.test(c)), n.calls.join(" | "));
+    const pad = Array.from({ length: 520 }, (_, i) => Object.assign({}, L[2], { id: String(2110000000000100000 + i), so_line_item_id: L[2].so_line_item_id }));
+    const big = run("engine refusal above 500 lines: the classic cap refuses it", { gds: [one([L[0]].concat(pad))], reduce: [L[0].so_line_item_id], worker: fb("GDE_INVENTORY_UNSUPPORTED_COSTING") });
+    assert.strictEqual(big.out.code, "406"); assert.ok(/up to 500 lines/.test(big.out.message), big.out.message); assert.ok(!big.calls.some((c) => /^GOODS_DELIVERY/.test(c)), big.calls.join(" | "));
+  },
+  // the cascade switch off: every delivery goes to the classic save as before GD Edit V2 (its 500-line cap), nothing submitted
+  OFF: () => {
+    const r = run("switch off: the classic save, nothing submitted", { gds: [one(L)], reduce: [L[0].so_line_item_id], off: true });
+    assert.strictEqual(r.out.code, "200", r.out.message); assert.ok(r.calls.includes("GOODS_DELIVERY(3 lines)"), r.calls.join(" | "));
+    assert.ok(!r.calls.some((c) => /^SUBMIT|^WORKER|^CANCEL/.test(c)), r.calls.join(" | ")); assert.deepStrictEqual(r.out.heldJobs, []);
+  },
+  OFFBIG: () => {
+    for (const n of [520, 1000]) {
+      const pad = Array.from({ length: n }, (_, i) => Object.assign({}, L[2], { id: String(2110000000000100000 + i), so_line_item_id: L[2].so_line_item_id }));
+      const r = run("switch off, " + (n + 1) + " lines: the classic 500-line refusal", { gds: [one([L[0]].concat(pad))], reduce: [L[0].so_line_item_id], off: true });
+      assert.strictEqual(r.out.code, "406"); assert.ok(/up to 500 lines/.test(r.out.message), r.out.message);
+      assert.ok(!r.calls.some((c) => /^SUBMIT|^WORKER|^GOODS_DELIVERY/.test(c)), r.calls.join(" | "));
+    }
+  },
+  CAPB: () => {
+    const pad = Array.from({ length: 500 }, (_, i) => Object.assign({}, L[2], { id: String(2110000000000100000 + i), so_line_item_id: L[2].so_line_item_id }));
+    const r = run("pass B onto a delivery above 500 lines: the new line is not appended, nothing submitted", { passNo: 2, gds: [one([L[0]].concat(pad))], addLine: true });
+    assert.strictEqual(r.out.code, "406"); assert.ok(/more than a Sales Order change can update \(500\)/.test(r.out.message), r.out.message);
+    assert.ok(!r.calls.some((c) => /^SUBMIT|^WORKER|^GOODS_DELIVERY/.test(c)), r.calls.join(" | "));
+  },
+  CAPEDGE: () => {
+    const pad = Array.from({ length: 499 }, (_, i) => Object.assign({}, L[2], { id: String(2110000000000100000 + i), so_line_item_id: L[2].so_line_item_id }));
+    const r = run("exactly 500 lines: the background save takes it", { gds: [one([L[0]].concat(pad))], reduce: [L[0].so_line_item_id] });
+    assert.strictEqual(r.out.code, "200", r.out.message); assert.ok(r.calls.some((c) => /^SUBMIT\(SUBMIT,CASCADE,\d+,500 lines/.test(c)), r.calls.join(" | "));
   },
   PASSB: () => {
     const r = run("pass B: a new SO line appended, held for the release", { passNo: 2, gds: [one(L)], addLine: true });

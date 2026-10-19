@@ -2276,6 +2276,230 @@
                   "data": { "title": "true" },
                   "blocks": [
                     {
+                      "id": "code_node_CfNeed1",
+                      "type": "code-node",
+                      "data": {
+                        "title": "Custom fields this edit leaves out? (header + lines)",
+                        "isValidator": true,
+                        "nodeName": "Custom fields this edit leaves out? (header + lines)",
+                        "name": "Custom fields this edit leaves out? (header + lines)",
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_4r2Fv9G5.data.allData.custom_fields_e9609s2l}}][0];\nconst lines = [{{node:code_node_ApplyBatches.data.table_gr}}][0];\nconst rawId = [{{node:code_node_4r2Fv9G5.data.allData.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_d7o7rdkd\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "umdgx17c",
+                            "name": "need",
+                            "title": "need",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "4lv0k44m",
+                            "name": "id",
+                            "title": "id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_CfNeed1",
+                      "type": "if",
+                      "data": {
+                        "title": "IF the edit leaves custom fields out",
+                        "isValidator": true,
+                        "nodeName": "IF the edit leaves custom fields out",
+                        "name": "IF the edit leaves custom fields out",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1799100001003,
+                              "parentId": 1799100001004,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_CfNeed1.data.need}}' == 'YES'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_TCfNeed1",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "get_node_CfStored1",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Goods Receiving:Table:1901845517592285186",
+                                  "rules": {
+                                    "collectionId": "1901845517592285186",
+                                    "list": [
+                                      {
+                                        "id": 1799100001001,
+                                        "parentId": 1799100001002,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_CfNeed1.data.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "The stored record (custom fields by name)",
+                                "isValidator": true,
+                                "nodeName": "The stored record (custom fields by name)",
+                                "name": "The stored record (custom fields by name)"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_CfFill1",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id, else by po_line_item_id in order\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_4r2Fv9G5.data.allData.custom_fields_e9609s2l}}][0];\nconst lines = [{{node:code_node_ApplyBatches.data.table_gr}}][0];\nconst got = [{{node:get_node_CfStored1.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = \"po_line_item_id\";\nconst storedRows = flat(stored[\"table_gr\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_e9609s2l\"]) ? null : stored[\"custom_fields_e9609s2l\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "fyf6fbuk",
+                                    "name": "ok",
+                                    "title": "ok",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "ojq43qbj",
+                                    "name": "cf",
+                                    "title": "cf",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "o1b3aohd",
+                                    "name": "lines",
+                                    "title": "lines",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "kbim0l5a",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ],
+                                "title": "Stored custom fields for what the edit left out",
+                                "isValidator": true,
+                                "nodeName": "Stored custom fields for what the edit left out",
+                                "name": "Stored custom fields for what the edit left out"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_FCfNeed1",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "code_node_CfOut1",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill1.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_node_4r2Fv9G5.data.allData.custom_fields_e9609s2l}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_node_ApplyBatches.data.table_gr}}][0] };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "m9tlo71q",
+                            "name": "cf",
+                            "title": "cf",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "x2j9vagm",
+                            "name": "lines",
+                            "title": "lines",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "bn182ku0",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ],
+                        "title": "Custom fields to write (payload, or stored where left out)",
+                        "isValidator": true,
+                        "nodeName": "Custom fields to write (payload, or stored where left out)",
+                        "name": "Custom fields to write (payload, or stored where left out)"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "update_node_a31whzYI",
                       "type": "update-node",
                       "data": {
@@ -2522,7 +2746,7 @@
                               "prop": "table_gr",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_ApplyBatches.data.table_gr}}",
+                              "value": "{{node:code_node_CfOut1.data.lines}}",
                               "valueLabel": "",
                               "propLabel": "Item Table"
                             },
@@ -2749,6 +2973,14 @@
                               "value": "{{node:code_node_4r2Fv9G5.data.allData.shipping_attention}}",
                               "valueLabel": "",
                               "propLabel": "Attention"
+                            },
+                            {
+                              "prop": "custom_fields_e9609s2l",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CfOut1.data.cf}}",
+                              "valueLabel": "",
+                              "propLabel": "custom_fields_e9609s2l"
                             }
                           ]
                         }
@@ -3282,6 +3514,14 @@
                               "value": "{{node:code_node_4r2Fv9G5.data.allData.shipping_attention}}",
                               "valueLabel": "",
                               "propLabel": "Attention"
+                            },
+                            {
+                              "prop": "custom_fields_e9609s2l",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.custom_fields_e9609s2l}}",
+                              "valueLabel": "",
+                              "propLabel": "custom_fields_e9609s2l"
                             }
                           ]
                         }
@@ -7803,6 +8043,230 @@
                   "data": { "title": "true" },
                   "blocks": [
                     {
+                      "id": "code_node_CfNeed2",
+                      "type": "code-node",
+                      "data": {
+                        "title": "Custom fields this edit leaves out? (header + lines)",
+                        "isValidator": true,
+                        "nodeName": "Custom fields this edit leaves out? (header + lines)",
+                        "name": "Custom fields this edit leaves out? (header + lines)",
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_4r2Fv9G5.data.allData.custom_fields_e9609s2l}}][0];\nconst lines = [{{node:code_node_4r2Fv9G5.data.allData.table_gr}}][0];\nconst rawId = [{{node:code_node_4r2Fv9G5.data.allData.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_d7o7rdkd\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "32uzcvig",
+                            "name": "need",
+                            "title": "need",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "1ko3bh6z",
+                            "name": "id",
+                            "title": "id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_CfNeed2",
+                      "type": "if",
+                      "data": {
+                        "title": "IF the edit leaves custom fields out",
+                        "isValidator": true,
+                        "nodeName": "IF the edit leaves custom fields out",
+                        "name": "IF the edit leaves custom fields out",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1799100001007,
+                              "parentId": 1799100001008,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_CfNeed2.data.need}}' == 'YES'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_TCfNeed2",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "get_node_CfStored2",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Goods Receiving:Table:1901845517592285186",
+                                  "rules": {
+                                    "collectionId": "1901845517592285186",
+                                    "list": [
+                                      {
+                                        "id": 1799100001005,
+                                        "parentId": 1799100001006,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_CfNeed2.data.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "The stored record (custom fields by name)",
+                                "isValidator": true,
+                                "nodeName": "The stored record (custom fields by name)",
+                                "name": "The stored record (custom fields by name)"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_CfFill2",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id, else by po_line_item_id in order\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_4r2Fv9G5.data.allData.custom_fields_e9609s2l}}][0];\nconst lines = [{{node:code_node_4r2Fv9G5.data.allData.table_gr}}][0];\nconst got = [{{node:get_node_CfStored2.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = \"po_line_item_id\";\nconst storedRows = flat(stored[\"table_gr\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_e9609s2l\"]) ? null : stored[\"custom_fields_e9609s2l\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "fzmgfpak",
+                                    "name": "ok",
+                                    "title": "ok",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "ei3w5c6x",
+                                    "name": "cf",
+                                    "title": "cf",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "nax09br6",
+                                    "name": "lines",
+                                    "title": "lines",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "2dv8kvi9",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ],
+                                "title": "Stored custom fields for what the edit left out",
+                                "isValidator": true,
+                                "nodeName": "Stored custom fields for what the edit left out",
+                                "name": "Stored custom fields for what the edit left out"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_FCfNeed2",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "code_node_CfOut2",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill2.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_node_4r2Fv9G5.data.allData.custom_fields_e9609s2l}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_node_4r2Fv9G5.data.allData.table_gr}}][0] };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "7hpbxks1",
+                            "name": "cf",
+                            "title": "cf",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "nof6tvwh",
+                            "name": "lines",
+                            "title": "lines",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "qrhkehh2",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ],
+                        "title": "Custom fields to write (payload, or stored where left out)",
+                        "isValidator": true,
+                        "nodeName": "Custom fields to write (payload, or stored where left out)",
+                        "name": "Custom fields to write (payload, or stored where left out)"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "update_node_bUR4vc0L",
                       "type": "update-node",
                       "data": {
@@ -8049,7 +8513,7 @@
                               "prop": "table_gr",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_4r2Fv9G5.data.allData.table_gr}}",
+                              "value": "{{node:code_node_CfOut2.data.lines}}",
                               "valueLabel": "",
                               "propLabel": "Item Table"
                             },
@@ -8292,6 +8756,14 @@
                               "value": "{{node:code_node_4r2Fv9G5.data.allData.shipping_attention}}",
                               "valueLabel": "",
                               "propLabel": "Attention"
+                            },
+                            {
+                              "prop": "custom_fields_e9609s2l",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_CfOut2.data.cf}}",
+                              "valueLabel": "",
+                              "propLabel": "custom_fields_e9609s2l"
                             }
                           ]
                         }
@@ -8775,6 +9247,14 @@
                               "value": "{{node:code_node_4r2Fv9G5.data.allData.shipping_attention}}",
                               "valueLabel": "",
                               "propLabel": "Attention"
+                            },
+                            {
+                              "prop": "custom_fields_e9609s2l",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_4r2Fv9G5.data.allData.custom_fields_e9609s2l}}",
+                              "valueLabel": "",
+                              "propLabel": "custom_fields_e9609s2l"
                             }
                           ]
                         }

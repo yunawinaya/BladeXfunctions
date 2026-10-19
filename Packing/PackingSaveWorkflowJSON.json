@@ -498,7 +498,7 @@
                         "name": "Resolve GD Id",
                         "script": {
                           "type": "javascript",
-                          "code": "// The web form checks this too, but that runs in the BROWSER -- mobile calls this\n// workflow directly, so the picking gate has to live here or one client can\n// complete a Packing for goods nobody picked.\n// gd_id is varchar, but legacy rows hold a stringified array ('[\"123\"]') and some\n// callers pass a real array. Either shape breaks the lookup that follows.\nconst entry = {{workflowparams:entry}} || {};\nconst raw = entry.gd_id;\nlet gdId = \"\";\nif (Array.isArray(raw)) {\n  gdId = raw.filter(Boolean)[0] || \"\";\n} else if (typeof raw === \"string\" && raw.charAt(0) === \"[\") {\n  try {\n    const a = JSON.parse(raw);\n    gdId = Array.isArray(a) ? a.filter(Boolean)[0] || \"\" : raw;\n  } catch (e) {\n    gdId = raw;\n  }\n} else {\n  gdId = raw || \"\";\n}\nreturn { gdId: String(gdId) };\n"
+                          "code": "// The web form checks this too, but that runs in the BROWSER -- mobile calls this\n// workflow directly, so the picking gate has to live here or one client can\n// complete a Packing for goods nobody picked.\n// gd_id is varchar, but legacy rows hold a stringified array ('[\"123\"]') and some\n// callers pass a real array. Either shape breaks the lookup that follows.\nconst entry = {{workflowparams:entry}} || {};\nconst raw = entry.gd_id;\nlet gdId = \"\";\nif (Array.isArray(raw)) {\n  gdId = raw.filter(Boolean)[0] || \"\";\n} else if (typeof raw === \"string\" && raw.charAt(0) === \"[\") {\n  try {\n    const a = JSON.parse(raw);\n    gdId = Array.isArray(a) ? a.filter(Boolean)[0] || \"\" : raw;\n  } catch (e) {\n    gdId = raw;\n  }\n} else {\n  gdId = raw || \"\";\n}\nconst digits = (v) => (/^[0-9]{1,20}$/.test(String(v || \"\")) ? String(v) : \"0\");\nreturn { gdId: String(gdId), gdDigits: digits(gdId), tenantId: digits([{{system:tenantId}}][0]) };\n"
                         },
                         "response_json": [
                           {
@@ -508,6 +508,24 @@
                             "description": "",
                             "bsonType": "string",
                             "isExpand": false
+                          },
+                          {
+                            "key": "ntgd4mh7",
+                            "name": "gdDigits",
+                            "title": "gdDigits",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "4i13kgol",
+                            "name": "tenantId",
+                            "title": "tenantId",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
                           }
                         ]
                       },
@@ -545,6 +563,34 @@
                       "blocks": []
                     },
                     {
+                      "id": "sql_node_PkJobChk",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "Open Background Job On The GD",
+                        "isValidator": true,
+                        "nodeName": "Open Background Job On The GD",
+                        "name": "Open Background Job On The GD",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT CONCAT(CAST(j.id AS CHAR), '|', j.command, '|', j.job_status) AS open_job\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_PkPickId.data.tenantId}}'\n   AND j.correlation_id = (CONCAT('GD|', '{{node:code_node_PkPickId.data.gdDigits}}') COLLATE utf8mb4_general_ci)\n   AND j.command IN ('EDIT_GD', 'COMPLETE_GD', 'COMPLETE_PACKING')\n   AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n   AND j.is_deleted = 0\n ORDER BY j.id DESC\n LIMIT 1"
+                        },
+                        "response_json": [
+                          {
+                            "key": "i8wtb3v7",
+                            "name": "open_job",
+                            "title": "open_job",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "id": "code_node_PkPickChk",
                       "type": "code-node",
                       "data": {
@@ -557,7 +603,7 @@
                         "name": "Validate Fully Picked",
                         "script": {
                           "type": "javascript",
-                          "code": "// Blocks Save as Completed while any GD line is still unpicked. A Sales-Order\n// based packing has no GD, so an empty fetch passes -- there is nothing to check.\nconst raw = {{node:get_node_PkPickGd.data.data}};\nconst gd = Array.isArray(raw) ? raw[0] : raw;\n\nif (gd && gd.gd_status === \"Cancelled\") {\n  return {\n    notPicked: 1,\n    pickedMessage: \"Cannot complete packing: Goods Delivery \" + (gd.delivery_no || \"\") + \" is Cancelled.\",\n  };\n}\n\nif (!gd || !Array.isArray(gd.table_gd)) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\n// table_gd is a tree: a bundle is ONE parent row with its real lines under\n// `children`, and that parent carries no material_id. Read flat, a bundle's\n// lines are never checked at all.\nconst lines = gd.table_gd.flatMap(function (row) {\n  return [row].concat(Array.isArray(row.children) ? row.children : []);\n});\n\n// The GOODS_DELIVERY re-save below took the dev server down on a 2,000-line GD (2026-10-09): a big delivery is completed\n// by the background save of the desktop form (Packing V2), refused here before anything is written.\nconst MAX_SYNC_GD_LINES = 500;\nif (lines.length > MAX_SYNC_GD_LINES) {\n  return {\n    notPicked: 1,\n    pickedMessage: \"This Goods Delivery has \" + lines.length + \" lines (above \" + MAX_SYNC_GD_LINES + \"): complete the Packing from the desktop Packing form, which saves it in the background. Nothing was saved.\",\n  };\n}\n\nconst errors = [];\nfor (const line of lines) {\n  if (!line.material_id) continue;\n  if (line.picking_status === \"Cancelled\") continue;\n  if ((parseFloat(line.gd_qty) || 0) <= 0) continue;\n  // picking_status is the source of truth in BOTH flows: normal picking sets it\n  // Completed once the line is fully picked, and under allow_full_picking it only\n  // reaches Completed when cumulative picked_qty >= gd_qty across sibling\n  // Pickings. The picked_qty scalar is written ONLY when allow_full_picking is\n  // on, so gating on that would falsely block every normal-flow packing.\n  if (line.picking_status !== \"Completed\") {\n    errors.push(\n      (line.material_name || line.material_id) +\n        \" (\" + (line.picking_status || \"Open\") + \")\"\n    );\n  }\n}\n\nif (errors.length === 0) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\nconst preview = errors.slice(0, 3).join(\"; \");\nconst suffix = errors.length > 3 ? \" (+\" + (errors.length - 3) + \" more)\" : \"\";\nreturn {\n  notPicked: 1,\n  pickedMessage:\n    \"Cannot complete packing: these Goods Delivery lines are not fully picked - \" +\n    preview + suffix + \". Pickings still pending.\",\n};\n"
+                          "code": "// Blocks Save as Completed while any GD line is still unpicked. A Sales-Order\n// based packing has no GD, so an empty fetch passes -- there is nothing to check.\n// a background save (Packing V2, GD Edit V2, GD Completed V2) owns this delivery until its job ends\nconst jobRows = [{{node:sql_node_PkJobChk.data}}][0];\nconst openJob = String(((Array.isArray(jobRows) ? jobRows[0] : jobRows) || {}).open_job || \"\").split(\"|\");\nif (openJob[0]) {\n  return {\n    notPicked: 1,\n    pickedMessage: openJob[2] === \"REQUIRES_REVIEW\"\n      ? \"The background save of this Goods Delivery stopped half-way and is under review (\" + openJob[1] + \" job \" + openJob[0] + \"): please contact support. Nothing was saved.\"\n      : \"This Goods Delivery is being saved in the background (\" + openJob[1] + \" job \" + openJob[0] + \"). Wait a moment, then try again. Nothing was saved.\",\n  };\n}\n\nconst raw = {{node:get_node_PkPickGd.data.data}};\nconst gd = Array.isArray(raw) ? raw[0] : raw;\n\n// GOODS_DELIVERY refuses a Processing delivery: refused here instead, before the GD lines are written\nif (gd && gd.gd_status === \"Processing\") {\n  return {\n    notPicked: 1,\n    pickedMessage: \"Goods Delivery \" + (gd.delivery_no || \"\") + \" is being saved in the background (Processing). Wait a moment, then try again. Nothing was saved.\",\n  };\n}\n\nif (gd && gd.gd_status === \"Cancelled\") {\n  return {\n    notPicked: 1,\n    pickedMessage: \"Cannot complete packing: Goods Delivery \" + (gd.delivery_no || \"\") + \" is Cancelled.\",\n  };\n}\n\nif (!gd || !Array.isArray(gd.table_gd)) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\n// table_gd is a tree: a bundle is ONE parent row with its real lines under\n// `children`, and that parent carries no material_id. Read flat, a bundle's\n// lines are never checked at all.\nconst lines = gd.table_gd.flatMap(function (row) {\n  return [row].concat(Array.isArray(row.children) ? row.children : []);\n});\n\n// The GOODS_DELIVERY re-save below took the dev server down on a 2,000-line GD (2026-10-09): a big delivery is completed\n// by the background save of the desktop form (Packing V2), refused here before anything is written.\nconst MAX_SYNC_GD_LINES = 500;\nif (lines.length > MAX_SYNC_GD_LINES) {\n  return {\n    notPicked: 1,\n    pickedMessage: \"This Goods Delivery has \" + lines.length + \" lines (above \" + MAX_SYNC_GD_LINES + \"): complete the Packing from the desktop Packing form, which saves it in the background. Nothing was saved.\",\n  };\n}\n\nconst errors = [];\nfor (const line of lines) {\n  if (!line.material_id) continue;\n  if (line.picking_status === \"Cancelled\") continue;\n  if ((parseFloat(line.gd_qty) || 0) <= 0) continue;\n  // picking_status is the source of truth in BOTH flows: normal picking sets it\n  // Completed once the line is fully picked, and under allow_full_picking it only\n  // reaches Completed when cumulative picked_qty >= gd_qty across sibling\n  // Pickings. The picked_qty scalar is written ONLY when allow_full_picking is\n  // on, so gating on that would falsely block every normal-flow packing.\n  if (line.picking_status !== \"Completed\") {\n    errors.push(\n      (line.material_name || line.material_id) +\n        \" (\" + (line.picking_status || \"Open\") + \")\"\n    );\n  }\n}\n\nif (errors.length === 0) {\n  return { notPicked: 0, pickedMessage: \"\" };\n}\n\nconst preview = errors.slice(0, 3).join(\"; \");\nconst suffix = errors.length > 3 ? \" (+\" + (errors.length - 3) + \" more)\" : \"\";\nreturn {\n  notPicked: 1,\n  pickedMessage:\n    \"Cannot complete packing: these Goods Delivery lines are not fully picked - \" +\n    preview + suffix + \". Pickings still pending.\",\n};\n"
                         },
                         "response_json": [
                           {

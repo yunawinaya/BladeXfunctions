@@ -232,5 +232,57 @@ const baseEntry = (extra) => Object.assign({ jobId: JOB, organizationId: "112359
   ok(r.freeRows.length === 0 && r.needFree === "NO", "finish after R4 freed in the same run: no second FREE", r);
 }
 
+// ------------------------------------------------------------------ R2 COST locks
+{
+  const { commitR2LockKeys } = load("r2_lock_keys.js", ["commitR2LockKeys"]);
+  const { commitR2LockSeed } = load("r2_lock_seed.js", ["commitR2LockSeed"]);
+  const { commitR2LockClaim } = load("r2_lock_claim.js", ["commitR2LockClaim"]);
+  const { commitR2LockVerify } = load("r2_lock_verify.js", ["commitR2LockVerify"]);
+  const { commitR2LockRelease } = load("r2_lock_release.js", ["commitR2LockRelease"]);
+  const { commitR2LockReleased } = load("r2_lock_released.js", ["commitR2LockReleased"]);
+  const e = baseEntry({ plantId: "5" });
+  const OP = "GRV|" + JOB + "|R2";
+  const k = commitR2LockKeys(e, { ok: "YES", fifo: [{ id: "71", material_id: "12" }], waDelete: [{ id: "81", material_id: "11" }], waRestate: [{ id: "91", material_id: "12" }, { id: "92", material_id: "x" }] });
+  ok(k.need === "YES" && J(k.keys) === J(["COST|11|5", "COST|12|5"]) && k.keysJson === J(k.keys) && k.opKey === OP, "R2 lock keys: one per material, sorted, digits only", k);
+  ok(commitR2LockKeys(e, { ok: "NO" }).need === "NO", "R2 lock keys: no input -> no lock");
+  ok(commitR2LockKeys(baseEntry({ plantId: "0x" }), { ok: "YES", fifo: [{ id: "71", material_id: "12" }] }).need === "NO", "R2 lock keys: no plant -> no lock");
+  const sd = commitR2LockSeed(e, k, [{ id: "1", lock_key: "cost|11|5", is_deleted: 0 }]);
+  ok(sd.needSeed === "YES" && J(sd.addSlices[0].rows) === J([{ organization_id: e.organizationId, lock_key: "COST|12|5", balance_type: "COST", free_token: 1, lock_version: 0,
+    owner_operation_id: "", last_owner_operation_id: "" }]), "R2 lock seed: only the missing key (case-insensitive), the engine's row", sd);
+  ok(commitR2LockSeed(e, k, [{ id: "1", lock_key: "COST|11|5" }, { id: "2", lock_key: "COST|12|5" }]).needSeed === "NO", "R2 lock seed: nothing missing");
+  let threw = "";
+  try { commitR2LockSeed(e, k, [{ id: "1", lock_key: "COST|11|5", is_deleted: 1 }]); } catch (x) { threw = x.message; }
+  ok(/soft-deleted/.test(threw), "R2 lock seed: a soft-deleted row on a key fails the run", threw);
+  const row = (id, key, t, owner, last) => ({ id: id, lock_key: key, free_token: t, owner_operation_id: owner || "", last_owner_operation_id: last || "", db_now: "2026-10-16 21:00:00" });
+  let c = commitR2LockClaim(e, k, [row("1", "COST|11|5", 1), row("2", "COST|12|5", 1)]);
+  ok(c.route === "TAKE" && c.needTake === "YES" && J(c.ids) === J(["1", "2"]) && c.claimedAt === "2026-10-16 21:00:00", "R2 claim: both free -> TAKE in key order, DB clock", c);
+  c = commitR2LockClaim(e, k, [row("1", "COST|11|5", 0, OP), row("2", "COST|12|5", 1)]);
+  ok(c.route === "TAKE" && J(c.ids) === J(["2"]), "R2 claim: a key still held from a run that died is kept, the other taken", c);
+  c = commitR2LockClaim(e, k, [row("1", "COST|11|5", 0, OP), row("2", "COST|12|5", 0, OP)]);
+  ok(c.route === "HELD" && c.needTake === "NO" && c.ids.length === 0, "R2 claim: all held already -> HELD", c);
+  c = commitR2LockClaim(e, k, [row("1", "COST|11|5", 1), row("2", "COST|12|5", 0, "IBA|GDC|9")]);
+  ok(c.route === "BUSY" && c.needTake === "NO" && c.ids.length === 0 && /COST\|12\|5 \(IBA\|GDC\|9\)/.test(c.busy), "R2 claim: a key another operation holds -> BUSY, nothing taken", c);
+  c = commitR2LockClaim(e, k, [row("1", "COST|11|5", 1)]);
+  ok(c.route === "BUSY" && /COST\|12\|5 \(lock row not created yet\)/.test(c.busy), "R2 claim: a row the seed did not create -> BUSY", c);
+  c = commitR2LockClaim(e, k, [row("1", "COST|11|5", 1), row("2", "COST|12|5", 0, "", OP)]);
+  ok(c.route === "BUSY" && /not given back by GRV/.test(c.busy), "R2 claim: a row cleared without its GIVE -> BUSY (the exit gives it back)", c);
+  let v = commitR2LockVerify(e, k, { route: "TAKE" }, [row("1", "COST|11|5", 0, OP), row("2", "COST|12|5", 0, OP)]);
+  ok(v.route === "HELD" && v.needJobUpd === "NO", "R2 verify: both held by this revert -> on", v);
+  v = commitR2LockVerify(e, k, { route: "TAKE" }, [row("1", "COST|11|5", 0, OP), row("2", "COST|12|5", 0, "IBA|X")]);
+  ok(v.route === "END" && v.result_code === "GRV_WAIT" && v.job_status === "COMMITTING_REVERT" && v.jobRows[0].next_attempt_at === "2026-10-15 10:00:05" && v.jobRows[0].attempt_count === 0
+    && v.jobRows[0].lease_owner === null, "R2 verify: a key not taken -> wait 5 s, not counted, lease released", v);
+  v = commitR2LockVerify(e, k, { route: "BUSY", busy: "COST|12|5 (IBA|X)" }, []);
+  ok(v.route === "END" && /held by another operation: COST\|12\|5/.test(v.result_message), "R2 verify: a busy claim -> wait", v);
+  const held = [row("1", "COST|11|5", 0, OP), row("2", "COST|12|5", 0, "", OP), row("3", "COST|13|5", 0, "IBA|X"), row("4", "COST|14|5", 1, "", OP)].map((x, i) => Object.assign(x, { lock_version: i }));
+  const r = commitR2LockRelease(e, held);
+  ok(r.opKey === OP && r.needRelease === "YES" && J(r.plusIds) === J(["1", "2"]), "R2 release: its own row + a row cleared without its GIVE; not another's, not a free one", r);
+  ok(J(r.clearSlices[0].rows) === J([{ id: "1", owner_operation_id: "", last_owner_operation_id: OP, last_released_at: "2026-10-16 21:00:00", lock_version: 1 }]),
+    "R2 release: owner cleared (last owner, DB clock, version + 1) only on the owned row", r.clearSlices);
+  ok(commitR2LockRelease(e, []).needRelease === "NO", "R2 release: nothing held");
+  ok(commitR2LockReleased(e, []).route === "OK", "R2 released: none left -> on");
+  const rr = commitR2LockReleased(e, [row("2", "COST|12|5", 0, "", OP)]);
+  ok(rr.route === "END" && rr.result_code === "GRV_STEP_RETRY" && rr.jobRows[0].attempt_count === 1 && /not given back \(e\.g\. COST\|12\|5\)/.test(rr.result_message), "R2 released: a lock left -> counted retry", rr);
+}
+
 console.log("revert commit unit tests: " + passes + " passed, " + fails + " failed");
 process.exit(fails ? 1 : 0);

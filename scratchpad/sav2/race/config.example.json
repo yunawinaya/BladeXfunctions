@@ -1,0 +1,55 @@
+{
+ "_about": "SA V2 cost-row race (CONTRACT §15). Create the four items (race/make_item_requests.py prints the ITEM_SAVE calls), then python3 race/seed_plan.py --fill-ids writes race/config.json with their ids (+ batch_id after seed step 1); then python3 race/seed_plan.py --check. Everything here is DEV; tenant 496474 was offered for our tests by GD Edit & Picking V2 (announce first).",
+ "env": "dev",
+ "endpoint": "https://dev.mes.sudu.ai/api",
+ "workflows": {
+  "INVENTORY_BULK_APPLY": "2109916822821744641",
+  "ADD_INVENTORY": "2012005532688723970"
+ },
+ "auth": "runas",
+ "_auth": "runas = fire.mjs spawns scratchpad/gdc/tools/runas.mjs with the identity below (a real admin@496474; the runner mints a 15-min token per call, nothing stored); cli = the sudu-lowcode dev-write session (runwf.mjs pattern), tenant 000000 only",
+ "identity": "scratchpad/gdc/tools/id496474.json",
+ "tenant_id": "496474",
+ "organization_id": "1901545950162329602",
+ "plant_id": "1942795438353035266",
+ "_plant": "Testing Org 1 / Testing Plant 1 (dev blade_dept)",
+ "bins": {
+  "bin1": "2046110651955724289",
+  "bin2": "2046110685065560066",
+  "_bins": "L1 / L2 of Testing Plant 1 (bin_location, active). A works in bin1, B in bin2: different ITEM| lock keys, so the engine locks never meet - only the cost rows (material + plant) are shared"
+ },
+ "uom_id": "2021056571405717507",
+ "_uom": "PCS (tenant 496474) - the base UOM of every test item; movements pass it as material_uom",
+ "materials": {
+  "fifo": {"id": "", "code": "SACRACE-FIFO", "name": "SA race FIFO (non-batch) - test only", "method": "First In First Out", "batch_managed": 0},
+  "wa": {"id": "", "code": "SACRACE-WA", "name": "SA race WA (non-batch) - test only", "method": "Weighted Average", "batch_managed": 0},
+  "fifo_batch": {"id": "", "code": "SACRACE-FIFOB", "name": "SA race FIFO batch - test only", "method": "First In First Out", "batch_managed": 1,
+                 "batch_number": "SACRACE-B1", "batch_id": ""},
+  "filler": {"id": "", "code": "SACRACE-FILL", "name": "SA race filler (Fixed Cost) - test only", "method": "Fixed Cost", "batch_managed": 0,
+             "_filler": "R0's large op B: ADD 1 / SUBTRACT 1 pairs in bin1 - Fixed Cost touches no cost row, so B's cost writes are only the shared material's"}
+ },
+ "seed": {
+  "qty_per_bin": 500,
+  "fifo_prices": [1.0, 2.0],
+  "wa_prices": [10.0, 20.0],
+  "fifo_batch_prices": [3.0, 4.0],
+  "filler_qty": 10,
+  "doc_date": "2026-10-16 00:00:00",
+  "trx_no": "SACRACE-SEED"
+ },
+ "scenarios": {
+  "R0": {"about": "silent interleaving (eb): B = large SA-shaped op (filler pairs + 1 SUBTRACT of the shared FIFO item in bin2), A = 1 SUBTRACT of it in bin1 fired after B's cost read",
+         "material": "fifo", "a": {"direction": "SUBTRACT", "qty": 5}, "b": {"direction": "SUBTRACT", "qty": 10}, "b_movements": 1000,
+         "delays_ms": [600, 900, 1200, 1500, 1800, 2100, 2400, 2700, 3000, 3300]},
+  "R1": {"about": "FIFO SUBTRACT vs SUBTRACT, overlapping", "material": "fifo", "a": {"direction": "SUBTRACT", "qty": 5}, "b": {"direction": "SUBTRACT", "qty": 7},
+         "delays_ms": [0, 0, 25, 50, 75, 100, 0, 25, 50, 0]},
+  "R2": {"about": "WA ADD vs ADD (re-average)", "material": "wa", "a": {"direction": "ADD", "qty": 10, "unit_price": 30.0}, "b": {"direction": "ADD", "qty": 10, "unit_price": 50.0},
+         "delays_ms": [0, 0, 25, 50, 75, 100, 0, 25, 50, 0]},
+  "R3": {"about": "FIFO ADD vs ADD (duplicate fifo_sequence)", "material": "fifo", "a": {"direction": "ADD", "qty": 10, "unit_price": 5.0}, "b": {"direction": "ADD", "qty": 10, "unit_price": 6.0},
+         "delays_ms": [0, 0, 25, 50, 75, 100, 0, 25, 50, 0]},
+  "_batch": "fire.mjs --batch runs R1 / R3 on materials.fifo_batch (batch_id) instead: the batch-scoped FIFO path"
+ },
+ "op_key": "SACRACE|<run>|<A|B>  (engine guard: 1-32 of A-Z a-z 0-9 | : . _ -; run ids are R<n>-<nn>[b], e.g. SACRACE|R0-07|B)",
+ "trx_no": "SACRACE|<run>  (inventory_movement.trx_no of the race ops; transaction_type SA)",
+ "out_dir": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/b63ef53a-d07d-46f1-9737-73cc10430822/scratchpad/sav2-race"
+}

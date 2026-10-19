@@ -10,6 +10,9 @@ import json, os, string, random
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 S = os.path.dirname(os.path.abspath(__file__))
+import sys  # noqa: E402
+sys.path.insert(0, os.path.join(S, "cfwipe"))
+from patch_cf import patch_exact  # noqa: E402  (an edit that leaves the custom fields out keeps them)
 
 CUST_TABLE = "Customer:Table:1902779099617804290"
 CUST_ID = "1902779099617804290"
@@ -405,7 +408,7 @@ cust_nodes = [
 ]
 
 write(os.path.join(ROOT, "Customer", "CustSaveWorkflow.json"),
-      workflow_doc(cust_nodes, ("id", "customer_code", "customer_name", "customer_status")))
+      patch_exact("CUSTOMER_SAVE", workflow_doc(cust_nodes, ("id", "customer_code", "customer_name", "customer_status"))))
 
 # =================================================================== SUPPLIER
 SUP_COLUMNS = json.load(open(os.path.join(S, "supplier_save_columns.json")))["columns"]
@@ -494,4 +497,4 @@ sup_nodes = [
 ]
 
 write(os.path.join(ROOT, "Supplier", "SupplierSaveWorkflow.json"),
-      workflow_doc(sup_nodes, ("id", "supplier_code", "supplier_name", "supplier_status")))
+      patch_exact("SUPPLIER_SAVE", workflow_doc(sup_nodes, ("id", "supplier_code", "supplier_name", "supplier_status"))))

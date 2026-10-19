@@ -264,5 +264,28 @@ for (const file of process.argv.slice(2)) {
     else { assert.strictEqual(r.code, classicCode); assert.strictEqual(r.message, String(resp.message || "")); }
   });
 }
+it("delta: JSON cells that differ only in key order (MySQL's json order) are not a change", () => {
+  const client = [{ key: "k1", domain: "d", url: "u", size: 10, name: "a.jpg" }], mysql = [{ key: "k1", url: "u", name: "a.jpg", size: 10, domain: "d" }];
+  const stored = { id: "2100000000000000001", gd_ref_doc: mysql, table_gd: [{ id: "31", custom_fields: { b: 1, a: 2 } }] };
+  const form = { id: "2100000000000000001", gd_ref_doc: client, table_gd: [{ id: "31", custom_fields: { a: 2, b: 1 } }] };
+  const d = call(sb0, "geDelta", form, stored, KINDS);
+  assert.deepStrictEqual(d.header, {}); assert.deepStrictEqual(d.lines.filter((l) => Object.keys(l.cells || {}).length), []);
+});
+
+// a device lock older than PICKING_LOOP's takeover (900 s) is not a device's any more
+it("entry: a stale Picking lock (over 900 s) is not BUSY and is handed to the gate as stale; a fresh one stays BUSY", () => {
+  const stale = call(sb0, "submitEntry", guard, facts({ pickings: JSON.stringify([{ id: "6", to_status: "In Progress", is_processing: 1, lock_age_sec: 1200 }]) }));
+  assert.strictEqual(stale.route, "GO"); assert.deepStrictEqual(stale.staleLocks, ["6"]);
+  const fresh = call(sb0, "submitEntry", guard, facts({ pickings: JSON.stringify([{ id: "6", to_status: "In Progress", is_processing: 1, lock_age_sec: 30 }]) }));
+  assert.strictEqual(fresh.route, "BUSY");
+});
+it("gate: the lifted reconcile reads a stale-locked Picking as released (SUBMIT then takes the lock over); others unchanged", () => {
+  const R = (id, on) => ({ pick: { count: 1, data: { id: id, is_processing: on } } });
+  assert.strictEqual(call(sb0, "gsUnstale", R("6", 1), ["6"]).pick.data.is_processing, 0);
+  assert.strictEqual(call(sb0, "gsUnstale", R("6", 1), ["7"]).pick.data.is_processing, 1);
+  assert.strictEqual(call(sb0, "gsUnstale", R("6", 1), null).pick.data.is_processing, 1);
+  assert.deepStrictEqual(call(sb0, "gsUnstale", { pick: { count: 0, data: {} } }, ["6"]).pick.data, {});
+});
+
 console.log(JSON.stringify({ cases: n, failed: failed }));
 process.exit(failed ? 1 : 0);

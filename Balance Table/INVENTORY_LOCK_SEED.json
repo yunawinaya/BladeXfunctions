@@ -1,0 +1,573 @@
+{
+ "request_json": [
+  {
+   "key": "kbim0l5a",
+   "name": "organization_id",
+   "title": "organization_id",
+   "description": "the organization (digits) of the lock rows",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "m9tlo71q",
+   "name": "rows",
+   "title": "rows",
+   "description": "lock rows to insert: [{lock_key: 'ITEM|mat|loc' | 'BATCH|mat|loc|batch' | 'COST|mat|plant', ...}]",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "x2j9vagm",
+   "name": "code",
+   "title": "code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "bn182ku0",
+   "name": "count",
+   "title": "count",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "32uzcvig",
+   "name": "message",
+   "title": "message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "title": "Start Node",
+    "isValidator": true,
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_LSplan",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// INVENTORY_LOCK_SEED - the lock rows to insert (free_token 1), as INVENTORY_BULK_APPLY's seed builds them; a twin insert\n// fails this run only: the caller re-reads the rows and treats a row still missing as busy\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst org = s([{{workflowparams:organization_id}}][0]);\nconst input = [{{workflowparams:rows}}][0];\nif (!/^[0-9]{1,19}$/.test(org)) throw new Error(\"INV_LOCK_SEED_INPUT: organization_id is not 1-19 digits\");\nconst seen = {};\nconst rowsToAdd = [];\nfor (const r of Array.isArray(input) ? input : input ? [input] : []) {\n  const k = s(r && r.lock_key);\n  if (!/^(ITEM|BATCH|COST)\\|[0-9|]{1,120}$/.test(k)) throw new Error(\"INV_LOCK_SEED_INPUT: lock_key \" + k.slice(0, 60) + \" is not ITEM|, BATCH| or COST| digits\");\n  if (seen[k.toUpperCase()]) continue;\n  seen[k.toUpperCase()] = true;\n  rowsToAdd.push({ organization_id: org, lock_key: k, balance_type: k.split(\"|\")[0], free_token: 1, lock_version: 0, owner_operation_id: \"\", last_owner_operation_id: \"\" });\n}\nconst batches = [];\nfor (let i = 0; i < rowsToAdd.length; i += 250) batches.push({ from: i });\nconst nonce = (s([{{system:uuid}}][0]).replace(/[^0-9a-fA-F]/g, \"\") + \"000000000000\").slice(0, 12);\nreturn { organizationId: org, nonce: nonce, rowsToAdd: rowsToAdd, batches: batches, needSeed: rowsToAdd.length ? \"YES\" : \"NO\", count: String(rowsToAdd.length) };"
+    },
+    "response_json": [
+     {
+      "key": "ozdko99o",
+      "name": "organizationId",
+      "title": "organizationId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "e8u1h8if",
+      "name": "nonce",
+      "title": "nonce",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "vr2esgfz",
+      "name": "rowsToAdd",
+      "title": "rowsToAdd",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "39vescas",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "izu7j03e",
+      "name": "batches",
+      "title": "batches",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "s6cz7qfo",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "umdgx17c",
+      "name": "needSeed",
+      "title": "needSeed",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "4lv0k44m",
+      "name": "count",
+      "title": "count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Plan: the rows to insert (keys checked, repeats dropped), slices of <= 250",
+    "isValidator": true,
+    "nodeName": "Plan: the rows to insert (keys checked, repeats dropped), slices of <= 250",
+    "name": "Plan: the rows to insert (keys checked, repeats dropped), slices of <= 250"
+   },
+   "blocks": []
+  },
+  {
+   "id": "cor_LSseed",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Lock rows to seed?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YLSseed",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1798200000001,
+         "parentId": 1798200000002,
+         "isTop": true,
+         "prop": "node.code_node_LSplan.data.needSeed",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needSeed",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "set_cache_LSsdIdx0",
+       "type": "set-cache-node",
+       "data": {
+        "redis_key": "iba_sd_{{node:code_node_LSplan.data.nonce}}",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "0"
+        },
+        "limit_time": 3600000,
+        "title": "Seed slice index = 0 (per run: the key carries the run's nonce)",
+        "nodeName": "Seed slice index = 0 (per run: the key carries the run's nonce)",
+        "name": "Seed slice index = 0 (per run: the key carries the run's nonce)"
+       }
+      },
+      {
+       "id": "loop_LSseed",
+       "type": "loop",
+       "data": {
+        "title": "Seed the lock rows in slices of <= 250",
+        "nodeName": "Seed the lock rows in slices of <= 250",
+        "name": "Seed the lock rows in slices of <= 250",
+        "loopType": "Var",
+        "iterator": "_item",
+        "loopSeletVar": {
+         "type": "javascript",
+         "code": "{{node:code_node_LSplan.data.batches}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "get_cache_LSsdIdx",
+         "type": "get-cache-node",
+         "data": {
+          "redis_key": "iba_sd_{{node:code_node_LSplan.data.nonce}}",
+          "title": "Seed slice index",
+          "nodeName": "Seed slice index",
+          "name": "Seed slice index"
+         }
+        },
+        {
+         "id": "code_node_LSsdSlice",
+         "type": "code-node",
+         "data": {
+          "language": "javascript",
+          "code": "",
+          "timeout": 30000,
+          "isValidator": true,
+          "script": {
+           "type": "javascript",
+           "code": "// INVENTORY_BULK_APPLY slice of rowsToAdd: rows [index * 250, + 250)\nconst all = [{{node:code_node_LSplan.data.rowsToAdd}}][0];\nconst list = Array.isArray(all) ? all : all ? [all] : [];\nconst raw = [{{node:get_cache_LSsdIdx.data}}][0];\nconst index = raw === undefined || raw === null || String(raw).trim() === \"\" ? 0 : parseInt(String(raw).replace(/\"/g, \"\"), 10) || 0;\nconst rows = list.slice(index * 250, index * 250 + 250);\nreturn { rows: rows, count: String(rows.length), nextIndex: String(index + 1) };\n"
+          },
+          "response_json": [
+           {
+            "key": "01w8tp4z",
+            "name": "rows",
+            "title": "rows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+             {
+              "key": "01pibbj0",
+              "name": "items",
+              "title": "",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": [],
+              "isArrayItem": true
+             }
+            ]
+           },
+           {
+            "key": "01qsyv4c",
+            "name": "count",
+            "title": "count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           },
+           {
+            "key": "01n6uzxx",
+            "name": "nextIndex",
+            "title": "nextIndex",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+           }
+          ],
+          "title": "Seed slice",
+          "nodeName": "Seed slice",
+          "name": "Seed slice"
+         }
+        },
+        {
+         "id": "set_cache_LSsdIdxN",
+         "type": "set-cache-node",
+         "data": {
+          "redis_key": "iba_sd_{{node:code_node_LSplan.data.nonce}}",
+          "custom_wkbocgni": {
+           "type": "javascript",
+           "code": "{{node:code_node_LSsdSlice.data.nextIndex}}"
+          },
+          "limit_time": 3600000,
+          "title": "Next seed slice index",
+          "nodeName": "Next seed slice index",
+          "name": "Next seed slice index"
+         }
+        },
+        {
+         "id": "try_catch_LSseed",
+         "type": "tryCatch",
+         "data": {
+          "title": "try-catch: a twin insert must not fail the caller"
+         },
+         "blocks": [
+          {
+           "type": "tryBlock",
+           "key": "try",
+           "data": {},
+           "blocks": [
+            {
+             "id": "add_node_LSseed",
+             "type": "add-node",
+             "data": {
+              "table_id": {
+               "source": "Inventory Balance Lock:Table:2105132021358956546",
+               "rules": {
+                "collectionId": "2105132021358956546",
+                "list": []
+               }
+              },
+              "props": {
+               "list": [
+                {
+                 "prop": "organization_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_LSsdSlice.data.rows.organization_id}}"
+                },
+                {
+                 "prop": "lock_key",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_LSsdSlice.data.rows.lock_key}}"
+                },
+                {
+                 "prop": "balance_type",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_LSsdSlice.data.rows.balance_type}}"
+                },
+                {
+                 "prop": "free_token",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_LSsdSlice.data.rows.free_token}}"
+                },
+                {
+                 "prop": "lock_version",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_LSsdSlice.data.rows.lock_version}}"
+                },
+                {
+                 "prop": "owner_operation_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_LSsdSlice.data.rows.owner_operation_id}}"
+                },
+                {
+                 "prop": "last_owner_operation_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_LSsdSlice.data.rows.last_owner_operation_id}}"
+                }
+               ]
+              },
+              "title": "Lock seed insert (unique tenant / organization / lock_key: a twin insert fails)",
+              "nodeName": "Lock seed insert (unique tenant / organization / lock_key: a twin insert fails)",
+              "name": "Lock seed insert (unique tenant / organization / lock_key: a twin insert fails)"
+             }
+            }
+           ],
+           "id": "try_catch_LSseed_tryBlock_0"
+          },
+          {
+           "type": "catchBlock",
+           "key": "catch",
+           "data": {
+            "title": "Twin insert",
+            "trycatch_type": "Filter",
+            "filter": {
+             "list": []
+            },
+            "expression": {
+             "type": "javascript",
+             "code": ""
+            },
+            "displayContent": "sdk.form.setCondition"
+           },
+           "blocks": [
+            {
+             "id": "code_node_LSfail",
+             "type": "code-node",
+             "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "script": {
+               "type": "javascript",
+               "code": "console.log(\"lock seed: a slice insert failed (a twin insert by another operation); the caller's claim re-reads the rows\");\nreturn { sliceFailed: \"YES\" };"
+              },
+              "response_json": [
+               {
+                "key": "0adac97e",
+                "name": "sliceFailed",
+                "title": "sliceFailed",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               }
+              ],
+              "title": "Slice not inserted: the caller's claim re-reads the rows",
+              "isValidator": true,
+              "nodeName": "Slice not inserted: the caller's claim re-reads the rows",
+              "name": "Slice not inserted: the caller's claim re-reads the rows"
+             },
+             "blocks": []
+            }
+           ],
+           "id": "try_catch_LSseed_catchBlock_1"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "cori_NLSseed",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_LSdone",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "const n = [{{node:code_node_LSplan.data.count}}][0];\nreturn { code: \"200\", count: String(n || 0), message: (n || 0) + \" lock row(s) requested; a twin insert is skipped and the caller re-reads the rows\" };"
+    },
+    "response_json": [
+     {
+      "key": "fyf6fbuk",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ojq43qbj",
+      "name": "count",
+      "title": "count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "o1b3aohd",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Result",
+    "isValidator": true,
+    "nodeName": "Result",
+    "name": "Result"
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_node_LSdone",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return",
+    "isValidator": true,
+    "nodeName": "Return",
+    "name": "Return",
+    "response_value": {
+     "list": [
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_LSdone.data.code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "count",
+       "propLabel": "count",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_LSdone.data.count}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "propLabel": "message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_LSdone.data.message}}",
+       "valueLabel": ""
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "title": "End Node",
+    "isValidator": true,
+    "nodeName": "End Node",
+    "name": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

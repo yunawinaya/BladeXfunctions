@@ -70,7 +70,7 @@ const reads0 = () => ({
   wa: [{ id: "4001", material_id: "502", plant_id: PLANT, organization_id: ORG, batch_id: "701", wa_quantity: "5", wa_cost_price: "1.5", created_at: "2026-01-01 00:00:00" }],
 });
 
-function chain(params, steps, reads, lockRows, mvRows) {
+function chain(params, steps, reads, lockRows, mvRows, seedLost) {
   const ctx = { params, system: { tenantId: "711077", uuid: "a1b2c3d4-e5f6-0000-0000-000000000000" }, nodes: {} };
   ctx.nodes.code_node_IBguard = run("guard.js", ctx);
   if (ctx.nodes.code_node_IBguard.route === "REJECT") return { ctx, end: "REJECT" };
@@ -79,7 +79,9 @@ function chain(params, steps, reads, lockRows, mvRows) {
   if (ctx.nodes.code_node_IBstate.route !== "PLAN") {
     ctx.nodes.sql_node_IBlk1 = lockRows;
     ctx.nodes.code_node_IBseed = run("lock_seed.js", ctx);
-    const seeded = lockRows.concat(ctx.nodes.code_node_IBseed.rowsToAdd.map((r, i) => Object.assign({ id: String(5000 + i), is_deleted: 0, db_now: "2026-10-13 10:00:01" }, r)));
+    // INVENTORY_LOCK_SEED inserts the rows; seedLost = keys whose insert failed in the child ("ALL": the whole seed)
+    const added = ctx.nodes.code_node_IBseed.rowsToAdd.filter((r) => seedLost !== "ALL" && !(seedLost || []).includes(r.lock_key));
+    const seeded = lockRows.concat(added.map((r, i) => Object.assign({ id: String(5000 + i), is_deleted: 0, db_now: "2026-10-13 10:00:01" }, r)));
     ctx.nodes.sql_node_IBlk2 = seeded.map((r) => Object.assign({}, r, { db_now: "2026-10-13 10:00:01" }));
     ctx.nodes.code_node_IBclaim = run("lock_claim.js", ctx);
     if (ctx.nodes.code_node_IBclaim.route === "BUSY") return { ctx, end: "BUSY" };
@@ -151,7 +153,7 @@ t("APPLY fresh: intent, sliced writes, read-back DONE, locks given back", () => 
   const { ctx } = chain({ operation_key: OP, mode: "APPLY", organization_id: ORG, movements }, [], reads, []);
   const p = ctx.nodes.code_node_IBplan;
   assert.strictEqual(ctx.nodes.code_node_IBclaim.route, "TAKE");
-  assert.strictEqual(ctx.nodes.code_node_IBguard.lockKeys.join(","), "BATCH|502|902|701,ITEM|501|901,ITEM|502|902,ITEM|503|903");
+  assert.strictEqual(ctx.nodes.code_node_IBguard.lockKeys.join(","), "BATCH|502|902|701,COST|501|" + PLANT + ",COST|502|" + PLANT + ",ITEM|501|901,ITEM|502|902,ITEM|503|903");
   assert.strictEqual(p.route, "WRITE", JSON.stringify(p).slice(0, 300));
   assert.strictEqual(p.needIntent, "YES");
   assert.strictEqual(p.bb.length, 1); // SUBTRACT-only batch row: no remark columns
@@ -190,8 +192,7 @@ t("RESUME after a run died mid-way: only what is left is written, then DONE", ()
   const reads = reads0();
   const half = applyWrites(fresh.ctx, reads, { bb: 0, bbr: 0, ff: 0, wa: 0, mv: 0 });
   const op = OP;
-  const lockRows = ["BATCH|502|902|701", "ITEM|501|901", "ITEM|502|902", "ITEM|503903"].map((k, i) => ({ id: String(6000 + i), lock_key: k, free_token: 0, owner_operation_id: op, is_deleted: 0, lock_version: 1, db_now: "2026-10-13 10:05:00" }));
-  lockRows[3].lock_key = "ITEM|503|903";
+  const lockRows = ["BATCH|502|902|701", "COST|501|" + PLANT, "COST|502|" + PLANT, "ITEM|501|901", "ITEM|502|902", "ITEM|503|903"].map((k, i) => ({ id: String(6000 + i), lock_key: k, free_token: 0, owner_operation_id: op, is_deleted: 0, lock_version: 1, db_now: "2026-10-13 10:05:00" }));
   const { ctx } = chain({ operation_key: OP, mode: "APPLY", organization_id: ORG, movements }, intent, half.tables, lockRows, [{ operation_effect_key: OP + "|L1" }, { operation_effect_key: OP + "|L2" }]);
   assert.strictEqual(ctx.nodes.code_node_IBstate.route, "RESUME");
   assert.strictEqual(ctx.nodes.code_node_IBclaim.route, "HELD");
@@ -234,7 +235,7 @@ t("RESUME refuses a row someone else changed under the plan", () => {
   const intent = fresh.ctx.nodes.code_node_IBplan.intentRows.map((r) => Object.assign({ db_now: "x" }, r));
   const reads = reads0();
   reads.bal[0].reserved_qty = "9"; // neither before (10) nor after (3)
-  const lockRows = ["BATCH|502|902|701", "ITEM|501|901", "ITEM|502|902", "ITEM|503|903"].map((k, i) => ({ id: String(6000 + i), lock_key: k, free_token: 0, owner_operation_id: OP, is_deleted: 0, lock_version: 1, db_now: "x" }));
+  const lockRows = ["BATCH|502|902|701", "COST|501|" + PLANT, "COST|502|" + PLANT, "ITEM|501|901", "ITEM|502|902", "ITEM|503|903"].map((k, i) => ({ id: String(6000 + i), lock_key: k, free_token: 0, owner_operation_id: OP, is_deleted: 0, lock_version: 1, db_now: "x" }));
   const { ctx } = chain({ operation_key: OP, mode: "APPLY", organization_id: ORG, movements }, intent, reads, lockRows, []);
   assert.strictEqual(ctx.nodes.code_node_IBplan.route, "REVIEW");
   ctx.nodes.code_node_IBend = run("end.js", ctx);
@@ -245,6 +246,16 @@ t("BUSY: a key another operation holds stops before any take", () => {
   const lockRows = [{ id: "7000", lock_key: "ITEM|501|901", free_token: 0, owner_operation_id: "GD|123|1", is_deleted: 0, lock_version: 3 }];
   const r = chain({ operation_key: OP, mode: "APPLY", organization_id: ORG, movements }, [], reads0(), lockRows);
   assert.strictEqual(r.end, "BUSY");
+});
+
+t("BUSY: a lock row the seed could not create (twin insert elsewhere) answers busy before any take", () => {
+  const r = chain({ operation_key: OP, mode: "APPLY", organization_id: ORG, movements }, [], reads0(), [], [], ["COST|501|" + PLANT]);
+  assert.strictEqual(r.end, "BUSY");
+  assert.ok(/COST\|501\|\d+ \(lock row not created yet\)/.test(r.ctx.nodes.code_node_IBclaim.busy), r.ctx.nodes.code_node_IBclaim.busy);
+  assert.strictEqual(r.ctx.nodes.code_node_IBclaim.route, "BUSY");
+  const all = chain({ operation_key: OP, mode: "APPLY", organization_id: ORG, movements }, [], reads0(), [], [], "ALL");
+  assert.strictEqual(all.end, "BUSY");
+  assert.strictEqual(all.ctx.nodes.code_node_IBclaim.busyCount, "6");
 });
 
 t("FAIL under APPLY: nothing written, locks given back", () => {

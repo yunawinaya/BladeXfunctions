@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "tp6julj3",
+   "key": "ise308yr",
    "name": "job_id",
    "title": "job_id",
    "description": "gd_async_job.id (digits) of a REVERT_GR job the worker holds",
@@ -12,7 +12,7 @@
  ],
  "response_json": [
   {
-   "key": "ise308yr",
+   "key": "nn2949vz",
    "name": "job_id",
    "title": "job_id",
    "description": "",
@@ -20,7 +20,7 @@
    "isExpand": false
   },
   {
-   "key": "nn2949vz",
+   "key": "w89aco9u",
    "name": "job_status",
    "title": "job_status",
    "description": "",
@@ -28,7 +28,7 @@
    "isExpand": false
   },
   {
-   "key": "w89aco9u",
+   "key": "jc4k1l3t",
    "name": "result_code",
    "title": "result_code",
    "description": "",
@@ -36,7 +36,7 @@
    "isExpand": false
   },
   {
-   "key": "jc4k1l3t",
+   "key": "ztdz3j3e",
    "name": "result_message",
    "title": "result_message",
    "description": "",
@@ -44,7 +44,7 @@
    "isExpand": false
   },
   {
-   "key": "ztdz3j3e",
+   "key": "sql3nbaw",
    "name": "evidence",
    "title": "evidence",
    "description": "",
@@ -458,7 +458,7 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GR_REVERT_PREPARE - Entry: a REVERT_GR job the worker holds (VALIDATING under a live lease); its correlation -> the receipt;\n// its request (the status the receipt had before the submit, its number)\nconst prepareEntry = function prepareEntry(guard, rows, uuid) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const digits = (v) => /^[0-9]{1,20}$/.test(s(v));\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const base = { route: \"NOOP\", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: \"0\", grId: \"0\", idempotencyKey: \"\", rowVersion: 0, dbNow: \"\", nonce: \"\",\n    request: {}, result_code: \"\", result_message: \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GRV_INVALID_DATA\", result_message: \"job \" + guard.jobId + \" not found\" });\n  if (s(job.command) !== \"REVERT_GR\") return Object.assign(base, { result_code: \"GRV_INVALID_DATA\", result_message: \"job command is \" + s(job.command) });\n  if (s(job.job_status) !== \"VALIDATING\") return Object.assign(base, { result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + s(job.job_status) + \": only a VALIDATING job is prepared\" });\n  if (String(job.lease_live) !== \"1\") return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the worker's lease on the job has expired: not prepared\" });\n  const common = { jobId: s(job.id), organizationId: s(job.organization_id), idempotencyKey: s(job.idempotency_key), rowVersion: Number(job.row_version) || 0, dbNow: s(job.db_now),\n    nonce: s(uuid).replace(/[^0-9A-Za-z]/g, \"\").slice(0, 8) };\n  let req = null;\n  try {\n    req = JSON.parse(s(job.request_payload));\n  } catch (e) {\n    req = null;\n  }\n  const m = s(job.correlation_id).match(/^GR\\|([0-9]{1,20})$/);\n  const ok = m && req && typeof req === \"object\" && s(req.grId) === m[1] && [\"Completed\", \"Received\"].indexOf(s(req.previousStatus)) >= 0 && digits(common.organizationId);\n  if (!ok) return Object.assign(base, common, { route: \"FAIL\", grId: m ? m[1] : \"0\", result_code: \"GRV_INVALID_REQUEST\", result_message: \"the job's request could not be read\" });\n  return Object.assign(base, common, { route: \"GO\", grId: m[1], request: req, result_message: \"revert Goods Receiving \" + s(req.grNo || m[1]) });\n};\nconst guard = [{{node:code_node_VPguard.data}}][0];\nconst res = prepareEntry(guard, [{{node:sql_node_VPjob.data}}][0], [{{system:uuid}}][0]);\nconsole.log(\"prepare entry\", JSON.stringify({ route: res.route, gr: res.grId, result: res.result_code, message: res.result_message }));\nreturn res;"
+     "code": "// GR_REVERT_PREPARE - Entry: a REVERT_GR job the worker holds (VALIDATING under a live lease); its correlation -> the receipt;\n// its request (the status the receipt had before the submit, its number)\nconst prepareEntry = function prepareEntry(guard, rows, uuid) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const digits = (v) => /^[0-9]{1,20}$/.test(s(v));\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const base = { route: \"NOOP\", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: \"0\", grId: \"0\", idempotencyKey: \"\", rowVersion: 0, dbNow: \"\", nonce: \"\",\n    request: {}, result_code: \"\", result_message: \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GRV_INVALID_DATA\", result_message: \"job \" + guard.jobId + \" not found\" });\n  if (s(job.command) !== \"REVERT_GR\") return Object.assign(base, { result_code: \"GRV_INVALID_DATA\", result_message: \"job command is \" + s(job.command) });\n  if (s(job.job_status) !== \"VALIDATING\") return Object.assign(base, { result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + s(job.job_status) + \": only a VALIDATING job is prepared\" });\n  if (String(job.lease_live) !== \"1\") return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the worker's lease on the job has expired: not prepared\" });\n  const common = { jobId: s(job.id), organizationId: s(job.organization_id), idempotencyKey: s(job.idempotency_key), rowVersion: Number(job.row_version) || 0, dbNow: s(job.db_now), jsAt: String(Date.now()),\n    nonce: s(uuid).replace(/[^0-9A-Za-z]/g, \"\").slice(0, 8) };\n  let req = null;\n  try {\n    req = JSON.parse(s(job.request_payload));\n  } catch (e) {\n    req = null;\n  }\n  const m = s(job.correlation_id).match(/^GR\\|([0-9]{1,20})$/);\n  const ok = m && req && typeof req === \"object\" && s(req.grId) === m[1] && [\"Completed\", \"Received\"].indexOf(s(req.previousStatus)) >= 0 && digits(common.organizationId);\n  if (!ok) return Object.assign(base, common, { route: \"FAIL\", grId: m ? m[1] : \"0\", result_code: \"GRV_INVALID_REQUEST\", result_message: \"the job's request could not be read\" });\n  return Object.assign(base, common, { route: \"GO\", grId: m[1], request: req, result_message: \"revert Goods Receiving \" + s(req.grNo || m[1]) });\n};\nconst guard = [{{node:code_node_VPguard.data}}][0];\nconst res = prepareEntry(guard, [{{node:sql_node_VPjob.data}}][0], [{{system:uuid}}][0]);\nconsole.log(\"prepare entry\", JSON.stringify({ route: res.route, gr: res.grId, result: res.result_code, message: res.result_message }));\nreturn res;"
     },
     "response_json": [
      {
@@ -535,6 +535,15 @@
      },
      {
       "key": "y5oqdy2x",
+      "name": "jsAt",
+      "title": "jsAt",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "xy4dlsp0",
       "name": "nonce",
       "title": "nonce",
       "description": "",
@@ -543,7 +552,7 @@
       "children": []
      },
      {
-      "key": "xy4dlsp0",
+      "key": "78ky2yjp",
       "name": "request",
       "title": "request",
       "description": "",
@@ -552,7 +561,7 @@
       "children": []
      },
      {
-      "key": "78ky2yjp",
+      "key": "a9ssee6i",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -561,7 +570,7 @@
       "children": []
      },
      {
-      "key": "a9ssee6i",
+      "key": "w1zjtrad",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -627,7 +636,7 @@
         },
         "response_json": [
          {
-          "key": "w1zjtrad",
+          "key": "3qh99g08",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -636,7 +645,7 @@
           "children": []
          },
          {
-          "key": "3qh99g08",
+          "key": "ta7n37ig",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -645,7 +654,7 @@
           "children": []
          },
          {
-          "key": "ta7n37ig",
+          "key": "0pvq0ke3",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -654,7 +663,7 @@
           "children": []
          },
          {
-          "key": "0pvq0ke3",
+          "key": "jrtbs0pu",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -663,7 +672,7 @@
           "children": []
          },
          {
-          "key": "jrtbs0pu",
+          "key": "gtzrbjlk",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -1215,7 +1224,7 @@
     },
     "response_json": [
      {
-      "key": "gtzrbjlk",
+      "key": "yppm3hgc",
       "name": "route",
       "title": "route",
       "description": "",
@@ -1224,7 +1233,7 @@
       "children": []
      },
      {
-      "key": "yppm3hgc",
+      "key": "lxkmmbox",
       "name": "code",
       "title": "code",
       "description": "",
@@ -1233,7 +1242,7 @@
       "children": []
      },
      {
-      "key": "lxkmmbox",
+      "key": "t2nkbbqn",
       "name": "message",
       "title": "message",
       "description": "",
@@ -1242,7 +1251,7 @@
       "children": []
      },
      {
-      "key": "t2nkbbqn",
+      "key": "e1err4su",
       "name": "unlockOk",
       "title": "unlockOk",
       "description": "",
@@ -1251,7 +1260,7 @@
       "children": []
      },
      {
-      "key": "e1err4su",
+      "key": "djn19sw3",
       "name": "revertFrom",
       "title": "revertFrom",
       "description": "",
@@ -1260,7 +1269,7 @@
       "children": []
      },
      {
-      "key": "djn19sw3",
+      "key": "thv5dpgv",
       "name": "lineCount",
       "title": "lineCount",
       "description": "",
@@ -1269,7 +1278,7 @@
       "children": []
      },
      {
-      "key": "thv5dpgv",
+      "key": "apgeoz09",
       "name": "refuse",
       "title": "refuse",
       "description": "",
@@ -1278,7 +1287,7 @@
       "children": []
      },
      {
-      "key": "apgeoz09",
+      "key": "wt528whc",
       "name": "refuseMessage",
       "title": "refuseMessage",
       "description": "",
@@ -1287,7 +1296,7 @@
       "children": []
      },
      {
-      "key": "wt528whc",
+      "key": "a6fnzlmd",
       "name": "grId",
       "title": "grId",
       "description": "",
@@ -1296,7 +1305,7 @@
       "children": []
      },
      {
-      "key": "a6fnzlmd",
+      "key": "29du9i89",
       "name": "grIdList",
       "title": "grIdList",
       "description": "",
@@ -1304,7 +1313,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "29du9i89",
+        "key": "al30f667",
         "name": "items",
         "title": "",
         "description": "",
@@ -1316,7 +1325,7 @@
       ]
      },
      {
-      "key": "al30f667",
+      "key": "n62v8vds",
       "name": "grNo",
       "title": "grNo",
       "description": "",
@@ -1325,7 +1334,7 @@
       "children": []
      },
      {
-      "key": "n62v8vds",
+      "key": "uu0evi3s",
       "name": "organizationId",
       "title": "organizationId",
       "description": "",
@@ -1334,7 +1343,7 @@
       "children": []
      },
      {
-      "key": "uu0evi3s",
+      "key": "u66kmj3f",
       "name": "plantId",
       "title": "plantId",
       "description": "",
@@ -1343,7 +1352,7 @@
       "children": []
      },
      {
-      "key": "u66kmj3f",
+      "key": "hoqs2hcx",
       "name": "plantIdSql",
       "title": "plantIdSql",
       "description": "",
@@ -1352,7 +1361,7 @@
       "children": []
      },
      {
-      "key": "hoqs2hcx",
+      "key": "zowzjga9",
       "name": "minLiveIdSql",
       "title": "minLiveIdSql",
       "description": "",
@@ -1361,7 +1370,7 @@
       "children": []
      },
      {
-      "key": "zowzjga9",
+      "key": "ff24z5x7",
       "name": "grIdSql",
       "title": "grIdSql",
       "description": "",
@@ -1370,7 +1379,7 @@
       "children": []
      },
      {
-      "key": "ff24z5x7",
+      "key": "hcr32eo3",
       "name": "grNoSql",
       "title": "grNoSql",
       "description": "",
@@ -1379,7 +1388,7 @@
       "children": []
      },
      {
-      "key": "hcr32eo3",
+      "key": "cdrl101f",
       "name": "orgSql",
       "title": "orgSql",
       "description": "",
@@ -1388,7 +1397,7 @@
       "children": []
      },
      {
-      "key": "cdrl101f",
+      "key": "ryuz11ne",
       "name": "itemIdsCsv",
       "title": "itemIdsCsv",
       "description": "",
@@ -1397,7 +1406,7 @@
       "children": []
      },
      {
-      "key": "ryuz11ne",
+      "key": "wukzgchr",
       "name": "previousStatus",
       "title": "previousStatus",
       "description": "",
@@ -1406,7 +1415,7 @@
       "children": []
      },
      {
-      "key": "wukzgchr",
+      "key": "jxeqrd4s",
       "name": "lines",
       "title": "lines",
       "description": "",
@@ -1414,7 +1423,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "jxeqrd4s",
+        "key": "m7lahij6",
         "name": "items",
         "title": "",
         "description": "",
@@ -1426,7 +1435,7 @@
       ]
      },
      {
-      "key": "m7lahij6",
+      "key": "sj43mist",
       "name": "liveRows",
       "title": "liveRows",
       "description": "",
@@ -1434,7 +1443,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "sj43mist",
+        "key": "j0a3j3ch",
         "name": "items",
         "title": "",
         "description": "",
@@ -1446,7 +1455,7 @@
       ]
      },
      {
-      "key": "j0a3j3ch",
+      "key": "1rwvilxv",
       "name": "cycleRows",
       "title": "cycleRows",
       "description": "",
@@ -1454,7 +1463,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "1rwvilxv",
+        "key": "mzlw4mk5",
         "name": "items",
         "title": "",
         "description": "",
@@ -1466,7 +1475,7 @@
       ]
      },
      {
-      "key": "mzlw4mk5",
+      "key": "7xs5mhwe",
       "name": "locations",
       "title": "locations",
       "description": "",
@@ -1474,7 +1483,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "7xs5mhwe",
+        "key": "yjlmbwa4",
         "name": "items",
         "title": "",
         "description": "",
@@ -1486,7 +1495,7 @@
       ]
      },
      {
-      "key": "yjlmbwa4",
+      "key": "ztsj1g51",
       "name": "partialRow",
       "title": "partialRow",
       "description": "",
@@ -1495,7 +1504,7 @@
       "children": []
      },
      {
-      "key": "ztsj1g51",
+      "key": "qjjbvoeb",
       "name": "huOutRows",
       "title": "huOutRows",
       "description": "",
@@ -1503,7 +1512,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "qjjbvoeb",
+        "key": "vqk4d0xo",
         "name": "items",
         "title": "",
         "description": "",
@@ -1515,7 +1524,7 @@
       ]
      },
      {
-      "key": "vqk4d0xo",
+      "key": "ugfqpxx0",
       "name": "tupleAnchors",
       "title": "tupleAnchors",
       "description": "",
@@ -1524,7 +1533,7 @@
       "children": []
      },
      {
-      "key": "ugfqpxx0",
+      "key": "7ao7bt5q",
       "name": "itemIds",
       "title": "itemIds",
       "description": "",
@@ -1532,7 +1541,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "7ao7bt5q",
+        "key": "o2kjbu2g",
         "name": "items",
         "title": "",
         "description": "",
@@ -1544,7 +1553,7 @@
       ]
      },
      {
-      "key": "o2kjbu2g",
+      "key": "ppij9125",
       "name": "batchIds",
       "title": "batchIds",
       "description": "",
@@ -1552,7 +1561,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "ppij9125",
+        "key": "1bhurln6",
         "name": "items",
         "title": "",
         "description": "",
@@ -1564,7 +1573,7 @@
       ]
      },
      {
-      "key": "1bhurln6",
+      "key": "maei6j98",
       "name": "huIds",
       "title": "huIds",
       "description": "",
@@ -1572,7 +1581,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "maei6j98",
+        "key": "7cxe1d0z",
         "name": "items",
         "title": "",
         "description": "",
@@ -1584,7 +1593,7 @@
       ]
      },
      {
-      "key": "7cxe1d0z",
+      "key": "fe8svnv3",
       "name": "poIds",
       "title": "poIds",
       "description": "",
@@ -1592,7 +1601,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "fe8svnv3",
+        "key": "28c6l9ro",
         "name": "items",
         "title": "",
         "description": "",
@@ -1604,7 +1613,7 @@
       ]
      },
      {
-      "key": "28c6l9ro",
+      "key": "dv6iv4qi",
       "name": "poLineIds",
       "title": "poLineIds",
       "description": "",
@@ -1612,7 +1621,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "dv6iv4qi",
+        "key": "7xpwqjge",
         "name": "items",
         "title": "",
         "description": "",
@@ -1624,7 +1633,7 @@
       ]
      },
      {
-      "key": "7xpwqjge",
+      "key": "oy1akocz",
       "name": "sqlMinLiveId",
       "title": "sqlMinLiveId",
       "description": "",
@@ -1633,7 +1642,7 @@
       "children": []
      },
      {
-      "key": "oy1akocz",
+      "key": "87be9ka2",
       "name": "sqlPlantId",
       "title": "sqlPlantId",
       "description": "",
@@ -1642,7 +1651,7 @@
       "children": []
      },
      {
-      "key": "87be9ka2",
+      "key": "a0k81u42",
       "name": "sqlItemIds",
       "title": "sqlItemIds",
       "description": "",
@@ -1651,7 +1660,7 @@
       "children": []
      },
      {
-      "key": "a0k81u42",
+      "key": "ca9zw2yg",
       "name": "sqlBatchIds",
       "title": "sqlBatchIds",
       "description": "",
@@ -1660,7 +1669,7 @@
       "children": []
      },
      {
-      "key": "ca9zw2yg",
+      "key": "m0162vv4",
       "name": "sqlHuIds",
       "title": "sqlHuIds",
       "description": "",
@@ -1669,7 +1678,7 @@
       "children": []
      },
      {
-      "key": "m0162vv4",
+      "key": "bqpxlp7f",
       "name": "sqlPoIds",
       "title": "sqlPoIds",
       "description": "",
@@ -1678,7 +1687,7 @@
       "children": []
      },
      {
-      "key": "bqpxlp7f",
+      "key": "ngygssph",
       "name": "sqlPoLineIds",
       "title": "sqlPoLineIds",
       "description": "",
@@ -1740,11 +1749,11 @@
         "timeout": 30000,
         "script": {
          "type": "javascript",
-         "code": "// GR_REVERT_PREPARE - Ready: the plan -> READY_TO_COMMIT (manifest; the worker's lease is kept) or FAILED (lease released)\n// with the receipt back to the status it had before the submit when this job holds its lock. Nothing else was written\nconst prepareReady = function prepareReady(entry, plan) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  const p = plan || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const prev = s((e.request || {}).previousStatus);\n  const fail = (code, message, details, unlock) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{\n      id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not reverted: \" + message).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: code, error_message: message, error_details: s(details) || JSON.stringify({ step: \"GR_REVERT_PREPARE\" }),\n      lease_owner: null, lease_expires_at: null, finished_at: s(e.dbNow) || null,\n    }],\n    needUnlock: unlock ? \"YES\" : \"NO\", unlockRows: unlock ? [{ id: s(e.grId), gr_status: prev }] : [], result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  const canUnlock = String(p.unlockOk) === \"1\" && /^[0-9]{1,20}$/.test(s(e.grId)) && [\"Completed\", \"Received\"].indexOf(prev) >= 0;\n  if (s(e.route) !== \"GO\") return fail(s(e.result_code) || \"GRV_INVALID_REQUEST\", s(e.result_message) || \"the job's request could not be read\", \"\", false);\n  if (s(p.route) !== \"READY\") return fail(s(p.code) || \"GRV_PLAN_FAILED\", s(p.message) || \"the revert could not be planned\", p.errorDetails, canUnlock);\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{\n      id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to revert: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0,\n    }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst res = prepareReady([{{node:code_node_VPentry.data}}][0], [{{node:code_node_VPprep.data}}][0]);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
+         "code": "// GR_REVERT_PREPARE - Ready: the plan -> READY_TO_COMMIT (manifest; the worker's lease is kept) or FAILED (lease released)\n// with the receipt back to the status it had before the submit when this job holds its lock. Nothing else was written\nconst prepareReady = function prepareReady(entry, plan) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  // the DB clock now: entry's DB time plus what this run has spent since (no server clock or time zone mixing)\n  const endNow = () => {\n    const m = s(e.dbNow).match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    const js = Number(e.jsAt);\n    if (!m || !(js > 0)) return s(e.dbNow);\n    const d = new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]) + Math.max(0, Math.floor((Date.now() - js) / 1000)) * 1000);\n    const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n    return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n  };\n  const p = plan || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const prev = s((e.request || {}).previousStatus);\n  const fail = (code, message, details, unlock) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{\n      id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not reverted: \" + message).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: code, error_message: message, error_details: s(details) || JSON.stringify({ step: \"GR_REVERT_PREPARE\" }),\n      lease_owner: null, lease_expires_at: null, finished_at: endNow() || null,\n    }],\n    needUnlock: unlock ? \"YES\" : \"NO\", unlockRows: unlock ? [{ id: s(e.grId), gr_status: prev }] : [], result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  const canUnlock = String(p.unlockOk) === \"1\" && /^[0-9]{1,20}$/.test(s(e.grId)) && [\"Completed\", \"Received\"].indexOf(prev) >= 0;\n  if (s(e.route) !== \"GO\") return fail(s(e.result_code) || \"GRV_INVALID_REQUEST\", s(e.result_message) || \"the job's request could not be read\", \"\", false);\n  if (s(p.route) !== \"READY\") return fail(s(p.code) || \"GRV_PLAN_FAILED\", s(p.message) || \"the revert could not be planned\", p.errorDetails, canUnlock);\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{\n      id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to revert: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0,\n    }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst res = prepareReady([{{node:code_node_VPentry.data}}][0], [{{node:code_node_VPprep.data}}][0]);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
         },
         "response_json": [
          {
-          "key": "ngygssph",
+          "key": "rivj927p",
           "name": "route",
           "title": "route",
           "description": "",
@@ -1753,7 +1762,7 @@
           "children": []
          },
          {
-          "key": "rivj927p",
+          "key": "oar2839t",
           "name": "needParts",
           "title": "needParts",
           "description": "",
@@ -1762,7 +1771,7 @@
           "children": []
          },
          {
-          "key": "oar2839t",
+          "key": "bmxupds1",
           "name": "needReady",
           "title": "needReady",
           "description": "",
@@ -1771,7 +1780,7 @@
           "children": []
          },
          {
-          "key": "bmxupds1",
+          "key": "j4e3pqu8",
           "name": "readyRows",
           "title": "readyRows",
           "description": "",
@@ -1779,7 +1788,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "j4e3pqu8",
+            "key": "ymgun3yz",
             "name": "items",
             "title": "",
             "description": "",
@@ -1791,7 +1800,7 @@
           ]
          },
          {
-          "key": "ymgun3yz",
+          "key": "5ape61hb",
           "name": "needJobUpd",
           "title": "needJobUpd",
           "description": "",
@@ -1800,7 +1809,7 @@
           "children": []
          },
          {
-          "key": "5ape61hb",
+          "key": "5z2a3wkg",
           "name": "jobRows",
           "title": "jobRows",
           "description": "",
@@ -1808,7 +1817,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "5z2a3wkg",
+            "key": "s5sqil28",
             "name": "items",
             "title": "",
             "description": "",
@@ -1820,7 +1829,7 @@
           ]
          },
          {
-          "key": "s5sqil28",
+          "key": "q0xwu7hh",
           "name": "needUnlock",
           "title": "needUnlock",
           "description": "",
@@ -1829,7 +1838,7 @@
           "children": []
          },
          {
-          "key": "q0xwu7hh",
+          "key": "i0o6lref",
           "name": "unlockRows",
           "title": "unlockRows",
           "description": "",
@@ -1837,7 +1846,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "i0o6lref",
+            "key": "k1u7r9d5",
             "name": "items",
             "title": "",
             "description": "",
@@ -1849,7 +1858,7 @@
           ]
          },
          {
-          "key": "k1u7r9d5",
+          "key": "advp7151",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -1858,7 +1867,7 @@
           "children": []
          },
          {
-          "key": "advp7151",
+          "key": "ilj50saq",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -1867,7 +1876,7 @@
           "children": []
          },
          {
-          "key": "ilj50saq",
+          "key": "z8qqkg20",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -2234,7 +2243,7 @@
         },
         "response_json": [
          {
-          "key": "z8qqkg20",
+          "key": "rh7p7v07",
           "name": "id",
           "title": "id",
           "description": "",
@@ -2243,7 +2252,7 @@
           "children": []
          },
          {
-          "key": "rh7p7v07",
+          "key": "v3oiw38n",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -2252,7 +2261,7 @@
           "children": []
          },
          {
-          "key": "v3oiw38n",
+          "key": "dpsrx44v",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -2261,7 +2270,7 @@
           "children": []
          },
          {
-          "key": "dpsrx44v",
+          "key": "mnpuoio0",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -2270,7 +2279,7 @@
           "children": []
          },
          {
-          "key": "mnpuoio0",
+          "key": "84iwwlnc",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -2295,7 +2304,7 @@
         },
         "response_json": [
          {
-          "key": "84iwwlnc",
+          "key": "bh4ukuhd",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -2304,7 +2313,7 @@
           "children": []
          },
          {
-          "key": "bh4ukuhd",
+          "key": "kc1f1h4h",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -2313,7 +2322,7 @@
           "children": []
          },
          {
-          "key": "kc1f1h4h",
+          "key": "xbfnnqit",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -2322,7 +2331,7 @@
           "children": []
          },
          {
-          "key": "xbfnnqit",
+          "key": "ty7wpda3",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -2331,7 +2340,7 @@
           "children": []
          },
          {
-          "key": "ty7wpda3",
+          "key": "w3bvgkuv",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -3033,7 +3042,7 @@
     },
     "response_json": [
      {
-      "key": "w3bvgkuv",
+      "key": "yu3xssm5",
       "name": "route",
       "title": "route",
       "description": "",
@@ -3042,7 +3051,7 @@
       "children": []
      },
      {
-      "key": "yu3xssm5",
+      "key": "axk2hz9h",
       "name": "code",
       "title": "code",
       "description": "",
@@ -3051,7 +3060,7 @@
       "children": []
      },
      {
-      "key": "axk2hz9h",
+      "key": "c1aaiyq8",
       "name": "message",
       "title": "message",
       "description": "",
@@ -3060,7 +3069,7 @@
       "children": []
      },
      {
-      "key": "c1aaiyq8",
+      "key": "qlow4d0n",
       "name": "payload",
       "title": "payload",
       "description": "",
@@ -3069,7 +3078,7 @@
       "children": []
      },
      {
-      "key": "qlow4d0n",
+      "key": "jl9tjgvt",
       "name": "partRows",
       "title": "partRows",
       "description": "",
@@ -3077,7 +3086,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "jl9tjgvt",
+        "key": "jupw4xuy",
         "name": "items",
         "title": "",
         "description": "",
@@ -3089,7 +3098,7 @@
       ]
      },
      {
-      "key": "jupw4xuy",
+      "key": "ybpch2p8",
       "name": "lineCount",
       "title": "lineCount",
       "description": "",
@@ -3098,7 +3107,7 @@
       "children": []
      },
      {
-      "key": "ybpch2p8",
+      "key": "ofq4rq4l",
       "name": "movementCount",
       "title": "movementCount",
       "description": "",
@@ -3107,7 +3116,7 @@
       "children": []
      },
      {
-      "key": "ofq4rq4l",
+      "key": "peuvuuyc",
       "name": "unlockOk",
       "title": "unlockOk",
       "description": "",
@@ -3116,7 +3125,7 @@
       "children": []
      },
      {
-      "key": "peuvuuyc",
+      "key": "gozc4imu",
       "name": "previousStatus",
       "title": "previousStatus",
       "description": "",
@@ -3125,7 +3134,7 @@
       "children": []
      },
      {
-      "key": "gozc4imu",
+      "key": "za0xpz8e",
       "name": "errorDetails",
       "title": "errorDetails",
       "description": "",
@@ -3150,11 +3159,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GR_REVERT_PREPARE - Ready: the plan -> READY_TO_COMMIT (manifest; the worker's lease is kept) or FAILED (lease released)\n// with the receipt back to the status it had before the submit when this job holds its lock. Nothing else was written\nconst prepareReady = function prepareReady(entry, plan) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  const p = plan || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const prev = s((e.request || {}).previousStatus);\n  const fail = (code, message, details, unlock) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{\n      id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not reverted: \" + message).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: code, error_message: message, error_details: s(details) || JSON.stringify({ step: \"GR_REVERT_PREPARE\" }),\n      lease_owner: null, lease_expires_at: null, finished_at: s(e.dbNow) || null,\n    }],\n    needUnlock: unlock ? \"YES\" : \"NO\", unlockRows: unlock ? [{ id: s(e.grId), gr_status: prev }] : [], result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  const canUnlock = String(p.unlockOk) === \"1\" && /^[0-9]{1,20}$/.test(s(e.grId)) && [\"Completed\", \"Received\"].indexOf(prev) >= 0;\n  if (s(e.route) !== \"GO\") return fail(s(e.result_code) || \"GRV_INVALID_REQUEST\", s(e.result_message) || \"the job's request could not be read\", \"\", false);\n  if (s(p.route) !== \"READY\") return fail(s(p.code) || \"GRV_PLAN_FAILED\", s(p.message) || \"the revert could not be planned\", p.errorDetails, canUnlock);\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{\n      id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to revert: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0,\n    }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst res = prepareReady([{{node:code_node_VPentry.data}}][0], [{{node:code_node_VPplan.data}}][0]);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
+     "code": "// GR_REVERT_PREPARE - Ready: the plan -> READY_TO_COMMIT (manifest; the worker's lease is kept) or FAILED (lease released)\n// with the receipt back to the status it had before the submit when this job holds its lock. Nothing else was written\nconst prepareReady = function prepareReady(entry, plan) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  // the DB clock now: entry's DB time plus what this run has spent since (no server clock or time zone mixing)\n  const endNow = () => {\n    const m = s(e.dbNow).match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    const js = Number(e.jsAt);\n    if (!m || !(js > 0)) return s(e.dbNow);\n    const d = new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]) + Math.max(0, Math.floor((Date.now() - js) / 1000)) * 1000);\n    const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n    return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n  };\n  const p = plan || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const prev = s((e.request || {}).previousStatus);\n  const fail = (code, message, details, unlock) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{\n      id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not reverted: \" + message).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: code, error_message: message, error_details: s(details) || JSON.stringify({ step: \"GR_REVERT_PREPARE\" }),\n      lease_owner: null, lease_expires_at: null, finished_at: endNow() || null,\n    }],\n    needUnlock: unlock ? \"YES\" : \"NO\", unlockRows: unlock ? [{ id: s(e.grId), gr_status: prev }] : [], result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  const canUnlock = String(p.unlockOk) === \"1\" && /^[0-9]{1,20}$/.test(s(e.grId)) && [\"Completed\", \"Received\"].indexOf(prev) >= 0;\n  if (s(e.route) !== \"GO\") return fail(s(e.result_code) || \"GRV_INVALID_REQUEST\", s(e.result_message) || \"the job's request could not be read\", \"\", false);\n  if (s(p.route) !== \"READY\") return fail(s(p.code) || \"GRV_PLAN_FAILED\", s(p.message) || \"the revert could not be planned\", p.errorDetails, canUnlock);\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{\n      id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to revert: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0,\n    }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst res = prepareReady([{{node:code_node_VPentry.data}}][0], [{{node:code_node_VPplan.data}}][0]);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
     },
     "response_json": [
      {
-      "key": "za0xpz8e",
+      "key": "uexbnrnu",
       "name": "route",
       "title": "route",
       "description": "",
@@ -3163,7 +3172,7 @@
       "children": []
      },
      {
-      "key": "uexbnrnu",
+      "key": "gp6njb39",
       "name": "needParts",
       "title": "needParts",
       "description": "",
@@ -3172,7 +3181,7 @@
       "children": []
      },
      {
-      "key": "gp6njb39",
+      "key": "0sbvq23b",
       "name": "needReady",
       "title": "needReady",
       "description": "",
@@ -3181,7 +3190,7 @@
       "children": []
      },
      {
-      "key": "0sbvq23b",
+      "key": "ovljw6mb",
       "name": "readyRows",
       "title": "readyRows",
       "description": "",
@@ -3189,7 +3198,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "ovljw6mb",
+        "key": "zhv2kg7t",
         "name": "items",
         "title": "",
         "description": "",
@@ -3201,7 +3210,7 @@
       ]
      },
      {
-      "key": "zhv2kg7t",
+      "key": "6u92092r",
       "name": "needJobUpd",
       "title": "needJobUpd",
       "description": "",
@@ -3210,7 +3219,7 @@
       "children": []
      },
      {
-      "key": "6u92092r",
+      "key": "9j1rduir",
       "name": "jobRows",
       "title": "jobRows",
       "description": "",
@@ -3218,7 +3227,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "9j1rduir",
+        "key": "n48u320m",
         "name": "items",
         "title": "",
         "description": "",
@@ -3230,7 +3239,7 @@
       ]
      },
      {
-      "key": "n48u320m",
+      "key": "ro077zia",
       "name": "needUnlock",
       "title": "needUnlock",
       "description": "",
@@ -3239,7 +3248,7 @@
       "children": []
      },
      {
-      "key": "ro077zia",
+      "key": "ks7gp2dt",
       "name": "unlockRows",
       "title": "unlockRows",
       "description": "",
@@ -3247,7 +3256,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "ks7gp2dt",
+        "key": "d80mcvn3",
         "name": "items",
         "title": "",
         "description": "",
@@ -3259,7 +3268,7 @@
       ]
      },
      {
-      "key": "d80mcvn3",
+      "key": "2cw6qo31",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -3268,7 +3277,7 @@
       "children": []
      },
      {
-      "key": "2cw6qo31",
+      "key": "v0vg4zej",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -3277,7 +3286,7 @@
       "children": []
      },
      {
-      "key": "v0vg4zej",
+      "key": "daqz7w8o",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -3982,7 +3991,7 @@
     },
     "response_json": [
      {
-      "key": "daqz7w8o",
+      "key": "5ww7aspo",
       "name": "id",
       "title": "id",
       "description": "",
@@ -3991,7 +4000,7 @@
       "children": []
      },
      {
-      "key": "5ww7aspo",
+      "key": "ip5i2sud",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -4000,7 +4009,7 @@
       "children": []
      },
      {
-      "key": "ip5i2sud",
+      "key": "wez38yhw",
       "name": "progress_message",
       "title": "progress_message",
       "description": "",
@@ -4009,7 +4018,7 @@
       "children": []
      },
      {
-      "key": "wez38yhw",
+      "key": "78jgfury",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -4018,7 +4027,7 @@
       "children": []
      },
      {
-      "key": "78jgfury",
+      "key": "kl7wuskf",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -4043,7 +4052,7 @@
     },
     "response_json": [
      {
-      "key": "kl7wuskf",
+      "key": "eurqw0m5",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -4052,7 +4061,7 @@
       "children": []
      },
      {
-      "key": "eurqw0m5",
+      "key": "xsxzeryl",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -4061,7 +4070,7 @@
       "children": []
      },
      {
-      "key": "xsxzeryl",
+      "key": "5z6c8tcf",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -4070,7 +4079,7 @@
       "children": []
      },
      {
-      "key": "5z6c8tcf",
+      "key": "nj2z9u8c",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -4079,7 +4088,7 @@
       "children": []
      },
      {
-      "key": "nj2z9u8c",
+      "key": "tp6julj3",
       "name": "evidence",
       "title": "evidence",
       "description": "",

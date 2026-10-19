@@ -1,0 +1,18 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GR_COMPLETE_SUBMIT",
+   "dataId": "2110545633913245697",
+   "file": "Goods Receiving/CompleteV2/GR_COMPLETE_SUBMIT.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/draftfix/before/GR_COMPLETE_SUBMIT.json"
+  },
+  {
+   "name": "GR_COMPLETE_PREPARE",
+   "dataId": "2110545716310347777",
+   "file": "Goods Receiving/CompleteV2/GR_COMPLETE_PREPARE.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/draftfix/before/GR_COMPLETE_PREPARE.json"
+  }
+ ]
+}

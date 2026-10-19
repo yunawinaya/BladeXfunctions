@@ -1,0 +1,21 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    {
+      "name": "LOT_V2_PREPARE",
+      "dataId": "2110992359150977026",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_PREPARE.json"
+    },
+    {
+      "name": "LOT_V2_COMMIT",
+      "dataId": "2110992400045441026",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_COMMIT.json"
+    },
+    {
+      "name": "LOT_V2_WORKER",
+      "dataId": "2110992316335521793",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_WORKER.json"
+    }
+  ]
+}

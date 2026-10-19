@@ -1,5 +1,13 @@
 // GD_COMPLETE_PREPARE - Ready: the plan + the engine's PLAN answer -> READY_TO_COMMIT (manifest; the worker's lease is kept)
 // or FAILED (lease released) with the GD back to Created when this job holds its lock. Nothing else was written.
+const dbAddSeconds = function dbAddSeconds(text, seconds) {
+  const m = String(text || "").match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+  if (!m) return "";
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);
+  const p = (n) => (n < 10 ? "0" : "") + n;
+  return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + ":" + p(d.getUTCSeconds());
+};
+const endNow = (entry) => (Number(entry.jsAt) > 0 ? dbAddSeconds(entry.dbNow, Math.max(0, Math.floor((Date.now() - Number(entry.jsAt)) / 1000))) : "") || entry.dbNow;
 const prepareReady = function prepareReady(entry, plan, engine) {
   const s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
   const e = entry || {};
@@ -13,7 +21,7 @@ const prepareReady = function prepareReady(entry, plan, engine) {
       id: s(e.jobId), job_status: "FAILED", progress_percent: 0, progress_message: ("Not completed: " + message).slice(0, 250),
       row_version: (Number(e.rowVersion) || 0) + 1, error_code: code, error_message: message,
       error_details: JSON.stringify(Object.assign({ step: "GD_COMPLETE_PREPARE" }, details || {})),
-      lease_owner: null, lease_expires_at: null, finished_at: s(e.dbNow) || null,
+      lease_owner: null, lease_expires_at: null, finished_at: s(endNow(e)) || null,
     }],
     needUnlock: String(p.unlockOk) === "1" ? "YES" : "NO",
     unlockRows: String(p.unlockOk) === "1" ? [{ id: s(p.gdId), gd_status: "Created" }] : [],

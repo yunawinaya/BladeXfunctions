@@ -59,6 +59,18 @@ it("entry: a fresh job runs phase A with E0 and E1, and may unlock", () => {
 it("entry: after E1 the run is phase B and can no longer unlock", () => {
   const r = call("commitEntry", guard, [job({ job_status: "COMMITTING_GD", lease_owner: "SPLIT|n0", due: 1 })], [{ step_name: "E0_REVALIDATE", step_status: "DONE" }, { step_name: "E1_INVENTORY", step_status: "DONE" }], gdLocked, pickHeld);
   assert.strictEqual(r.phase, "B"); assert.strictEqual(r.unlockOk, "NO"); assert.strictEqual(r.needE2, "YES");
+  assert.strictEqual(r.needE3, "NO"); assert.strictEqual(r.needE4, "NO");
+});
+const doneSteps = (names) => names.map((n) => ({ step_name: n, step_status: "DONE" }));
+it("entry: after E2 the run is phase B2: E3 and E4 (the lines' run and this one each stay small at 2,000 lines)", () => {
+  const r = call("commitEntry", guard, [job({ job_status: "COMMITTING_GD", lease_owner: "SPLIT|n1", due: 1 })], doneSteps(["E0_REVALIDATE", "E1_INVENTORY", "E2_LINES"]), gdLocked, pickHeld);
+  assert.strictEqual(r.phase, "B2"); assert.strictEqual(r.needE2, "NO"); assert.strictEqual(r.needE3, "YES"); assert.strictEqual(r.needE4, "YES"); assert.strictEqual(r.needE5, "NO");
+});
+it("entry: B2 resumes what is left of it; after E3 and E4 the run is phase C", () => {
+  const r = call("commitEntry", guard, [job({ job_status: "COMMITTING_GD", lease_owner: "SPLIT|n1", due: 1 })], doneSteps(["E0_REVALIDATE", "E1_INVENTORY", "E2_LINES", "E3_RESERVATIONS"]), gdLocked, pickHeld);
+  assert.strictEqual(r.phase, "B2"); assert.strictEqual(r.needE3, "NO"); assert.strictEqual(r.needE4, "YES");
+  const c = call("commitEntry", guard, [job({ job_status: "COMMITTING_GD", lease_owner: "SPLIT|n1", due: 1 })], doneSteps(["E0_REVALIDATE", "E1_INVENTORY", "E2_LINES", "E3_RESERVATIONS", "E4_SO"]), gdLocked, pickHeld);
+  assert.strictEqual(c.phase, "C"); assert.strictEqual(c.needE5, "YES");
 });
 it("entry: a held cascade job without RELEASE writes nothing", () => {
   const r = call("commitEntry", guard, [job({ request_payload: JSON.stringify({ v: 1, hold: 1 }) })], [], gdLocked, pickHeld);
@@ -257,6 +269,73 @@ it("result: names GD_EDIT_COMMIT and the path", () => {
   const r = call("commitResult", { jobId: "5" }, { phase: "B" }, { job_status: "COMMITTING_GD", result_code: "" }, "SPLIT");
   const ev = JSON.parse(r.evidence);
   assert.strictEqual(ev.workflow, "GD_EDIT_COMMIT"); assert.strictEqual(ev.path, "SPLIT"); assert.strictEqual(r.path, "SPLIT");
+});
+
+// ---- end stamps: finished_at is the run's real end (the DB clock read at entry + the seconds the run has taken)
+const T0 = Date.UTC(2026, 9, 16, 2, 0, 0);
+const withClock = (t, f) => { const real = sb.Date; sb.Date = class extends real { static now() { return t; } }; try { return f(); } finally { sb.Date = real; } };
+it("entry: returns jsAt, its own clock, for the run's end stamps", () => {
+  assert.strictEqual(withClock(T0, () => call("commitEntry", guard, [job()], [], gdLocked, pickHeld)).jsAt, String(T0));
+});
+it("end stamps: entry + the run's whole seconds (jsAt); dbNow when the entry has no jsAt", () => {
+  const e = E({ jsAt: String(T0) });
+  withClock(T0 + 30500, () => {
+    assert.strictEqual(call("doneRow", e, "E2_LINES", "").finished_at, "2026-10-15 10:00:30");
+    assert.strictEqual(call("failNoWrite", e, "GDE_X", "why").jobRows[0].finished_at, "2026-10-15 10:00:30");
+    assert.strictEqual(call("stepEnd", e, "E2_LINES", "why", true).jobRows[0].finished_at, "2026-10-15 10:00:30");
+    assert.strictEqual(call("commitFinish", e, {}).jobRows[0].finished_at, "2026-10-15 10:00:30");
+    assert.strictEqual(call("doneRow", E(), "E2_LINES", "").finished_at, "2026-10-15 10:00:00");
+  });
+});
+
+// ---- MySQL json columns keep their own key order (sorted by length, then bytewise): read-backs compare JSON with sorted keys
+const CLIENT_DOC = [{ key: "k1", domain: "d", link: "https://x/a.jpg", url: "https://x/a.jpg", size: 10, name: "a.jpg" }];
+const MYSQL_DOC = [{ key: "k1", url: "https://x/a.jpg", link: "https://x/a.jpg", name: "a.jpg", size: 10, domain: "d" }];
+it("sameVal: JSON values compare with sorted keys, objects and JSON text alike", () => {
+  assert.strictEqual(call("sameVal", CLIENT_DOC, MYSQL_DOC), true);
+  assert.strictEqual(call("sameVal", JSON.stringify(CLIENT_DOC), JSON.stringify(MYSQL_DOC)), true);
+  assert.strictEqual(call("sameVal", { b: 1, a: { d: 2, c: 3 } }, '{"a": {"c": 3, "d": 2}, "b": 1}'), true);
+  assert.strictEqual(call("sameVal", CLIENT_DOC, [{ key: "k2" }]), false);
+});
+it("E6: an attachment edit (gd_ref_doc) reads back in MySQL's key order -> the header is saved, no retry", () => {
+  const gdh = { cells: { gd_ref_doc: CLIENT_DOC }, before: { gd_ref_doc: null } };
+  const r = call("commitE6Check", E(), gdh, { gdPickingStatus: null }, [{ id: "2100000000000000001", gd_status: "Created", gd_ref_doc: MYSQL_DOC }]);
+  assert.ok(!/does not read back/.test(r.result_message || ""), r.result_message);
+  assert.notStrictEqual(r.job_status, "REQUIRES_REVIEW");
+});
+it("geGdParts: a JSON cell that differs only in key order is not a change", () => {
+  const r = call("geGdParts", { id: "1", gd_ref_doc: MYSQL_DOC, table_gd: [{ id: "11", custom_fields: { b: 1, a: 2 } }] },
+    { id: "1", gd_ref_doc: CLIENT_DOC, table_gd: [{ id: "11", custom_fields: { a: 2, b: 1 } }] }, K);
+  assert.deepStrictEqual(r.GDH.cells, {}); assert.deepStrictEqual(r.GDL.patches, []);
+});
+const PICK_ID = "2100000000000000900", AFTER = "2026-10-15 10:00:01.123";
+const pickHead = (o) => [Object.assign({ id: PICK_ID, to_id: "PI-1", to_status: "Created", is_deleted: 0, is_processing: 1, update_time: AFTER }, o || {})];
+it("E5: a Picking header JSON cell (ref_doc) in MySQL's key order and an [] the platform does not write both read back", () => {
+  const pick = { mode: "UPDATE", pickingId: PICK_ID, version: "2026-10-15 09:00:00.000", header: { ref_doc: CLIENT_DOC, assigned_to: [] }, items: [], records: [] };
+  const r = call("commitE5Check", E(), pick, { sig: { items: call("geSig", [], []), records: call("geSig", [], []) } }, pickHead({ ref_doc: MYSQL_DOC, assigned_to: ["2105190590557097986"] }), [], []);
+  assert.ok(!/does not read back/.test(r.result_message || ""), r.result_message);
+});
+it("E5 (C1): a header sync with no other Picking write records the synced version, and E6 unlocks at it", () => {
+  const pick = { mode: "NONE", hdrSync: { pickingId: PICK_ID, headerData: { delivery_method: "Company Truck" } } };
+  const chk = call("commitE5Check", E(), pick, { needSync: "YES" }, pickHead(), [], []);
+  assert.strictEqual(chk.stepRows[0].result_ref, AFTER);
+  const e6 = call("commitE6Plan", E({ unlockOk: "NO", pickUnlockOk: "YES", pickingId: PICK_ID, pickVersion: chk.stepRows[0].result_ref }), { cells: {}, before: {} }, { gdPickingStatus: null },
+    [{ id: "2100000000000000001", gd_status: "Processing" }], [{ id: PICK_ID, is_processing: 1, update_time: AFTER }], K);
+  assert.strictEqual(e6.needPickUnlock, "YES");
+});
+
+// SUBMIT died between locking the Picking and recording its version: PREPARE adopts the current one, COMMIT reads it from the payload
+it("geAdoptPickVersion: the recorded version; else a locked Picking's current one; else none", () => {
+  const R = (on, t) => ({ pick: { count: 1, data: { id: "6", is_processing: on, update_time: t } } });
+  assert.strictEqual(call("geAdoptPickVersion", { picking_version: "2026-10-15 09:00:00.000" }, R(1, "2026-10-15 09:00:05.000")), "2026-10-15 09:00:00.000");
+  assert.strictEqual(call("geAdoptPickVersion", { picking_version: "" }, R(1, "2026-10-15 09:00:05.000")), "2026-10-15 09:00:05.000");
+  assert.strictEqual(call("geAdoptPickVersion", {}, R(0, "2026-10-15 09:00:05.000")), "");
+  assert.strictEqual(call("geAdoptPickVersion", {}, {}), "");
+});
+it("entry: with no version in the request, the Picking version PREPARE adopted (the payload's) unlocks", () => {
+  const m = JSON.parse(job().prepared_payload); m.picking_version = "2026-10-15 09:00:00.000";
+  const r = call("commitEntry", guard, [job({ request_payload: JSON.stringify({ v: 1, picking_version: "" }), prepared_payload: JSON.stringify(m) })], [], gdLocked, pickHeld);
+  assert.strictEqual(r.pickVersion, "2026-10-15 09:00:00.000"); assert.strictEqual(r.pickUnlockOk, "YES");
 });
 
 console.log(JSON.stringify({ mutant: mutate || null, cases: n, failed: failed }));

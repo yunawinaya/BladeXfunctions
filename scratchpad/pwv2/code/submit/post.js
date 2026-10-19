@@ -2,7 +2,9 @@
 // idempotency key; unique: a concurrent twin fails its run), the COMPLETE_PUTAWAY job (QUEUED but not due for 2 minutes,
 // so no worker takes it before the putaway is locked; due.js makes it due after the read-back) and is_processing 1
 const submitPost = function submitPost(guard, entry, gate) {
-  if (s(gate.route) !== "GO") return answer("STOP", s(gate.code) || "400", s(gate.message), { lockRows: [], jobRows: [], toRows: [] });
+  if (s(gate.route) !== "GO") return answer("STOP", s(gate.code) || "400", s(gate.message), { lockRows: [], jobRows: [], toRows: [], needDoc: "NO", docToId: "", refDoc: [] });
+  // the confirmation's attachments are saved with the lock (before the read-back records the putaway's update_time)
+  const refDoc = guard.request && Array.isArray(guard.request.ref_doc) ? guard.request.ref_doc : null;
   const request = { v: 1, source: guard.request.source, uid: guard.uid, toId: guard.toId, toNo: entry.toNo, grId: entry.grId, confirmedBy: guard.confirmedBy,
     lines: guard.request.lines };
   return answer("QUEUE", "200", "queued", {
@@ -12,6 +14,9 @@ const submitPost = function submitPost(guard, entry, gate) {
       progress_message: "Queued for processing", attempt_count: 0, row_version: 0, cancel_requested: 0, next_attempt_at: dbAddSeconds(entry.dbNow, 120),
       request_payload: JSON.stringify(request), causation_id: guard.toId, correlation_id: "TO|" + guard.toId, line_count: num(gate.rowCount), queued_at: entry.dbNow }],
     toRows: [{ id: guard.toId, is_processing: 1 }],
+    needDoc: refDoc ? "YES" : "NO",
+    docToId: refDoc ? guard.toId : "",
+    refDoc: refDoc || [],
   });
 };
 const res = submitPost([{{node:code_node_PSguard.data}}][0], [{{node:code_node_PSentry.data}}][0], [{{node:code_node_PSgate.data}}][0]);

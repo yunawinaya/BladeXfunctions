@@ -135,6 +135,7 @@ const setGrItemData = async (
     line_po_no: itemData.line_po_no,
     line_po_id: itemData.line_po_id,
     po_line_item_id: itemData.po_line_item_id,
+    custom_fields_d7o7rdkd: itemData.custom_fields_d7o7rdkd,
 
     // Pricing
     unit_price: itemData.unit_price,
@@ -206,7 +207,7 @@ const setGrItemData = async (
     const totalSplitQty = parseFloat(
       tableSplit
         .reduce((sum, item) => sum + (parseFloat(item.received_qty) || 0), 0)
-        .toFixed(3),
+        ,
     );
 
     // Validate against ordered qty (not remaining), accounting for prior receipts
@@ -235,7 +236,7 @@ const setGrItemData = async (
 
     // Maximum allowed total qty with tolerance (ordered qty based)
     const maxAllowedTotalQty = parseFloat(
-      ((orderedQty * (100 + overReceiveTolerance)) / 100).toFixed(3),
+      ((orderedQty * (100 + overReceiveTolerance)) / 100),
     );
 
     if (totalSplitQty <= 0) {
@@ -244,7 +245,7 @@ const setGrItemData = async (
 
     if (totalSplitQty + initialReceivedQty > maxAllowedTotalQty) {
       const maxAllowedQty = parseFloat(
-        (maxAllowedTotalQty - initialReceivedQty).toFixed(3),
+        (maxAllowedTotalQty - initialReceivedQty),
       );
       throw new Error(
         `Total split quantity (${totalSplitQty}) exceeds maximum allowed quantity (${maxAllowedQty}) based on tolerance.`,

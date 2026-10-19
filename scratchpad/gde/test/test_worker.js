@@ -138,5 +138,12 @@ it("result: names GD_EDIT_WORKER", () => {
   const r = call(M.result, "workerResult", guard, { route: "WORK", items: [{ jobId: "501", jobStatus: "QUEUED" }] }, [{ id: "501", job_status: "COMPLETED", gd_id: GD }]);
   assert.strictEqual(JSON.parse(r.evidence).workflow, "GD_EDIT_WORKER");
 });
+// a poll (no job_id: the GD list, the form's mounted) leaves an edit SO_SAVE released in the last 10 s to SO_SAVE's own call
+it("poll: without a job_id, a job released in the last 10 s is skipped (SO_SAVE commits it); a job_id call takes it", () => {
+  const W2 = JSON.parse(fs.readFileSync(__dirname + "/../../../Goods Delivery/EditV2/GD_EDIT_WORKER.json", "utf8"));
+  const flat = []; const walk = (l) => { for (const x of l || []) { flat.push(x); walk(x.blocks); } }; walk(W2.nodes);
+  const q = flat.filter((x) => x.id === "sql_node_GWpoll")[0].data.script.code.replace(/\s+/g, " ");
+  assert.ok(/\(\{\{node:code_node_GWguard\.data\.jobId\}\} <> 0 OR NOT EXISTS \(SELECT 1 FROM gd_publish_step r WHERE r\.tenant_id = j\.tenant_id AND r\.job_id = \(CAST\(j\.id AS CHAR\) COLLATE utf8mb4_general_ci\) AND r\.step_name = 'RELEASE' AND r\.is_deleted = 0 AND r\.started_at > NOW\(3\) - INTERVAL 10 SECOND\)\)/.test(q), q.slice(q.indexOf("WHERE j.tenant_id"), q.indexOf("ORDER BY j.create_time")));
+});
 console.log((mutate ? "[mutant " + mutate + "] " : "") + (n - failed) + "/" + n + " passed");
 process.exit(failed ? 1 : 0);

@@ -1,0 +1,25 @@
+{
+ "*": {
+  "tenantId": "000000",
+  "saId": "0",
+  "scId": "0",
+  "key": "LOT:1123598813738675201:new-mvasu3gjd78tp1bh:bc8f09366df2e58:1",
+  "itemIdsSql": "0",
+  "batchIdsSql": "0",
+  "organizationId": "1123598813738675201",
+  "storedSaId": "0",
+  "needStored": "NO",
+  "rvMatSql": "0",
+  "rvLocSql": "0",
+  "rvUomSql": "0",
+  "rvBatchSql": "0",
+  "jobId": "2111035076769873921",
+  "linesBack": "NO",
+  "formScId": "0"
+ },
+ "missing_cols": {
+  "g.sa_v2_job_id": "CAST(NULL AS CHAR)",
+  "a.sa_v2_job_id": "CAST(NULL AS CHAR)",
+  "h.sa_v2_job_id": "CAST(NULL AS CHAR)"
+ }
+}

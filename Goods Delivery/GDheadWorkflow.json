@@ -232,7 +232,7 @@
         "name": "Processing Guard: Edit of a stored GD?",
         "script": {
           "type": "javascript",
-          "code": "// A Goods Delivery an async job holds is Processing (GD V2 Created, GD Completion V2): refuse any save until it finishes\nconst id = String([{{workflowparams:allData.id}}][0] || \"\").trim();\nconst edit = String([{{workflowparams:pageStatus}}][0] || \"\") === \"Edit\";\nconst ok = /^[0-9]{1,20}$/.test(id);\nreturn { check: edit && ok ? \"YES\" : \"NO\", gdId: ok ? id : \"0\" };"
+          "code": "// A Goods Delivery a V2 job holds (Processing, or an open edit / completion / packing job): refuse any Edit save until it finishes\nconst id = String([{{workflowparams:allData.id}}][0] || \"\").trim();\nconst edit = String([{{workflowparams:pageStatus}}][0] || \"\") === \"Edit\";\nconst ok = /^[0-9]{1,20}$/.test(id);\nreturn { check: edit && ok ? \"YES\" : \"NO\", gdId: ok ? id : \"0\" };"
         },
         "response_json": [
           {
@@ -305,13 +305,22 @@
                 "name": "Stored GD Status",
                 "script": {
                   "type": "sql",
-                  "code": "SELECT g.gd_status\n  FROM goods_delivery g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id = {{node:code_node_GdProcGuard.data.gdId}}\n   AND g.is_deleted = 0"
+                  "code": "SELECT g.gd_status,\n       (SELECT CONCAT(j.job_status, '|', j.command, ' job ', CAST(j.id AS CHAR))\n          FROM gd_async_job j\n         WHERE j.tenant_id = g.tenant_id\n           AND j.organization_id = g.organization_id\n           AND j.correlation_id = CONCAT('GD|', g.id)\n           AND j.command IN ('EDIT_GD', 'COMPLETE_GD', 'COMPLETE_PACKING')\n           AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n           AND j.is_deleted = 0\n         ORDER BY j.id DESC\n         LIMIT 1) AS open_job\n  FROM goods_delivery g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id = {{node:code_node_GdProcGuard.data.gdId}}\n   AND g.is_deleted = 0"
                 },
                 "response_json": [
                   {
                     "key": "gpg1stat",
                     "name": "gd_status",
                     "title": "GD Status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdpj0000",
+                    "name": "open_job",
+                    "title": "open_job",
                     "description": "",
                     "bsonType": "string",
                     "isExpand": false,
@@ -334,13 +343,22 @@
                 "name": "Processing Guard: held by an async job?",
                 "script": {
                   "type": "javascript",
-                  "code": "const row = (([{{node:sql_node_GdProcGuard.data}}][0]) || [])[0] || {};\nreturn { busy: String(row.gd_status || \"\") === \"Processing\" ? \"YES\" : \"NO\" };"
+                  "code": "// held by a V2 job: stored gd_status Processing, or an open EDIT_GD / COMPLETE_GD / COMPLETE_PACKING job on this delivery\n// (COMPLETE_PACKING never sets Processing; REQUIRES_REVIEW counts as open but never ends by itself: say so)\nconst row = (([{{node:sql_node_GdProcGuard.data}}][0]) || [])[0] || {};\nconst open = String(row.open_job || \"\").trim();\nconst cut = open.indexOf(\"|\");\nconst status = cut > 0 ? open.slice(0, cut) : \"\";\nconst job = cut > 0 ? open.slice(cut + 1) : open;\nconst busy = String(row.gd_status || \"\") === \"Processing\" || open !== \"\";\nconst message = !open ? \"This Goods Delivery is being processed in the background - please wait for it to finish.\"\n  : status === \"REQUIRES_REVIEW\" ? \"This Goods Delivery's background save stopped half-way and is under review (\" + job + \"): please contact support.\"\n  : \"This Goods Delivery is being saved in the background (\" + job + \"). Wait a moment, then try again.\";\nreturn { busy: busy ? \"YES\" : \"NO\", message: message };"
                 },
                 "response_json": [
                   {
                     "key": "gpg3busy",
                     "name": "busy",
                     "title": "busy",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdpj0001",
+                    "name": "message",
+                    "title": "message",
                     "description": "",
                     "bsonType": "string",
                     "isExpand": false,
@@ -410,8 +428,8 @@
                             {
                               "prop": "message",
                               "operator": "",
-                              "valueType": "value",
-                              "value": "This Goods Delivery is being processed in the background - please wait for it to finish.",
+                              "valueType": "field",
+                              "value": "{{node:code_node_GdProcBusy.data.message}}",
                               "valueLabel": "",
                               "propLabel": "message"
                             }

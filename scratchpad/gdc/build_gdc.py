@@ -136,7 +136,7 @@ def build_prepare():
               ["db_now", "id", "organization_id", "command", "job_status", "lease_owner", "lease_live", "row_version", "attempt_count", "idempotency_key",
                "correlation_id", "request_payload", "is_deleted"]),
         K.code(E, "Entry: a VALIDATING COMPLETE_GD job under a live lease; its request -> the GD", code("prepare/entry.js"),
-               ["route", "jobId", "tenantId", "organizationId", "gdId", "idempotencyKey", "rowVersion", "dbNow", "nonce", "request", "result_code", "result_message"],
+               ["route", "jobId", "tenantId", "organizationId", "gdId", "idempotencyKey", "rowVersion", "dbNow", "jsAt", "nonce", "request", "result_code", "result_message"],
                objects=("request", "rowVersion")),
         K.if_(ids, "if_GCnoop", "IF the job is not this run's to prepare: answer, write nothing", is_(E, "route", "NOOP"), [
             K.code("code_node_GCnoop", "Answer (not prepared)", noop_body, res_fields),
@@ -319,7 +319,7 @@ def build_commit():
         "'line_index', l.line_index, 'gd_undelivered_qty', CAST(l.gd_undelivered_qty AS CHAR), 'packing_qty', CAST(l.packing_qty AS CHAR), "
         "'net_weight', CAST(l.net_weight AS CHAR)) AS j\n  FROM goods_delivery_fwii8mvb_sub l\n WHERE l.tenant_id = %s AND l.goods_delivery_id = %s AND l.is_deleted = 0") % (T, GDID, T, GDID)
 
-    entry_fields = ["route", "phase", "dbNow", "jobId", "organizationId", "gdId", "gdNo", "idempotencyKey", "jobStatus", "rowVersion", "attempts", "leaseUntil", "unlockOk",
+    entry_fields = ["route", "phase", "dbNow", "jsAt", "jobId", "organizationId", "gdId", "gdNo", "idempotencyKey", "jobStatus", "rowVersion", "attempts", "leaseUntil", "unlockOk",
                     "partPrefix", "manifest", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "needC0", "needC1", "needC2", "needC3", "needC3H", "needC4",
                     "needC5", "needC6", "doneC6Reorder", "doneC6Si", "result_code", "result_message", "job_status"]
     chk = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "result_code", "result_message", "job_status"]
@@ -493,7 +493,8 @@ def build_commit():
             gate(ids, "cor_CCc6reorder", "Reorder tracking to run?", "code_node_CCc6", "needReorder", [
                 step_add(ids, "add_node_CCc6reorder", "C6_REORDER marker (written before the call: at most once)", "code_node_CCc6", "reorderRows"),
                 call(ids, "workflow_node_CCc6reorder", "REORDER_SET_REDIS GD_COMPLETED", REORDER, [
-                    ("document_type", "GD_COMPLETED", "value"), ("previous_data", N("code_node_CCc6", "data.reorderPrevious")), ("latest_data", N("code_node_CCc6", "data.reorderLatest"))]),
+                    ("document_type", "GD_COMPLETED", "value"), ("previous_data", N("code_node_CCc6", "data.reorderPrevious")), ("latest_data", N("code_node_CCc6", "data.reorderLatest")),
+                    ("organization_id", N(CE, "data.organizationId"))]),
             ]),
             gate(ids, "cor_CCc6si", "Auto Sales Invoice to create?", "code_node_CCc6", "needSi", [
                 step_add(ids, "add_node_CCc6si", "C6_SI marker (written before the call: at most once)", "code_node_CCc6", "siRows"),
@@ -793,6 +794,13 @@ def build_submit():
           FROM gd_async_job o
          WHERE o.tenant_id = '@T' AND o.is_deleted = 0 AND o.correlation_id = 'GD|@G'
            AND (@OPEN)) AS open_jobs,
+       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(pj.id AS CHAR), 'command', pj.command, 'job_status', pj.job_status)) AS CHAR)
+          FROM gd_async_job pj
+         WHERE pj.tenant_id = '@T' AND pj.is_deleted = 0 AND pj.command = 'CONFIRM_PICKING'
+           AND pj.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')
+           AND EXISTS (SELECT 1 FROM transfer_order_jz8m9w3h_sub ti
+                        WHERE ti.transfer_order_id = pj.picking_id AND ti.tenant_id = '@T' AND ti.is_deleted = 0
+                          AND ti.gd_id = @G AND IFNULL(ti.line_status, '') <> 'Cancelled')) AS picking_jobs,
        (SELECT CAST(JSON_OBJECT('id', CAST(x.id AS CHAR), 'job_status', x.job_status, 'progress_percent', x.progress_percent, 'progress_message', x.progress_message,
                                 'error_code', x.error_code, 'error_message', x.error_message) AS CHAR)
           FROM gd_async_job x
@@ -836,8 +844,8 @@ def build_submit():
         K.code(G, "Guard: operation, gd_id (digits), source, answers, session tenant + user", scode("guard.js"),
                ["route", "code", "message", "operation", "gdId", "tenantId", "source", "uid", "causationId", "answers"], objects=("answers",)),
         K.if_(ids, "if_GSreject", "IF the input is invalid: answer, write nothing", is_(G, "route", "REJECT"), sres("rej", G, "rejected input")),
-        K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, the latest COMPLETE_GD job, DB clock", facts,
-              ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "open_jobs", "last_job"]),
+        K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock", facts,
+              ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "open_jobs", "picking_jobs", "last_job"]),
         K.code(E, "Entry: STATUS; SUBMIT goes on for a Created GD with no open job (BUSY / NOT_ELIGIBLE / STOP otherwise)", scode("entry.js"), entry_fields,
                objects=("lineCount", "lockN", "progressPercent")),
         K.if_(ids, "if_GSanswer", "IF answered here (STATUS / BUSY / NOT_ELIGIBLE / STOP): answer, write nothing", "'%s' != 'GO'" % N(E, "data.route"), sres("ans", E, "entry")),

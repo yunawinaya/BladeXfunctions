@@ -1,0 +1,114 @@
+{
+ "_about": "SA V2 / SC Review V2 live test kit (package F). DEV tenant 496474 only. Ids of the four SAV2T items + the seed batch are filled by python3 scratchpad/sav2/live/seed.py --fill-ids (read-only SELECT) after RUNBOOK step 0. Never the SACRACE-* items (race test: inconsistent cost rows on purpose).",
+ "env": "dev",
+ "identity": "scratchpad/gdc/tools/id496474.json",
+ "nickname": "admin",
+ "tenant_id": "496474",
+ "organization_id": "1901545950162329602",
+ "plant_id": "1942795438353035266",
+ "_plant": "Testing Plant 1 of Testing Org 1 (the plant of the race test and of E's 2k payloads)",
+ "bins": {
+  "b1": "2098295393555369986",
+  "b2": "2105148434974937089",
+  "_bins": "b1 Test-Batch-S2 (storage location Test Batch Store 2, Common), b2 Sealing Head Assembly (Test P 1, Common): active, never used (0 item_balance / item_batch_balance / inventory_movement rows on 2026-10-16 21:00). Not L1 / L2 / LB001-R1 / LG-001: other sessions' GD tests and the race moved stock there in the last 6 h."
+ },
+ "uom": {
+  "PCS": "2021056571405717507",
+  "BOX": "2021056571405717506"
+ },
+ "rules": {
+  "sa": "2028017875276812289",
+  "sc": "2028017875444584450",
+  "_rules": "default non-draft numbering rules of the org: Stock Adjustment 'SA 1', Stock Count 'Stock Count'"
+ },
+ "acc_integration_type": "SQL Accounting V2",
+ "category": {
+  "First In First Out": "2021055961214177291",
+  "Weighted Average": "2021055961214177293"
+ },
+ "items": {
+  "fifo": {
+   "id": "2111092118006435842",
+   "code": "SAV2T-FIFO",
+   "name": "SA V2 test FIFO (non-batch) - test only",
+   "method": "First In First Out",
+   "batch": 0,
+   "alt": null
+  },
+  "wa": {
+   "id": "2111092127854661634",
+   "code": "SAV2T-WA",
+   "name": "SA V2 test WA (non-batch) - test only",
+   "method": "Weighted Average",
+   "batch": 0,
+   "alt": null
+  },
+  "fifob": {
+   "id": "2111092139607101441",
+   "code": "SAV2T-FIFOB",
+   "name": "SA V2 test FIFO batch - test only",
+   "method": "First In First Out",
+   "batch": 1,
+   "alt": null,
+   "batch_number": "SAV2T-B1",
+   "batch_id": "2111092232557072386"
+  },
+  "alt": {
+   "id": "2111092147412701185",
+   "code": "SAV2T-ALT",
+   "name": "SA V2 test FIFO with BOX = 10 PCS - test only",
+   "method": "First In First Out",
+   "batch": 0,
+   "alt": {
+    "uom": "BOX",
+    "base_qty": 10
+   }
+  }
+ },
+ "seed": {
+  "op_key": "SAV2T|SEED|1",
+  "trx_no": "SAV2T-SEED",
+  "doc_date": "2026-10-16 00:00:00",
+  "qty": 100,
+  "_prices": "per bin [b1, b2]; FIFO -> 2 layers, WA -> 1 row at (10 + 20) / 2 = 15 exactly (T1's two WA Ins at 12 and 18 bring the average back to 15, so twins A and B start from the same price)",
+  "prices": {
+   "fifo": [
+    1,
+    2
+   ],
+   "wa": [
+    10,
+    20
+   ],
+   "fifob": [
+    3,
+    4
+   ],
+   "alt": [
+    5,
+    6
+   ]
+  }
+ },
+ "workflows": {
+  "ITEM_SAVE": "2098251509145264130",
+  "ADD_INVENTORY": "2012005532688723970",
+  "INVENTORY_BULK_APPLY": "2109916822821744641",
+  "STOCK_ADJUSTMENT": "2032025505853816833",
+  "STOCK_COUNT": "2066808904123076610",
+  "SA_V2_SUBMIT": "2111074320177860610",
+  "SA_V2_WORKER": "2111074368689180673",
+  "SA_V2_PREPARE": "2111074403720007681",
+  "SA_V2_COMMIT": "2111074444748689410",
+  "REORDER_SET_REDIS": "2065256261729759233"
+ },
+ "recorded": {
+  "_recorded": "read-only templates of the request shapes (su_code_workflow_inst, tenant 496474 web runs)",
+  "item_save_add": "2098294091924426754",
+  "sa_add_completed": "2102272756262760450",
+  "sc_issued_add": "2097984936022032385",
+  "sc_count_edit": "2098272299358085122",
+  "sc_review_edit": "2098272931896877058"
+ },
+ "out_dir": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/b63ef53a-d07d-46f1-9737-73cc10430822/scratchpad/sav2-live/F"
+}

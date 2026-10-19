@@ -177,6 +177,13 @@ def cnode(nid, title, mods, tail, fields, arrays=(), objects=()):
     return K.code(nid, title, "\n".join(parts + [tail]), fields, arrays, objects)
 
 
+def plus_field(node, key, name, bson="string"):
+    """one more declared output under a fixed key (a drawn key would re-key every field built after it)"""
+    node["data"]["response_json"].append({"key": key, "name": name, "title": name, "description": "", "bsonType": bson, "isExpand": False, "children": []})
+    K._taken.add(key)
+    return node
+
+
 def d(nid, path="data"):
     """a node's value as a JS expression"""
     return "[%s][0]" % N(nid, path)
@@ -253,8 +260,8 @@ def build_prepare():
    AND j.id = @JOBID""", TEN=TEN, JOBID=JOBID)
     res_fields = ["job_id", "job_status", "result_code", "result_message", "evidence"]
     keys = [k for k, _, _ in P_READS]
-    entry_small = "{ route: %s, jobId: %s, rowVersion: %s, dbNow: %s, result_code: %s, result_message: %s, request: { stored_status: %s, hold: %s } }" % tuple(
-        d(E, "data." + f) for f in ["route", "jobId", "rowVersion", "dbNow", "result_code", "result_message", "request.stored_status", "request.hold"])
+    entry_small = "{ route: %s, jobId: %s, rowVersion: %s, dbNow: %s, jsAt: %s, result_code: %s, result_message: %s, request: { stored_status: %s, hold: %s } }" % tuple(
+        d(E, "data." + f) for f in ["route", "jobId", "rowVersion", "dbNow", "jsAt", "result_code", "result_message", "request.stored_status", "request.hold"])
     plan_tail = tail("entry.route !== \"GO\" ? { route: \"FAIL\", code: entry.result_code, message: entry.result_message, operationKey: \"\", organizationId: entry.organizationId, "
                      "movements: [], payload: \"\", partRows: [], lineCount: 0, movementCount: 0, gdId: entry.gdId, unlockOk: 0, pickUnlockId: \"\", notes: {} } : gePlan(entry, geAdapt(S), GE_KINDS)",
                      "prepare plan", "{ route: res.route, code: res.code, message: res.message, lines: res.lineCount, movements: res.movementCount, parts: res.partRows.length, unlock: res.unlockOk, pickUnlock: res.pickUnlockId }",
@@ -282,11 +289,11 @@ def build_prepare():
         K.sql("sql_node_GEjob", "The job (+ DB clock, lease flag, request)", job,
               ["db_now", "id", "organization_id", "command", "job_status", "lease_owner", "lease_live", "row_version", "attempt_count", "idempotency_key", "correlation_id",
                "request_payload", "is_deleted"]),
-        cnode(E, "Entry: a VALIDATING EDIT_GD job under a live lease; its request -> the GD and the edit's id lists", ["code/prepare/alloc_ids.js", "code/prepare/entry.js"],
+        plus_field(cnode(E, "Entry: a VALIDATING EDIT_GD job under a live lease; its request -> the GD and the edit's id lists", ["code/prepare/alloc_ids.js", "code/prepare/entry.js"],
               tail("prepareEntry(%s, %s, [{{system:uuid}}][0])" % (d(G), d("sql_node_GEjob")), "prepare entry",
                    "{ route: res.route, job: res.jobId, gd: res.gdId, result: res.result_code, message: res.result_message }"),
               ["route", "jobId", "tenantId", "organizationId", "gdId", "idempotencyKey", "rowVersion", "dbNow", "nonce", "request", "deltaMaterialIdsSql", "deltaSoLineIdsSql",
-               "deltaSoLineIdsQuoted", "deltaSoIdsSql", "deltaAllocMaterialIdsSql", "deltaAllocLineIdsSql", "result_code", "result_message"], objects=("request", "rowVersion")),
+               "deltaSoLineIdsQuoted", "deltaSoIdsSql", "deltaAllocMaterialIdsSql", "deltaAllocLineIdsSql", "result_code", "result_message"], objects=("request", "rowVersion")), "jsatgeen", "jsAt"),
         K.if_(ids, "if_GEnoop", "IF the job is not this run's to prepare: answer, write nothing", is_(E, "route", "NOOP"), answer("noop", "not prepared", "null", "[]")),
         K.parallel("condition_all_GEread", "Set-based reads in parallel (no row limits): the GD as stored AND the edit", sql_reads("GE", E, keys)),
         cnode(P, "Plan: stored + delta -> GOODS_DELIVERY's Edit/Created path + GD_UNUSED_FN_NEW's planner (lifted) -> movements, payload parts", PLAN_MODS, plan_tail,
@@ -593,9 +600,9 @@ return res;"""
         ] + res_("asplit", pick("code_node_GXe1", ["job_status", "result_code", "result_message"]), "SPLIT")),
     ]
 
-    # ------------------------------------------------------------ phase B: E2 lines, E3 reservations, E4 sales orders -> SPLIT
-    B_PARTS = "const GDL = %s;\nconst RES = %s;\nconst SO = %s;" % (part_js("b", "GDL"), part_js("b", "RES"), part_js("b", "SO"))
-    e2ids_js = ENTRY + "\n" + B_PARTS + """
+    # ------------------------------------------------------------ phase B: E2 lines -> SPLIT; phase B2: E3 reservations, E4 sales orders -> SPLIT
+    # (one call for the lines and one for the rest: at 2,000 changed lines the single phase B run was 32 MB of node data)
+    e2ids_js = ENTRY + "\nconst GDL = %s;" % part_js("b", "GDL") + """
 const ins = (GDL || {}).inserts || [];
 const idsList = ((GDL || {}).patches || []).map((p) => s(p.id)).concat((GDL || {}).deletes || []).map(s).filter(digits);
 const res = { ok: GDL ? "YES" : "NO", gdLineIdsJson: JSON.stringify(idsList.length ? idsList : ["0"]), twoPass: ins.some((x) => /^9\\d{18}$/.test(s(x.parent))) ? "YES" : "NO",
@@ -618,7 +625,7 @@ return res;"""
                   [(c, N(src, "data.insertRows." + c)) for c, _ in gdl_ins])])
 
     phase_b = [
-        K.parallel("condition_all_GXbpart", "Phase B: the parts it reads, in parallel", parts("b", ["GDL", "RES", "SO"])),
+        K.parallel("condition_all_GXbpart", "Phase B: the part it reads", parts("b", ["GDL"])),
         K.if_(ids, "if_GXe2", "IF E2 LINES is due", is_(XE, "needE2", "YES"), [
             cnode("code_node_GXe2ids", "E2: the lines to read (patched, removed), whether new bundle items wait for their parent, what the check reads",
                   C0 + [CM + "e2.js", "@linesql"], e2ids_js, ["ok", "gdLineIdsJson", "twoPass", "lineCheckSql"]),
@@ -643,16 +650,24 @@ return res;"""
                   tail("commitE2Check(entry, %s, %s)" % (part_js("b", "GDL"), d("sql_node_GXe2back")), "commit E2 check", pre=ENTRY), CHK, arrays=CHK_ARR),
             end_block("e2", "code_node_GXe2check", "IF E2 did not complete"),
             step_done("e2", "code_node_GXe2check", "E2_LINES")]),
+        cnode("code_node_GXbsplit", "Phase B done: the SPLIT hand-over (the next call does the reservations and the sales orders)", C0,
+              tail("commitPhaseSplit(entry, %s, 85, \"Lines saved; saving the reservations and the sales orders\")" % d(XG), "commit split B", "res", pre=ENTRY),
+              ["splitRows", "needSplit"], arrays=("splitRows",)),
+        job_update(ids, "update_node_GXbsplit", "Job: SPLIT| hand-over lease (the next call does phase B2)", "code_node_GXbsplit", "splitRows"),
+    ] + res_("bsplit", "{ job_status: \"COMMITTING_GD\", result_code: \"\", result_message: \"phase B saved\" }", "SPLIT")
+
+    phase_b2 = [
+        K.parallel("condition_all_GXb2part", "Phase B2: the parts it reads, in parallel (E3 resolves the inserted lines through GDL)", parts("b2", ["RES", "GDL", "SO"])),
         K.if_(ids, "if_GXe3", "IF E3 RESERVATIONS is due", is_(XE, "needE3", "YES"), [
             cnode("code_node_GXe3ids", "E3: the reservation ids and the creates' key", C0,
-                  ENTRY + "\nconst RES = %s;\nconst u = ((RES || {}).updates || []).map((x) => s(x.id)).filter(digits);\n" % part_js("b", "RES") +
+                  ENTRY + "\nconst RES = %s;\nconst u = ((RES || {}).updates || []).map((x) => s(x.id)).filter(digits);\n" % part_js("b2", "RES") +
                   "const res = { ok: RES ? \"YES\" : \"NO\", resIdsJson: JSON.stringify(u.length ? u : [\"0\"]), createLike: entry.jobId + \"|C|%\" };\n"
                   "console.log(\"commit E3 ids\", JSON.stringify({ ok: res.ok, updates: u.length }));\nreturn res;", ["ok", "resIdsJson", "createLike"]),
             par("condition_all_GXe3read", "E3: the reservations now + this job's creates, and the inserted lines (the placeholders' ids)", [
                 ("sql_node_GXe3res", "E3: those reservations now + this job's creates", resrows(N("code_node_GXe3ids", "data.resIdsJson"), N("code_node_GXe3ids", "data.createLike")), ["k", "j"]),
                 ("sql_node_GXe3gdl", "E3: the lines this job inserted", gdlines('["0"]'), J)]),
             cnode("code_node_GXe3plan", "E3 plan: placeholders resolved; a row written only while it holds what PREPARE read; each create once", C0 + [CM + "e3.js"],
-                  tail("commitE3Plan(entry, %s, %s, %s, %s)" % (part_js("b", "RES"), part_js("b", "GDL"), d("sql_node_GXe3res"), d("sql_node_GXe3gdl")), "commit E3 plan", pre=ENTRY),
+                  tail("commitE3Plan(entry, %s, %s, %s, %s)" % (part_js("b2", "RES"), part_js("b2", "GDL"), d("sql_node_GXe3res"), d("sql_node_GXe3gdl")), "commit E3 plan", pre=ENTRY),
                   CHK + ["slices", "writeCount", "createRows", "needCreates"], arrays=CHK_ARR + ("slices", "createRows"), objects=("writeCount",)),
             end_block("e3pl", "code_node_GXe3plan", "IF the reservations cannot be written"),
             slice_loop("e3", "code_node_GXe3plan", "slices", "E3 WRITE: on_reserved_gd", RESV, RES_COLS),
@@ -661,19 +676,19 @@ return res;"""
                       [(p, N("code_node_GXe3plan", "data.createRows." + p)) for p in RES_CREATE_COLS])]),
             K.sql("sql_node_GXe3back", "E3 read-back", resrows(N("code_node_GXe3ids", "data.resIdsJson"), N("code_node_GXe3ids", "data.createLike")), ["k", "j"]),
             cnode("code_node_GXe3check", "E3 check: every row at its target, every create once -> DONE", C0 + [CM + "e3.js"],
-                  tail("commitE3Check(entry, %s, %s, %s, %s)" % (part_js("b", "RES"), part_js("b", "GDL"), d("sql_node_GXe3back"), d("sql_node_GXe3gdl")), "commit E3 check", pre=ENTRY),
+                  tail("commitE3Check(entry, %s, %s, %s, %s)" % (part_js("b2", "RES"), part_js("b2", "GDL"), d("sql_node_GXe3back"), d("sql_node_GXe3gdl")), "commit E3 check", pre=ENTRY),
                   CHK, arrays=CHK_ARR),
             end_block("e3", "code_node_GXe3check", "IF E3 did not complete"),
             step_done("e3", "code_node_GXe3check", "E3_RESERVATIONS")]),
         K.if_(ids, "if_GXe4", "IF E4 SALES ORDERS is due", is_(XE, "needE4", "YES"), [
             cnode("code_node_GXe4ids", "E4: the sales orders and SO lines to read fresh", C0 + [CM + "so_fresh.js"],
-                  tail("geSoIds(%s)" % part_js("b", "SO"), "commit E4 ids", "res", pre=ENTRY, post="res.soLineIdsJson = res.lineIdsJson;"), ["soIdsJson", "soLineIdsJson"]),
+                  tail("geSoIds(%s)" % part_js("b2", "SO"), "commit E4 ids", "res", pre=ENTRY, post="res.soLineIdsJson = res.lineIdsJson;"), ["soIdsJson", "soLineIdsJson"]),
             par("condition_all_GXe4read", "E4 fresh reads in parallel", [
                 ("sql_node_GXe4sol", "E4: the SO lines now", so_lines("code_node_GXe4ids"), J), ("sql_node_GXe4soh", "E4: the sales orders now", so_hdrs("code_node_GXe4ids"), J),
                 ("sql_node_GXe4int", "E4: an earlier run's intent", intent("E4"), SR)]),
             cnode("code_node_GXe4plan", "E4 plan: QtyCheckBatch, the removed-lines clean-up, UMQapdjk, lwB2FVe0 (lifted) on the fresh rows -> intent; write what is at before",
                   SO_RUN + [CM + "e4.js"],
-                  tail("commitE4Plan(entry, %s, %s, %s, %s)" % (part_js("b", "SO"), d("sql_node_GXe4int"), d("sql_node_GXe4sol"), d("sql_node_GXe4soh")), "commit E4 plan", pre=ENTRY),
+                  tail("commitE4Plan(entry, %s, %s, %s, %s)" % (part_js("b2", "SO"), d("sql_node_GXe4int"), d("sql_node_GXe4sol"), d("sql_node_GXe4soh")), "commit E4 plan", pre=ENTRY),
                   CHK + ["needIntent", "intentRows", "lineSlices", "lineCount", "headerRows", "needHeaders"], arrays=CHK_ARR + ("intentRows", "lineSlices", "headerRows"), objects=("lineCount",)),
             end_block("e4pl", "code_node_GXe4plan", "IF the sales orders cannot be written"),
             gate(ids, "cor_GXe4intent", "E4 intent to record?", "code_node_GXe4plan", "needIntent", [
@@ -688,11 +703,11 @@ return res;"""
                   tail("commitE4Check(entry, %s, %s, %s)" % (d("sql_node_GXe4intB"), d("sql_node_GXe4solB"), d("sql_node_GXe4sohB")), "commit E4 check", pre=ENTRY), CHK, arrays=CHK_ARR),
             end_block("e4", "code_node_GXe4check", "IF E4 did not complete"),
             step_done("e4", "code_node_GXe4check", "E4_SO")]),
-        cnode("code_node_GXbsplit", "Phase B done: the SPLIT hand-over (the next call does the Picking and the header)", C0,
-              tail("commitPhaseSplit(entry, %s, 90, \"Lines, reservations and sales orders saved; saving the Picking and the delivery\")" % d(XG), "commit split B", "res", pre=ENTRY),
+        cnode("code_node_GXb2split", "Phase B2 done: the SPLIT hand-over (the next call does the Picking and the header)", C0,
+              tail("commitPhaseSplit(entry, %s, 90, \"Lines, reservations and sales orders saved; saving the Picking and the delivery\")" % d(XG), "commit split B2", "res", pre=ENTRY),
               ["splitRows", "needSplit"], arrays=("splitRows",)),
-        job_update(ids, "update_node_GXbsplit", "Job: SPLIT| hand-over lease (the next call does phase C)", "code_node_GXbsplit", "splitRows"),
-    ] + res_("bsplit", "{ job_status: \"COMMITTING_GD\", result_code: \"\", result_message: \"phase B saved\" }", "SPLIT")
+        job_update(ids, "update_node_GXb2split", "Job: SPLIT| hand-over lease (the next call does phase C)", "code_node_GXb2split", "splitRows"),
+    ] + res_("b2split", "{ job_status: \"COMMITTING_GD\", result_code: \"\", result_message: \"phase B2 saved\" }", "SPLIT")
 
     # ------------------------------------------------------------ phase C: E5 Picking + stamps, E6 header (unlock), E7 after -> COMPLETED
     C_PARTS = ["PICK", "STAMP", "GDH", "AFTER", "GDL"]
@@ -796,10 +811,10 @@ return res;"""
             ("sql_node_GXsteps", "This job's E step markers (DONE / STARTED) and a RELEASE", steps, ["step_name", "step_status", "result_ref"]),
             ("sql_node_GXgd", "The GD's status and its latest lock", gdlock, ["gd_status", "lock_ref"]),
             ("sql_node_GXpick", "The Picking SUBMIT locked: its lock and version", locked_pick, ["id", "is_processing", "update_time"])]),
-        cnode(XE, "Entry: what this run does (phase A: E0 E0N E1 -> SPLIT; B: E2 E3 E4 -> SPLIT; C: E5 E6 E7 -> COMPLETED), the lease claim", C0 + [CM + "entry.js"],
+        plus_field(cnode(XE, "Entry: what this run does (phase A: E0 E0N E1 -> SPLIT; B: E2 -> SPLIT; B2: E3 E4 -> SPLIT; C: E5 E6 E7 -> COMPLETED), the lease claim", C0 + [CM + "entry.js"],
               tail("commitEntry(%s, %s, %s, %s, %s)" % (d(XG), d("sql_node_GXjob"), d("sql_node_GXsteps"), d("sql_node_GXgd"), d("sql_node_GXpick")), "commit entry",
                    "{ route: res.route, phase: res.phase, result: res.result_code, message: res.result_message }"),
-              ef, arrays=END_ARR, objects=("rowVersion", "attempts", "manifest")),
+              ef, arrays=END_ARR, objects=("rowVersion", "attempts", "manifest")), "jsatgxen", "jsAt"),
         K.if_(ids, "if_GXnowrite", "IF this run may not write: answer only", is_(XE, "route", "NO_WRITE"),
               res_("nw", pick(XE, ["job_status", "result_code", "result_message"]), "NO_WRITE")),
         K.if_(ids, "if_GXentryend", "IF the manifest is unusable: FAILED (+ unlocks) or REQUIRES_REVIEW", "%s || %s" % (is_(XE, "route", "FAIL"), is_(XE, "route", "REVIEW")), [
@@ -816,7 +831,8 @@ return res;"""
         K.if_(ids, "if_GXlost", "IF another run took the job: stop", is_("code_node_GXown", "route", "LOST"),
               res_("lost", pick("code_node_GXown", ["result_code", "result_message"]), "LOST")),
         K.if_(ids, "if_GXphaseA", "IF phase A: E0 REVALIDATE, E0N NUMBER, E1 INVENTORY -> SPLIT", is_(XE, "phase", "A"), phase_a),
-        K.if_(ids, "if_GXphaseB", "IF phase B: E2 LINES, E3 RESERVATIONS, E4 SALES ORDERS -> SPLIT", is_(XE, "phase", "B"), phase_b),
+        K.if_(ids, "if_GXphaseB", "IF phase B: E2 LINES -> SPLIT", is_(XE, "phase", "B"), phase_b),
+        K.if_(ids, "if_GXphaseB2", "IF phase B2: E3 RESERVATIONS, E4 SALES ORDERS -> SPLIT", is_(XE, "phase", "B2"), phase_b2),
         K.if_(ids, "if_GXphaseC", "IF phase C: E5 PICKING, E6 HEADER, E7 AFTER -> COMPLETED", is_(XE, "phase", "C"), phase_c),
     ] + res_("none", pick(XE, ["job_status", "result_code", "result_message"]), "NO_PHASE")
     return K.workflow([("job_id", "string", "gd_async_job.id (digits) of an EDIT_GD job (READY_TO_COMMIT, or COMMITTING_GD to resume)")], RES_FIELDS, nodes)
@@ -825,7 +841,7 @@ return res;"""
 # =============================================================================================== GD_EDIT_WORKER
 # GD_COMPLETE_WORKER's builder with the edit's changes: polls EDIT_GD (an expired HELD job is due: it is cancelled); every
 # unlock puts the GD back to its stored status (request.stored_status) and releases our Picking only while it is at the
-# version this job locked (pick_id); GD_EDIT_COMMIT is called up to three times a tick (it splits twice)
+# version this job locked (pick_id); GD_EDIT_COMMIT is called up to four times a tick (it splits three times)
 GD_LOCK_JOIN = r"""LEFT JOIN goods_delivery g
     ON g.tenant_id = j.tenant_id
    AND j.correlation_id REGEXP '^GD\\|[0-9]{1,20}$'
@@ -839,7 +855,8 @@ GD_LOCK_JOIN = r"""LEFT JOIN goods_delivery g
 UNLOCK_COLS = ("(CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n"
                "       JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.stored_status')) AS stored_status,\n"
                "       (CASE WHEN t.id IS NOT NULL AND t.is_processing = 1 AND " + dt3("t.update_time") +
-               " = JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_version')) THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id")
+               " = COALESCE(NULLIF(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.picking_version')), ''), JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.picking_version')))"
+               " THEN CAST(t.id AS CHAR) ELSE '0' END) AS pick_id")
 WJOB_COLS = ["db_now", "id", "job_status", "progress_percent", "progress_message", "attempt_count", "next_attempt_at", "lease_owner", "lease_expires_at", "lease_live",
              "row_version", "error_code", "error_message", "error_details", "gd_id", "stored_status", "pick_id", "finished_at"]
 
@@ -925,6 +942,8 @@ def build_worker():
                 AND (j.lease_expires_at IS NULL OR j.lease_expires_at <= NOW(3))
                 AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW(3))
                 AND (c.id IS NULL OR c.started_at <= NOW(3) - INTERVAL 10 MINUTE)
+                AND (@JOBID <> 0 OR NOT EXISTS (SELECT 1 FROM gd_publish_step r WHERE r.tenant_id = j.tenant_id AND r.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)
+                                                 AND r.step_name = 'RELEASE' AND r.is_deleted = 0 AND r.started_at > NOW(3) - INTERVAL 10 SECOND))
               ORDER BY j.create_time, j.id
               LIMIT 5) x
     ON 1 = 1""", UNLOCK=UNLOCK_COLS.replace("\n       ", "\n                    "), LOCKJOIN=GD_LOCK_JOIN.replace("\n", "\n             "), TEN=TEN, JOBID=N(G, "data.jobId"))
@@ -1060,6 +1079,11 @@ def build_worker():
                    ["route", "dbNow", "jobId", "jobStatus", "result_message"]),
             K.if_(ids, "if_GWpub3", "IF GD_EDIT_COMMIT ended SPLIT again: the third call", is_("code_node_GWsplit2", "route", "PUBLISH"),
                   publish("pub3", "code_node_GWsplit2", "third publish", "GD_EDIT_COMMIT again after its second SPLIT")),
+            jobread("sql_node_GWsplit3", "The job after the third call (the split decision)"),
+            K.code("code_node_GWsplit3", "Next publish: split a third time -> the fourth call", wcode("split.js", {"code_node_GWmid": "code_node_GWsplit2", "sql_node_GWsplit.data": "sql_node_GWsplit3.data"}),
+                   ["route", "dbNow", "jobId", "jobStatus", "result_message"]),
+            K.if_(ids, "if_GWpub4", "IF GD_EDIT_COMMIT ended SPLIT a third time: the fourth call", is_("code_node_GWsplit3", "route", "PUBLISH"),
+                  publish("pub4", "code_node_GWsplit3", "fourth publish", "GD_EDIT_COMMIT again after its third SPLIT")),
             K.set_cache("set_cache_GWidxN", "Next loop index", "gde_wrk_" + N(G, "data.nonce"), N("code_node_GWpick", "data.nextIndex")),
         ]),
         K.sql("sql_node_GWfinal", "Read-back: the planned jobs (final)", final, ["id", "job_status", "attempt_count", "lease_owner", "error_code", "error_message", "gd_id"]),
@@ -1237,9 +1261,9 @@ def build_submit():
                  ("GD_EDIT_WORKER", IDS.get("GD_EDIT_WORKER", "0")), [("job_id", N("code_node_GSheld", "data.jobId"))])]),
         K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest lock and that lock's job, the open jobs on it, its Pickings (lock age) and their open confirms, DB clock",
               facts, ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "lock_job", "open_jobs", "pickings", "open_pickings"]),
-        cnode(E, "Entry: STATUS (the latest lock's job); SUBMIT goes on for a Created or Draft GD with nothing open on it (BUSY / STOP otherwise)", SC + ["code/submit/entry.js"],
+        plus_field(cnode(E, "Entry: STATUS (the latest lock's job); SUBMIT goes on for a Created or Draft GD with nothing open on it (BUSY / STOP otherwise)", SC + ["code/submit/entry.js"],
               tail("submitEntry(%s, %s)" % (d(G), d("sql_node_GSfacts")), "submit entry", "{ route: res.route, code: res.code, message: res.message, lockN: res.lockN }"),
-              E_FIELDS, objects=("lineCount", "lockN", "progressPercent", "notes")),
+              E_FIELDS, objects=("lineCount", "lockN", "progressPercent", "notes")), "stalesub", "staleLocks", "array"),
         K.if_(ids, "if_GSanswer", "IF answered here (STATUS / BUSY / STOP): answer, write nothing", "'%s' != 'GO'" % N(E, "data.route"), sres("ans", "entry", E_SMALL, E_SMALL)),
         K.parallel("condition_all_GSread", "PREPARE's reads to the gates, in parallel (no row limits): the GD as stored AND the edit", sql_reads("GS", E, S_READS)),
         cnode(GT, "Gate: the edit as a delta, what the background save does not take (classic; refused above 500 lines), GOODS_DELIVERY's gates in its order (lifted)", GATE_MODS,

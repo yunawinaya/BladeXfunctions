@@ -5,11 +5,12 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   const jobs = list(jobRows);
   const job = jobs.filter((r) => s(r.id))[0] || null;
   const dbNow = jobs.length ? s(jobs[0].db_now) : "";
+  const jsAt = String(Date.now());
   const done = {};
   for (const r of list(stepRows)) if (s(r.step_status) === "DONE") done[s(r.step_name)] = true;
   const gd = list(gdRows)[0] || {};
   const base = {
-    route: "NO_WRITE", phase: "", dbNow: dbNow, jobId: guard.jobId, organizationId: "0", gdId: "0", gdNo: "", idempotencyKey: "",
+    route: "NO_WRITE", phase: "", dbNow: dbNow, jsAt: jsAt, jobId: guard.jobId, organizationId: "0", gdId: "0", gdNo: "", idempotencyKey: "",
     jobStatus: job ? s(job.job_status) : "", rowVersion: job ? Number(job.row_version) || 0 : 0, attempts: job ? Number(job.attempt_count) || 0 : 0,
     leaseUntil: job ? s(job.lease_until) : "", unlockOk: "NO", partPrefix: "", manifest: {}, jobRows: [], needJobUpd: "NO", unlockRows: [], needUnlock: "NO",
     needC0: "NO", needC1: "NO", needC2: "NO", needC3: "NO", needC3H: "NO", needC4: "NO", needC5: "NO", needC6: "NO", doneC6Reorder: "NO", doneC6Si: "NO",
@@ -32,7 +33,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   }
   const PARTS = ["ENGINE", "RES", "SO", "PICK", "HU", "GD", "SNAP", "AFTER"];
   const valid = m && s(m.job_id) === guard.jobId && digits(m.gd_id) && s(job.correlation_id) === "GD|" + s(m.gd_id) && m.parts && PARTS.every((k) => Array.isArray(m.parts[k]) && m.parts[k].length);
-  const entry = { jobId: guard.jobId, organizationId: s(job.organization_id), gdId: valid ? s(m.gd_id) : "0", dbNow: dbNow, attempts: Number(job.attempt_count) || 0, rowVersion: Number(job.row_version) || 0 };
+  const entry = { jobId: guard.jobId, organizationId: s(job.organization_id), gdId: valid ? s(m.gd_id) : "0", dbNow: dbNow, jsAt: jsAt, attempts: Number(job.attempt_count) || 0, rowVersion: Number(job.row_version) || 0 };
   // before C2 the GD can go back to Created - when it is Processing under this job's lock
   const lockMine = s(gd.gd_status) === "Processing" && s(gd.lock_ref) !== "" && s(gd.lock_ref) === s(job.idempotency_key);
   entry.unlockOk = !done.C2_INVENTORY && lockMine ? "YES" : "NO";

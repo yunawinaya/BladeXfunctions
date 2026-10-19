@@ -1,0 +1,144 @@
+{
+ "id": "update_node_8LHuRFEN",
+ "type": "update-node",
+ "data": {
+  "table_id": {
+   "source": "GD Async Job:Table:2104845286495150081",
+   "rules": {
+    "collectionId": "2104845286495150081",
+    "list": [
+     {
+      "id": 1794000000021,
+      "parentId": 1794000000020,
+      "isTop": true,
+      "prop": "id",
+      "operator": "in",
+      "valueType": "field",
+      "value": "{{node:code_node_lWYsS1QB.data.claimRows.id}}",
+      "type": "leaf",
+      "level": 1,
+      "propLabel": "主键ID",
+      "valueLabel": "",
+      "operatorLabel": "In"
+     }
+    ]
+   }
+  },
+  "fields": [],
+  "condition": {},
+  "title": "Lease write: lease_owner WRK|<nonce>, lease_expires_at now + 10 min, VALIDATING for a QUEUED / confirmed job, attempt_count + 1 for a dead lease / claim (COMMITTING_GD: the count only)",
+  "isValidator": true,
+  "nodeName": "Lease write: lease_owner WRK|<nonce>, lease_expires_at now + 10 min, VALIDATING for a QUEUED / confirmed job, attempt_count + 1 for a dead lease / claim (COMMITTING_GD: the count only)",
+  "name": "Lease write: lease_owner WRK|<nonce>, lease_expires_at now + 10 min, VALIDATING for a QUEUED / confirmed job, attempt_count + 1 for a dead lease / claim (COMMITTING_GD: the count only)",
+  "props": {
+   "modelName": "",
+   "list": [
+    {
+     "prop": "id",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.id}}",
+     "valueLabel": "",
+     "propLabel": "主键ID"
+    },
+    {
+     "prop": "job_status",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.job_status}}",
+     "valueLabel": "",
+     "propLabel": "job_status"
+    },
+    {
+     "prop": "progress_percent",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.progress_percent}}",
+     "valueLabel": "",
+     "propLabel": "progress_percent"
+    },
+    {
+     "prop": "progress_message",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.progress_message}}",
+     "valueLabel": "",
+     "propLabel": "progress_message"
+    },
+    {
+     "prop": "attempt_count",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.attempt_count}}",
+     "valueLabel": "",
+     "propLabel": "attempt_count"
+    },
+    {
+     "prop": "next_attempt_at",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.next_attempt_at}}",
+     "valueLabel": "",
+     "propLabel": "next_attempt_at"
+    },
+    {
+     "prop": "lease_owner",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.lease_owner}}",
+     "valueLabel": "",
+     "propLabel": "lease_owner"
+    },
+    {
+     "prop": "lease_expires_at",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.lease_expires_at}}",
+     "valueLabel": "",
+     "propLabel": "lease_expires_at"
+    },
+    {
+     "prop": "row_version",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.row_version}}",
+     "valueLabel": "",
+     "propLabel": "row_version"
+    },
+    {
+     "prop": "error_code",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.error_code}}",
+     "valueLabel": "",
+     "propLabel": "error_code"
+    },
+    {
+     "prop": "error_message",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.error_message}}",
+     "valueLabel": "",
+     "propLabel": "error_message"
+    },
+    {
+     "prop": "error_details",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.error_details}}",
+     "valueLabel": "",
+     "propLabel": "error_details"
+    },
+    {
+     "prop": "finished_at",
+     "operator": "",
+     "valueType": "field",
+     "value": "{{node:code_node_lWYsS1QB.data.claimRows.finished_at}}",
+     "valueLabel": "",
+     "propLabel": "finished_at"
+    }
+   ]
+  }
+ },
+ "blocks": []
+}

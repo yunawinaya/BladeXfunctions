@@ -23,6 +23,39 @@ it("one reference per save, right after start, in the shape GD_EDIT_SUBMIT accep
   const junk = run(node("code_node_CascadeRef"), { "system:uuid": "x'; --", "workflowparams:allData.id": "12'34" });
   assert.ok(CREF.test(junk.cascadeRef), junk.cascadeRef);
 });
+it("CascadeRef also hands the stored SO id, digits only (0 for a new order), for the linked-documents read", () => {
+  assert.strictEqual(run(node("code_node_CascadeRef"), { "system:uuid": "u1", "workflowparams:allData.id": "2110639355872194561" }).soIdSql, "2110639355872194561");
+  assert.strictEqual(run(node("code_node_CascadeRef"), { "system:uuid": "u1", "workflowparams:allData.id": "12'34" }).soIdSql, "1234");
+  assert.strictEqual(run(node("code_node_CascadeRef"), { "system:uuid": "u1", "workflowparams:allData.id": null }).soIdSql, "0");
+  assert.ok(node("code_node_CascadeRef").data.response_json.some((r) => r.name === "soIdSql"));
+});
+it("the linked-documents read: right after CascadeRef, tenant-scoped, deliveries and picking plans not Cancelled, none for a new order", () => {
+  assert.strictEqual(doc.nodes[2].id, "sql_node_CascadeDocs");
+  const sql = node("sql_node_CascadeDocs").data.script.code;
+  for (const x of ["FROM goods_delivery g", "g.tenant_id = '{{system:tenantId}}'", "COALESCE(g.gd_status, '') <> 'Cancelled'", "g.is_deleted = 0",
+    "FROM picking_plan p", "p.tenant_id = '{{system:tenantId}}'", "COALESCE(p.to_status, '') <> 'Cancelled'", "p.is_deleted = 0",
+    "JSON_CONTAINS(g.so_id, '{{node:code_node_CascadeRef.data.soIdSql}}')", "JSON_CONTAINS(g.so_id, JSON_QUOTE('{{node:code_node_CascadeRef.data.soIdSql}}'))",
+    "JSON_CONTAINS(p.so_id, '{{node:code_node_CascadeRef.data.soIdSql}}')", "'{{node:code_node_CascadeRef.data.soIdSql}}' <> '0'"]) assert.ok(sql.includes(x), x);
+  assert.deepStrictEqual(node("sql_node_CascadeDocs").data.response_json.map((r) => r.name), ["linked"]);
+});
+const prevSo = { id: "5", table_so: [{ id: "1", item_name: "m", so_item_uom: "u", so_quantity: 3, so_item_price: 1, so_amount: 3 }] };
+const gateA = (docs) => run(node("code_node_CascadeGate"), { "node:get_node_rvjWbHBF.data.data": prevSo, "workflowparams:allData": { id: "5" },
+  "node:code_node_rPqQy5CD.data.table": { table_so: [{ id: "1", item_name: "m", so_item_uom: "u", so_quantity: 1, so_item_price: 1, so_amount: 1 }] },
+  "node:sql_node_CascadeDocs.data": docs });
+it("pass A: a changed line with nothing downstream -> no cascade and no tables; a delivery or plan -> the cascade; no answer -> the cascade", () => {
+  const off = gateA([{ linked: 0 }]);
+  assert.strictEqual(off.needsCascade, 0); assert.deepStrictEqual([off.prevTableSo, off.nextTableSo], [[], []]);
+  const on = gateA([{ linked: 1 }]);
+  assert.strictEqual(on.needsCascade, 1); assert.strictEqual(on.nextTableSo.length, 1); assert.strictEqual(on.prevTableSo.length, 1);
+  assert.strictEqual(gateA(null).needsCascade, 1);
+});
+const gateB = (docs) => run(node("code_node_CascadeB_Gate"), { "node:get_node_rvjWbHBF.data.data": prevSo, "workflowparams:allData": { id: "5" },
+  "node:code_node_9wKKlXUI.data.soData": { id: "5", table_so: [{ id: "1", item_name: "m" }, { id: "2", item_name: "n" }] }, "node:sql_node_CascadeDocs.data": docs });
+it("pass B: a new line with nothing downstream -> no append and no tables; a delivery or plan -> the append; no answer -> the append", () => {
+  const off = gateB([{ linked: 0 }]);
+  assert.strictEqual(off.needsAppend, 0); assert.deepStrictEqual([off.prevTableSo, off.nextTableSo], [[], []]);
+  assert.strictEqual(gateB([{ linked: 1 }]).needsAppend, 1); assert.strictEqual(gateB(null).needsAppend, 1);
+});
 it("both cascade passes carry it", () => {
   for (const id of ["workflow_node_CascadeA", "workflow_node_CascadeB"]) assert.ok(params(node(id)).some((p) => p[0] === "cascade_ref" && p[1] === "field" && p[2] === "{{node:code_node_CascadeRef.data.cascadeRef}}"), id);
 });
@@ -47,12 +80,16 @@ it("pass A's held edits only when pass A let the save through; malformed entries
   assert.deepStrictEqual(heldA("406", j).jobs, []);
   assert.deepStrictEqual(heldA(null, null).jobs, []);
 });
-it("after pass B: every held edit of both passes released, in one loop", () => {
+it("after pass B: every held edit of both passes released and committed in this save (no kick needed), in one loop", () => {
   const top = doc.nodes.map((n) => n.id), i = top.indexOf("if_CascadeB");
-  assert.deepStrictEqual(top.slice(i + 1, i + 3), ["code_node_GdeRelease", "loop_node_GdeRelease"]);
+  assert.deepStrictEqual(top.slice(i + 1, i + 4), ["code_node_GdeRelease", "loop_node_GdeRelease", "if_GdeOutcome"]);
   const loop = node("loop_node_GdeRelease");
   assert.strictEqual(loop.data.loopSeletVar.code, "{{node:code_node_GdeRelease.data.jobs}}");
-  assert.deepStrictEqual(loop.blocks.map((n) => n.id), ["wf_GdeRelease"]);
+  assert.deepStrictEqual(loop.blocks.map((n) => n.id), ["wf_GdeRelease", "if_GdeReleased"]);
+  const ifr = node("if_GdeReleased"), commit = node("wf_GdeCommit");
+  assert.strictEqual(ifr.data.filter.list[0].prop, "node.wf_GdeRelease.data.route"); assert.strictEqual(ifr.data.filter.list[0].value, "RELEASED");
+  assert.deepStrictEqual(ifr.blocks[0].blocks.map((n) => n.id), ["wf_GdeCommit"]);
+  assert.strictEqual(commit.data.workflow.source, WORKER); assert.deepStrictEqual(params(commit), [["job_id", "field", "{{node:wf_GdeRelease.data.job_id}}"]]);
   assert.strictEqual(node("wf_GdeRelease").data.workflow.source, SUBMIT);
   assert.deepStrictEqual(params(node("wf_GdeRelease")), [["operation", "field", "{{node:code_node_CascadeRef.data.releaseOp}}"], ["gd_id", "field", "{{node:loop_node_GdeRelease.gd_id}}"],
     ["cascade_ref", "field", "{{node:code_node_CascadeRef.data.cascadeRef}}"]]);
@@ -64,14 +101,40 @@ it("the release list: pass A's (when it let the save through) and pass B's, ids 
   assert.deepStrictEqual(rel("200", a, b).jobIds, ["21", "22"]);
   assert.deepStrictEqual(rel("200", a, null).jobIds, ["21"]);
   assert.deepStrictEqual(rel(null, null, b).jobIds, ["22"]);
-  assert.deepStrictEqual(rel(null, null, null), { jobs: [], jobIds: [] });
+  assert.deepStrictEqual(rel(null, null, null), { jobs: [], jobIds: [], jobIdsSql: "0", any: "NO" });
+  assert.strictEqual(rel("200", a, b).jobIdsSql, "21,22"); assert.strictEqual(rel("200", a, b).any, "YES");
+});
+it("after the loop, only when the save released any: the jobs' outcome read once (tenant-scoped, the ids from code)", () => {
+  const ifo = node("if_GdeOutcome");
+  assert.strictEqual(ifo.data.filter.list[0].prop, "node.code_node_GdeRelease.data.any"); assert.strictEqual(ifo.data.filter.list[0].value, "YES");
+  assert.deepStrictEqual(ifo.blocks[0].blocks.map((n) => n.id), ["sql_node_GdeOutcome", "code_node_GdeNotes"]);
+  const q = node("sql_node_GdeOutcome").data.script.code;
+  assert.ok(/j\.tenant_id = '\{\{system:tenantId\}\}'/.test(q) && /j\.id IN \(\{\{node:code_node_GdeRelease\.data\.jobIdsSql\}\}\)/.test(q), q);
+});
+const notes = (jobs, rows) => run(node("code_node_GdeNotes"), { "node:code_node_GdeRelease.data.jobs": jobs, "node:sql_node_GdeOutcome.data": rows }).notes;
+it("a released edit that did not complete is reported: failed, under review, still running; completed ones are not", () => {
+  const jobs = [{ job_id: "21", gd_id: "31", gd_no: "GD/1" }, { job_id: "22", gd_id: "32", gd_no: "GD/2" }, { job_id: "23", gd_id: "33", gd_no: "GD/3" }, { job_id: "24", gd_id: "34" }];
+  const n = notes(jobs, [{ id: "21", job_status: "COMPLETED" }, { id: "22", job_status: "FAILED", error_message: "Insufficient quantity" }, { id: "23", job_status: "REQUIRES_REVIEW" },
+    { id: "24", job_status: "COMMITTING_GD" }]);
+  assert.strictEqual(n.length, 3);
+  assert.ok(/GD\/2 was not updated: Insufficient quantity/.test(n[0]), n[0]); assert.ok(/GD\/3 .*under review.*contact support/.test(n[1]), n[1]); assert.ok(/34 is still being updated/.test(n[2]), n[2]);
+  assert.deepStrictEqual(notes(jobs.slice(0, 1), [{ id: "21", job_status: "COMPLETED" }]), []);
+});
+it("the answer hands the form gdEditJobs and gdEditNotes", () => {
+  const ans = (notesV) => run(node("code_node_xtWJshxF"), { "node:code_node_9wKKlXUI.data.soData": { id: "5", so_no: "SO/1", auto_si: 0 }, "node:workflow_node_t3FvIVBF.data": null,
+    "node:workflow_node_CascadeA.data.pickingReversalNote": "", "node:workflow_node_CascadeB.data.pickingReversalNote": null, "node:code_node_GdeRelease.data.jobIds": ["21"],
+    "node:code_node_GdeNotes.data.notes": notesV });
+  assert.deepStrictEqual(ans(["Goods Delivery GD/2 was not updated: x"]).data.gdEditNotes, ["Goods Delivery GD/2 was not updated: x"]);
+  assert.deepStrictEqual(ans(null).data.gdEditNotes, []);
 });
 it("the answer hands the form gdEditJobs", () => {
   const r = run(node("code_node_xtWJshxF"), { "node:code_node_9wKKlXUI.data.soData": { id: "5", so_no: "SO/1", auto_si: 0 }, "node:workflow_node_t3FvIVBF.data": null,
-    "node:workflow_node_CascadeA.data.pickingReversalNote": "", "node:workflow_node_CascadeB.data.pickingReversalNote": null, "node:code_node_GdeRelease.data.jobIds": ["21", "22"] });
+    "node:workflow_node_CascadeA.data.pickingReversalNote": "", "node:workflow_node_CascadeB.data.pickingReversalNote": null, "node:code_node_GdeRelease.data.jobIds": ["21", "22"],
+    "node:code_node_GdeNotes.data.notes": null });
   assert.deepStrictEqual(r.data.gdEditJobs, ["21", "22"]); assert.strictEqual(r.data.so_no, "SO/1");
   const none = run(node("code_node_xtWJshxF"), { "node:code_node_9wKKlXUI.data.soData": { id: "5", so_no: "SO/1", auto_si: 0 }, "node:workflow_node_t3FvIVBF.data": null,
-    "node:workflow_node_CascadeA.data.pickingReversalNote": null, "node:workflow_node_CascadeB.data.pickingReversalNote": null, "node:code_node_GdeRelease.data.jobIds": null });
+    "node:workflow_node_CascadeA.data.pickingReversalNote": null, "node:workflow_node_CascadeB.data.pickingReversalNote": null, "node:code_node_GdeRelease.data.jobIds": null,
+    "node:code_node_GdeNotes.data.notes": null });
   assert.deepStrictEqual(none.data.gdEditJobs, []);
 });
 console.log((count - failed) + "/" + count + " passed");

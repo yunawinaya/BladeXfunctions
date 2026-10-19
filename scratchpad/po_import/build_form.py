@@ -1,5 +1,6 @@
-"""PO form + Excel line import: dev-enabled purchase_order v849 + an Import Lines upload above table_po (the platform's
+"""PO form + Excel line import: dev-enabled purchase_order v852 + an Import Lines upload above table_po (the platform's
 su-fm-excel-parse, as the GR form's split import) -> onUpload_poLines -> PO_LINE_IMPORT; hidden in View like the save buttons.
+The live base carries the import already (since v850), so its handler comes from the repo mirror; a base without it gets it added.
 Writes the repo `Purchase Order/POfullJSON.json` (Prettier form recipe) + POonMounted.js, lists every path that differs from dev.
   python3 build_form.py [--write]
 """
@@ -16,7 +17,7 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 sys.path.insert(0, os.path.join(ROOT, "scratchpad", "grv2"))
 from fmt import render  # noqa: E402
 
-DEV = os.path.join(HERE, "po_form_v849.json")
+DEV = os.path.join(HERE, "po_form_v852.json")
 GR_FORM = os.path.join(ROOT, "Goods Receiving", "GRfullJSON.json")
 REPO_FORM = os.path.join(ROOT, "Purchase Order", "POfullJSON.json")
 HANDLER = os.path.join(ROOT, "Purchase Order", "LineImport", "onUpload_poLines.js")
@@ -52,9 +53,18 @@ def build():
     rng = random.Random(20261015)
     dev = json.load(open(DEV, encoding="utf-8"))
     form = copy.deepcopy(dev)
-    assert MODEL not in json.dumps(form), "the form already has " + MODEL
     names = {e["name"]: e for e in form["config"]["eventScript"]}
-    assert "onUpload_poLines" not in names
+    with open(HANDLER, encoding="utf-8") as f:
+        func = f.read()
+    assert func.endswith("\n") and not func.endswith("\n\n")
+    if "onUpload_poLines" in names:  # the live base carries the import: the repo mirror is the handler's source
+        col, path = find(form, lambda n: isinstance(n.get("list"), list) and any(isinstance(c, dict) and c.get("model") == MODEL for c in n["list"]))
+        up = [c for c in col["list"] if c.get("model") == MODEL][0]
+        assert up["events"]["onUploadSuccess"] == names["onUpload_poLines"]["key"], up["events"]
+        assert '"%s",' % MODEL in names["mounted"]["func"], "mounted's View case no longer hides " + MODEL
+        names["onUpload_poLines"]["func"] = func
+        return dev, form, {MOUNTED_MIRROR: names["mounted"]["func"]}, path
+    assert MODEL not in json.dumps(form), "the form already has " + MODEL
 
     # the upload: the GR form's visible Excel import (split dialog) as the template
     tmpl, _ = find(json.load(open(GR_FORM, encoding="utf-8")), lambda n: n.get("model") == "import_data" and n.get("el") == "su-fm-excel-parse")
@@ -72,9 +82,6 @@ def build():
     i = [c.get("model") for c in col["list"]].index("table_po")
     col["list"].insert(i, up)
 
-    with open(HANDLER, encoding="utf-8") as f:
-        func = f.read()
-    assert func.endswith("\n") and not func.endswith("\n\n")
     form["config"]["eventScript"].append({"key": hkey, "name": "onUpload_poLines", "func": func, "type": "js"})
 
     # View: hidden with the save buttons
@@ -108,17 +115,20 @@ def diffs(a, b, path="", out=None):
 if __name__ == "__main__":
     dev, form, mirrors, path = build()
     print("Import Lines placed in", "/".join(map(str, path)), "before table_po")
-    # the three intended changes undone must give dev back exactly
-    chk = copy.deepcopy(form)
-    col, _ = find(chk, lambda n: isinstance(n.get("list"), list) and any(isinstance(c, dict) and c.get("model") == MODEL for c in n["list"]))
-    col["list"] = [c for c in col["list"] if c.get("model") != MODEL]
-    chk["config"]["eventScript"] = [e for e in chk["config"]["eventScript"] if e["name"] != "onUpload_poLines"]
-    dm = [e for e in dev["config"]["eventScript"] if e["name"] == "mounted"][0]["func"]
-    [e for e in chk["config"]["eventScript"] if e["name"] == "mounted"][0]["func"] = dm
-    left = diffs(dev, chk)
-    print("  everything else identical to dev:", not left, left[:5])
-    nm = [e for e in form["config"]["eventScript"] if e["name"] == "mounted"][0]["func"]
-    print("  mounted: +", [l for l in nm.splitlines() if l not in dm.splitlines()])
+    if "onUpload_poLines" in json.dumps(dev):
+        print("  differs from dev:", diffs(dev, form) or "nothing")
+    else:
+        # the three intended changes undone must give dev back exactly
+        chk = copy.deepcopy(form)
+        col, _ = find(chk, lambda n: isinstance(n.get("list"), list) and any(isinstance(c, dict) and c.get("model") == MODEL for c in n["list"]))
+        col["list"] = [c for c in col["list"] if c.get("model") != MODEL]
+        chk["config"]["eventScript"] = [e for e in chk["config"]["eventScript"] if e["name"] != "onUpload_poLines"]
+        dm = [e for e in dev["config"]["eventScript"] if e["name"] == "mounted"][0]["func"]
+        [e for e in chk["config"]["eventScript"] if e["name"] == "mounted"][0]["func"] = dm
+        left = diffs(dev, chk)
+        print("  everything else identical to dev:", not left, left[:5])
+        nm = [e for e in form["config"]["eventScript"] if e["name"] == "mounted"][0]["func"]
+        print("  mounted: +", [l for l in nm.splitlines() if l not in dm.splitlines()])
     if "--write" in sys.argv:
         open(REPO_FORM, "w", encoding="utf-8").write(render(form, "indent"))
         for p, text in mirrors.items():

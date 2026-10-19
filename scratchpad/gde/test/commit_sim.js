@@ -299,7 +299,17 @@ const prepare = (w) => {
 };
 const commit = (w, label) => run(w, "GD_EDIT_COMMIT", label);
 const next = (w, ms) => { w.now += ms || 2000; };
-const phases = (w) => { for (const p of ["A", "B", "C"]) { commit(w, "COMMIT " + p); next(w); if (w.job.job_status !== "COMMITTING_GD") break; } };
+// phase A: E0 E0N E1; B: E2 alone; B2: E3 E4; C: E5 E6 E7 - one COMMIT call each
+const PHASE_DONE = { A: ["E1_INVENTORY"], B: ["E2_LINES"], B2: ["E3_RESERVATIONS", "E4_SO"], C: ["E6_HEADER"] };
+const phases = (w) => {
+  for (const p of ["A", "B", "B2", "C"]) {
+    commit(w, "COMMIT " + p); next(w);
+    const done = new Set(w.steps.filter((r) => r.step_status === "DONE").map((r) => r.step_name));
+    for (const x of PHASE_DONE[p]) assert.ok(done.has(x), "phase " + p + ": " + x + " not done");
+    if (p === "B") assert.ok(!done.has("E3_RESERVATIONS") && !done.has("E4_SO"), "phase B saves the lines only");
+    if (w.job.job_status !== "COMMITTING_GD") break;
+  }
+};
 
 // the expected end state: the plan's parts applied to the world as it was read
 const partsOf = (w) => {
@@ -359,13 +369,14 @@ const scenarios = {
     assert.ok(!w.steps.some((r) => r.step_name === "E2_LINES"), "nothing done under a live lease");
     w.now += 11 * 60000;
     commit(w, "resume after the lease expired"); next(w);
-    if (w.job.job_status === "COMMITTING_GD") commit(w, "phase C");
+    assert.ok(w.steps.some((r) => r.step_name === "E2_LINES" && r.step_status === "DONE") && !w.steps.some((r) => r.step_name === "E3_RESERVATIONS"), "the resumed phase B saved the lines only");
+    for (const p of ["B2", "C"]) if (w.job.job_status === "COMMITTING_GD") { commit(w, "phase " + p); next(w); }
     ok(w);
   },
   PICKCRASH: () => {
     const w = world("REMOVE"); prepare(w);
     if (!Object.keys(w.picks).length) { console.log("  (no Picking in this GD)"); return; }
-    commit(w, "COMMIT A"); next(w); commit(w, "COMMIT B"); next(w);
+    commit(w, "COMMIT A"); next(w); commit(w, "COMMIT B"); next(w); commit(w, "COMMIT B2"); next(w);
     // phase C's step rows: the E5 intent (before the Picking write), then E5_PICKING DONE (after it): crash at the second
     const before = w.steps.length;
     const v0 = Object.values(w.picks)[0].update_time;
@@ -398,7 +409,7 @@ const scenarios = {
     w.lockBusy = 2;
     for (let i = 0; i < 3; i++) { commit(w, "COMMIT A, stock locked, try " + (i + 1)); w.now += 6 * 60000; }
     assert.ok(/^SPLIT\|/.test(w.job.lease_owner || ""), "phase A done after the locks freed");
-    next(w); commit(w, "COMMIT B"); next(w); commit(w, "COMMIT C");
+    next(w); commit(w, "COMMIT B"); next(w); commit(w, "COMMIT B2"); next(w); commit(w, "COMMIT C");
     ok(w);
   },
 };
@@ -411,7 +422,7 @@ const queued = (w, hold) => {
 Object.assign(scenarios, {
   WORKER: () => {
     const w = world("REMOVE"); queued(w);
-    run(w, "GD_EDIT_WORKER", "WORKER tick (claim, PREPARE, three COMMIT calls)");
+    run(w, "GD_EDIT_WORKER", "WORKER tick (claim, PREPARE, four COMMIT calls)");
     w.manifest = JSON.parse(w.job.prepared_payload);
     ok(w);
   },

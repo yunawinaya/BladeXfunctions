@@ -1,0 +1,13 @@
+{
+ "CUSTOMER_SAVE": "Customer/CustSaveWorkflow.json",
+ "SUPPLIER_SAVE": "Supplier/SupplierSaveWorkflow.json",
+ "ITEM_SAVE": "Item/ItemSaveWorkflow.json",
+ "PO_SAVE": "Purchase Order/POsaveWorkflow.json",
+ "GOODS_RECEIVING": "Goods Receiving/GRsaveWorkflow.json",
+ "GR_CREATED": "Goods Receiving/GRsaveAsCreatedWorkflow.json",
+ "GR_COMPLETE_SUBMIT": "Goods Receiving/CompleteV2/GR_COMPLETE_SUBMIT.json",
+ "PI_SAVE": "Purchase Invoice/PIsaveWorkflow.json",
+ "PREQ_SAVE": "Purchase Requisition/PRsaveWorkflow.json",
+ "SO_SAVE": "Sales Order/SOsaveWorkflow.json",
+ "SM_MISC_ISSUE": "Stock Movement/Misc Issue/MSIsaveWorkflow.json"
+}

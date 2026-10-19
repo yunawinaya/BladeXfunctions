@@ -13,14 +13,19 @@ const dbAddSeconds = function dbAddSeconds(text, seconds) {
   const p = (n) => (n < 10 ? "0" : "") + n;
   return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + ":" + p(d.getUTCSeconds());
 };
+// finished_at = the run's real end: the DB clock read at entry + the seconds since (jsAt = the entry's Date.now())
+const endNow = (entry) => (Number(entry.jsAt) > 0 ? dbAddSeconds(entry.dbNow, Math.max(0, Math.floor((Date.now() - Number(entry.jsAt)) / 1000))) : "") || entry.dbNow;
 // value comparison for read-backs: "" / null / undefined are one nothing; numbers compare at 8 dp; ids and text exactly
 const sameVal = function sameVal(a, b) {
   const ea = a === undefined || a === null || a === "";
   const eb = b === undefined || b === null || b === "";
   if (ea || eb) return ea && eb;
-  if (typeof a === "object" || typeof b === "object") {
+  // JSON (objects, or JSON text on both sides) compares with sorted keys: a MySQL json column keeps its own key order
+  const jt = (v) => typeof v === "string" && /^\s*[[{]/.test(v);
+  if (typeof a === "object" || typeof b === "object" || (jt(a) && jt(b))) {
     const pa = typeof a === "string" ? parseJ(a) : a, pb = typeof b === "string" ? parseJ(b) : b;
-    return JSON.stringify(pa) === JSON.stringify(pb);
+    const sorted = (k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, key) => ((o[key] = x[key]), o), {}) : x);
+    if (pa !== null && pb !== null) return JSON.stringify(pa, sorted) === JSON.stringify(pb, sorted);
   }
   const na = typeof a === "number" || /^-?[0-9]+(\.[0-9]+)?$/.test(String(a));
   const nb = typeof b === "number" || /^-?[0-9]+(\.[0-9]+)?$/.test(String(b));
@@ -60,7 +65,7 @@ const slicesOf = function slicesOf(rows, size) {
 };
 const doneRow = function doneRow(entry, step, ref) {
   return { job_id: entry.jobId, organization_id: entry.organizationId, step_name: step, step_status: "DONE", attempt_count: 1, started_at: entry.dbNow,
-    finished_at: entry.dbNow, inventory_operation_id: "", result_ref: s(ref).slice(0, 2000), error_code: null, error_message: null };
+    finished_at: endNow(entry), inventory_operation_id: "", result_ref: s(ref).slice(0, 2000), error_code: null, error_message: null };
 };
 const jobRow = function jobRow(entry, patch) {
   return Object.assign({ id: entry.jobId, job_status: "COMMITTING_GD", progress_percent: 70, progress_message: "Saving the delivery", attempt_count: entry.attempts,
@@ -72,7 +77,7 @@ const stepEnd = function stepEnd(entry, step, why, review) {
   const n = entry.attempts;
   if (review || n >= MAX_RETRIES) {
     const msg = step + ": " + why + (review ? "" : " (after " + n + " retries)") + "; the Goods Delivery stays Processing for review";
-    return Object.assign({}, END_EMPTY, { route: "END", jobRows: [jobRow(entry, { job_status: "REQUIRES_REVIEW", progress_percent: 0, progress_message: "Under review: the edit stopped half-way", error_code: "GDE_RECONCILIATION_MISMATCH", error_message: msg, error_details: JSON.stringify({ step: step, why: why }), finished_at: entry.dbNow })], needJobUpd: "YES", result_code: "GDE_RECONCILIATION_MISMATCH", result_message: msg, job_status: "REQUIRES_REVIEW" });
+    return Object.assign({}, END_EMPTY, { route: "END", jobRows: [jobRow(entry, { job_status: "REQUIRES_REVIEW", progress_percent: 0, progress_message: "Under review: the edit stopped half-way", error_code: "GDE_RECONCILIATION_MISMATCH", error_message: msg, error_details: JSON.stringify({ step: step, why: why }), finished_at: endNow(entry) })], needJobUpd: "YES", result_code: "GDE_RECONCILIATION_MISMATCH", result_message: msg, job_status: "REQUIRES_REVIEW" });
   }
   return Object.assign({}, END_EMPTY, { route: "END", jobRows: [jobRow(entry, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(entry.dbNow, Math.ceil(Math.min(30000, 2000 * Math.pow(2, n)) / 1000)), error_code: "GDE_STEP_RETRY", error_message: step + ": " + why, error_details: JSON.stringify({ step: step, why: why, attempt: n + 1 }) })], needJobUpd: "YES", result_code: "GDE_STEP_RETRY", result_message: step + ": " + why + " - retry " + (n + 1) + " of " + MAX_RETRIES, job_status: "COMMITTING_GD" });
 };
@@ -81,7 +86,7 @@ const stepEnd = function stepEnd(entry, step, why, review) {
 const failNoWrite = function failNoWrite(entry, code, why, restore) {
   const unlock = entry.unlockOk === "YES";
   const pickUnlock = entry.pickUnlockOk === "YES";
-  return Object.assign({}, END_EMPTY, { route: "END", jobRows: [jobRow(entry, { job_status: "FAILED", progress_percent: 0, progress_message: ("Not saved: " + why).slice(0, 250), error_code: code, error_message: why, error_details: JSON.stringify({ step: "GD_EDIT_COMMIT", why: why }), finished_at: entry.dbNow })], needJobUpd: "YES",
+  return Object.assign({}, END_EMPTY, { route: "END", jobRows: [jobRow(entry, { job_status: "FAILED", progress_percent: 0, progress_message: ("Not saved: " + why).slice(0, 250), error_code: code, error_message: why, error_details: JSON.stringify({ step: "GD_EDIT_COMMIT", why: why }), finished_at: endNow(entry) })], needJobUpd: "YES",
     unlockRows: unlock ? [{ id: entry.gdId, gd_status: entry.storedStatus || "Created" }] : [], needUnlock: unlock ? "YES" : "NO",
     pickUnlockRows: pickUnlock ? [{ id: entry.pickingId, is_processing: 0 }] : [], needPickUnlock: pickUnlock ? "YES" : "NO",
     restoreRows: restore ? [Object.assign({ id: entry.gdId }, restore)] : [], needRestore: restore ? "YES" : "NO",

@@ -1,5 +1,5 @@
 // GD_COMPLETE_SUBMIT - Entry: STATUS answers from the GD's latest COMPLETE_GD job; SUBMIT goes on only for a Created GD with
-// no open completion, Packing V2 or GD Edit V2 job (REQUIRES_REVIEW counts as open: stock may be half-moved)
+// no open completion, Packing V2, GD Edit V2 or Picking V2 job (REQUIRES_REVIEW counts as open: stock may be half-moved)
 const submitEntry = function submitEntry(guard, factRows) {
   const f = list(factRows)[0] || {};
   const parse = (t) => {
@@ -17,6 +17,13 @@ const submitEntry = function submitEntry(guard, factRows) {
   const job = (j) => (j ? { jobId: s(j.id), jobStatus: s(j.job_status), progressPercent: num(j.progress_percent), progressMessage: s(j.progress_message), errorCode: s(j.error_code), errorMessage: s(j.error_message) } : {});
   if (guard.operation === "STATUS") return Object.assign(base, job(last), answer("STATUS", "200", last ? s(last.progress_message) : "no completion job"));
   if (!s(f.gd_id)) return Object.assign(base, answer("STOP", "400", "Goods Delivery not found"));
+  const picking = list(parse(f.picking_jobs)).filter((r) => s(r.id));
+  if (picking.length) {
+    const review = picking.some((r) => s(r.job_status) === "REQUIRES_REVIEW");
+    return Object.assign(base, answer("BUSY", "409", review
+      ? "A Picking confirmation of this delivery stopped half-way and is under review: please contact support."
+      : "Its Picking is being confirmed in the background - please wait for it to finish."));
+  }
   const blocking = open[0];
   if (blocking) {
     const cmd = s(blocking.command);

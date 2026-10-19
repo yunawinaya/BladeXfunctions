@@ -86,7 +86,7 @@
         "name": "fillbackHeaderFields",
         "script": {
           "type": "javascript",
-          "code": "let allData = {{workflowparams:allData}}\nconst filterZero = {{workflowparams:filter_zero}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return 0;\n  return parseFloat(value).toFixed(3);\n};\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  // Format qty and price fields\n  smLineItem.requested_qty = formatNumber(smLineItem.requested_qty);\n  smLineItem.total_quantity = formatNumber(smLineItem.total_quantity);\n  smLineItem.unit_price = formatNumber(smLineItem.unit_price);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\n\nif (filterZero === 'Yes') {\n  allData.stock_movement = allData.stock_movement.filter(item => item.total_quantity && parseFloat(item.total_quantity) > 0)\n}\n\nallData.po_id = [...new Set(allData.stock_movement.map((sm) => sm.po_id).filter(poID => poID))]\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n}\n"
+          "code": "let allData = {{workflowparams:allData}}\nconst filterZero = {{workflowparams:filter_zero}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\n// Helper function to format qty and price fields to 3 decimal places\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\nfor (const [index, smLineItem] of allData.stock_movement.entries()) {\n  // Format qty and price fields\n  smLineItem.requested_qty = q8(smLineItem.requested_qty);\n  smLineItem.total_quantity = q8(smLineItem.total_quantity);\n  smLineItem.unit_price = q8(smLineItem.unit_price);\n\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  smLineItem.line_index = index + 1;\n\n  updatedSM.push(smLineItem)\n}\n\nallData.stock_movement = updatedSM\n\nif (filterZero === 'Yes') {\n  allData.stock_movement = allData.stock_movement.filter(item => item.total_quantity && parseFloat(item.total_quantity) > 0)\n}\n\nallData.po_id = [...new Set(allData.stock_movement.map((sm) => sm.po_id).filter(poID => poID))]\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\nif (allData.acc_integration_type !== \"No Accounting Integration\") {\n  allData.posted_status = \"Unposted\";\n} else {\n  allData.posted_status = \"\";\n}\n\nreturn {\n  allData: allData,\n  stock_movement_status: allData.stock_movement_status,\n}\n"
         },
         "response_json": [
           {
@@ -381,7 +381,10 @@
             "isExpand": false,
             "children": []
           }
-        ]
+        ],
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000
       },
       "blocks": []
     },
@@ -1327,6 +1330,234 @@
                   },
                   "blocks": [
                     {
+                      "id": "code_node_CfNeed1",
+                      "type": "code-node",
+                      "data": {
+                        "title": "Custom fields this edit leaves out? (header + lines)",
+                        "isValidator": true,
+                        "nodeName": "Custom fields this edit leaves out? (header + lines)",
+                        "name": "Custom fields this edit leaves out? (header + lines)",
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}][0];\nconst lines = [{{node:code_node_ISWz5KGY.data.allData.stock_movement}}][0];\nconst rawId = [{{node:code_node_ISWz5KGY.data.allData.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_qz1is2tj\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "n62v8vds",
+                            "name": "need",
+                            "title": "need",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "uu0evi3s",
+                            "name": "id",
+                            "title": "id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_CfNeed1",
+                      "type": "if",
+                      "data": {
+                        "title": "IF the edit leaves custom fields out",
+                        "isValidator": true,
+                        "nodeName": "IF the edit leaves custom fields out",
+                        "name": "IF the edit leaves custom fields out",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1799100008003,
+                              "parentId": 1799100008004,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_CfNeed1.data.need}}' == 'YES'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_TCfNeed1",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_CfStored1",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Miscellaneous Issue :Table:2015621214538432514",
+                                  "rules": {
+                                    "collectionId": "2015621214538432514",
+                                    "list": [
+                                      {
+                                        "id": 1799100008001,
+                                        "parentId": 1799100008002,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_CfNeed1.data.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "The stored record (custom fields by name)",
+                                "isValidator": true,
+                                "nodeName": "The stored record (custom fields by name)",
+                                "name": "The stored record (custom fields by name)"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_CfFill1",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}][0];\nconst lines = [{{node:code_node_ISWz5KGY.data.allData.stock_movement}}][0];\nconst got = [{{node:get_node_CfStored1.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = null;\nconst storedRows = flat(stored[\"stock_movement\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_56oh0ovf\"]) ? null : stored[\"custom_fields_56oh0ovf\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "u66kmj3f",
+                                    "name": "ok",
+                                    "title": "ok",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "hoqs2hcx",
+                                    "name": "cf",
+                                    "title": "cf",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "zowzjga9",
+                                    "name": "lines",
+                                    "title": "lines",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "ff24z5x7",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ],
+                                "title": "Stored custom fields for what the edit left out",
+                                "isValidator": true,
+                                "nodeName": "Stored custom fields for what the edit left out",
+                                "name": "Stored custom fields for what the edit left out"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_FCfNeed1",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "code_node_CfOut1",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill1.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_node_ISWz5KGY.data.allData.stock_movement}}][0] };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "hcr32eo3",
+                            "name": "cf",
+                            "title": "cf",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "cdrl101f",
+                            "name": "lines",
+                            "title": "lines",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "ryuz11ne",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ],
+                        "title": "Custom fields to write (payload, or stored where left out)",
+                        "isValidator": true,
+                        "nodeName": "Custom fields to write (payload, or stored where left out)",
+                        "name": "Custom fields to write (payload, or stored where left out)"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "update_node_SPHzcj8Y",
                       "type": "update-node",
                       "data": {
@@ -1373,7 +1604,7 @@
                               "prop": "custom_fields_56oh0ovf",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
+                              "value": "{{node:code_node_CfOut1.data.cf}}",
                               "valueLabel": "",
                               "propLabel": "Custom Fields"
                             },
@@ -1493,7 +1724,7 @@
                               "prop": "stock_movement",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement}}",
+                              "value": "{{node:code_node_CfOut1.data.lines}}",
                               "valueLabel": "",
                               "propLabel": "Stock Movement Table"
                             },
@@ -2223,7 +2454,10 @@
                                     "isExpand": false,
                                     "children": []
                                   }
-                                ]
+                                ],
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000
                               },
                               "blocks": []
                             },
@@ -2278,7 +2512,7 @@
                         "name": "Compute Reserve Movements",
                         "script": {
                           "type": "javascript",
-                          "code": "const roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst qtyStr = (v) => Math.max(0, roundQty(v)).toFixed(3);\n\nconst pageStatus = {{workflowparams:pageStatus}};\nlet allData;\nif (pageStatus === \"Add\") {\n  const rd = {{node:add_node_1p1Kdkhz.data}};\n  allData = Array.isArray(rd) ? rd[0] : rd;\n} else {\n  allData = {{node:get_node_7CFMbGI0.data.data}};\n}\n\nconst lines = allData.stock_movement || [];\n// doc_line_id fix (same class as GR/LOT): on a fresh (Add) save the add-node\n// response carries no subform row ids, so line.id is empty. Resolve each line's\n// id from the persisted re-read by its line_index.\nconst persistedRaw = {{node:get_node_MSIspDoc.data.data}};\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\nconst persistedLines = (persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : [];\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\nconst plantId = allData.issuing_operation_faci;\nconst orgId = allData.organization_id;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// RESERVE is an idempotent rebuild: release every open hold back to its source\n// category, then re-reserve from the current lines.\nconst resRaw = {{node:search_node_MSIresOpen.data.data}};\nconst resAll = Array.isArray(resRaw) ? resRaw : (resRaw ? [resRaw] : []);\nconst resRows = resAll.filter((r) => r && r.status === \"Allocated\");\n\nconst RESERVED = \"Reserved\";\nconst fromCatOf = (r) => r.from_category || \"Unrestricted\";\nconst releaseMovements = [];\nconst movements = [];\nconst reserveCreates = [];\nconst reserveUpdates = [];\nconst materialSet = {};\n\nfor (const r of resRows) {\n  const q = roundQty(r.open_qty);\n  if (q > 0) {\n    materialSet[r.material_id] = true;\n    releaseMovements.push({\n      material_id: r.material_id, batch_id: r.batch_id || null, quantity: q,\n      material_uom: r.item_uom, handling_unit_id: r.handling_unit_id || null,\n      manufacturing_date: null, expired_date: null,\n      subtractCategory: RESERVED, subtractLocation: r.bin_location,\n      addCategory: fromCatOf(r), addLocation: r.bin_location,\n    });\n  }\n  reserveUpdates.push({\n    id: r.id, delivered_qty: qtyStr(r.delivered_qty), open_qty: qtyStr(0), status: \"Cancelled\",\n  });\n}\n\nfor (const line of lines) {\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  for (const e of entries) {\n    const qty = roundQty(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    const C = e.category || \"Unrestricted\";\n    materialSet[mat] = true;\n    // Misc Issue has no destination bin: the hold changes category in place.\n    movements.push({\n      material_id: mat, batch_id: e.batch_id || null, quantity: qty,\n      material_uom: e.material_uom || line.quantity_uom,\n      handling_unit_id: e.handling_unit_id || null,\n      manufacturing_date: e.manufacturing_date || null, expired_date: e.expired_date || null,\n      subtractCategory: C, subtractLocation: e.location_id,\n      addCategory: RESERVED, addLocation: e.location_id,\n    });\n    reserveCreates.push({\n      doc_type: \"Miscellaneous Issue\", doc_id: docId, doc_no: docNo,\n      doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\", line_no: line.line_index,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n      material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\",\n      item_uom: e.material_uom || line.quantity_uom,\n      batch_id: e.batch_id || null, handling_unit_id: e.handling_unit_id || null,\n      bin_location: e.location_id, from_category: C,\n      reserved_qty: qtyStr(qty), delivered_qty: qtyStr(0), open_qty: qtyStr(qty),\n      status: \"Allocated\", reserved_date: docDate,\n      plant_id: plantId, organization_id: orgId,\n      remark: line.item_remark || \"\", target_gd_id: \"\", source_reserved_id: \"\",\n    });\n  }\n}\n\nconst allMovements = releaseMovements.concat(movements).filter(\n  (m) => !(m.subtractCategory === m.addCategory && String(m.subtractLocation) === String(m.addLocation))\n);\n\nreturn {\n  movements: allMovements, movementsLength: allMovements.length,\n  materialIds: Object.keys(materialSet),\n  reserveCreates, hasReserveCreates: reserveCreates.length > 0 ? 1 : 0,\n  reserveUpdates, hasReserveUpdates: reserveUpdates.length > 0 ? 1 : 0,\n  plant_id: plantId, organization_id: orgId, stock_movement_no: docNo, doc_date: docDate,\n};\n"
+                          "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst qtyStr = (v) => Math.max(0, q8(v)).toFixed(8);\n\nconst pageStatus = {{workflowparams:pageStatus}};\nlet allData;\nif (pageStatus === \"Add\") {\n  const rd = {{node:add_node_1p1Kdkhz.data}};\n  allData = Array.isArray(rd) ? rd[0] : rd;\n} else {\n  allData = {{node:get_node_7CFMbGI0.data.data}};\n}\n\nconst lines = allData.stock_movement || [];\n// doc_line_id fix (same class as GR/LOT): on a fresh (Add) save the add-node\n// response carries no subform row ids, so line.id is empty. Resolve each line's\n// id from the persisted re-read by its line_index.\nconst persistedRaw = {{node:get_node_MSIspDoc.data.data}};\nconst persistedRec = Array.isArray(persistedRaw) ? persistedRaw[0] : persistedRaw;\nconst persistedLines = (persistedRec && persistedRec.stock_movement) ? persistedRec.stock_movement : [];\nconst idByLineIdx = {};\npersistedLines.forEach((r, i) => {\n  const k = (r.line_index === undefined || r.line_index === null || r.line_index === \"\") ? String(i + 1) : String(r.line_index);\n  if (r.id) idByLineIdx[k] = r.id;\n});\nconst plantId = allData.issuing_operation_faci;\nconst orgId = allData.organization_id;\nconst docId = allData.id || \"\";\nconst docNo = allData.stock_movement_no || \"\";\nconst docDate = allData.issue_date;\n\n// RESERVE is an idempotent rebuild: release every open hold back to its source\n// category, then re-reserve from the current lines.\nconst resRaw = {{node:search_node_MSIresOpen.data.data}};\nconst resAll = Array.isArray(resRaw) ? resRaw : (resRaw ? [resRaw] : []);\nconst resRows = resAll.filter((r) => r && r.status === \"Allocated\");\n\nconst RESERVED = \"Reserved\";\nconst fromCatOf = (r) => r.from_category || \"Unrestricted\";\nconst releaseMovements = [];\nconst movements = [];\nconst reserveCreates = [];\nconst reserveUpdates = [];\nconst materialSet = {};\n\nfor (const r of resRows) {\n  const q = q8(r.open_qty);\n  if (q > 0) {\n    materialSet[r.material_id] = true;\n    releaseMovements.push({\n      material_id: r.material_id, batch_id: r.batch_id || null, quantity: q,\n      material_uom: r.item_uom, handling_unit_id: r.handling_unit_id || null,\n      manufacturing_date: null, expired_date: null,\n      subtractCategory: RESERVED, subtractLocation: r.bin_location,\n      addCategory: fromCatOf(r), addLocation: r.bin_location,\n    });\n  }\n  reserveUpdates.push({\n    id: r.id, delivered_qty: qtyStr(r.delivered_qty), open_qty: qtyStr(0), status: \"Cancelled\",\n  });\n}\n\nfor (const line of lines) {\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  for (const e of entries) {\n    const qty = q8(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    const C = e.category || \"Unrestricted\";\n    materialSet[mat] = true;\n    // Misc Issue has no destination bin: the hold changes category in place.\n    movements.push({\n      material_id: mat, batch_id: e.batch_id || null, quantity: qty,\n      material_uom: e.material_uom || line.quantity_uom,\n      handling_unit_id: e.handling_unit_id || null,\n      manufacturing_date: e.manufacturing_date || null, expired_date: e.expired_date || null,\n      subtractCategory: C, subtractLocation: e.location_id,\n      addCategory: RESERVED, addLocation: e.location_id,\n    });\n    reserveCreates.push({\n      doc_type: \"Miscellaneous Issue\", doc_id: docId, doc_no: docNo,\n      doc_line_id: line.id || idByLineIdx[String(line.line_index)] || \"\", line_no: line.line_index,\n      parent_id: \"\", parent_no: \"\", parent_line_id: \"\",\n      material_id: mat, item_code: \"\", item_name: \"\", item_desc: \"\",\n      item_uom: e.material_uom || line.quantity_uom,\n      batch_id: e.batch_id || null, handling_unit_id: e.handling_unit_id || null,\n      bin_location: e.location_id, from_category: C,\n      reserved_qty: qtyStr(qty), delivered_qty: qtyStr(0), open_qty: qtyStr(qty),\n      status: \"Allocated\", reserved_date: docDate,\n      plant_id: plantId, organization_id: orgId,\n      remark: line.item_remark || \"\", target_gd_id: \"\", source_reserved_id: \"\",\n    });\n  }\n}\n\nconst allMovements = releaseMovements.concat(movements).filter(\n  (m) => !(m.subtractCategory === m.addCategory && String(m.subtractLocation) === String(m.addLocation))\n);\n\nreturn {\n  movements: allMovements, movementsLength: allMovements.length,\n  materialIds: Object.keys(materialSet),\n  reserveCreates, hasReserveCreates: reserveCreates.length > 0 ? 1 : 0,\n  reserveUpdates, hasReserveUpdates: reserveUpdates.length > 0 ? 1 : 0,\n  plant_id: plantId, organization_id: orgId, stock_movement_no: docNo, doc_date: docDate,\n};\n"
                         },
                         "response_json": [
                           {
@@ -3427,7 +3661,7 @@
                         "name": "Build Stock Picking",
                         "script": {
                           "type": "javascript",
-                          "code": "const roundQty = (v) => Math.round((parseFloat(v) || 0) * 1000) / 1000;\nconst qtyNum = (v) => Math.max(0, roundQty(v));\n\nconst saveAs = {{workflowparams:saveAs}};\nconst empty = { needsCreate: 0, createData: {}, srcIds: [], lineIds: [], pickingStatus: \"\" };\nif (saveAs !== \"Created\") return empty;\n\n// Re-read the PERSISTED document. A fresh save's add-node response carries no\n// subform row ids, so building the picking off it would leave every src_line_id\n// blank and the Stock Picking would have no way back to the movement line.\nconst raw = {{node:get_node_MSIspDoc.data.data}};\nconst allData = Array.isArray(raw) ? raw[0] : raw;\nif (!allData) return empty;\n\nconst docId = String(allData.id || \"\");\nconst docNo = allData.stock_movement_no || \"\";\n\n// One Stock Picking per movement. The reservation rebuild above is idempotent,\n// this is not -- an existing non-Cancelled picking short-circuits the build so a\n// re-save of a Created document cannot mint a second one.\nconst existRaw = {{node:search_node_MSIspLive.data.data}};\nconst existAll = Array.isArray(existRaw) ? existRaw : (existRaw ? [existRaw] : []);\nif (existAll.filter((p) => p && p.sp_status !== \"Cancelled\").length > 0) return empty;\n\nconst ruleRaw = {{node:get_node_MSIspRule.data.data}};\nconst rule = Array.isArray(ruleRaw) ? ruleRaw[0] : ruleRaw;\n// -9999 is the platform's \"no numbering rule\" sentinel -- the same one\n// StockPickingLoopWorkflow tests before it asks for a generated number. Without a\n// \"Stock Picking\" prefix for this organisation the document is created unnumbered\n// rather than not at all, so the pick is never silently lost.\nconst ruleId = rule && rule.id ? rule.id : -9999;\n\n// One picking row per (item, batch, bin, movement line, HU) -- the same grouping the\n// GD path uses, so two allocations that differ only by bin stay separately pickable.\nconst groups = new Map();\nconst lineIds = [];\n\nfor (const line of allData.stock_movement || []) {\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  let lineHasWork = 0;\n  for (const e of entries) {\n    const qty = qtyNum(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    if (!mat) continue;\n    const uom = e.material_uom || line.quantity_uom;\n    const key = [\n      String(mat), String(e.batch_id || \"no-batch\"), String(e.location_id || \"no-bin\"),\n      String(line.id || \"\"), String(e.handling_unit_id || \"no-hu\"),\n    ].join(\"|\");\n    let g = groups.get(key);\n    if (!g) {\n      g = {\n        row_type: \"item\", hu_select: 0,\n        handling_unit_id: e.handling_unit_id || null,\n        item_code: String(mat),\n        item_name: line.item_name || \"\",\n        item_desc: line.item_desc || \"\",\n        more_desc: \"\",\n        src_no: docNo,\n        batch_no: e.batch_id || null,\n        target_batch: null,\n        qty_to_pick: 0, to_pick_alt: 0,\n        pending_process_qty: 0, pending_alt: 0, picked_qty: 0,\n        // Identity conversion. enrichPickingUOM() in SPonMounted recomputes both\n        // scalars and both alt columns from the item master every time the Stock\n        // Picking is opened, so seeding them 1:1 is correct rather than merely safe.\n        order_base_qty: 1, picking_base_qty: 1,\n        item_uom: uom, picking_uom: uom,\n        source_bin: e.location_id || null,\n        line_status: \"Open\",\n        net_weight: 0, weight_conversion: 0,\n        project_id: line.project_id || null,\n        src_id: docId, src_line_id: String(line.id || \"\"),\n        is_serialized_item: 0,\n        serialList: [],\n      };\n      groups.set(key, g);\n    }\n    g.qty_to_pick = roundQty(g.qty_to_pick + qty);\n    if (e.serial_number) g.serialList.push(String(e.serial_number));\n    lineHasWork = 1;\n  }\n  if (lineHasWork && line.id) lineIds.push(String(line.id));\n}\n\nconst tablePickingItems = [];\ngroups.forEach((g) => {\n  g.pending_process_qty = g.qty_to_pick;\n  g.to_pick_alt = g.qty_to_pick;\n  g.pending_alt = g.qty_to_pick;\n  if (g.serialList.length > 0) {\n    g.is_serialized_item = 1;\n    g.serial_numbers = g.serialList.join(\", \");\n  }\n  delete g.serialList;\n  tablePickingItems.push(g);\n});\n\n// Nothing allocated means nothing to pick -- a description-only document must not\n// spawn an empty picking the warehouse can never complete.\nif (tablePickingItems.length === 0) return empty;\n\nconst createData = {\n  sp_status: \"Created\",\n  sp_id: ruleId === -9999 ? \"\" : \"issued\",\n  sp_id_type: ruleId,\n  plant_id: allData.issuing_operation_faci,\n  organization_id: allData.organization_id,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Miscellaneous Issue\",\n  src_id: docId,\n  src_no: docNo,\n  assigned_to: [],\n  ref_doc: [],\n  created_at: allData.issue_date,\n  created_by: allData.issued_by || \"\",\n  is_processing: 0,\n  project_id: allData.project_id || null,\n  remarks: allData.remarks || \"\",\n  remarks_2: allData.remark2 || \"\",\n  remarks_3: allData.remark3 || \"\",\n  table_picking_items: tablePickingItems,\n  table_picking_records: [],\n};\n\nreturn {\n  needsCreate: 1, createData: createData,\n  srcIds: [docId], lineIds: lineIds, pickingStatus: \"Created\",\n};"
+                          "code": "// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst qtyNum = (v) => Math.max(0, q8(v));\n\nconst saveAs = {{workflowparams:saveAs}};\nconst empty = { needsCreate: 0, createData: {}, srcIds: [], lineIds: [], pickingStatus: \"\" };\nif (saveAs !== \"Created\") return empty;\n\n// Re-read the PERSISTED document. A fresh save's add-node response carries no\n// subform row ids, so building the picking off it would leave every src_line_id\n// blank and the Stock Picking would have no way back to the movement line.\nconst raw = {{node:get_node_MSIspDoc.data.data}};\nconst allData = Array.isArray(raw) ? raw[0] : raw;\nif (!allData) return empty;\n\nconst docId = String(allData.id || \"\");\nconst docNo = allData.stock_movement_no || \"\";\n\n// One Stock Picking per movement. The reservation rebuild above is idempotent,\n// this is not -- an existing non-Cancelled picking short-circuits the build so a\n// re-save of a Created document cannot mint a second one.\nconst existRaw = {{node:search_node_MSIspLive.data.data}};\nconst existAll = Array.isArray(existRaw) ? existRaw : (existRaw ? [existRaw] : []);\nif (existAll.filter((p) => p && p.sp_status !== \"Cancelled\").length > 0) return empty;\n\nconst ruleRaw = {{node:get_node_MSIspRule.data.data}};\nconst rule = Array.isArray(ruleRaw) ? ruleRaw[0] : ruleRaw;\n// -9999 is the platform's \"no numbering rule\" sentinel -- the same one\n// StockPickingLoopWorkflow tests before it asks for a generated number. Without a\n// \"Stock Picking\" prefix for this organisation the document is created unnumbered\n// rather than not at all, so the pick is never silently lost.\nconst ruleId = rule && rule.id ? rule.id : -9999;\n\n// One picking row per (item, batch, bin, movement line, HU) -- the same grouping the\n// GD path uses, so two allocations that differ only by bin stay separately pickable.\nconst groups = new Map();\nconst lineIds = [];\n\nfor (const line of allData.stock_movement || []) {\n  let entries = [];\n  try { entries = JSON.parse(line.temp_qty_data || \"[]\"); } catch (e) { entries = []; }\n  if (!Array.isArray(entries)) entries = [];\n  let lineHasWork = 0;\n  for (const e of entries) {\n    const qty = qtyNum(e.sm_quantity);\n    if (qty <= 0) continue;\n    const mat = e.material_id || line.item_selection;\n    if (!mat) continue;\n    const uom = e.material_uom || line.quantity_uom;\n    const key = [\n      String(mat), String(e.batch_id || \"no-batch\"), String(e.location_id || \"no-bin\"),\n      String(line.id || \"\"), String(e.handling_unit_id || \"no-hu\"),\n    ].join(\"|\");\n    let g = groups.get(key);\n    if (!g) {\n      g = {\n        row_type: \"item\", hu_select: 0,\n        handling_unit_id: e.handling_unit_id || null,\n        item_code: String(mat),\n        item_name: line.item_name || \"\",\n        item_desc: line.item_desc || \"\",\n        more_desc: \"\",\n        src_no: docNo,\n        batch_no: e.batch_id || null,\n        target_batch: null,\n        qty_to_pick: 0, to_pick_alt: 0,\n        pending_process_qty: 0, pending_alt: 0, picked_qty: 0,\n        // Identity conversion. enrichPickingUOM() in SPonMounted recomputes both\n        // scalars and both alt columns from the item master every time the Stock\n        // Picking is opened, so seeding them 1:1 is correct rather than merely safe.\n        order_base_qty: 1, picking_base_qty: 1,\n        item_uom: uom, picking_uom: uom,\n        source_bin: e.location_id || null,\n        line_status: \"Open\",\n        net_weight: 0, weight_conversion: 0,\n        project_id: line.project_id || null,\n        src_id: docId, src_line_id: String(line.id || \"\"),\n        is_serialized_item: 0,\n        serialList: [],\n      };\n      groups.set(key, g);\n    }\n    g.qty_to_pick = q8(g.qty_to_pick + qty);\n    if (e.serial_number) g.serialList.push(String(e.serial_number));\n    lineHasWork = 1;\n  }\n  if (lineHasWork && line.id) lineIds.push(String(line.id));\n}\n\nconst tablePickingItems = [];\ngroups.forEach((g) => {\n  g.pending_process_qty = g.qty_to_pick;\n  g.to_pick_alt = g.qty_to_pick;\n  g.pending_alt = g.qty_to_pick;\n  if (g.serialList.length > 0) {\n    g.is_serialized_item = 1;\n    g.serial_numbers = g.serialList.join(\", \");\n  }\n  delete g.serialList;\n  tablePickingItems.push(g);\n});\n\n// Nothing allocated means nothing to pick -- a description-only document must not\n// spawn an empty picking the warehouse can never complete.\nif (tablePickingItems.length === 0) return empty;\n\nconst createData = {\n  sp_status: \"Created\",\n  sp_id: ruleId === -9999 ? \"\" : \"issued\",\n  sp_id_type: ruleId,\n  plant_id: allData.issuing_operation_faci,\n  organization_id: allData.organization_id,\n  movement_type: \"Picking\",\n  ref_doc_type: \"Miscellaneous Issue\",\n  src_id: docId,\n  src_no: docNo,\n  assigned_to: [],\n  ref_doc: [],\n  created_at: allData.issue_date,\n  created_by: allData.issued_by || \"\",\n  is_processing: 0,\n  project_id: allData.project_id || null,\n  remarks: allData.remarks || \"\",\n  remarks_2: allData.remark2 || \"\",\n  remarks_3: allData.remark3 || \"\",\n  table_picking_items: tablePickingItems,\n  table_picking_records: [],\n};\n\nreturn {\n  needsCreate: 1, createData: createData,\n  srcIds: [docId], lineIds: lineIds, pickingStatus: \"Created\",\n};"
                         },
                         "response_json": [
                           {
@@ -3473,7 +3707,10 @@
                             "bsonType": "string",
                             "isExpand": false
                           }
-                        ]
+                        ],
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000
                       },
                       "blocks": []
                     },
@@ -5120,6 +5357,234 @@
                   },
                   "blocks": [
                     {
+                      "id": "code_node_CfNeed2",
+                      "type": "code-node",
+                      "data": {
+                        "title": "Custom fields this edit leaves out? (header + lines)",
+                        "isValidator": true,
+                        "nodeName": "Custom fields this edit leaves out? (header + lines)",
+                        "name": "Custom fields this edit leaves out? (header + lines)",
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}][0];\nconst lines = [{{node:code_node_ISWz5KGY.data.allData.stock_movement}}][0];\nconst rawId = [{{node:code_node_ISWz5KGY.data.allData.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_qz1is2tj\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "wukzgchr",
+                            "name": "need",
+                            "title": "need",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "jxeqrd4s",
+                            "name": "id",
+                            "title": "id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_CfNeed2",
+                      "type": "if",
+                      "data": {
+                        "title": "IF the edit leaves custom fields out",
+                        "isValidator": true,
+                        "nodeName": "IF the edit leaves custom fields out",
+                        "name": "IF the edit leaves custom fields out",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1799100008007,
+                              "parentId": 1799100008008,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_CfNeed2.data.need}}' == 'YES'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_TCfNeed2",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "true"
+                          },
+                          "blocks": [
+                            {
+                              "id": "get_node_CfStored2",
+                              "type": "get-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Miscellaneous Issue :Table:2015621214538432514",
+                                  "rules": {
+                                    "collectionId": "2015621214538432514",
+                                    "list": [
+                                      {
+                                        "id": 1799100008005,
+                                        "parentId": 1799100008006,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "equal",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_CfNeed2.data.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "Equal"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "title": "The stored record (custom fields by name)",
+                                "isValidator": true,
+                                "nodeName": "The stored record (custom fields by name)",
+                                "name": "The stored record (custom fields by name)"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_CfFill2",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}][0];\nconst lines = [{{node:code_node_ISWz5KGY.data.allData.stock_movement}}][0];\nconst got = [{{node:get_node_CfStored2.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = null;\nconst storedRows = flat(stored[\"stock_movement\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_56oh0ovf\"]) ? null : stored[\"custom_fields_56oh0ovf\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "m7lahij6",
+                                    "name": "ok",
+                                    "title": "ok",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "sj43mist",
+                                    "name": "cf",
+                                    "title": "cf",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "j0a3j3ch",
+                                    "name": "lines",
+                                    "title": "lines",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "1rwvilxv",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
+                                  }
+                                ],
+                                "title": "Stored custom fields for what the edit left out",
+                                "isValidator": true,
+                                "nodeName": "Stored custom fields for what the edit left out",
+                                "name": "Stored custom fields for what the edit left out"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_FCfNeed2",
+                          "type": "ifBlock",
+                          "data": {
+                            "title": "false"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "code_node_CfOut2",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill2.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_node_ISWz5KGY.data.allData.stock_movement}}][0] };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "mzlw4mk5",
+                            "name": "cf",
+                            "title": "cf",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "7xs5mhwe",
+                            "name": "lines",
+                            "title": "lines",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "yjlmbwa4",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          }
+                        ],
+                        "title": "Custom fields to write (payload, or stored where left out)",
+                        "isValidator": true,
+                        "nodeName": "Custom fields to write (payload, or stored where left out)",
+                        "name": "Custom fields to write (payload, or stored where left out)"
+                      },
+                      "blocks": []
+                    },
+                    {
                       "id": "update_node_v5trWrpH",
                       "type": "update-node",
                       "data": {
@@ -5166,7 +5631,7 @@
                               "prop": "custom_fields_56oh0ovf",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.custom_fields_56oh0ovf}}",
+                              "value": "{{node:code_node_CfOut2.data.cf}}",
                               "valueLabel": "",
                               "propLabel": "Custom Fields"
                             },
@@ -5286,7 +5751,7 @@
                               "prop": "stock_movement",
                               "operator": "",
                               "valueType": "field",
-                              "value": "{{node:code_node_ISWz5KGY.data.allData.stock_movement}}",
+                              "value": "{{node:code_node_CfOut2.data.lines}}",
                               "valueLabel": "",
                               "propLabel": "Stock Movement Table"
                             },

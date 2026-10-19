@@ -11,7 +11,7 @@ const prepareEntry = function prepareEntry(guard, rows, uuid) {
   if (s(job.job_status) !== "VALIDATING") return Object.assign(base, { result_code: "JOB_ILLEGAL_TRANSITION", result_message: "job is " + s(job.job_status) + ": only a VALIDATING job is prepared" });
   if (String(job.lease_live) !== "1") return Object.assign(base, { result_code: "JOB_ROW_VERSION_CONFLICT", result_message: "the worker's lease on the job has expired: not prepared" });
   const common = { jobId: s(job.id), organizationId: s(job.organization_id), plantId: s(job.plant_id), idempotencyKey: s(job.idempotency_key), rowVersion: Number(job.row_version) || 0,
-    dbNow: s(job.db_now), nonce: s(uuid).replace(/[^0-9A-Za-z]/g, "").slice(0, 8) };
+    dbNow: s(job.db_now), jsAt: String(Date.now()), nonce: s(uuid).replace(/[^0-9A-Za-z]/g, "").slice(0, 8) };
   let req = null;
   try {
     req = JSON.parse(s(job.request_payload));

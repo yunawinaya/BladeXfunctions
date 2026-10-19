@@ -1867,7 +1867,7 @@
         "name": "GD Edit V2: arguments of the background save",
         "script": {
           "type": "javascript",
-          "code": "// GD Edit V2: each delivery goes to the background save (GD_EDIT_SUBMIT) when it takes it, held until SO_SAVE releases it.\nconst ref = String({{workflowparams:cascade_ref}} || \"\").trim();\nreturn {\n  operation: \"SUBMIT\", source: \"CASCADE\", cancelOp: \"CANCEL_HELD\", cascadeRef: ref,\n  answers: { needCL: \"auto\", continueZero: \"Yes\", confirmPickReversal: String({{workflowparams:confirmPickReversal}} || \"\") }\n};\n"
+          "code": "// GD Edit V2: each delivery goes to the background save (GD_EDIT_SUBMIT) when it takes it, held until SO_SAVE releases it.\n// false: every delivery goes to the classic save, as before GD Edit V2 (the GD form's switch is ASYNC_EDIT_ENABLED)\nconst GDE_CASCADE_ENABLED = true;\nconst ref = String({{workflowparams:cascade_ref}} || \"\").trim();\nreturn {\n  operation: \"SUBMIT\", source: \"CASCADE\", cancelOp: \"CANCEL_HELD\", cascadeRef: ref, enabled: GDE_CASCADE_ENABLED ? \"YES\" : \"NO\",\n  answers: { needCL: \"auto\", continueZero: \"Yes\", confirmPickReversal: String({{workflowparams:confirmPickReversal}} || \"\") }\n};\n"
         },
         "response_json": [
           {
@@ -1912,6 +1912,15 @@
             "title": "answers",
             "description": "",
             "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "socd_gde_ar_on",
+            "name": "enabled",
+            "title": "enabled",
+            "description": "",
+            "bsonType": "string",
             "isExpand": false,
             "children": []
           }
@@ -1980,103 +1989,202 @@
           "blocks": []
         },
         {
-          "id": "wf_cd_gde_submit",
-          "type": "workflow-node",
+          "id": "code_cd_gde_size",
+          "type": "code-node",
           "data": {
-            "workflow_id": "",
-            "workflow_name": "",
-            "input_params": {},
-            "title": "GD Edit V2: background save of this delivery (GD_EDIT_SUBMIT, its payload)",
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "GD Edit V2: is this delivery too big for a Sales Order save",
             "isValidator": true,
-            "nodeName": "GD Edit V2: background save of this delivery (GD_EDIT_SUBMIT, its payload)",
-            "name": "GD Edit V2: background save of this delivery (GD_EDIT_SUBMIT, its payload)",
-            "workflow": {
-              "source": "GD_EDIT_SUBMIT:Workflow:2110618741159940097",
-              "rules": {
-                "collectionId": "2110618741159940097",
-                "list": [
-                  {
-                    "id": 191000000040,
-                    "parentId": 191000000041,
-                    "isTop": true,
-                    "prop": "",
-                    "operator": "",
-                    "valueType": "",
-                    "value": "",
-                    "type": "leaf",
-                    "level": 1
-                  }
-                ]
-              }
+            "nodeName": "GD Edit V2: is this delivery too big for a Sales Order save",
+            "name": "GD Edit V2: is this delivery too big for a Sales Order save",
+            "script": {
+              "type": "javascript",
+              "code": "// GD Edit V2: past 500 lines a delivery is not saved from here (SO_SAVE commits the edit in the same request: 55 s gateway)\nconst lines = Number({{node:loop_cd_gd.lineCount}}) || 0;\nconst on = String([{{node:code_cd_gde_args.data.enabled}}][0] || \"\") === \"YES\";\nreturn { big: on && lines > 500 ? \"Y\" : \"N\", ask: on && lines <= 500 ? \"Y\" : \"N\", lines: lines };\n"
             },
-            "remote": true,
-            "remoteType": "innerdatasource",
-            "body_params": {
+            "response_json": [
+              {
+                "key": "socd_gde_sz_big",
+                "name": "big",
+                "title": "big",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "socd_gde_sz_lines",
+                "name": "lines",
+                "title": "lines",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "socd_gde_sz_ask",
+                "name": "ask",
+                "title": "ask",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              }
+            ]
+          },
+          "blocks": []
+        },
+        {
+          "id": "if_cd_gde_small",
+          "type": "if",
+          "data": {
+            "title": "IF the delivery is small enough for a Sales Order save",
+            "isValidator": true,
+            "nodeName": "IF the delivery is small enough for a Sales Order save",
+            "name": "IF the delivery is small enough for a Sales Order save",
+            "condition_type": "ConditionRule",
+            "expression": {
+              "type": "javascript",
+              "code": ""
+            },
+            "filter": {
               "list": [
                 {
-                  "prop": "operation",
-                  "propLabel": "operation",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{node:code_cd_gde_args.data.operation}}",
-                  "valueLabel": ""
-                },
-                {
-                  "prop": "gd_id",
-                  "propLabel": "gd_id",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{node:loop_cd_gd.gd_id}}",
-                  "valueLabel": ""
-                },
-                {
-                  "prop": "source",
-                  "propLabel": "source",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{node:code_cd_gde_args.data.source}}",
-                  "valueLabel": ""
-                },
-                {
-                  "prop": "form",
-                  "propLabel": "form",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{node:loop_cd_gd.allData}}",
-                  "valueLabel": ""
-                },
-                {
-                  "prop": "cascade_ref",
-                  "propLabel": "cascade_ref",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{node:code_cd_gde_args.data.cascadeRef}}",
-                  "valueLabel": ""
-                },
-                {
-                  "prop": "answers",
-                  "propLabel": "answers",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{node:code_cd_gde_args.data.answers}}",
-                  "valueLabel": ""
+                  "id": 192000000040,
+                  "parentId": 192000000041,
+                  "isTop": true,
+                  "prop": "node.code_cd_gde_size.data.ask",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "Y",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "ask",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
                 }
               ]
             }
           },
-          "blocks": []
+          "blocks": [
+            {
+              "id": "if_cd_gde_small_t",
+              "type": "ifBlock",
+              "data": {
+                "title": "true"
+              },
+              "blocks": [
+                {
+                  "id": "wf_cd_gde_submit",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "GD Edit V2: background save of this delivery (GD_EDIT_SUBMIT, its payload)",
+                    "isValidator": true,
+                    "nodeName": "GD Edit V2: background save of this delivery (GD_EDIT_SUBMIT, its payload)",
+                    "name": "GD Edit V2: background save of this delivery (GD_EDIT_SUBMIT, its payload)",
+                    "workflow": {
+                      "source": "GD_EDIT_SUBMIT:Workflow:2110618741159940097",
+                      "rules": {
+                        "collectionId": "2110618741159940097",
+                        "list": [
+                          {
+                            "id": 191000000040,
+                            "parentId": 191000000041,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "operation",
+                          "propLabel": "operation",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_cd_gde_args.data.operation}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "gd_id",
+                          "propLabel": "gd_id",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:loop_cd_gd.gd_id}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "source",
+                          "propLabel": "source",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_cd_gde_args.data.source}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "form",
+                          "propLabel": "form",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:loop_cd_gd.allData}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "cascade_ref",
+                          "propLabel": "cascade_ref",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_cd_gde_args.data.cascadeRef}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "answers",
+                          "propLabel": "answers",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_cd_gde_args.data.answers}}",
+                          "valueLabel": ""
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_cd_gde_small_f",
+              "type": "ifBlock",
+              "data": {
+                "title": "false"
+              },
+              "blocks": []
+            }
+          ]
         },
         {
           "id": "code_cd_gde_route",
@@ -2091,7 +2199,7 @@
             "name": "GD Edit V2: which save takes this delivery",
             "script": {
               "type": "javascript",
-              "code": "// GD Edit V2: QUEUED -> the worker prepares it now (held for SO_SAVE's RELEASE); NOT_ELIGIBLE, or no cascade_ref (a caller\n// that cannot release) -> the classic save as before; any other answer is this delivery's result\nconst a = [{{node:wf_cd_gde_submit.data}}][0] || {};\nconst ref = [{{node:code_cd_gde_args.data.cascadeRef}}][0];\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nlet route = \"DONE\";\nif (!ref || s(a.route) === \"NOT_ELIGIBLE\") route = \"CLASSIC\";\nelse if (s(a.route) === \"QUEUED\" && /^[0-9]+$/.test(s(a.job_id))) route = \"V2\";\n// the classic save re-saves the whole delivery: refused past 500 lines, as before\nconst lines = Number({{node:loop_cd_gd.lineCount}}) || 0;\nif (route === \"CLASSIC\" && lines > 500) {\n  const append = Number({{workflowparams:passNo}}) === 2;\n  return { route: \"DONE\", jobId: \"0\", code: \"400\", note: \"\", clNote: \"\", message: append\n    ? \"it already has \" + lines + \" lines, more than a Sales Order change can update (500). Deliver the new line on a new Goods Delivery.\"\n    : \"Delivery \" + s({{node:loop_cd_gd.gd_no}}) + \" has \" + lines + \" lines: a Sales Order change can update a delivery of up to 500 lines. Complete or cancel that delivery before changing these lines.\" };\n}\nreturn { route: route, jobId: s(a.job_id) || \"0\", code: s(a.code), message: s(a.message), note: s(a.picking_reversal_note), clNote: s(a.credit_limit_note) };\n"
+              "code": "// GD Edit V2: QUEUED -> the worker prepares it now (held for SO_SAVE's RELEASE); NOT_ELIGIBLE, or no cascade_ref (a caller\n// that cannot release) -> the classic save as before; any other answer is this delivery's result\nconst a = [{{node:wf_cd_gde_submit.data}}][0] || {};\nconst ref = [{{node:code_cd_gde_args.data.cascadeRef}}][0];\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst z = [{{node:code_cd_gde_size.data}}][0] || {};\nif (s(z.big) === \"Y\") {\n  const appendB = Number({{workflowparams:passNo}}) === 2;\n  return { route: \"DONE\", jobId: \"0\", code: \"400\", note: \"\", clNote: \"\", message: appendB\n    ? \"it already has \" + z.lines + \" lines, more than a Sales Order change can update (500). Deliver the new line on a new Goods Delivery.\"\n    : \"Delivery \" + s({{node:loop_cd_gd.gd_no}}) + \" has \" + z.lines + \" lines: a Sales Order change can update a delivery of up to 500 lines. Complete or cancel that delivery before changing these lines.\" };\n}\nlet route = \"DONE\";\nif (!ref || s([{{node:code_cd_gde_args.data.enabled}}][0]) !== \"YES\" || s(a.route) === \"NOT_ELIGIBLE\") route = \"CLASSIC\";\nelse if (s(a.route) === \"QUEUED\" && /^[0-9]+$/.test(s(a.job_id))) route = \"V2\";\n// the classic save re-saves the whole delivery: refused past 500 lines, as before\nconst lines = Number({{node:loop_cd_gd.lineCount}}) || 0;\nif (route === \"CLASSIC\" && lines > 500) {\n  const append = Number({{workflowparams:passNo}}) === 2;\n  return { route: \"DONE\", jobId: \"0\", code: \"400\", note: \"\", clNote: \"\", message: append\n    ? \"it already has \" + lines + \" lines, more than a Sales Order change can update (500). Deliver the new line on a new Goods Delivery.\"\n    : \"Delivery \" + s({{node:loop_cd_gd.gd_no}}) + \" has \" + lines + \" lines: a Sales Order change can update a delivery of up to 500 lines. Complete or cancel that delivery before changing these lines.\" };\n}\nreturn { route: route, jobId: s(a.job_id) || \"0\", code: s(a.code), message: s(a.message), note: s(a.picking_reversal_note), clNote: s(a.credit_limit_note) };\n"
             },
             "response_json": [
               {
@@ -2254,6 +2362,53 @@
           ]
         },
         {
+          "id": "code_cd_gde_fallback",
+          "type": "code-node",
+          "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "GD Edit V2: the engine refused it for data the classic save handles - classic instead",
+            "isValidator": true,
+            "nodeName": "GD Edit V2: the engine refused it for data the classic save handles - classic instead",
+            "name": "GD Edit V2: the engine refused it for data the classic save handles - classic instead",
+            "script": {
+              "type": "javascript",
+              "code": "// GD Edit V2: the inventory engine refused data the classic save handles (PREPARE FAILED and put the delivery back): that\n// delivery goes to the classic save as if the background save had not taken it; above 500 lines the classic cap refuses it\nconst FALLBACK = [\"GDE_INVENTORY_UNSUPPORTED_COSTING\", \"GDE_INVENTORY_DUPLICATE_BALANCE\", \"GDE_INVENTORY_UNSUPPORTED_PRICE\"];\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst rt = [{{node:code_cd_gde_route.data}}][0] || {};\nif (rt.route === \"CLASSIC\") return { classic: \"YES\", fallback: \"NO\", message: \"\" };\nconst w = rt.route === \"V2\" ? [{{node:wf_cd_gde_worker.data}}][0] || {} : {};\nif (!(s(w.job_status) === \"FAILED\" && FALLBACK.indexOf(s(w.result_code)) >= 0)) return { classic: \"NO\", fallback: \"NO\", message: \"\" };\nconst lines = Number({{node:loop_cd_gd.lineCount}}) || 0;\nif (lines > 500) {\n  const append = Number({{workflowparams:passNo}}) === 2;\n  return { classic: \"NO\", fallback: \"NO\", message: append\n    ? \"it already has \" + lines + \" lines, more than a Sales Order change can update (500). Deliver the new line on a new Goods Delivery.\"\n    : \"Delivery \" + s({{node:loop_cd_gd.gd_no}}) + \" has \" + lines + \" lines: a Sales Order change can update a delivery of up to 500 lines. Complete or cancel that delivery before changing these lines.\" };\n}\nreturn { classic: \"YES\", fallback: \"YES\", message: \"\" };\n"
+            },
+            "response_json": [
+              {
+                "key": "socd_gde_fb_cl",
+                "name": "classic",
+                "title": "classic",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "socd_gde_fb_fb",
+                "name": "fallback",
+                "title": "fallback",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "socd_gde_fb_msg",
+                "name": "message",
+                "title": "message",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              }
+            ]
+          },
+          "blocks": []
+        },
+        {
           "id": "if_cd_gde_classic",
           "type": "if",
           "data": {
@@ -2272,13 +2427,13 @@
                   "id": 192000000020,
                   "parentId": 192000000021,
                   "isTop": true,
-                  "prop": "node.code_cd_gde_route.data.route",
+                  "prop": "node.code_cd_gde_fallback.data.classic",
                   "operator": "equal",
                   "valueType": "value",
-                  "value": "CLASSIC",
+                  "value": "YES",
                   "type": "leaf",
                   "level": 1,
-                  "propLabel": "route",
+                  "propLabel": "classic",
                   "valueLabel": "",
                   "operatorLabel": "Equal"
                 }
@@ -2415,7 +2570,7 @@
             "name": "Collect GD Result",
             "script": {
               "type": "javascript",
-              "code": "const raw = {{node:get_cd_res_gd.data}};\nlet results = [];\nif (raw) { results = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(results)) results = [];\n\n// GD Edit V2: the route this delivery took says whose answer to read (an untaken branch's node may hold an earlier pass of the loop)\nconst rt = [{{node:code_cd_gde_route.data}}][0] || {};\nif (rt.route === \"V2\") {\n  const w = [{{node:wf_cd_gde_worker.data}}][0] || {};\n  const held = String(w.job_status || \"\") === \"HELD\";\n  results.push({\n    doc: \"GD\", doc_no: {{node:loop_cd_gd.gd_no}} || \"\", gd_id: String({{node:loop_cd_gd.gd_id}} || \"\"), code: held ? \"200\" : \"400\", ok: held ? 1 : 0, confirm: 0,\n    message: held ? \"\" : String(w.result_message || \"it could not be checked in the background (\" + String(w.job_status || \"no answer\") + \"). Save the Sales Order again.\"),\n    note: rt.note || \"\", clNote: rt.clNote || \"\", held: held ? 1 : 0, job_id: held ? String(rt.jobId) : \"\"\n  });\n  return { results: results };\n}\nif (rt.route !== \"CLASSIC\") {\n  results.push({ doc: \"GD\", doc_no: {{node:loop_cd_gd.gd_no}} || \"\", gd_id: String({{node:loop_cd_gd.gd_id}} || \"\"), code: String(rt.code || \"\"), ok: 0,\n    confirm: String(rt.code) === \"413\" ? 1 : 0, message: rt.message || \"\", note: \"\", clNote: \"\", held: 0, job_id: \"\" });\n  return { results: results };\n}\n\n// Never test for \"400\": PPheadWorkflow's item-not-found return carries no response_value\n// at all, so a failure can arrive as an empty code.\nconst code = String({{node:wf_cd_gd.data.code}} || \"\");\nresults.push({\n  doc: \"GD\",\n  doc_no: {{node:loop_cd_gd.gd_no}} || \"\",\n  code: code,\n  ok: code === \"200\" ? 1 : 0,\n  // 413 is GD asking whether to reverse quantities already picked. It returns BEFORE its\n  // own write, so this is a question to relay, not a failure to report.\n  confirm: code === \"413\" ? 1 : 0,\n  message: {{node:wf_cd_gd.data.message}} || \"\",\n  note: {{node:wf_cd_gd.data.pickingReversalNote}} || \"\",\n  // Non-blocking: the credit limit came back as an Override and, with no operator in a\n  // cascade, the delivery was saved anyway. Reported, not failed.\n  clNote: {{node:wf_cd_gd.data.creditLimitNote}} || \"\"\n});\n\nreturn { results: results };\n"
+              "code": "const raw = {{node:get_cd_res_gd.data}};\nlet results = [];\nif (raw) { results = typeof raw === \"string\" ? JSON.parse(raw) : raw; }\nif (!Array.isArray(results)) results = [];\n\n// GD Edit V2: the route this delivery took says whose answer to read (an untaken branch's node may hold an earlier pass of the loop)\nconst rt = [{{node:code_cd_gde_route.data}}][0] || {};\nconst fb = [{{node:code_cd_gde_fallback.data}}][0] || {};\nif (rt.route === \"V2\" && fb.fallback !== \"YES\") {\n  const w = [{{node:wf_cd_gde_worker.data}}][0] || {};\n  const held = String(w.job_status || \"\") === \"HELD\";\n  results.push({\n    doc: \"GD\", doc_no: {{node:loop_cd_gd.gd_no}} || \"\", gd_id: String({{node:loop_cd_gd.gd_id}} || \"\"), code: held ? \"200\" : \"400\", ok: held ? 1 : 0, confirm: 0,\n    message: held ? \"\" : String(fb.message || w.result_message || \"it could not be checked in the background (\" + String(w.job_status || \"no answer\") + \"). Save the Sales Order again.\"),\n    note: rt.note || \"\", clNote: rt.clNote || \"\", held: held ? 1 : 0, job_id: held ? String(rt.jobId) : \"\"\n  });\n  return { results: results };\n}\nif (rt.route !== \"CLASSIC\" && fb.fallback !== \"YES\") {\n  results.push({ doc: \"GD\", doc_no: {{node:loop_cd_gd.gd_no}} || \"\", gd_id: String({{node:loop_cd_gd.gd_id}} || \"\"), code: String(rt.code || \"\"), ok: 0,\n    confirm: String(rt.code) === \"413\" ? 1 : 0, message: rt.message || \"\", note: \"\", clNote: \"\", held: 0, job_id: \"\" });\n  return { results: results };\n}\n\n// Never test for \"400\": PPheadWorkflow's item-not-found return carries no response_value\n// at all, so a failure can arrive as an empty code.\nconst code = String({{node:wf_cd_gd.data.code}} || \"\");\nresults.push({\n  doc: \"GD\",\n  doc_no: {{node:loop_cd_gd.gd_no}} || \"\",\n  code: code,\n  ok: code === \"200\" ? 1 : 0,\n  // 413 is GD asking whether to reverse quantities already picked. It returns BEFORE its\n  // own write, so this is a question to relay, not a failure to report.\n  confirm: code === \"413\" ? 1 : 0,\n  message: {{node:wf_cd_gd.data.message}} || \"\",\n  note: {{node:wf_cd_gd.data.pickingReversalNote}} || \"\",\n  // Non-blocking: the credit limit came back as an Override and, with no operator in a\n  // cascade, the delivery was saved anyway. Reported, not failed.\n  clNote: {{node:wf_cd_gd.data.creditLimitNote}} || \"\"\n});\n\nreturn { results: results };\n"
             },
             "response_json": [
               {

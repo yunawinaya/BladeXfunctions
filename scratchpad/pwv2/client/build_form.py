@@ -217,6 +217,8 @@ def write(path, text):
 
 
 if __name__ == "__main__":
+    sys.exit("Superseded: its v364 / v4 bases would undo the live Putaway (v367) and In Transit Detail (v5) forms; "
+             "scratchpad/grv2/switchon/build_switchon.py builds the Putaway form now - re-seed on the live versions before reusing this.")
     dev, form, it_dev, it_form = build()
     for path, obj in ((os.path.join(PW, "PutawayFullJSON.json"), form), (os.path.join(IT, "InTransitDetailFullJSON.json"), it_form)):
         text = render(obj, "indent")

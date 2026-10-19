@@ -153,7 +153,7 @@ const FIELDS = ["putaway_status", "plant_id", "purchase_order_number", "supplier
   "gr_remark1", "gr_remark2", "gr_remark3", "gr_remark4", "gr_remark5", "billing_address_name", "billing_address_phone",
   "billing_address_line_1", "billing_address_line_2", "billing_address_line_3", "billing_address_line_4",
   "billing_address_city", "billing_postal_code", "billing_address_state", "billing_address_country", "billing_attention",
-  "billing_address_fax", "shipping_address_fax", "shipping_address_name", "shipping_address_phone",
+  "billing_address_fax", "shipping_address_fax", "shipping_address_name", "shipping_address_phone", "custom_fields_e9609s2l",
   "shipping_address_line_1", "shipping_address_line_2", "shipping_address_line_3", "shipping_address_line_4",
   "shipping_address_city", "shipping_postal_code", "shipping_address_state", "shipping_address_country",
   "shipping_attention"];

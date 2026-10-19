@@ -1,0 +1,14 @@
+{
+ "*": {
+  "tenantId": "000000",
+  "jobId": "2111035076769873921",
+  "jobIdsSql": "2111035076769873921",
+  "saId": "2110229114286899201",
+  "scId": "2110229071278505985",
+  "a0ScId": "2110229071278505985",
+  "partPrefix": "P|abcd1234|"
+ },
+ "missing_cols": {
+  "CAST(g.sa_v2_job_id AS CHAR)": "CAST(NULL AS CHAR)"
+ }
+}

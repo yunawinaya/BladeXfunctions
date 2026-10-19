@@ -12,6 +12,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import wfkit as K  # noqa: E402
+sys.path.insert(0, os.path.join(HERE, "..", "cfwipe"))
+from patch_cf import patch_exact  # noqa: E402  (an edit that leaves the custom fields out keeps them)
 
 R = "/Users/yunawinaya/Developer/BladeXfunctions/"
 OUT = R + "Goods Receiving/CompleteV2/"
@@ -261,7 +263,7 @@ def build_commit():
     part = lambda nid, title, name: K.sql(nid, title, S["part"](name), ["step_name", "result_ref"])
     intent = lambda nid, title, name: K.sql(nid, title, S["intent"](name), ["step_name", "result_ref"])
     br = lambda tag, items: K.parallel("condition_all_RC%s" % tag, "Reads in parallel", [("cai_RC%s%d" % (tag, i), t, [n]) for i, (t, n) in enumerate(items)])
-    entry_fields = ["route", "phase", "dbNow", "jobId", "organizationId", "grId", "grNo", "plantId", "prevStatus", "idempotencyKey", "jobStatus", "rowVersion", "attempts",
+    entry_fields = ["route", "phase", "dbNow", "jsAt", "jobId", "organizationId", "grId", "grNo", "plantId", "prevStatus", "idempotencyKey", "jobStatus", "rowVersion", "attempts",
                     "leaseUntil", "unlockOk", "partPrefix", "manifest", "poLocks", "poIdsSql", "grNoSql", "ourBatchIds", "jitter", "c0Waits", "jobRows", "needJobUpd",
                     "unlockRows", "needUnlock", "batchDelRows", "needBatchDel", "freeRows", "needFree", "needC0", "needC1", "needC1B", "needC2", "needC3", "needC4", "needC5",
                     "result_code", "result_message", "job_status"]
@@ -763,7 +765,7 @@ def build_prepare():
               ["db_now", "id", "organization_id", "plant_id", "command", "job_status", "lease_owner", "lease_live", "row_version", "attempt_count", "idempotency_key",
                "correlation_id", "request_payload", "is_deleted", "linked_gr", "linked_status"]),
         K.code(E, "Entry: a VALIDATING COMPLETE_GR job under a live lease; its correlation -> the receipt (unlinked -> FAILED + back)", code("prepare/entry.js"),
-               ["route", "jobId", "tenantId", "organizationId", "plantId", "grId", "idempotencyKey", "rowVersion", "dbNow", "nonce", "request", "previousStatus", "unlockRows",
+               ["route", "jobId", "tenantId", "organizationId", "plantId", "grId", "idempotencyKey", "rowVersion", "dbNow", "jsAt", "nonce", "request", "previousStatus", "unlockRows",
                 "result_code", "result_message"], arrays=("unlockRows",), objects=("request", "rowVersion")),
         K.if_(ids, "if_RPnoop", "IF the job is not this run's to prepare: answer, write nothing", is_(E, "route", "NOOP"), [
             K.code("code_node_RPnoop", "Answer (not prepared)", noop_body, res_fields),
@@ -804,7 +806,8 @@ GR_ADD_COLS = ["gr_status", "putaway_status", "plant_id", "purchase_order_number
                "billing_address_line_1", "billing_address_line_2", "billing_address_line_3", "billing_address_line_4", "billing_address_city", "billing_postal_code",
                "billing_address_state", "billing_address_country", "billing_attention", "billing_address_fax", "shipping_address_fax", "shipping_address_name",
                "shipping_address_phone", "shipping_address_line_1", "shipping_address_line_2", "shipping_address_line_3", "shipping_address_line_4",
-               "shipping_address_city", "shipping_postal_code", "shipping_address_state", "shipping_address_country", "shipping_attention", "gr_v2_job_id"]
+               "shipping_address_city", "shipping_postal_code", "shipping_address_state", "shipping_address_country", "shipping_attention", "gr_v2_job_id",
+               "custom_fields_e9609s2l"]
 GR_UPD_COLS = ["id"] + [c for c in GR_ADD_COLS if c not in ("billing_address_fax", "shipping_address_fax")]
 JOB_ADD_COLS = ["organization_id", "plant_id", "command", "idempotency_key", "job_status", "progress_percent", "progress_message", "attempt_count", "row_version",
                 "cancel_requested", "next_attempt_at", "request_payload", "causation_id", "correlation_id", "line_count", "queued_at"]
@@ -925,6 +928,11 @@ def build_submit():
         ]),
         K.sql("sql_node_RSback", "Read-back: the job of this key, its receipt's status / job link, its latest lock", back,
               ["job_id", "job_status", "correlation_id", "gr_status", "gr_no", "gr_v2_job_id", "lock_ref"]),
+        K.code("code_node_RSrelink", "Relink (Edit): the receipt's number after the write (a Draft's is issued there) into the job's request",
+               scode("relink.js"), ["relinkRows", "needRelink"], arrays=("relinkRows",)),
+        gate(ids, "cor_RSrelink", "Edit: the job's request to relink?", "code_node_RSrelink", "needRelink", [
+            job_update(ids, "update_node_RSrelink", "Job: request grNo = the receipt's number (before it falls due)", "code_node_RSrelink", "relinkRows",
+                       ["id", "request_payload"])]),
         K.code("code_node_RSdue", "Due: the receipt is Processing under this job's lock -> the job due now", scode("due.js"), ["dueRows", "needDue"], arrays=("dueRows",)),
         gate(ids, "cor_RSdue", "Job to make due?", "code_node_RSdue", "needDue", [
             K.update(ids, "update_node_RSdue", "Job due now (it was inserted 2 minutes ahead)", JOB, ("id", "in", N("code_node_RSdue", "data.dueRows.id")),
@@ -985,6 +993,8 @@ if __name__ == "__main__":
             continue
         try:
             doc = wrap_doc_sql(fn())
+            if name == "GR_COMPLETE_SUBMIT":
+                doc = patch_exact(name, doc)
         except NotImplementedError as e:
             print(f"{name}: skipped ({e})")
             continue

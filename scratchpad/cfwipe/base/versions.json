@@ -1,0 +1,46 @@
+{
+ "CUSTOMER_SAVE": {
+  "dataId": "2099333366304526338",
+  "version": 4
+ },
+ "GOODS_RECEIVING": {
+  "dataId": "2029090678383042562",
+  "version": 102
+ },
+ "GR_COMPLETE_SUBMIT": {
+  "dataId": "2110545633913245697",
+  "version": 6
+ },
+ "GR_CREATED": {
+  "dataId": "2065278999991267329",
+  "version": 14
+ },
+ "ITEM_SAVE": {
+  "dataId": "2098251509145264130",
+  "version": 3
+ },
+ "PI_SAVE": {
+  "dataId": "2066342495378059266",
+  "version": 17
+ },
+ "PO_SAVE": {
+  "dataId": "2069257894280118274",
+  "version": 43
+ },
+ "PREQ_SAVE": {
+  "dataId": "2084558919466807298",
+  "version": 22
+ },
+ "SM_MISC_ISSUE": {
+  "dataId": "2015602242971631618",
+  "version": 38
+ },
+ "SO_SAVE": {
+  "dataId": "1988908545345945602",
+  "version": 168
+ },
+ "SUPPLIER_SAVE": {
+  "dataId": "2099333410365689858",
+  "version": 4
+ }
+}

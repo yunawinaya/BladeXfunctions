@@ -22,6 +22,8 @@ GR, PO, POL, OO, TO, IT, BATCH = G.GR, G.PO, G.POL, G.OO, G.TO, G.IT, G.BATCH
 QI = "Basic Inspection Lot:Table:1930547663980482561"
 FIFO = "FIFO Costing History:Table:1902947165008400386"
 WA = "Weighted Average Costing History:Table:1902948453171433474"
+LOCK = "Inventory Balance Lock:Table:2105132021358956546"
+TOKENS = ("INVENTORY_LOCK_TOKENS", "2105936479113383937")
 IDS_FILE = os.path.join(HERE, "ids.json")
 RV_IDS = json.load(open(IDS_FILE)) if os.path.exists(IDS_FILE) else {}
 OPEN = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_GR", "COMMITTING_REVERT", "REQUIRES_REVIEW"]
@@ -102,12 +104,13 @@ def step_done(ids, tag, src, step):
     return gate(ids, "cor_VC%sdone" % tag, "%s DONE to record?" % step, src, "needStep", [step_add(ids, "add_node_VC%sdone" % tag, "%s DONE (unique job / step)" % step, src, "stepRows")])
 
 
-def slice_loop(ids, tag, src, field, title, table, props, labels=None):
+def slice_loop(ids, tag, src, field, title, table, props, labels=None, add=False):
     loop_id = "loop_VC%s" % tag
     sl = "code_node_VC%sslice" % tag
     body = code("commit/slice.js").replace("__LOOP__", loop_id)
-    write = K.update(ids, "update_node_VC%swrite" % tag, title + " (<= 250 per call)", table, ("id", "in", N(sl, "data.rows.id")),
-                     [(p, N(sl, "data.rows." + p)) for p in ["id"] + props], labels)
+    write = (K.add(ids, "add_node_VC%swrite" % tag, title + " (<= 250 per call)", table, [(p, N(sl, "data.rows." + p)) for p in props], labels) if add else
+             K.update(ids, "update_node_VC%swrite" % tag, title + " (<= 250 per call)", table, ("id", "in", N(sl, "data.rows.id")),
+                      [(p, N(sl, "data.rows." + p)) for p in ["id"] + props], labels))
     return K.loop(ids, loop_id, title, N(src, "data." + field), [
         K.code(sl, "This slice (the loop item: <= 250 rows)", body, ["n", "rows"], arrays=("rows",), objects=("n",)), write])
 
@@ -209,6 +212,26 @@ def commit_sql():
    AND o.po_line_id IN (SELECT l.id FROM purchase_order_2ukyuanr_sub l WHERE l.tenant_id = '@T' AND l.purchase_order_id IN (@POIDS))
  ORDER BY o.id""", POIDS=POIDS, T=T)
     S["grnow"] = sub("SELECT g.gr_status FROM goods_receiving g WHERE g.tenant_id = '@T' AND g.id = @GRID AND g.is_deleted = 0", GRID=GRID, T=T)
+    # R2 COST locks: INVENTORY_BULK_APPLY's lock reads (sql_node_IBlk1 / 2 / 3) on R2's keys; the release reads by owner
+    ORG, KEYS = N(CE, "data.organizationId"), N("code_node_VCr2lkeys", "data.keysJson")
+    lk_where = """  FROM inventory_balance_lock
+ WHERE tenant_id = '@T'
+   AND organization_id = '@ORG'
+   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('@KEYS', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)"""
+    S["lk1"] = sub("SELECT CAST(id AS CHAR) AS id, lock_key, is_deleted\n" + lk_where + "\n ORDER BY lock_key", ORG=ORG, KEYS=KEYS, T=T)
+    S["lk2"] = sub("SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n"
+                   + lk_where + "\n   AND is_deleted = 0\n ORDER BY lock_key", ORG=ORG, KEYS=KEYS, T=T)
+    S["lk3"] = sub("SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id\n" + lk_where + "\n   AND is_deleted = 0", ORG=ORG, KEYS=KEYS, T=T)
+    S["lkrel"] = sub("""SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id, lock_version,
+       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now
+  FROM inventory_balance_lock
+ WHERE tenant_id = '@T'
+   AND organization_id = '@ORG'
+   AND balance_type = 'COST'
+   AND free_token = 0
+   AND (owner_operation_id = 'GRV|@JOB|R2' OR (COALESCE(owner_operation_id, '') = '' AND last_owner_operation_id = 'GRV|@JOB|R2'))
+   AND is_deleted = 0
+ ORDER BY lock_key""", ORG=ORG, **TOK)
     return S
 
 
@@ -219,7 +242,7 @@ def build_commit():
     part = lambda nid, title, name: K.sql(nid, title, S["part"](name), ["step_name", "result_ref"])
     intent = lambda nid, title, name: K.sql(nid, title, S["intent"](name), ["step_name", "result_ref"])
     br = lambda tag, items: K.parallel("condition_all_VC%s" % tag, "Reads in parallel", [("cai_VC%s%d" % (tag, i), t, [n]) for i, (t, n) in enumerate(items)])
-    entry_fields = ["route", "phase", "dbNow", "jobId", "organizationId", "grId", "grNo", "plantId", "prevStatus", "idempotencyKey", "jobStatus", "rowVersion", "attempts",
+    entry_fields = ["route", "phase", "dbNow", "jsAt", "jobId", "organizationId", "grId", "grNo", "plantId", "prevStatus", "idempotencyKey", "jobStatus", "rowVersion", "attempts",
                     "leaseUntil", "unlockOk", "partPrefix", "manifest", "poLocks", "poIdsSql", "grNoSql", "jitter", "r0Waits", "jobRows", "needJobUpd",
                     "unlockRows", "needUnlock", "freeRows", "needFree", "needR0", "needR1", "needR2", "needR3", "needR4", "needR5", "result_code", "result_message", "job_status"]
     chk = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "freeRows", "needFree", "result_code", "result_message", "job_status"]
@@ -230,6 +253,58 @@ def build_commit():
     R0I, R0, R1I, R1 = "code_node_VCr0in", "code_node_VCr0", "code_node_VCr1in", "code_node_VCr1"
     R2I, R2P, R2C, R3I, R3P, R3C = "code_node_VCr2in", "code_node_VCr2plan", "code_node_VCr2check", "code_node_VCr3in", "code_node_VCr3plan", "code_node_VCr3check"
     R4P, R4C, R5P, R5C, FIN = "code_node_VCr4plan", "code_node_VCr4check", "code_node_VCr5plan", "code_node_VCr5check", "code_node_VCfinish"
+    # R2 COST locks (GRV|<job>|R2): the keys INVENTORY_BULK_APPLY takes for the plant-level FIFO / WA rows, held from before R2 reads
+    # them until R2 is DONE; every exit after the take gives them back. Own filter-id range: the nodes above keep theirs
+    R2K, R2LS, R2LC, R2LV = "code_node_VCr2lkeys", "code_node_VCr2lseed", "code_node_VCr2lclaim", "code_node_VCr2lverify"
+    lk = K.Ids(1799150000000)
+    rel_cols = ["id", "lock_key", "free_token", "owner_operation_id", "last_owner_operation_id", "lock_version", "db_now"]
+
+    def release(tag, check=()):
+        """the COST locks GRV|<job>|R2 holds given back as INVENTORY_BULK_APPLY releases: owner cleared, then INVENTORY_LOCK_TOKENS GIVE"""
+        rs, rp = "sql_node_VC%srel" % tag, "code_node_VC%srel" % tag
+        give = [slice_loop(lk, tag + "rel", rp, "clearSlices", "COST lock release step 1: owner cleared, last owner = GRV|<job>|R2", LOCK,
+                           ["owner_operation_id", "last_owner_operation_id", "last_released_at", "lock_version"]),
+                call(lk, "workflow_node_VC%sgive" % tag, "COST lock release step 2: INVENTORY_LOCK_TOKENS GIVE", TOKENS, [
+                    ("mode", "GIVE", "value"), ("operation_id", N(rp, "data.opKey")), ("organization_id", N(CE, "data.organizationId")), ("claimed_at", "", "value"),
+                    ("ids", N(rp, "data.plusIds"))])]
+        return [K.sql(rs, "COST locks GRV|<job>|R2 still holds (or cleared without the GIVE)", S["lkrel"], rel_cols),
+                K.code(rp, "COST lock release plan: owner cleared first, then GIVE adds the token back", ccode("r2_lock_release.js").replace("__REL_SQL__", rs),
+                       ["opKey", "clearSlices", "plusIds", "needRelease"], arrays=("clearSlices", "plusIds")),
+                K.if_(lk, "if_VC%sgive" % tag, "IF COST locks to give back", is_(rp, "needRelease", "YES"), give + list(check)) if check else
+                gate(lk, "cor_VC%srel" % tag, "COST locks to give back?", rp, "needRelease", give)]
+
+    def end_rel(n, tag):
+        """an R2 exit that gives the COST locks back before the job row"""
+        n["blocks"][0]["blocks"][0:0] = release(tag)
+        return n
+
+    r2_lock = [
+        K.code(R2K, "R2 COST locks: COST|<material>|<plant> of every costing row R2 writes, sorted (INVENTORY_BULK_APPLY's keys)", ccode("r2_lock_keys.js"),
+               ["need", "keys", "keysJson", "opKey"], arrays=("keys",)),
+        K.if_(lk, "if_VCr2lock", "IF R2 writes costing rows: hold their COST locks before reading them (as every inventory posting does)", is_(R2K, "need", "YES"), [
+            K.sql("sql_node_VCr2lk1", "Lock seed: the lock rows of the keys", S["lk1"], ["id", "lock_key", "is_deleted"]),
+            K.code(R2LS, "Lock seed: the missing rows (free_token 1)", ccode("r2_lock_seed.js"), ["addSlices", "needSeed"], arrays=("addSlices",)),
+            gate(lk, "cor_VCr2lseed", "Lock rows to seed?", R2LS, "needSeed", [
+                slice_loop(lk, "r2lsd", R2LS, "addSlices", "Lock seed insert (unique tenant / organization / lock_key: a twin insert fails the run)", LOCK,
+                           ["organization_id", "lock_key", "balance_type", "free_token", "lock_version", "owner_operation_id", "last_owner_operation_id"], add=True)]),
+            K.sql("sql_node_VCr2lk2", "Lock claim: the lock rows before the take", S["lk2"], ["id", "lock_key", "free_token", "owner_operation_id", "last_owner_operation_id", "db_now"]),
+            K.code(R2LC, "Lock claim: BUSY / TAKE / HELD", ccode("r2_lock_claim.js"), ["route", "needTake", "ids", "claimedAt", "busy"], arrays=("ids",)),
+            gate(lk, "cor_VCr2ltake", "Keys to take?", R2LC, "needTake", [
+                call(lk, "workflow_node_VCr2ltake", "Lock take: INVENTORY_LOCK_TOKENS TAKE, in lock order", TOKENS, [
+                    ("mode", "TAKE", "value"), ("operation_id", N(R2K, "data.opKey")), ("organization_id", N(CE, "data.organizationId")),
+                    ("claimed_at", N(R2LC, "data.claimedAt")), ("ids", N(R2LC, "data.ids"))])]),
+            K.sql("sql_node_VCr2lk3", "Lock verify: the lock rows after the take", S["lk3"], ["id", "lock_key", "free_token", "owner_operation_id"]),
+            K.code(R2LV, "Lock verify: every key held by GRV|<job>|R2 -> on; busy or not taken -> wait, not counted", ccode("r2_lock_verify.js"), chk, arrays=chk_arr),
+            K.if_(lk, "if_VCr2lkend", "IF the COST locks are not held: wait (what this revert holds is given back first)", is_(R2LV, "route", "END"), release("r2lk") + [
+                gate(lk, "cor_VCr2lkjob", "Job row to write?", R2LV, "needJobUpd", [
+                    job_update(lk, "update_node_VCr2lkjob", "Job: wait for the COST locks, due in 5 s (lease released)", R2LV, "jobRows")])] + cres("r2lk", R2LV, "R2_LOCK_WAIT")),
+        ]),
+    ]
+    # after R2 (this run, or a run that died between R2 DONE and the release): nothing of GRV|<job>|R2 may stay held
+    r2_free = release("r2fin", [
+        K.sql("sql_node_VCr2finback", "Read-back: COST locks of GRV|<job>|R2 still at token 0", S["lkrel"], rel_cols),
+        K.code("code_node_VCr2finchk", "Release check: none left -> on; else retry with backoff", ccode("r2_lock_released.js"), chk, arrays=chk_arr),
+        end_b(lk, "r2fin", "code_node_VCr2finchk", "IF a COST lock was not given back: retry")])
     nodes = [
         K.code(CG, "Guard: job_id (digits), session tenant, this run's lease owner PUB|<nonce>", ccode("guard.js"), ["route", "jobId", "tenantId", "nonce", "leaseOwner", "result_code", "result_message"]),
         K.if_(ids, "if_VCreject", "IF the input is invalid: answer, write nothing", is_(CG, "route", "REJECT"), [
@@ -290,12 +365,13 @@ def build_commit():
             br("r2read", [("COST part", part("sql_node_VCr2part", "R2: the COST part", "COST")), ("Intent", intent("sql_node_VCr2intent", "R2: an intent of an earlier run", "R2"))]),
             K.code(R2I, "R2 input: the ids of the costing rows to read fresh", ccode("r2_in.js"), ["ok", "why", "fifoIdsSql", "waIdsSql", "fifo", "waDelete", "waRestate"],
                    arrays=("fifo", "waDelete", "waRestate")),
+        ] + r2_lock + [
             br("r2fresh", [("FIFO", sq("sql_node_VCr2fifo", "R2: the receipt's FIFO layers now", S["fifo"](R2I))),
                            ("WA", sq("sql_node_VCr2wa", "R2: the weighted-average rows now", S["wa"](R2I)))]),
             K.code(R2P, "R2 plan: layers / batch rows soft-deleted as read; weighted averages restated on the fresh rows -> intent; write what is at before", ccode("r2_plan.js"),
                    ["route", "needIntent", "intentRows", "fifoSlices", "fifoCount", "waDelSlices", "waDelCount", "waSetSlices", "waSetCount"] + plan_end,
                    arrays=("intentRows", "fifoSlices", "waDelSlices", "waSetSlices", "jobRows"), objects=("fifoCount", "waDelCount", "waSetCount")),
-            end_b(ids, "r2pl", R2P, "IF the costing cannot be restored"),
+            end_rel(end_b(ids, "r2pl", R2P, "IF the costing cannot be restored"), "r2pl"),
             gate(ids, "cor_VCr2intent", "Intent to record?", R2P, "needIntent", [step_add(ids, "add_node_VCr2intent", "R2 INTENT: R2|I|<nnn> (each weighted average's before + after)", R2P, "intentRows")]),
             slice_loop(ids, "r2f", R2P, "fifoSlices", "R2 WRITE: FIFO layers removed (update_node_grRvFifoDel's write)", FIFO, ["is_deleted"]),
             slice_loop(ids, "r2d", R2P, "waDelSlices", "R2 WRITE: weighted-average batch rows removed (update_node_grRvWaDel's write)", WA, ["is_deleted"]),
@@ -304,9 +380,10 @@ def build_commit():
                           ("FIFO", sq("sql_node_VCr2fifoB", "R2 read-back: the FIFO layers", S["fifo"](R2I))),
                           ("WA", sq("sql_node_VCr2waB", "R2 read-back: the weighted-average rows", S["wa"](R2I)))]),
             K.code(R2C, "R2 check: every layer / batch row removed, every weighted average at its after-values -> DONE", ccode("r2_check.js"), chk, arrays=chk_arr),
-            end_b(ids, "r2", R2C, "IF R2 did not complete"),
+            end_rel(end_b(ids, "r2", R2C, "IF R2 did not complete"), "r2"),
             step_done(ids, "r2", R2C, "R2_COSTING"),
         ]),
+    ] + r2_free + [
         # ---------------------------------------------------------------- R3
         K.if_(ids, "if_VCr3", "IF R3 DOCUMENTS is due", is_(CE, "needR3", "YES"), [
             part("sql_node_VCr3part", "R3: the DOCS part", "DOCS"),
@@ -462,7 +539,7 @@ def build_prepare():
               ["db_now", "id", "organization_id", "command", "job_status", "lease_owner", "lease_live", "row_version", "attempt_count", "idempotency_key", "correlation_id",
                "request_payload", "is_deleted"]),
         K.code(E, "Entry: a VALIDATING REVERT_GR job under a live lease; its correlation -> the receipt; its request", code("prepare/entry.js"),
-               ["route", "jobId", "tenantId", "organizationId", "grId", "idempotencyKey", "rowVersion", "dbNow", "nonce", "request", "result_code", "result_message"],
+               ["route", "jobId", "tenantId", "organizationId", "grId", "idempotencyKey", "rowVersion", "dbNow", "jsAt", "nonce", "request", "result_code", "result_message"],
                objects=("request", "rowVersion")),
         K.if_(ids, "if_VPnoop", "IF the job is not this run's to prepare: answer, write nothing", is_(E, "route", "NOOP"), [
             K.code("code_node_VPnoop", "Answer (not prepared)", noop_body, res_fields),

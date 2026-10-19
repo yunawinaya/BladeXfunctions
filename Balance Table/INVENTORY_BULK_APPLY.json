@@ -19,7 +19,7 @@
     "isValidator": true,
     "script": {
      "type": "javascript",
-     "code": "// INVENTORY_BULK_APPLY guard: request, session tenant, run nonce, and every list the SQL nodes bind (digits only)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst DIG = /^[0-9]{1,20}$/;\nconst KEY = /^[A-Za-z0-9._-]{1,40}$/;\nconst MAX_MOVEMENTS = 5000;\n\nconst bulkGuard = function bulkGuard(inp) {\n  const reject = (code, message) => ({ route: \"REJECT\", result_code: code, result_message: message });\n  const mode = s(inp.mode).toUpperCase();\n  const op = s(inp.operationKey);\n  const org = s(inp.organizationId);\n  const tenant = s(inp.tenantId);\n  if (mode !== \"PLAN\" && mode !== \"APPLY\") return reject(\"REQUEST_INVALID\", \"mode must be PLAN or APPLY\");\n  if (!/^[A-Za-z0-9|:._-]{1,32}$/.test(op)) return reject(\"REQUEST_INVALID\", \"operation_key must be 1-32 of A-Z a-z 0-9 | : . _ -\");\n  if (!DIG.test(org)) return reject(\"REQUEST_INVALID\", \"organization_id must be digits\");\n  if (!DIG.test(tenant)) return reject(\"REQUEST_INVALID\", \"no session tenant\");\n  let list = inp.movements;\n  if (typeof list === \"string\") {\n    try {\n      list = JSON.parse(list);\n    } catch (e) {\n      return reject(\"REQUEST_INVALID\", \"movements is not JSON\");\n    }\n  }\n  if (!Array.isArray(list) || !list.length) return reject(\"REQUEST_INVALID\", \"movements must be a non-empty array\");\n  if (list.length > MAX_MOVEMENTS) return reject(\"REQUEST_INVALID\", \"at most \" + MAX_MOVEMENTS + \" movements per operation\");\n\n  const seen = {};\n  const mats = {};\n  const balTuples = {};\n  const batchTuples = {};\n  const costPairs = {};\n  const lockKeys = {};\n  const effectKeys = [];\n  for (let i = 0; i < list.length; i++) {\n    const m = list[i] || {};\n    const at = \"movements[\" + i + \"] \";\n    const key = s(m.movement_key);\n    if (!KEY.test(key)) return reject(\"REQUEST_INVALID\", at + \"movement_key must be 1-40 of A-Z a-z 0-9 . _ -\");\n    if (seen[key]) return reject(\"REQUEST_INVALID\", at + \"movement_key \" + key + \" repeats\");\n    seen[key] = true;\n    const dir = s(m.direction);\n    if (dir !== \"SUBTRACT\" && dir !== \"ADD\") return reject(\"REQUEST_INVALID\", at + \"direction must be SUBTRACT or ADD\");\n    for (const f of [\"material_id\", \"plant_id\", \"location_id\"]) if (!DIG.test(s(m[f]))) return reject(\"REQUEST_INVALID\", at + f + \" must be digits\");\n    const batch = s(m.batch_id);\n    if (batch && !DIG.test(batch)) return reject(\"REQUEST_INVALID\", at + \"batch_id must be digits or empty\");\n    if (s(m.organization_id) !== org) return reject(\"REQUEST_INVALID\", at + \"organization_id differs from the operation's\");\n    if (dir === \"ADD\" && s(m.batch_number) && s(m.batch_number) !== \"-\" && !batch) return reject(\"UNSUPPORTED_NEW_BATCH\", at + \"creating a new batch is not supported yet\");\n    if (m.unit_price_from !== undefined && m.unit_price_from !== null && s(m.unit_price_from) !== \"\" && !seen[s(m.unit_price_from)]) {\n      return reject(\"REQUEST_INVALID\", at + \"unit_price_from must name an earlier movement\");\n    }\n    const mat = s(m.material_id);\n    const loc = s(m.location_id);\n    const plant = s(m.plant_id);\n    mats[mat] = true;\n    balTuples[\"[\" + mat + \",\" + loc + \",\" + plant + \"]\"] = true;\n    costPairs[\"[\" + mat + \",\" + plant + \"]\"] = true;\n    lockKeys[\"ITEM|\" + mat + \"|\" + loc] = true;\n    if (batch) {\n      batchTuples[\"[\" + mat + \",\" + loc + \",\" + batch + \",\" + plant + \"]\"] = true;\n      lockKeys[\"BATCH|\" + mat + \"|\" + loc + \"|\" + batch] = true;\n    }\n    effectKeys.push(op + \"|\" + key);\n  }\n  const keys = Object.keys(lockKeys).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));\n  // lists reach the SQL as ONE bound JSON string, unpacked by JSON_TABLE (ids stay exact: digits become JSON integers)\n  const jsonList = (o) => \"[\" + Object.keys(o).join(\",\") + \"]\";\n  return {\n    route: \"GO\",\n    result_code: \"\",\n    result_message: \"\",\n    mode: mode,\n    operationKey: op,\n    organizationId: org,\n    tenantId: tenant,\n    nonce: (s(inp.uuid).replace(/[^0-9a-fA-F]/g, \"\") + \"000000000000\").slice(0, 12),\n    count: list.length,\n    materialIdsCsv: Object.keys(mats).join(\",\") || \"0\",\n    balTuplesJson: jsonList(balTuples),\n    batchTuplesJson: jsonList(batchTuples),\n    costPairsJson: jsonList(costPairs),\n    effectKeysJson: JSON.stringify(effectKeys),\n    lockKeys: keys,\n    lockKeysJson: JSON.stringify(keys),\n  };\n};\n\nreturn bulkGuard({\n  mode: [{{workflowparams:mode}}][0],\n  operationKey: [{{workflowparams:operation_key}}][0],\n  organizationId: [{{workflowparams:organization_id}}][0],\n  movements: [{{workflowparams:movements}}][0],\n  tenantId: [{{system:tenantId}}][0],\n  uuid: [{{system:uuid}}][0],\n});\n"
+     "code": "// INVENTORY_BULK_APPLY guard: request, session tenant, run nonce, and every list the SQL nodes bind (digits only)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst DIG = /^[0-9]{1,20}$/;\nconst KEY = /^[A-Za-z0-9._-]{1,40}$/;\nconst MAX_MOVEMENTS = 5000;\n\nconst bulkGuard = function bulkGuard(inp) {\n  const reject = (code, message) => ({ route: \"REJECT\", result_code: code, result_message: message });\n  const mode = s(inp.mode).toUpperCase();\n  const op = s(inp.operationKey);\n  const org = s(inp.organizationId);\n  const tenant = s(inp.tenantId);\n  if (mode !== \"PLAN\" && mode !== \"APPLY\") return reject(\"REQUEST_INVALID\", \"mode must be PLAN or APPLY\");\n  if (!/^[A-Za-z0-9|:._-]{1,32}$/.test(op)) return reject(\"REQUEST_INVALID\", \"operation_key must be 1-32 of A-Z a-z 0-9 | : . _ -\");\n  if (!DIG.test(org)) return reject(\"REQUEST_INVALID\", \"organization_id must be digits\");\n  if (!DIG.test(tenant)) return reject(\"REQUEST_INVALID\", \"no session tenant\");\n  let list = inp.movements;\n  if (typeof list === \"string\") {\n    try {\n      list = JSON.parse(list);\n    } catch (e) {\n      return reject(\"REQUEST_INVALID\", \"movements is not JSON\");\n    }\n  }\n  if (!Array.isArray(list) || !list.length) return reject(\"REQUEST_INVALID\", \"movements must be a non-empty array\");\n  if (list.length > MAX_MOVEMENTS) return reject(\"REQUEST_INVALID\", \"at most \" + MAX_MOVEMENTS + \" movements per operation\");\n\n  const seen = {};\n  const mats = {};\n  const balTuples = {};\n  const batchTuples = {};\n  const costPairs = {};\n  const lockKeys = {};\n  const effectKeys = [];\n  for (let i = 0; i < list.length; i++) {\n    const m = list[i] || {};\n    const at = \"movements[\" + i + \"] \";\n    const key = s(m.movement_key);\n    if (!KEY.test(key)) return reject(\"REQUEST_INVALID\", at + \"movement_key must be 1-40 of A-Z a-z 0-9 . _ -\");\n    if (seen[key]) return reject(\"REQUEST_INVALID\", at + \"movement_key \" + key + \" repeats\");\n    seen[key] = true;\n    const dir = s(m.direction);\n    if (dir !== \"SUBTRACT\" && dir !== \"ADD\") return reject(\"REQUEST_INVALID\", at + \"direction must be SUBTRACT or ADD\");\n    for (const f of [\"material_id\", \"plant_id\", \"location_id\"]) if (!DIG.test(s(m[f]))) return reject(\"REQUEST_INVALID\", at + f + \" must be digits\");\n    const batch = s(m.batch_id);\n    if (batch && !DIG.test(batch)) return reject(\"REQUEST_INVALID\", at + \"batch_id must be digits or empty\");\n    if (s(m.organization_id) !== org) return reject(\"REQUEST_INVALID\", at + \"organization_id differs from the operation's\");\n    if (dir === \"ADD\" && s(m.batch_number) && s(m.batch_number) !== \"-\" && !batch) return reject(\"UNSUPPORTED_NEW_BATCH\", at + \"creating a new batch is not supported yet\");\n    if (m.unit_price_from !== undefined && m.unit_price_from !== null && s(m.unit_price_from) !== \"\" && !seen[s(m.unit_price_from)]) {\n      return reject(\"REQUEST_INVALID\", at + \"unit_price_from must name an earlier movement\");\n    }\n    const mat = s(m.material_id);\n    const loc = s(m.location_id);\n    const plant = s(m.plant_id);\n    mats[mat] = true;\n    balTuples[\"[\" + mat + \",\" + loc + \",\" + plant + \"]\"] = true;\n    costPairs[\"[\" + mat + \",\" + plant + \"]\"] = true;\n    lockKeys[\"ITEM|\" + mat + \"|\" + loc] = true;\n    // plant-level FIFO / WA rows: written by every movement that is not a category move (core.js isMovingInv 0)\n    const moving = m.isMovingInv === undefined || m.isMovingInv === null ? 0 : Number(m.isMovingInv);\n    if (moving !== 1) lockKeys[\"COST|\" + mat + \"|\" + plant] = true;\n    if (batch) {\n      batchTuples[\"[\" + mat + \",\" + loc + \",\" + batch + \",\" + plant + \"]\"] = true;\n      lockKeys[\"BATCH|\" + mat + \"|\" + loc + \"|\" + batch] = true;\n    }\n    effectKeys.push(op + \"|\" + key);\n  }\n  const keys = Object.keys(lockKeys).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));\n  // lists reach the SQL as ONE bound JSON string, unpacked by JSON_TABLE (ids stay exact: digits become JSON integers)\n  const jsonList = (o) => \"[\" + Object.keys(o).join(\",\") + \"]\";\n  return {\n    route: \"GO\",\n    result_code: \"\",\n    result_message: \"\",\n    mode: mode,\n    operationKey: op,\n    organizationId: org,\n    tenantId: tenant,\n    nonce: (s(inp.uuid).replace(/[^0-9a-fA-F]/g, \"\") + \"000000000000\").slice(0, 12),\n    count: list.length,\n    materialIdsCsv: Object.keys(mats).join(\",\") || \"0\",\n    balTuplesJson: jsonList(balTuples),\n    batchTuplesJson: jsonList(batchTuples),\n    costPairsJson: jsonList(costPairs),\n    effectKeysJson: JSON.stringify(effectKeys),\n    lockKeys: keys,\n    lockKeysJson: JSON.stringify(keys),\n  };\n};\n\nreturn bulkGuard({\n  mode: [{{workflowparams:mode}}][0],\n  operationKey: [{{workflowparams:operation_key}}][0],\n  organizationId: [{{workflowparams:organization_id}}][0],\n  movements: [{{workflowparams:movements}}][0],\n  tenantId: [{{system:tenantId}}][0],\n  uuid: [{{system:uuid}}][0],\n});\n"
     },
     "response_json": [
      {
@@ -858,178 +858,95 @@
          },
          "blocks": [
           {
-           "id": "set_cache_IBsdIdx0",
-           "type": "set-cache-node",
+           "id": "try_catch_IBseed",
+           "type": "tryCatch",
            "data": {
-            "redis_key": "iba_sd_{{node:code_node_IBguard.data.nonce}}",
-            "custom_wkbocgni": {
-             "type": "javascript",
-             "code": "0"
-            },
-            "limit_time": 3600000,
-            "title": "Seed slice index = 0 (per run: the key carries the run's nonce)",
-            "nodeName": "Seed slice index = 0 (per run: the key carries the run's nonce)",
-            "name": "Seed slice index = 0 (per run: the key carries the run's nonce)"
-           }
-          },
-          {
-           "id": "loop_IBseed",
-           "type": "loop",
-           "data": {
-            "title": "Seed the lock rows in slices of <= 250",
-            "nodeName": "Seed the lock rows in slices of <= 250",
-            "name": "Seed the lock rows in slices of <= 250",
-            "loopType": "Var",
-            "iterator": "_item",
-            "loopSeletVar": {
-             "type": "javascript",
-             "code": "{{node:code_node_IBseed.data.batches}}"
-            }
+            "title": "try-catch: a failed seed answers busy, not a failed run"
            },
            "blocks": [
             {
-             "id": "get_cache_IBsdIdx",
-             "type": "get-cache-node",
-             "data": {
-              "redis_key": "iba_sd_{{node:code_node_IBguard.data.nonce}}",
-              "title": "Seed slice index",
-              "nodeName": "Seed slice index",
-              "name": "Seed slice index"
-             }
+             "type": "tryBlock",
+             "key": "try",
+             "data": {},
+             "blocks": [
+              {
+               "id": "workflow_node_IBseed",
+               "type": "workflow-node",
+               "data": {
+                "workflow": {
+                 "rules": {
+                  "collectionId": "2111078356478234625",
+                  "list": []
+                 },
+                 "source": "INVENTORY_LOCK_SEED:Workflow:2111078356478234625"
+                },
+                "body_params": {
+                 "list": [
+                  {
+                   "prop": "organization_id",
+                   "value": "{{node:code_node_IBguard.data.organizationId}}"
+                  },
+                  {
+                   "prop": "rows",
+                   "value": "{{node:code_node_IBseed.data.rowsToAdd}}"
+                  }
+                 ]
+                },
+                "title": "Lock seed: INVENTORY_LOCK_SEED (a twin insert fails only the child; the claim re-reads)",
+                "nodeName": "Lock seed: INVENTORY_LOCK_SEED (a twin insert fails only the child; the claim re-reads)",
+                "name": "Lock seed: INVENTORY_LOCK_SEED (a twin insert fails only the child; the claim re-reads)"
+               }
+              }
+             ],
+             "id": "try_catch_IBseed_tryBlock_0"
             },
             {
-             "id": "code_node_IBsdSlice",
-             "type": "code-node",
+             "type": "catchBlock",
+             "key": "catch",
              "data": {
-              "language": "javascript",
-              "code": "",
-              "timeout": 30000,
-              "isValidator": true,
-              "script": {
-               "type": "javascript",
-               "code": "// INVENTORY_BULK_APPLY slice of rowsToAdd: rows [index * 250, + 250)\nconst all = [{{node:code_node_IBseed.data.rowsToAdd}}][0];\nconst list = Array.isArray(all) ? all : all ? [all] : [];\nconst raw = [{{node:get_cache_IBsdIdx.data}}][0];\nconst index = raw === undefined || raw === null || String(raw).trim() === \"\" ? 0 : parseInt(String(raw).replace(/\"/g, \"\"), 10) || 0;\nconst rows = list.slice(index * 250, index * 250 + 250);\nreturn { rows: rows, count: String(rows.length), nextIndex: String(index + 1) };\n"
+              "title": "Seed failed",
+              "trycatch_type": "Filter",
+              "filter": {
+               "list": []
               },
-              "response_json": [
-               {
-                "key": "01w8tp4z",
-                "name": "rows",
-                "title": "rows",
-                "description": "",
-                "bsonType": "array",
-                "isExpand": true,
-                "children": [
+              "expression": {
+               "type": "javascript",
+               "code": ""
+              },
+              "displayContent": "sdk.form.setCondition"
+             },
+             "blocks": [
+              {
+               "id": "code_node_IBseedFail",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                 "type": "javascript",
+                 "code": "console.log(\"lock seed: INVENTORY_LOCK_SEED answered with an error; the claim re-reads the rows (missing = busy)\");\nreturn { seedFailed: \"YES\" };"
+                },
+                "response_json": [
                  {
-                  "key": "01pibbj0",
-                  "name": "items",
-                  "title": "",
+                  "key": "1ko3bh6z",
+                  "name": "seedFailed",
+                  "title": "seedFailed",
                   "description": "",
-                  "bsonType": "any",
+                  "bsonType": "string",
                   "isExpand": false,
-                  "children": [],
-                  "isArrayItem": true
+                  "children": []
                  }
-                ]
+                ],
+                "title": "Seed failed: the claim re-reads the rows",
+                "isValidator": true,
+                "nodeName": "Seed failed: the claim re-reads the rows",
+                "name": "Seed failed: the claim re-reads the rows"
                },
-               {
-                "key": "01qsyv4c",
-                "name": "count",
-                "title": "count",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false,
-                "children": []
-               },
-               {
-                "key": "01n6uzxx",
-                "name": "nextIndex",
-                "title": "nextIndex",
-                "description": "",
-                "bsonType": "string",
-                "isExpand": false,
-                "children": []
-               }
-              ],
-              "title": "Seed slice",
-              "nodeName": "Seed slice",
-              "name": "Seed slice"
-             }
-            },
-            {
-             "id": "add_node_IBseed",
-             "type": "add-node",
-             "data": {
-              "table_id": {
-               "source": "Inventory Balance Lock:Table:2105132021358956546",
-               "rules": {
-                "collectionId": "2105132021358956546",
-                "list": []
-               }
-              },
-              "props": {
-               "list": [
-                {
-                 "prop": "organization_id",
-                 "operator": "",
-                 "valueType": "field",
-                 "value": "{{node:code_node_IBsdSlice.data.rows.organization_id}}"
-                },
-                {
-                 "prop": "lock_key",
-                 "operator": "",
-                 "valueType": "field",
-                 "value": "{{node:code_node_IBsdSlice.data.rows.lock_key}}"
-                },
-                {
-                 "prop": "balance_type",
-                 "operator": "",
-                 "valueType": "field",
-                 "value": "{{node:code_node_IBsdSlice.data.rows.balance_type}}"
-                },
-                {
-                 "prop": "free_token",
-                 "operator": "",
-                 "valueType": "field",
-                 "value": "{{node:code_node_IBsdSlice.data.rows.free_token}}"
-                },
-                {
-                 "prop": "lock_version",
-                 "operator": "",
-                 "valueType": "field",
-                 "value": "{{node:code_node_IBsdSlice.data.rows.lock_version}}"
-                },
-                {
-                 "prop": "owner_operation_id",
-                 "operator": "",
-                 "valueType": "field",
-                 "value": "{{node:code_node_IBsdSlice.data.rows.owner_operation_id}}"
-                },
-                {
-                 "prop": "last_owner_operation_id",
-                 "operator": "",
-                 "valueType": "field",
-                 "value": "{{node:code_node_IBsdSlice.data.rows.last_owner_operation_id}}"
-                }
-               ]
-              },
-              "title": "Lock seed insert (unique tenant / organization / lock_key: a twin insert fails)",
-              "nodeName": "Lock seed insert (unique tenant / organization / lock_key: a twin insert fails)",
-              "name": "Lock seed insert (unique tenant / organization / lock_key: a twin insert fails)"
-             }
-            },
-            {
-             "id": "set_cache_IBsdIdxN",
-             "type": "set-cache-node",
-             "data": {
-              "redis_key": "iba_sd_{{node:code_node_IBguard.data.nonce}}",
-              "custom_wkbocgni": {
-               "type": "javascript",
-               "code": "{{node:code_node_IBsdSlice.data.nextIndex}}"
-              },
-              "limit_time": 3600000,
-              "title": "Next seed slice index",
-              "nodeName": "Next seed slice index",
-              "name": "Next seed slice index"
-             }
+               "blocks": []
+              }
+             ],
+             "id": "try_catch_IBseed_catchBlock_1"
             }
            ]
           }
@@ -1130,7 +1047,7 @@
         "isValidator": true,
         "script": {
          "type": "javascript",
-         "code": "// INVENTORY_BULK_APPLY lock claim: keys in lock order; a key another operation holds -> BUSY before any take,\n// a key this operation already holds (a run that died) is kept\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst keys = [{{node:code_node_IBguard.data.lockKeys}}][0] || [];\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst rows = [{{node:sql_node_IBlk2.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nconst byKey = {};\nlet dbNow = \"\";\nfor (const r of list) {\n  if (!r || !r.lock_key) continue;\n  byKey[s(r.lock_key).toUpperCase()] = r;\n  if (!dbNow && r.db_now) dbNow = s(r.db_now);\n}\nconst take = [];\nconst busy = [];\nconst missing = [];\nfor (const k of keys) {\n  const r = byKey[k.toUpperCase()];\n  if (!r || !/^[0-9]{1,20}$/.test(s(r.id))) {\n    missing.push(k);\n    continue;\n  }\n  const t = Number(r.free_token);\n  if (t === 1) take.push(s(r.id));\n  else if (t === 0 && s(r.owner_operation_id) === op) continue;\n  else busy.push(k + (s(r.owner_operation_id) ? \" (\" + s(r.owner_operation_id) + \")\" : \"\"));\n}\nif (missing.length) throw new Error(\"IBA_LOCK_SEED_INCOMPLETE: \" + missing.slice(0, 20).join(\",\"));\nif (!dbNow) throw new Error(\"IBA_LOCK_INPUT: the lock read returned no db_now\");\nconst route = busy.length ? \"BUSY\" : take.length ? \"TAKE\" : \"HELD\";\nreturn { route: route, ids: take, claimedAt: dbNow, busy: busy.slice(0, 20).join(\", \"), busyCount: String(busy.length) };\n"
+         "code": "// INVENTORY_BULK_APPLY lock claim: keys in lock order; a key another operation holds, or whose lock row the seed could not\n// create (another operation inserted it first) -> BUSY before any take; a key this operation already holds (a run that died) is kept\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst keys = [{{node:code_node_IBguard.data.lockKeys}}][0] || [];\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst rows = [{{node:sql_node_IBlk2.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nconst byKey = {};\nlet dbNow = \"\";\nfor (const r of list) {\n  if (!r || !r.lock_key) continue;\n  byKey[s(r.lock_key).toUpperCase()] = r;\n  if (!dbNow && r.db_now) dbNow = s(r.db_now);\n}\nconst take = [];\nconst busy = [];\nfor (const k of keys) {\n  const r = byKey[k.toUpperCase()];\n  if (!r || !/^[0-9]{1,20}$/.test(s(r.id))) {\n    busy.push(k + \" (lock row not created yet)\");\n    continue;\n  }\n  const t = Number(r.free_token);\n  if (t === 1) take.push(s(r.id));\n  else if (t === 0 && s(r.owner_operation_id) === op) continue;\n  else busy.push(k + (s(r.owner_operation_id) ? \" (\" + s(r.owner_operation_id) + \")\" : \"\"));\n}\nconst route = busy.length ? \"BUSY\" : take.length ? \"TAKE\" : \"HELD\";\nif (route === \"TAKE\" && !dbNow) throw new Error(\"IBA_LOCK_INPUT: the lock read returned no db_now\");\nreturn { route: route, ids: take, claimedAt: dbNow, busy: busy.slice(0, 20).join(\", \"), busyCount: String(busy.length) };"
         },
         "response_json": [
          {

@@ -1,0 +1,3296 @@
+{
+ "request_json": [
+  {
+   "key": "fm2x2w86",
+   "name": "data",
+   "title": "Data",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node",
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_Chfa66tE",
+   "type": "if",
+   "data": {
+    "title": "Save Draft ?",
+    "isValidator": true,
+    "nodeName": "Save Draft ?",
+    "name": "Save Draft ?",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1736695973613,
+       "parentId": 1736695973612,
+       "isTop": true,
+       "prop": "workflowparams.data",
+       "operator": "equal",
+       "valueType": "value",
+       "type": "leaf",
+       "level": 1,
+       "propLabel": "Data",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{workflowparams:data.preq_status}}' == 'Draft'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_ARuhJWub",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_9XHFDoiG",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Draft Check Doc No",
+        "isValidator": true,
+        "nodeName": "Draft Check Doc No",
+        "name": "Draft Check Doc No",
+        "script": {
+         "type": "javascript",
+         "code": "let table = {{workflowparams:data}};\n\nif({{workflowparams:data.pr_no_type}} !== -9999 && (\n  !{{workflowparams:data.pr_no}} || {{workflowparams:data.pr_no}} === null || {{workflowparams:data.pr_no}} === ''\n)) {\n  table.pr_no = 'draft'\n}\n\nreturn {table};"
+        },
+        "response_json": [
+         {
+          "key": "3l3lv007",
+          "name": "table",
+          "title": "Table",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "code_node_8VaJL8wy",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Draft Required Fields",
+        "isValidator": true,
+        "nodeName": "Draft Required Fields",
+        "name": "Draft Required Fields",
+        "script": {
+         "type": "javascript",
+         "code": "const table = {{node:code_node_9XHFDoiG.data.table}}\nreturn {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant ID\" },\n  { name: \"pr_no\", label: \"Requisition Number\" },\n  {\n    name: \"table_pr\",\n    label: \"Item Information\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    plant_id: table.plant_id,\n    pr_no: table.pr_no,\n    table_pr: table.table_pr\n  })\n}"
+        },
+        "response_json": [
+         {
+          "key": "iomd4yaj",
+          "name": "required_fields",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         },
+         {
+          "key": "z59j2g2u",
+          "name": "data",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "workflow_node_EaZV3ed5",
+       "type": "workflow-node",
+       "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Draft Run Check Required Workflow",
+        "isValidator": true,
+        "nodeName": "Draft Run Check Required Workflow",
+        "name": "Draft Run Check Required Workflow",
+        "workflow": {
+         "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+         "rules": {
+          "collectionId": "1988831880511062018",
+          "list": [
+           {
+            "id": 1763010683443,
+            "parentId": 1763010683442,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+         "list": [
+          {
+           "prop": "entry",
+           "propLabel": "entry",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_8VaJL8wy.data.data}}",
+           "valueLabel": "",
+           "is_negative_number": false
+          },
+          {
+           "prop": "required_fields",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_8VaJL8wy.data.required_fields}}",
+           "valueLabel": "",
+           "propLabel": "required_fields",
+           "is_negative_number": false
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_QBuwSvDZ",
+       "type": "if",
+       "data": {
+        "title": "IF",
+        "isValidator": true,
+        "nodeName": "IF",
+        "name": "IF",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1736695973613,
+           "parentId": 1736695973612,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:workflow_node_EaZV3ed5.data.data.status}}' == 'Failed'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "ifBlock_kmC0vQy5",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "end_node_EC16OVOq",
+           "type": "end-node",
+           "data": {
+            "title": "结束节点",
+            "outputs": {
+             "type": "object",
+             "properties": {
+              "result": {
+               "type": "string"
+              }
+             }
+            },
+            "isValidator": true,
+            "nodeName": "结束节点",
+            "name": "结束节点",
+            "back_data_type": "Default",
+            "code": 400,
+            "msg": {
+             "type": "javascript",
+             "code": "{{node:workflow_node_EaZV3ed5.data.data.message}}"
+            }
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "ifBlock_QLranQkz",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FrkaUa8E",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [
+      {
+       "id": "code_node_3RAiFbOX",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Check Doc No",
+        "isValidator": true,
+        "nodeName": "Check Doc No",
+        "name": "Check Doc No",
+        "script": {
+         "type": "javascript",
+         "code": "let table = {{workflowparams:data}};\n\nif (\n  {{workflowparams:data.pr_no_type}} !== -9999 &&\n  (!{{workflowparams:data.pr_no}} ||\n    {{workflowparams:data.pr_no}} === null ||\n    {{workflowparams:data.pr_no}} === \"\" ||\n    {{workflowparams:data.previous_status}} !== \"Issued\")\n) {\n  table.pr_no = 'issued'\n}\n\nreturn {table};"
+        },
+        "response_json": [
+         {
+          "key": "3l3lv007",
+          "name": "table",
+          "title": "Table",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "code_node_K6fxKtY3",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Required Fields",
+        "isValidator": true,
+        "nodeName": "Required Fields",
+        "name": "Required Fields",
+        "script": {
+         "type": "javascript",
+         "code": "const table = {{node:code_node_3RAiFbOX.data.table}};\nreturn {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant ID\" },\n  { name: \"pr_no\", label: \"Requisition Number\" },\n  { name: \"supplier_type\", label: \"Supplier Type\" },\n  {\n    name: \"table_pr\",\n    label: \"Item Information\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    plant_id: table.plant_id,\n    pr_no: table.pr_no,\n    supplier_type: table.supplier_type,\n    table_pr: table.table_pr\n  })\n}"
+        },
+        "response_json": [
+         {
+          "key": "iomd4yaj",
+          "name": "required_fields",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         },
+         {
+          "key": "z59j2g2u",
+          "name": "data",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "workflow_node_iQcgt9r2",
+       "type": "workflow-node",
+       "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Check Required Workflow",
+        "isValidator": true,
+        "nodeName": "Check Required Workflow",
+        "name": "Check Required Workflow",
+        "workflow": {
+         "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+         "rules": {
+          "collectionId": "1988831880511062018",
+          "list": [
+           {
+            "id": 1763010683443,
+            "parentId": 1763010683442,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+         "list": [
+          {
+           "prop": "entry",
+           "propLabel": "entry",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_K6fxKtY3.data.data}}",
+           "valueLabel": "",
+           "is_negative_number": false
+          },
+          {
+           "prop": "required_fields",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_K6fxKtY3.data.required_fields}}",
+           "valueLabel": "",
+           "propLabel": "required_fields",
+           "is_negative_number": false
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_0redR2jI",
+       "type": "if",
+       "data": {
+        "title": "IF",
+        "isValidator": true,
+        "nodeName": "IF",
+        "name": "IF",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1736695973613,
+           "parentId": 1736695973612,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:workflow_node_iQcgt9r2.data.data.status}}' == 'Passed'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "ifBlock_rHIhVwXY",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "code_node_Tn5wpP6f",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Map Validate Quantity",
+            "isValidator": true,
+            "nodeName": "Map Validate Quantity",
+            "name": "Map Validate Quantity",
+            "script": {
+             "type": "javascript",
+             "code": "const rows =\n  {{workflowparams:data.table_pr}} || [];\n\nconst flattenRows = (rows) =>\n  (Array.isArray(rows) ? rows : []).flatMap(row => {\n    const { children, ...currentRow } = row;\n\n    return [\n      currentRow,\n      ...flattenRows(children),\n    ];\n  });\n\nreturn {\n  lineItem: JSON.stringify(flattenRows(rows)),\n  itemFields:\n    \"pr_line_material_id,pr_line_material_name,pr_line_material_desc\",\n  quantityFields: \"pr_line_qty\"\n};"
+            },
+            "response_json": [
+             {
+              "key": "dtiual9r",
+              "name": "lineItem",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+             },
+             {
+              "key": "aim7yred",
+              "name": "itemFields",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+             },
+             {
+              "key": "1s8cm8jl",
+              "name": "quantityFields",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "workflow_node_wyXbRQjS",
+           "type": "workflow-node",
+           "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "Run Validate Qty Workflow",
+            "isValidator": true,
+            "nodeName": "Run Validate Qty Workflow",
+            "name": "Run Validate Qty Workflow",
+            "workflow": {
+             "source": "VALIDATE_QUANTITY:Workflow:1998298424254201857",
+             "rules": {
+              "collectionId": "1998298424254201857",
+              "list": [
+               {
+                "id": 1723795236686,
+                "parentId": 1723795236685,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+             "list": [
+              {
+               "prop": "lineItem",
+               "propLabel": "lineItem",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_node_Tn5wpP6f.data.lineItem}}",
+               "valueLabel": "",
+               "is_negative_number": false
+              },
+              {
+               "prop": "itemFields",
+               "operator": "",
+               "valueType": "field",
+               "value": "{{node:code_node_Tn5wpP6f.data.itemFields}}",
+               "valueLabel": "",
+               "propLabel": "itemFields",
+               "is_negative_number": false
+              },
+              {
+               "prop": "quantityFields",
+               "operator": "",
+               "valueType": "field",
+               "value": "{{node:code_node_Tn5wpP6f.data.quantityFields}}",
+               "valueLabel": "",
+               "propLabel": "quantityFields",
+               "is_negative_number": false
+              }
+             ]
+            }
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_sDvG64aL",
+           "type": "if",
+           "data": {
+            "title": "Validate Qty Failed?",
+            "isValidator": true,
+            "nodeName": "Validate Qty Failed?",
+            "name": "Validate Qty Failed?",
+            "condition_type": "Expression",
+            "expression": {
+             "type": "javascript",
+             "code": "'{{node:workflow_node_wyXbRQjS.data.data.status}}' == 'Failed'"
+            }
+           },
+           "blocks": [
+            {
+             "id": "ifBlock_PBFqgtGk",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "end_node_zrUyJSe4",
+               "type": "end-node",
+               "data": {
+                "title": "结束节点",
+                "outputs": {
+                 "type": "object",
+                 "properties": {
+                  "result": {
+                   "type": "string"
+                  }
+                 }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                 "type": "javascript",
+                 "code": "{{node:workflow_node_wyXbRQjS.data.data.message}}"
+                }
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "ifBlock_z2k9cw0n",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": [
+              {
+               "id": "code_node_PBv00pLE",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Filter unnecessary line",
+                "isValidator": true,
+                "nodeName": "Filter unnecessary line",
+                "name": "Filter unnecessary line",
+                "script": {
+                 "type": "javascript",
+                 "code": "let table = {{workflowparams:data}};\n\nlet table_pr = table.table_pr.filter(item => (item.pr_line_material_id || item.pr_line_material_desc || item.pr_line_material_name) && item.pr_line_qty > 0)\n\ntable.table_pr = table_pr;\n\nreturn {table};"
+                },
+                "response_json": [
+                 {
+                  "key": "kawoqncd",
+                  "name": "table",
+                  "title": "Table",
+                  "description": "",
+                  "bsonType": "any",
+                  "isExpand": false,
+                  "children": []
+                 }
+                ]
+               },
+               "blocks": []
+              },
+              {
+               "id": "code_node_fXJwAadg",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Count line",
+                "isValidator": true,
+                "nodeName": "Count line",
+                "name": "Count line",
+                "script": {
+                 "type": "javascript",
+                 "code": "return {\n  length: {{node:code_node_PBv00pLE.data.table.table_pr}}.length\n}"
+                },
+                "response_json": [
+                 {
+                  "key": "rrnn9ab8",
+                  "name": "length",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "int",
+                  "isExpand": false,
+                  "children": []
+                 }
+                ]
+               },
+               "blocks": []
+              },
+              {
+               "id": "if_WUSZq4xD",
+               "type": "if",
+               "data": {
+                "title": "IF",
+                "isValidator": true,
+                "nodeName": "IF",
+                "name": "IF",
+                "condition_type": "Expression",
+                "filter": {
+                 "list": [
+                  {
+                   "id": 1736695973613,
+                   "parentId": 1736695973612,
+                   "isTop": true,
+                   "prop": "",
+                   "operator": "",
+                   "valueType": "",
+                   "value": "",
+                   "type": "leaf",
+                   "level": 1
+                  }
+                 ]
+                },
+                "expression": {
+                 "type": "javascript",
+                 "code": "{{node:code_node_fXJwAadg.data.length}} == 0"
+                }
+               },
+               "blocks": [
+                {
+                 "id": "ifBlock_bQxEVQxr",
+                 "type": "ifBlock",
+                 "data": {
+                  "title": "true"
+                 },
+                 "blocks": [
+                  {
+                   "id": "end_node_xpAnQWBb",
+                   "type": "end-node",
+                   "data": {
+                    "title": "结束节点",
+                    "outputs": {
+                     "type": "object",
+                     "properties": {
+                      "result": {
+                       "type": "string"
+                      }
+                     }
+                    },
+                    "isValidator": true,
+                    "nodeName": "结束节点",
+                    "name": "结束节点",
+                    "back_data_type": "Default",
+                    "code": 401,
+                    "msg": {
+                     "type": "javascript",
+                     "code": "'Line Item cannot be empty'"
+                    }
+                   },
+                   "blocks": []
+                  }
+                 ]
+                },
+                {
+                 "id": "ifBlock_gqyuKjp2",
+                 "type": "ifBlock",
+                 "data": {
+                  "title": "false"
+                 },
+                 "blocks": []
+                }
+               ]
+              },
+              {
+               "id": "code_node_Q9w8GLRZ",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Map Approval PREQ Data",
+                "isValidator": true,
+                "nodeName": "Map Approval PREQ Data",
+                "name": "Map Approval PREQ Data",
+                "script": {
+                 "type": "javascript",
+                 "code": "let preqData = {{node:code_node_PBv00pLE.data.table}};\n\n// Filter unnecessary line reads the raw params, so it does not carry the\n// 'issued' marker that Check Doc No put on pr_no. Approval keys off it.\npreqData.pr_no = {{node:code_node_3RAiFbOX.data.table.pr_no}};\n\n// Parents numbered 1, 2, …; children 1/1, 1/2, … (same as Fillback's line_index)\nconst items = [];\n(preqData.table_pr || []).forEach((item, index) => {\n  items.push({ ...item, lineNo: `${index + 1}` });\n  (Array.isArray(item.children) ? item.children : []).forEach((child, childIndex) => {\n    items.push({ ...child, lineNo: `${index + 1}/${childIndex + 1}` });\n  });\n});\n\n// 0 / empty = no limit, same rule as preq_validation_unitPrice.js\nconst limitOf = (value) => {\n  const n = parseFloat(value);\n  return value == null || value === \"\" || Number.isNaN(n) || n === 0 ? null : n;\n};\n\nconst minFailed = items.filter((item) => {\n  const minPrice = limitOf(item.pr_min_price);\n  return minPrice !== null && (parseFloat(item.pr_line_unit_price) || 0) < minPrice;\n});\n\nconst maxFailed = items.filter((item) => {\n  const maxPrice = limitOf(item.pr_max_price);\n  return maxPrice !== null && (parseFloat(item.pr_line_unit_price) || 0) > maxPrice;\n});\n\npreqData.min_price_result = minFailed.length > 0 ? \"failed\" : \"passed\";\npreqData.max_price_result = maxFailed.length > 0 ? \"failed\" : \"passed\";\n\nconst messages = [\n  ...minFailed.map(\n    (item) => `Line ${item.lineNo}: Unit Price ${item.pr_line_unit_price} is below Min Price ${item.pr_min_price}`,\n  ),\n  ...maxFailed.map(\n    (item) => `Line ${item.lineNo}: Unit Price ${item.pr_line_unit_price} exceeds Max Price ${item.pr_max_price}`,\n  ),\n];\n\nreturn { preqData, message: messages.join(\"<br>\") };"
+                },
+                "response_json": [
+                 {
+                  "key": "ig83c9kv",
+                  "name": "preqData",
+                  "title": "Approval PREQ Data",
+                  "description": "",
+                  "bsonType": "any",
+                  "isExpand": false,
+                  "children": []
+                 },
+                 {
+                  "key": "gk9gkvfl",
+                  "name": "message",
+                  "title": "Message",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false
+                 }
+                ]
+               },
+               "blocks": []
+              },
+              {
+               "id": "workflow_node_XdoKYWp4",
+               "type": "workflow-node",
+               "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "Check Approval",
+                "isValidator": true,
+                "nodeName": "Check Approval",
+                "name": "Check Approval",
+                "workflow": {
+                 "rules": {
+                  "collectionId": "2082344813454499841",
+                  "list": [
+                   {
+                    "id": 1723795236686,
+                    "parentId": 1723795236685,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                   }
+                  ]
+                 },
+                 "source": "CHECK_APPROVAL:Workflow:2082344813454499841"
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                 "list": [
+                  {
+                   "prop": "documentType",
+                   "propLabel": "Document Type",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "value",
+                   "valueTypeLabel": "",
+                   "valueLabel": "",
+                   "value": "PREQ"
+                  },
+                  {
+                   "prop": "data",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_Q9w8GLRZ.data.preqData}}",
+                   "valueLabel": "",
+                   "propLabel": "Data"
+                  },
+                  {
+                   "prop": "slotID",
+                   "operator": "",
+                   "valueType": "value",
+                   "value": "slot_node_dWwR1vms",
+                   "valueLabel": "",
+                   "propLabel": "Slot ID"
+                  }
+                 ]
+                }
+               },
+               "blocks": []
+              },
+              {
+               "id": "if_DzOUoRtO",
+               "type": "if",
+               "data": {
+                "title": "IF no approval",
+                "isValidator": true,
+                "nodeName": "IF no approval",
+                "name": "IF no approval",
+                "condition_type": "ConditionRule",
+                "expression": {
+                 "type": "javascript",
+                 "code": ""
+                },
+                "filter": {
+                 "list": [
+                  {
+                   "id": 1736695973613,
+                   "parentId": 1736695973612,
+                   "isTop": true,
+                   "prop": "node.workflow_node_XdoKYWp4.data.needApproval",
+                   "operator": "equal",
+                   "valueType": "value",
+                   "value": "No",
+                   "type": "leaf",
+                   "level": 1,
+                   "valueLabel": "",
+                   "propLabel": "Need Approval",
+                   "operatorLabel": "Equal"
+                  }
+                 ]
+                }
+               },
+               "blocks": [
+                {
+                 "id": "if_block_GT8UPA0b",
+                 "type": "ifBlock",
+                 "data": {
+                  "title": "true"
+                 },
+                 "blocks": [
+                  {
+                   "id": "condition_or_aME5UTUK",
+                   "type": "condition-or-node",
+                   "data": {
+                    "title": "Condition",
+                    "filter": {
+                     "list": []
+                    },
+                    "expression": {
+                     "code": ""
+                    },
+                    "displayContent": "sdk.form.setCondition"
+                   },
+                   "blocks": [
+                    {
+                     "id": "condition_or_item_xwOqqZ5n",
+                     "type": "condition-or-node-item",
+                     "data": {
+                      "title": "Min price not pass",
+                      "filter": {
+                       "list": [
+                        {
+                         "id": 1790584071326,
+                         "parentId": 1790584071325,
+                         "isTop": true,
+                         "prop": "",
+                         "operator": "",
+                         "valueType": "value",
+                         "value": "",
+                         "type": "leaf",
+                         "level": 1
+                        }
+                       ]
+                      },
+                      "expression": {
+                       "code": "'{{node:code_node_Q9w8GLRZ.data.preqData.min_price_result}}' == 'failed'",
+                       "type": "javascript"
+                      },
+                      "displayContent": "sdk.form.setCondition",
+                      "__index": 2,
+                      "isDefault": false,
+                      "isValidator": true,
+                      "nodeName": "Min price not pass",
+                      "name": "Min price not pass",
+                      "condition_type": "Expression"
+                     },
+                     "blocks": [
+                      {
+                       "id": "end_01oWamJB",
+                       "type": "end-node",
+                       "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                         "type": "object",
+                         "properties": {
+                          "result": {
+                           "type": "string"
+                          }
+                         }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "msg": {
+                         "type": "javascript",
+                         "code": "{{node:code_node_Q9w8GLRZ.data.message}}"
+                        },
+                        "code": 402
+                       },
+                       "blocks": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "condition_or_item_13qbzb8o",
+                     "type": "condition-or-node-item",
+                     "data": {
+                      "title": "Max price not pass",
+                      "filter": {
+                       "list": [
+                        {
+                         "id": 1790584071328,
+                         "parentId": 1790584071327,
+                         "isTop": true,
+                         "prop": "",
+                         "operator": "",
+                         "valueType": "value",
+                         "value": "",
+                         "type": "leaf",
+                         "level": 1
+                        }
+                       ]
+                      },
+                      "expression": {
+                       "code": "'{{node:code_node_Q9w8GLRZ.data.preqData.max_price_result}}' == 'failed'",
+                       "type": "javascript"
+                      },
+                      "displayContent": "sdk.form.setCondition",
+                      "__index": 3,
+                      "isDefault": false,
+                      "isValidator": true,
+                      "nodeName": "Max price not pass",
+                      "name": "Max price not pass",
+                      "condition_type": "Expression"
+                     },
+                     "blocks": [
+                      {
+                       "id": "end_nzMhF7Bx",
+                       "type": "end-node",
+                       "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                         "type": "object",
+                         "properties": {
+                          "result": {
+                           "type": "string"
+                          }
+                         }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "msg": {
+                         "type": "javascript",
+                         "code": "{{node:code_node_Q9w8GLRZ.data.message}}"
+                        },
+                        "code": 402
+                       },
+                       "blocks": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "condition_or_node_item_Zets3Jaj",
+                     "type": "condition-or-node-item",
+                     "data": {
+                      "title": "Other",
+                      "isDefault": true,
+                      "filter": {
+                       "list": []
+                      },
+                      "expression": {
+                       "code": ""
+                      },
+                      "displayContent": "sdk.form.otherCondition"
+                     },
+                     "blocks": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "if_block_dKTWrD63",
+                 "type": "ifBlock",
+                 "data": {
+                  "title": "false"
+                 },
+                 "blocks": []
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "ifBlock_BNEIFNjB",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": [
+          {
+           "id": "end_node_KPNeIx4t",
+           "type": "end-node",
+           "data": {
+            "title": "结束节点",
+            "outputs": {
+             "type": "object",
+             "properties": {
+              "result": {
+               "type": "string"
+              }
+             }
+            },
+            "isValidator": true,
+            "nodeName": "结束节点",
+            "name": "结束节点",
+            "back_data_type": "Default",
+            "code": 400,
+            "msg": {
+             "type": "javascript",
+             "code": "{{node:workflow_node_iQcgt9r2.data.data.message}}"
+            }
+           },
+           "blocks": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "if_UDuCkg2l",
+   "type": "if",
+   "data": {
+    "title": "Check Supplier Type",
+    "isValidator": true,
+    "nodeName": "Check Supplier Type",
+    "name": "Check Supplier Type",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1736695973613,
+       "parentId": 1736695973612,
+       "isTop": true,
+       "prop": "workflowparams.entry",
+       "operator": "",
+       "valueType": "value",
+       "value": "",
+       "type": "leaf",
+       "level": 1,
+       "propLabel": "Entry",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{workflowparams:data.supplier_type}}' == 'Existing Supplier'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_j7cqeOrP",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "get_node_69b15XPj",
+       "type": "get-node",
+       "data": {
+        "table_id": {
+         "source": "Supplier:Table:1901541078662762497",
+         "rules": {
+          "collectionId": "1901541078662762497",
+          "list": [
+           {
+            "id": 1763020584955,
+            "parentId": 1763020584954,
+            "isTop": true,
+            "prop": "id",
+            "operator": "numberEqual",
+            "valueType": "field",
+            "value": "{{workflowparams:data.pr_supplier_name}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "Primary Key ID",
+            "valueLabel": "",
+            "operatorLabel": "Equal"
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "title": "Get Supplier Data",
+        "isValidator": true,
+        "nodeName": "Get Supplier Data",
+        "name": "Get Supplier Data"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_I2ztcLv2",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [
+      {
+       "id": "code_node_yfJBazmc",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Supplier Name",
+        "isValidator": true,
+        "nodeName": "Supplier Name",
+        "name": "Supplier Name",
+        "script": {
+         "type": "javascript",
+         "code": "return {\n  supplier_name: {{workflowparams:data.pr_new_supplier_name}}\n}"
+        },
+        "response_json": [
+         {
+          "key": "62zz1rki",
+          "name": "supplier_name",
+          "title": "Supplier Name",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_node_UFKMCLkT",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Fillback Header Fields",
+    "isValidator": true,
+    "nodeName": "Fillback Header Fields",
+    "name": "Fillback Header Fields",
+    "script": {
+     "type": "javascript",
+     "code": "let updatedLineItem = [];\nlet supplierName = \"\";\n// Draft: raw params + draft marker. Issued: filtered lines + issued marker, or,\n// when approval is needed, the copy CHECK_APPROVAL handed back (it may have been\n// knocked back to Draft, and carries approval_condition).\nlet data = {{workflowparams:data.preq_status}} == 'Draft'\n  ? {{node:code_node_9XHFDoiG.data.table}}\n  : {{node:workflow_node_XdoKYWp4.data.needApproval}} == 'Yes'\n    ? {{node:workflow_node_XdoKYWp4.data.data}}\n    : {{node:code_node_Q9w8GLRZ.data.preqData}};\nconst tablePR = data.table_pr;\n\nif (data.supplier_type === \"Existing Supplier\") {\n  supplierName = {{node:get_node_69b15XPj.data.data.supplier_com_name}}\n} else {\n  supplierName = {{node:code_node_yfJBazmc.data.supplier_name}}\n}\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  supplier_id: data.pr_supplier_name || null,\n  plant_id: data.plant_id || null,\n  payment_term_id: data.pr_payment_term_id || null,\n  shipping_preference_id: data.pr_ship_preference_id || null,\n  billing_state_id: data.billing_address_state || null,\n  billing_country_id: data.billing_address_country || null,\n  shipping_state_id: data.shipping_address_state || null,\n  shipping_country_id: data.shipping_address_country || null,\n  supplier_name: supplierName,\n  organization_id: data.organization_id,\n  preq_created_by: {{global:nickname}},\n  line_status: data.preq_status,\n};\n\nconst round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\nconst formatNumbers = (preqLineItem) => ({\n  // Copy all existing properties\n  ...preqLineItem,\n\n  // Round qty and price fields to 8 decimal places\n  pr_line_qty: round8(preqLineItem.pr_line_qty),\n  pr_line_unit_price: round8(preqLineItem.pr_line_unit_price),\n  pr_line_gross: round8(preqLineItem.pr_line_gross),\n  order_qty: round8(preqLineItem.order_qty),\n  pr_line_discount: round8(preqLineItem.pr_line_discount),\n  pr_line_discount_amount: round8(preqLineItem.pr_line_discount_amount),\n  pr_line_tax_fee_amount: round8(preqLineItem.pr_line_tax_fee_amount),\n  pr_line_amount: round8(preqLineItem.pr_line_amount),\n\n  pr_delivery_date: preqLineItem.pr_delivery_date ?? data.pr_delivery_date\n});\n\nfor (const [index, preqLineItem] of tablePR.entries()) {\n  const formattedItem = {\n    ...formatNumbers(preqLineItem),\n    ...commonFields,\n    line_index: index + 1,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(preqLineItem.children) && {\n      children: preqLineItem.children.map((child, childIndex) => ({\n        ...formatNumbers(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\ndata.table_pr = updatedLineItem;\nreturn {data};\n"
+    },
+    "response_json": [
+     {
+      "key": "nqkwxkgc",
+      "name": "data",
+      "title": "data",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_MNUAhrxb",
+   "type": "if",
+   "data": {
+    "title": "IF edit?",
+    "isValidator": true,
+    "nodeName": "IF edit?",
+    "name": "IF edit?",
+    "condition_type": "Expression",
+    "expression": {
+     "type": "javascript",
+     "code": "'{{workflowparams:data.page_status}}' == 'Edit'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_rX3dJwQl",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_CfNeed1",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_UFKMCLkT.data.data.custom_fields_8k2wxzce}}][0];\nconst lines = [{{node:code_node_UFKMCLkT.data.data.table_pr}}][0];\nconst rawId = [{{workflowparams:data.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_v2a8l69e\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
+        },
+        "response_json": [
+         {
+          "key": "t2nkbbqn",
+          "name": "need",
+          "title": "need",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "e1err4su",
+          "name": "id",
+          "title": "id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Custom fields this edit leaves out? (header + lines)",
+        "isValidator": true,
+        "nodeName": "Custom fields this edit leaves out? (header + lines)",
+        "name": "Custom fields this edit leaves out? (header + lines)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_CfNeed1",
+       "type": "if",
+       "data": {
+        "title": "IF the edit leaves custom fields out",
+        "isValidator": true,
+        "nodeName": "IF the edit leaves custom fields out",
+        "name": "IF the edit leaves custom fields out",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1799100007003,
+           "parentId": 1799100007004,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_node_CfNeed1.data.need}}' == 'YES'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "ifBlock_TCfNeed1",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "get_node_CfStored1",
+           "type": "get-node",
+           "data": {
+            "table_id": {
+             "source": "Purchase Requisition:Table:1902776660860715009",
+             "rules": {
+              "collectionId": "1902776660860715009",
+              "list": [
+               {
+                "id": 1799100007001,
+                "parentId": 1799100007002,
+                "isTop": true,
+                "prop": "id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{node:code_node_CfNeed1.data.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+               }
+              ]
+             }
+            },
+            "condition": {},
+            "title": "The stored record (custom fields by name)",
+            "isValidator": true,
+            "nodeName": "The stored record (custom fields by name)",
+            "name": "The stored record (custom fields by name)"
+           },
+           "blocks": []
+          },
+          {
+           "id": "code_node_CfFill1",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "script": {
+             "type": "javascript",
+             "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_UFKMCLkT.data.data.custom_fields_8k2wxzce}}][0];\nconst lines = [{{node:code_node_UFKMCLkT.data.data.table_pr}}][0];\nconst got = [{{node:get_node_CfStored1.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = null;\nconst storedRows = flat(stored[\"table_pr\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_8k2wxzce\"]) ? null : stored[\"custom_fields_8k2wxzce\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
+            },
+            "response_json": [
+             {
+              "key": "djn19sw3",
+              "name": "ok",
+              "title": "ok",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "thv5dpgv",
+              "name": "cf",
+              "title": "cf",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "apgeoz09",
+              "name": "lines",
+              "title": "lines",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+               {
+                "key": "wt528whc",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+               }
+              ]
+             }
+            ],
+            "title": "Stored custom fields for what the edit left out",
+            "isValidator": true,
+            "nodeName": "Stored custom fields for what the edit left out",
+            "name": "Stored custom fields for what the edit left out"
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "ifBlock_FCfNeed1",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "code_node_CfOut1",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill1.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_node_UFKMCLkT.data.data.custom_fields_8k2wxzce}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_node_UFKMCLkT.data.data.table_pr}}][0] };"
+        },
+        "response_json": [
+         {
+          "key": "a6fnzlmd",
+          "name": "cf",
+          "title": "cf",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "29du9i89",
+          "name": "lines",
+          "title": "lines",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "al30f667",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "isArrayItem": true,
+            "children": []
+           }
+          ]
+         }
+        ],
+        "title": "Custom fields to write (payload, or stored where left out)",
+        "isValidator": true,
+        "nodeName": "Custom fields to write (payload, or stored where left out)",
+        "name": "Custom fields to write (payload, or stored where left out)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "update_node_hv0acfFd",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Purchase Requisition:Table:1902776660860715009",
+         "rules": {
+          "collectionId": "1902776660860715009",
+          "list": [
+           {
+            "id": 1785898003232,
+            "parentId": 1785898003231,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{workflowparams:data.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update Data",
+        "isValidator": true,
+        "nodeName": "Update Data",
+        "name": "Update Data",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "主键ID",
+           "is_negative_number": false
+          },
+          {
+           "prop": "plant_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.plant_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Plant",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_date",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Date",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_delivery_date",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_delivery_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Required Delivery Date",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_payment_term_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_payment_term_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Payment Terms",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_ref_doc",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_ref_doc}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Reference Document",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_sub_total",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_sub_total}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Gross",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_discount_total",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_discount_total}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Discount",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_total_tax_fee",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_total_tax_fee}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Tax Fee",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_total_price",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_total_price}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 1",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_description",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_description}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Description",
+           "is_negative_number": false
+          },
+          {
+           "prop": "created_source",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.created_source}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Created Source",
+           "is_negative_number": false
+          },
+          {
+           "prop": "wa_number",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.wa_number}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Whatsapp No",
+           "is_negative_number": false
+          },
+          {
+           "prop": "wa_group",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.wa_group}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Whatsapp Group",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_billing_address",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_billing_address}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Billing",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_shipping_address",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_shipping_address}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Shipping",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_city",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_city}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "City",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_line_1",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_line_1}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_country",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_country}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Country",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_line_2",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_line_2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 2",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_line_3",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_line_3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 3",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_line_3",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_line_3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 3",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_postal_code",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_postal_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Postal Code",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_line_4",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_line_4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 4",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_city",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_city}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "City",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_line_2",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_line_2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 2",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_line_4",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_line_4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 4",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_country",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_country}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Country",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_postal_code",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_postal_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Postal Code",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_line_1",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_line_1}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_state",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_state}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "State",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_state",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_state}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "State",
+           "is_negative_number": false
+          },
+          {
+           "prop": "currency_code",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.currency_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Currency",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_status",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Preq Status",
+           "is_negative_number": false
+          },
+          {
+           "prop": "organization_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.organization_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Organization",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_new_supplier_name",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_new_supplier_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Supplier Name",
+           "is_negative_number": false
+          },
+          {
+           "prop": "supplier_type",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.supplier_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Supplier Type",
+           "is_negative_number": false
+          },
+          {
+           "prop": "exchange_rate",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.exchange_rate}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Exchange Rate",
+           "is_negative_number": false
+          },
+          {
+           "prop": "myr_total_amount",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.myr_total_amount}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Amount",
+           "is_negative_number": false
+          },
+          {
+           "prop": "exchange_rate_myr",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.exchange_rate_myr}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Exchange Rate MYR",
+           "is_negative_number": false
+          },
+          {
+           "prop": "exchange_rate_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.exchange_rate_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Exchange Rate",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_discount_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_discount_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Discount",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_amount_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_amount_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Amount",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_tax_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_tax_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Tax Fee",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_gross_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_gross_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Gross",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_amount_myr",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_amount_myr}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Amount (MYR)",
+           "is_negative_number": false
+          },
+          {
+           "prop": "table_pr",
+           "valueType": "field",
+           "value": "{{node:code_node_CfOut1.data.lines}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Item Table",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_supplier_name",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_supplier_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Supplier Name",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_ship_preference_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_ship_preference_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Shipping Preference",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_attention",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_attention}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Attention",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_phone",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_phone}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Contact Number",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_name",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Name",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_attention",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_attention}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Attention",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_phone",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_phone}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Contact Number",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_name",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Name",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark3",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 3",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark2",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 2",
+           "is_negative_number": false
+          },
+          {
+           "prop": "price_tag_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.price_tag_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Price Tag ID",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_requestor",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_requestor}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Requestor",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_no_type",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_no_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Rule",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_no",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Purchase Requisition No",
+           "is_negative_number": false
+          },
+          {
+           "prop": "acc_integration_type",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.acc_integration_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Acc Integration Type",
+           "is_negative_number": false
+          },
+          {
+           "prop": "project_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.project_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Project",
+           "is_negative_number": false
+          },
+          {
+           "prop": "previous_status",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.previous_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Previous Status",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_type",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "PREQ Type",
+           "is_negative_number": false
+          },
+          {
+           "prop": "print_status",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.print_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Print Status",
+           "is_negative_number": false
+          },
+          {
+           "prop": "print_count",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.print_count}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Print Count",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_fax",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_fax}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Fax",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_fax",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_fax}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Fax",
+           "is_negative_number": false
+          },
+          {
+           "prop": "custom_fields_8k2wxzce",
+           "valueType": "field",
+           "value": "{{node:code_node_CfOut1.data.cf}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Custom Fields",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark4",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 4",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark5",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark5}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 5",
+           "is_negative_number": false
+          },
+          {
+           "prop": "approval_condition",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.approval_condition}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Approval Condition",
+           "is_negative_number": false
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "get_node_BBb1UOfx",
+       "type": "get-node",
+       "data": {
+        "table_id": {
+         "source": "Purchase Requisition:Table:1902776660860715009",
+         "rules": {
+          "collectionId": "1902776660860715009",
+          "list": [
+           {
+            "id": 1790584071330,
+            "parentId": 1790584071329,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{workflowparams:data.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "Primary Key ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "condition": {},
+        "title": "Get One",
+        "isValidator": true,
+        "nodeName": "Get One",
+        "name": "Get One"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_iUzGvu3g",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [
+      {
+       "id": "add_node_5QAopnNI",
+       "type": "add-node",
+       "data": {
+        "table_id": {
+         "source": "Purchase Requisition:Table:1902776660860715009",
+         "rules": {
+          "collectionId": "1902776660860715009",
+          "list": [
+           {
+            "id": 1785898038811,
+            "parentId": 1785898038810,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "title": "Add Data",
+        "isValidator": true,
+        "nodeName": "Add Data",
+        "name": "Add Data",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "plant_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.plant_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Plant",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_date",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Date",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_delivery_date",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_delivery_date}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Required Delivery Date",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_payment_term_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_payment_term_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Payment Terms",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_ref_doc",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_ref_doc}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Reference Document",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_sub_total",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_sub_total}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Gross",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_discount_total",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_discount_total}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Discount",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_total_tax_fee",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_total_tax_fee}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Tax Fee",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_total_price",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_total_price}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 1",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_description",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_description}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Description",
+           "is_negative_number": false
+          },
+          {
+           "prop": "created_source",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.created_source}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Created Source",
+           "is_negative_number": false
+          },
+          {
+           "prop": "wa_number",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.wa_number}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Whatsapp No",
+           "is_negative_number": false
+          },
+          {
+           "prop": "wa_group",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.wa_group}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Whatsapp Group",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_billing_address",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_billing_address}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Billing",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_shipping_address",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_shipping_address}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Shipping",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_city",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_city}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "City",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_line_1",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_line_1}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_country",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_country}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Country",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_line_2",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_line_2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 2",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_line_3",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_line_3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 3",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_line_3",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_line_3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 3",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_postal_code",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_postal_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Postal Code",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_line_4",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_line_4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 4",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_city",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_city}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "City",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_line_2",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_line_2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 2",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_line_4",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_line_4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Line 4",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_country",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_country}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Country",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_postal_code",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_postal_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Postal Code",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_line_1",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_line_1}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_state",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_state}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "State",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_state",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_state}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "State",
+           "is_negative_number": false
+          },
+          {
+           "prop": "currency_code",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.currency_code}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Currency",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_status",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Preq Status",
+           "is_negative_number": false
+          },
+          {
+           "prop": "organization_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.organization_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Organization",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_new_supplier_name",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_new_supplier_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Supplier Name",
+           "is_negative_number": false
+          },
+          {
+           "prop": "supplier_type",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.supplier_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Supplier Type",
+           "is_negative_number": false
+          },
+          {
+           "prop": "exchange_rate",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.exchange_rate}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Exchange Rate",
+           "is_negative_number": false
+          },
+          {
+           "prop": "myr_total_amount",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.myr_total_amount}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Amount",
+           "is_negative_number": false
+          },
+          {
+           "prop": "exchange_rate_myr",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.exchange_rate_myr}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Exchange Rate MYR",
+           "is_negative_number": false
+          },
+          {
+           "prop": "exchange_rate_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.exchange_rate_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Exchange Rate",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_discount_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_discount_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Discount",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_amount_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_amount_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Amount",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_tax_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_tax_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Tax Fee",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_gross_currency",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_gross_currency}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Gross",
+           "is_negative_number": false
+          },
+          {
+           "prop": "total_amount_myr",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.total_amount_myr}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Total Amount (MYR)",
+           "is_negative_number": false
+          },
+          {
+           "prop": "table_pr",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.table_pr}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Item Table",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_supplier_name",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_supplier_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Supplier Name",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_ship_preference_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_ship_preference_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Shipping Preference",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_attention",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_attention}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Attention",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_phone",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_phone}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Contact Number",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_name",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Name",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_attention",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_attention}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Attention",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_phone",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_phone}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Contact Number",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_name",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_name}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Address Name",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark3",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark3}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 3",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark2",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark2}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 2",
+           "is_negative_number": false
+          },
+          {
+           "prop": "price_tag_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.price_tag_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Price Tag ID",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_requestor",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_requestor}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Requestor",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_no_type",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_no_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Rule",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_no",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_no}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Purchase Requisition No",
+           "is_negative_number": false
+          },
+          {
+           "prop": "acc_integration_type",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.acc_integration_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Acc Integration Type",
+           "is_negative_number": false
+          },
+          {
+           "prop": "project_id",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.project_id}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Project",
+           "is_negative_number": false
+          },
+          {
+           "prop": "previous_status",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.previous_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Previous Status",
+           "is_negative_number": false
+          },
+          {
+           "prop": "preq_type",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.preq_type}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "PREQ Type",
+           "is_negative_number": false
+          },
+          {
+           "prop": "print_status",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.print_status}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Print Status",
+           "is_negative_number": false
+          },
+          {
+           "prop": "print_count",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.print_count}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Print Count",
+           "is_negative_number": false
+          },
+          {
+           "prop": "billing_address_fax",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.billing_address_fax}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Fax",
+           "is_negative_number": false
+          },
+          {
+           "prop": "shipping_address_fax",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.shipping_address_fax}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Fax",
+           "is_negative_number": false
+          },
+          {
+           "prop": "custom_fields_8k2wxzce",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.custom_fields_8k2wxzce}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Custom Fields",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark4",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark4}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 4",
+           "is_negative_number": false
+          },
+          {
+           "prop": "pr_remark5",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.pr_remark5}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Remark 5",
+           "is_negative_number": false
+          },
+          {
+           "prop": "approval_condition",
+           "valueType": "field",
+           "value": "{{node:code_node_UFKMCLkT.data.data.approval_condition}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "Approval Condition",
+           "is_negative_number": false
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_node_ntvf5pq2",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Get Latest PREQ",
+    "isValidator": true,
+    "nodeName": "Get Latest PREQ",
+    "name": "Get Latest PREQ",
+    "script": {
+     "type": "javascript",
+     "code": "const preqData = {{workflowparams:data.page_status}} == 'Add' || {{workflowparams:data.page_status}} == 'Clone' ? {{node:add_node_5QAopnNI.data}}[0] : {{node:get_node_BBb1UOfx.data.data}}\n\n\nreturn { preqData };"
+    },
+    "response_json": [
+     {
+      "key": "mwa68s6c",
+      "name": "preqData",
+      "title": "",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_ukNif03e",
+   "type": "if",
+   "data": {
+    "title": "IF need approval?",
+    "isValidator": true,
+    "nodeName": "IF need approval?",
+    "name": "IF need approval?",
+    "condition_type": "ConditionRule",
+    "expression": {
+     "type": "javascript",
+     "code": ""
+    },
+    "filter": {
+     "list": [
+      {
+       "id": 1790584071332,
+       "parentId": 1790584071331,
+       "isTop": true,
+       "prop": "node.workflow_node_XdoKYWp4.data.needApproval",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "Yes",
+       "type": "leaf",
+       "level": 1,
+       "propLabel": "Need Approval",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_block_hGx4Ltb6",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "slot_node_dWwR1vms",
+       "type": "slot-node",
+       "data": {
+        "slot_id": "",
+        "slot_name": "",
+        "slot_params": {},
+        "title": "Slot",
+        "isValidator": true,
+        "nodeName": "Slot",
+        "name": "Slot",
+        "name_k": "PREQ Approval",
+        "table_id": {
+         "rules": {
+          "collectionId": "1902776660860715009",
+          "list": [
+           {
+            "id": 1735218938947,
+            "parentId": 1735218938946,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         },
+         "source": "Purchase Requisition:Table:1902776660860715009"
+        },
+        "primary_key": {
+         "type": "javascript",
+         "code": "{{node:code_node_ntvf5pq2.data.preqData.id}}"
+        },
+        "display_fields": {
+         "list": []
+        },
+        "des": ""
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_P6G0JwxR",
+       "type": "if",
+       "data": {
+        "title": "IF approved?",
+        "isValidator": true,
+        "nodeName": "IF approved?",
+        "name": "IF approved?",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1736695973613,
+           "parentId": 1736695973612,
+           "isTop": true,
+           "prop": "node.slot_node_dWwR1vms.result",
+           "operator": "",
+           "valueType": "value",
+           "value": 0,
+           "type": "leaf",
+           "level": 1,
+           "valueLabel": "",
+           "propLabel": "最终结果"
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "{{node:slot_node_dWwR1vms.result}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_block_7aylDter",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "code_node_9Qg9fG6I",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Map Updated Data",
+            "isValidator": true,
+            "nodeName": "Map Updated Data",
+            "name": "Map Updated Data",
+            "script": {
+             "type": "javascript",
+             "code": "let latestPREQData = {{node:code_node_ntvf5pq2.data.preqData}};\n\n// Held back as a draft for approval -> number it now. 'issued' is the same marker\n// Check Doc No uses; manual numbering (-9999) keeps the typed number.\nif (\n  latestPREQData.pr_no_type !== -9999 &&\n  (latestPREQData.previous_status === \"Draft\" || !latestPREQData.previous_status) &&\n  latestPREQData.preq_status !== \"Issued\"\n) {\n  latestPREQData.pr_no = \"issued\";\n}\nlatestPREQData.preq_status = \"Issued\";\n\n// Lines were saved with the header's Draft status. The list page's Convert PO\n// only picks up Issued lines, so issue them with the header.\nconst issueLine = (line) => ({\n  ...line,\n  line_status: !line.line_status || line.line_status === \"Draft\" ? \"Issued\" : line.line_status,\n});\n\nlatestPREQData.table_pr = (latestPREQData.table_pr || []).map((line) => ({\n  ...issueLine(line),\n  ...(Array.isArray(line.children) && { children: line.children.map(issueLine) }),\n}));\n\nreturn { latestPREQData };"
+            },
+            "response_json": [
+             {
+              "key": "407zy1hy",
+              "name": "latestPREQData",
+              "title": "latestPREQData",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "update_node_n0X7WIbr",
+           "type": "update-node",
+           "data": {
+            "table_id": {
+             "source": "Purchase Requisition:Table:1902776660860715009",
+             "rules": {
+              "collectionId": "1902776660860715009",
+              "list": [
+               {
+                "id": 1790584071334,
+                "parentId": 1790584071333,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_ntvf5pq2.data.preqData.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+               }
+              ]
+             }
+            },
+            "fields": [],
+            "condition": {},
+            "title": "Update Approved Data",
+            "isValidator": true,
+            "nodeName": "Update Approved Data",
+            "name": "Update Approved Data",
+            "props": {
+             "modelName": "",
+             "list": [
+              {
+               "prop": "pr_no",
+               "valueType": "field",
+               "value": "{{node:code_node_9Qg9fG6I.data.latestPREQData.pr_no}}",
+               "operator": "",
+               "is_negative_number": false,
+               "valueLabel": "",
+               "propLabel": "Purchase Requisition No"
+              },
+              {
+               "prop": "preq_status",
+               "valueType": "field",
+               "value": "{{node:code_node_9Qg9fG6I.data.latestPREQData.preq_status}}",
+               "operator": "",
+               "is_negative_number": false,
+               "valueLabel": "",
+               "propLabel": "Preq Status"
+              },
+              {
+               "prop": "table_pr",
+               "valueType": "field",
+               "value": "{{node:code_node_9Qg9fG6I.data.latestPREQData.table_pr}}",
+               "operator": "",
+               "is_negative_number": false,
+               "valueLabel": "",
+               "propLabel": "Item Table"
+              }
+             ]
+            }
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_block_4QzLStpd",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "if_block_aDjCNxOS",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_idsb9jJx",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Map Item IDs",
+    "isValidator": true,
+    "nodeName": "Map Item IDs",
+    "name": "Map Item IDs",
+    "script": {
+     "type": "javascript",
+     "code": "const lineItem = {{node:code_node_UFKMCLkT.data.data.table_pr}};\n\nconst uniqueItemIDs = [\n  ...new Set(lineItem.filter((item) => item.pr_line_material_id).map((item) => item.pr_line_material_id))\n];\n\nreturn {\n  itemIDs: uniqueItemIDs\n}"
+    },
+    "response_json": [
+     {
+      "key": "7wi3d76i",
+      "name": "itemIDs",
+      "title": "Item IDs",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "611z4es4",
+        "name": "items",
+        "title": "ID",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "isArrayItem": true
+       }
+      ]
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "workflow_node_ujfFEOk5",
+   "type": "workflow-node",
+   "data": {
+    "workflow_id": "",
+    "workflow_name": "",
+    "input_params": {},
+    "title": "Transaction Date",
+    "isValidator": true,
+    "nodeName": "Transaction Date",
+    "name": "Transaction Date",
+    "workflow": {
+     "source": "UPDATE_ITEM_TRANSACTION_DATE:Workflow:1989229727911870466",
+     "rules": {
+      "collectionId": "1989229727911870466",
+      "list": [
+       {
+        "id": 1723795236686,
+        "parentId": 1723795236685,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "remote": true,
+    "remoteType": "innerdatasource",
+    "body_params": {
+     "list": [
+      {
+       "prop": "itemIDs",
+       "propLabel": "Item IDs",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "valueLabel": "",
+       "value": "{{node:code_node_idsb9jJx.data.itemIDs}}",
+       "is_negative_number": false
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

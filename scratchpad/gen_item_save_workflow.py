@@ -10,6 +10,9 @@ import json, os, string, random
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, "Item", "ItemSaveWorkflow.json")
+import sys  # noqa: E402
+sys.path.insert(0, os.path.join(ROOT, "scratchpad", "cfwipe"))
+from patch_cf import patch_exact  # noqa: E402  (an edit that leaves the custom fields out keeps them)
 
 ITEM_TABLE = "Item:Table:1901546842240438273"
 ITEM_ID = "1901546842240438273"
@@ -820,6 +823,7 @@ workflow = {
     "edges": [],
 }
 
+workflow = patch_exact("ITEM_SAVE", workflow)
 with open(OUT, "w") as fh:
     json.dump(workflow, fh, ensure_ascii=False, indent=1)
     fh.write("\n")

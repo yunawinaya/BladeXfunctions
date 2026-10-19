@@ -97,7 +97,9 @@ for (const file of process.argv.slice(2)) {
   let res;
   const label = path.basename(file).slice(0, 19) + " " + fx.doc_no + " " + fx.stored_status;
   try { res = vm.runInContext("geChain(__IN)", sb); } catch (e) { console.log(label, "THREW", e.message, "|", e.stack.split("\n").slice(0, 3).join(" | ")); total.failed++; continue; }
-  const ctx = Object.assign({}, ...vm.runInContext("__CTXS", sb));
+  // the head's own context wins: the allocation loop runs its nodes in a context of its own holding slim copies of head keys
+  const ctxs = vm.runInContext("__CTXS", sb);
+  const ctx = Object.assign({}, ...ctxs, ctxs[0] || {});
   const lines = [];
   for (const id of res.ran) {
     if (!(id in rec) || rec[id] === undefined) { total.notRecorded++; continue; }

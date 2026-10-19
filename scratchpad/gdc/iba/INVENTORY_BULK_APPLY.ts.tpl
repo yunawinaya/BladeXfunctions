@@ -162,36 +162,14 @@ export default apiFlow(
       });
       /* @id cor_IBseed */ switchFirst('Lock rows to seed?')
         .case('YES', rule({ field: code_node_IBseed.needSeed, op: 'equal', value: 'YES' }), async () => {
-          const set_cache_IBsdIdx0 = await setCache("Seed slice index = 0 (per run: the key carries the run's nonce)", {
-            key: 'iba_sd_{{node:code_node_IBguard.data.nonce}}',
-            value: '0', ttl: 3600000,
+          // a twin insert (another operation seeding the same new key) fails only the child; the claim re-reads and answers BUSY
+          const workflow_node_IBseed = await callWorkflow('Lock seed: INVENTORY_LOCK_SEED (a twin insert fails only the child; the claim re-reads)', {
+            inputs: {
+              organization_id: code_node_IBguard.organizationId,
+              rows: code_node_IBseed.rowsToAdd,
+            },
+            use: workflows.INVENTORY_LOCK_SEED,
           });
-          /* @id loop_IBseed @title "Seed the lock rows in slices of <= 250" */ for (const _item of code_node_IBseed.batches) {
-            const get_cache_IBsdIdx = await getCache('Seed slice index', { key: 'iba_sd_{{node:code_node_IBguard.data.nonce}}' });
-            const code_node_IBsdSlice = await code('Seed slice', CODE('slice.tpl.js', {'__LIST__': 'rowsToAdd', '__SRC__': 'code_node_IBseed', '__IDX__': 'get_cache_IBsdIdx'}), {
-              outputs: {
-                rows: { type: 'array', title: 'rows', items: 'any' },
-                count: { type: 'string', title: 'count' },
-                nextIndex: { type: 'string', title: 'nextIndex' },
-              },
-            });
-            /* @id add_node_IBseed */ await add('Lock seed insert (unique tenant / organization / lock_key: a twin insert fails)', {
-              props: {
-                organization_id: code_node_IBsdSlice.rows.organization_id,
-                lock_key: code_node_IBsdSlice.rows.lock_key,
-                balance_type: code_node_IBsdSlice.rows.balance_type,
-                free_token: code_node_IBsdSlice.rows.free_token,
-                lock_version: code_node_IBsdSlice.rows.lock_version,
-                owner_operation_id: code_node_IBsdSlice.rows.owner_operation_id,
-                last_owner_operation_id: code_node_IBsdSlice.rows.last_owner_operation_id,
-              },
-              table: t.Inventory_Balance_Lock,
-            });
-            const set_cache_IBsdIdxN = await setCache('Next seed slice index', {
-              key: 'iba_sd_{{node:code_node_IBguard.data.nonce}}',
-              value: code_node_IBsdSlice.nextIndex, ttl: 3600000,
-            });
-          }
         })
         .default('NO', async () => {});
       const sql_node_IBlk2 = await sql('Lock claim: the lock rows before the take', { table: t.Inventory_Balance_Lock,

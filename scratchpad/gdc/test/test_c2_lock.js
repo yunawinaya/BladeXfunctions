@@ -52,7 +52,7 @@ t("other answers unchanged: 200 DONE + SPLIT, 400 FAILED + unlock, 500 review", 
 
 const { submitEntry } = ctx(["code/submit/_common.js", "+code/submit/entry.js"]);
 const g = { operation: "SUBMIT", tenantId: "711077", gdId: "3", answers: { isForceComplete: "" } };
-const facts = (open) => [{ db_now: "2026-10-15 12:00:00", gd_id: "3", delivery_no: "GD/1", gd_status: "Created", organization_id: "2", plant_id: "4", line_count: 10, last_lock: "LOCK|2", open_jobs: JSON.stringify(open), last_job: null }];
+const facts = (open, picking) => [{ db_now: "2026-10-15 12:00:00", gd_id: "3", delivery_no: "GD/1", gd_status: "Created", organization_id: "2", plant_id: "4", line_count: 10, last_lock: "LOCK|2", open_jobs: JSON.stringify(open), picking_jobs: picking ? JSON.stringify(picking) : null, last_job: null }];
 t("SUBMIT: an open EDIT_GD job is BUSY; one under review says so", () => {
   const r = submitEntry(g, facts([{ id: "9", command: "EDIT_GD", job_status: "COMMITTING_GD" }]));
   eq([r.route, r.code, r.message], ["BUSY", "409", "Its edit is being saved - please wait for it to finish."]);
@@ -61,5 +61,14 @@ t("SUBMIT: an open EDIT_GD job is BUSY; one under review says so", () => {
   eq(submitEntry(g, facts([{ id: "8", command: "COMPLETE_GD", job_status: "QUEUED" }])).message, "This delivery is already being completed - please wait for it to finish.");
   eq(submitEntry(g, facts([{ id: "7", command: "COMPLETE_PACKING", job_status: "REQUIRES_REVIEW" }])).message, "Its Packing stopped half-way and is under review: please contact support.");
   eq([submitEntry(g, facts(null)).route, submitEntry(g, facts(null)).lockN], ["GO", 3]);
+});
+t("SUBMIT: an open Picking V2 confirm of one of its Pickings is BUSY; one under review says so", () => {
+  const r = submitEntry(g, facts(null, [{ id: "5", command: "CONFIRM_PICKING", job_status: "COMMITTING_PICKING" }]));
+  eq([r.route, r.code, r.message], ["BUSY", "409", "Its Picking is being confirmed in the background - please wait for it to finish."]);
+  const v = submitEntry(g, facts(null, [{ id: "5", command: "CONFIRM_PICKING", job_status: "QUEUED" }, { id: "6", command: "CONFIRM_PICKING", job_status: "REQUIRES_REVIEW" }]));
+  eq(v.message, "A Picking confirmation of this delivery stopped half-way and is under review: please contact support.");
+  eq(submitEntry(g, facts(null, [])).route, "GO");
+  // STATUS still answers while a Picking confirm runs
+  eq(submitEntry(Object.assign({}, g, { operation: "STATUS" }), facts(null, [{ id: "5", command: "CONFIRM_PICKING", job_status: "QUEUED" }])).route, "STATUS");
 });
 console.log(n + " tests passed");

@@ -13,7 +13,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   }
   const gr = list(grRows)[0] || {};
   const base = {
-    route: "NO_WRITE", phase: "", dbNow: dbNow, jobId: guard.jobId, organizationId: "0", grId: "0", grNo: "", plantId: "0", prevStatus: "", idempotencyKey: "",
+    route: "NO_WRITE", phase: "", dbNow: dbNow, jsAt: String(Date.now()), jobId: guard.jobId, organizationId: "0", grId: "0", grNo: "", plantId: "0", prevStatus: "", idempotencyKey: "",
     jobStatus: job ? s(job.job_status) : "", rowVersion: job ? Number(job.row_version) || 0 : 0, attempts: job ? Number(job.attempt_count) || 0 : 0,
     leaseUntil: job ? s(job.lease_until) : "", unlockOk: "NO", partPrefix: "", manifest: {}, poLocks: {}, poIdsSql: "0", grNoSql: "", jitter: 0, r0Waits: r0Waits,
     jobRows: [], needJobUpd: "NO", unlockRows: [], needUnlock: "NO", freeRows: [], needFree: "NO",
@@ -41,7 +41,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
     && Array.isArray(m.po_ids) && m.po_ids.every((x) => digits(x)) && ["Completed", "Received"].indexOf(prev) >= 0;
   const poIds = valid ? m.po_ids.map(s) : [];
   const entry = { jobId: guard.jobId, organizationId: s(job.organization_id), grId: valid ? s(m.gr_id) : "0", grNo: valid ? s(m.gr_no) : "", plantId: valid && digits(m.plant_id) ? s(m.plant_id) : "0",
-    prevStatus: prev, dbNow: dbNow, attempts: Number(job.attempt_count) || 0, rowVersion: Number(job.row_version) || 0, poLocks: poLockState(lockRows), poIdsSql: idsSql(poIds),
+    prevStatus: prev, dbNow: dbNow, jsAt: String(Date.now()), attempts: Number(job.attempt_count) || 0, rowVersion: Number(job.row_version) || 0, poLocks: poLockState(lockRows), poIdsSql: idsSql(poIds),
     grNoSql: valid ? s(m.gr_no).replace(/\\/g, "\\\\").replace(/'/g, "''") : "", r0Waits: r0Waits, jitter: parseInt(s(guard.nonce).slice(0, 4) || "0", 16) % 5 };
   // before R1 the receipt can go back to its status before the submit - when it is Processing under this job's lock
   const lockMine = s(gr.gr_status) === "Processing" && s(gr.lock_ref) !== "" && s(gr.lock_ref) === s(job.idempotency_key) && s(gr.gr_v2_job_id) === guard.jobId;

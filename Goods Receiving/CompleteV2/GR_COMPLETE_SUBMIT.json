@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "xhmsgg5d",
+   "key": "4d3kk7l3",
    "name": "operation",
    "title": "operation",
    "description": "SUBMIT (default) or STATUS",
@@ -10,7 +10,7 @@
    "children": []
   },
   {
-   "key": "l8m7sqyz",
+   "key": "gvfyqei4",
    "name": "page_status",
    "title": "page_status",
    "description": "Add | Edit",
@@ -19,7 +19,7 @@
    "children": []
   },
   {
-   "key": "td5lyj7y",
+   "key": "af48b9x7",
    "name": "gr_id",
    "title": "gr_id",
    "description": "goods_receiving.id (digits) for Edit; empty for Add",
@@ -28,7 +28,7 @@
    "children": []
   },
   {
-   "key": "npfek110",
+   "key": "wsuhoeyk",
    "name": "idempotency_key",
    "title": "idempotency_key",
    "description": "one per click: page token + payload hash + generation (8-128 chars A-Z a-z 0-9 | : _ . -)",
@@ -37,7 +37,7 @@
    "children": []
   },
   {
-   "key": "b613h4mi",
+   "key": "rcfuv4jf",
    "name": "answers",
    "title": "answers",
    "description": "{ continueZero } as GOODS_RECEIVING takes it",
@@ -46,7 +46,7 @@
    "children": []
   },
   {
-   "key": "tam8e5hc",
+   "key": "56ey09tw",
    "name": "form",
    "title": "form",
    "description": "the GR form's data (allData: header + table_gr)",
@@ -57,7 +57,7 @@
  ],
  "response_json": [
   {
-   "key": "iumr3q36",
+   "key": "y8b2l2qn",
    "name": "route",
    "title": "route",
    "description": "",
@@ -65,7 +65,7 @@
    "isExpand": false
   },
   {
-   "key": "nlsc0p18",
+   "key": "trh14yvf",
    "name": "code",
    "title": "code",
    "description": "",
@@ -73,7 +73,7 @@
    "isExpand": false
   },
   {
-   "key": "0reibty8",
+   "key": "89ae5xr7",
    "name": "message",
    "title": "message",
    "description": "",
@@ -81,7 +81,7 @@
    "isExpand": false
   },
   {
-   "key": "a21jroci",
+   "key": "04ejueoh",
    "name": "reason",
    "title": "reason",
    "description": "",
@@ -89,7 +89,7 @@
    "isExpand": false
   },
   {
-   "key": "ru3t1cg9",
+   "key": "im1hbozk",
    "name": "job_id",
    "title": "job_id",
    "description": "",
@@ -97,7 +97,7 @@
    "isExpand": false
   },
   {
-   "key": "o5m8i922",
+   "key": "7rubhgbo",
    "name": "job_status",
    "title": "job_status",
    "description": "",
@@ -105,7 +105,7 @@
    "isExpand": false
   },
   {
-   "key": "71pqdpe2",
+   "key": "2u91fn5u",
    "name": "gr_id",
    "title": "gr_id",
    "description": "",
@@ -113,7 +113,7 @@
    "isExpand": false
   },
   {
-   "key": "3sfnh4cw",
+   "key": "9jjbx2tm",
    "name": "gr_no",
    "title": "gr_no",
    "description": "",
@@ -121,7 +121,7 @@
    "isExpand": false
   },
   {
-   "key": "rglcl7le",
+   "key": "ug7k9czx",
    "name": "line_count",
    "title": "line_count",
    "description": "",
@@ -129,7 +129,7 @@
    "isExpand": false
   },
   {
-   "key": "1wj19oe1",
+   "key": "eilwe4j3",
    "name": "progress_percent",
    "title": "progress_percent",
    "description": "",
@@ -137,7 +137,7 @@
    "isExpand": false
   },
   {
-   "key": "8y91qeba",
+   "key": "fhptly6v",
    "name": "progress_message",
    "title": "progress_message",
    "description": "",
@@ -145,7 +145,7 @@
    "isExpand": false
   },
   {
-   "key": "338iyh66",
+   "key": "vjao9l8f",
    "name": "error_code",
    "title": "error_code",
    "description": "",
@@ -153,7 +153,7 @@
    "isExpand": false
   },
   {
-   "key": "0v1m11eo",
+   "key": "w9zd14jr",
    "name": "error_message",
    "title": "error_message",
    "description": "",
@@ -161,7 +161,7 @@
    "isExpand": false
   },
   {
-   "key": "r67yjmi8",
+   "key": "g1j136gw",
    "name": "evidence",
    "title": "evidence",
    "description": "",
@@ -195,7 +195,7 @@
     },
     "response_json": [
      {
-      "key": "lse04uqn",
+      "key": "a0k81u42",
       "name": "route",
       "title": "route",
       "description": "",
@@ -204,7 +204,7 @@
       "children": []
      },
      {
-      "key": "48xjomod",
+      "key": "ca9zw2yg",
       "name": "code",
       "title": "code",
       "description": "",
@@ -213,7 +213,7 @@
       "children": []
      },
      {
-      "key": "2071ks8c",
+      "key": "m0162vv4",
       "name": "message",
       "title": "message",
       "description": "",
@@ -222,7 +222,7 @@
       "children": []
      },
      {
-      "key": "rdzmtd98",
+      "key": "bqpxlp7f",
       "name": "operation",
       "title": "operation",
       "description": "",
@@ -231,7 +231,7 @@
       "children": []
      },
      {
-      "key": "x59ifcuo",
+      "key": "ngygssph",
       "name": "pageStatus",
       "title": "pageStatus",
       "description": "",
@@ -240,7 +240,7 @@
       "children": []
      },
      {
-      "key": "put73tcq",
+      "key": "rivj927p",
       "name": "grId",
       "title": "grId",
       "description": "",
@@ -249,7 +249,7 @@
       "children": []
      },
      {
-      "key": "h8txyswi",
+      "key": "oar2839t",
       "name": "key",
       "title": "key",
       "description": "",
@@ -258,7 +258,7 @@
       "children": []
      },
      {
-      "key": "5gfvyxlj",
+      "key": "bmxupds1",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -267,7 +267,7 @@
       "children": []
      },
      {
-      "key": "40tyhhbj",
+      "key": "j4e3pqu8",
       "name": "uid",
       "title": "uid",
       "description": "",
@@ -276,7 +276,7 @@
       "children": []
      },
      {
-      "key": "2wextrgc",
+      "key": "ymgun3yz",
       "name": "answers",
       "title": "answers",
       "description": "",
@@ -342,7 +342,7 @@
         },
         "response_json": [
          {
-          "key": "cq56uznj",
+          "key": "5ape61hb",
           "name": "route",
           "title": "route",
           "description": "",
@@ -351,7 +351,7 @@
           "children": []
          },
          {
-          "key": "gnf17kby",
+          "key": "5z2a3wkg",
           "name": "code",
           "title": "code",
           "description": "",
@@ -360,7 +360,7 @@
           "children": []
          },
          {
-          "key": "uukaska4",
+          "key": "s5sqil28",
           "name": "message",
           "title": "message",
           "description": "",
@@ -369,7 +369,7 @@
           "children": []
          },
          {
-          "key": "f0kc6sua",
+          "key": "q0xwu7hh",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -378,7 +378,7 @@
           "children": []
          },
          {
-          "key": "jlpkcrc6",
+          "key": "i0o6lref",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -387,7 +387,7 @@
           "children": []
          },
          {
-          "key": "b149hzxk",
+          "key": "k1u7r9d5",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -396,7 +396,7 @@
           "children": []
          },
          {
-          "key": "zubvi4kk",
+          "key": "advp7151",
           "name": "gr_id",
           "title": "gr_id",
           "description": "",
@@ -405,7 +405,7 @@
           "children": []
          },
          {
-          "key": "u3c18js7",
+          "key": "ilj50saq",
           "name": "gr_no",
           "title": "gr_no",
           "description": "",
@@ -414,7 +414,7 @@
           "children": []
          },
          {
-          "key": "h3yf6nzl",
+          "key": "z8qqkg20",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -423,7 +423,7 @@
           "children": []
          },
          {
-          "key": "tivw2u0f",
+          "key": "rh7p7v07",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -432,7 +432,7 @@
           "children": []
          },
          {
-          "key": "mbnvv3ay",
+          "key": "v3oiw38n",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -441,7 +441,7 @@
           "children": []
          },
          {
-          "key": "duui1fyu",
+          "key": "dpsrx44v",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -450,7 +450,7 @@
           "children": []
          },
          {
-          "key": "57kd635i",
+          "key": "mnpuoio0",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -459,7 +459,7 @@
           "children": []
          },
          {
-          "key": "7yk6jdec",
+          "key": "84iwwlnc",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -662,7 +662,7 @@
     },
     "response_json": [
      {
-      "key": "sbwpksqd",
+      "key": "bh4ukuhd",
       "name": "db_now",
       "title": "db_now",
       "description": "",
@@ -671,7 +671,7 @@
       "children": []
      },
      {
-      "key": "z82ttt1h",
+      "key": "kc1f1h4h",
       "name": "key_job",
       "title": "key_job",
       "description": "",
@@ -680,7 +680,7 @@
       "children": []
      },
      {
-      "key": "b2w3hts0",
+      "key": "xbfnnqit",
       "name": "gr_id",
       "title": "gr_id",
       "description": "",
@@ -689,7 +689,7 @@
       "children": []
      },
      {
-      "key": "l3egxlcy",
+      "key": "ty7wpda3",
       "name": "gr_no",
       "title": "gr_no",
       "description": "",
@@ -698,7 +698,7 @@
       "children": []
      },
      {
-      "key": "hnbipfr8",
+      "key": "w3bvgkuv",
       "name": "gr_status",
       "title": "gr_status",
       "description": "",
@@ -707,7 +707,7 @@
       "children": []
      },
      {
-      "key": "vnepydaa",
+      "key": "yu3xssm5",
       "name": "organization_id",
       "title": "organization_id",
       "description": "",
@@ -716,7 +716,7 @@
       "children": []
      },
      {
-      "key": "o663mbh4",
+      "key": "axk2hz9h",
       "name": "plant_id",
       "title": "plant_id",
       "description": "",
@@ -725,7 +725,7 @@
       "children": []
      },
      {
-      "key": "dp2rpn06",
+      "key": "c1aaiyq8",
       "name": "line_count",
       "title": "line_count",
       "description": "",
@@ -734,7 +734,7 @@
       "children": []
      },
      {
-      "key": "l7o7l4qw",
+      "key": "qlow4d0n",
       "name": "last_lock",
       "title": "last_lock",
       "description": "",
@@ -743,7 +743,7 @@
       "children": []
      },
      {
-      "key": "smdk5xxl",
+      "key": "jl9tjgvt",
       "name": "open_jobs",
       "title": "open_jobs",
       "description": "",
@@ -752,7 +752,7 @@
       "children": []
      },
      {
-      "key": "uxpdyvm9",
+      "key": "jupw4xuy",
       "name": "last_job",
       "title": "last_job",
       "description": "",
@@ -777,7 +777,7 @@
     },
     "response_json": [
      {
-      "key": "1h7tsxsf",
+      "key": "ybpch2p8",
       "name": "route",
       "title": "route",
       "description": "",
@@ -786,7 +786,7 @@
       "children": []
      },
      {
-      "key": "zz0tfk7l",
+      "key": "ofq4rq4l",
       "name": "code",
       "title": "code",
       "description": "",
@@ -795,7 +795,7 @@
       "children": []
      },
      {
-      "key": "rkf8idnf",
+      "key": "peuvuuyc",
       "name": "message",
       "title": "message",
       "description": "",
@@ -804,7 +804,7 @@
       "children": []
      },
      {
-      "key": "qv70lu7w",
+      "key": "gozc4imu",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -813,7 +813,7 @@
       "children": []
      },
      {
-      "key": "6zuhhnpj",
+      "key": "za0xpz8e",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -822,7 +822,7 @@
       "children": []
      },
      {
-      "key": "fx9ber11",
+      "key": "uexbnrnu",
       "name": "grId",
       "title": "grId",
       "description": "",
@@ -831,7 +831,7 @@
       "children": []
      },
      {
-      "key": "ytxaiqf5",
+      "key": "gp6njb39",
       "name": "grNo",
       "title": "grNo",
       "description": "",
@@ -840,7 +840,7 @@
       "children": []
      },
      {
-      "key": "0jd6d2ju",
+      "key": "0sbvq23b",
       "name": "grStatus",
       "title": "grStatus",
       "description": "",
@@ -849,7 +849,7 @@
       "children": []
      },
      {
-      "key": "6qqkxdlp",
+      "key": "ovljw6mb",
       "name": "organizationId",
       "title": "organizationId",
       "description": "",
@@ -858,7 +858,7 @@
       "children": []
      },
      {
-      "key": "hbyjqi0d",
+      "key": "zhv2kg7t",
       "name": "plantId",
       "title": "plantId",
       "description": "",
@@ -867,7 +867,7 @@
       "children": []
      },
      {
-      "key": "j9fc2kii",
+      "key": "6u92092r",
       "name": "lineCount",
       "title": "lineCount",
       "description": "",
@@ -876,7 +876,7 @@
       "children": []
      },
      {
-      "key": "2vgoubrw",
+      "key": "9j1rduir",
       "name": "dbNow",
       "title": "dbNow",
       "description": "",
@@ -885,7 +885,7 @@
       "children": []
      },
      {
-      "key": "2882fj92",
+      "key": "n48u320m",
       "name": "lockN",
       "title": "lockN",
       "description": "",
@@ -894,7 +894,7 @@
       "children": []
      },
      {
-      "key": "x9ey7eko",
+      "key": "ro077zia",
       "name": "jobId",
       "title": "jobId",
       "description": "",
@@ -903,7 +903,7 @@
       "children": []
      },
      {
-      "key": "l1kmq2kg",
+      "key": "ks7gp2dt",
       "name": "jobStatus",
       "title": "jobStatus",
       "description": "",
@@ -912,7 +912,7 @@
       "children": []
      },
      {
-      "key": "re7vghg9",
+      "key": "d80mcvn3",
       "name": "progressPercent",
       "title": "progressPercent",
       "description": "",
@@ -921,7 +921,7 @@
       "children": []
      },
      {
-      "key": "vqcwtnhy",
+      "key": "2cw6qo31",
       "name": "progressMessage",
       "title": "progressMessage",
       "description": "",
@@ -930,7 +930,7 @@
       "children": []
      },
      {
-      "key": "xswgf2iv",
+      "key": "v0vg4zej",
       "name": "errorCode",
       "title": "errorCode",
       "description": "",
@@ -939,7 +939,7 @@
       "children": []
      },
      {
-      "key": "q7ohyp8u",
+      "key": "daqz7w8o",
       "name": "errorMessage",
       "title": "errorMessage",
       "description": "",
@@ -1005,7 +1005,7 @@
         },
         "response_json": [
          {
-          "key": "hyt02wwx",
+          "key": "5ww7aspo",
           "name": "route",
           "title": "route",
           "description": "",
@@ -1014,7 +1014,7 @@
           "children": []
          },
          {
-          "key": "tzvdfdp7",
+          "key": "ip5i2sud",
           "name": "code",
           "title": "code",
           "description": "",
@@ -1023,7 +1023,7 @@
           "children": []
          },
          {
-          "key": "uwrsc3tw",
+          "key": "wez38yhw",
           "name": "message",
           "title": "message",
           "description": "",
@@ -1032,7 +1032,7 @@
           "children": []
          },
          {
-          "key": "k0lgfjoq",
+          "key": "78jgfury",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -1041,7 +1041,7 @@
           "children": []
          },
          {
-          "key": "dfg65rcj",
+          "key": "kl7wuskf",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -1050,7 +1050,7 @@
           "children": []
          },
          {
-          "key": "z0cnj5df",
+          "key": "eurqw0m5",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -1059,7 +1059,7 @@
           "children": []
          },
          {
-          "key": "j2sjujpp",
+          "key": "xsxzeryl",
           "name": "gr_id",
           "title": "gr_id",
           "description": "",
@@ -1068,7 +1068,7 @@
           "children": []
          },
          {
-          "key": "d29gmsr4",
+          "key": "5z6c8tcf",
           "name": "gr_no",
           "title": "gr_no",
           "description": "",
@@ -1077,7 +1077,7 @@
           "children": []
          },
          {
-          "key": "3v0m0hmp",
+          "key": "nj2z9u8c",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -1086,7 +1086,7 @@
           "children": []
          },
          {
-          "key": "kgsqtskg",
+          "key": "tp6julj3",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -1095,7 +1095,7 @@
           "children": []
          },
          {
-          "key": "ndtx7l8j",
+          "key": "ise308yr",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -1104,7 +1104,7 @@
           "children": []
          },
          {
-          "key": "r7sb813w",
+          "key": "nn2949vz",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -1113,7 +1113,7 @@
           "children": []
          },
          {
-          "key": "uk4qrbkt",
+          "key": "w89aco9u",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -1122,7 +1122,7 @@
           "children": []
          },
          {
-          "key": "7b6ju370",
+          "key": "jc4k1l3t",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -1321,7 +1321,7 @@
     },
     "response_json": [
      {
-      "key": "94vi28tt",
+      "key": "ztdz3j3e",
       "name": "ok",
       "title": "ok",
       "description": "",
@@ -1330,7 +1330,7 @@
       "children": []
      },
      {
-      "key": "y0z3p2gh",
+      "key": "sql3nbaw",
       "name": "why",
       "title": "why",
       "description": "",
@@ -1339,7 +1339,7 @@
       "children": []
      },
      {
-      "key": "v46mr3ak",
+      "key": "53x7ghiy",
       "name": "route",
       "title": "route",
       "description": "",
@@ -1348,7 +1348,7 @@
       "children": []
      },
      {
-      "key": "7gah5dy8",
+      "key": "2ysungoe",
       "name": "code",
       "title": "code",
       "description": "",
@@ -1357,7 +1357,7 @@
       "children": []
      },
      {
-      "key": "npaa0054",
+      "key": "66mbwod4",
       "name": "message",
       "title": "message",
       "description": "",
@@ -1366,7 +1366,7 @@
       "children": []
      },
      {
-      "key": "9prrnxtd",
+      "key": "s96hsyw2",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -1375,7 +1375,7 @@
       "children": []
      },
      {
-      "key": "nuyu1cbf",
+      "key": "rxj62ue9",
       "name": "itemIdsSql",
       "title": "itemIdsSql",
       "description": "",
@@ -1384,7 +1384,7 @@
       "children": []
      },
      {
-      "key": "ht8o5ov8",
+      "key": "69trkjdz",
       "name": "poIdsSql",
       "title": "poIdsSql",
       "description": "",
@@ -1393,7 +1393,7 @@
       "children": []
      },
      {
-      "key": "0h3lmu8f",
+      "key": "d8jl3oom",
       "name": "organizationId",
       "title": "organizationId",
       "description": "",
@@ -1402,7 +1402,7 @@
       "children": []
      },
      {
-      "key": "ddwqypev",
+      "key": "arg1wjk5",
       "name": "plantId",
       "title": "plantId",
       "description": "",
@@ -1411,7 +1411,7 @@
       "children": []
      },
      {
-      "key": "4ss08s70",
+      "key": "npal9ydp",
       "name": "lineCount",
       "title": "lineCount",
       "description": "",
@@ -1477,7 +1477,7 @@
         },
         "response_json": [
          {
-          "key": "jmivs5fm",
+          "key": "46d23izw",
           "name": "route",
           "title": "route",
           "description": "",
@@ -1486,7 +1486,7 @@
           "children": []
          },
          {
-          "key": "dulpz5n7",
+          "key": "s1giokeq",
           "name": "code",
           "title": "code",
           "description": "",
@@ -1495,7 +1495,7 @@
           "children": []
          },
          {
-          "key": "ch46w3de",
+          "key": "tlw6yidt",
           "name": "message",
           "title": "message",
           "description": "",
@@ -1504,7 +1504,7 @@
           "children": []
          },
          {
-          "key": "81k79b15",
+          "key": "tjsq24o5",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -1513,7 +1513,7 @@
           "children": []
          },
          {
-          "key": "gjx51cgo",
+          "key": "sp9uejw0",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -1522,7 +1522,7 @@
           "children": []
          },
          {
-          "key": "322c8pzb",
+          "key": "m7m0k9rq",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -1531,7 +1531,7 @@
           "children": []
          },
          {
-          "key": "91xeopy3",
+          "key": "j1tep7vo",
           "name": "gr_id",
           "title": "gr_id",
           "description": "",
@@ -1540,7 +1540,7 @@
           "children": []
          },
          {
-          "key": "ri41f2ic",
+          "key": "tf9espf0",
           "name": "gr_no",
           "title": "gr_no",
           "description": "",
@@ -1549,7 +1549,7 @@
           "children": []
          },
          {
-          "key": "itama91p",
+          "key": "lgdi28ke",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -1558,7 +1558,7 @@
           "children": []
          },
          {
-          "key": "p32ucq4t",
+          "key": "s72l86yy",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -1567,7 +1567,7 @@
           "children": []
          },
          {
-          "key": "oro5wphj",
+          "key": "41cgof5l",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -1576,7 +1576,7 @@
           "children": []
          },
          {
-          "key": "s4rgi24o",
+          "key": "ecs2q29h",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -1585,7 +1585,7 @@
           "children": []
          },
          {
-          "key": "u4vr8pzp",
+          "key": "gfhyekj8",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -1594,7 +1594,7 @@
           "children": []
          },
          {
-          "key": "0mrooast",
+          "key": "fe7j6hu2",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -1830,7 +1830,7 @@
         },
         "response_json": [
          {
-          "key": "r7f59xxr",
+          "key": "fe8svnv3",
           "name": "j",
           "title": "j",
           "description": "",
@@ -1880,7 +1880,7 @@
         },
         "response_json": [
          {
-          "key": "ijo9ppgz",
+          "key": "28c6l9ro",
           "name": "j",
           "title": "j",
           "description": "",
@@ -1930,7 +1930,7 @@
         },
         "response_json": [
          {
-          "key": "zcvyl0r2",
+          "key": "dv6iv4qi",
           "name": "j",
           "title": "j",
           "description": "",
@@ -1980,7 +1980,7 @@
         },
         "response_json": [
          {
-          "key": "i13e07rn",
+          "key": "7xpwqjge",
           "name": "k",
           "title": "k",
           "description": "",
@@ -1989,7 +1989,7 @@
           "children": []
          },
          {
-          "key": "auqtg6z8",
+          "key": "oy1akocz",
           "name": "j",
           "title": "j",
           "description": "",
@@ -2039,7 +2039,7 @@
         },
         "response_json": [
          {
-          "key": "azgnf63u",
+          "key": "87be9ka2",
           "name": "j",
           "title": "j",
           "description": "",
@@ -2068,7 +2068,7 @@
     },
     "response_json": [
      {
-      "key": "9mh908mg",
+      "key": "tuokzxhx",
       "name": "route",
       "title": "route",
       "description": "",
@@ -2077,7 +2077,7 @@
       "children": []
      },
      {
-      "key": "qw38t3tf",
+      "key": "lkjp8kof",
       "name": "code",
       "title": "code",
       "description": "",
@@ -2086,7 +2086,7 @@
       "children": []
      },
      {
-      "key": "ys0ifdp8",
+      "key": "6jjj9qnj",
       "name": "message",
       "title": "message",
       "description": "",
@@ -2095,7 +2095,7 @@
       "children": []
      },
      {
-      "key": "x90ktf77",
+      "key": "crq7bag8",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -2104,7 +2104,7 @@
       "children": []
      },
      {
-      "key": "vi7aqqod",
+      "key": "u4wpm15f",
       "name": "allData",
       "title": "allData",
       "description": "",
@@ -2113,7 +2113,7 @@
       "children": []
      },
      {
-      "key": "rp6rng1c",
+      "key": "eu7c0xpg",
       "name": "grStatus",
       "title": "grStatus",
       "description": "",
@@ -2179,7 +2179,7 @@
         },
         "response_json": [
          {
-          "key": "p5094yg9",
+          "key": "73m7wttg",
           "name": "route",
           "title": "route",
           "description": "",
@@ -2188,7 +2188,7 @@
           "children": []
          },
          {
-          "key": "j87e25hy",
+          "key": "yot7q0nz",
           "name": "code",
           "title": "code",
           "description": "",
@@ -2197,7 +2197,7 @@
           "children": []
          },
          {
-          "key": "sxrubspf",
+          "key": "kmf4m2o3",
           "name": "message",
           "title": "message",
           "description": "",
@@ -2206,7 +2206,7 @@
           "children": []
          },
          {
-          "key": "hmutsf4e",
+          "key": "mdfaapbz",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -2215,7 +2215,7 @@
           "children": []
          },
          {
-          "key": "mlle31ju",
+          "key": "iw9pg7hx",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -2224,7 +2224,7 @@
           "children": []
          },
          {
-          "key": "y719ap6k",
+          "key": "lr54br2v",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -2233,7 +2233,7 @@
           "children": []
          },
          {
-          "key": "0z7c6ro5",
+          "key": "3bjgvyem",
           "name": "gr_id",
           "title": "gr_id",
           "description": "",
@@ -2242,7 +2242,7 @@
           "children": []
          },
          {
-          "key": "j6fbz096",
+          "key": "vgbt065e",
           "name": "gr_no",
           "title": "gr_no",
           "description": "",
@@ -2251,7 +2251,7 @@
           "children": []
          },
          {
-          "key": "583gl6di",
+          "key": "grldq5lx",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -2260,7 +2260,7 @@
           "children": []
          },
          {
-          "key": "6l8ezkzr",
+          "key": "4b7pje5h",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -2269,7 +2269,7 @@
           "children": []
          },
          {
-          "key": "024crre5",
+          "key": "59hu6570",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -2278,7 +2278,7 @@
           "children": []
          },
          {
-          "key": "wkko03xv",
+          "key": "ulyxz4fq",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -2287,7 +2287,7 @@
           "children": []
          },
          {
-          "key": "sm2sdpda",
+          "key": "od1263bs",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -2296,7 +2296,7 @@
           "children": []
          },
          {
-          "key": "2uyqpn9y",
+          "key": "ti87wc9p",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -2495,7 +2495,7 @@
     },
     "response_json": [
      {
-      "key": "szxw10te",
+      "key": "dl7voyoh",
       "name": "route",
       "title": "route",
       "description": "",
@@ -2504,7 +2504,7 @@
       "children": []
      },
      {
-      "key": "rczgi47c",
+      "key": "x2em30te",
       "name": "code",
       "title": "code",
       "description": "",
@@ -2513,7 +2513,7 @@
       "children": []
      },
      {
-      "key": "camkkvnk",
+      "key": "jobbg3gg",
       "name": "message",
       "title": "message",
       "description": "",
@@ -2522,7 +2522,7 @@
       "children": []
      },
      {
-      "key": "jn7vf90b",
+      "key": "n3vr2y1l",
       "name": "previousStatus",
       "title": "previousStatus",
       "description": "",
@@ -2531,7 +2531,7 @@
       "children": []
      },
      {
-      "key": "v24mn70d",
+      "key": "njbmhqrc",
       "name": "lockRows",
       "title": "lockRows",
       "description": "",
@@ -2539,7 +2539,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "3dyzqz8w",
+        "key": "q6e9bipn",
         "name": "items",
         "title": "",
         "description": "",
@@ -2551,7 +2551,7 @@
       ]
      },
      {
-      "key": "9nvo7cqs",
+      "key": "4wk7nmu0",
       "name": "needLock",
       "title": "needLock",
       "description": "",
@@ -2560,7 +2560,7 @@
       "children": []
      },
      {
-      "key": "3aoddk4m",
+      "key": "bk8k2t2e",
       "name": "jobRows",
       "title": "jobRows",
       "description": "",
@@ -2568,7 +2568,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "6cfwredh",
+        "key": "tazl9ny1",
         "name": "items",
         "title": "",
         "description": "",
@@ -2637,7 +2637,7 @@
         },
         "response_json": [
          {
-          "key": "jah75jo1",
+          "key": "7s6ztli3",
           "name": "route",
           "title": "route",
           "description": "",
@@ -2646,7 +2646,7 @@
           "children": []
          },
          {
-          "key": "3ybdzbl1",
+          "key": "9lswbx5n",
           "name": "code",
           "title": "code",
           "description": "",
@@ -2655,7 +2655,7 @@
           "children": []
          },
          {
-          "key": "khdoz92x",
+          "key": "i8l0f5lc",
           "name": "message",
           "title": "message",
           "description": "",
@@ -2664,7 +2664,7 @@
           "children": []
          },
          {
-          "key": "4l70y8kx",
+          "key": "txc0w927",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -2673,7 +2673,7 @@
           "children": []
          },
          {
-          "key": "xnd2z8q1",
+          "key": "npyzrjdp",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -2682,7 +2682,7 @@
           "children": []
          },
          {
-          "key": "wgxhjr92",
+          "key": "5mxyu9l4",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -2691,7 +2691,7 @@
           "children": []
          },
          {
-          "key": "hoji0vpu",
+          "key": "x2f9isow",
           "name": "gr_id",
           "title": "gr_id",
           "description": "",
@@ -2700,7 +2700,7 @@
           "children": []
          },
          {
-          "key": "a2srbycf",
+          "key": "ygp7kl0b",
           "name": "gr_no",
           "title": "gr_no",
           "description": "",
@@ -2709,7 +2709,7 @@
           "children": []
          },
          {
-          "key": "c5ca4pi3",
+          "key": "ukpzq54g",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -2718,7 +2718,7 @@
           "children": []
          },
          {
-          "key": "wg992ees",
+          "key": "jglrfo43",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -2727,7 +2727,7 @@
           "children": []
          },
          {
-          "key": "8dj5q0qn",
+          "key": "moj7hqef",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -2736,7 +2736,7 @@
           "children": []
          },
          {
-          "key": "n1xhqlf2",
+          "key": "62v3eltk",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -2745,7 +2745,7 @@
           "children": []
          },
          {
-          "key": "80xio4bl",
+          "key": "m3rt0zxp",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -2754,7 +2754,7 @@
           "children": []
          },
          {
-          "key": "res6v0xc",
+          "key": "aoap9m23",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -3308,7 +3308,7 @@
     },
     "response_json": [
      {
-      "key": "lvknyfis",
+      "key": "lmirfnwv",
       "name": "ok",
       "title": "ok",
       "description": "",
@@ -3317,7 +3317,7 @@
       "children": []
      },
      {
-      "key": "p54v15bb",
+      "key": "a1vlsurn",
       "name": "jobId",
       "title": "jobId",
       "description": "",
@@ -3326,7 +3326,7 @@
       "children": []
      },
      {
-      "key": "a0nq7r9r",
+      "key": "ue28tglb",
       "name": "grRow",
       "title": "grRow",
       "description": "",
@@ -3873,6 +3873,14 @@
            "value": "{{node:code_node_RSgrrow.data.grRow.gr_v2_job_id}}",
            "valueLabel": "",
            "propLabel": "gr_v2_job_id"
+          },
+          {
+           "prop": "custom_fields_e9609s2l",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSgrrow.data.grRow.custom_fields_e9609s2l}}",
+           "valueLabel": "",
+           "propLabel": "custom_fields_e9609s2l"
           }
          ]
         }
@@ -3896,7 +3904,7 @@
         },
         "response_json": [
          {
-          "key": "35xew1v4",
+          "key": "q2hbvznj",
           "name": "id",
           "title": "id",
           "description": "",
@@ -3905,7 +3913,7 @@
           "children": []
          },
          {
-          "key": "369ioc6w",
+          "key": "e694mnq0",
           "name": "gr_no",
           "title": "gr_no",
           "description": "",
@@ -3930,7 +3938,7 @@
         },
         "response_json": [
          {
-          "key": "h9b67n25",
+          "key": "m9nrykfa",
           "name": "ok",
           "title": "ok",
           "description": "",
@@ -3939,7 +3947,7 @@
           "children": []
          },
          {
-          "key": "q0psw25p",
+          "key": "wutav9n4",
           "name": "why",
           "title": "why",
           "description": "",
@@ -3948,7 +3956,7 @@
           "children": []
          },
          {
-          "key": "ubz33k4g",
+          "key": "6qkeahgc",
           "name": "grId",
           "title": "grId",
           "description": "",
@@ -3957,7 +3965,7 @@
           "children": []
          },
          {
-          "key": "3vkdt0wl",
+          "key": "dimfjyb0",
           "name": "grNo",
           "title": "grNo",
           "description": "",
@@ -3966,7 +3974,7 @@
           "children": []
          },
          {
-          "key": "6109zjoa",
+          "key": "4as2vedf",
           "name": "lockRows",
           "title": "lockRows",
           "description": "",
@@ -3974,7 +3982,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "ozimuzc9",
+            "key": "iovl5302",
             "name": "items",
             "title": "",
             "description": "",
@@ -3986,7 +3994,7 @@
           ]
          },
          {
-          "key": "79781ndc",
+          "key": "o5vglt5n",
           "name": "jobRows",
           "title": "jobRows",
           "description": "",
@@ -3994,7 +4002,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "nkgsl8hb",
+            "key": "wsx7eg9s",
             "name": "items",
             "title": "",
             "description": "",
@@ -4268,6 +4276,234 @@
      },
      "blocks": [
       {
+       "id": "code_node_CfNeed1",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_RSgrrow.data.grRow.custom_fields_e9609s2l}}][0];\nconst lines = [{{node:code_node_RSgrrow.data.grRow.table_gr}}][0];\nconst rawId = [{{node:code_node_RSgrrow.data.grRow.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_d7o7rdkd\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
+        },
+        "response_json": [
+         {
+          "key": "9jw8066q",
+          "name": "need",
+          "title": "need",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "6re4u2z5",
+          "name": "id",
+          "title": "id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Custom fields this edit leaves out? (header + lines)",
+        "isValidator": true,
+        "nodeName": "Custom fields this edit leaves out? (header + lines)",
+        "name": "Custom fields this edit leaves out? (header + lines)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_CfNeed1",
+       "type": "if",
+       "data": {
+        "title": "IF the edit leaves custom fields out",
+        "isValidator": true,
+        "nodeName": "IF the edit leaves custom fields out",
+        "name": "IF the edit leaves custom fields out",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1799100002003,
+           "parentId": 1799100002004,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_node_CfNeed1.data.need}}' == 'YES'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "ifBlock_TCfNeed1",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "get_node_CfStored1",
+           "type": "get-node",
+           "data": {
+            "table_id": {
+             "source": "Goods Receiving:Table:1901845517592285186",
+             "rules": {
+              "collectionId": "1901845517592285186",
+              "list": [
+               {
+                "id": 1799100002001,
+                "parentId": 1799100002002,
+                "isTop": true,
+                "prop": "id",
+                "operator": "equal",
+                "valueType": "field",
+                "value": "{{node:code_node_CfNeed1.data.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "Equal"
+               }
+              ]
+             }
+            },
+            "condition": {},
+            "title": "The stored record (custom fields by name)",
+            "isValidator": true,
+            "nodeName": "The stored record (custom fields by name)",
+            "name": "The stored record (custom fields by name)"
+           },
+           "blocks": []
+          },
+          {
+           "id": "code_node_CfFill1",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "script": {
+             "type": "javascript",
+             "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id, else by po_line_item_id in order\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_node_RSgrrow.data.grRow.custom_fields_e9609s2l}}][0];\nconst lines = [{{node:code_node_RSgrrow.data.grRow.table_gr}}][0];\nconst got = [{{node:get_node_CfStored1.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = \"po_line_item_id\";\nconst storedRows = flat(stored[\"table_gr\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_e9609s2l\"]) ? null : stored[\"custom_fields_e9609s2l\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
+            },
+            "response_json": [
+             {
+              "key": "it0u33ll",
+              "name": "ok",
+              "title": "ok",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "492zsuj7",
+              "name": "cf",
+              "title": "cf",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "9k4ohgxp",
+              "name": "lines",
+              "title": "lines",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+               {
+                "key": "zgdvvjxf",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+               }
+              ]
+             }
+            ],
+            "title": "Stored custom fields for what the edit left out",
+            "isValidator": true,
+            "nodeName": "Stored custom fields for what the edit left out",
+            "name": "Stored custom fields for what the edit left out"
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "ifBlock_FCfNeed1",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "code_node_CfOut1",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill1.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_node_RSgrrow.data.grRow.custom_fields_e9609s2l}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_node_RSgrrow.data.grRow.table_gr}}][0] };"
+        },
+        "response_json": [
+         {
+          "key": "7iar4nfs",
+          "name": "cf",
+          "title": "cf",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "8269fkwi",
+          "name": "lines",
+          "title": "lines",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "h2yf8cpx",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "isArrayItem": true,
+            "children": []
+           }
+          ]
+         }
+        ],
+        "title": "Custom fields to write (payload, or stored where left out)",
+        "isValidator": true,
+        "nodeName": "Custom fields to write (payload, or stored where left out)",
+        "name": "Custom fields to write (payload, or stored where left out)"
+       },
+       "blocks": []
+      },
+      {
        "id": "update_node_RSgr",
        "type": "update-node",
        "data": {
@@ -4522,7 +4758,7 @@
            "prop": "table_gr",
            "operator": "",
            "valueType": "field",
-           "value": "{{node:code_node_RSgrrow.data.grRow.table_gr}}",
+           "value": "{{node:code_node_CfOut1.data.lines}}",
            "valueLabel": "",
            "propLabel": "table_gr"
           },
@@ -4757,6 +4993,14 @@
            "value": "{{node:code_node_RSgrrow.data.grRow.gr_v2_job_id}}",
            "valueLabel": "",
            "propLabel": "gr_v2_job_id"
+          },
+          {
+           "prop": "custom_fields_e9609s2l",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_CfOut1.data.cf}}",
+           "valueLabel": "",
+           "propLabel": "custom_fields_e9609s2l"
           }
          ]
         }
@@ -4784,7 +5028,7 @@
     },
     "response_json": [
      {
-      "key": "aj6qsj7y",
+      "key": "typrka8q",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -4793,7 +5037,7 @@
       "children": []
      },
      {
-      "key": "mej3wc3w",
+      "key": "j46z3ygp",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -4802,7 +5046,7 @@
       "children": []
      },
      {
-      "key": "kwa5hr4k",
+      "key": "1y3rdnvc",
       "name": "correlation_id",
       "title": "correlation_id",
       "description": "",
@@ -4811,7 +5055,7 @@
       "children": []
      },
      {
-      "key": "jkivaeuq",
+      "key": "p3i77w8t",
       "name": "gr_status",
       "title": "gr_status",
       "description": "",
@@ -4820,7 +5064,7 @@
       "children": []
      },
      {
-      "key": "ef8l58k3",
+      "key": "hxfiic51",
       "name": "gr_no",
       "title": "gr_no",
       "description": "",
@@ -4829,7 +5073,7 @@
       "children": []
      },
      {
-      "key": "0uwqep78",
+      "key": "45rwk9x4",
       "name": "gr_v2_job_id",
       "title": "gr_v2_job_id",
       "description": "",
@@ -4838,7 +5082,7 @@
       "children": []
      },
      {
-      "key": "21oudcu7",
+      "key": "cfk8n4qd",
       "name": "lock_ref",
       "title": "lock_ref",
       "description": "",
@@ -4849,6 +5093,178 @@
     ]
    },
    "blocks": []
+  },
+  {
+   "id": "code_node_RSrelink",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GR_COMPLETE_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// the classic Save as Completed refuses more than this (Phase 0 guard)\nconst MAX_OLD_PATH_LINES = 500;\n// what one background completion takes (INVENTORY_BULK_APPLY: at most 5,000 movements)\nconst MAX_V2_LINES = 2500;\nconst OPEN_JOB = [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GR\", \"REQUIRES_REVIEW\"];\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background completion does not handle goes to the classic save, unless the receipt is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This Goods Receiving has \" + lineCount + \" lines and cannot be completed in the background (\" + reason + \"); the classic completion handles at most \"\n      + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst flatRows = (rows) => (Array.isArray(rows) ? rows : []).flatMap((r) => [r].concat(Array.isArray(r.children) ? r.children : []));\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst parseJ = function parseJ(t) {\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// GR_COMPLETE_SUBMIT - Relink (Edit): the number the receipt carries after the write (a Draft's is issued there) into the job's\n// request, before the job falls due - PREPARE checks the stored number against it\nconst submitRelink = function submitRelink(guard, back, jobAdded) {\n  const b = list(back)[0] || {};\n  const job = list(jobAdded)[0] || {};\n  const none = { relinkRows: [], needRelink: \"NO\" };\n  if (guard.pageStatus !== \"Edit\" || !digits(b.job_id) || s(b.job_id) !== s(job.id)) return none;\n  const request = parseJ(job.request_payload);\n  const no = s(b.gr_no);\n  if (!request || typeof request !== \"object\" || !no || s(request.grNo) === no) return none;\n  request.grNo = no;\n  return { relinkRows: [{ id: s(b.job_id), request_payload: JSON.stringify(request) }], needRelink: \"YES\" };\n};\nconst res = submitRelink([{{node:code_node_RSguard.data}}][0], [{{node:sql_node_RSback.data}}][0], [{{node:add_node_RSjob.data}}][0]);\nconsole.log(\"submit relink\", JSON.stringify({ relink: res.needRelink }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "lus5mnbb",
+      "name": "relinkRows",
+      "title": "relinkRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "yyf2gese",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "eqhu17ny",
+      "name": "needRelink",
+      "title": "needRelink",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Relink (Edit): the receipt's number after the write (a Draft's is issued there) into the job's request",
+    "isValidator": true,
+    "nodeName": "Relink (Edit): the receipt's number after the write (a Draft's is issued there) into the job's request",
+    "name": "Relink (Edit): the receipt's number after the write (a Draft's is issued there) into the job's request"
+   },
+   "blocks": []
+  },
+  {
+   "id": "cor_RSrelink",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Edit: the job's request to relink?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YRSrelink",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1798600000031,
+         "parentId": 1798600000032,
+         "isTop": true,
+         "prop": "node.code_node_RSrelink.data.needRelink",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needRelink",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_RSrelink",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Async Job:Table:2104845286495150081",
+         "rules": {
+          "collectionId": "2104845286495150081",
+          "list": [
+           {
+            "id": 1798600000029,
+            "parentId": 1798600000030,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_RSrelink.data.relinkRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Job: request grNo = the receipt's number (before it falls due)",
+        "isValidator": true,
+        "nodeName": "Job: request grNo = the receipt's number (before it falls due)",
+        "name": "Job: request grNo = the receipt's number (before it falls due)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSrelink.data.relinkRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "request_payload",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSrelink.data.relinkRows.request_payload}}",
+           "valueLabel": "",
+           "propLabel": "request_payload"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NRSrelink",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
   },
   {
    "id": "code_node_RSdue",
@@ -4863,7 +5279,7 @@
     },
     "response_json": [
      {
-      "key": "kai90ba7",
+      "key": "11eyvgf2",
       "name": "dueRows",
       "title": "dueRows",
       "description": "",
@@ -4871,7 +5287,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "i26q37c8",
+        "key": "p2utwzyz",
         "name": "items",
         "title": "",
         "description": "",
@@ -4883,7 +5299,7 @@
       ]
      },
      {
-      "key": "4m7fmwlm",
+      "key": "nunhqqqz",
       "name": "needDue",
       "title": "needDue",
       "description": "",
@@ -4921,8 +5337,8 @@
       "filter": {
        "list": [
         {
-         "id": 1798600000031,
-         "parentId": 1798600000032,
+         "id": 1798600000035,
+         "parentId": 1798600000036,
          "isTop": true,
          "prop": "node.code_node_RSdue.data.needDue",
          "operator": "equal",
@@ -4956,8 +5372,8 @@
           "collectionId": "2104845286495150081",
           "list": [
            {
-            "id": 1798600000029,
-            "parentId": 1798600000030,
+            "id": 1798600000033,
+            "parentId": 1798600000034,
             "isTop": true,
             "prop": "id",
             "operator": "in",
@@ -5035,7 +5451,7 @@
     },
     "response_json": [
      {
-      "key": "7akpam6z",
+      "key": "ojwi4p0z",
       "name": "route",
       "title": "route",
       "description": "",
@@ -5044,7 +5460,7 @@
       "children": []
      },
      {
-      "key": "dpv6t6ss",
+      "key": "flt97655",
       "name": "code",
       "title": "code",
       "description": "",
@@ -5053,7 +5469,7 @@
       "children": []
      },
      {
-      "key": "sxilf3g2",
+      "key": "flcha593",
       "name": "message",
       "title": "message",
       "description": "",
@@ -5062,7 +5478,7 @@
       "children": []
      },
      {
-      "key": "297aoz9m",
+      "key": "spr8lze1",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -5071,7 +5487,7 @@
       "children": []
      },
      {
-      "key": "w0eimipf",
+      "key": "50vbu2wa",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -5080,7 +5496,7 @@
       "children": []
      },
      {
-      "key": "c94dw75b",
+      "key": "p808dh3q",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -5089,7 +5505,7 @@
       "children": []
      },
      {
-      "key": "v0huvufb",
+      "key": "qocnxhd3",
       "name": "gr_id",
       "title": "gr_id",
       "description": "",
@@ -5098,7 +5514,7 @@
       "children": []
      },
      {
-      "key": "paovycg9",
+      "key": "0uesnzjx",
       "name": "gr_no",
       "title": "gr_no",
       "description": "",
@@ -5107,7 +5523,7 @@
       "children": []
      },
      {
-      "key": "au9p6gbj",
+      "key": "2loneflo",
       "name": "line_count",
       "title": "line_count",
       "description": "",
@@ -5116,7 +5532,7 @@
       "children": []
      },
      {
-      "key": "10ieopow",
+      "key": "k9cwrfet",
       "name": "progress_percent",
       "title": "progress_percent",
       "description": "",
@@ -5125,7 +5541,7 @@
       "children": []
      },
      {
-      "key": "iwvojbey",
+      "key": "tlj65zd8",
       "name": "progress_message",
       "title": "progress_message",
       "description": "",
@@ -5134,7 +5550,7 @@
       "children": []
      },
      {
-      "key": "sfv8oi5x",
+      "key": "8l2j0bqr",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -5143,7 +5559,7 @@
       "children": []
      },
      {
-      "key": "com3csf1",
+      "key": "qn4envz0",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -5152,7 +5568,7 @@
       "children": []
      },
      {
-      "key": "gb4czcno",
+      "key": "2x4emf7u",
       "name": "evidence",
       "title": "evidence",
       "description": "",

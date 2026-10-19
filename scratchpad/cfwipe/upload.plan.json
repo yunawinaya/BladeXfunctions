@@ -1,0 +1,72 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "CUSTOMER_SAVE",
+   "dataId": "2099333366304526338",
+   "file": "scratchpad/cfwipe/out/CUSTOMER_SAVE.json",
+   "base": "scratchpad/cfwipe/base/CUSTOMER_SAVE.json"
+  },
+  {
+   "name": "GOODS_RECEIVING",
+   "dataId": "2029090678383042562",
+   "file": "scratchpad/cfwipe/out/GOODS_RECEIVING.json",
+   "base": "scratchpad/cfwipe/base/GOODS_RECEIVING.json"
+  },
+  {
+   "name": "GR_COMPLETE_SUBMIT",
+   "dataId": "2110545633913245697",
+   "file": "scratchpad/cfwipe/out/GR_COMPLETE_SUBMIT.json",
+   "base": "scratchpad/cfwipe/base/GR_COMPLETE_SUBMIT.json"
+  },
+  {
+   "name": "GR_CREATED",
+   "dataId": "2065278999991267329",
+   "file": "scratchpad/cfwipe/out/GR_CREATED.json",
+   "base": "scratchpad/cfwipe/base/GR_CREATED.json"
+  },
+  {
+   "name": "ITEM_SAVE",
+   "dataId": "2098251509145264130",
+   "file": "scratchpad/cfwipe/out/ITEM_SAVE.json",
+   "base": "scratchpad/cfwipe/base/ITEM_SAVE.json"
+  },
+  {
+   "name": "PI_SAVE",
+   "dataId": "2066342495378059266",
+   "file": "scratchpad/cfwipe/out/PI_SAVE.json",
+   "base": "scratchpad/cfwipe/base/PI_SAVE.json"
+  },
+  {
+   "name": "PO_SAVE",
+   "dataId": "2069257894280118274",
+   "file": "scratchpad/cfwipe/out/PO_SAVE.json",
+   "base": "scratchpad/cfwipe/base/PO_SAVE.json"
+  },
+  {
+   "name": "PREQ_SAVE",
+   "dataId": "2084558919466807298",
+   "file": "scratchpad/cfwipe/out/PREQ_SAVE.json",
+   "base": "scratchpad/cfwipe/base/PREQ_SAVE.json"
+  },
+  {
+   "name": "SM_MISC_ISSUE",
+   "dataId": "2015602242971631618",
+   "file": "scratchpad/cfwipe/out/SM_MISC_ISSUE.json",
+   "base": "scratchpad/cfwipe/base/SM_MISC_ISSUE.json"
+  },
+  {
+   "name": "SO_SAVE",
+   "dataId": "1988908545345945602",
+   "file": "scratchpad/cfwipe/out/SO_SAVE.json",
+   "base": "scratchpad/cfwipe/base/SO_SAVE.json"
+  },
+  {
+   "name": "SUPPLIER_SAVE",
+   "dataId": "2099333410365689858",
+   "file": "scratchpad/cfwipe/out/SUPPLIER_SAVE.json",
+   "base": "scratchpad/cfwipe/base/SUPPLIER_SAVE.json"
+  }
+ ]
+}

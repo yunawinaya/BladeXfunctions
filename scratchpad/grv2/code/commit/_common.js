@@ -13,6 +13,8 @@ const dbAddSeconds = function dbAddSeconds(text, seconds) {
   const p = (n) => (n < 10 ? "0" : "") + n;
   return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + ":" + p(d.getUTCSeconds());
 };
+// the DB clock now: entry's DB time plus what this run has spent since (no server clock or time zone mixing)
+const endNow = (entry) => (Number(entry.jsAt) > 0 ? dbAddSeconds(entry.dbNow, Math.max(0, Math.floor((Date.now() - Number(entry.jsAt)) / 1000))) : "") || entry.dbNow;
 // a payload part / an intent: its chunk rows (step_name ...|nnn) joined in order
 const joinChunks = function joinChunks(rows, prefix) {
   const mine = list(rows).filter((r) => s(r.step_name).indexOf(prefix) === 0).sort((a, b) => (s(a.step_name) < s(b.step_name) ? -1 : 1));
@@ -39,7 +41,7 @@ const slicesOf = function slicesOf(rows, size) {
 };
 const doneRow = function doneRow(entry, step, ref) {
   return { job_id: entry.jobId, organization_id: entry.organizationId, step_name: step, step_status: "DONE", attempt_count: 1, started_at: entry.dbNow,
-    finished_at: entry.dbNow, inventory_operation_id: "", result_ref: s(ref).slice(0, 2000), error_code: null, error_message: null };
+    finished_at: endNow(entry), inventory_operation_id: "", result_ref: s(ref).slice(0, 2000), error_code: null, error_message: null };
 };
 const jobRow = function jobRow(entry, patch) {
   return Object.assign({ id: entry.jobId, job_status: "COMMITTING_GR", progress_percent: 70, progress_message: "Completing the receipt", attempt_count: entry.attempts,
@@ -50,7 +52,7 @@ const stepEnd = function stepEnd(entry, step, why, review) {
   const n = entry.attempts;
   if (review || n >= MAX_RETRIES) {
     const msg = step + ": " + why + (review ? "" : " (after " + n + " retries)") + "; the Goods Receiving stays Processing for review";
-    return { route: "END", stepRows: [], needStep: "NO", jobRows: [jobRow(entry, { job_status: "REQUIRES_REVIEW", progress_percent: 0, progress_message: "Under review: the completion stopped half-way", error_code: "GRC_RECONCILIATION_MISMATCH", error_message: msg, error_details: JSON.stringify({ step: step, why: why }), finished_at: entry.dbNow })], needJobUpd: "YES", unlockRows: [], needUnlock: "NO", batchDelRows: [], needBatchDel: "NO", freeRows: [], needFree: "NO", result_code: "GRC_RECONCILIATION_MISMATCH", result_message: msg, job_status: "REQUIRES_REVIEW" };
+    return { route: "END", stepRows: [], needStep: "NO", jobRows: [jobRow(entry, { job_status: "REQUIRES_REVIEW", progress_percent: 0, progress_message: "Under review: the completion stopped half-way", error_code: "GRC_RECONCILIATION_MISMATCH", error_message: msg, error_details: JSON.stringify({ step: step, why: why }), finished_at: endNow(entry) })], needJobUpd: "YES", unlockRows: [], needUnlock: "NO", batchDelRows: [], needBatchDel: "NO", freeRows: [], needFree: "NO", result_code: "GRC_RECONCILIATION_MISMATCH", result_message: msg, job_status: "REQUIRES_REVIEW" };
   }
   return { route: "END", stepRows: [], needStep: "NO", jobRows: [jobRow(entry, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(entry.dbNow, Math.ceil(Math.min(30000, 2000 * Math.pow(2, n)) / 1000)), error_code: "GRC_STEP_RETRY", error_message: step + ": " + why, error_details: JSON.stringify({ step: step, why: why, attempt: n + 1 }) })], needJobUpd: "YES", unlockRows: [], needUnlock: "NO", batchDelRows: [], needBatchDel: "NO", freeRows: [], needFree: "NO", result_code: "GRC_STEP_RETRY", result_message: step + ": " + why + " - retry " + (n + 1) + " of " + MAX_RETRIES, job_status: "COMMITTING_GR" };
 };
@@ -65,7 +67,7 @@ const failNoWrite = function failNoWrite(entry, code, why, batchIds) {
   const ids = list(batchIds).length ? list(batchIds) : list(entry.ourBatchIds);
   const del = ids.filter((x) => digits(x)).map((x) => ({ id: s(x), is_deleted: 1 }));
   const free = freeRowsOf(entry);
-  return { route: "END", stepRows: [], needStep: "NO", jobRows: [jobRow(entry, { job_status: "FAILED", progress_percent: 0, progress_message: ("Not completed: " + why).slice(0, 250), error_code: code, error_message: why, error_details: JSON.stringify({ step: "GR_COMPLETE_COMMIT", why: why }), finished_at: entry.dbNow })], needJobUpd: "YES", unlockRows: unlock, needUnlock: unlock.length ? "YES" : "NO", batchDelRows: del, needBatchDel: del.length ? "YES" : "NO", freeRows: free, needFree: free.length ? "YES" : "NO", result_code: code, result_message: why, job_status: "FAILED" };
+  return { route: "END", stepRows: [], needStep: "NO", jobRows: [jobRow(entry, { job_status: "FAILED", progress_percent: 0, progress_message: ("Not completed: " + why).slice(0, 250), error_code: code, error_message: why, error_details: JSON.stringify({ step: "GR_COMPLETE_COMMIT", why: why }), finished_at: endNow(entry) })], needJobUpd: "YES", unlockRows: unlock, needUnlock: unlock.length ? "YES" : "NO", batchDelRows: del, needBatchDel: del.length ? "YES" : "NO", freeRows: free, needFree: free.length ? "YES" : "NO", result_code: code, result_message: why, job_status: "FAILED" };
 };
 // purchase-order locks (V2 receipts only): gd_publish_step GRPO|<po> / HOLD|<n> (result_ref = the holding job) and FREE|<n>
 // (released); a hold of a job that is no longer open counts as free, a REQUIRES_REVIEW hold does not
@@ -93,7 +95,7 @@ const poLockState = function poLockState(rows) {
 };
 const lockRowOf = function lockRowOf(entry, key, step) {
   return { job_id: key, organization_id: entry.organizationId, step_name: step, step_status: "DONE", attempt_count: 1, started_at: entry.dbNow,
-    finished_at: entry.dbNow, inventory_operation_id: "", result_ref: entry.jobId, error_code: null, error_message: null };
+    finished_at: endNow(entry), inventory_operation_id: "", result_ref: entry.jobId, error_code: null, error_message: null };
 };
 // FREE|<n> for every purchase order this job still holds (the state read at the start of this run)
 const freeRowsOf = function freeRowsOf(entry) {

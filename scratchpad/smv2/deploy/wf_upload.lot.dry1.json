@@ -1,0 +1,40 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    {
+      "name": "SM_LOCATION_TRANSFER",
+      "dataId": "2013133675374927874",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/SM_LOCATION_TRANSFER.json"
+    },
+    {
+      "name": "LOT_V2_PREPARE",
+      "dataId": "2110992359150977026",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_PREPARE.json"
+    },
+    {
+      "name": "LOT_V2_COMMIT",
+      "dataId": "2110992400045441026",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_COMMIT.json"
+    },
+    {
+      "name": "LOT_V2_WORKER",
+      "dataId": "2110992316335521793",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_WORKER.json"
+    },
+    {
+      "name": "LOT form",
+      "kind": "form",
+      "dataId": "2013791389687349250",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOTform.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/smv2/base/lot_form_v107.json"
+    },
+    {
+      "name": "LOT list",
+      "kind": "page",
+      "dataId": "2013863255693197313",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOTlistPage.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/smv2/base/lot_list_v47.json"
+    }
+  ]
+}

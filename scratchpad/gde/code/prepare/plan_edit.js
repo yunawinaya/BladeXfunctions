@@ -63,11 +63,20 @@ const geRebuildPicking = function geRebuildPicking(storedPick, PICK) {
 
 // the GD write as COMMIT applies it: lines removed / patched (only the cells the write changes; a cell the write leaves out
 // reads back empty) / inserted (placeholder id until E2), the header's changed cells; order = the read-back's line order
+// the Picking version this job holds: SUBMIT's recorded one; else (SUBMIT died before recording it: the job fell due by itself
+// after 120 s, and no device takes a lock while the GD has an open edit) the locked Picking's current version
+const geAdoptPickVersion = function geAdoptPickVersion(req, R) {
+  const s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
+  const p = R && R.pick && R.pick.data;
+  return s((req || {}).picking_version) || (p && s(p.id) && Number(p.is_processing) === 1 ? s(p.update_time) : "");
+};
 const geGdParts = function geGdParts(stored, after, K) {
   const L = K.line, H = K.header;
   const sys = new Set(GE_SYS_COLS);
   const emptyV = (v) => v === undefined || v === null || v === "";
-  const same = (a, b) => (emptyV(a) && emptyV(b)) || JSON.stringify(a) === JSON.stringify(b);
+  // JSON with sorted keys: a MySQL json column keeps its own key order
+  const sorted = (k, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, key) => ((o[key] = x[key]), o), {}) : x);
+  const same = (a, b) => (emptyV(a) && emptyV(b)) || JSON.stringify(a, sorted) === JSON.stringify(b, sorted);
   const storedRows = {};
   for (const r of stored.table_gd || []) { storedRows[String(r.id)] = r; for (const c of r.children || []) storedRows[String(c.id)] = c; }
   const seen = {};
@@ -141,15 +150,16 @@ const gePlan = function gePlan(entry, R, K) {
   if ((R.serialItems || []).length) return fail("GDE_NOT_ELIGIBLE", "serial-numbered items are saved by the classic save");
   const stored = clone(stored0);
   stored.gd_status = s(req.stored_status) || "Created";
-  // our Picking lock (SUBMIT: is_processing 1 at the recorded version) is released with a failure
-  if (R.pick && R.pick.data && s(R.pick.data.id) && num(R.pick.data.is_processing) === 1 && s(req.picking_version) && s(R.pick.data.update_time) === s(req.picking_version)) base.pickUnlockId = s(R.pick.data.id);
+  // our Picking lock (SUBMIT: is_processing 1 at the recorded version, or adopted) is released with a failure
+  const pv = geAdoptPickVersion(req, R);
+  if (R.pick && R.pick.data && s(R.pick.data.id) && num(R.pick.data.is_processing) === 1 && pv && s(R.pick.data.update_time) === pv) base.pickUnlockId = s(R.pick.data.id);
   // the Picking as the classic save would read it: our own lock (SUBMIT, at the recorded version) is not a device's
   let pick = R.pick && R.pick.data && s(R.pick.data.id) ? clone(R.pick) : G0;
   if (pick !== G0) {
     if (num(pick.data.is_processing) === 1) {
-      if (!s(req.picking_version) || s(pick.data.update_time) !== s(req.picking_version)) return fail("GDE_PICKING_CHANGED", "the Picking was changed or taken over since the edit was submitted");
+      if (!pv || s(pick.data.update_time) !== pv) return fail("GDE_PICKING_CHANGED", "the Picking was changed or taken over since the edit was submitted");
       pick.data.is_processing = 0;
-    } else if (s(req.picking_version)) return fail("GDE_PICKING_CHANGED", "the Picking's lock was released by someone else");
+    } else if (pv) return fail("GDE_PICKING_CHANGED", "the Picking's lock was released by someone else");
   }
   const allData = geApplyDelta(stored, req.delta || { header: {}, dropHeader: [], lines: [], added: [], removed: [], layout: (stored.table_gd || []).map((r) => ({ ref: String(r.id), children: (r.children || []).map((c) => String(c.id)) })) }, K);
   allData.gd_status = stored.gd_status;
@@ -229,7 +239,7 @@ const gePlan = function gePlan(entry, R, K) {
     if (num(six.isUpdate) === 1) {
       if (!pick.data || s(pick.data.id) !== s(six.existingTOId)) return fail("GDE_PICKING_MISMATCH", "the Picking to update is not the one read");
       const ud = six.updateData || {};
-      Object.assign(PICK, { mode: "UPDATE", pickingId: s(six.existingTOId), version: s(req.picking_version), header: pickCols(ud, GE_PICK_UPDATE_COLS),
+      Object.assign(PICK, { mode: "UPDATE", pickingId: s(six.existingTOId), version: pv, header: pickCols(ud, GE_PICK_UPDATE_COLS),
         items: geRowsDelta(ud.table_picking_items || [], pick.data.table_picking_items || []), records: geRowsDelta(ud.table_picking_records || [], pick.data.table_picking_records || []) });
     } else Object.assign(PICK, { mode: "CREATE", createData: six.createData || {} });
     STAMP.gdPickingStatus = (six.gdUpdateData || {}).picking_status === undefined ? null : six.gdUpdateData.picking_status;
@@ -268,7 +278,7 @@ const gePlan = function gePlan(entry, R, K) {
   const lines = (stored.table_gd || []).reduce((k, r) => k + 1 + (r.children || []).length, 0);
   const manifest = {
     v: 1, prepared_by: "GD_EDIT_PREPARE", job_id: jobId, gd_id: s(stored.id), gd_no: s(stored.delivery_no), stored_status: stored.gd_status, organization_id: Pm.org,
-    plant_id: Pm.plant, source: s(req.source), submitted_by: s(req.submitted_by), nonce: nonce, parts: manifestParts, notes: base.notes,
+    plant_id: Pm.plant, source: s(req.source), submitted_by: s(req.submitted_by), nonce: nonce, parts: manifestParts, notes: base.notes, picking_version: pv,
     counts: { lines: lines, movements: movements.length, reservation_updates: resUpdates.length, reservation_creates: resCreates.length, line_inserts: gp.GDL.inserts.length,
       line_patches: gp.GDL.patches.length, line_deletes: gp.GDL.deletes.length, header_cells: Object.keys(gp.GDH.cells).length, picking: PICK.mode, stamps: STAMP.lineIds.length },
   };

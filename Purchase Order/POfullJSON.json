@@ -10783,6 +10783,47 @@
                           "key": "9x2yopma",
                           "model": "alt_uom",
                           "rules": []
+                        },
+                        {
+                          "version": "1.0.0",
+                          "type": "custom-fields",
+                          "mainIcon": "自定义字段",
+                          "typeIcon": "自定义字段",
+                          "icon": "icon-fenzu",
+                          "group": "Container",
+                          "groupSort": 6,
+                          "enableScopes": ["Table"],
+                          "options": {
+                            "defaultValue": {},
+                            "customClass": "",
+                            "labelWidth": 100,
+                            "isLabelWidth": false,
+                            "hidden": false,
+                            "dataBind": true,
+                            "col": 1,
+                            "tip": "",
+                            "validatorCheck": false,
+                            "validator": "",
+                            "remoteFunc": "func_va4w0xz3",
+                            "remoteOption": "option_va4w0xz3",
+                            "tableColumn": true,
+                            "subform": false,
+                            "select-card_n7ge7fmb": [],
+                            "left": 3,
+                            "right": 4,
+                            "pad": "*",
+                            "desensitization_pattern": "",
+                            "desensitization_replace": ""
+                          },
+                          "events": {
+                            "onChange": ""
+                          },
+                          "fields": [],
+                          "name": "Custom Fields",
+                          "novalid": {},
+                          "key": "va4w0xz3",
+                          "model": "custom_fields_va4w0xz3",
+                          "rules": []
                         }
                       ],
                       "novalid": {},

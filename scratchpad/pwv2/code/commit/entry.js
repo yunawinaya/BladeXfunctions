@@ -9,7 +9,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   for (const r of list(stepRows)) if (s(r.step_status) === "DONE") done[s(r.step_name)] = true;
   const to = list(toRows)[0] || {};
   const base = {
-    route: "NO_WRITE", phase: "", dbNow: dbNow, jobId: guard.jobId, tenantId: guard.tenantId, organizationId: "0", toId: "0", toNo: "", grId: "0", idempotencyKey: "",
+    route: "NO_WRITE", phase: "", dbNow: dbNow, jsAt: String(Date.now()), jobId: guard.jobId, tenantId: guard.tenantId, organizationId: "0", toId: "0", toNo: "", grId: "0", idempotencyKey: "",
     jobStatus: job ? s(job.job_status) : "", rowVersion: job ? Number(job.row_version) || 0 : 0, attempts: job ? Number(job.attempt_count) || 0 : 0,
     leaseUntil: job ? s(job.lease_until) : "", unlockOk: "NO", partPrefix: "", manifest: {}, jobRows: [], needJobUpd: "NO", unlockRows: [], needUnlock: "NO",
     needP0: "NO", needP1: "NO", needP2: "NO", needP3: "NO", needP4: "NO", result_code: "", result_message: "", job_status: job ? s(job.job_status) : "",
@@ -33,7 +33,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   const PARTS = ["ENGINE", "TO", "IT", "GR"];
   const valid = m && s(m.job_id) === guard.jobId && digits(m.to_id) && s(job.correlation_id) === "TO|" + s(m.to_id) && m.parts && PARTS.every((k) => Array.isArray(m.parts[k]) && m.parts[k].length);
   const entry = { jobId: guard.jobId, tenantId: guard.tenantId, organizationId: s(job.organization_id), toId: valid ? s(m.to_id) : "0", toNo: valid ? s(m.to_no) : "",
-    grId: valid && digits(m.gr_id) ? s(m.gr_id) : "0", dbNow: dbNow, attempts: Number(job.attempt_count) || 0, rowVersion: Number(job.row_version) || 0 };
+    grId: valid && digits(m.gr_id) ? s(m.gr_id) : "0", dbNow: dbNow, jsAt: String(Date.now()), attempts: Number(job.attempt_count) || 0, rowVersion: Number(job.row_version) || 0 };
   // before P1 the putaway can be released - when it is locked under this job's lock
   const lockMine = String(to.is_processing) === "1" && s(to.lock_ref) !== "" && s(to.lock_ref) === s(job.idempotency_key);
   entry.unlockOk = !done.P1_INVENTORY && lockMine ? "YES" : "NO";

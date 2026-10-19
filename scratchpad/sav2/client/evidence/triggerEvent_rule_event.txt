@@ -1,0 +1,35 @@
+Platform bundle excerpts (read-only, saved 2026-10-14 by another session):
+  file: /private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3184bace-c1a2-43fd-9910-40a12d531785/scratchpad/bundle_dl/index-main.js
+  sha256: 3395d913f1c095bb2e555f58d55b7bc786b41484fce2fe7fca2568db37b2419a  bytes: 30206473
+
+== generateForm.loadEvents: a rule event compiles into the same eventFunction map as a js event (offset 4883159)
+loadEvents(){if(this.formData.config&&this.formData.config.eventScript){this.registerEventRuntimeOwner();for(let e0e=0;e0e<this.formData.config.eventScript.length;e0e++){const t0e=this.formData.config.eventScript[e0e];try{if(t0e.type==="rule"){const n0e=ft$5(t0e.rules)||"";this.eventFunction[t0e.key]=this.compileEventFunction(n0e,{async:!0})}else{const n0e=t0e.func?replaceVariables(t0e.func):"";this.eventFunction[t0e.key]=this.compileEventFunction(n0e,{async:t0e.async===!0})}this.eventFunction[t0e.key]=this.wrapEventFunctionWithRuntimeContext(this.eventFunction[t0e.key])}catch(n0e){console.error(`自定义事件[${t0e.key}]函数体语法错误`,{key:t0e.key,name:t0e.name,type:t0e.type,func:t0e.func,rules:t0e.rules,error:n0e})}}}}
+
+== generateForm.triggerEvent: lookup by eventScript name, no type check (offset 4885740)
+triggerEvent(e0e,t0e){if(this.formData.config&&this.formData.config.eventScript){const n0e=this.formData.config.eventScript.find(i0e=>i0e.name==e0e);if(n0e&&this.eventFunction[n0e.key])return this.eventFunction[n0e.key](t0e)}},
+
+== ft$5: the rule list -> JS source (one line per rule) (offset 4675081)
+,ft$5=e0e=>{if(!e0e)return"";typeof e0e=="string"&&(e0e=JSON.parse(e0e));let t0e=[];return e0e.forEach(n0e=>{t0e.push(lt$7(n0e))}
+
+== lt$7 (offset 4669926): a rule's js action compiles to its options.func verbatim (offset 4674947)
+if(e0e.action=="js")return e0e.options.func;
+
+== compileEventFunction (offset 4882858)
+compileEventFunction(e0e,t0e={}){const n0e=t0e.async===!0?"async ":"",i0e=typeof globalThis=="object"&&globalThis?globalThis:null,r0e=i0e&&"db"in i0e?i0e.db:Te$5,o0e=i0e&&"Filter"in i0e?i0e.Filter:r0e?.Filter||Te$5.Filter;return Function("db","Filter",`return ${n0e}function () {
+${e0e}
+}`)(r0e,o0e)}
+
+== Live behaviour (PROD, read-only SELECTs, 2026-10-16)
+plant_transfer form, prod enabled v116 (= dev v116): `on_Click_issue` (type rule, js action) saves the PT as Issued, then
+`this.triggerEvent("onClick_issueIFT", { id, autoInProgress })`; `onClick_issueIFT` is type rule, its js action reads
+`arguments[0].autoInProgress === 1` -> pageStatus "Edit", data.id = arguments[0].id, stock_movement_status "Issued".
+SM_PLANT_TRANSFER (2025864403783462913) runs on prod:
+  2109920660020137986  2026-10-13 16:14:20  STOREJB1  saveAs Issued       pageStatus Add   -> response data.id 2109920664667426817
+  2109920684942692354  2026-10-13 16:14:26  STOREJB1  saveAs In Progress  pageStatus Edit  allData.id 2109920664667426817,
+                                                      allData.page_status "Add", allData.stock_movement_status "Issued"
+  2109474247146606593  2026-10-12 10:40:27  ERLY      saveAs Issued       pageStatus Add   -> response data.id 2109474250258780161
+  2109474259322671106  2026-10-12 10:40:30  ERLY      saveAs In Progress  pageStatus Edit  allData.id 2109474250258780161
+Only the rule-type onClick_issueIFT, run through triggerEvent with its args, sends pageStatus Edit with page_status Add.
+~60 such runs on prod (tenants 881544, 035843, 836238, 128671) since 2026-09-17.
+Other live rule-type triggerEvent targets (dev): production_order v430 onChange_processSource (args read in rule
+conditions + js), su_code_pages v154 onChange_qw84q6p7 (the platform's own form: refresh -> triggerEvent).

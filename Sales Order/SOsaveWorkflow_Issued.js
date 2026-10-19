@@ -43,7 +43,7 @@ const submitForm = async (data) => {
             dangerouslyUseHTMLString: true,
             type: "info",
           },
-        );
+        ).catch(() => {}); // closed with its X: the dialog must still close
       }
       // A gate (414 / 413 / 406) now returns HTTP 200 with the code in the body, so the
       // platform raises no error toast beside the dialog. Handle it before anything here
@@ -106,12 +106,22 @@ const submitForm = async (data) => {
 
       // What has to be physically put back after a pick reversal, as the delivery
       // reported it.
+      // job texts carry item names (master data): HTML only for their line breaks
+      const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]).replace(/&lt;br\s*\/?&gt;/gi, "<br>");
       if (payload.pickingReversalNote) {
-        await this.$alert(payload.pickingReversalNote, "Stock to put back", {
+        await this.$alert(esc(payload.pickingReversalNote), "Stock to put back", {
           confirmButtonText: "OK",
           type: "warning",
           dangerouslyUseHTMLString: true,
-        });
+        }).catch(() => {});
+      }
+      // GD Edit V2: a delivery this save could not update (the sales order is saved)
+      if (Array.isArray(payload.gdEditNotes) && payload.gdEditNotes.length) {
+        await this.$alert(payload.gdEditNotes.map(esc).join("<br>"), "Deliveries not updated", {
+          confirmButtonText: "OK",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        }).catch(() => {});
       }
       this.$message.success(`${this.isEdit ? "Update" : "Add"} successfully`);
       closeDialog();

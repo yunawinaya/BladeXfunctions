@@ -3,7 +3,7 @@
 // into its scope), so its 2 s polling and 90 s wait take no real time.
 const fs = require("fs"), assert = require("assert");
 const FILE = __dirname + "/../../../Goods Delivery/EditV2/gde_onClick_save_as_created.js";
-const SUBMIT = "2110618741159940097", WORKER = "2110618789356687361";
+const SUBMIT = "2110618741159940097", WORKER = "2110618789356687361", CONSUMER = "2105134245397041153";
 const mutate = process.argv.indexOf("--mutate") >= 0 ? process.argv[process.argv.indexOf("--mutate") + 1] : "";
 const MUT = {
   switch_off: ["const ASYNC_EDIT_ENABLED = true;", "const ASYNC_EDIT_ENABLED = false;"],
@@ -11,6 +11,8 @@ const MUT = {
   close_on_fail: ["if (st === \"FAILED\" || st === \"CANCELLED\") {", "if (false) {"],
   no_rekick: ["Date.now() - kickedAt >= GDE_KICK_MS", "!kickedAt"],
   refresh_always: ["if (processed > 0 && this.parentGenerateForm)", "if (this.parentGenerateForm)"],
+  fallback_off: ["GDE_FALLBACK.indexOf(String(s.error_code)) >= 0 && ", "false && "],
+  fallback_no_wait: [" && (await unlocked(q.gd_id))", ""],
 };
 
 async function scenario(o) {
@@ -29,6 +31,7 @@ async function scenario(o) {
     showLoading: () => {}, hideLoading: () => {},
     hide: () => {},
     runWorkflow: (id, params, ok) => {
+      if (id === CONSUMER) { log.push("CONSUMER " + params.event_id); return; }
       if (id === WORKER) { log.push("WORKER " + params.job_id); fakeSetTimeout(() => ok({ code: 200, data: { processed: o.workerProcessed || "0" } }), 1000); return; }
       if (id !== SUBMIT) throw new Error("unexpected workflow " + id);
       if (params.operation === "STATUS") {
@@ -46,7 +49,11 @@ async function scenario(o) {
     $alert: (m, t, opt) => { log.push("alert " + (t || "") + ": " + String(m).slice(0, 40)); return o.alertClosedByX ? Promise.reject("close") : Promise.resolve(); },
     $message: { success: (m) => log.push("ok"), warning: (m) => log.push("warn: " + m), error: (m) => log.push("error: " + m), info: (m) => log.push("info") },
   };
-  new Function("setTimeout", "Date", code).call(form, fakeSetTimeout, FakeDate);
+  // the client db the platform injects into form events: the delivery's gd_status, as o.gdStatus scripts it (read by read)
+  const gdStates = (o.gdStatus || ["Created"]).slice();
+  const db = { collection: (name) => ({ where: (w) => ({ field: (f) => ({ get: () => { log.push("READ " + name + " " + f); const st = gdStates.length > 1 ? gdStates.shift() : gdStates[0];
+    return new Promise((res) => fakeSetTimeout(() => res({ data: [{ id: w.id, gd_status: st }] }), 0)); } }) }) }) };
+  new Function("setTimeout", "Date", "db", code).call(form, fakeSetTimeout, FakeDate, db);
   // drive: settle microtasks, then fire the earliest timer (advancing the clock), until nothing is left
   for (let k = 0; k < 2000; k++) {
     await new Promise((r) => setImmediate(r));   // every pending promise chain runs first
@@ -123,6 +130,40 @@ const ST = (job_status, extra) => Object.assign({ route: "STATUS", code: "200", 
     const r = await scenario({ submits: [Q], statuses: waiting.concat([ST("READY_TO_COMMIT")]) });
     assert.ok(r.log.filter((l) => l === "WORKER J1").length >= 3, r.log.join(" | ")); assert.ok(r.log.indexOf("closed") >= 0, r.log.join(" | "));
     assert.strictEqual(r.log.filter((l) => l === "refreshed").length, 1, "kicks that did nothing refreshed the list: " + r.log.join(" | "));
+  });
+  // the inventory engine refuses data the classic save handles: once the delivery is back from Processing, today's handler
+  await it("the engine refuses costing rows to migrate -> today's handler with the edits on screen, once the delivery is unlocked", async () => {
+    const r = await scenario({ submits: [Q], statuses: [ST("FAILED", { error_code: "GDE_INVENTORY_UNSUPPORTED_COSTING", error_message: "Item 1 has costing rows that need migration" })],
+      gdStatus: ["Processing", "Created"] });
+    assert.ok(r.log.indexOf("TODAY gdV2_onClick_save_as_created") >= 0, r.log.join(" | ")); assert.ok(!r.log.some((l) => /^alert .*was not saved/.test(l)), r.log.join(" | "));
+    assert.strictEqual(r.log.filter((l) => /^READ /.test(l)).length, 2, r.log.join(" | "));
+  });
+  await it("a duplicate balance row or a negative price falls back too; a stock shortage does not", async () => {
+    for (const code of ["GDE_INVENTORY_DUPLICATE_BALANCE", "GDE_INVENTORY_UNSUPPORTED_PRICE"]) {
+      const r = await scenario({ submits: [Q], statuses: [ST("FAILED", { error_code: code })] });
+      assert.ok(r.log.indexOf("TODAY gdV2_onClick_save_as_created") >= 0, code + ": " + r.log.join(" | "));
+    }
+    const n = await scenario({ submits: [Q], statuses: [ST("FAILED", { error_code: "GDE_INVENTORY_INSUFFICIENT", error_message: "Insufficient quantity" })] });
+    assert.ok(!n.log.some((l) => /^TODAY|^READ /.test(l)), n.log.join(" | ")); assert.ok(n.log.some((l) => /^alert .*was not saved/.test(l)), n.log.join(" | "));
+  });
+  await it("the delivery is still Processing after the wait -> the reason, no classic save on a locked delivery", async () => {
+    const r = await scenario({ submits: [Q], statuses: [ST("FAILED", { error_code: "GDE_INVENTORY_UNSUPPORTED_COSTING" })], gdStatus: ["Processing"] });
+    assert.ok(!r.log.some((l) => /^TODAY/.test(l)), r.log.join(" | ")); assert.ok(r.log.some((l) => /^alert .*was not saved/.test(l)), r.log.join(" | "));
+  });
+  // a GD V2 create whose Picking is not made yet (its outbox event left READY): no Quartz on prod, so the form starts the
+  // consumer for that event without waiting (a failure there hits nobody's save) and shows the warning
+  await it("BUSY on an unfinished GD V2 create -> its outbox consumer started (fire and forget), the warning shown; other BUSY -> no start", async () => {
+    const r = await scenario({ submits: [{ route: "BUSY", code: "409", command: "CREATE_GD_FROM_FORM", message: "Its creation is still running" }] });
+    assert.ok(r.log.indexOf("CONSUMER GD_COMMITTED|2110639610487418882|1") >= 0, r.log.join(" | ")); assert.ok(r.log.some((l) => /^warn:/.test(l)), r.log.join(" | "));
+    assert.strictEqual(r.processing, 0);
+    const o = await scenario({ submits: [{ route: "BUSY", code: "409", command: "COMPLETE_GD", message: "Its completion is running" }] });
+    assert.ok(!o.log.some((l) => /^CONSUMER/.test(l)), o.log.join(" | "));
+  });
+  // job texts carry item names (master data): shown as HTML only for their line breaks
+  await it("a failure's reason is HTML-escaped except its line breaks", async () => {
+    const r = await scenario({ submits: [Q], statuses: [ST("FAILED", { error_code: "GDE_STOCK", error_message: "<img src=x onerror=alert(1)><br>line 2" })] });
+    const a = r.log.filter((l) => /^alert .*was not saved/.test(l))[0] || "";
+    assert.ok(a.indexOf("&lt;img src=x onerror=alert(1)&gt;<br>line 2".slice(0, 40)) >= 0 || a.indexOf("&lt;img") >= 0, a); assert.ok(a.indexOf("<img") < 0, a);
   });
   await it("a click while a save is running -> a warning, no SUBMIT", async () => {
     const r = await scenario({ processing: true });

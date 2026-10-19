@@ -100,7 +100,8 @@ const commitE5Check = function commitE5Check(entry, pick, plan, pickRows, itemRo
     const sig = plan.sig || {};
     const off = [];
     if (!head) off.push("the Picking");
-    else for (const [c, v] of Object.entries(pick.header || {})) if (!sameVal(head[c], v)) off.push("header." + c);
+    // an [] the platform does not write to a json column: the stored value stays
+    else for (const [c, v] of Object.entries(pick.header || {})) if (!((Array.isArray(v) && !v.length) || v === "[]") && !sameVal(head[c], v)) off.push("header." + c);
     if (geSig(items, GE_SIG_ITEM) !== sig.items) off.push("item rows");
     if (geSig(recs, GE_SIG_REC) !== sig.records) off.push("records");
     if (off.length) return stepEnd(entry, "E5_PICKING", "the Picking does not read back (" + off.slice(0, 4).join(", ") + ")", false);
@@ -113,6 +114,9 @@ const commitE5Check = function commitE5Check(entry, pick, plan, pickRows, itemRo
     if (!n && want) return stepEnd(entry, "E5_PICKING", "the Picking " + s(live[0].to_id) + " has no item rows", false);
     return stepOk(entry, "E5_PICKING", s(live[0].update_time), "Picking " + s(live[0].to_id) + " added");
   }
+  // a header sync alone moved the Picking's version: E6 unlocks at the synced one
+  const synced = pick.hdrSync ? live.filter((p) => s(p.id) === s(pick.hdrSync.pickingId))[0] : null;
+  if (synced) return stepOk(entry, "E5_PICKING", s(synced.update_time), "Picking header synced");
   return stepOk(entry, "E5_PICKING", "", pick.hdrSync ? "Picking header synced" : "no Picking");
 };
 // update_node_StampGDLines: picking_status "Created" on the plan lines whose status is still Not Created / Cancelled / empty

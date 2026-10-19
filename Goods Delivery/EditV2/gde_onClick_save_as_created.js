@@ -6,12 +6,15 @@
 const GDE_WF = {
   SUBMIT: "2110618741159940097", // GD_EDIT_SUBMIT
   WORKER: "2110618789356687361", // GD_EDIT_WORKER
+  CONSUMER: "2105134245397041153", // GD_PICKING_OUTBOX_CONSUMER (a GD V2 create's Picking)
 };
 // Switch: false = every edit runs today's handler (the classic save)
 const ASYNC_EDIT_ENABLED = true;
 const GDE_POLL_MS = 2000;
 const GDE_KICK_MS = 15000;
 const GDE_WAIT_MS = 90000;
+// the inventory engine refuses data the classic save handles (costing rows to migrate, a duplicate balance row, a negative price)
+const GDE_FALLBACK = ["GDE_INVENTORY_UNSUPPORTED_COSTING", "GDE_INVENTORY_DUPLICATE_BALANCE", "GDE_INVENTORY_UNSUPPORTED_PRICE"];
 
 const closeDialog = () => {
   if (this.parentGenerateForm) {
@@ -38,14 +41,18 @@ const today = async (why) => {
   await this.triggerEvent("gdV2_onClick_save_as_created");
 };
 
+// job and gate texts carry item names (master data): HTML only for their line breaks
+const safeHtml = (t) => String(t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
+  .replace(/&lt;br\s*\/?&gt;/gi, "<br>").replace(/\n/g, "<br>");
+
 const confirm = (message, title, ok, cancel, type) =>
-  this.$confirm(message, title || "", { confirmButtonText: ok, cancelButtonText: cancel, type: type, dangerouslyUseHTMLString: true })
+  this.$confirm(safeHtml(message), title || "", { confirmButtonText: ok, cancelButtonText: cancel, type: type, dangerouslyUseHTMLString: true })
     .then(() => true)
     .catch(() => false);
 
 // an alert closed with its X rejects: it was still read
 const alertBox = (message, title, type) =>
-  this.$alert(message, title || "", { confirmButtonText: "OK", type: type, dangerouslyUseHTMLString: true }).catch(() => {});
+  this.$alert(safeHtml(message), title || "", { confirmButtonText: "OK", type: type, dangerouslyUseHTMLString: true }).catch(() => {});
 
 const kick = (jobId) => {
   try {
@@ -73,6 +80,31 @@ const finish = async (q, s, text) => {
   closeDialog();
 };
 
+// a GD V2 create whose Picking is not made yet: start its outbox consumer without waiting (no Quartz on prod; a failure there
+// must not reach this save)
+const startPickingCreate = (gdId) => {
+  try {
+    this.runWorkflow(GDE_WF.CONSUMER, { event_id: "GD_COMMITTED|" + gdId + "|1" }, () => {}, (e) => console.error("GD Edit V2: Picking creation start failed", e));
+  } catch (e) {
+    console.error("GD Edit V2: Picking creation could not be started", e);
+  }
+};
+
+// PREPARE failed: it puts the delivery back from Processing right after its job row; wait up to 10 s for that
+const unlocked = async (gdId) => {
+  for (let i = 0; i < 10; i++) {
+    try {
+      const r = await db.collection("Goods Delivery").where({ id: gdId }).field("gd_status").get();
+      const g = ((r && r.data) || [])[0];
+      if (g && g.gd_status !== "Processing") return true;
+    } catch (e) {
+      console.error("GD Edit V2: delivery status read failed - trying again", e);
+    }
+    await sleep(1000);
+  }
+  return false;
+};
+
 // QUEUED: start the worker, then wait for its check of the edit
 const follow = async (q) => {
   const no = q.gd_no || "";
@@ -96,6 +128,7 @@ const follow = async (q) => {
     }
     if (!s || String(s.job_id) !== String(q.job_id)) continue;
     const st = s.job_status;
+    if (st === "FAILED" && GDE_FALLBACK.indexOf(String(s.error_code)) >= 0 && (await unlocked(q.gd_id))) return today("the inventory engine refused it (" + s.error_code + ")");
     if (st === "FAILED" || st === "CANCELLED") {
       release();
       await alertBox(s.error_message || s.error_code || "The edit could not be saved.", "Goods Delivery " + no + " was not saved", "error");
@@ -123,6 +156,7 @@ const submit = async (data, answers) => {
   if (r.route === "NOT_ELIGIBLE") return today(r.reason || message);
   if (r.route === "BUSY") {
     release();
+    if (r.command === "CREATE_GD_FROM_FORM") startPickingCreate(data.id);
     this.$message.warning(message);
     return;
   }

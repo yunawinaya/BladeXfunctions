@@ -128,6 +128,7 @@ def build(base):
 
 
 if __name__ == "__main__":
+    sys.exit("Superseded: its v848 base would undo the live PO form (v852); scratchpad/po_import/build_form.py builds it now.")
     dev, repo, base = base_form()
     form, mirrors = build(base)
     text = render(form, "indent")

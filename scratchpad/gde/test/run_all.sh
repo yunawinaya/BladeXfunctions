@@ -27,6 +27,8 @@ run cascade node test/cascade_v2_sim.js 711077 2110639355872194561 2110639610487
 SP="$(dirname "$FX")"
 # the allocation reads as SQL vs the platform's recorded rows (python3 test/alloc_rows.py "$FX"/*.json first: read-only dev)
 [ -d "$SP/gde-allocrows" ] && run alloc_shape node test/test_alloc_shape.js "$FX"/*.json
+# the allocation loop at 2,000 lines (live READ-ONLY reads of 711077 Draft/GD/0003 + the table the faithful loop made)
+run alloc_fast node --max-old-space-size=8192 test/test_alloc_fast.js "$SP/gde-k2"
 [ -f "$SP/live056.json" ] && run sim056 node test/commit_sim.js "$SP/live056.json" 496474
 [ -f "$SP/live006.json" ] && run sim006 node test/commit_sim.js "$SP/live006.json" 711077 REMOVE ADD CRASH STALE BUSY WORKER
 run scope python3 test/test_sql_scope.py

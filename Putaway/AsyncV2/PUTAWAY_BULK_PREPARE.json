@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "jxeqrd4s",
+   "key": "m7lahij6",
    "name": "job_id",
    "title": "job_id",
    "description": "gd_async_job.id (digits) of a COMPLETE_PUTAWAY job the worker holds",
@@ -12,7 +12,7 @@
  ],
  "response_json": [
   {
-   "key": "m7lahij6",
+   "key": "sj43mist",
    "name": "job_id",
    "title": "job_id",
    "description": "",
@@ -20,7 +20,7 @@
    "isExpand": false
   },
   {
-   "key": "sj43mist",
+   "key": "j0a3j3ch",
    "name": "job_status",
    "title": "job_status",
    "description": "",
@@ -28,7 +28,7 @@
    "isExpand": false
   },
   {
-   "key": "j0a3j3ch",
+   "key": "1rwvilxv",
    "name": "result_code",
    "title": "result_code",
    "description": "",
@@ -36,7 +36,7 @@
    "isExpand": false
   },
   {
-   "key": "1rwvilxv",
+   "key": "mzlw4mk5",
    "name": "result_message",
    "title": "result_message",
    "description": "",
@@ -44,7 +44,7 @@
    "isExpand": false
   },
   {
-   "key": "mzlw4mk5",
+   "key": "7xs5mhwe",
    "name": "evidence",
    "title": "evidence",
    "description": "",
@@ -458,7 +458,7 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// PUTAWAY_BULK_PREPARE - Entry: a COMPLETE_PUTAWAY job the worker holds (VALIDATING under a live lease); its correlation ->\n// the putaway; its request (the confirmation, who confirms, the receipt, the putaway's update_time after SUBMIT's lock)\nconst prepareEntry = function prepareEntry(guard, rows, uuid) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const base = { route: \"NOOP\", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: \"0\", toId: \"0\", grId: \"0\", idempotencyKey: \"\", rowVersion: 0, dbNow: \"\", nonce: \"\",\n    request: {}, result_code: \"\", result_message: \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PWC_INVALID_DATA\", result_message: \"job \" + guard.jobId + \" not found\" });\n  if (s(job.command) !== \"COMPLETE_PUTAWAY\") return Object.assign(base, { result_code: \"PWC_INVALID_DATA\", result_message: \"job command is \" + s(job.command) });\n  if (s(job.job_status) !== \"VALIDATING\") return Object.assign(base, { result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + s(job.job_status) + \": only a VALIDATING job is prepared\" });\n  if (String(job.lease_live) !== \"1\") return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the worker's lease on the job has expired: not prepared\" });\n  const common = { jobId: s(job.id), organizationId: s(job.organization_id), idempotencyKey: s(job.idempotency_key), rowVersion: Number(job.row_version) || 0, dbNow: s(job.db_now),\n    nonce: s(uuid).replace(/[^0-9A-Za-z]/g, \"\").slice(0, 8) };\n  let req = null;\n  try {\n    req = JSON.parse(s(job.request_payload));\n  } catch (e) {\n    req = null;\n  }\n  const m = s(job.correlation_id).match(/^TO\\|([0-9]{1,20})$/);\n  if (!m || !req || typeof req !== \"object\" || !/^[0-9]{1,20}$/.test(s(req.grId)) || !/^[0-9]{1,20}$/.test(common.organizationId)) {\n    return Object.assign(base, common, { route: \"FAIL\", toId: m ? m[1] : \"0\", result_code: \"PWC_INVALID_REQUEST\", result_message: \"the job's request could not be read\" });\n  }\n  return Object.assign(base, common, { route: \"GO\", toId: m[1], grId: s(req.grId), request: req, result_message: \"complete Putaway \" + s(req.toNo || m[1]) });\n};\nconst guard = [{{node:code_node_PPguard.data}}][0];\nconst res = prepareEntry(guard, [{{node:sql_node_PPjob.data}}][0], [{{system:uuid}}][0]);\nconsole.log(\"prepare entry\", JSON.stringify({ route: res.route, to: res.toId, result: res.result_code, message: res.result_message }));\nreturn res;"
+     "code": "// PUTAWAY_BULK_PREPARE - Entry: a COMPLETE_PUTAWAY job the worker holds (VALIDATING under a live lease); its correlation ->\n// the putaway; its request (the confirmation, who confirms, the receipt, the putaway's update_time after SUBMIT's lock)\nconst prepareEntry = function prepareEntry(guard, rows, uuid) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const base = { route: \"NOOP\", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: \"0\", toId: \"0\", grId: \"0\", idempotencyKey: \"\", rowVersion: 0, dbNow: \"\", nonce: \"\",\n    request: {}, result_code: \"\", result_message: \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PWC_INVALID_DATA\", result_message: \"job \" + guard.jobId + \" not found\" });\n  if (s(job.command) !== \"COMPLETE_PUTAWAY\") return Object.assign(base, { result_code: \"PWC_INVALID_DATA\", result_message: \"job command is \" + s(job.command) });\n  if (s(job.job_status) !== \"VALIDATING\") return Object.assign(base, { result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + s(job.job_status) + \": only a VALIDATING job is prepared\" });\n  if (String(job.lease_live) !== \"1\") return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the worker's lease on the job has expired: not prepared\" });\n  const common = { jobId: s(job.id), organizationId: s(job.organization_id), idempotencyKey: s(job.idempotency_key), rowVersion: Number(job.row_version) || 0, dbNow: s(job.db_now), jsAt: String(Date.now()),\n    nonce: s(uuid).replace(/[^0-9A-Za-z]/g, \"\").slice(0, 8) };\n  let req = null;\n  try {\n    req = JSON.parse(s(job.request_payload));\n  } catch (e) {\n    req = null;\n  }\n  const m = s(job.correlation_id).match(/^TO\\|([0-9]{1,20})$/);\n  if (!m || !req || typeof req !== \"object\" || !/^[0-9]{1,20}$/.test(s(req.grId)) || !/^[0-9]{1,20}$/.test(common.organizationId)) {\n    return Object.assign(base, common, { route: \"FAIL\", toId: m ? m[1] : \"0\", result_code: \"PWC_INVALID_REQUEST\", result_message: \"the job's request could not be read\" });\n  }\n  return Object.assign(base, common, { route: \"GO\", toId: m[1], grId: s(req.grId), request: req, result_message: \"complete Putaway \" + s(req.toNo || m[1]) });\n};\nconst guard = [{{node:code_node_PPguard.data}}][0];\nconst res = prepareEntry(guard, [{{node:sql_node_PPjob.data}}][0], [{{system:uuid}}][0]);\nconsole.log(\"prepare entry\", JSON.stringify({ route: res.route, to: res.toId, result: res.result_code, message: res.result_message }));\nreturn res;"
     },
     "response_json": [
      {
@@ -544,6 +544,15 @@
      },
      {
       "key": "qja58pmr",
+      "name": "jsAt",
+      "title": "jsAt",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "n8ep3rdi",
       "name": "nonce",
       "title": "nonce",
       "description": "",
@@ -552,7 +561,7 @@
       "children": []
      },
      {
-      "key": "n8ep3rdi",
+      "key": "csq8r8s9",
       "name": "request",
       "title": "request",
       "description": "",
@@ -561,7 +570,7 @@
       "children": []
      },
      {
-      "key": "csq8r8s9",
+      "key": "ip0rwo28",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -570,7 +579,7 @@
       "children": []
      },
      {
-      "key": "ip0rwo28",
+      "key": "kznb8nhy",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -636,7 +645,7 @@
         },
         "response_json": [
          {
-          "key": "kznb8nhy",
+          "key": "vo4acvw5",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -645,7 +654,7 @@
           "children": []
          },
          {
-          "key": "vo4acvw5",
+          "key": "xzb6if0t",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -654,7 +663,7 @@
           "children": []
          },
          {
-          "key": "xzb6if0t",
+          "key": "111ux8k4",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -663,7 +672,7 @@
           "children": []
          },
          {
-          "key": "111ux8k4",
+          "key": "qajicigi",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -672,7 +681,7 @@
           "children": []
          },
          {
-          "key": "qajicigi",
+          "key": "r79lsjza",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -1356,7 +1365,7 @@
     },
     "response_json": [
      {
-      "key": "r79lsjza",
+      "key": "czq9fqm9",
       "name": "route",
       "title": "route",
       "description": "",
@@ -1365,7 +1374,7 @@
       "children": []
      },
      {
-      "key": "czq9fqm9",
+      "key": "h4xy59hn",
       "name": "code",
       "title": "code",
       "description": "",
@@ -1374,7 +1383,7 @@
       "children": []
      },
      {
-      "key": "h4xy59hn",
+      "key": "y5oqdy2x",
       "name": "message",
       "title": "message",
       "description": "",
@@ -1383,7 +1392,7 @@
       "children": []
      },
      {
-      "key": "y5oqdy2x",
+      "key": "xy4dlsp0",
       "name": "payload",
       "title": "payload",
       "description": "",
@@ -1392,7 +1401,7 @@
       "children": []
      },
      {
-      "key": "xy4dlsp0",
+      "key": "78ky2yjp",
       "name": "partRows",
       "title": "partRows",
       "description": "",
@@ -1400,7 +1409,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "78ky2yjp",
+        "key": "a9ssee6i",
         "name": "items",
         "title": "",
         "description": "",
@@ -1412,7 +1421,7 @@
       ]
      },
      {
-      "key": "a9ssee6i",
+      "key": "w1zjtrad",
       "name": "lineCount",
       "title": "lineCount",
       "description": "",
@@ -1421,7 +1430,7 @@
       "children": []
      },
      {
-      "key": "w1zjtrad",
+      "key": "3qh99g08",
       "name": "movementCount",
       "title": "movementCount",
       "description": "",
@@ -1430,7 +1439,7 @@
       "children": []
      },
      {
-      "key": "3qh99g08",
+      "key": "ta7n37ig",
       "name": "toId",
       "title": "toId",
       "description": "",
@@ -1439,7 +1448,7 @@
       "children": []
      },
      {
-      "key": "ta7n37ig",
+      "key": "0pvq0ke3",
       "name": "unlockOk",
       "title": "unlockOk",
       "description": "",
@@ -1464,11 +1473,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// PUTAWAY_BULK_PREPARE - Ready: the plan -> READY_TO_COMMIT (manifest; the worker's lease is kept) or FAILED (lease released)\n// with the putaway released when this job holds its lock. Nothing else was written\nconst prepareReady = function prepareReady(entry, plan) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  const p = plan || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const fail = (code, message, unlock) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{ id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not completed: \" + message).slice(0, 250), row_version: (Number(e.rowVersion) || 0) + 1,\n      error_code: code, error_message: message, error_details: JSON.stringify({ step: \"PUTAWAY_BULK_PREPARE\" }), lease_owner: null, lease_expires_at: null, finished_at: s(e.dbNow) || null }],\n    needUnlock: unlock ? \"YES\" : \"NO\", unlockRows: unlock ? [{ id: s(e.toId), is_processing: 0 }] : [], result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  if (s(p.route) !== \"READY\") return fail(s(p.code) || s(e.result_code) || \"PWC_PLAN_FAILED\", s(p.message) || s(e.result_message) || \"the completion could not be planned\", String(p.unlockOk) === \"1\" && /^[0-9]{1,20}$/.test(s(e.toId)));\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{ id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to complete: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0 }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst p = { route: [{{node:code_node_PPplan.data.route}}][0], code: [{{node:code_node_PPplan.data.code}}][0], message: [{{node:code_node_PPplan.data.message}}][0],\n  payload: [{{node:code_node_PPplan.data.payload}}][0], lineCount: [{{node:code_node_PPplan.data.lineCount}}][0], unlockOk: [{{node:code_node_PPplan.data.unlockOk}}][0] };\nconst res = prepareReady([{{node:code_node_PPentry.data}}][0], p);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
+     "code": "// PUTAWAY_BULK_PREPARE - Ready: the plan -> READY_TO_COMMIT (manifest; the worker's lease is kept) or FAILED (lease released)\n// with the putaway released when this job holds its lock. Nothing else was written\nconst prepareReady = function prepareReady(entry, plan) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const e = entry || {};\n  // the DB clock now: entry's DB time plus what this run has spent since (no server clock or time zone mixing)\n  const endNow = () => {\n    const m = s(e.dbNow).match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    const js = Number(e.jsAt);\n    if (!m || !(js > 0)) return s(e.dbNow);\n    const d = new Date(Date.UTC(+m[1], m[2] - 1, +m[3], +m[4], +m[5], +m[6]) + Math.max(0, Math.floor((Date.now() - js) / 1000)) * 1000);\n    const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n    return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n  };\n  const p = plan || {};\n  const base = { route: \"FAIL\", needParts: \"NO\", needReady: \"NO\", readyRows: [], needJobUpd: \"NO\", jobRows: [], needUnlock: \"NO\", unlockRows: [], result_code: \"\", result_message: \"\", job_status: \"\" };\n  if (s(e.route) === \"NOOP\") return Object.assign(base, { route: \"NOOP\", result_code: s(e.result_code), result_message: s(e.result_message) });\n  const fail = (code, message, unlock) => Object.assign(base, {\n    needJobUpd: \"YES\",\n    jobRows: [{ id: s(e.jobId), job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not completed: \" + message).slice(0, 250), row_version: (Number(e.rowVersion) || 0) + 1,\n      error_code: code, error_message: message, error_details: JSON.stringify({ step: \"PUTAWAY_BULK_PREPARE\" }), lease_owner: null, lease_expires_at: null, finished_at: endNow() || null }],\n    needUnlock: unlock ? \"YES\" : \"NO\", unlockRows: unlock ? [{ id: s(e.toId), is_processing: 0 }] : [], result_code: code, result_message: message, job_status: \"FAILED\",\n  });\n  if (s(p.route) !== \"READY\") return fail(s(p.code) || s(e.result_code) || \"PWC_PLAN_FAILED\", s(p.message) || s(e.result_message) || \"the completion could not be planned\", String(p.unlockOk) === \"1\" && /^[0-9]{1,20}$/.test(s(e.toId)));\n  return Object.assign(base, {\n    route: \"OK\", needParts: \"YES\", needReady: \"YES\",\n    readyRows: [{ id: s(e.jobId), job_status: \"READY_TO_COMMIT\", progress_percent: 60, progress_message: (\"Ready to complete: \" + s(p.message)).slice(0, 250),\n      row_version: (Number(e.rowVersion) || 0) + 1, error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0 }],\n    result_message: s(p.message), job_status: \"READY_TO_COMMIT\",\n  });\n};\nconst p = { route: [{{node:code_node_PPplan.data.route}}][0], code: [{{node:code_node_PPplan.data.code}}][0], message: [{{node:code_node_PPplan.data.message}}][0],\n  payload: [{{node:code_node_PPplan.data.payload}}][0], lineCount: [{{node:code_node_PPplan.data.lineCount}}][0], unlockOk: [{{node:code_node_PPplan.data.unlockOk}}][0] };\nconst res = prepareReady([{{node:code_node_PPentry.data}}][0], p);\nconsole.log(\"prepare ready\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
     },
     "response_json": [
      {
-      "key": "0pvq0ke3",
+      "key": "jrtbs0pu",
       "name": "route",
       "title": "route",
       "description": "",
@@ -1477,7 +1486,7 @@
       "children": []
      },
      {
-      "key": "jrtbs0pu",
+      "key": "gtzrbjlk",
       "name": "needParts",
       "title": "needParts",
       "description": "",
@@ -1486,7 +1495,7 @@
       "children": []
      },
      {
-      "key": "gtzrbjlk",
+      "key": "yppm3hgc",
       "name": "needReady",
       "title": "needReady",
       "description": "",
@@ -1495,7 +1504,7 @@
       "children": []
      },
      {
-      "key": "yppm3hgc",
+      "key": "lxkmmbox",
       "name": "readyRows",
       "title": "readyRows",
       "description": "",
@@ -1503,7 +1512,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "lxkmmbox",
+        "key": "t2nkbbqn",
         "name": "items",
         "title": "",
         "description": "",
@@ -1515,7 +1524,7 @@
       ]
      },
      {
-      "key": "t2nkbbqn",
+      "key": "e1err4su",
       "name": "needJobUpd",
       "title": "needJobUpd",
       "description": "",
@@ -1524,7 +1533,7 @@
       "children": []
      },
      {
-      "key": "e1err4su",
+      "key": "djn19sw3",
       "name": "jobRows",
       "title": "jobRows",
       "description": "",
@@ -1532,7 +1541,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "djn19sw3",
+        "key": "thv5dpgv",
         "name": "items",
         "title": "",
         "description": "",
@@ -1544,7 +1553,7 @@
       ]
      },
      {
-      "key": "thv5dpgv",
+      "key": "apgeoz09",
       "name": "needUnlock",
       "title": "needUnlock",
       "description": "",
@@ -1553,7 +1562,7 @@
       "children": []
      },
      {
-      "key": "apgeoz09",
+      "key": "wt528whc",
       "name": "unlockRows",
       "title": "unlockRows",
       "description": "",
@@ -1561,7 +1570,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "wt528whc",
+        "key": "a6fnzlmd",
         "name": "items",
         "title": "",
         "description": "",
@@ -1573,7 +1582,7 @@
       ]
      },
      {
-      "key": "a6fnzlmd",
+      "key": "29du9i89",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -1582,7 +1591,7 @@
       "children": []
      },
      {
-      "key": "29du9i89",
+      "key": "al30f667",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -1591,7 +1600,7 @@
       "children": []
      },
      {
-      "key": "al30f667",
+      "key": "n62v8vds",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2296,7 +2305,7 @@
     },
     "response_json": [
      {
-      "key": "n62v8vds",
+      "key": "uu0evi3s",
       "name": "id",
       "title": "id",
       "description": "",
@@ -2305,7 +2314,7 @@
       "children": []
      },
      {
-      "key": "uu0evi3s",
+      "key": "u66kmj3f",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2314,7 +2323,7 @@
       "children": []
      },
      {
-      "key": "u66kmj3f",
+      "key": "hoqs2hcx",
       "name": "progress_message",
       "title": "progress_message",
       "description": "",
@@ -2323,7 +2332,7 @@
       "children": []
      },
      {
-      "key": "hoqs2hcx",
+      "key": "zowzjga9",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -2332,7 +2341,7 @@
       "children": []
      },
      {
-      "key": "zowzjga9",
+      "key": "ff24z5x7",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -2357,7 +2366,7 @@
     },
     "response_json": [
      {
-      "key": "ff24z5x7",
+      "key": "hcr32eo3",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -2366,7 +2375,7 @@
       "children": []
      },
      {
-      "key": "hcr32eo3",
+      "key": "cdrl101f",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2375,7 +2384,7 @@
       "children": []
      },
      {
-      "key": "cdrl101f",
+      "key": "ryuz11ne",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -2384,7 +2393,7 @@
       "children": []
      },
      {
-      "key": "ryuz11ne",
+      "key": "wukzgchr",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -2393,7 +2402,7 @@
       "children": []
      },
      {
-      "key": "wukzgchr",
+      "key": "jxeqrd4s",
       "name": "evidence",
       "title": "evidence",
       "description": "",

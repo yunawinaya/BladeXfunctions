@@ -155,7 +155,7 @@ def build_commit():
     part = lambda nid, title, name: K.sql(nid, title, S["part"](name), ["step_name", "result_ref"])
     br = lambda tag, items: K.parallel("condition_all_PC%s" % tag, "Reads in parallel", [("cai_PC%s%d" % (tag, i), t, [n]) for i, (t, n) in enumerate(items)])
     head_cols = ["is_processing", "to_status", "update_time"]
-    entry_fields = ["route", "phase", "dbNow", "jobId", "tenantId", "organizationId", "toId", "toNo", "grId", "idempotencyKey", "jobStatus", "rowVersion", "attempts", "leaseUntil",
+    entry_fields = ["route", "phase", "dbNow", "jsAt", "jobId", "tenantId", "organizationId", "toId", "toNo", "grId", "idempotencyKey", "jobStatus", "rowVersion", "attempts", "leaseUntil",
                     "unlockOk", "partPrefix", "manifest", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "needP0", "needP1", "needP2", "needP3", "needP4",
                     "result_code", "result_message", "job_status"]
     chk = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "result_code", "result_message", "job_status"]
@@ -314,7 +314,7 @@ def build_prepare():
               ["db_now", "id", "organization_id", "command", "job_status", "lease_owner", "lease_live", "row_version", "attempt_count", "idempotency_key", "correlation_id",
                "request_payload", "is_deleted"]),
         K.code(E, "Entry: a VALIDATING COMPLETE_PUTAWAY job under a live lease; its correlation -> the putaway; its request", code("prepare/entry.js"),
-               ["route", "jobId", "tenantId", "organizationId", "toId", "grId", "idempotencyKey", "rowVersion", "dbNow", "nonce", "request", "result_code", "result_message"],
+               ["route", "jobId", "tenantId", "organizationId", "toId", "grId", "idempotencyKey", "rowVersion", "dbNow", "jsAt", "nonce", "request", "result_code", "result_message"],
                objects=("request", "rowVersion")),
         K.if_(ids, "if_PPnoop", "IF the job is not this run's to prepare: answer, write nothing", is_(E, "route", "NOOP"), [
             K.code("code_node_PPnoop", "Answer (not prepared)", noop_body, res_fields),
@@ -444,13 +444,17 @@ def build_submit():
                ["route", "code", "message", "reason", "rowCount", "lineCount"], objects=("rowCount", "lineCount")),
         K.if_(ids, "if_PSgateEnd", "IF the gate answered (NOT_ELIGIBLE / STOP): answer, write nothing", "'%s' != 'GO'" % N(GT, "data.route"), sres("gate", GT, "gate")),
         K.code(PO, "Post: the queue rows (lock, the job QUEUED 2 minutes ahead, is_processing 1)", scode("post.js"),
-               ["route", "code", "message", "lockRows", "jobRows", "toRows"], arrays=("lockRows", "jobRows", "toRows")),
+               ["route", "code", "message", "lockRows", "jobRows", "toRows", "needDoc", "docToId", "refDoc"], arrays=("lockRows", "jobRows", "toRows"),
+               objects=("refDoc",)),
         K.if_(ids, "if_PSpostEnd", "IF nothing to queue: answer, write nothing", "'%s' != 'QUEUE'" % N(PO, "data.route"), sres("post", PO, "post")),
         step_add(ids, "add_node_PSlock", "LOCK: gd_publish_step PWC|<to> / LOCK|<n> (unique tenant / job / step: a concurrent submit fails its run)", PO, "lockRows"),
         K.add(ids, "add_node_PSjob", "Job insert: COMPLETE_PUTAWAY QUEUED, due in 2 minutes (unique idempotency key)", JOB,
               [(p, N(PO, "data.jobRows." + p)) for p in G.JOB_ADD_COLS], labels={"organization_id": "Organization"}),
         K.update(ids, "update_node_PSto", "Putaway locked: is_processing 1 (the lock every writer honours)", TO, ("id", "in", N(PO, "data.toRows.id")),
                  [("id", N(PO, "data.toRows.id")), ("is_processing", N(PO, "data.toRows.is_processing"))]),
+        gate(ids, "cor_PSdoc", "Attachments sent with the confirmation?", PO, "needDoc", [
+            K.update(ids, "update_node_PSdoc", "The putaway's attachments (ref_doc) as the confirmation leaves them", TO, ("id", "in", N(PO, "data.docToId")),
+                     [("ref_doc", N(PO, "data.refDoc"))])]),
         K.sql("sql_node_PSback", "Read-back: the job of this key, the putaway's lock flag + update_time, its latest lock", back,
               ["job_id", "job_status", "is_processing", "update_time", "lock_ref"]),
         K.code("code_node_PSdue", "Due: the putaway is locked under this job -> the job due now, with the putaway's update_time", scode("due.js"), ["dueRows", "needDue"], arrays=("dueRows",)),
@@ -461,7 +465,7 @@ def build_submit():
     return K.workflow([("operation", "string", "SUBMIT (default) or STATUS"), ("to_id", "string", "transfer_order_putaway.id (digits)"),
                        ("idempotency_key", "string", "one per click and content (8-128 chars A-Z a-z 0-9 | : _ . -)"),
                        ("confirmed_by", "string", "the session nickname ({{global:nickname}} is null inside a workflow)"),
-                       ("request", "any", "{ source, lines: [{ id | parent_id, qty, target_location, target_inv_category, remark, storage_location }] }")], SUB_RES, nodes)
+                       ("request", "any", "{ source, lines: [{ id | parent_id, qty, target_location, target_inv_category, remark, storage_location }], ref_doc? }")], SUB_RES, nodes)
 
 
 BUILDERS = [("PUTAWAY_BULK_PREPARE", build_prepare), ("PUTAWAY_BULK_COMMIT", build_commit), ("PUTAWAY_ASYNC_WORKER", build_worker), ("PUTAWAY_ASYNC_SUBMIT", build_submit)]
