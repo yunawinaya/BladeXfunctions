@@ -1,0 +1,26 @@
+{
+ "_note": "lib/sqlcheck.py values for the Revert V2 workflows + the classic IA_REVERT v5 (read-only on dev; dev IA-2609-010 of tenant 000000, a dev GR V2 job for the job / step reads). A placeholder is filled by its last path segment.",
+ "*": {
+  "tenantId": "000000",
+  "iaId": "2102337892356845570",
+  "key": "IAV:1123598813738675201:2102337892356845570:sqlcheck01",
+  "formOrg": "1123598813738675201",
+  "jobId": "2112066434782371841",
+  "jobIdsSql": "0,2112066434782371841",
+  "partPrefix": "P|abcd1234|",
+  "organizationId": "1123598813738675201",
+  "orgSql": "1123598813738675201",
+  "plantIdSql": "1123598813738675202",
+  "iaIdSql": "2102337892356845570",
+  "iaNoSql": "IA-2609-010",
+  "assembledIdsCsv": "0,2094626841323700251",
+  "itemIdsCsv": "0,2094626841323700251,2094626841323700252,2094626841323700253,2094626841323700254",
+  "batchIdsCsv": "0,2102337894294614018",
+  "binIdsCsv": "0,2018912822846582786",
+  "fifoIdsSql": "0,2110927585199435815",
+  "waIdsSql": "0,2018913742812639233",
+  "idsSql": "0,2102337894294614018",
+  "keysJson": "[\"COST|2047235050834157570|1123598813738675202\",\"COST|2049734383547097089|1123598813738675202\"]"
+ },
+ "missing_cols": {"h.ia_v2_job_id": "NULL", "g.ia_v2_job_id": "NULL"}
+}

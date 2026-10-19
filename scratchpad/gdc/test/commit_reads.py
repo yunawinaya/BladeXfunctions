@@ -21,6 +21,7 @@ fill = {
     "{{node:code_node_CCc3ids.data.idsJson}}": json.dumps(ids), "{{node:code_node_CCc3ids.data.createLike}}": m["job_id"] + "|C|%",
     "{{node:code_node_CCc4ids.data.soIdsJson}}": json.dumps(so_ids), "{{node:code_node_CCc4ids.data.lineIdsJson}}": json.dumps(line_ids),
     "{{node:code_node_CCc0ids.data.idsJson}}": json.dumps(ids), "{{node:code_node_CCc0ids.data.huIdsJson}}": json.dumps(hu_ids), "{{node:code_node_CCc3hids.data.idsJson}}": json.dumps(hu_ids),
+    "{{node:code_node_CCentry.data.force}}": "Yes" if m.get("force") == 1 else "",
 }
 doc = json.load(open(os.path.join(HERE, "..", "..", "..", "Goods Delivery", "CompleteV2", "GD_COMPLETE_COMMIT.json")))
 nodes = {}
@@ -32,7 +33,8 @@ def walk(o):
         for v in o: walk(v)
 walk(doc)
 result = {}
-for key, nid in [("c0rows", "sql_node_CCc0rows"), ("c0hus", "sql_node_CCc0hus"), ("c0huitems", "sql_node_CCc0huitems"), ("c3rows", "sql_node_CCc3rows"), ("c3hhus", "sql_node_CCc3hhus"), ("c3hitems", "sql_node_CCc3hitems"), ("c3hprec", "sql_node_CCc3hprec"), ("c4lines", "sql_node_CCc4lines"), ("c4hdrs", "sql_node_CCc4hdrs"), ("c5raw", "sql_node_CCc5raw")]:
+for key, nid in [("c0rows", "sql_node_CCc0rows"), ("c0hus", "sql_node_CCc0hus"), ("c0huitems", "sql_node_CCc0huitems"), ("c3rows", "sql_node_CCc3rows"), ("c3hhus", "sql_node_CCc3hhus"), ("c3hitems", "sql_node_CCc3hitems"), ("c3hprec", "sql_node_CCc3hprec"), ("c4lines", "sql_node_CCc4lines"), ("c4hdrs", "sql_node_CCc4hdrs"), ("c5raw", "sql_node_CCc5raw")] + (
+        [("c0pick", "sql_node_CCc0pick"), ("c0fp", "sql_node_CCc0fp")] if m.get("force") == 1 else []):
     sql = nodes[nid]
     for a, b in fill.items(): sql = sql.replace(a, b)
     left = re.findall(r"\{\{[^}]+\}\}", sql)

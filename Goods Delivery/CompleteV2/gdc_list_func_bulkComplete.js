@@ -1,12 +1,14 @@
 // func_bulkComplete (GD list) + GD Completion V2: each selected Created delivery goes to GD_COMPLETE_SUBMIT first (QUEUED =
 // completed in the background by GD_COMPLETE_WORKER, which this page then keeps running until nothing is due - there is no
-// scheduled worker); NOT_ELIGIBLE and 406 run the classic GOODS_DELIVERY path below, unchanged.
+// scheduled worker); a 406 is force-completed there too; NOT_ELIGIBLE runs the classic GOODS_DELIVERY path below, unchanged.
 const GDC_WF = {
   SUBMIT: "2110182609618337794", // GD_COMPLETE_SUBMIT
   WORKER: "2110182645714518018", // GD_COMPLETE_WORKER
 };
 // Switch: false = every delivery runs the classic save
 const ASYNC_COMPLETE_ENABLED = true;
+// Switch: false = a Force Complete (406) runs the classic save
+const FORCE_COMPLETE_V2_ENABLED = true;
 
 const runWf = (id, params) =>
   new Promise((resolve, reject) => {
@@ -25,7 +27,11 @@ const submitV2 = async (gdItem, answers) => {
   const code = String(r.code);
   if (code === "401") return submitV2(gdItem, { ...answers, continueZero: "Yes" });
   if (code === "403") return submitV2(gdItem, { ...answers, needCL: "not required" });
-  if (code === "406") return { kind: "CLASSIC", why: "406: picking not completed" };
+  // the classic list force-completes without asking, and so does V2 (once: a second 406 runs the classic save)
+  if (code === "406") {
+    if (FORCE_COMPLETE_V2_ENABLED !== true || answers.isForceComplete === "Yes") return { kind: "CLASSIC", why: "406: picking not completed" };
+    return submitV2(gdItem, { ...answers, isForceComplete: "Yes" });
+  }
   if (code === "412") return { kind: "PENDING_SI", answers: answers };
   if (code === "402") return fail((r.message || "Credit limit exceeded").replace(/^Block - /, ""));
   if (code === "405") return fail("Must save as Created first");

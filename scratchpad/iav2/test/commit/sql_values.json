@@ -1,0 +1,17 @@
+{
+ "*": {
+  "tenantId": "000000",
+  "jobId": "2112066434782371841",
+  "jobIdsSql": "2112066434782371841",
+  "iaId": "2102337892356845570",
+  "parentItemId": "2064633018934157313",
+  "organizationId": "1123598813738675201",
+  "oursItem": "2064633018934157313",
+  "oursOrg": "1123598813738675201",
+  "partPrefix": "P|abcd1234|"
+ },
+ "missing_cols": {
+  "h.ia_v2_job_id": "NULL",
+  "g.ia_v2_job_id": "NULL"
+ }
+}

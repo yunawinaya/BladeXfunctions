@@ -485,74 +485,283 @@
       ]
     },
     {
-      "id": "search_node_hrCurSoLines",
-      "type": "search-node",
+      "id": "condition_all_hrFetch",
+      "type": "condition-all-node",
       "data": {
-        "table_id": {
-          "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
-          "rules": {
-            "collectionId": "1939903359943024642",
-            "list": [
-              {
-                "id": 1779334300251,
-                "parentId": 1779334300250,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_node_hrExtract.data.soLineItemIds}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
+        "title": "Parallel Branch",
+        "filter": {
+          "list": []
         },
-        "condition": {},
-        "limit": 500,
-        "title": "Find Current SO Lines",
-        "isValidator": true,
-        "nodeName": "Find Current SO Lines",
-        "name": "Find Current SO Lines"
-      },
-      "blocks": []
-    },
-    {
-      "id": "search_node_hrCurSoHdr",
-      "type": "search-node",
-      "data": {
-        "table_id": {
-          "source": "Sales Order:Table:1902773735979597826",
-          "rules": {
-            "collectionId": "1902773735979597826",
-            "list": [
-              {
-                "id": 1779334300261,
-                "parentId": 1779334300260,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_node_hrExtract.data.soHeaderIds}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
+        "expression": {
+          "code": ""
         },
-        "condition": {},
-        "limit": 500,
-        "title": "Find Current SO Headers",
-        "isValidator": true,
-        "nodeName": "Find Current SO Headers",
-        "name": "Find Current SO Headers"
+        "displayContent": "sdk.form.setCondition"
       },
-      "blocks": []
+      "blocks": [
+        {
+          "id": "condition_all_node_item_hrSoLines",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "SO Lines",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "search_node_hrCurSoLines",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+                  "rules": {
+                    "collectionId": "1939903359943024642",
+                    "list": [
+                      {
+                        "id": 1779334300251,
+                        "parentId": 1779334300250,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_hrExtract.data.soLineItemIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 500,
+                "title": "Find Current SO Lines",
+                "isValidator": true,
+                "nodeName": "Find Current SO Lines",
+                "name": "Find Current SO Lines"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_hrSoHdr",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "SO Headers",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "search_node_hrCurSoHdr",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Order:Table:1902773735979597826",
+                  "rules": {
+                    "collectionId": "1902773735979597826",
+                    "list": [
+                      {
+                        "id": 1779334300261,
+                        "parentId": 1779334300260,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_hrExtract.data.soHeaderIds}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 500,
+                "title": "Find Current SO Headers",
+                "isValidator": true,
+                "nodeName": "Find Current SO Headers",
+                "name": "Find Current SO Headers"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_node_item_hrPick",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Picking Facts",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            }
+          },
+          "blocks": [
+            {
+              "id": "code_node_hrPickParams",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Picking Facts Params",
+                "isValidator": true,
+                "nodeName": "Picking Facts Params",
+                "name": "Picking Facts Params",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Spliced into sql_node_hrPickFacts, so only digit ids get through.\nconst lines = {{node:code_node_hrExtract.data.tableData}} || [];\nconst isId = (v) => /^[0-9]+$/.test(String(v));\nconst materialIds = [...new Set(lines.map((l) => String(l.material_id || \"\")).filter(isId))];\nconst gdId = String({{node:code_node_hrExtract.data.gdId}} || \"\");\nconst orgId = String({{node:code_node_hrExtract.data.organizationId}} || \"\");\n\nreturn {\n  gdIdSql: isId(gdId) ? gdId : \"0\",\n  orgIdSql: isId(orgId) ? orgId : \"0\",\n  materialIdCsv: materialIds.join(\",\"),\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "hpp1gdid",
+                    "name": "gdIdSql",
+                    "title": "gdIdSql",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpp2orgi",
+                    "name": "orgIdSql",
+                    "title": "orgIdSql",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpp3matc",
+                    "name": "materialIdCsv",
+                    "title": "materialIdCsv",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "sql_node_hrPickFacts",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Get Picking Facts",
+                "isValidator": true,
+                "nodeName": "Get Picking Facts",
+                "name": "Get Picking Facts",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST('pick' AS CHAR) AS kind,\n       CAST(pl.gd_line_id AS CHAR) AS ref_id,\n       CAST(COALESCE(pl.line_status, '') AS CHAR) AS line_status,\n       CAST(COALESCE(t.to_status, '') AS CHAR) AS to_status,\n       0 AS n,\n       NULL AS stock_control,\n       NULL AS show_delivery,\n       NULL AS picking_required,\n       NULL AS gd_flow\nFROM transfer_order_jz8m9w3h_sub pl\nSTRAIGHT_JOIN transfer_order t ON t.id = pl.transfer_order_id AND t.is_deleted = 0\nWHERE pl.gd_id = CAST('{{node:code_node_hrPickParams.data.gdIdSql}}' AS UNSIGNED)\n  AND pl.is_deleted = 0\nUNION ALL\nSELECT CAST('rec' AS CHAR), CAST(r.gd_line_id AS CHAR), CAST('' AS CHAR), CAST('' AS CHAR), COUNT(*), NULL, NULL, NULL, NULL\nFROM transfer_order_vrqs3cmr_sub r\nSTRAIGHT_JOIN transfer_order t ON t.id = r.transfer_order_id AND t.is_deleted = 0\nWHERE r.gd_id = CAST('{{node:code_node_hrPickParams.data.gdIdSql}}' AS UNSIGNED)\n  AND r.is_deleted = 0\nGROUP BY r.gd_line_id\nUNION ALL\nSELECT CAST('item' AS CHAR), CAST(i.id AS CHAR), CAST('' AS CHAR), CAST('' AS CHAR), 0, i.stock_control, i.show_delivery, NULL, NULL\nFROM JSON_TABLE(CONCAT('[', '{{node:code_node_hrPickParams.data.materialIdCsv}}', ']'), '$[*]' COLUMNS (rid BIGINT PATH '$')) j\nJOIN item i ON i.id = j.rid AND i.is_deleted = 0\nUNION ALL\nSELECT CAST('setup' AS CHAR), CAST('' AS CHAR), CAST('' AS CHAR), CAST('' AS CHAR), 0, NULL, NULL,\n       MAX(s.picking_required), MAX(s.picking_after = 'Goods Delivery')\nFROM picking_setup s\nWHERE s.organization_id = '{{node:code_node_hrPickParams.data.orgIdSql}}'\n  AND s.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "hpf1kind",
+                    "name": "kind",
+                    "title": "kind",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpf2refi",
+                    "name": "ref_id",
+                    "title": "ref_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpf3lnst",
+                    "name": "line_status",
+                    "title": "line_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpf4tost",
+                    "name": "to_status",
+                    "title": "to_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpf5cnt0",
+                    "name": "n",
+                    "title": "n",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpf6stkc",
+                    "name": "stock_control",
+                    "title": "stock_control",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpf7shwd",
+                    "name": "show_delivery",
+                    "title": "show_delivery",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpf8preq",
+                    "name": "picking_required",
+                    "title": "picking_required",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hpf9gdfl",
+                    "name": "gd_flow",
+                    "title": "gd_flow",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "code_node_hrComputeSoUpdates",
@@ -567,7 +776,7 @@
         "name": "Compute Additive SO Updates",
         "script": {
           "type": "javascript",
-          "code": "// Compute additive SO line + aggregated SO header updates for revert.\n// Math mirrors completion's inverse: delivered -= gdQty, planned += gdQty.\n// This preserves other GDs' contributions when multiple GDs target the same SO.\n\nconst tableData = {{node:code_node_hrExtract.data.tableData}} || [];\nconst curSoLinesRaw = {{node:search_node_hrCurSoLines.data.data}} || [];\nconst curSoHdrsRaw = {{node:search_node_hrCurSoHdr.data.data}} || [];\nconst curSoLines = Array.isArray(curSoLinesRaw) ? curSoLinesRaw : [curSoLinesRaw];\nconst curSoHdrs = Array.isArray(curSoHdrsRaw) ? curSoHdrsRaw : [curSoHdrsRaw];\n\n// 8dp is the maximum configurable column precision, so rounding a COMPUTED value there\n// keeps every real scale intact while killing float residue (0.8 - 0.1 -> 0.7).\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\n// Aggregate this GD's gd_qty contribution per so_line_item_id (handles multiple\n// GD rows targeting the same SO line — rare but possible).\nconst bundleParentLines = {{node:code_node_hrExtract.data.bundleParentLines}} || [];\n\n// The bundle rows are included here, not in tableData: completion writes the number\n// of bundles delivered onto their sales order line, so the revert has to take it\n// back off. tableData stays bundle-row-free because the inventory revert downstream\n// works per material and a bundle row has none.\nconst gdQtyBySoLine = {};\nfor (const row of [...tableData, ...bundleParentLines]) {\n  if (!row.so_line_item_id) continue;\n  const qty = parseFloat(row.gd_qty) || 0;\n  gdQtyBySoLine[row.so_line_item_id] = q8((gdQtyBySoLine[row.so_line_item_id] || 0) + qty);\n}\n\n// Build SO line updates (additive reverse of completion).\nconst soLineUpdates = [];\nconst newLineStateById = {}; // for header aggregation\nfor (const soLine of curSoLines) {\n  const lineId = soLine.id;\n  const gdQty = gdQtyBySoLine[lineId] || 0;\n  const curDelivered = parseFloat(soLine.delivered_qty) || 0;\n  const curPlanned = parseFloat(soLine.planned_qty) || 0;\n  const soQuantity = parseFloat(soLine.so_quantity) || 0;\n  const newDelivered = Math.max(0, q8(curDelivered - gdQty));\n  const newPlanned = q8(curPlanned + gdQty);\n  const newOutstanding = Math.max(0, q8(soQuantity - newDelivered));\n\n  // line_status recompute:\n  // - newDelivered >= soQuantity > 0 → \"Completed\" (other GDs still cover it)\n  // - newDelivered > 0 → \"Processing\" (partial)\n  // - newDelivered === 0 → empty (back to pre-delivery state)\n  let newLineStatus;\n  if (soQuantity > 0 && newDelivered >= soQuantity) {\n    newLineStatus = \"Completed\";\n  } else if (newDelivered > 0) {\n    newLineStatus = \"Processing\";\n  } else {\n    newLineStatus = \"\";\n  }\n\n  soLineUpdates.push({\n    id: lineId,\n    planned_qty: newPlanned,\n    delivered_qty: newDelivered,\n    outstanding_quantity: newOutstanding,\n    line_status: newLineStatus,\n  });\n  newLineStateById[lineId] = {\n    delivered_qty: newDelivered,\n    so_quantity: soQuantity,\n    line_status: newLineStatus,\n  };\n}\n\n// Build SO header aggregated updates. Mirror of completion's code_node_lwB2FVe0\n// (Completed branch): count fully/partially delivered across ALL table_so lines,\n// using newLineStateById for lines we just updated and existing values for others.\n// An item bundle is ONE line on the order with the bundle's items beneath it.\n// The bundle line is not counted as a line of the order -- its items decide\n// whether the order is delivered, and counting it too would double them -- so counting\n// it here would inflate the denominator and it could never be marked delivered.\n// Same rule the completion rollup (code_node_lwB2FVe0) applies, so forward and\n// reverse agree on the ratio. On table_so item_name holds the item id.\nconst orderLines = (rows) =>\n  (rows || []).flatMap((row) => [\n    ...(Boolean(row.item_bundle_id) && !row.item_name ? [] : [row]),\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\nconst soHeaderUpdates = [];\nfor (const soHdr of curSoHdrs) {\n  const tableSo = orderLines(soHdr.table_so);\n  const totalItems = tableSo.length;\n  let partiallyDeliveredItems = 0;\n  let fullyDeliveredItems = 0;\n\n  for (const soItem of tableSo) {\n    const updated = newLineStateById[soItem.id];\n    const lineToCheck = updated || soItem;\n    const deliveredQty = parseFloat(lineToCheck.delivered_qty || 0);\n    const soQty = parseFloat(lineToCheck.so_quantity || 0);\n    const lineStatus = lineToCheck.line_status;\n\n    if (lineStatus === \"Completed\" || (deliveredQty >= soQty && soQty > 0)) {\n      partiallyDeliveredItems++;\n      fullyDeliveredItems++;\n    } else if (deliveredQty > 0) {\n      partiallyDeliveredItems++;\n    }\n  }\n\n  const allItemsComplete = fullyDeliveredItems === totalItems && totalItems > 0;\n  const anyItemProcessing = partiallyDeliveredItems > 0;\n\n  // Derive SO header status from new line state:\n  // - all delivered → so_status=\"Completed\", gd_status=\"Fully Delivered\"\n  // - any partial → so_status=\"Processing\", gd_status=\"Partially Delivered\"\n  // - none delivered → so_status=\"Issued\" (revert to pre-delivery), gd_status=\"Created\"\n  //   (any GD still tied to this SO leaves gd_status=\"Created\"; we don't know about\n  //   other Created/Completed GDs here, so default to \"Created\" — completion's\n  //   own Created-path also sets \"Created\" when prev was empty/Cancelled.)\n  let newSoStatus;\n  let newGdStatus;\n  if (allItemsComplete) {\n    newSoStatus = \"Completed\";\n    newGdStatus = \"Fully Delivered\";\n  } else if (anyItemProcessing) {\n    newSoStatus = \"Processing\";\n    newGdStatus = \"Partially Delivered\";\n  } else {\n    newSoStatus = \"Issued\";\n    newGdStatus = \"Created\";\n  }\n\n  soHeaderUpdates.push({\n    id: soHdr.id,\n    so_status: newSoStatus,\n    gd_status: newGdStatus,\n    partially_delivered: totalItems > 0 ? (partiallyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n    fully_delivered: totalItems > 0 ? (fullyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n  });\n}\n\nreturn {\n  soLineUpdates,\n  soHeaderUpdates,\n  hasSoLineUpdates: soLineUpdates.length > 0 ? 1 : 0,\n  hasSoHeaderUpdates: soHeaderUpdates.length > 0 ? 1 : 0,\n};\n"
+          "code": "// Compute additive SO line + aggregated SO header updates for revert.\n// Math mirrors completion's inverse: delivered -= gdQty, planned += gdQty.\n// This preserves other GDs' contributions when multiple GDs target the same SO.\n\nconst tableData = {{node:code_node_hrExtract.data.tableData}} || [];\nconst curSoLinesRaw = {{node:search_node_hrCurSoLines.data.data}} || [];\nconst curSoHdrsRaw = {{node:search_node_hrCurSoHdr.data.data}} || [];\nconst curSoLines = Array.isArray(curSoLinesRaw) ? curSoLinesRaw : [curSoLinesRaw];\nconst curSoHdrs = Array.isArray(curSoHdrsRaw) ? curSoHdrsRaw : [curSoHdrsRaw];\n\n// 8dp is the maximum configurable column precision, so rounding a COMPUTED value there\n// keeps every real scale intact while killing float residue (0.8 - 0.1 -> 0.7).\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n\n// Aggregate this GD's gd_qty contribution per so_line_item_id (handles multiple\n// GD rows targeting the same SO line — rare but possible).\nconst bundleParentLines = {{node:code_node_hrExtract.data.bundleParentLines}} || [];\n\n// The bundle rows are included here, not in tableData: completion writes the number\n// of bundles delivered onto their sales order line, so the revert has to take it\n// back off. tableData stays bundle-row-free because the inventory revert downstream\n// works per material and a bundle row has none.\nconst gdQtyBySoLine = {};\nfor (const row of [...tableData, ...bundleParentLines]) {\n  if (!row.so_line_item_id) continue;\n  const qty = parseFloat(row.gd_qty) || 0;\n  gdQtyBySoLine[row.so_line_item_id] = q8((gdQtyBySoLine[row.so_line_item_id] || 0) + qty);\n}\n\n// Build SO line updates (additive reverse of completion).\nconst soLineUpdates = [];\nconst newLineStateById = {}; // for header aggregation\nfor (const soLine of curSoLines) {\n  const lineId = soLine.id;\n  const gdQty = gdQtyBySoLine[lineId] || 0;\n  const curDelivered = parseFloat(soLine.delivered_qty) || 0;\n  const curPlanned = parseFloat(soLine.planned_qty) || 0;\n  const soQuantity = parseFloat(soLine.so_quantity) || 0;\n  const newDelivered = Math.max(0, q8(curDelivered - gdQty));\n  const newPlanned = q8(curPlanned + gdQty);\n  const newOutstanding = Math.max(0, q8(soQuantity - newDelivered));\n\n  // line_status recompute:\n  // - newDelivered >= soQuantity > 0 → \"Completed\" (other GDs still cover it)\n  // - newDelivered > 0 → \"Processing\" (partial)\n  // - newDelivered === 0 → \"Issued\" (back to pre-delivery state)\n  let newLineStatus;\n  if (soQuantity > 0 && newDelivered >= soQuantity) {\n    newLineStatus = \"Completed\";\n  } else if (newDelivered > 0) {\n    newLineStatus = \"Processing\";\n  } else {\n    newLineStatus = \"Issued\";\n  }\n\n  soLineUpdates.push({\n    id: lineId,\n    planned_qty: newPlanned,\n    delivered_qty: newDelivered,\n    outstanding_quantity: newOutstanding,\n    line_status: newLineStatus,\n  });\n  newLineStateById[lineId] = {\n    delivered_qty: newDelivered,\n    so_quantity: soQuantity,\n    line_status: newLineStatus,\n  };\n}\n\n// Build SO header aggregated updates. Mirror of completion's code_node_lwB2FVe0\n// (Completed branch): count fully/partially delivered across ALL table_so lines,\n// using newLineStateById for lines we just updated and existing values for others.\n// An item bundle is ONE line on the order with the bundle's items beneath it.\n// The bundle line is not counted as a line of the order -- its items decide\n// whether the order is delivered, and counting it too would double them -- so counting\n// it here would inflate the denominator and it could never be marked delivered.\n// Same rule the completion rollup (code_node_lwB2FVe0) applies, so forward and\n// reverse agree on the ratio. On table_so item_name holds the item id.\nconst orderLines = (rows) =>\n  (rows || []).flatMap((row) => [\n    ...(Boolean(row.item_bundle_id) && !row.item_name ? [] : [row]),\n    ...(Array.isArray(row.children) ? row.children : []),\n  ]);\n\nconst soHeaderUpdates = [];\nfor (const soHdr of curSoHdrs) {\n  const tableSo = orderLines(soHdr.table_so);\n  const totalItems = tableSo.length;\n  let partiallyDeliveredItems = 0;\n  let fullyDeliveredItems = 0;\n\n  for (const soItem of tableSo) {\n    const updated = newLineStateById[soItem.id];\n    const lineToCheck = updated || soItem;\n    const deliveredQty = parseFloat(lineToCheck.delivered_qty || 0);\n    const soQty = parseFloat(lineToCheck.so_quantity || 0);\n    const lineStatus = lineToCheck.line_status;\n\n    if (lineStatus === \"Completed\" || (deliveredQty >= soQty && soQty > 0)) {\n      partiallyDeliveredItems++;\n      fullyDeliveredItems++;\n    } else if (deliveredQty > 0) {\n      partiallyDeliveredItems++;\n    }\n  }\n\n  const allItemsComplete = fullyDeliveredItems === totalItems && totalItems > 0;\n  const anyItemProcessing = partiallyDeliveredItems > 0;\n\n  // Derive SO header status from new line state:\n  // - all delivered → so_status=\"Completed\", gd_status=\"Fully Delivered\"\n  // - any partial → so_status=\"Processing\", gd_status=\"Partially Delivered\"\n  // - none delivered → so_status=\"Issued\" (revert to pre-delivery), gd_status=\"Created\"\n  //   (any GD still tied to this SO leaves gd_status=\"Created\"; we don't know about\n  //   other Created/Completed GDs here, so default to \"Created\" — completion's\n  //   own Created-path also sets \"Created\" when prev was empty/Cancelled.)\n  let newSoStatus;\n  let newGdStatus;\n  if (allItemsComplete) {\n    newSoStatus = \"Completed\";\n    newGdStatus = \"Fully Delivered\";\n  } else if (anyItemProcessing) {\n    newSoStatus = \"Processing\";\n    newGdStatus = \"Partially Delivered\";\n  } else {\n    newSoStatus = \"Issued\";\n    newGdStatus = \"Created\";\n  }\n\n  soHeaderUpdates.push({\n    id: soHdr.id,\n    so_status: newSoStatus,\n    gd_status: newGdStatus,\n    partially_delivered: totalItems > 0 ? (partiallyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n    fully_delivered: totalItems > 0 ? (fullyDeliveredItems + \" / \" + totalItems) : \"0 / 0\",\n  });\n}\n\nreturn {\n  soLineUpdates,\n  soHeaderUpdates,\n  hasSoLineUpdates: soLineUpdates.length > 0 ? 1 : 0,\n  hasSoHeaderUpdates: soHeaderUpdates.length > 0 ? 1 : 0,\n};\n"
         },
         "response_json": [
           {
@@ -609,6 +818,267 @@
         ]
       },
       "blocks": []
+    },
+    {
+      "id": "workflow_node_hrCallInvRevert",
+      "type": "workflow-node",
+      "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Call Inventory Revert Workflow",
+        "isValidator": true,
+        "nodeName": "Call Inventory Revert Workflow",
+        "name": "Call Inventory Revert Workflow",
+        "workflow": {
+          "source": "GD_PROCESS_REVERT:Workflow:2058820005398224897",
+          "rules": {
+            "collectionId": "2058820005398224897",
+            "list": [
+              {
+                "id": 1779334300501,
+                "parentId": 1779334300500,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+              }
+            ]
+          }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+          "list": [
+            {
+              "prop": "snapshot_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrParseSnap.data.snapshotId}}",
+              "valueLabel": "",
+              "propLabel": "Snapshot ID"
+            },
+            {
+              "prop": "doc_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.gdId}}",
+              "valueLabel": "",
+              "propLabel": "Document ID"
+            },
+            {
+              "prop": "gd_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.gdNo}}",
+              "valueLabel": "",
+              "propLabel": "GD Number"
+            },
+            {
+              "prop": "plant_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.plantId}}",
+              "valueLabel": "",
+              "propLabel": "Plant ID"
+            },
+            {
+              "prop": "organization_id",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.organizationId}}",
+              "valueLabel": "",
+              "propLabel": "Organization ID"
+            },
+            {
+              "prop": "transaction_type",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.transactionType}}",
+              "valueLabel": "",
+              "propLabel": "Transaction Type"
+            },
+            {
+              "prop": "doc_date",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.docDate}}",
+              "valueLabel": "",
+              "propLabel": "Document Date"
+            },
+            {
+              "prop": "tableData",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_hrExtract.data.tableData}}",
+              "valueLabel": "",
+              "propLabel": "Table Data"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_hrInvRevertConflict",
+      "type": "if",
+      "data": {
+        "title": "IF Inventory Revert Conflict",
+        "isValidator": true,
+        "nodeName": "IF Inventory Revert Conflict",
+        "name": "IF Inventory Revert Conflict",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334300601,
+              "parentId": 1779334300600,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:workflow_node_hrCallInvRevert.data.code}}' == '409'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrInvConflictTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_hrInvConflict",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Inventory Conflict 409",
+                "isValidator": true,
+                "nodeName": "Return Inventory Conflict 409",
+                "name": "Return Inventory Conflict 409",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "409",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:workflow_node_hrCallInvRevert.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrInvConflictFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_hrInvRevertError",
+      "type": "if",
+      "data": {
+        "title": "IF Inventory Revert Error",
+        "isValidator": true,
+        "nodeName": "IF Inventory Revert Error",
+        "name": "IF Inventory Revert Error",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334300701,
+              "parentId": 1779334300700,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:workflow_node_hrCallInvRevert.data.code}}' != '200'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrInvErrorTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_hrInvError",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Inventory Error 400",
+                "isValidator": true,
+                "nodeName": "Return Inventory Error 400",
+                "name": "Return Inventory Error 400",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:workflow_node_hrCallInvRevert.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrInvErrorFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "if_hrHasSoLines",
@@ -861,267 +1331,6 @@
       ]
     },
     {
-      "id": "workflow_node_hrCallInvRevert",
-      "type": "workflow-node",
-      "data": {
-        "workflow_id": "",
-        "workflow_name": "",
-        "input_params": {},
-        "title": "Call Inventory Revert Workflow",
-        "isValidator": true,
-        "nodeName": "Call Inventory Revert Workflow",
-        "name": "Call Inventory Revert Workflow",
-        "workflow": {
-          "source": "GD_PROCESS_REVERT:Workflow:2058820005398224897",
-          "rules": {
-            "collectionId": "2058820005398224897",
-            "list": [
-              {
-                "id": 1779334300501,
-                "parentId": 1779334300500,
-                "isTop": true,
-                "prop": "",
-                "operator": "",
-                "valueType": "",
-                "value": "",
-                "type": "leaf",
-                "level": 1
-              }
-            ]
-          }
-        },
-        "remote": true,
-        "remoteType": "innerdatasource",
-        "body_params": {
-          "list": [
-            {
-              "prop": "snapshot_id",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_hrParseSnap.data.snapshotId}}",
-              "valueLabel": "",
-              "propLabel": "Snapshot ID"
-            },
-            {
-              "prop": "doc_id",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_hrExtract.data.gdId}}",
-              "valueLabel": "",
-              "propLabel": "Document ID"
-            },
-            {
-              "prop": "gd_no",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_hrExtract.data.gdNo}}",
-              "valueLabel": "",
-              "propLabel": "GD Number"
-            },
-            {
-              "prop": "plant_id",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_hrExtract.data.plantId}}",
-              "valueLabel": "",
-              "propLabel": "Plant ID"
-            },
-            {
-              "prop": "organization_id",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_hrExtract.data.organizationId}}",
-              "valueLabel": "",
-              "propLabel": "Organization ID"
-            },
-            {
-              "prop": "transaction_type",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_hrExtract.data.transactionType}}",
-              "valueLabel": "",
-              "propLabel": "Transaction Type"
-            },
-            {
-              "prop": "doc_date",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_hrExtract.data.docDate}}",
-              "valueLabel": "",
-              "propLabel": "Document Date"
-            },
-            {
-              "prop": "tableData",
-              "operator": "",
-              "valueType": "field",
-              "value": "{{node:code_node_hrExtract.data.tableData}}",
-              "valueLabel": "",
-              "propLabel": "Table Data"
-            }
-          ]
-        }
-      },
-      "blocks": []
-    },
-    {
-      "id": "if_hrInvRevertConflict",
-      "type": "if",
-      "data": {
-        "title": "IF Inventory Revert Conflict",
-        "isValidator": true,
-        "nodeName": "IF Inventory Revert Conflict",
-        "name": "IF Inventory Revert Conflict",
-        "condition_type": "Expression",
-        "filter": {
-          "list": [
-            {
-              "id": 1779334300601,
-              "parentId": 1779334300600,
-              "isTop": true,
-              "prop": "",
-              "operator": "",
-              "valueType": "",
-              "value": "",
-              "type": "leaf",
-              "level": 1
-            }
-          ]
-        },
-        "expression": {
-          "type": "javascript",
-          "code": "'{{node:workflow_node_hrCallInvRevert.data.code}}' == '409'"
-        }
-      },
-      "blocks": [
-        {
-          "id": "if_block_hrInvConflictTrue",
-          "type": "ifBlock",
-          "data": { "title": "true" },
-          "blocks": [
-            {
-              "id": "return_node_hrInvConflict",
-              "type": "return-node",
-              "data": {
-                "return_data": {},
-                "status_code": 200,
-                "title": "Return Inventory Conflict 409",
-                "isValidator": true,
-                "nodeName": "Return Inventory Conflict 409",
-                "name": "Return Inventory Conflict 409",
-                "response_value": {
-                  "list": [
-                    {
-                      "prop": "code",
-                      "operator": "",
-                      "valueType": "value",
-                      "value": "409",
-                      "valueLabel": "",
-                      "propLabel": "code"
-                    },
-                    {
-                      "prop": "message",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:workflow_node_hrCallInvRevert.data.message}}",
-                      "valueLabel": "",
-                      "propLabel": "message"
-                    }
-                  ]
-                },
-                "return_raw_data": 0
-              },
-              "blocks": []
-            }
-          ]
-        },
-        {
-          "id": "if_block_hrInvConflictFalse",
-          "type": "ifBlock",
-          "data": { "title": "false" },
-          "blocks": []
-        }
-      ]
-    },
-    {
-      "id": "if_hrInvRevertError",
-      "type": "if",
-      "data": {
-        "title": "IF Inventory Revert Error",
-        "isValidator": true,
-        "nodeName": "IF Inventory Revert Error",
-        "name": "IF Inventory Revert Error",
-        "condition_type": "Expression",
-        "filter": {
-          "list": [
-            {
-              "id": 1779334300701,
-              "parentId": 1779334300700,
-              "isTop": true,
-              "prop": "",
-              "operator": "",
-              "valueType": "",
-              "value": "",
-              "type": "leaf",
-              "level": 1
-            }
-          ]
-        },
-        "expression": {
-          "type": "javascript",
-          "code": "'{{node:workflow_node_hrCallInvRevert.data.code}}' == '400'"
-        }
-      },
-      "blocks": [
-        {
-          "id": "if_block_hrInvErrorTrue",
-          "type": "ifBlock",
-          "data": { "title": "true" },
-          "blocks": [
-            {
-              "id": "return_node_hrInvError",
-              "type": "return-node",
-              "data": {
-                "return_data": {},
-                "status_code": 200,
-                "title": "Return Inventory Error 400",
-                "isValidator": true,
-                "nodeName": "Return Inventory Error 400",
-                "name": "Return Inventory Error 400",
-                "response_value": {
-                  "list": [
-                    {
-                      "prop": "code",
-                      "operator": "",
-                      "valueType": "value",
-                      "value": "400",
-                      "valueLabel": "",
-                      "propLabel": "code"
-                    },
-                    {
-                      "prop": "message",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:workflow_node_hrCallInvRevert.data.message}}",
-                      "valueLabel": "",
-                      "propLabel": "message"
-                    }
-                  ]
-                },
-                "return_raw_data": 0
-              },
-              "blocks": []
-            }
-          ]
-        },
-        {
-          "id": "if_block_hrInvErrorFalse",
-          "type": "ifBlock",
-          "data": { "title": "false" },
-          "blocks": []
-        }
-      ]
-    },
-    {
       "id": "update_node_hrRestoreGdStatus",
       "type": "update-node",
       "data": {
@@ -1216,6 +1425,256 @@
         }
       },
       "blocks": []
+    },
+    {
+      "id": "code_node_hrPickStatus",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Compute Picking Status Restore",
+        "isValidator": true,
+        "nodeName": "Compute Picking Status Restore",
+        "name": "Compute Picking Status Restore",
+        "script": {
+          "type": "javascript",
+          "code": "// Force Complete stamps every line Completed without picking it: a line with no pick records goes back.\nconst allData = {{workflowparams:allData}} || {};\nconst lines = {{node:code_node_hrExtract.data.tableData}} || [];\nconst raw = {{node:sql_node_hrPickFacts.data}};\nconst facts = Array.isArray(raw) ? raw : raw ? [raw] : [];\nconst flag = (v) => (v === null || v === undefined || v === \"\" ? null : Number(v));\n\nconst setup = facts.find((f) => f.kind === \"setup\") || {};\nconst pickingApplies =\n  flag(setup.picking_required) === 1 &&\n  flag(setup.gd_flow) === 1 &&\n  Number(allData.is_select_picking || 0) !== 1;\n\nconst descriptive = new Set();\nconst pickedLines = new Set();\nconst owners = {};\nfor (const f of facts) {\n  const id = String(f.ref_id || \"\");\n  if (f.kind === \"item\" && flag(f.stock_control) === 0 && flag(f.show_delivery) === 0) descriptive.add(id);\n  if (f.kind === \"rec\" && Number(f.n) > 0) pickedLines.add(id);\n  if (f.kind === \"pick\" && f.to_status !== \"Cancelled\" && f.to_status !== \"Draft\" && f.line_status !== \"Cancelled\") {\n    (owners[id] = owners[id] || []).push(f);\n  }\n}\n\nconst lineUpdates = [];\nconst lineStatuses = [];\nfor (const line of lines) {\n  const id = String(line.id || \"\");\n  if (!id || !line.material_id || descriptive.has(String(line.material_id))) continue;\n  let status = line.picking_status || \"\";\n  if (pickingApplies && status === \"Completed\") {\n    const own = owners[id] || [];\n    let target = status;\n    if (!pickedLines.has(id)) {\n      target = own.some((o) => o.to_status !== \"Completed\" && o.line_status !== \"Completed\") ? \"Created\" : \"Not Created\";\n    } else if (own.length > 0) {\n      // PICKING's roll-up of a line's picking rows.\n      const rows = own.map((o) => o.line_status);\n      if (rows.every((s) => s === \"Completed\")) target = \"Completed\";\n      else if (rows.some((s) => s === \"Completed\" || s === \"In Progress\")) target = \"In Progress\";\n      else target = \"Created\";\n    }\n    if (target !== status) {\n      lineUpdates.push({ id, picking_status: target });\n      status = target;\n    }\n  }\n  if (status && status !== \"Cancelled\") lineStatuses.push(status);\n}\n\nconst storedHeader = allData.picking_status || \"\";\nlet headerPickingStatus = storedHeader;\nif (lineUpdates.length > 0 && lineStatuses.length > 0) {\n  if (lineStatuses.every((s) => s === \"Completed\")) headerPickingStatus = \"Completed\";\n  else if (lineStatuses.every((s) => s === \"Not Created\")) headerPickingStatus = \"Not Created\";\n  else if (lineStatuses.some((s) => s === \"Completed\" || s === \"In Progress\")) headerPickingStatus = \"In Progress\";\n  else headerPickingStatus = \"Created\";\n}\n\nreturn {\n  lineUpdates,\n  hasLineUpdates: lineUpdates.length > 0 ? 1 : 0,\n  headerPickingStatus,\n  hasHeaderUpdate: headerPickingStatus !== storedHeader ? 1 : 0,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "hps1lupd",
+            "name": "lineUpdates",
+            "title": "lineUpdates",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hps2hasl",
+            "name": "hasLineUpdates",
+            "title": "hasLineUpdates",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hps3hdrs",
+            "name": "headerPickingStatus",
+            "title": "headerPickingStatus",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hps4hash",
+            "name": "hasHeaderUpdate",
+            "title": "hasHeaderUpdate",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_hrHasPickLines",
+      "type": "if",
+      "data": {
+        "title": "IF Has Line Picking Status To Restore",
+        "isValidator": true,
+        "nodeName": "IF Has Line Picking Status To Restore",
+        "name": "IF Has Line Picking Status To Restore",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334302005,
+              "parentId": 1779334302006,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_hrPickStatus.data.hasLineUpdates}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrHasPickLinesTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_hrRestorePickLines",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "goods_delivery_fwii8mvb_sub:Table:1939904186426433537",
+                  "rules": {
+                    "collectionId": "1939904186426433537",
+                    "list": [
+                      {
+                        "id": 1779334302002,
+                        "parentId": 1779334302001,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_hrPickStatus.data.lineUpdates.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Restore GD Line Picking Status",
+                "isValidator": true,
+                "nodeName": "Restore GD Line Picking Status",
+                "name": "Restore GD Line Picking Status",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrPickStatus.data.lineUpdates.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "picking_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrPickStatus.data.lineUpdates.picking_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Line Picking Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrHasPickLinesFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_hrHasPickHeader",
+      "type": "if",
+      "data": {
+        "title": "IF Has GD Picking Status To Restore",
+        "isValidator": true,
+        "nodeName": "IF Has GD Picking Status To Restore",
+        "name": "IF Has GD Picking Status To Restore",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334302007,
+              "parentId": 1779334302008,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_hrPickStatus.data.hasHeaderUpdate}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrHasPickHeaderTrue",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "update_node_hrRestorePickHeader",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Delivery:Table:1902054888473481218",
+                  "rules": {
+                    "collectionId": "1902054888473481218",
+                    "list": [
+                      {
+                        "id": 1779334302004,
+                        "parentId": 1779334302003,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "equal",
+                        "valueType": "field",
+                        "value": "{{node:code_node_hrExtract.data.gdId}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "Equal"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Restore GD Picking Status",
+                "isValidator": true,
+                "nodeName": "Restore GD Picking Status",
+                "name": "Restore GD Picking Status",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "picking_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrPickStatus.data.headerPickingStatus}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Picking Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrHasPickHeaderFalse",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "return_node_hrSuccess",

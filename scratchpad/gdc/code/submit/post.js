@@ -2,7 +2,7 @@
 // quantity 400s and 412, as GOODS_DELIVERY returns them; else the queue rows: the GD's lock (gd_publish_step GDC|<gd> /
 // LOCK|<n>, unique: a concurrent twin fails its run), the COMPLETE_GD job (QUEUED but not due for 2 minutes, so no worker
 // takes it before the GD is Processing; due.js makes it due right after), the GD Processing
-const submitPost = function submitPost(guard, entry, gate, cl) {
+const submitPost = function submitPost(guard, entry, gate, cl, factRows) {
   const p = gate.post || {};
   const stop = (code, message) => answer("STOP", code, message, { lockRows: [], jobRows: [], gdRows: [], idemKey: "" });
   let clNote = "";
@@ -16,7 +16,7 @@ const submitPost = function submitPost(guard, entry, gate, cl) {
       clNote = message.replace("Override - ", "");
     }
   }
-  // if_uFjpcRq_, if_DOQqD6Aa, if_DDiEWnn5 (force complete never gets here: entry.js), if_eVsLIYSh
+  // if_uFjpcRq_, if_DOQqD6Aa, if_DDiEWnn5 (a force passes both: the fill-back stamped the header Completed), if_eVsLIYSh
   if (num(p.pickingRequired) === 1 && num(p.skipPicking) === 0) {
     if (!s(p.fillPickingStatus) || s(p.fillPickingStatus) === "Not Created") return stop("405", "Save Goods Delivery as Created or create Picking manually to start picking process.");
     if (s(p.rollupPickingStatus) !== "Completed") return stop("406", "Picking is not being completed yet. \nProceeding will force complete picking process.\n\nWould you like to proceed?");
@@ -27,6 +27,17 @@ const submitPost = function submitPost(guard, entry, gate, cl) {
   if (num(p.soLineMissing) === 1) return stop("400", s(p.soLineMissingMessage));
   if (s(p.validationMessage)) return stop("400", p.validationMessage);
   if (num(p.siConfirm) === 412) return stop("412", s(p.siMsg));
+  // if_FcBusy: last, as in the classic save
+  if (guard.answers.isForceComplete === "Yes") {
+    let locks = [];
+    try {
+      locks = JSON.parse(s((list(factRows)[0] || {}).picking_locks) || "[]") || [];
+    } catch (e) {
+      return stop("400", "the Pickings of this delivery cannot be read: try again in a moment");
+    }
+    const held = list(locks).filter(fcBusy).map((r) => s(r.picking_no) || s(r.picking_id));
+    if (held.length) return stop("400", "Picking " + held.join(", ") + " is being processed on a device right now. Try again in a moment.");
+  }
   const key = "GDC|" + entry.gdId + "|" + entry.lockN;
   const request = { v: 1, gd_id: entry.gdId, gd_no: entry.gdNo, source: guard.source, submitted_by: guard.uid, answers: guard.answers, header: {},
     line_overrides: gate.overrides || {}, cl_note: clNote };
@@ -39,6 +50,7 @@ const submitPost = function submitPost(guard, entry, gate, cl) {
     gdRows: [{ id: entry.gdId, gd_status: "Processing" }],
   });
 };
-const res = submitPost([{{node:code_node_GSguard.data}}][0], [{{node:code_node_GSentry.data}}][0], [{{node:code_node_GSgate.data}}][0], [{{node:workflow_node_GScl.data}}][0]);
+const res = submitPost([{{node:code_node_GSguard.data}}][0], [{{node:code_node_GSentry.data}}][0], [{{node:code_node_GSgate.data}}][0], [{{node:workflow_node_GScl.data}}][0],
+  [{{node:sql_node_GSfacts.data}}][0]);
 console.log("submit post", JSON.stringify({ route: res.route, code: res.code, message: res.message, key: res.idemKey }));
 return res;

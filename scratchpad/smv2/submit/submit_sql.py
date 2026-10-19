@@ -19,7 +19,8 @@ JOBOBJ = ("JSON_OBJECT('id', CAST(@A.id AS CHAR), 'job_status', @A.job_status, '
           "'lot_no', IF(JSON_VALID(@A.request_payload), JSON_UNQUOTE(JSON_EXTRACT(@A.request_payload, '$.lotNo')), NULL))")
 
 # the job of this key; a Draft Add's LOT of this key (lot_idem_key = <key>#<nonce>); the stored LOT (id 0 for an Add) with the
-# header fields CHECK_REQUIRED_FIELD reads on a Cancel; its line count, latest lock, open / latest SAVE_LOT jobs, the job its
+# header fields CHECK_REQUIRED_FIELD reads on a Cancel; its flat line count and bundle child rows (one pass over its lines),
+# latest lock, open / latest SAVE_LOT jobs, the job its
 # lot_v2_job_id names (STATUS when no job carries its correlation); whether its number is the one an earlier SAVE_LOT job of
 # this LOT made the platform issue (then no second number is burned)
 FACTS = """SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
@@ -31,9 +32,7 @@ FACTS = """SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
        CAST(g.id AS CHAR) AS lot_id, g.stock_movement_no, g.stock_movement_status, g.organization_id,
        CAST(g.issuing_operation_faci AS CHAR) AS plant_id, CAST(g.stock_movement_no_type AS CHAR) AS no_type, g.movement_type,
        DATE_FORMAT(g.issue_date, '%Y-%m-%d %H:%i:%s') AS issue_date, g.is_production_order,
-       (SELECT COUNT(*) FROM sm_location_transfer_d2c7o1jd_sub l
-         WHERE @LOT > 0 AND l.tenant_id = '@T' AND l.sm_location_transfer_id = @LOT AND l.is_deleted = 0
-           AND NOT (COALESCE(l.item_bundle_id, '') <> '' AND l.parent_id IS NULL)) AS line_count,
+       CAST(COALESCE(lc.line_count, 0) AS SIGNED) AS line_count, CAST(COALESCE(lc.bundle_children, 0) AS SIGNED) AS bundle_children,
        (SELECT p.step_name FROM gd_publish_step p
          WHERE p.tenant_id = '@T' AND p.job_id = 'SMLT|@LOT' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1) AS last_lock,
        (SELECT CAST(JSON_ARRAYAGG(@OJ) AS CHAR) FROM gd_async_job o
@@ -51,17 +50,24 @@ FACTS = """SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
   LEFT JOIN sm_location_transfer g
     ON g.tenant_id = '@T'
    AND g.id = @LOT
-   AND g.is_deleted = 0"""
+   AND g.is_deleted = 0
+  LEFT JOIN (SELECT SUM(NOT (COALESCE(l.item_bundle_id, '') <> '' AND l.parent_id IS NULL)) AS line_count,
+                    SUM(l.parent_id IS NOT NULL AND COALESCE(l.item_bundle_id, '') <> '') AS bundle_children
+               FROM sm_location_transfer_d2c7o1jd_sub l
+              WHERE @LOT > 0 AND l.tenant_id = '@T' AND l.sm_location_transfer_id = @LOT AND l.is_deleted = 0) lc
+    ON 1 = 1"""
 FACTS_COLS = ["db_now", "key_job", "key_lot", "lot_id", "stock_movement_no", "stock_movement_status", "organization_id", "plant_id", "no_type", "movement_type",
-              "issue_date", "is_production_order", "line_count", "last_lock", "open_jobs", "last_job", "lot_v2_job_id", "link_job", "issued_reuse"]
+              "issue_date", "is_production_order", "line_count", "bundle_children", "last_lock", "open_jobs", "last_job", "lot_v2_job_id", "link_job",
+              "issued_reuse"]
 
 # the stored lines' items (COMPLETE / EDIT / CANCEL: @SLOT = the LOT; else 0) besides the form's
 STORED_ITEMS = ("SELECT CAST(s.item_selection AS UNSIGNED) FROM sm_location_transfer_d2c7o1jd_sub s WHERE @SLOT > 0 AND s.tenant_id = '@T' AND "
                 "s.sm_location_transfer_id = @SLOT AND s.is_deleted = 0 AND s.item_selection REGEXP '^[0-9]{1,20}$'")
 
-# the lines' and entries' items: the eligibility (serial) and WA screens read these flags
+# the lines' and entries' items: the eligibility (serial, costing) and WA screens read these flags (batch management: an
+# allocation line's batch is known only after PREPARE allocates it)
 ITEMS = """SELECT JSON_OBJECT('id', CAST(i.id AS CHAR), 'material_code', i.material_code, 'serial_number_management', i.serial_number_management,
-       'material_costing_method', i.material_costing_method, 'stock_control', i.stock_control) AS j
+       'material_costing_method', i.material_costing_method, 'stock_control', i.stock_control, 'item_batch_management', i.item_batch_management) AS j
   FROM item i
  WHERE i.tenant_id = '@T'
    AND i.is_deleted = 0

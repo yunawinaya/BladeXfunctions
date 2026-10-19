@@ -1,0 +1,40 @@
+{
+ "arrayData": [
+  {
+   "gd_no": [
+    "2111025442130624514"
+   ],
+   "ref_doc_type": "Goods Delivery",
+   "to_status": "",
+   "table_picking_items": [
+    {
+     "gd_id": "2111025442130624514",
+     "gd_line_id": "2111025442147401733",
+     "item_code": "2046113497677742082",
+     "item_name": "Normal Item",
+     "qty_to_pick": 5.0,
+     "source_bin": "2046110651955724289",
+     "batch_no": null,
+     "item_uom": "2021056571405717508",
+     "line_status": "Open",
+     "row_type": "item"
+    },
+    {
+     "gd_id": "2111025442130624514",
+     "gd_line_id": "2111025442155790337",
+     "item_code": "2046113633329922049",
+     "item_name": "Auto Batch Item",
+     "qty_to_pick": 5.0,
+     "source_bin": "2046110651955724289",
+     "batch_no": "2051185465913679873",
+     "item_uom": "2021056571405717508",
+     "line_status": "Open",
+     "row_type": "item"
+    }
+   ],
+   "table_picking_records": []
+  }
+ ],
+ "saveAs": "Created",
+ "pageStatus": "Add"
+}

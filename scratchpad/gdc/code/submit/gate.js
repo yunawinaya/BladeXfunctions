@@ -3,6 +3,8 @@
 // FORM: the form's data must equal the stored GD in every column the classic save writes, else it goes to the classic save;
 // the one exception is gd_undelivered_qty, which the form recomputes on open and is carried over as the classic save would.
 const gsFlat = (rows) => (Array.isArray(rows) ? rows : []).flatMap((r) => [r].concat(Array.isArray(r.children) ? r.children : []));
+// written onto the lines by pick confirmations, never by the user: a form opened before the latest pick is not an edit
+const GS_PICKING_COLS = { picking_status: 1, prev_temp_qty_data: 1, picked_qty: 1, picked_temp_qty_data: 1, picked_view_stock: 1 };
 const gsFormDiff = function gsFormDiff(form, stored, kinds) {
   const H = kinds.header, L = kinds.line;
   const norm = (v, k) => {
@@ -29,7 +31,7 @@ const gsFormDiff = function gsFormDiff(form, stored, kinds) {
     }
     matched++;
     for (const c of Object.keys(r)) {
-      if (c === "children" || c === "id" || !L[c]) continue;
+      if (c === "children" || c === "id" || !L[c] || GS_PICKING_COLS[c]) continue;
       if (eq(norm(r[c], L[c]), norm(o[c], L[c]))) continue;
       if (c === "gd_undelivered_qty") overrides[String(r.id)] = { gd_undelivered_qty: r[c] === null || r[c] === "" ? 0 : r[c] };
       else if (changed.indexOf("table_gd." + c) < 0) changed.push("table_gd." + c);

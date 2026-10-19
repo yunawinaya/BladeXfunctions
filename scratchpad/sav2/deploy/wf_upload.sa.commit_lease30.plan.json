@@ -1,0 +1,21 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SA_V2_COMMIT",
+   "dataId": "2111074444748689410",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Adjustment/AsyncV2/SA_V2_COMMIT.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "SA_INVALID_DATA"
+    }
+   }
+  }
+ ],
+ "_note": "base guard dropped: getCurrent returns an EMPTY v5 designing row (created 10-16 20:54:36 by the designer), so the guard compares against ''. Checked by hand 10-19 21:32: enabled v4 (backup .../SA_V2_PREPARE/v4_20261019-213232.enabled.json) == scratchpad/sav2/base/sa_v2_commit_v4.live.json; the only change is the lease INTERVAL 10 -> 30 MINUTE."
+}

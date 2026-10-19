@@ -460,6 +460,264 @@
       ]
     },
     {
+      "id": "code_node_GdSoGuard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "SO Guard: a new delivery for a sales order?",
+        "isValidator": true,
+        "nodeName": "SO Guard: a new delivery for a sales order?",
+        "name": "SO Guard: a new delivery for a sales order?",
+        "script": {
+          "type": "javascript",
+          "code": "// A new delivery (an Add, or a stored Draft saved as Created / Completed) waits while a GD Created V2 save of one of its sales orders is unfinished\nconst saveAs = String([{{workflowparams:saveAs}}][0] || \"\");\nconst allData = [{{workflowparams:allData}}][0] || {};\nconst idOf = (v) => { const s = String(v == null ? \"\" : v).trim(); return /^[0-9]{1,20}$/.test(s) ? s : \"\"; };\nconst soIds = [];\nconst addSo = (v) => (Array.isArray(v) ? v : String(v == null ? \"\" : v).split(\",\")).forEach((x) => { const id = idOf(x); if (id && soIds.indexOf(id) < 0) soIds.push(id); });\naddSo(allData.so_id);\nfor (const row of Array.isArray(allData.table_gd) ? allData.table_gd : []) {\n  if (!row) continue;\n  addSo(row.line_so_id);\n  for (const child of Array.isArray(row.children) ? row.children : []) if (child) addSo(child.line_so_id);\n}\nconst org = idOf(allData.organization_id);\nreturn {\n  check: (saveAs === \"Created\" || saveAs === \"Completed\") && soIds.length > 0 ? \"YES\" : \"NO\",\n  gdId: idOf(allData.id) || \"0\",\n  scopeSql: org ? \"j.organization_id = '\" + org + \"'\" : \"1 = 1\",\n  soLikeSql: soIds.length ? \"(\" + soIds.slice(0, 500).map((id) => \"j.source_so_ids LIKE '%\\\"\" + id + \"\\\"%'\").join(\" OR \") + \")\" : \"1 = 0\",\n};"
+        },
+        "response_json": [
+          {
+            "key": "gdso0000",
+            "name": "check",
+            "title": "check",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gdso0001",
+            "name": "gdId",
+            "title": "gdId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gdso0002",
+            "name": "scopeSql",
+            "title": "scopeSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gdso0003",
+            "name": "soLikeSql",
+            "title": "soLikeSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GdSoGuard",
+      "type": "if",
+      "data": {
+        "title": "IF a new delivery (Created / Completed)",
+        "isValidator": true,
+        "nodeName": "IF a new delivery (Created / Completed)",
+        "name": "IF a new delivery (Created / Completed)",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 2111300000001,
+              "parentId": 2111300000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GdSoGuard.data.check}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGdSoGuard",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_GdSoGuard",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "SO Guard: unfinished background save of these sales orders",
+                "isValidator": true,
+                "nodeName": "SO Guard: unfinished background save of these sales orders",
+                "name": "SO Guard: unfinished background save of these sales orders",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT (SELECT g.gd_status\n          FROM goods_delivery g\n         WHERE g.id = {{node:code_node_GdSoGuard.data.gdId}}\n           AND g.is_deleted = 0) AS stored_status,\n       (SELECT CONCAT(j.job_status, '|', CAST(j.id AS CHAR), '|', COALESCE(j.source_so_no, ''))\n          FROM gd_async_job j\n         WHERE {{node:code_node_GdSoGuard.data.scopeSql}}\n           AND j.command = 'CREATE_GD_FROM_FORM'\n           AND j.is_deleted = 0\n           AND j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')\n           AND {{node:code_node_GdSoGuard.data.soLikeSql}}\n         ORDER BY j.id\n         LIMIT 1) AS busy_job"
+                },
+                "response_json": [
+                  {
+                    "key": "gdso0004",
+                    "name": "stored_status",
+                    "title": "stored_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdso0005",
+                    "name": "busy_job",
+                    "title": "busy_job",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_GdSoBusy",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "SO Guard: refuse?",
+                "isValidator": true,
+                "nodeName": "SO Guard: refuse?",
+                "name": "SO Guard: refuse?",
+                "script": {
+                  "type": "javascript",
+                  "code": "// refused: a stored Created GD is never a new delivery; REQUIRES_REVIEW never ends by itself: say so\nconst row = (([{{node:sql_node_GdSoGuard.data}}][0]) || [])[0] || {};\nconst job = String(row.busy_job || \"\").split(\"|\");\nconst status = job[0] || \"\";\nconst stored = String(row.stored_status == null ? \"\" : row.stored_status);\nconst fresh = String([{{workflowparams:pageStatus}}][0] || \"\") !== \"Edit\" || stored === \"\" || stored === \"Draft\";\nconst so = job.slice(2).join(\"|\") || \"this sales order\";\nconst message = status === \"REQUIRES_REVIEW\"\n  ? \"A background save of a delivery for \" + so + \" stopped half-way and is under review (job \" + job[1] + \"): please contact support before delivering it again.\"\n  : \"A delivery for \" + so + \" is still being saved in the background (job \" + job[1] + \", \" + status + \"). Wait for it to finish - it then appears in the Goods Delivery list - before saving another delivery for it.\";\nreturn { busy: status !== \"\" && fresh ? \"YES\" : \"NO\", message: message };"
+                },
+                "response_json": [
+                  {
+                    "key": "gdso0006",
+                    "name": "busy",
+                    "title": "busy",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdso0007",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_GdSoBusy",
+              "type": "if",
+              "data": {
+                "title": "IF a background save holds the sales order",
+                "isValidator": true,
+                "nodeName": "IF a background save holds the sales order",
+                "name": "IF a background save holds the sales order",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 2111300000003,
+                      "parentId": 2111300000004,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_GdSoBusy.data.busy}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TGdSoBusy",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_GdSoBusy",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return SO Busy",
+                        "isValidator": true,
+                        "nodeName": "Return SO Busy",
+                        "name": "Return SO Busy",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_GdSoBusy.data.message}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FGdSoBusy",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGdSoGuard",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_gr_gate_completed",
       "type": "if",
       "data": {
@@ -6772,6 +7030,339 @@
               ]
             },
             {
+              "id": "code_node_FcGate",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Force Complete: Close Picking?",
+                "isValidator": true,
+                "nodeName": "Force Complete: Close Picking?",
+                "name": "Force Complete: Close Picking?",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Force Complete picks nothing, so the delivery's open Picking rows are closed after the write below.\nconst gdId = String([{{workflowparams:allData.id}}][0] || \"\").trim();\nconst ok = /^[0-9]{1,20}$/.test(gdId);\nconst forced = String([{{workflowparams:isForceComplete}}][0] || \"\") === \"Yes\";\nconst completed = String([{{workflowparams:saveAs}}][0] || \"\") === \"Completed\";\nreturn { closePicking: forced && completed && ok ? 1 : 0, gdIdSql: ok ? gdId : \"0\" };\n"
+                },
+                "response_json": [
+                  {
+                    "key": "fcg1clos",
+                    "name": "closePicking",
+                    "title": "closePicking",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fcg2gdid",
+                    "name": "gdIdSql",
+                    "title": "gdIdSql",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_FcGate",
+              "type": "if",
+              "data": {
+                "title": "IF Force Complete Closes Picking",
+                "isValidator": true,
+                "nodeName": "IF Force Complete Closes Picking",
+                "name": "IF Force Complete Closes Picking",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1792400000004,
+                      "parentId": 1792400000003,
+                      "isTop": true,
+                      "prop": "node.code_node_FcGate.data.closePicking",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "closePicking",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_FcGateT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "sql_node_FcPick",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "Force Complete: Open Pickings Of This Delivery",
+                        "isValidator": true,
+                        "nodeName": "Force Complete: Open Pickings Of This Delivery",
+                        "name": "Force Complete: Open Pickings Of This Delivery",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT CAST(pl.id AS CHAR) AS id,\n       CAST(t.id AS CHAR) AS picking_id,\n       CAST(COALESCE(t.to_id, '') AS CHAR) AS picking_no,\n       CAST(COALESCE(pl.gd_id, '') AS CHAR) AS gd_id,\n       CAST(COALESCE(pl.line_status, '') AS CHAR) AS line_status,\n       COALESCE(t.is_processing, 0) AS is_processing,\n       TIMESTAMPDIFF(SECOND, t.update_time, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')) AS lock_age_sec,\n       (SELECT COUNT(*) FROM gd_async_job j\n         WHERE j.command = 'CONFIRM_PICKING'\n           AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n           AND j.is_deleted = 0\n           AND CAST(j.picking_id AS UNSIGNED) = t.id) AS open_jobs\nFROM (SELECT DISTINCT x.transfer_order_id\n      FROM transfer_order_jz8m9w3h_sub x\n      WHERE x.gd_id = CAST('{{node:code_node_FcGate.data.gdIdSql}}' AS UNSIGNED)\n        AND x.is_deleted = 0\n        AND COALESCE(x.line_status, '') NOT IN ('Completed', 'Cancelled')) o\nSTRAIGHT_JOIN transfer_order t ON t.id = o.transfer_order_id AND t.is_deleted = 0\n  AND COALESCE(t.to_status, '') NOT IN ('Completed', 'Cancelled', 'Draft')\nJOIN transfer_order_jz8m9w3h_sub pl ON pl.transfer_order_id = t.id AND pl.is_deleted = 0"
+                        },
+                        "response_json": [
+                          {
+                            "key": "fcp1id00",
+                            "name": "id",
+                            "title": "id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcp2pkid",
+                            "name": "picking_id",
+                            "title": "picking_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcp3pkno",
+                            "name": "picking_no",
+                            "title": "picking_no",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcp4gdid",
+                            "name": "gd_id",
+                            "title": "gd_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcp5lnst",
+                            "name": "line_status",
+                            "title": "line_status",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcp6proc",
+                            "name": "is_processing",
+                            "title": "is_processing",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcp7lage",
+                            "name": "lock_age_sec",
+                            "title": "lock_age_sec",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcp8jobs",
+                            "name": "open_jobs",
+                            "title": "open_jobs",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_FcPlan",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Force Complete: Picking Close Plan",
+                        "isValidator": true,
+                        "nodeName": "Force Complete: Picking Close Plan",
+                        "name": "Force Complete: Picking Close Plan",
+                        "script": {
+                          "type": "javascript",
+                          "code": "// A confirm in flight holds its Picking: PICKING_LOOP's mutex (taken over after 900 s) or an open Picking V2 job.\nconst gdId = String([{{node:code_node_FcGate.data.gdIdSql}}][0] || \"\");\nconst raw = [{{node:sql_node_FcPick.data}}][0];\nconst rows = Array.isArray(raw) ? raw : raw ? [raw] : [];\nconst busy = (r) => {\n  const age = Number(r.lock_age_sec);\n  return (Number(r.is_processing) === 1 && !(isFinite(age) && age > 900)) || Number(r.open_jobs) > 0;\n};\nconst done = (r) => r.line_status === \"Completed\" || r.line_status === \"Cancelled\";\nconst byPicking = {};\nfor (const r of rows) (byPicking[r.picking_id] = byPicking[r.picking_id] || []).push(r);\n\nconst busyNos = [];\nconst lineIds = [];\nconst pickingIds = [];\nfor (const pickingId of Object.keys(byPicking)) {\n  const pickingRows = byPicking[pickingId];\n  if (busy(pickingRows[0])) {\n    busyNos.push(pickingRows[0].picking_no || pickingId);\n    continue;\n  }\n  for (const r of pickingRows) if (r.gd_id === gdId && !done(r)) lineIds.push(r.id);\n  // A Picking shared with another delivery stays open until that one's rows are done.\n  if (pickingRows.every((r) => r.gd_id === gdId || done(r))) pickingIds.push(pickingId);\n}\n\nreturn {\n  busy: busyNos.length > 0 ? 1 : 0,\n  busyMessage: \"Picking \" + busyNos.join(\", \") + \" is being processed on a device right now. Try again in a moment.\",\n  lineIds,\n  hasLineIds: lineIds.length > 0 ? 1 : 0,\n  pickingIds,\n  hasPickingIds: pickingIds.length > 0 ? 1 : 0,\n};\n"
+                        },
+                        "response_json": [
+                          {
+                            "key": "fcn1busy",
+                            "name": "busy",
+                            "title": "busy",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcn2bmsg",
+                            "name": "busyMessage",
+                            "title": "busyMessage",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcn3line",
+                            "name": "lineIds",
+                            "title": "lineIds",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcn4hasl",
+                            "name": "hasLineIds",
+                            "title": "hasLineIds",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcn5pick",
+                            "name": "pickingIds",
+                            "title": "pickingIds",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "fcn6hasp",
+                            "name": "hasPickingIds",
+                            "title": "hasPickingIds",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_FcBusy",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Picking Being Confirmed",
+                        "isValidator": true,
+                        "nodeName": "IF Picking Being Confirmed",
+                        "name": "IF Picking Being Confirmed",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1792400000002,
+                              "parentId": 1792400000001,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_FcPlan.data.busy}}' == '1'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_FcBusyT",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "return_node_FcBusy",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return Picking Busy",
+                                "isValidator": true,
+                                "nodeName": "Return Picking Busy",
+                                "name": "Return Picking Busy",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "propLabel": "code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "value": "400",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_FcPlan.data.busyMessage}}",
+                                      "valueLabel": "",
+                                      "propLabel": "message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_FcBusyF",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_FcGateF",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "if_6NBus87x",
               "type": "if",
               "data": {
@@ -11234,6 +11825,248 @@
                 },
                 {
                   "id": "if_block_M-nbn7Ln",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_FcApply",
+              "type": "if",
+              "data": {
+                "title": "IF Force Complete Closes Picking (after write)",
+                "isValidator": true,
+                "nodeName": "IF Force Complete Closes Picking (after write)",
+                "name": "IF Force Complete Closes Picking (after write)",
+                "condition_type": "ConditionRule",
+                "expression": {
+                  "type": "javascript",
+                  "code": ""
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1792400000014,
+                      "parentId": 1792400000013,
+                      "isTop": true,
+                      "prop": "node.code_node_FcGate.data.closePicking",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "closePicking",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_FcApplyT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "if_FcLines",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Picking Rows To Close",
+                        "isValidator": true,
+                        "nodeName": "IF Picking Rows To Close",
+                        "name": "IF Picking Rows To Close",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1792400000008,
+                              "parentId": 1792400000007,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_FcPlan.data.hasLineIds}}' == '1'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_FcLinesT",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_FcLines",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "transfer_order_jz8m9w3h_sub:Table:1939915130724524033",
+                                  "rules": {
+                                    "collectionId": "1939915130724524033",
+                                    "list": [
+                                      {
+                                        "id": 1792400000006,
+                                        "parentId": 1792400000005,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_FcPlan.data.lineIds}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Close Picking Rows",
+                                "isValidator": true,
+                                "nodeName": "Close Picking Rows",
+                                "name": "Close Picking Rows",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "line_status",
+                                      "valueType": "value",
+                                      "value": "Completed",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Line Status"
+                                    },
+                                    {
+                                      "prop": "pending_process_qty",
+                                      "valueType": "value",
+                                      "value": 0,
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Pending Process Quantity"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_FcLinesF",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_FcPickings",
+                      "type": "if",
+                      "data": {
+                        "title": "IF Pickings To Close",
+                        "isValidator": true,
+                        "nodeName": "IF Pickings To Close",
+                        "name": "IF Pickings To Close",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1792400000012,
+                              "parentId": 1792400000011,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_FcPlan.data.hasPickingIds}}' == '1'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "if_block_FcPickingsT",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_FcPickings",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Transfer Order Picking:Table:1935556443668959233",
+                                  "rules": {
+                                    "collectionId": "1935556443668959233",
+                                    "list": [
+                                      {
+                                        "id": 1792400000010,
+                                        "parentId": 1792400000009,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_FcPlan.data.pickingIds}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Close Pickings",
+                                "isValidator": true,
+                                "nodeName": "Close Pickings",
+                                "name": "Close Pickings",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "to_status",
+                                      "valueType": "value",
+                                      "value": "Completed",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Transfer Order Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "if_block_FcPickingsF",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_FcApplyF",
                   "type": "ifBlock",
                   "data": { "title": "false" },
                   "blocks": []

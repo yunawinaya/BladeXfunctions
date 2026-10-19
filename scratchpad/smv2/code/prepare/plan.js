@@ -134,6 +134,18 @@ const lotChain = function lotChain(IN) {
   };
   const stop = (code, message) => Object.assign(out, { route: "STOP", code: code, message: message });
   return __withContext(ctx, () => {
+    if (IN.action !== "CANCEL") {
+      // if_LOTallocGate (saveAs not Draft / Cancelled): the auto allocation; its lines reach yPlLXIZW as get_cache_node_LOTallocOut
+      out.alloc = lotAllocLoop(IN.alloc, IN.allocScope, IN.allocWhere);
+      // if_LOTallocErr -> return_node_LOTallocErr
+      if (out.alloc.route === "STOP") return stop("LOT_ALLOC_FAILED", out.alloc.message);
+      if (out.alloc.route === "SCOPE") {
+        const l = out.alloc.line || {};
+        return stop("LOT_PLAN_FAILED", "The save could not be prepared: line " + (lotS(l.line_index) || "?") + " (" + (lotS(l.item_name) || lotS(out.alloc.row && out.alloc.row.materialId)) +
+          ") has no stock selected and cannot be allocated in the background. Select its stock and save again.");
+      }
+      if (out.alloc.route === "DONE") ctx["node:get_cache_node_LOTallocOut"] = { data: out.alloc.lines };
+    }
     out.fill = __run("code_node_yPlLXIZW");
     if (IN.action === "CANCEL") {
       // search_node_LOTitOpenCancel: this document's In Transit rows
@@ -196,11 +208,14 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
   // the ledger read is scoped by the job's organization (the classic: the LOT's)
   if (s(entry.organizationId) !== orgId) return broken("the job's organization is not the Location Transfer's.");
 
-  const doc = lotAdaptDoc(hdr, lotRows(S.lines), prev);
+  const storedRows = lotRows(S.lines);
+  const doc = lotAdaptDoc(hdr, storedRows, prev);
   const ledgerRaw = lotRows(S.transit);
   const ledger = lotAdaptLedger(ledgerRaw);
   const items = lotAdaptItems(lotRows(S.items));
   let allData = doc;
+  let sLines = null;
+  let sTree = null;
   if (action === "COMPLETE" || action === "EDIT") {
     // S|<nonce>|LINES|<nnn> (SUBMIT): the header props and the filled-back lines L2 writes = the incoming document
     const names = lotList(req.parts && req.parts.LINES).map(s);
@@ -211,11 +226,22 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
       return broken("its lines part cannot be read.");
     }
     allData = Object.assign({}, doc, part.header, { id: doc.id, stock_movement_no: doc.stock_movement_no, stock_movement_status: prev, stock_movement: part.stock_movement });
+    sLines = part.stock_movement;
+    // SUBMIT's incomingFingerprint: every row of this tree, bundle parents included (code/submit gate.js lotTreeRows)
+    const treeRows = [];
+    for (const r of sLines) {
+      if (!r || typeof r !== "object") continue;
+      treeRows.push(r);
+      for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === "object") treeRows.push(c);
+    }
+    if (lotLineFingerprint(treeRows) !== s(req.incomingFingerprint)) return fail("LOT_INVALID_REQUEST", "Please save again.");
+    sTree = treeRows;
   }
 
   let out;
   try {
-    out = lotChain({ action: action, saveAs: saveAs, allData: allData, doc: doc, ledger: ledger, items: items, uuid: "LOT" + jobId });
+    out = lotChain({ action: action, saveAs: saveAs, allData: allData, doc: doc, ledger: ledger, items: items, uuid: "LOT" + jobId, alloc: lotAllocAdapt(S),
+      allocScope: lotAllocScope(storedRows, s(entry.allocScope)), allocWhere: { plant: s(hdr.issuing_operation_faci), org: orgId } });
   } catch (e) {
     return broken(String((e && e.message) || e).slice(0, 200));
   }
@@ -342,6 +368,26 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
     HDR: hdrPart,
     ITEMS: { itemDates: itemDates },
   };
+  // ALLOC (V2.1): the picks the auto allocation wrote on the lines (L2 stores them), and the fingerprint of the lines L2 leaves
+  // (DIRECT / STAGE: the stored rows, COMPLETE / EDIT: the S|..|LINES tree; both with these picks)
+  if (out.alloc && out.alloc.route === "DONE") {
+    const target = sTree || storedRows;
+    const known = new Set(target.map((r) => s(r.id)));
+    // the picks the fillback actually put on each line (it matches by fm_key): an ALLOC line must be what moved
+    const moved = {};
+    for (const l of flat) moved[s(l.id)] = l.temp_qty_data;
+    const allocLines = [];
+    const at = {};
+    for (const idx of out.alloc.done) {
+      const l = out.alloc.lines[idx] || {};
+      if (!lotDigits(l.id) || !known.has(s(l.id)) || at[s(l.id)] !== undefined) return broken("an auto-allocated line (" + s(l.line_index) + ") is not a line of the transfer.");
+      const tq = l.temp_qty_data === undefined || l.temp_qty_data === null ? "" : String(l.temp_qty_data);
+      if (JSON.stringify(lotJsonList(moved[s(l.id)])) !== JSON.stringify(lotJsonList(tq))) return broken("the auto allocation of line " + s(l.line_index) + " did not reach its line.");
+      at[s(l.id)] = tq;
+      allocLines.push({ id: s(l.id), fm_key: s(l.fm_key), temp_qty_data: tq, total_quantity: Number(l.total_quantity) || 0 });
+    }
+    parts.ALLOC = { lines: allocLines, fingerprint: lotLineFingerprint(target.map((r) => (at[s(r.id)] !== undefined ? Object.assign({}, r, { temp_qty_data: at[s(r.id)] }) : r))) };
+  }
   const nonce = (s(entry.nonce).replace(/[^0-9A-Za-z]/g, "") + "00000000").slice(0, 8);
   const partRows = [];
   const manifestParts = {};
@@ -350,16 +396,19 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
     manifestParts[name] = rows.map((r) => r.step_name);
     for (const r of rows) partRows.push(r);
   }
-  const storedLines = lotList(doc.stock_movement).reduce((t, l) => t + 1 + lotList(l.children).length, 0);
-  const lineCount = Math.max(Number(req.lineCount) || 0, storedLines, flat.length);
+  // flat lines (bundle parents out, children in): the client's, SUBMIT's and the guard's count; it drives COMMIT's PARK (> 1,000)
+  const storedFlat = storedRows.filter((r) => !(s(r.item_bundle_id) && !lotDigits(r.parent_id))).length;
+  const lineCount = Math.max(Number(req.lineCount) || 0, storedFlat, flat.length);
   const manifest = {
     v: 1, prepared_by: "LOT_V2_PREPARE", job_id: jobId, lot_id: lotId, lot_no: s(hdr.stock_movement_no), action: action, prevStatus: prev, saveAs: saveAs,
     organization_id: orgId, plant_id: s(hdr.issuing_operation_faci), nonce: nonce, lineCount: lineCount, lineFingerprint: s(req.lineFingerprint),
     incomingFingerprint: s(req.incomingFingerprint), parts: manifestParts, sparts: req.parts && typeof req.parts === "object" ? req.parts : {},
-    counts: { lines: flat.length, rows: rowCount, movements: movements.length, itCreates: creates.length, itUpdates: updates.length, items: itemDates.length },
+    counts: { lines: flat.length, rows: rowCount, movements: movements.length, itCreates: creates.length, itUpdates: updates.length, items: itemDates.length,
+      allocated: parts.ALLOC ? parts.ALLOC.lines.length : 0 },
   };
   return Object.assign(base, {
-    route: "READY", code: "200", message: action + ": " + movements.length + " movements for " + rowCount + " stock rows of " + flat.length + " lines",
+    route: "READY", code: "200", message: action + ": " + movements.length + " movements for " + rowCount + " stock rows of " + flat.length + " lines" +
+      (parts.ALLOC ? " (" + parts.ALLOC.lines.length + " auto-allocated)" : ""),
     payload: JSON.stringify(manifest), partRows: partRows, lineCount: lineCount, movementCount: movements.length,
   });
 };

@@ -831,8 +831,8 @@ def gate_code():
             raise NotImplementedError("GR_COMPLETE_SUBMIT: the plan core's " + f + " is not there yet")
     lifted = raw("lift/lifted_prepare.js")
     assert "{{" not in lifted, "a lifted body still holds a platform token"
-    return "\n".join([raw("lift/runtime.js"), lifted, code("prepare/adapter.js"), code("prepare/chain.js"), code("submit/_common.js"), code("submit/gate.js"),
-                      code("submit/gate_tail.js")])
+    return "\n".join([raw("lift/runtime.js"), lifted, code("prepare/adapter.js"), code("prepare/chain.js"), code("submit/_common.js"), raw("pobusy/msg.js"),
+                      code("submit/gate.js"), code("submit/gate_tail.js")])
 
 
 def build_submit():
@@ -938,6 +938,20 @@ def build_submit():
             K.update(ids, "update_node_RSdue", "Job due now (it was inserted 2 minutes ahead)", JOB, ("id", "in", N("code_node_RSdue", "data.dueRows.id")),
                      [("id", N("code_node_RSdue", "data.dueRows.id")), ("next_attempt_at", N("code_node_RSdue", "data.dueRows.next_attempt_at"))])]),
     ] + sres("done", PO, "queued", "sql_node_RSback")
+    # PO busy (2026-10-19): other receipts of its purchase orders still Processing; made last so the nodes above keep their keys
+    busy = sub("""SELECT CAST(g.id AS CHAR) AS id, g.gr_no, t.p AS po_id, po.purchase_order_no AS po_no
+  FROM goods_receiving g
+  JOIN JSON_TABLE(g.po_id, '$[*]' COLUMNS (p VARCHAR(32) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) t
+  LEFT JOIN purchase_order po ON po.tenant_id = g.tenant_id AND po.id = CAST(t.p AS UNSIGNED) AND po.is_deleted = 0
+ WHERE g.tenant_id = '@T'
+   AND g.gr_status = 'Processing'
+   AND g.is_deleted = 0
+   AND g.id <> @G
+   AND CAST(t.p AS UNSIGNED) IN (@POS)""", T=T, G=GRID, POS=N(KY, "data.poIdsSql"))
+    par = [n for n in nodes if n["id"] == "condition_all_RSread"][0]
+    par["blocks"].append(K.parallel("tmp", "", [("cai_RSbusy", "busy", [
+        K.sql("sql_node_RSbusy", "Other receipts of the form's purchase orders still Processing (received in the background)", busy,
+              ["id", "gr_no", "po_id", "po_no"])])])["blocks"][0])
     return K.workflow([("operation", "string", "SUBMIT (default) or STATUS"), ("page_status", "string", "Add | Edit"),
                        ("gr_id", "string", "goods_receiving.id (digits) for Edit; empty for Add"),
                        ("idempotency_key", "string", "one per click: page token + payload hash + generation (8-128 chars A-Z a-z 0-9 | : _ . -)"),

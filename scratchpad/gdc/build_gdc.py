@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "pkv2tools"))
 sys.path.insert(0, os.path.join(HERE, "prepare"))
 import wfkit as K  # noqa: E402
-from sql import SQL as PSQL  # noqa: E402
+from sql import SQL as PSQL, fp_sql  # noqa: E402
 
 R = "/Users/yunawinaya/Developer/BladeXfunctions/"
 OUT = R + "Goods Delivery/CompleteV2/"
@@ -142,6 +142,7 @@ def build_prepare():
             K.code("code_node_GCnoop", "Answer (not prepared)", noop_body, res_fields),
             K.ret("return_node_GCnoop", "Return (not prepared)", [(f, N("code_node_GCnoop", "data." + f)) for f in res_fields]),
         ]),
+        K.sql("sql_node_GCfp", "Line fingerprint, taken before the reads (a Force Complete's C0 compares it)", PSQL["fp"].replace("code_node_GCentry", E), ["n", "fp"]),
         K.parallel("condition_all_GCread", "Set-based reads in parallel (no row limits)", sql_nodes),
         plan_node,
         K.if_(ids, "if_GCengine", "IF planned: INVENTORY_BULK_APPLY in PLAN mode (writes nothing)", is_(P, "route", "ENGINE"), [
@@ -192,7 +193,11 @@ CREATE_COLS = ["doc_type", "status", "parent_id", "parent_line_id", "parent_no",
                "batch_id", "bin_location", "item_uom", "reserved_qty", "delivered_qty", "open_qty", "reserved_date", "line_no", "plant_id", "organization_id", "remark",
                "target_gd_id", "source_reserved_id", "handling_unit_id", "job_line_key"]
 GC_LINE_COLS = ["prev_temp_qty_data", "customer_id", "organization_id", "plant_id", "billing_state_id", "billing_country_id", "shipping_state_id",
-                "shipping_country_id", "assigned_to", "area_id", "line_index", "gd_undelivered_qty", "packing_qty", "net_weight"]
+                "shipping_country_id", "assigned_to", "area_id", "line_index", "gd_undelivered_qty", "packing_qty", "net_weight", "picking_status", "packing_status"]
+PKL = "transfer_order_jz8m9w3h_sub:Table:1939915130724524033"
+PKH = "Transfer Order Picking:Table:1935556443668959233"
+FCPICK_COLS = ["id", "picking_id", "picking_no", "gd_id", "line_status", "is_processing", "lock_age_sec", "open_jobs"]
+C4PROW_COLS = ["k", "id", "picking_id", "gd_id", "status", "pending", "is_deleted"]
 CG, CE = "code_node_CCguard", "code_node_CCentry"
 
 
@@ -264,8 +269,10 @@ def build_commit():
     GDID = N(CE, "data.gdId")
     PFX = N(CE, "data.partPrefix")
     dt = lambda c: "DATE_FORMAT(%s, '%%Y-%%m-%%d %%H:%%i:%%s')" % c
+    # 30 min: an engine APPLY of ~2,000 distinct materials takes ~10 min on dev, and a worker that re-enters a live APPLY
+    # after the lease would resume the same operation alongside it (bladexfunctions-fb / -dd, 10-19)
     job = """SELECT DATE_FORMAT(n.t, '%%Y-%%m-%%d %%H:%%i:%%s') AS db_now,
-       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%%Y-%%m-%%d %%H:%%i:%%s') AS lease_until,
+       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%%Y-%%m-%%d %%H:%%i:%%s') AS lease_until,
        CAST(j.id AS CHAR) AS id, j.organization_id, j.command, j.job_status, j.progress_percent, j.progress_message, j.attempt_count,
        %s AS next_attempt_at, j.lease_owner, %s AS lease_expires_at,
        (j.lease_expires_at > n.t) AS lease_live, (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due,
@@ -317,11 +324,36 @@ def build_commit():
         "'billing_country_id', CAST(l.billing_country_id AS CHAR), 'shipping_state_id', CAST(l.shipping_state_id AS CHAR), "
         "'shipping_country_id', CAST(l.shipping_country_id AS CHAR), 'assigned_to', CAST(l.assigned_to AS CHAR), 'area_id', CAST(l.area_id AS CHAR), "
         "'line_index', l.line_index, 'gd_undelivered_qty', CAST(l.gd_undelivered_qty AS CHAR), 'packing_qty', CAST(l.packing_qty AS CHAR), "
-        "'net_weight', CAST(l.net_weight AS CHAR)) AS j\n  FROM goods_delivery_fwii8mvb_sub l\n WHERE l.tenant_id = %s AND l.goods_delivery_id = %s AND l.is_deleted = 0") % (T, GDID, T, GDID)
+        "'net_weight', CAST(l.net_weight AS CHAR), 'picking_status', l.picking_status, 'packing_status', l.packing_status) AS j\n"
+        "  FROM goods_delivery_fwii8mvb_sub l\n WHERE l.tenant_id = %s AND l.goods_delivery_id = %s AND l.is_deleted = 0") % (T, GDID, T, GDID)
+    # GOODS_DELIVERY v245 sql_node_FcPick, tenant-scoped: every row of each open Picking that still holds an open row of this GD
+    fcpick = lambda force: ("""SELECT CAST(pl.id AS CHAR) AS id, CAST(t.id AS CHAR) AS picking_id, CAST(COALESCE(t.to_id, '') AS CHAR) AS picking_no,
+       CAST(COALESCE(pl.gd_id, '') AS CHAR) AS gd_id, CAST(COALESCE(pl.line_status, '') AS CHAR) AS line_status, COALESCE(t.is_processing, 0) AS is_processing,
+       TIMESTAMPDIFF(SECOND, t.update_time, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')) AS lock_age_sec,
+       (SELECT COUNT(*) FROM gd_async_job j
+         WHERE j.tenant_id = @T AND j.command = 'CONFIRM_PICKING' AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')
+           AND j.is_deleted = 0 AND CAST(j.picking_id AS UNSIGNED) = t.id) AS open_jobs
+  FROM (SELECT DISTINCT x.transfer_order_id FROM transfer_order_jz8m9w3h_sub x
+         WHERE x.tenant_id = @T AND x.gd_id = @G AND x.is_deleted = 0 AND COALESCE(x.line_status, '') NOT IN ('Completed', 'Cancelled')) o
+  STRAIGHT_JOIN transfer_order t ON t.id = o.transfer_order_id AND t.tenant_id = @T AND t.is_deleted = 0
+   AND COALESCE(t.to_status, '') NOT IN ('Completed', 'Cancelled', 'Draft')
+  JOIN transfer_order_jz8m9w3h_sub pl ON pl.transfer_order_id = t.id AND pl.tenant_id = @T AND pl.is_deleted = 0
+ WHERE '@F' = 'Yes'
+ ORDER BY t.id, pl.id""").replace("@T", T).replace("@G", GDID).replace("@F", force)
+    c4prows = ("""SELECT 'L' AS k, CAST(pl.id AS CHAR) AS id, CAST(pl.transfer_order_id AS CHAR) AS picking_id, CAST(COALESCE(pl.gd_id, '') AS CHAR) AS gd_id,
+       CAST(COALESCE(pl.line_status, '') AS CHAR) AS status, CAST(COALESCE(pl.pending_process_qty, 0) AS CHAR) AS pending, pl.is_deleted
+  FROM transfer_order_jz8m9w3h_sub pl
+ WHERE pl.tenant_id = @T AND pl.id IN (SELECT jt.i FROM JSON_TABLE('@L', '$[*]' COLUMNS (i BIGINT PATH '$')) jt)
+UNION ALL
+SELECT 'P' AS k, CAST(t.id AS CHAR) AS id, CAST(t.id AS CHAR) AS picking_id, '' AS gd_id, CAST(COALESCE(t.to_status, '') AS CHAR) AS status, '' AS pending, t.is_deleted
+  FROM transfer_order t
+ WHERE t.tenant_id = @T AND t.id IN (SELECT jt.i FROM JSON_TABLE('@P', '$[*]' COLUMNS (i BIGINT PATH '$')) jt)""").replace("@T", T).replace(
+        "@L", N("code_node_CCc4pids", "data.lineIdsJson")).replace("@P", N("code_node_CCc4pids", "data.pickingIdsJson"))
+    ids4p = K.Ids(1797200500000)
 
     entry_fields = ["route", "phase", "dbNow", "jsAt", "jobId", "organizationId", "gdId", "gdNo", "idempotencyKey", "jobStatus", "rowVersion", "attempts", "leaseUntil", "unlockOk",
                     "partPrefix", "manifest", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "needC0", "needC1", "needC2", "needC3", "needC3H", "needC4",
-                    "needC5", "needC6", "doneC6Reorder", "doneC6Si", "result_code", "result_message", "job_status"]
+                    "needC5", "needC6", "doneC6Reorder", "doneC6Si", "result_code", "result_message", "job_status", "needC4P", "force"]
     chk = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "result_code", "result_message", "job_status"]
     chk_arr = ("stepRows", "jobRows", "unlockRows")
     rej_body = RESULT_JS + code("commit/result.js") + "\nreturn commitResult([%s][0], {}, { job_status: \"\", result_code: [%s][0], result_message: [%s][0] }, \"REJECTED_INPUT\");" % (N(CG, "data"), N(CG, "data.result_code"), N(CG, "data.result_message"))
@@ -360,9 +392,13 @@ def build_commit():
                 ("cai_CCc0rows", "Reservations", [K.sql("sql_node_CCc0rows", "C0: those reservations now", resrows(N("code_node_CCc0ids", "data.idsJson"), None), ["k", "j"])]),
                 ("cai_CCc0hus", "Handling units", [K.sql("sql_node_CCc0hus", "C0: those handling units now", hurows(N("code_node_CCc0ids", "data.huIdsJson")), ["j"])]),
                 ("cai_CCc0huitems", "HU items", [K.sql("sql_node_CCc0huitems", "C0: their item rows now", huitems(N("code_node_CCc0ids", "data.huIdsJson")), ["j"])]),
+                ("cai_CCc0pick", "Open Pickings", [K.sql("sql_node_CCc0pick", "C0 (Force Complete): the open Pickings holding this GD's open rows (sql_node_FcPick)",
+                                                         fcpick(N(CE, "data.force")), FCPICK_COLS)]),
+                ("cai_CCc0fp", "Line fingerprint", [K.sql("sql_node_CCc0fp", "C0 (Force Complete): the GD lines' fingerprint now",
+                                                          fp_sql(T, GDID, " AND '%s' = 'Yes'" % N(CE, "data.force")), ["n", "fp"])]),
             ]),
             K.code("code_node_CCc0", "C0 REVALIDATE: GD still locked by this job, reservations as PREPARE read them, handling units hold enough -> DONE; else FAILED + GD back to Created",
-                   ccode("c0.js", ("engine:roundDec", "commit/_hu.js")), chk, arrays=chk_arr),
+                   ccode("c0.js", ("engine:roundDec", "commit/_hu.js", "_fc.js")), chk, arrays=chk_arr),
             end_block(ids, "c0", "code_node_CCc0", "IF the delivery changed meanwhile", unlock=True),
             step_done(ids, "c0", "code_node_CCc0", "C0_REVALIDATE"),
         ]),
@@ -460,6 +496,34 @@ def build_commit():
             K.code("code_node_CCc4check", "C4 check: every intent row at its after-values -> DONE", ccode("c4_check.js", ("prepare/adapter.js",)), chk, arrays=chk_arr),
             end_block(ids, "c4", "code_node_CCc4check", "IF C4 did not complete"),
             step_done(ids, "c4", "code_node_CCc4check", "C4_SO"),
+        ]),
+        # ---------------------------------------------------------------- C4P (Force Complete): GOODS_DELIVERY's if_FcApply
+        K.if_(ids4p, "if_CCc4p", "IF C4P THE PICKING is due (Force Complete; the GD is still Processing)", is_(CE, "needC4P", "YES"), [
+            K.parallel("condition_all_CCc4pread", "C4P reads in parallel", [
+                ("cai_CCc4pintent", "Intent", [K.sql("sql_node_CCc4pintent", "C4P: an intent of an earlier run", intent("C4P"), ["step_name", "result_ref"])]),
+                ("cai_CCc4ppick", "Open Pickings", [K.sql("sql_node_CCc4ppick", "C4P: the open Pickings holding this GD's open rows (sql_node_FcPick)", fcpick("Yes"), FCPICK_COLS)]),
+            ]),
+            K.code("code_node_CCc4pids", "C4P: the Picking rows and headers to read by id (the intent's, else what if_FcApply closes)", ccode("c4p_ids.js", ("_fc.js",)),
+                   ["ok", "lineIdsJson", "pickingIdsJson"]),
+            K.sql("sql_node_CCc4prows", "C4P: those Picking rows and headers now", c4prows, C4PROW_COLS),
+            K.code("code_node_CCc4pplan", "C4P plan: if_FcApply's rows and headers on the fresh read -> intent; write what is at before", ccode("c4p_plan.js", ("_fc.js",)),
+                   ["route", "needIntent", "intentRows", "lineSlices", "lineCount", "headerRows", "needHeaders", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"],
+                   arrays=("intentRows", "lineSlices", "headerRows", "jobRows"), objects=("lineCount",)),
+            end_block(ids4p, "c4ppl", "code_node_CCc4pplan", "IF the Picking cannot be closed"),
+            gate(ids4p, "cor_CCc4pintent", "Intent to record?", "code_node_CCc4pplan", "needIntent", [
+                step_add(ids4p, "add_node_CCc4pintent", "C4P INTENT: C4P|I|<nnn> (before + after of every row)", "code_node_CCc4pplan", "intentRows")]),
+            slice_loop(ids4p, "c4p", "code_node_CCc4pplan", "lineSlices", "C4P WRITE: Picking rows Completed, nothing pending", PKL, ["line_status", "pending_process_qty"],
+                       {"line_status": "Line Status", "pending_process_qty": "Pending Process Quantity"}),
+            gate(ids4p, "cor_CCc4phdr", "Picking headers to close?", "code_node_CCc4pplan", "needHeaders", [
+                K.update(ids4p, "update_node_CCc4phdr", "C4P WRITE: Picking Completed (to_status)", PKH, ("id", "in", N("code_node_CCc4pplan", "data.headerRows.id")),
+                         [(p, N("code_node_CCc4pplan", "data.headerRows." + p)) for p in ["id", "to_status"]], labels={"to_status": "Transfer Order Status"})]),
+            K.parallel("condition_all_CCc4pback", "C4P read-back in parallel", [
+                ("cai_CCc4prowsB", "Rows", [K.sql("sql_node_CCc4prowsB", "C4P read-back: the Picking rows and headers", c4prows, C4PROW_COLS)]),
+                ("cai_CCc4pintentB", "Intent", [K.sql("sql_node_CCc4pintentB", "C4P read-back: the intent", intent("C4P"), ["step_name", "result_ref"])]),
+            ]),
+            K.code("code_node_CCc4pcheck", "C4P check: every intent row at its after-values -> DONE", ccode("c4p_check.js"), chk, arrays=chk_arr),
+            end_block(ids4p, "c4p", "code_node_CCc4pcheck", "IF C4P did not complete"),
+            step_done(ids4p, "c4p", "code_node_CCc4pcheck", "C4P_PICKING"),
         ]),
         # ---------------------------------------------------------------- C5
         K.if_(ids, "if_CCc5", "IF C5 THE DELIVERY is due", is_(CE, "needC5", "YES"), [
@@ -799,8 +863,15 @@ def build_submit():
          WHERE pj.tenant_id = '@T' AND pj.is_deleted = 0 AND pj.command = 'CONFIRM_PICKING'
            AND pj.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')
            AND EXISTS (SELECT 1 FROM transfer_order_jz8m9w3h_sub ti
-                        WHERE ti.transfer_order_id = pj.picking_id AND ti.tenant_id = '@T' AND ti.is_deleted = 0
+                        WHERE ti.transfer_order_id = CAST(pj.picking_id AS UNSIGNED) AND ti.tenant_id = '@T' AND ti.is_deleted = 0
                           AND ti.gd_id = @G AND IFNULL(ti.line_status, '') <> 'Cancelled')) AS picking_jobs,
+       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('picking_id', CAST(t.id AS CHAR), 'picking_no', t.to_id, 'is_processing', COALESCE(t.is_processing, 0),
+                                             'lock_age_sec', TIMESTAMPDIFF(SECOND, t.update_time, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')))) AS CHAR)
+          FROM (SELECT DISTINCT x.transfer_order_id FROM transfer_order_jz8m9w3h_sub x
+                 WHERE x.tenant_id = '@T' AND x.gd_id = @G AND x.is_deleted = 0 AND COALESCE(x.line_status, '') NOT IN ('Completed', 'Cancelled')) lo
+          STRAIGHT_JOIN transfer_order t ON t.id = lo.transfer_order_id AND t.tenant_id = '@T' AND t.is_deleted = 0
+           AND COALESCE(t.to_status, '') NOT IN ('Completed', 'Cancelled', 'Draft')
+         WHERE '@FORCE' = 'Yes') AS picking_locks,
        (SELECT CAST(JSON_OBJECT('id', CAST(x.id AS CHAR), 'job_status', x.job_status, 'progress_percent', x.progress_percent, 'progress_message', x.progress_message,
                                 'error_code', x.error_code, 'error_message', x.error_message) AS CHAR)
           FROM gd_async_job x
@@ -810,7 +881,7 @@ def build_submit():
   LEFT JOIN goods_delivery g
     ON g.tenant_id = '@T'
    AND g.id = @G
-   AND g.is_deleted = 0""".replace("@OPEN", open_sets).replace("@T", T).replace("@G", GD_ID)
+   AND g.is_deleted = 0""".replace("@OPEN", open_sets).replace("@T", T).replace("@G", GD_ID).replace("@FORCE", N(G, "data.force"))
     back = """SELECT CAST(j.id AS CHAR) AS job_id,
        j.job_status,
        g.gd_status,
@@ -842,10 +913,10 @@ def build_submit():
                     "progressPercent", "progressMessage", "errorCode", "errorMessage"]
     nodes = [
         K.code(G, "Guard: operation, gd_id (digits), source, answers, session tenant + user", scode("guard.js"),
-               ["route", "code", "message", "operation", "gdId", "tenantId", "source", "uid", "causationId", "answers"], objects=("answers",)),
+               ["route", "code", "message", "operation", "gdId", "tenantId", "source", "uid", "causationId", "answers", "force"], objects=("answers",)),
         K.if_(ids, "if_GSreject", "IF the input is invalid: answer, write nothing", is_(G, "route", "REJECT"), sres("rej", G, "rejected input")),
         K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock", facts,
-              ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "open_jobs", "picking_jobs", "last_job"]),
+              ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "open_jobs", "picking_jobs", "last_job", "picking_locks"]),
         K.code(E, "Entry: STATUS; SUBMIT goes on for a Created GD with no open job (BUSY / NOT_ELIGIBLE / STOP otherwise)", scode("entry.js"), entry_fields,
                objects=("lineCount", "lockN", "progressPercent")),
         K.if_(ids, "if_GSanswer", "IF answered here (STATUS / BUSY / NOT_ELIGIBLE / STOP): answer, write nothing", "'%s' != 'GO'" % N(E, "data.route"), sres("ans", E, "entry")),
@@ -857,7 +928,8 @@ def build_submit():
             call(ids, "workflow_node_GScl", "CREDIT_LIMIT_CHECK (as GOODS_DELIVERY calls it)", CREDIT_LIMIT, [
                 ("customer_id", N(GT, "data.customer")), ("total", N(GT, "data.total")), ("document_type", "Goods Delivery", "value")]),
         ]),
-        K.code(PO, "Post: 402 / 403, 405 / 406 / 407, the quantity 400s, 412; else the lock, job and Processing rows", scode("post.js"),
+        K.code(PO, "Post: 402 / 403, 405 / 406 / 407, the quantity 400s, 412, a Force Complete's busy Picking; else the lock, job and Processing rows",
+               code("submit/_common.js") + "\n" + code("_fc.js") + "\n" + code("submit/post.js"),
                ["route", "code", "message", "idemKey", "lockRows", "jobRows", "gdRows"], arrays=("lockRows", "jobRows", "gdRows")),
         K.if_(ids, "if_GSpostEnd", "IF a gate answered: answer, write nothing", "'%s' != 'QUEUE'" % N(PO, "data.route"), sres("post", PO, "post")),
         K.add(ids, "add_node_GSlock", "LOCK: gd_publish_step GDC|<gd> / LOCK|<n> (unique tenant / job / step: a concurrent submit fails its run)", STEP,
@@ -924,15 +996,60 @@ def wrap_doc_sql(doc):
     return doc
 
 
+def _blank_keys(o):
+    """a node's data with its generated response keys and numeric filter ids blanked (what a rebuild may renumber)"""
+    if isinstance(o, dict):
+        return {k: (None if k == "key" or (k in ("id", "parentId") and isinstance(v, int)) else _blank_keys(v)) for k, v in o.items()}
+    if isinstance(o, list):
+        return [_blank_keys(x) for x in o]
+    return o
+
+
+def keep_published(doc, published):
+    """every node whose content the build did not change keeps its published data byte for byte (keys and filter ids
+    included), so a rebuild diffs only where it really changed; returns the number of nodes kept"""
+    def nodes(o, out):
+        if isinstance(o, dict):
+            if isinstance(o.get("id"), str) and "type" in o and isinstance(o.get("data"), dict):
+                out[o["id"]] = o
+            for v in o.values():
+                nodes(v, out)
+        elif isinstance(o, list):
+            for v in o:
+                nodes(v, out)
+        return out
+    old = nodes(published, {})
+    kept = 0
+    for nid, n in nodes(doc, {}).items():
+        p = old.get(nid)
+        if p and p["type"] == n["type"] and _blank_keys(p["data"]) == _blank_keys(n["data"]):
+            n["data"] = json.loads(json.dumps(p["data"]))
+            kept += 1
+    for k in ("request_json", "response_json"):
+        if _blank_keys(doc.get(k)) == _blank_keys(published.get(k)):
+            doc[k] = json.loads(json.dumps(published[k]))
+    keys = re.findall(r'"key": "([a-z0-9]{8})"', json.dumps(doc))
+    assert len(keys) == len(set(keys)), "a kept key collides with a new one"
+    nums = re.findall(r'"(?:id|parentId)": (\d{13})', json.dumps(doc))
+    assert len(nums) == len(set(nums)), "a kept filter id collides with a new one"
+    return kept
+
+
 if __name__ == "__main__":
     want = [a for a in sys.argv[1:] if not a.startswith("--")]
     for name, fn in BUILDERS:
         if want and name not in want:
             continue
+        path = os.path.join(OUT, name + ".json")
+        published = json.load(open(path, encoding="utf-8")) if os.path.exists(path) else None
+        # the published keys are taken: a new or changed node never draws one that a kept node holds
+        if published:
+            K._taken.update(re.findall(r'"key": "([a-z0-9]{8})"', json.dumps(published)))
         doc = wrap_doc_sql(fn())
         K.check_ids(doc)
+        if published:
+            print(f"{name}: {keep_published(doc, published)} unchanged node(s) keep their published data")
         text = json.dumps(doc, ensure_ascii=False, indent=1)
-        path = os.path.join(OUT, name + ".json")
         print(f"{name}: {len(text)} chars, {len(K.check_ids(doc))} nodes" + (f" -> {path}" if WRITE else " (dry; --write to save)"))
         if WRITE:
             os.makedirs(OUT, exist_ok=True)

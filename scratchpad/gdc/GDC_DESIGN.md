@@ -62,8 +62,9 @@ lifted chain → movements, reservation writes, SO targets, picking/HU targets, 
 INVENTORY_BULK_APPLY PLAN → `code_node_GCready` → READY_TO_COMMIT + prepared_payload | FAILED + GD back to Created.
 
 ### GD_COMPLETE_COMMIT (job_id)
-C0 revalidate → C1 snapshot → C2 inventory (APPLY `GDC|<job>`, first write) → SPLIT → C3 reservations → C3P picking
-records → C3H HU → C4 SO (fresh read, delta, intent) → C5 GD (diff) → C6 item date, reorder, auto-SI → COMPLETED.
+C0 revalidate → C1 snapshot → C2 inventory (APPLY `GDC|<job>`, first write) → SPLIT → C3 reservations → C3H HU → C4 SO
+(fresh read, delta, intent) → C4P a Force Complete's Picking rows (status only) → C5 GD (diff) → C6 item date, reorder,
+auto-SI → COMPLETED.
 
 ### GD_COMPLETE_WORKER — copy of PICKING_ASYNC_WORKER (command COMPLETE_GD; unlock = GD Processing → Created)
 

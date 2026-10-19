@@ -1,4 +1,10 @@
-"""Package D build: the Location Transfer form (base dev v107) and list page (base dev v47) with the Stock Movement V2 client.
+"""Package D build: the Location Transfer form and list page with the Stock Movement V2 client.
+
+Form: the V2 changes are made on base dev v107 (the recipe), then the paste file is the LIVE dev form (LIVE_FORM, which
+already carries them plus later designer edits) with only the handlers this package owns re-rendered from client/src/ -
+the build asserts that the recipe and the live form differ only outside V2 (designer edits) and that the paste file
+differs from the live form only in owned handler funcs. List: base designing v48 + the V2 changes (= live v49); written
+only when it differs from the current LOTlistPage.json (then pass --list to confirm).
 
 Reads the workflow ids from scratchpad/smv2/ids.json at build time ("0" = not created: every save stays classic) and the
 handler sources in client/src/ (placeholders __LOT_V2_SUBMIT__ / __LOT_V2_WORKER__, /*@@FINGERPRINT@@*/ = code/shared/
@@ -23,6 +29,8 @@ import v2build as V  # noqa: E402
 
 OUT = os.path.join(ROOT, "Stock Movement", "Location Transfer", "AsyncV2")
 BASE_FORM = os.path.join(SMV2, "base", "lot_form_v107.json")
+# the live dev form the paste file is published over (v110, 2026-10-19 11:15: designer display edits on the line table)
+LIVE_FORM = os.path.join(SMV2, "base", "lot_form_v110_live.json")
 # the designing v48 row (= live v47 + designer-default display attributes on the Print button): the uploader's base guard
 # sees it as current, and building on it keeps that draft
 BASE_LIST = os.path.join(SMV2, "base", "lot_list_v48_designing.json")
@@ -187,6 +195,29 @@ def build_form(wf, rng):
     return base, form, mirrors
 
 
+def on_live(built):
+    """the paste file: the live form with the handlers this package owns (three save handlers + mounted) taken from the build"""
+    live = json.load(open(LIVE_FORM, encoding="utf-8"))
+    out = copy.deepcopy(live)
+    owned = [h[3] for h in BUTTONS.values()] + ["mounted"]
+    by_built = {e["name"]: e for e in built["config"]["eventScript"]}
+    seen = []
+    for e in out["config"]["eventScript"]:
+        if e["name"] in owned:
+            assert e["key"] == by_built[e["name"]]["key"] and e["type"] == "js", e["name"]
+            e["func"] = by_built[e["name"]]["func"]
+            seen.append(e["name"])
+    assert sorted(seen) == sorted(owned), seen
+    owned_keys = {by_built[n]["key"] for n in owned}
+    changed = diffs(live, out)
+    assert all(re.fullmatch(r"/config/eventScript/\[key=([a-z0-9]{8})\]/func", p) and re.fullmatch(r"/config/eventScript/\[key=([a-z0-9]{8})\]/func", p).group(1) in owned_keys
+               for p in changed), changed
+    # everything else of the live form = the recipe build, but for edits made outside V2 (the designer's, kept)
+    kept = diffs(built, out)
+    assert not any("/config/eventScript" in p or "lot_" in p or "/events/onClick" in p for p in kept), kept
+    return live, out, changed, kept
+
+
 def build_list(wf):
     base = json.load(open(BASE_LIST, encoding="utf-8"))
     page = copy.deepcopy(base)
@@ -279,31 +310,43 @@ def main():
     write = "--write" in sys.argv
     wf = ids()
     rng = random.Random(20261016)
-    fb, form, fm = build_form(wf, rng)
+    fb, built, fm = build_form(wf, rng)
+    live, form, changed, kept = on_live(built)
     lb, page, lm = build_list(wf)
+    list_path = os.path.join(OUT, "LOTlistPage.json")
+    list_same = os.path.exists(list_path) and json.load(open(list_path, encoding="utf-8")) == page
     print("workflow ids:", wf)
     print("NOT_RECORD keys (none read by SM_LOCATION_TRANSFER v82):", check_not_record(fm["lotV2_onClick_save_completed.js"]))
     funcs = [fm[h[3] + ".js"] for h in BUTTONS.values()]
     strip = lambda f: re.sub(r'^// lotV2_onClick_save_\w+ - .*\n|const button = \{[^}]*\};', "", f, flags=re.M)
     assert len({strip(f) for f in funcs}) == 1, "the three handlers differ beyond their button constants"
-    for name, (a, b) in (("LOTform.json vs base v107", (fb, form)), ("LOTlistPage.json vs base designing v48", (lb, page))):
+    for name, paths in (("LOTform.json vs the LIVE form " + os.path.basename(LIVE_FORM), changed),
+                        ("live edits kept (LOTform.json vs the v107 recipe build)", kept),
+                        ("recipe build vs base v107 (the V2 changes the live form carries)", diffs(fb, built)),
+                        ("LOTlistPage.json vs base designing v48" + (" (= the current LOTlistPage.json)" if list_same else " - DIFFERS from the current file"), diffs(lb, page))):
         print("==", name)
-        for p in diffs(a, b):
+        for p in paths:
             print("   ", p)
+    write_list = not list_same and "--list" in sys.argv
     if write:
         os.makedirs(OUT, exist_ok=True)
-        for fname, obj in (("LOTform.json", form), ("LOTlistPage.json", page)):
-            text = render(obj, "indent")
-            assert json.loads(text) == obj
+        text = render(form, "indent")
+        assert json.loads(text) == form
+        open(os.path.join(OUT, "LOTform.json"), "w", encoding="utf-8").write(text)
+        for fname, text in fm.items():
             open(os.path.join(OUT, fname), "w", encoding="utf-8").write(text)
-        for fname, text in list(fm.items()) + [(k, v) for k, v in lm.items() if k != "Cancel.js"]:
-            open(os.path.join(OUT, fname), "w", encoding="utf-8").write(text)
-        if "Cancel.js" in lm:
-            open(CANCEL_JS, "w", encoding="utf-8").write(lm["Cancel.js"])
+        if write_list:
+            text = render(page, "indent")
+            assert json.loads(text) == page
+            open(list_path, "w", encoding="utf-8").write(text)
+            for fname, text in lm.items():
+                open(CANCEL_JS if fname == "Cancel.js" else os.path.join(OUT, fname), "w", encoding="utf-8").write(text)
+        elif not list_same:
+            print("LOTlistPage.json NOT written: the list build differs from the current file - check it, then pass --list")
         stale = os.path.join(OUT, "lotV2_onClick_save.js")  # the single-handler mirror this build replaced with three
         if os.path.exists(stale):
             os.remove(stale)
-        print("wrote", sorted(["LOTform.json", "LOTlistPage.json"] + list(fm) + list(lm)))
+        print("wrote", sorted(["LOTform.json"] + list(fm) + (["LOTlistPage.json"] + list(lm) if write_list else [])))
 
 
 if __name__ == "__main__":

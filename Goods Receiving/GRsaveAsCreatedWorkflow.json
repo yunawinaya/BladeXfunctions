@@ -113,7 +113,7 @@
         "name": "Prepare: guards, fill, checks (reads allData once)",
         "script": {
           "type": "javascript",
-          "code": "// The only node that reads allData: guards, fill, checks, the GR row to write and a compact per-PO-line view\nconst MAX_LINES = 2000;\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst allData = [{{workflowparams:allData}}][0] || {};\nconst pageStatus = String([{{workflowparams:pageStatus}}][0] || \"\");\nconst continueZero = String([{{workflowparams:continueZero}}][0] || \"\");\nconst rawKey = String([{{workflowparams:idempotency_key}}][0] || \"\").trim();\n\nconst rows0 = Array.isArray(allData.table_gr) ? allData.table_gr : [];\nlet lineCount = 0;\nfor (const row of rows0) {\n  lineCount += 1 + (Array.isArray(row.children) ? row.children.length : 0);\n}\nconst sizeMessage =\n  \"This Goods Receiving has \" + lineCount + \" lines. A save of more than \" + MAX_LINES +\n  \" lines is not supported here - please split it into smaller receipts.\";\nif (lineCount > MAX_LINES) {\n  return { tooBig: \"YES\", sizeMessage };\n}\n\nconst edit = pageStatus === \"Edit\";\nconst idText = String(allData.id === undefined || allData.id === null ? \"\" : allData.id).trim();\nconst grId = edit && /^[0-9]{1,20}$/.test(idText) ? idText : \"0\";\nconst keyOk = !edit && /^[A-Za-z0-9:_.-]{8,128}$/.test(rawKey);\n// gr_idem_key = key#nonce: an attempt finds its own row after the add\nconst nonce = String([{{system:uuid}}][0] || \"\").replace(/[^A-Za-z0-9-]/g, \"\") ||\n  Date.now().toString(36) + Math.random().toString(36).slice(2, 10);\n\n// table_gr is a tree: an item bundle is ONE row with its items under `children`\nconst flatten = (rows) => {\n  const flat = [];\n  for (const row of rows || []) {\n    flat.push(row);\n    for (const child of Array.isArray(row.children) ? row.children : []) flat.push(child);\n  }\n  return flat;\n};\nconst isBundleParentRow = (row) => Boolean(row.item_bundle_id) && !row.item_id;\n\nconst zeroQtyArray = [];\nfor (const [index, gr] of flatten(rows0).entries()) {\n  if (isBundleParentRow(gr)) continue;\n  if (gr.received_qty <= 0) zeroQtyArray.push(`#${index + 1}`);\n}\nlet hasZero = 0;\nlet zeroMessage = null;\nif (zeroQtyArray.length > 0) {\n  zeroMessage = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${zeroQtyArray.length > 1 ? \"ve\" : \"s\"} a zero received quantity.\\nIf you proceed, those rows will be removed.\\nWould you like to proceed?`;\n  hasZero = 1;\n}\n\n// q8 as GOODS_RECEIVING's fillback: a raw client float (2032.3799999999997) failed the decimal check\nconst DECIMALS = [\"ordered_qty\", \"base_ordered_qty\", \"to_received_qty\", \"received_qty\", \"base_received_qty\",\n  \"initial_received_qty\", \"unit_price\", \"total_price\", \"uom_conversion\"];\nconst stampGrLineItem = (line) => {\n  for (const f of DECIMALS) {\n    if (line[f] !== undefined && line[f] !== null && line[f] !== \"\") line[f] = q8(line[f]);\n  }\n  line.supplier_id = allData.supplier_name || null;\n  line.organization_id = allData.organization_id;\n  line.plant_id = allData.plant_id || null;\n  line.billing_state_id = allData.billing_address_state || null;\n  line.billing_country_id = allData.billing_address_country || null;\n  line.shipping_state_id = allData.shipping_address_state || null;\n  line.shipping_country_id = allData.shipping_address_country || null;\n  line.assigned_to = allData.assigned_to || null;\n};\nconst kept = [];\nfor (const [index, line] of rows0.entries()) {\n  stampGrLineItem(line);\n  line.line_index = index + 1;\n  const children = Array.isArray(line.children) ? line.children : [];\n  if (children.length > 0) {\n    const keptChildren = [];\n    for (const child of children) {\n      stampGrLineItem(child);\n      if (child.received_qty > 0) {\n        child.line_index = keptChildren.length + 1;\n        keptChildren.push(child);\n      }\n    }\n    line.children = keptChildren;\n  }\n  if (isBundleParentRow(line) ? Array.isArray(line.children) && line.children.length > 0 : line.received_qty > 0) {\n    kept.push(line);\n  }\n}\nconst flatRows = flatten(kept);\n\nconst noRule = allData.gr_no_type !== -9999;\nconst grNo = noRule && (!allData.gr_no || allData.previous_status === \"Draft\") ? \"issued\" : allData.gr_no;\n\nlet poID = [];\nfor (const gr of flatRows) poID.push(gr.line_po_id);\npoID = [...new Set(poID)];\n\nconst invalidMessage = kept.length === 0\n  ? \"All Received Quantity must not be 0. Please add at least one item with received quantity > 0.\"\n  : \"\";\n\nconst errors = [];\nconst headerRequired = [\n  { name: \"gr_no\", label: \"Good Receiving Number\", value: grNo },\n  { name: \"gr_date\", label: \"Received Date\", value: allData.gr_date },\n  { name: \"plant_id\", label: \"Plant\", value: allData.plant_id },\n];\nfor (const f of headerRequired) {\n  const v = f.value;\n  if (v === undefined || v === null || (typeof v === \"string\" && v.trim() === \"\")) errors.push(f.label + \" is required.\");\n}\nif (flatRows.length === 0) errors.push(\"GR Items are required.\");\nfor (let i = 0; i < flatRows.length; i++) {\n  const item = flatRows[i];\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") continue;\n  if (isBundleParentRow(item)) continue;\n  if (!item.location_id) errors.push(`Target Location is required for item #${i + 1}.`);\n  if (!item.inv_category) errors.push(`Inventory Category is required for item #${i + 1}.`);\n  if (!item.item_batch_no) errors.push(`Batch Number is required for item #${i + 1}.`);\n  if (item.is_serialized_item === 1 && item.is_serial_allocated !== 1) {\n    const name = item.item_name || item.item_code || item.item_id || `Item #${i + 1}`;\n    errors.push(`Serial number allocation is required for ${name} (row ${i + 1}).`);\n  }\n}\n\n// per PO line: 3 dp for the checks (as before), 8 dp for the reservation\nconst agg = new Map();\nfor (const gr of flatRows) {\n  if (gr.is_split === \"Yes\" && gr.parent_or_child === \"Parent\") continue;\n  const lid = gr.po_line_item_id;\n  if (!lid) continue;\n  let a = agg.get(String(lid));\n  if (!a) {\n    a = { lid: String(lid), q3: 0, q8: 0, item: gr.item_id, uom: null, name: gr.item_name || gr.item_id || lid };\n    agg.set(String(lid), a);\n  }\n  a.q3 = roundQty(a.q3 + parseFloat(gr.received_qty || 0));\n  a.q8 = q8(a.q8 + parseFloat(gr.received_qty || 0));\n  a.uom = gr.ordered_qty_uom;\n}\nconst lines = [...agg.values()].map((a) => ({\n  lid: a.lid, q3: a.q3, q8: a.q8, name: a.name,\n  item: a.item === undefined || a.item === null ? \"\" : String(a.item),\n  uom: a.uom === undefined || a.uom === null ? \"\" : String(a.uom),\n}));\nconst digits = (list) => [...new Set(list.filter((v) => /^[0-9]{1,20}$/.test(v)))].join(\",\") || \"0\";\n\n// only the columns the add / update nodes map (no dialog models)\nconst FIELDS = [\"putaway_status\", \"plant_id\", \"purchase_order_number\", \"supplier_name\", \"currency_code\",\n  \"gr_billing_address\", \"gr_shipping_address\", \"supplier_contact_person\", \"supplier_contact_number\", \"supplier_email\",\n  \"organization_id\", \"acc_integration_type\", \"project_id\", \"reference_type\", \"previous_status\", \"batch_index\",\n  \"reference_doc\", \"ref_no_1\", \"ref_no_2\", \"gr_no_type\", \"gr_received_by\", \"gr_date\", \"assigned_to\", \"table_sn_records\",\n  \"gr_remark1\", \"gr_remark2\", \"gr_remark3\", \"gr_remark4\", \"gr_remark5\", \"billing_address_name\", \"billing_address_phone\",\n  \"billing_address_line_1\", \"billing_address_line_2\", \"billing_address_line_3\", \"billing_address_line_4\",\n  \"billing_address_city\", \"billing_postal_code\", \"billing_address_state\", \"billing_address_country\", \"billing_attention\",\n  \"billing_address_fax\", \"shipping_address_fax\", \"shipping_address_name\", \"shipping_address_phone\", \"custom_fields_e9609s2l\",\n  \"shipping_address_line_1\", \"shipping_address_line_2\", \"shipping_address_line_3\", \"shipping_address_line_4\",\n  \"shipping_address_city\", \"shipping_postal_code\", \"shipping_address_state\", \"shipping_address_country\",\n  \"shipping_attention\"];\nconst gr = {};\nfor (const f of FIELDS) {\n  if (f in allData) gr[f] = allData[f];\n}\ngr.po_id = poID;\ngr.gr_no = grNo;\ngr.table_gr = kept;\n\nreturn {\n  tooBig: \"NO\",\n  sizeMessage,\n  edit: edit ? \"YES\" : \"NO\",\n  check: edit ? \"YES\" : \"NO\",\n  grId,\n  keyCheck: keyOk ? \"YES\" : \"NO\",\n  keySql: keyOk ? rawKey : \"\",\n  keyStore: keyOk ? rawKey + \"#\" + nonce : null,\n  zeroStop: hasZero === 1 && continueZero !== \"Yes\" ? \"YES\" : \"NO\",\n  zeroMessage,\n  invalid: invalidMessage ? \"YES\" : \"NO\",\n  invalidMessage,\n  hasError: errors.length > 0 ? \"YES\" : \"NO\",\n  errorMessage: errors.length > 0 ? errors.join(\"\\n\") : null,\n  noRule: noRule ? \"YES\" : \"NO\",\n  clientGrNo: allData.gr_no === undefined ? null : allData.gr_no,\n  gr,\n  lines,\n  poLineCsv: digits(lines.map((a) => a.lid)),\n  itemCsv: digits(lines.map((a) => a.item)),\n  lineCount,\n};"
+          "code": "// The only node that reads allData: guards, fill, checks, the GR row to write and a compact per-PO-line view\nconst MAX_LINES = 2000;\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst roundQty = (v) => parseFloat(parseFloat(v || 0).toFixed(3));\nconst allData = [{{workflowparams:allData}}][0] || {};\nconst pageStatus = String([{{workflowparams:pageStatus}}][0] || \"\");\nconst continueZero = String([{{workflowparams:continueZero}}][0] || \"\");\nconst rawKey = String([{{workflowparams:idempotency_key}}][0] || \"\").trim();\n\nconst rows0 = Array.isArray(allData.table_gr) ? allData.table_gr : [];\nlet lineCount = 0;\nfor (const row of rows0) {\n  lineCount += 1 + (Array.isArray(row.children) ? row.children.length : 0);\n}\nconst sizeMessage =\n  \"This Goods Receiving has \" + lineCount + \" lines. A save of more than \" + MAX_LINES +\n  \" lines is not supported here - please split it into smaller receipts.\";\nif (lineCount > MAX_LINES) {\n  return { tooBig: \"YES\", sizeMessage };\n}\n\nconst edit = pageStatus === \"Edit\";\nconst idText = String(allData.id === undefined || allData.id === null ? \"\" : allData.id).trim();\nconst grId = edit && /^[0-9]{1,20}$/.test(idText) ? idText : \"0\";\nconst keyOk = !edit && /^[A-Za-z0-9:_.-]{8,128}$/.test(rawKey);\n// gr_idem_key = key#nonce: an attempt finds its own row after the add\nconst nonce = String([{{system:uuid}}][0] || \"\").replace(/[^A-Za-z0-9-]/g, \"\") ||\n  Date.now().toString(36) + Math.random().toString(36).slice(2, 10);\n\n// table_gr is a tree: an item bundle is ONE row with its items under `children`\nconst flatten = (rows) => {\n  const flat = [];\n  for (const row of rows || []) {\n    flat.push(row);\n    for (const child of Array.isArray(row.children) ? row.children : []) flat.push(child);\n  }\n  return flat;\n};\nconst isBundleParentRow = (row) => Boolean(row.item_bundle_id) && !row.item_id;\n\nconst zeroQtyArray = [];\nfor (const [index, gr] of flatten(rows0).entries()) {\n  if (isBundleParentRow(gr)) continue;\n  if (gr.received_qty <= 0) zeroQtyArray.push(`#${index + 1}`);\n}\nlet hasZero = 0;\nlet zeroMessage = null;\nif (zeroQtyArray.length > 0) {\n  zeroMessage = `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${zeroQtyArray.length > 1 ? \"ve\" : \"s\"} a zero received quantity.\\nIf you proceed, those rows will be removed.\\nWould you like to proceed?`;\n  hasZero = 1;\n}\n\n// q8 as GOODS_RECEIVING's fillback: a raw client float (2032.3799999999997) failed the decimal check\nconst DECIMALS = [\"ordered_qty\", \"base_ordered_qty\", \"to_received_qty\", \"received_qty\", \"base_received_qty\",\n  \"initial_received_qty\", \"unit_price\", \"total_price\", \"uom_conversion\"];\nconst stampGrLineItem = (line) => {\n  for (const f of DECIMALS) {\n    if (line[f] !== undefined && line[f] !== null && line[f] !== \"\") line[f] = q8(line[f]);\n  }\n  line.supplier_id = allData.supplier_name || null;\n  line.organization_id = allData.organization_id;\n  line.plant_id = allData.plant_id || null;\n  line.billing_state_id = allData.billing_address_state || null;\n  line.billing_country_id = allData.billing_address_country || null;\n  line.shipping_state_id = allData.shipping_address_state || null;\n  line.shipping_country_id = allData.shipping_address_country || null;\n  line.assigned_to = allData.assigned_to || null;\n};\nconst kept = [];\nfor (const [index, line] of rows0.entries()) {\n  stampGrLineItem(line);\n  line.line_index = index + 1;\n  const children = Array.isArray(line.children) ? line.children : [];\n  if (children.length > 0) {\n    const keptChildren = [];\n    for (const child of children) {\n      stampGrLineItem(child);\n      if (child.received_qty > 0) {\n        child.line_index = keptChildren.length + 1;\n        keptChildren.push(child);\n      }\n    }\n    line.children = keptChildren;\n  }\n  if (isBundleParentRow(line) ? Array.isArray(line.children) && line.children.length > 0 : line.received_qty > 0) {\n    kept.push(line);\n  }\n}\nconst flatRows = flatten(kept);\n\nconst noRule = allData.gr_no_type !== -9999;\nconst grNo = noRule && (!allData.gr_no || allData.previous_status === \"Draft\") ? \"issued\" : allData.gr_no;\n\nlet poID = [];\nfor (const gr of flatRows) poID.push(gr.line_po_id);\npoID = [...new Set(poID)];\nconst poBusy = poID.map((v) => String(v === undefined || v === null ? \"\" : v).trim()).filter((v) => /^[0-9]{1,20}$/.test(v));\n\nconst invalidMessage = kept.length === 0\n  ? \"All Received Quantity must not be 0. Please add at least one item with received quantity > 0.\"\n  : \"\";\n\nconst errors = [];\nconst headerRequired = [\n  { name: \"gr_no\", label: \"Good Receiving Number\", value: grNo },\n  { name: \"gr_date\", label: \"Received Date\", value: allData.gr_date },\n  { name: \"plant_id\", label: \"Plant\", value: allData.plant_id },\n];\nfor (const f of headerRequired) {\n  const v = f.value;\n  if (v === undefined || v === null || (typeof v === \"string\" && v.trim() === \"\")) errors.push(f.label + \" is required.\");\n}\nif (flatRows.length === 0) errors.push(\"GR Items are required.\");\nfor (let i = 0; i < flatRows.length; i++) {\n  const item = flatRows[i];\n  if (item.is_split === \"Yes\" && item.parent_or_child === \"Parent\") continue;\n  if (isBundleParentRow(item)) continue;\n  if (!item.location_id) errors.push(`Target Location is required for item #${i + 1}.`);\n  if (!item.inv_category) errors.push(`Inventory Category is required for item #${i + 1}.`);\n  if (!item.item_batch_no) errors.push(`Batch Number is required for item #${i + 1}.`);\n  if (item.is_serialized_item === 1 && item.is_serial_allocated !== 1) {\n    const name = item.item_name || item.item_code || item.item_id || `Item #${i + 1}`;\n    errors.push(`Serial number allocation is required for ${name} (row ${i + 1}).`);\n  }\n}\n\n// per PO line: 3 dp for the checks (as before), 8 dp for the reservation\nconst agg = new Map();\nfor (const gr of flatRows) {\n  if (gr.is_split === \"Yes\" && gr.parent_or_child === \"Parent\") continue;\n  const lid = gr.po_line_item_id;\n  if (!lid) continue;\n  let a = agg.get(String(lid));\n  if (!a) {\n    a = { lid: String(lid), q3: 0, q8: 0, item: gr.item_id, uom: null, name: gr.item_name || gr.item_id || lid };\n    agg.set(String(lid), a);\n  }\n  a.q3 = roundQty(a.q3 + parseFloat(gr.received_qty || 0));\n  a.q8 = q8(a.q8 + parseFloat(gr.received_qty || 0));\n  a.uom = gr.ordered_qty_uom;\n}\nconst lines = [...agg.values()].map((a) => ({\n  lid: a.lid, q3: a.q3, q8: a.q8, name: a.name,\n  item: a.item === undefined || a.item === null ? \"\" : String(a.item),\n  uom: a.uom === undefined || a.uom === null ? \"\" : String(a.uom),\n}));\nconst digits = (list) => [...new Set(list.filter((v) => /^[0-9]{1,20}$/.test(v)))].join(\",\") || \"0\";\n\n// only the columns the add / update nodes map (no dialog models)\nconst FIELDS = [\"putaway_status\", \"plant_id\", \"purchase_order_number\", \"supplier_name\", \"currency_code\",\n  \"gr_billing_address\", \"gr_shipping_address\", \"supplier_contact_person\", \"supplier_contact_number\", \"supplier_email\",\n  \"organization_id\", \"acc_integration_type\", \"project_id\", \"reference_type\", \"previous_status\", \"batch_index\",\n  \"reference_doc\", \"ref_no_1\", \"ref_no_2\", \"gr_no_type\", \"gr_received_by\", \"gr_date\", \"assigned_to\", \"table_sn_records\",\n  \"gr_remark1\", \"gr_remark2\", \"gr_remark3\", \"gr_remark4\", \"gr_remark5\", \"billing_address_name\", \"billing_address_phone\",\n  \"billing_address_line_1\", \"billing_address_line_2\", \"billing_address_line_3\", \"billing_address_line_4\",\n  \"billing_address_city\", \"billing_postal_code\", \"billing_address_state\", \"billing_address_country\", \"billing_attention\",\n  \"billing_address_fax\", \"shipping_address_fax\", \"shipping_address_name\", \"shipping_address_phone\", \"custom_fields_e9609s2l\",\n  \"shipping_address_line_1\", \"shipping_address_line_2\", \"shipping_address_line_3\", \"shipping_address_line_4\",\n  \"shipping_address_city\", \"shipping_postal_code\", \"shipping_address_state\", \"shipping_address_country\",\n  \"shipping_attention\"];\nconst gr = {};\nfor (const f of FIELDS) {\n  if (f in allData) gr[f] = allData[f];\n}\ngr.po_id = poID;\ngr.gr_no = grNo;\ngr.table_gr = kept;\n\nreturn {\n  tooBig: \"NO\",\n  sizeMessage,\n  edit: edit ? \"YES\" : \"NO\",\n  check: edit ? \"YES\" : \"NO\",\n  grId,\n  keyCheck: keyOk ? \"YES\" : \"NO\",\n  keySql: keyOk ? rawKey : \"\",\n  keyStore: keyOk ? rawKey + \"#\" + nonce : null,\n  zeroStop: hasZero === 1 && continueZero !== \"Yes\" ? \"YES\" : \"NO\",\n  zeroMessage,\n  invalid: invalidMessage ? \"YES\" : \"NO\",\n  invalidMessage,\n  hasError: errors.length > 0 ? \"YES\" : \"NO\",\n  errorMessage: errors.length > 0 ? errors.join(\"\\n\") : null,\n  noRule: noRule ? \"YES\" : \"NO\",\n  clientGrNo: allData.gr_no === undefined ? null : allData.gr_no,\n  gr,\n  lines,\n  poLineCsv: digits(lines.map((a) => a.lid)),\n  itemCsv: digits(lines.map((a) => a.item)),\n  lineCount,\n  poBusyJson: JSON.stringify(poBusy.length ? poBusy : [\"0\"]),\n};"
         },
         "response_json": [
           {
@@ -311,6 +311,15 @@
             "key": "h7bm3pgw",
             "name": "lineCount",
             "title": "lineCount",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "gazopbj7",
+            "name": "poBusyJson",
+            "title": "poBusyJson",
             "description": "",
             "isExpand": false,
             "children": [],
@@ -1260,6 +1269,199 @@
               "blocks": []
             }
           ]
+        },
+        {
+          "id": "condition_all_node_item_GcPoBusy",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Receipts of its POs in the background",
+            "filter": { "list": [] },
+            "expression": { "code": "", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Receipts of its POs in the background",
+            "name": "Receipts of its POs in the background",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_GcPoBusy",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Other receipts of these POs still Processing (received in the background)",
+                "isValidator": true,
+                "nodeName": "Other receipts of these POs still Processing (received in the background)",
+                "name": "Other receipts of these POs still Processing (received in the background)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(g.id AS CHAR) AS id, g.gr_no, t.p AS po_id, po.purchase_order_no AS po_no\n  FROM goods_receiving g\n  JOIN JSON_TABLE(g.po_id, '$[*]' COLUMNS (p VARCHAR(32) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) t\n  LEFT JOIN purchase_order po ON po.tenant_id = g.tenant_id AND po.id = CAST(t.p AS UNSIGNED) AND po.is_deleted = 0\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.gr_status = 'Processing'\n   AND g.is_deleted = 0\n   AND g.id <> {{node:code_node_GcPrep.data.grId}}\n   AND t.p IN (SELECT k.k FROM JSON_TABLE('{{node:code_node_GcPrep.data.poBusyJson}}', '$[*]' COLUMNS (k VARCHAR(32) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) k)"
+                },
+                "response_json": [
+                  {
+                    "key": "lrmoqbv5",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "9dbwqcxz",
+                    "name": "gr_no",
+                    "title": "gr_no",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "gwy6ri0u",
+                    "name": "po_id",
+                    "title": "po_id",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  },
+                  {
+                    "key": "p26d4pjt",
+                    "name": "po_no",
+                    "title": "po_no",
+                    "description": "",
+                    "isExpand": false,
+                    "children": [],
+                    "bsonType": "string"
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_GcPoBusy",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: a purchase order received in the background?",
+        "isValidator": true,
+        "nodeName": "Guard: a purchase order received in the background?",
+        "name": "Guard: a purchase order received in the background?",
+        "script": {
+          "type": "javascript",
+          "code": "// PO busy: another Goods Receiving of the same purchase order is Processing (received in the background, its quantities not\n// written yet) -> the message every refusing save / the conversion answers with\nconst poBusyMessage = function poBusyMessage(rows, convert) {\n  const str = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const seen = {};\n  const parts = [];\n  for (const r of Array.isArray(rows) ? rows : rows ? [rows] : []) {\n    const po = str(r && (r.po_no || r.po_id));\n    const gr = str(r && (r.gr_no || r.id));\n    if (!po || seen[po + \"|\" + gr]) continue;\n    seen[po + \"|\" + gr] = 1;\n    parts.push({ po: po, gr: gr || \"another Goods Receiving\" });\n  }\n  if (!parts.length) return \"\";\n  if (parts.length === 1) {\n    return parts[0].po + \" is still being received in the background by \" + parts[0].gr + \". Please wait until it finishes, \"\n      + (convert ? \"then convert it again.\" : \"then try again.\");\n  }\n  return \"These purchase orders are still being received in the background: \" + parts.slice(0, 5).map((p) => p.po + \" (\" + p.gr + \")\").join(\", \")\n    + (parts.length > 5 ? \" and \" + (parts.length - 5) + \" more\" : \"\") + \". Please wait until they finish, \" + (convert ? \"then convert them again.\" : \"then try again.\");\n};\nconst message = poBusyMessage([{{node:sql_node_GcPoBusy.data}}][0], false);\nreturn { busy: message ? \"YES\" : \"NO\", message: message };"
+        },
+        "response_json": [
+          {
+            "key": "ug3yz0h8",
+            "name": "busy",
+            "title": "busy",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          },
+          {
+            "key": "iz66h0a0",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "isExpand": false,
+            "children": [],
+            "bsonType": "string"
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GcPoBusy",
+      "type": "if",
+      "data": {
+        "title": "IF a purchase order is still received in the background",
+        "isValidator": true,
+        "nodeName": "IF a purchase order is still received in the background",
+        "name": "IF a purchase order is still received in the background",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798200000037,
+              "parentId": 1798200000038,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GcPoBusy.data.busy}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGcPoBusy",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "ret_pobusy",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return purchase order busy",
+                "isValidator": true,
+                "nodeName": "Return purchase order busy",
+                "name": "Return purchase order busy",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GcPoBusy.data.message}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGcPoBusy",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
         }
       ]
     },
@@ -1576,10 +1778,6 @@
               "id": "code_node_CfNeed1",
               "type": "code-node",
               "data": {
-                "title": "Custom fields this edit leaves out? (header + lines)",
-                "isValidator": true,
-                "nodeName": "Custom fields this edit leaves out? (header + lines)",
-                "name": "Custom fields this edit leaves out? (header + lines)",
                 "language": "javascript",
                 "code": "",
                 "timeout": 30000,
@@ -1606,7 +1804,11 @@
                     "isExpand": false,
                     "children": []
                   }
-                ]
+                ],
+                "title": "Custom fields this edit leaves out? (header + lines)",
+                "isValidator": true,
+                "nodeName": "Custom fields this edit leaves out? (header + lines)",
+                "name": "Custom fields this edit leaves out? (header + lines)"
               },
               "blocks": []
             },

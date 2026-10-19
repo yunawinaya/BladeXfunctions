@@ -67,6 +67,22 @@ const live = (db) => db.t.gr.filter((g) => !g.is_deleted);
 // ================================================================================================ GR_CREATED
 console.log("--- GR_CREATED");
 {
+  // 0. PO busy: another receipt of the PO is Processing (received in the background) -> 400, nothing reserved; once it is
+  // Received the same save goes through; a receipt of another PO, or the stored GR itself, does not count
+  const db = new GrDB();
+  const it = seedItem(db);
+  const { po, lines } = seedPO(db, [{ quantity: 10 }]);
+  const other = seedPO(db, [{ quantity: 10 }]);
+  const g1 = storeGR(db, "Processing", [grLine(lines[0], it, 10)], "GR/0100");
+  storeGR(db, "Processing", [grLine(other.lines[0], it, 10)], "GR/0200");
+  let { r } = run(db, { allData: allData([grLine(lines[0], it, 10)]), pageStatus: "Add" });
+  eq("po busy: refused with the receipt and PO named, nothing reserved", [r.code, r.message, created(db, lines[0].id), lineWrites(db).length],
+     ["400", po.purchase_order_no + " is still being received in the background by GR/0100. Please wait until it finishes, then try again.", 0, 0]);
+  g1.gr_status = "Received";
+  ({ r } = run(db, { allData: allData([grLine(lines[0], it, 4)]), pageStatus: "Add" }));
+  eq("po busy: the first receipt finished -> saved", [r.code, created(db, lines[0].id)], ["200", 4]);
+}
+{
   // 1. Add: 2 lines on one PO -> reserved by id, 8-dp strings, PO Created
   const db = new GrDB();
   const it = seedItem(db);

@@ -2,10 +2,10 @@
 
 Phase A: L0 REVALIDATE (stored lines at the request's lineFingerprint, In Transit rows at their before-values; the entry checks
 the lock), L1 INVENTORY (ONE INVENTORY_BULK_APPLY APPLY, operation SMLT|<job>; skipped without movements), then the SPLIT /
-PARK hand-over. Phase B: L2 LINES (COMPLETE / EDIT: one whole-subform update), L3 LEDGER (in_transit_detail, slices of 250),
-L4 FINISH (Item dates, the header's final status = the unlock), then the job COMPLETED. Every step reads its part and the rows
-now, writes only what is still at its before-value, reads back and records an L<n> DONE row (step framework of
-scratchpad/pwv2 + grv2 commit, GD's lockWait).
+PARK hand-over. Phase B: L2 LINES (COMPLETE / EDIT, and DIRECT / STAGE with an ALLOC part: one whole-subform update), L3 LEDGER
+(in_transit_detail, slices of 250), L4 FINISH (Item dates, the header's final status = the unlock), then the job COMPLETED. Every
+step reads its part and the rows now, writes only what is still at its before-value, reads back and records an L<n> DONE row
+(step framework of scratchpad/pwv2 + grv2 commit, GD's lockWait).
 
 usage: python3 build_lot.py [--write] LOT_V2_COMMIT
 """
@@ -41,6 +41,16 @@ BUILT = ["L0", "L1", "L2", "L3", "L4"]
 L2_HEADER = ["issuing_operation_faci", "issue_date", "movement_type", "movement_type_id", "movement_reason", "issued_by", "reference_documents", "organization_id",
              "project_id", "is_production_order", "production_order_id", "remarks", "remark", "remark2", "remark3"]
 # the classic in-transit writers' columns (CONTRACT section 5, IT)
+# V2.1 bundles: the stored line columns a DIRECT / STAGE rewrite sends back (the line schema's fields that are columns, minus the
+# platform's audit / tenant / parent-document columns: a column missing from a written row is stored NULL)
+L2_LINE_COLS = ["id", "item_selection", "item_name", "item_desc", "requested_qty", "total_quantity", "quantity_uom", "storage_location_id", "location_id",
+                "stock_summary", "item_remark", "item_remark2", "item_remark3", "balance_id", "organization_id", "line_index", "temp_qty_data", "temp_hu_data",
+                "temp_excess_data", "uom_options", "issuing_plant", "receiving_plant", "is_serialized_item", "is_serial_allocated", "project_id", "item_bundle_id",
+                "bundle_ratio", "parent_id"]
+LINE_SQL = {c: "CAST(l.%s AS CHAR)" % c for c in ["id", "requested_qty", "total_quantity", "quantity_uom", "storage_location_id", "location_id", "issuing_plant",
+                                                   "receiving_plant", "project_id", "bundle_ratio", "parent_id"]}
+HDR_SQL = {"issuing_operation_faci": "CAST(g.issuing_operation_faci AS CHAR)", "issue_date": "DATE_FORMAT(g.issue_date, '%Y-%m-%d %H:%i:%s')",
+           "project_id": "CAST(g.project_id AS CHAR)", "production_order_id": "CAST(g.production_order_id AS CHAR)"}
 IT_SETS = {"recon": ("reconSlices", "RECON (update_node_LOTreconAdjust's columns)", ["transit_qty", "open_qty", "status"]),
            "main": ("mainSlices", "MAIN (update_node_LOTmainClose's columns)", ["received_qty", "open_qty", "status", "received_date"]),
            "cancel": ("cancelSlices", "CANCEL (update_node_LOTcancelClose's columns)", ["open_qty", "status"]),
@@ -127,7 +137,7 @@ def commit_sql():
     req = lambda key, alias: "IF(JSON_VALID(j.request_payload), JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.%s')), NULL) AS %s" % (key, alias)
     S = {}
     S["job"] = sub("""SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
-       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,
+       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,
        CAST(j.id AS CHAR) AS id, j.organization_id, j.command, j.job_status, j.progress_percent, j.progress_message, j.attempt_count,
        DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at, j.lease_owner,
        DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,
@@ -164,6 +174,20 @@ def commit_sql():
     S["intents"] = sub("SELECT COUNT(*) AS intents FROM gd_publish_step st WHERE st.tenant_id = '@T' AND st.job_id = 'SMLT|@JOB' AND st.step_name LIKE 'IBA|I|%' "
                        "AND st.is_deleted = 0", **TOK)
     S["lines"] = sub(FP_LINES, T=T, LOT=LOTID)
+    anchor = "'item_bundle_id', l.item_bundle_id) AS j"
+    assert FP_LINES.count(anchor) == 1
+    S["linesq"] = sub(FP_LINES.replace(anchor, "'item_bundle_id', l.item_bundle_id, 'total_quantity', CAST(l.total_quantity AS CHAR)) AS j"), T=T, LOT=LOTID)
+    S["linesfull"] = sub("SELECT JSON_OBJECT(" + ", ".join("'%s', %s" % (c, LINE_SQL.get(c, "l." + c)) for c in L2_LINE_COLS) + """) AS j
+  FROM sm_location_transfer_d2c7o1jd_sub l
+ WHERE l.tenant_id = '@T'
+   AND l.sm_location_transfer_id = @LOTID
+   AND l.is_deleted = 0
+ ORDER BY l.id""", LOTID=LOTID, **TOK)
+    S["hdr15"] = sub("SELECT JSON_OBJECT(" + ", ".join("'%s', %s" % (c, HDR_SQL.get(c, "g." + c)) for c in L2_HEADER) + """) AS j
+  FROM sm_location_transfer g
+ WHERE g.tenant_id = '@T'
+   AND g.id = @LOTID
+   AND g.is_deleted = 0""", LOTID=LOTID, **TOK)
     S["ledger"] = sub("""SELECT JSON_OBJECT('id', CAST(t.id AS CHAR), 'job_line_key', t.job_line_key, 'status', t.status, 'transit_qty', t.transit_qty,
        'received_qty', t.received_qty, 'open_qty', t.open_qty, 'received_date', DATE_FORMAT(t.received_date, '%Y-%m-%d %H:%i:%s')) AS j
   FROM in_transit_detail t
@@ -186,7 +210,7 @@ def build():
     pick = lambda node, keys: "{ " + ", ".join("%s: [%s][0]" % (k, N(node, "data." + k)) for k in keys) + " }"
     entry_fields = ["route", "phase", "dbNow", "jobId", "tenantId", "organizationId", "lotId", "lotNo", "action", "prevStatus", "saveAs", "lineFingerprint", "incomingFingerprint",
                     "lineCount", "idempotencyKey", "jobStatus", "rowVersion", "attempts", "leaseUntil", "unlockOk", "partPrefix", "sPartPrefix", "jobRows", "needJobUpd",
-                    "unlockRows", "needUnlock", "needL0", "needL1", "needL2", "needL3", "needL4", "result_code", "result_message", "job_status"]
+                    "unlockRows", "needUnlock", "needL0", "needL1", "needL2", "needL2Full", "hasAlloc", "needL3", "needL4", "result_code", "result_message", "job_status"]
     chk = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "result_code", "result_message", "job_status"]
     chk_arr = ("stepRows", "jobRows", "unlockRows")
     rej_body = RESULT_JS + V.raw(HERE, "code/commit/result.js") + "\nreturn commitResult([%s][0], {}, { job_status: \"\", result_code: [%s][0], result_message: [%s][0] }, \"REJECTED_INPUT\");" % (
@@ -225,7 +249,7 @@ def build():
                   gate(ids, "cor_LCefunlock", "Transfer lock to release?", CE, "needUnlock", [unlock(ids, "update_node_LCefunlock", "Location Transfer back to its status before the save", CE)]),
                   gate(ids, "cor_LCefjob", "Job row to write?", CE, "needJobUpd", [job_update(ids, "update_node_LCefjob", "Job: FAILED / REQUIRES_REVIEW (lease released)", CE, "jobRows")]),
               ] + cres("ef", CE, "ENTRY_END")),
-        job_update(ids, "update_node_LCclaim", "Lease claim: job COMMITTING_LOT, lease_owner = this run, lease_expires_at = now + 10 min", CE, "jobRows"),
+        job_update(ids, "update_node_LCclaim", "Lease claim: job COMMITTING_LOT, lease_owner = this run, lease_expires_at = now + 30 min", CE, "jobRows"),
         K.sql("sql_node_LCown", "Read-back: the job after the lease claim", S["own"], ["id", "job_status", "lease_owner", "row_version"]),
         K.code("code_node_LCown", "Own: COMMITTING_LOT under this run's lease, else LOST", ccode("own.js"), ["route", "result_code", "result_message"]),
         K.if_(ids, "if_LClost", "IF another run took the job: stop", is_("code_node_LCown", "route", "LOST"), cres("lost", "code_node_LCown", "LOST")),
@@ -261,19 +285,26 @@ def build():
                 job_update(ids, "update_node_LCsplit", "Job: SPLIT| hand-over lease (the worker calls phase B now) or PARK (due now, no lease: the next tick); attempt_count 0", L1, "splitRows")]),
         ] + cres("split", L1, "SPLIT")),
         # ---------------------------------------------------------------- L2
-        K.if_(ids, "if_LCl2", "IF L2 LINES is due (COMPLETE / EDIT)", is_(CE, "needL2", "YES"), [
+        K.if_(ids, "if_LCl2", "IF L2 LINES is due (COMPLETE / EDIT; DIRECT / STAGE with an ALLOC part)", is_(CE, "needL2", "YES"), [
             br("l2read", [("S LINES part", K.sql("sql_node_LCl2part", "L2: SUBMIT's S|<nonce>|LINES part", S["spart"], ["step_name", "result_ref"])),
-                          ("Lines", sq("sql_node_LCl2lines", "L2: the stored lines now (FP_LINES)", "lines"))]),
-            K.code(L2P, "L2 plan: stored lines at lineFingerprint or incomingFingerprint -> the one whole-subform write; else review", ccode("l2.js", ("fp",), {
-                "__HEADER__": json.dumps(L2_HEADER), "__CALL__": "commitL2Plan(%s, [%s][0], [%s][0])" % (E, N("sql_node_LCl2part", "data"), N("sql_node_LCl2lines", "data"))}),
-                ["route", "row", "needWrite", "lineCount", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"], arrays=("jobRows",), objects=("row", "lineCount")),
+                          ("ALLOC part", part("sql_node_LCl2alloc", "L2: the ALLOC part (V2.1: auto-allocated picks by line id)", "ALLOC")),
+                          ("Lines", sq("sql_node_LCl2lines", "L2: the stored lines now (FP_LINES + total_quantity)", "linesq"))]),
+            gate(ids, "cor_LCl2full", "DIRECT / STAGE with an ALLOC part: the stored lines whole?", CE, "needL2Full", [
+                br("l2full", [("Lines whole", sq("sql_node_LCl2full", "L2: the stored lines with every column (the rewrite sends them back)", "linesfull")),
+                              ("Header", sq("sql_node_LCl2hdr", "L2: the header's update_node_TxDhhT03 columns (written back as stored)", "hdr15"))])]),
+            K.code(L2P, "L2 plan: the S lines (+ ALLOC picks) or the stored lines + ALLOC picks -> the one whole-subform write; done / else review", ccode("l2.js", ("fp",), {
+                "__HEADER__": json.dumps(L2_HEADER), "__CALL__": "commitL2Plan(%s, [%s][0], [%s][0], [%s][0], [%s][0], [%s][0])" % (
+                    E, N("sql_node_LCl2part", "data"), N("sql_node_LCl2alloc", "data"), N("sql_node_LCl2lines", "data"), N("sql_node_LCl2full", "data"),
+                    N("sql_node_LCl2hdr", "data"))}),
+                ["route", "row", "needWrite", "lineCount", "expect", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"], arrays=("jobRows",),
+                objects=("row", "lineCount", "expect")),
             end_b(ids, "l2pl", L2P, "IF the lines cannot be written"),
             gate(ids, "cor_LCl2write", "Lines to write?", L2P, "needWrite", [
                 K.update(ids, "update_node_LCl2write", "L2 WRITE: the transfer's header props + the whole stock_movement subform (update_node_TxDhhT03's props minus status)", LOT,
                          ("id", "in", N(L2P, "data.row.id")), [(p, N(L2P, "data.row." + p)) for p in L2_HEADER + ["stock_movement"]])]),
-            sq("sql_node_LCl2back", "L2 read-back: the stored lines (FP_LINES)", "lines"),
-            K.code(L2C, "L2 check: the lines read back at incomingFingerprint -> DONE", ccode("l2.js", ("fp",), {
-                "__HEADER__": json.dumps(L2_HEADER), "__CALL__": "commitL2Check(%s, [%s][0])" % (E, N("sql_node_LCl2back", "data"))}), chk, arrays=chk_arr),
+            sq("sql_node_LCl2back", "L2 read-back: the stored lines (FP_LINES + total_quantity)", "linesq"),
+            K.code(L2C, "L2 check: the lines read back at the target (+ the ALLOC picks, each child under its parent) -> DONE", ccode("l2.js", ("fp",), {
+                "__HEADER__": json.dumps(L2_HEADER), "__CALL__": "commitL2Check(%s, %s, [%s][0])" % (E, pick(L2P, ["expect"]), N("sql_node_LCl2back", "data"))}), chk, arrays=chk_arr),
             end_b(ids, "l2", L2C, "IF L2 did not complete"),
             V.step_done(ids, "LC", "l2", L2C, "L2_LINES"),
         ]),

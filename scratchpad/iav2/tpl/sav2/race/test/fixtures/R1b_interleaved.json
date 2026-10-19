@@ -1,0 +1,426 @@
+{
+ "about": "R1b interleaved (B read, A wrote, B wrote stale absolutes)",
+ "expect": "LOST UPDATE",
+ "materials": {
+  "9001": "First In First Out",
+  "9002": "Weighted Average",
+  "9003": "First In First Out",
+  "9004": "Fixed Cost"
+ },
+ "before": {
+  "fifo": [
+   {
+    "id": "1101",
+    "material_id": "9001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": null,
+    "fifo_sequence": "1",
+    "fifo_cost_price": "1",
+    "fifo_initial_quantity": "500",
+    "fifo_available_quantity": "500"
+   },
+   {
+    "id": "1102",
+    "material_id": "9001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": null,
+    "fifo_sequence": "2",
+    "fifo_cost_price": "2",
+    "fifo_initial_quantity": "500",
+    "fifo_available_quantity": "500"
+   },
+   {
+    "id": "1103",
+    "material_id": "9003",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": "8001",
+    "fifo_sequence": "1",
+    "fifo_cost_price": "3",
+    "fifo_initial_quantity": "500",
+    "fifo_available_quantity": "500"
+   },
+   {
+    "id": "1104",
+    "material_id": "9003",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": "8001",
+    "fifo_sequence": "2",
+    "fifo_cost_price": "4",
+    "fifo_initial_quantity": "500",
+    "fifo_available_quantity": "500"
+   }
+  ],
+  "wa": [
+   {
+    "id": "1201",
+    "material_id": "9002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": null,
+    "wa_quantity": "1000",
+    "wa_cost_price": "15",
+    "created_at": "2026-10-16 10:00:00"
+   }
+  ],
+  "item_balance": [
+   {
+    "id": "1301",
+    "material_id": "9001",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1302",
+    "material_id": "9001",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1303",
+    "material_id": "9002",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1304",
+    "material_id": "9002",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1305",
+    "material_id": "9003",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1306",
+    "material_id": "9003",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1307",
+    "material_id": "9004",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "10",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "10"
+   },
+   {
+    "id": "1308",
+    "material_id": "9004",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "10",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "10"
+   }
+  ],
+  "item_batch_balance": [
+   {
+    "id": "1401",
+    "material_id": "9003",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": "8001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1402",
+    "material_id": "9003",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": "8001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   }
+  ]
+ },
+ "after": {
+  "fifo": [
+   {
+    "id": "1101",
+    "material_id": "9001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": null,
+    "fifo_sequence": "1",
+    "fifo_cost_price": "1",
+    "fifo_initial_quantity": "500",
+    "fifo_available_quantity": "500"
+   },
+   {
+    "id": "1102",
+    "material_id": "9001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": null,
+    "fifo_sequence": "2",
+    "fifo_cost_price": "2",
+    "fifo_initial_quantity": "500",
+    "fifo_available_quantity": "500"
+   },
+   {
+    "id": "1103",
+    "material_id": "9003",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": "8001",
+    "fifo_sequence": "1",
+    "fifo_cost_price": "3",
+    "fifo_initial_quantity": "500",
+    "fifo_available_quantity": "493"
+   },
+   {
+    "id": "1104",
+    "material_id": "9003",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": "8001",
+    "fifo_sequence": "2",
+    "fifo_cost_price": "4",
+    "fifo_initial_quantity": "500",
+    "fifo_available_quantity": "500"
+   }
+  ],
+  "wa": [
+   {
+    "id": "1201",
+    "material_id": "9002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": null,
+    "wa_quantity": "1000",
+    "wa_cost_price": "15",
+    "created_at": "2026-10-16 10:00:00"
+   }
+  ],
+  "item_balance": [
+   {
+    "id": "1301",
+    "material_id": "9001",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1302",
+    "material_id": "9001",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1303",
+    "material_id": "9002",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1304",
+    "material_id": "9002",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "500",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "500"
+   },
+   {
+    "id": "1305",
+    "material_id": "9003",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "495",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "495"
+   },
+   {
+    "id": "1306",
+    "material_id": "9003",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "493",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "493"
+   },
+   {
+    "id": "1307",
+    "material_id": "9004",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "10",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "10"
+   },
+   {
+    "id": "1308",
+    "material_id": "9004",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "unrestricted_qty": "10",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "10"
+   }
+  ],
+  "item_batch_balance": [
+   {
+    "id": "1401",
+    "material_id": "9003",
+    "location_id": "6001",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": "8001",
+    "unrestricted_qty": "495",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "495"
+   },
+   {
+    "id": "1402",
+    "material_id": "9003",
+    "location_id": "6002",
+    "plant_id": "7001",
+    "organization_id": "5001",
+    "batch_id": "8001",
+    "unrestricted_qty": "493",
+    "reserved_qty": "0",
+    "block_qty": "0",
+    "qualityinsp_qty": "0",
+    "intransit_qty": "0",
+    "balance_quantity": "493"
+   }
+  ]
+ },
+ "movements": [
+  {
+   "operation_effect_key": "SACRACE|R1b|A|M1",
+   "movement": "OUT",
+   "item_id": "9003",
+   "plant_id": "7001",
+   "bin_location_id": "6001",
+   "batch_number_id": "8001",
+   "base_qty": "5",
+   "unit_price": "3",
+   "total_price": "15"
+  },
+  {
+   "operation_effect_key": "SACRACE|R1b|B|M1",
+   "movement": "OUT",
+   "item_id": "9003",
+   "plant_id": "7001",
+   "bin_location_id": "6002",
+   "batch_number_id": "8001",
+   "base_qty": "7",
+   "unit_price": "3",
+   "total_price": "21"
+  }
+ ]
+}

@@ -10,7 +10,40 @@
       "children": []
     }
   ],
-  "response_json": [],
+  "response_json": [
+    {
+      "key": "srrr0cod",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "srrr1msg",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "srrr2cns",
+      "name": "cn_status",
+      "title": "cn_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "srrr3cnm",
+      "name": "cn_message",
+      "title": "cn_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
   "config": {},
   "nodes": [
     {
@@ -562,7 +595,7 @@
                                 "name": "1d&1e&1f. Check Total Received Qty",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "let entry = {{node:code_node_Rr54LMQQ.data.table}}\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Every count, every check and every roll-up below runs over the\n// FLAT view -- a bundle's items carry their own quantity and their own sales\n// order, and a walk that stops at the top level sees none of it.\n//\n// Dropping the zero-quantity rows is done through the tree so a bundle keeps\n// its shape: an item nobody received is dropped from its bundle, and a bundle\n// nobody received takes its items with it.\n//\n// `entryLines` is the flat view of what survives. It is what the batch\n// generation loop counts, so that a batch-managed item under a bundle is given\n// a batch number like any other -- nothing else should read it, because the\n// document is written from `entry`.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\nconst lineLabel = (item, index) => `#${item.line_index || index + 1}`;\n\n// Check total return qty\nconst totalQuantity = flattenSRRRows(entry.table_srr).reduce((sum, item) => {\n    const { received_qty } = item;\n    return sum + (received_qty || 0);\n  }, 0);\n\nif(totalQuantity <= 0){\n  return {\n    status: 'Failed',\n    code: '403',\n    message: 'Total received quantity is 0.',\n    entry\n  }\n}\n\n// Check line received qty\nlet zeroQtyArray = [];\nfor(const [index, sr] of flattenSRRRows(entry.table_srr).entries()) {\n  if (parseFloat(sr.received_qty) <= 0) {\n    zeroQtyArray.push(lineLabel(sr, index));\n  }\n}\n\nif(zeroQtyArray.length > 0) {\n  if(entry.filter_srr == 'Yes') {\n    // The confirm the user just accepted says the zero-quantity rows will be\n    // deleted, so they are -- on either batch path. Gating this on\n    // new_batch == 1 left them standing when the plant returns stock into the\n    // delivered batch, and they were then posted as zero-quantity movements.\n    entry.table_srr = entry.table_srr\n      .filter((item) => item.received_qty > 0)\n      .map((item) => {\n        const kids = childrenOf(item);\n        if (kids.length === 0) return item;\n\n        return { ...item, children: kids.filter((child) => child.received_qty > 0) };\n      });\n\n    if(entry.table_srr.length === 0) {\n      return {\n        status: 'Failed',\n        code: '405',\n        message: 'All Received Quantity must not be 0. Please add at least one item with received quantity > 0.',\n        entry\n      }\n    }\n\n    let salesOrderNumber = [];\n    let soId = [];\n    let goodsDeliveryNumber = [];\n    let gdId = [];\n    let salesReturnNumber = [];\n    let srId = [];\n    \n    for (const srr of flattenSRRRows(entry.table_srr)) {\n      gdId.push(srr.gd_id);\n      goodsDeliveryNumber.push(srr.gd_number);\n\n      soId.push(srr.so_id);\n      salesOrderNumber.push(srr.so_number);\n\n      srId.push(srr.sr_id);\n      salesReturnNumber.push(srr.sr_number);\n    }\n\n    soId = [...new Set(soId)];\n    gdId = [...new Set(gdId)];\n    srId = [...new Set(srId)];\n    salesOrderNumber = [...new Set(salesOrderNumber)];\n    goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n    salesReturnNumber = [...new Set(salesReturnNumber)];\n\n    entry.so_id = soId;\n    entry.gd_id = gdId;\n    entry.sr_id = srId;\n    entry.so_no_display = salesOrderNumber.join(\", \");\n    entry.gd_no_display = goodsDeliveryNumber.join(\", \");\n    entry.sr_no_display = salesReturnNumber.join(\", \");\n  } else {\n    return {\n      status: 'Failed',\n      code: '404',\n      message: `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${\n        zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n      } a zero received quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 received quantity. \\nWould you like to proceed?`,\n      entry\n    }\n  }\n}\n\nreturn {\n  status: 'Success',\n  code: '',\n  message: '',\n  entry,\n  entryLines: flattenSRRRows(entry.table_srr)\n}\n"
+                                  "code": "let entry = {{node:code_node_Rr54LMQQ.data.table}}\n\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Every count, every check and every roll-up below runs over the\n// FLAT view -- a bundle's items carry their own quantity and their own sales\n// order, and a walk that stops at the top level sees none of it.\n//\n// Dropping the zero-quantity rows is done through the tree so a bundle keeps\n// its shape: an item nobody received is dropped from its bundle, and a bundle\n// nobody received takes its items with it.\n//\n// `entryLines` is the flat view of what survives. It is what the batch\n// generation loop counts, so that a batch-managed item under a bundle is given\n// a batch number like any other -- nothing else should read it, because the\n// document is written from `entry`.\n// ==========================================================================\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst flattenSRRRows = (rows) =>\n  (rows || []).flatMap((row) => [row, ...childrenOf(row)]);\nconst lineLabel = (item, index) => `#${item.line_index || index + 1}`;\n\n// ==========================================================================\n// FLAT BUNDLE SUPPORT\n// --------------------------------------------------------------------------\n// Flat structure example:\n//\n// Parent:\n//   line_index: \"1\"\n//   parent_index: \"1\"\n//   has_child: 1\n//   received_qty: 0\n//\n// Child:\n//   line_index: \"1-1\"\n//   parent_index: \"1\"\n//   received_qty: 2\n//\n// This logic only applies when the row does not already contain `children`.\n// The original tree bundle logic is not changed.\n// ==========================================================================\nconst flatRows = Array.isArray(entry.table_srr)\n  ? entry.table_srr\n  : [];\n\nconst flatChildrenOf = (parent) => {\n  // Existing tree bundle: do not apply flat logic.\n  if (childrenOf(parent).length > 0) {\n    return [];\n  }\n\n  // Only has_child = 1 is treated as a flat parent.\n  if (Number(parent.has_child) !== 1) {\n    return [];\n  }\n\n  const parentLineIndex = String(parent.line_index ?? \"\");\n\n  if (!parentLineIndex) {\n    return [];\n  }\n\n  return flatRows.filter((row) => {\n    const rowLineIndex = String(row.line_index ?? \"\");\n    const rowParentIndex = String(row.parent_index ?? \"\");\n\n    return (\n      row !== parent &&\n      rowLineIndex !== parentLineIndex &&\n      rowParentIndex === parentLineIndex\n    );\n  });\n};\n\nconst isFlatParentWithReceivedChild = (parent) =>\n  flatChildrenOf(parent).some(\n    (child) => Number(child.received_qty) > 0\n  );\n\n// Check total return qty\nconst totalQuantity = flattenSRRRows(entry.table_srr).reduce((sum, item) => {\n    const { received_qty } = item;\n    return sum + (received_qty || 0);\n  }, 0);\n\nif(totalQuantity <= 0){\n  return {\n    status: 'Failed',\n    code: '403',\n    message: 'Total received quantity is 0.',\n    entry\n  }\n}\n\n// Check line received qty\nlet zeroQtyArray = [];\nfor(const [index, sr] of flattenSRRRows(entry.table_srr).entries()) {\n    if(isFlatParentWithReceivedChild(sr)){\n        continue;\n    }\n  if (parseFloat(sr.received_qty) <= 0) {\n    zeroQtyArray.push(lineLabel(sr, index));\n  }\n}\n\nif(zeroQtyArray.length > 0) {\n  if(entry.filter_srr == 'Yes') {\n    // The confirm the user just accepted says the zero-quantity rows will be\n    // deleted, so they are -- on either batch path. Gating this on\n    // new_batch == 1 left them standing when the plant returns stock into the\n    // delivered batch, and they were then posted as zero-quantity movements.\n    entry.table_srr = entry.table_srr\n      .filter((item) => item.received_qty > 0 || isFlatParentWithReceivedChild(item))\n      .map((item) => {\n        const kids = childrenOf(item);\n        if (kids.length === 0) return item;\n\n        return { ...item, children: kids.filter((child) => child.received_qty > 0) };\n      });\n\n    if(entry.table_srr.length === 0) {\n      return {\n        status: 'Failed',\n        code: '405',\n        message: 'All Received Quantity must not be 0. Please add at least one item with received quantity > 0.',\n        entry\n      }\n    }\n\n    let salesOrderNumber = [];\n    let soId = [];\n    let goodsDeliveryNumber = [];\n    let gdId = [];\n    let salesReturnNumber = [];\n    let srId = [];\n    \n    for (const srr of flattenSRRRows(entry.table_srr)) {\n      gdId.push(srr.gd_id);\n      goodsDeliveryNumber.push(srr.gd_number);\n\n      soId.push(srr.so_id);\n      salesOrderNumber.push(srr.so_number);\n\n      srId.push(srr.sr_id);\n      salesReturnNumber.push(srr.sr_number);\n    }\n\n    soId = [...new Set(soId)];\n    gdId = [...new Set(gdId)];\n    srId = [...new Set(srId)];\n    salesOrderNumber = [...new Set(salesOrderNumber)];\n    goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];\n    salesReturnNumber = [...new Set(salesReturnNumber)];\n\n    entry.so_id = soId;\n    entry.gd_id = gdId;\n    entry.sr_id = srId;\n    entry.so_no_display = salesOrderNumber.join(\", \");\n    entry.gd_no_display = goodsDeliveryNumber.join(\", \");\n    entry.sr_no_display = salesReturnNumber.join(\", \");\n  } else {\n    return {\n      status: 'Failed',\n      code: '404',\n      message: `Line${zeroQtyArray.length > 1 ? \"s\" : \"\"} ${zeroQtyArray.join(\", \")} ha${\n        zeroQtyArray.length > 1 ? \"ve\" : \"s\"\n      } a zero received quantity, which may prevent processing.\\nIf you proceed, it will delete the row with 0 received quantity. \\nWould you like to proceed?`,\n      entry\n    }\n  }\n}\n\nreturn {\n  status: 'Success',\n  code: '',\n  message: '',\n  entry,\n  entryLines: flattenSRRRows(entry.table_srr)\n}\n"
                                 },
                                 "response_json": [
                                   {
@@ -3469,139 +3502,267 @@
                       "blocks": []
                     },
                     {
-                      "id": "search_node_n6abggZu",
-                      "type": "search-node",
+                      "id": "condition_all_SrrFetch",
+                      "type": "condition-all-node",
                       "data": {
-                        "table_id": {
-                          "source": "SI Item(Sales Invoice):Table:1939903513630711810",
-                          "rules": {
-                            "collectionId": "1939903513630711810",
-                            "list": [
-                              {
-                                "id": 1776751725202,
-                                "parentId": 1776751725203,
-                                "isTop": true,
-                                "prop": "",
-                                "operator": "all",
-                                "valueType": "",
-                                "value": "",
-                                "type": "branch",
-                                "level": 1,
-                                "children": [
+                        "title": "Parallel Branch",
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "condition_all_node_item_SrrSi",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "SI Lines",
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": ""
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "search_node_n6abggZu",
+                              "type": "search-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "SI Item(Sales Invoice):Table:1939903513630711810",
+                                  "rules": {
+                                    "collectionId": "1939903513630711810",
+                                    "list": [
+                                      {
+                                        "id": 1776751725202,
+                                        "parentId": 1776751725203,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "all",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "branch",
+                                        "level": 1,
+                                        "children": [
+                                          {
+                                            "id": 1776751725204,
+                                            "parentId": 1776751725202,
+                                            "isTop": false,
+                                            "prop": "sales_invoice_id.si_status",
+                                            "operator": "notEqual",
+                                            "valueType": "value",
+                                            "value": "Draft",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "SI Status",
+                                            "valueLabel": "",
+                                            "operatorLabel": "Not Equal"
+                                          },
+                                          {
+                                            "id": 1776751725204,
+                                            "parentId": 1776751725202,
+                                            "isTop": false,
+                                            "prop": "gd_line_id.id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_aB4hs60I.data.gdLineIDs}}",
+                                            "type": "leaf",
+                                            "level": 2,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In"
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "limit": 100,
+                                "title": "22. Fetch SI Line item List",
+                                "isValidator": true,
+                                "nodeName": "22. Fetch SI Line item List",
+                                "name": "22. Fetch SI Line item List"
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "code_node_SiIdsCollect",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "title": "22b. Collect SI Ids",
+                                "isValidator": true,
+                                "nodeName": "22b. Collect SI Ids",
+                                "name": "22b. Collect SI Ids",
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "const siLines = {{node:search_node_n6abggZu.data.data}} || [];\n\n// A reference is a plain id off a database read, an object off a form.\nconst referenceId = (value) => {\n  if (value && typeof value === \"object\") return value.id || null;\n  return value || null;\n};\n\nconst ids = [\n  ...new Set(\n    (Array.isArray(siLines) ? siLines : [siLines])\n      .map((line) => referenceId(line && line.sales_invoice_id))\n      .filter(Boolean)\n      .map(String),\n  ),\n];\n\n// An empty `in` list matches EVERY row. Goods returned before they were ever\n// invoiced leave no SI lines here, and without this the next search would pull\n// every invoice in the tenant -- condition 2 downstream would then reject the\n// credit note with \"SI contains more than one GDs\" instead of the real reason.\nconst siIds = ids.length > 0 ? ids : [\"0\"];\n\nreturn { siIds };"
+                                },
+                                "response_json": [
                                   {
-                                    "id": 1776751725204,
-                                    "parentId": 1776751725202,
-                                    "isTop": false,
-                                    "prop": "sales_invoice_id.si_status",
-                                    "operator": "notEqual",
-                                    "valueType": "value",
-                                    "value": "Draft",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "SI Status",
-                                    "valueLabel": "",
-                                    "operatorLabel": "Not Equal"
-                                  },
-                                  {
-                                    "id": 1776751725204,
-                                    "parentId": 1776751725202,
-                                    "isTop": false,
-                                    "prop": "gd_line_id.id",
-                                    "operator": "in",
-                                    "valueType": "field",
-                                    "value": "{{node:code_node_aB4hs60I.data.gdLineIDs}}",
-                                    "type": "leaf",
-                                    "level": 2,
-                                    "propLabel": "主键ID",
-                                    "valueLabel": "",
-                                    "operatorLabel": "In"
+                                    "key": "si4id9wz",
+                                    "name": "siIds",
+                                    "title": "siIds",
+                                    "description": "",
+                                    "bsonType": "array",
+                                    "isExpand": true,
+                                    "children": [
+                                      {
+                                        "key": "si4id9wzi",
+                                        "name": "items",
+                                        "title": "",
+                                        "description": "",
+                                        "bsonType": "any",
+                                        "isExpand": false,
+                                        "isArrayItem": true,
+                                        "children": []
+                                      }
+                                    ]
                                   }
                                 ]
-                              }
-                            ]
-                          }
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "search_node_hx3J9PHc",
+                              "type": "search-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Sales Invoice:Table:1902525285396496385",
+                                  "rules": {
+                                    "collectionId": "1902525285396496385",
+                                    "list": [
+                                      {
+                                        "id": 1776751803708,
+                                        "parentId": 1777013726812,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_SiIdsCollect.data.siIds}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "limit": 100,
+                                "title": "23. Fetch SI List",
+                                "isValidator": true,
+                                "nodeName": "23. Fetch SI List",
+                                "name": "23. Fetch SI List"
+                              },
+                              "blocks": []
+                            }
+                          ]
                         },
-                        "condition": {},
-                        "limit": 100,
-                        "title": "22. Fetch SI Line item List",
-                        "isValidator": true,
-                        "nodeName": "22. Fetch SI Line item List",
-                        "name": "22. Fetch SI Line item List"
-                      },
-                      "blocks": []
+                        {
+                          "id": "condition_all_node_item_SrrGd",
+                          "type": "condition-all-node-item",
+                          "data": {
+                            "title": "GD Lines",
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": ""
+                            }
+                          },
+                          "blocks": [
+                            {
+                              "id": "search_node_SrrGdLines",
+                              "type": "search-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "(Goods Delivery):Table:1939904186426433537",
+                                  "rules": {
+                                    "collectionId": "1939904186426433537",
+                                    "list": [
+                                      {
+                                        "id": 1792600000001,
+                                        "parentId": 1792600000002,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_aB4hs60I.data.gdLineIDs}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "condition": {},
+                                "limit": 1000,
+                                "title": "22c. Fetch GD Lines",
+                                "isValidator": true,
+                                "nodeName": "22c. Fetch GD Lines",
+                                "name": "22c. Fetch GD Lines"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
                     },
                     {
-                      "id": "code_node_SiIdsCollect",
+                      "id": "code_node_SrrCreditPlan",
                       "type": "code-node",
                       "data": {
                         "language": "javascript",
                         "code": "",
                         "timeout": 30000,
-                        "title": "22b. Collect SI Ids",
+                        "title": "23a. Credit Plan",
                         "isValidator": true,
-                        "nodeName": "22b. Collect SI Ids",
-                        "name": "22b. Collect SI Ids",
+                        "nodeName": "23a. Credit Plan",
+                        "name": "23a. Credit Plan",
                         "script": {
                           "type": "javascript",
-                          "code": "const siLines = {{node:search_node_n6abggZu.data.data}} || [];\n\n// A reference is a plain id off a database read, an object off a form.\nconst referenceId = (value) => {\n  if (value && typeof value === \"object\") return value.id || null;\n  return value || null;\n};\n\nconst ids = [\n  ...new Set(\n    (Array.isArray(siLines) ? siLines : [siLines])\n      .map((line) => referenceId(line && line.sales_invoice_id))\n      .filter(Boolean)\n      .map(String),\n  ),\n];\n\n// An empty `in` list matches EVERY row. Goods returned before they were ever\n// invoiced leave no SI lines here, and without this the next search would pull\n// every invoice in the tenant -- condition 2 downstream would then reject the\n// credit note with \"SI contains more than one GDs\" instead of the real reason.\nconst siIds = ids.length > 0 ? ids : [\"0\"];\n\nreturn { siIds };"
+                          "code": "// Under \"Deduct from Invoice\" only the billed part of a return is credited; the rest was never invoiced.\nconst setupRaw = {{node:get_node_wuqT9kxg.data.data}};\nconst setup = (Array.isArray(setupRaw) ? setupRaw[0] : setupRaw) || {};\nconst deduct = setup.return_billing_method === \"Deduct from Invoice\";\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}} || [];\nconst gdRaw = [{{node:search_node_SrrGdLines.data.data}}][0];\nconst gdLines = Array.isArray(gdRaw) ? gdRaw : gdRaw ? [gdRaw] : [];\nconst siRaw = [{{node:search_node_n6abggZu.data.data}}][0];\nconst siLines = Array.isArray(siRaw) ? siRaw : siRaw ? [siRaw] : [];\n\nconst q8 = (v) => Math.round((parseFloat(v) || 0) * 100000000) / 100000000;\nconst ref = (v) => String(v && typeof v === \"object\" ? v.id || \"\" : v || \"\");\nconst rowKey = (row) =>\n  String(row.id || \"\") || [row.gd_line_id, row.sr_line_id, row.material_id].map(ref).join(\"|\");\n\n// Billed + returned beyond what was delivered is what was paid for and sent back,\n// less what earlier credit notes already gave back. Credited first, as received.\nconst creditable = {};\nfor (const g of gdLines) {\n  creditable[ref(g.id)] = Math.max(0, q8(q8(g.invoice_qty) + q8(g.return_qty) - q8(g.gd_qty)));\n}\nfor (const s of siLines) {\n  const line = ref(s.gd_line_id);\n  if (line in creditable) creditable[line] = Math.max(0, q8(creditable[line] - q8(s.credit_qty)));\n}\n\nconst creditByRow = {};\nlet anyCredit = 0;\nfor (const row of srrLines) {\n  const received = Math.max(0, q8(row.received_qty));\n  let credit = received;\n  if (deduct) {\n    const line = ref(row.gd_line_id);\n    credit = Math.min(received, creditable[line] || 0);\n    if (line in creditable) creditable[line] = q8(creditable[line] - credit);\n  }\n  creditByRow[rowKey(row)] = credit;\n  if (credit > 0) anyCredit = 1;\n}\n\nreturn { creditByRow, anyCredit, deduct: deduct ? 1 : 0 };\n"
                         },
                         "response_json": [
                           {
-                            "key": "si4id9wz",
-                            "name": "siIds",
-                            "title": "siIds",
+                            "key": "crp1byrw",
+                            "name": "creditByRow",
+                            "title": "creditByRow",
                             "description": "",
-                            "bsonType": "array",
-                            "isExpand": true,
-                            "children": [
-                              {
-                                "key": "si4id9wzi",
-                                "name": "items",
-                                "title": "",
-                                "description": "",
-                                "bsonType": "any",
-                                "isExpand": false,
-                                "isArrayItem": true,
-                                "children": []
-                              }
-                            ]
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "crp2anyc",
+                            "name": "anyCredit",
+                            "title": "anyCredit",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "crp3dedu",
+                            "name": "deduct",
+                            "title": "deduct",
+                            "description": "",
+                            "bsonType": "int",
+                            "isExpand": false,
+                            "children": []
                           }
                         ]
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "search_node_hx3J9PHc",
-                      "type": "search-node",
-                      "data": {
-                        "table_id": {
-                          "source": "Sales Invoice:Table:1902525285396496385",
-                          "rules": {
-                            "collectionId": "1902525285396496385",
-                            "list": [
-                              {
-                                "id": 1776751803708,
-                                "parentId": 1777013726812,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_node_SiIdsCollect.data.siIds}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "limit": 100,
-                        "title": "23. Fetch SI List",
-                        "isValidator": true,
-                        "nodeName": "23. Fetch SI List",
-                        "name": "23. Fetch SI List"
                       },
                       "blocks": []
                     },
@@ -3618,7 +3779,7 @@
                         "name": "24. Condition Proceed to CN ",
                         "script": {
                           "type": "javascript",
-                          "code": "const siList = {{node:search_node_hx3J9PHc.data.data}} || [];\nconst siLineItemList = {{node:search_node_n6abggZu.data.data}} || [];\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each item is invoiced on its own SI line, so the conditions below\n// are checked over the flat view -- the bundle row included, since the invoice\n// carries a bundle line of its own and that is where the money sits.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}};\n\n// Condition 1: one gd_line_id must map to exactly one SI\nconst gdLineToSIMap = {};\nfor (const siLine of siLineItemList) {\n  if (!siLine.gd_line_id) continue;\n  if (gdLineToSIMap[siLine.gd_line_id]) {\n    return {\n      status: 'Failed',\n      message: `GD is mapped to more than one SI.`\n    };\n  }\n  gdLineToSIMap[siLine.gd_line_id] = siLine.si_id;\n}\n\n// Condition 2: one SI must map to exactly one gd_id in srrData\nconst multipleGDSI = siList.filter(si => si.gd_id.length > 1)\nif(multipleGDSI.length > 0) {\n  return {\n    status: 'Failed',\n    message: `SI contains more than one GDs.`\n  };\n}\n\n// Condition 3 & 4: check per SR line\nfor (const [index, srr] of srrLines.entries()) {\n  const matchedSILine = siLineItemList.find(line => line.gd_line_id === srr.gd_line_id);\n  if (!matchedSILine) {\n    return {\n      status: 'Failed',\n      message: `No matching SI line found for GD Line ID ${srr.gd_line_id}.`\n    };\n  }\n\n  // Condition 3: invoice_qty must be greater than return qty\n  const receivedQty = parseFloat(srr?.received_qty) ?? 0;\n  if (parseFloat(matchedSILine.invoice_qty) - parseFloat(matchedSILine.credit_qty) < receivedQty) {\n    return {\n      status: 'Failed',\n      message: `Invoice quantity (${matchedSILine.invoice_qty}) must be greater than received quantity (${receivedQty}).`\n    };\n  }\n\n  // Condition 4: si_amount must be greater than 0\n  if (matchedSILine.si_amount <= 0) {\n    return {\n      status: 'Failed',\n      message: `Invoice line total must be greater than 0.`\n    };\n  }\n}\n\nreturn {\n  status: 'Passed',\n  message: ''\n};\n"
+                          "code": "const siList = {{node:search_node_hx3J9PHc.data.data}} || [];\nconst siLineItemList = {{node:search_node_n6abggZu.data.data}} || [];\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`. Each item is invoiced on its own SI line, so the conditions below\n// are checked over the flat view -- the bundle row included, since the invoice\n// carries a bundle line of its own and that is where the money sits.\nconst srrLines = {{node:code_node_AQ8blgDy.data.srrLines}};\n// Only a line with something to credit needs an invoice line: a deducted return was never billed.\nconst creditByRow = {{node:code_node_SrrCreditPlan.data.creditByRow}} || {};\nconst deduct = Number({{node:code_node_SrrCreditPlan.data.deduct}}) === 1;\nconst ref = (v) => String(v && typeof v === \"object\" ? v.id || \"\" : v || \"\");\nconst rowKey = (row) =>\n  String(row.id || \"\") || [row.gd_line_id, row.sr_line_id, row.material_id].map(ref).join(\"|\");\nconst creditOf = (row) => parseFloat(creditByRow[rowKey(row)]) || 0;\n\nconst creditLines = srrLines.filter((srr) => creditOf(srr) > 0);\nif (creditLines.length === 0) {\n  return {\n    status: 'Skipped',\n    message: deduct\n      ? 'No credit note needed: the returned quantity was deducted from billing.'\n      : 'No credit note needed: nothing was received.'\n  };\n}\nconst creditGdLines = new Set(creditLines.map((srr) => srr.gd_line_id));\nconst creditSiLines = siLineItemList.filter((line) => creditGdLines.has(line.gd_line_id));\n\n// Condition 1: one gd_line_id must map to exactly one SI\nconst gdLineToSIMap = {};\nfor (const siLine of creditSiLines) {\n  if (!siLine.gd_line_id) continue;\n  if (gdLineToSIMap[siLine.gd_line_id]) {\n    return {\n      status: 'Failed',\n      message: `GD is mapped to more than one SI.`\n    };\n  }\n  gdLineToSIMap[siLine.gd_line_id] = siLine.si_id;\n}\n\n// Condition 2: one SI must map to exactly one gd_id in srrData\nconst creditSiIds = new Set(creditSiLines.map((line) => ref(line.sales_invoice_id)));\nconst multipleGDSI = siList.filter(si => creditSiIds.has(ref(si.id)) && si.gd_id.length > 1)\nif(multipleGDSI.length > 0) {\n  return {\n    status: 'Failed',\n    message: `SI contains more than one GDs.`\n  };\n}\n\n// Condition 3 & 4: check per SR line\nfor (const [index, srr] of creditLines.entries()) {\n  const matchedSILine = siLineItemList.find(line => line.gd_line_id === srr.gd_line_id);\n  if (!matchedSILine) {\n    return {\n      status: 'Failed',\n      message: `No matching SI line found for GD Line ID ${srr.gd_line_id}.`\n    };\n  }\n\n  // Condition 3: invoice_qty must be greater than the quantity credited\n  const creditQty = creditOf(srr);\n  if (parseFloat(matchedSILine.invoice_qty) - parseFloat(matchedSILine.credit_qty) < creditQty) {\n    return {\n      status: 'Failed',\n      message: `Invoice quantity (${matchedSILine.invoice_qty}) must be greater than received quantity (${creditQty}).`\n    };\n  }\n\n  // Condition 4: si_amount must be greater than 0\n  if (matchedSILine.si_amount <= 0) {\n    return {\n      status: 'Failed',\n      message: `Invoice line total must be greater than 0.`\n    };\n  }\n}\n\nreturn {\n  status: 'Passed',\n  message: ''\n};\n"
                         },
                         "response_json": [
                           {
@@ -3652,7 +3813,7 @@
                         "condition_type": "Expression",
                         "expression": {
                           "type": "javascript",
-                          "code": "'{{node:code_node_G3Df5HE7.data.status}}' == 'Failed'"
+                          "code": "'{{node:code_node_G3Df5HE7.data.status}}' != 'Passed'"
                         }
                       },
                       "blocks": [
@@ -3662,22 +3823,52 @@
                           "data": { "title": "true" },
                           "blocks": [
                             {
-                              "id": "end_node_onNU5yCz",
-                              "type": "end-node",
+                              "id": "return_node_SrrCnSkip",
+                              "type": "return-node",
                               "data": {
-                                "title": "结束节点",
-                                "outputs": {
-                                  "type": "object",
-                                  "properties": {
-                                    "result": { "type": "string" }
-                                  }
-                                },
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return Receiving Saved Without CN",
                                 "isValidator": true,
-                                "nodeName": "结束节点",
-                                "name": "结束节点",
-                                "back_data_type": "Default",
-                                "code": 200,
-                                "msg": { "type": "javascript", "code": "" }
+                                "nodeName": "Return Receiving Saved Without CN",
+                                "name": "Return Receiving Saved Without CN",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "code",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "200",
+                                      "valueLabel": "",
+                                      "propLabel": "code"
+                                    },
+                                    {
+                                      "prop": "message",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "Sales Return Receiving saved",
+                                      "valueLabel": "",
+                                      "propLabel": "message"
+                                    },
+                                    {
+                                      "prop": "cn_status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_G3Df5HE7.data.status}}",
+                                      "valueLabel": "",
+                                      "propLabel": "cn_status"
+                                    },
+                                    {
+                                      "prop": "cn_message",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_G3Df5HE7.data.message}}",
+                                      "valueLabel": "",
+                                      "propLabel": "cn_message"
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
                               },
                               "blocks": []
                             }
@@ -3994,7 +4185,7 @@
                                 "name": "30. Map CN Completed Data",
                                 "script": {
                                   "type": "javascript",
-                                  "code": "const round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\nconst calculateFinalPrice = (total, invoiceQty, creditQty) => {\n  const priceForCredit =\n    (total / invoiceQty) * creditQty;\n\n  return round8(priceForCredit);\n};\n\nconst sumPrice = (fieldName, cnLineItemList) => {\n  return round8(\n    cnLineItemList.reduce((total, item) => {\n      return total + (parseFloat(item[fieldName]) || 0);\n    }, 0),\n  );\n};\n\nconst srrData = {{node:code_node_AQ8blgDy.data.srrData}};\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`, and the credit note is built the same way -- the bundle is one\n// line with its items beneath it, which is the shape the sales invoice already\n// has.\n//\n// The money sits on the BUNDLE line. Its invoice line's amount, discount and\n// tax are already the sum of its items, so the header totals are summed over\n// the TOP LEVEL only. Counting the items as well credits the bundle twice.\n//\n// A bundle line is not an item: it has no material and no unit of measure, and\n// both are id-typed columns on the credit note. Letting a null through comes\n// back as 数据转换BigInt类型失败, so they are blanked instead.\n// ==========================================================================\nconst srrTree = {{node:code_node_AQ8blgDy.data.srrTree}};\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst siLineItemList = {{node:search_node_n6abggZu.data.data}};\nconst siList = {{node:search_node_hx3J9PHc.data.data}};\nconst cnDocFormat = {{node:get_node_ND9kvc1X.data.data}};\nconst customerData = {{node:get_node_L3pzh9TR.data.data}};\nconst currencyCode = {{node:get_node_MGTKHG7i.data.data}};\nconst shippingAddress = {{node:get_node_PEmhp9gc.data.data}};\nconst billingAddress = {{node:get_node_PCvTL2sg.data.data}};\nlet cnLineItemList = [];\n\nconst buildCNLine = (srrLineItem, lineIndex) => {\n  const matchedSILineItem = siLineItemList.find(\n    (item) => item.gd_line_id === srrLineItem.gd_line_id,\n  );\n\n  const matchedSI = siList.find(\n    (item) => item.id === matchedSILineItem.sales_invoice_id,\n  );\n\n  return {\n    si_id: matchedSILineItem?.sales_invoice_id || \"\",\n    item_id: srrLineItem.material_id || \"\",\n    item_name: srrLineItem.material_name,\n    uom_id: srrLineItem.quantity_uom || \"\",\n    credit_qty: round8(srrLineItem.received_qty),\n    unit_price: round8(matchedSILineItem.unit_price),\n    subtotal: round8(\n      srrLineItem.received_qty *\n      matchedSILineItem.unit_price,\n    ),\n    discount: round8(matchedSILineItem.si_discount),\n    discount_type: matchedSILineItem?.si_discount_uom_id || \"\",\n    discount_amount: calculateFinalPrice(\n      matchedSILineItem.discount_amount,\n      matchedSILineItem.invoice_qty,\n      srrLineItem.received_qty,\n    ),\n    tax_code: matchedSILineItem?.si_tax_rate_id || \"\",\n    tax_percent: matchedSILineItem?.tax_percent || \"\",\n    tax_amount: calculateFinalPrice(\n      matchedSILineItem.tax_amount,\n      matchedSILineItem.invoice_qty,\n      srrLineItem.received_qty,\n    ),\n    total: calculateFinalPrice(\n      matchedSILineItem.si_amount,\n      matchedSILineItem.invoice_qty,\n      srrLineItem.received_qty,\n    ),\n    line_status: \"Closed\",\n    line_index: lineIndex,\n    si_line_id: matchedSILineItem?.id || \"\",\n    sr_line_id: srrLineItem.sr_line_id,\n    sr_id: srrLineItem.sr_id,\n    plant_id: srrData.plant_id,\n    customer_id: srrData.customer_id,\n    tax_inclusive: matchedSILineItem?.si_tax_inclusive || 0,\n    invoice_qty: round8(matchedSILineItem.invoice_qty),\n    item_desc: srrLineItem.receiving_detail,\n    item_bundle_id: srrLineItem.item_bundle_id || \"\",\n    si_no: matchedSI?.sales_invoice_no || \"\",\n    more_desc: srrLineItem.more_desc,\n    available_credit_qty: round8(\n      matchedSILineItem.invoice_qty - matchedSILineItem.credit_qty,\n    ),\n  };\n};\n\n// A bundle's items are numbered inside their bundle -- 1, 1-1, 1-2, 2 -- which\n// is the convention the sales invoice uses, and they are rows of their bundle\n// rather than rows of the credit note.\nsrrTree.forEach((srrLineItem, index) => {\n  const cnLineItem = buildCNLine(srrLineItem, index + 1);\n\n  const kids = childrenOf(srrLineItem);\n\n  if (kids.length > 0) {\n    cnLineItem.children = kids.map((child, childIndex) =>\n      buildCNLine(child, `${index + 1}-${childIndex + 1}`),\n    );\n  }\n\n  cnLineItemList.push(cnLineItem);\n});\n\nconst cnData = {\n  cn_status: \"Completed\",\n  page_status: \"Add\",\n  acc_integration_type: srrData.acc_integration_type,\n  organization_id: srrData.organization_id,\n  previous_status: null,\n  plant_id: srrData.plant_id,\n  customer_id: srrData.customer_id,\n  currency_code: currencyCode?.currency_code || \"\",\n  cn_no: \"issued\",\n  cn_no_type: cnDocFormat.id,\n  cn_date: new Date().toISOString().split(\"T\")[0],\n  cn_type: \"Return\",\n  source_type: \"Sales Invoice\",\n  source_id: [...new Set(cnLineItemList.map((item) => item.si_id))],\n  source_no: [...new Set(cnLineItemList.map((item) => item.si_no))].join(\", \"),\n  sales_return_id: [...new Set(cnLineItemList.map((item) => item.sr_id))],\n  total_gross_currency: currencyCode?.currency_code || \"\",\n  total_discount_currency: currencyCode?.currency_code || \"\",\n  total_tax_currency: currencyCode?.currency_code || \"\",\n  total_amount_currency: currencyCode?.currency_code || \"\",\n  total_amount_myr: \"MYR\",\n  subtotal: sumPrice(\"subtotal\", cnLineItemList),\n  total_discount: sumPrice(\"discount_amount\", cnLineItemList),\n  tax_total: sumPrice(\"tax_amount\", cnLineItemList),\n  grand_total: sumPrice(\"total\", cnLineItemList),\n  myr_grand_total: round8(\n    sumPrice(\"total\", cnLineItemList) *\n    currencyCode.currency_buying_rate,\n  ),\n  table_cn: cnLineItemList,\n  remark: srrData.remarks,\n  billing_address_name: billingAddress.address_name ?? null,\n  billing_address_phone: billingAddress.address_phone ?? null,\n  billing_address_line_1: billingAddress.address_line_1 ?? null,\n  billing_address_line_2: billingAddress.address_line_2 ?? null,\n  billing_address_line_3: billingAddress.address_line_3 ?? null,\n  billing_address_line_4: billingAddress.address_line_4 ?? null,\n  billing_address_city: billingAddress.address_city ?? null,\n  billing_postal_code: billingAddress.address_postal_code ?? null,\n  billing_address_state: billingAddress.adddress_state ?? null,\n  billing_address_country: billingAddress.address_country_id ?? null,\n  billing_attention: billingAddress.address_attention ?? null,\n  shipping_address_name: shippingAddress.address_name ?? null,\n  shipping_address_phone: shippingAddress.address_phone ?? null,\n  shipping_address_line_1: shippingAddress.address_line_1 ?? null,\n  shipping_address_line_2: shippingAddress.address_line_2 ?? null,\n  shipping_address_line_3: shippingAddress.address_line_3 ?? null,\n  shipping_address_line_4: shippingAddress.address_line_4 ?? null,\n  shipping_address_city: shippingAddress.address_city ?? null,\n  shipping_postal_code: shippingAddress.address_postal_code ?? null,\n  shipping_address_country: shippingAddress.address_country_id ?? null,\n  shipping_address_state: shippingAddress.adddress_state ?? null,\n  shipping_attention: shippingAddress.address_attention ?? null,\n  exchange_rate_myr: \"MYR\",\n  exchange_rate_currency: currencyCode?.currency_code || \"\",\n  exchange_rate: currencyCode?.currency_buying_rate || \"1.0000\",\n  cn_billing_address: billingAddress.address ?? null,\n  cn_shipping_address: shippingAddress.address ?? null,\n  posted_status: \"Unposted\",\n};\n\nreturn { cnData };\n"
+                                  "code": "const round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\nconst calculateFinalPrice = (total, invoiceQty, creditQty) => {\n  const priceForCredit =\n    (total / invoiceQty) * creditQty;\n\n  return round8(priceForCredit);\n};\n\nconst sumPrice = (fieldName, cnLineItemList) => {\n  return round8(\n    cnLineItemList.reduce((total, item) => {\n      return total + (parseFloat(item[fieldName]) || 0);\n    }, 0),\n  );\n};\n\nconst srrData = {{node:code_node_AQ8blgDy.data.srrData}};\n// Credited per row as planned in \"23a. Credit Plan\": under the deduct method only the billed part.\nconst creditByRow = {{node:code_node_SrrCreditPlan.data.creditByRow}} || {};\nconst refId = (v) => String(v && typeof v === \"object\" ? v.id || \"\" : v || \"\");\nconst rowKey = (row) =>\n  String(row.id || \"\") || [row.gd_line_id, row.sr_line_id, row.material_id].map(refId).join(\"|\");\nconst creditOf = (row) => parseFloat(creditByRow[rowKey(row)]) || 0;\n// ==========================================================================\n// ITEM BUNDLES\n// --------------------------------------------------------------------------\n// table_srr is a tree: an item bundle is ONE row with the bundle's items under\n// `children`, and the credit note is built the same way -- the bundle is one\n// line with its items beneath it, which is the shape the sales invoice already\n// has.\n//\n// The money sits on the BUNDLE line. Its invoice line's amount, discount and\n// tax are already the sum of its items, so the header totals are summed over\n// the TOP LEVEL only. Counting the items as well credits the bundle twice.\n//\n// A bundle line is not an item: it has no material and no unit of measure, and\n// both are id-typed columns on the credit note. Letting a null through comes\n// back as 数据转换BigInt类型失败, so they are blanked instead.\n// ==========================================================================\nconst srrTree = {{node:code_node_AQ8blgDy.data.srrTree}};\nconst childrenOf = (row) => (Array.isArray(row.children) ? row.children : []);\nconst siLineItemList = {{node:search_node_n6abggZu.data.data}};\nconst siList = {{node:search_node_hx3J9PHc.data.data}};\nconst cnDocFormat = {{node:get_node_ND9kvc1X.data.data}};\nconst customerData = {{node:get_node_L3pzh9TR.data.data}};\nconst currencyCode = {{node:get_node_MGTKHG7i.data.data}};\nconst shippingAddress = {{node:get_node_PEmhp9gc.data.data}};\nconst billingAddress = {{node:get_node_PCvTL2sg.data.data}};\nlet cnLineItemList = [];\n\nconst buildCNLine = (srrLineItem, lineIndex) => {\n  const matchedSILineItem = siLineItemList.find(\n    (item) => item.gd_line_id === srrLineItem.gd_line_id,\n  );\n  // Nothing invoiced on it, so nothing to credit (a return deducted from billing).\n  if (!matchedSILineItem) return null;\n  const creditQty = creditOf(srrLineItem);\n\n  const matchedSI = siList.find(\n    (item) => item.id === matchedSILineItem.sales_invoice_id,\n  );\n\n  return {\n    si_id: matchedSILineItem?.sales_invoice_id || \"\",\n    item_id: srrLineItem.material_id || \"\",\n    item_name: srrLineItem.material_name,\n    uom_id: srrLineItem.quantity_uom || \"\",\n    credit_qty: round8(creditQty),\n    unit_price: round8(matchedSILineItem.unit_price),\n    subtotal: round8(\n      creditQty *\n      matchedSILineItem.unit_price,\n    ),\n    discount: round8(matchedSILineItem.si_discount),\n    discount_type: matchedSILineItem?.si_discount_uom_id || \"\",\n    discount_amount: calculateFinalPrice(\n      matchedSILineItem.discount_amount,\n      matchedSILineItem.invoice_qty,\n      creditQty,\n    ),\n    tax_code: matchedSILineItem?.si_tax_rate_id || \"\",\n    tax_percent: matchedSILineItem?.tax_percent || \"\",\n    tax_amount: calculateFinalPrice(\n      matchedSILineItem.tax_amount,\n      matchedSILineItem.invoice_qty,\n      creditQty,\n    ),\n    total: calculateFinalPrice(\n      matchedSILineItem.si_amount,\n      matchedSILineItem.invoice_qty,\n      creditQty,\n    ),\n    line_status: \"Closed\",\n    line_index: lineIndex,\n    si_line_id: matchedSILineItem?.id || \"\",\n    sr_line_id: srrLineItem.sr_line_id,\n    sr_id: srrLineItem.sr_id,\n    plant_id: srrData.plant_id,\n    customer_id: srrData.customer_id,\n    tax_inclusive: matchedSILineItem?.si_tax_inclusive || 0,\n    invoice_qty: round8(matchedSILineItem.invoice_qty),\n    item_desc: srrLineItem.receiving_detail,\n    item_bundle_id: srrLineItem.item_bundle_id || \"\",\n    si_no: matchedSI?.sales_invoice_no || \"\",\n    more_desc: srrLineItem.more_desc,\n    available_credit_qty: round8(\n      matchedSILineItem.invoice_qty - matchedSILineItem.credit_qty,\n    ),\n  };\n};\n\n// ==========================================================================\n// ONE CN LINE PER PARENT\n// --------------------------------------------------------------------------\n// A parent and its children (tree `children` or flat parent_index) are\n// credited as ONE line. A parent with no quantity of its own takes the sum of\n// its children. Lines with 0 credit quantity are left off the credit note.\n// ==========================================================================\nconst flatKidsOf = (parent) => {\n  if (childrenOf(parent).length > 0) return [];\n  if (Number(parent.has_child) !== 1) return [];\n  const pIdx = String(parent.line_index ?? \"\");\n  if (!pIdx) return [];\n  return srrTree.filter(\n    (r) =>\n      r !== parent &&\n      String(r.line_index ?? \"\") !== pIdx &&\n      String(r.parent_index ?? \"\") === pIdx,\n  );\n};\n\nconst flatChildSet = new Set();\nsrrTree.forEach((r) => flatKidsOf(r).forEach((k) => flatChildSet.add(k)));\n\nconst rollUpFields = [\"credit_qty\", \"subtotal\", \"discount_amount\", \"tax_amount\", \"total\"];\nlet lineNo = 0;\n\nsrrTree\n  .filter((row) => !flatChildSet.has(row))\n  .forEach((row) => {\n    const cnLineItem = buildCNLine(row, lineNo + 1);\n    if (!cnLineItem) return;\n\n    const kids = childrenOf(row).length > 0 ? childrenOf(row) : flatKidsOf(row);\n\n    if (kids.length > 0 && !(creditOf(row) > 0)) {\n      const kidLines = kids.map((k) => buildCNLine(k, lineNo + 1)).filter(Boolean);\n      rollUpFields.forEach((f) => {\n        cnLineItem[f] = round8(\n          kidLines.reduce((s, c) => s + (parseFloat(c[f]) || 0), 0),\n        );\n      });\n    }\n\n    if (!(parseFloat(cnLineItem.credit_qty) > 0)) return;\n\n    lineNo += 1;\n    cnLineItemList.push(cnLineItem);\n  });\n\nconst cnData = {\n  cn_status: \"Completed\",\n  page_status: \"Add\",\n  acc_integration_type: srrData.acc_integration_type,\n  organization_id: srrData.organization_id,\n  previous_status: null,\n  plant_id: srrData.plant_id,\n  customer_id: srrData.customer_id,\n  currency_code: currencyCode?.currency_code || \"\",\n  cn_no: \"issued\",\n  cn_no_type: cnDocFormat.id,\n  cn_date: new Date().toISOString().split(\"T\")[0],\n  cn_type: \"Return\",\n  source_type: \"Sales Invoice\",\n  source_id: [...new Set(cnLineItemList.map((item) => item.si_id))],\n  source_no: [...new Set(cnLineItemList.map((item) => item.si_no))].join(\", \"),\n  sales_return_id: [...new Set(cnLineItemList.map((item) => item.sr_id))],\n  total_gross_currency: currencyCode?.currency_code || \"\",\n  total_discount_currency: currencyCode?.currency_code || \"\",\n  total_tax_currency: currencyCode?.currency_code || \"\",\n  total_amount_currency: currencyCode?.currency_code || \"\",\n  total_amount_myr: \"MYR\",\n  subtotal: sumPrice(\"subtotal\", cnLineItemList),\n  total_discount: sumPrice(\"discount_amount\", cnLineItemList),\n  tax_total: sumPrice(\"tax_amount\", cnLineItemList),\n  grand_total: sumPrice(\"total\", cnLineItemList),\n  myr_grand_total: round8(\n    sumPrice(\"total\", cnLineItemList) *\n    currencyCode.currency_buying_rate,\n  ),\n  table_cn: cnLineItemList,\n  remark: srrData.remarks,\n  billing_address_name: billingAddress.address_name ?? null,\n  billing_address_phone: billingAddress.address_phone ?? null,\n  billing_address_line_1: billingAddress.address_line_1 ?? null,\n  billing_address_line_2: billingAddress.address_line_2 ?? null,\n  billing_address_line_3: billingAddress.address_line_3 ?? null,\n  billing_address_line_4: billingAddress.address_line_4 ?? null,\n  billing_address_city: billingAddress.address_city ?? null,\n  billing_postal_code: billingAddress.address_postal_code ?? null,\n  billing_address_state: billingAddress.adddress_state ?? null,\n  billing_address_country: billingAddress.address_country_id ?? null,\n  billing_attention: billingAddress.address_attention ?? null,\n  shipping_address_name: shippingAddress.address_name ?? null,\n  shipping_address_phone: shippingAddress.address_phone ?? null,\n  shipping_address_line_1: shippingAddress.address_line_1 ?? null,\n  shipping_address_line_2: shippingAddress.address_line_2 ?? null,\n  shipping_address_line_3: shippingAddress.address_line_3 ?? null,\n  shipping_address_line_4: shippingAddress.address_line_4 ?? null,\n  shipping_address_city: shippingAddress.address_city ?? null,\n  shipping_postal_code: shippingAddress.address_postal_code ?? null,\n  shipping_address_country: shippingAddress.address_country_id ?? null,\n  shipping_address_state: shippingAddress.adddress_state ?? null,\n  shipping_attention: shippingAddress.address_attention ?? null,\n  exchange_rate_myr: \"MYR\",\n  exchange_rate_currency: currencyCode?.currency_code || \"\",\n  exchange_rate: currencyCode?.currency_buying_rate || \"1.0000\",\n  cn_billing_address: billingAddress.address ?? null,\n  cn_shipping_address: shippingAddress.address ?? null,\n  posted_status: \"Unposted\",\n};\n\nreturn { cnData };\n"
                                 },
                                 "response_json": [
                                   {

@@ -7,8 +7,5 @@
   "organizationId": "1123598813738675201",
   "partPrefix": "P|abcd1234|",
   "sPartPrefix": "S|abcd1234|"
- },
- "missing_cols": {
-  "CAST(g.lot_v2_job_id AS CHAR)": "CAST(NULL AS CHAR)"
  }
 }

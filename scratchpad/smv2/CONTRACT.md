@@ -222,6 +222,7 @@ PART above has a non-empty name list (pwv2 / grv2 entry.js); else FAILED + unloc
 It also requires a `LF1:` `lineFingerprint` and, for COMPLETE / EDIT, a non-empty `sparts.LINES`; else a clean FAILED
 `LOT_INVALID_REQUEST` (+ unlock, before L1).
 Lines are NOT copied into the manifest: L2 reads SUBMIT's `S|...|LINES` part [design].
+V2.1: `parts.ALLOC` (below) is present only when the auto allocation ran; `counts.allocated` = its line count (0 without it).
 
 ### ENGINE = the exact INVENTORY_BULK_APPLY request
 
@@ -322,6 +323,24 @@ Shapes only (a STAGE job has creates, a COMPLETE job mostly updates):
 
 DIRECT, STAGE, COMPLETE only [design]; `[]` for EDIT / CANCEL. = `code_node_0njluBVP`'s `updates` over the flatLines (unique
 `item_selection`, `new Date().toISOString()` at PREPARE time - the classic's own value form; grv2 C5 does the same).
+
+### ALLOC = the auto allocation's picks (L2; V2.1, written by PREPARE only when it allocated)
+
+```json
+{ "lines": [ { "id": "2105231525764567044", "fm_key": "2105231525764567044",
+               "temp_qty_data": "[{\"material_id\":\"2070758892513914881\",\"location_id\":\"2018912822846582786\",\"batch_id\":null,\"balance_id\":\"\",\"sm_quantity\":6,\"category\":\"Unrestricted\",\"material_uom\":\"2018906563477008389\",\"plant_id\":\"1123598813738675202\",\"organization_id\":\"1123598813738675201\",\"manufacturing_date\":null,\"expired_date\":null,\"is_deleted\":0}]",
+               "total_quantity": 6 } ],
+  "fingerprint": "LF1:5:0a1b2c3d4e5f6071" }
+```
+
+- One entry per line the auto allocation processed (`code_node_LOTallocPrep`'s rowsNeedingAllocation, in its order): `id` =
+  the stored line id (DIRECT / STAGE: the stored line; COMPLETE / EDIT: the `S|..|LINES` line - every one is a stored row),
+  `fm_key` = the key the fillback matched (stored lines: the line id; S lines: their own), `temp_qty_data` = exactly
+  `code_node_LOTallocResult`'s `JSON.stringify(tempQtyData)` (`"[]"` when GLOBAL_ALLOCATION placed nothing, e.g. a
+  stock_control 0 item), `total_quantity` = its `totalAllocated` (a NUMBER, unrounded, as the classic writes it).
+- `fingerprint` = `lotLineFingerprint` of the lines L2 leaves: every row (bundle parents included, = FP_LINES's read-back)
+  of the stored lines (DIRECT / STAGE) or of the `S|..|LINES` tree (COMPLETE / EDIT), each ALLOC line's `temp_qty_data` set.
+- Never for CANCEL (the classic does not allocate there).
 
 ### S|...|LINES = what L2 writes (COMPLETE / EDIT; written by SUBMIT)
 
@@ -458,6 +477,49 @@ with sm_quantity > 0 (DIRECT / STAGE / CANCEL: the lines' entries; COMPLETE: the
 EDIT: the reconcile pairs). The reconcile pair count is exact only by running `code_node_uht83Wzh` (pure; its ledger input
 does not change the movement count) - B runs it lifted; PREPARE recounts and refuses > 5,000 as a backstop.
 
+### V2.1 bundles (B, 2026-10-19; supersedes the bundle / auto-allocation lines above)
+
+- **Eligibility:** bundle lines and rows needing auto-allocation are NO LONGER NOT_ELIGIBLE.
+  - Still screened: HU, serial (line flag and item), production order, costing migration, entry categories, limits.
+  - "Needs allocation" = `code_node_LOTallocPrep`'s rule (`lotNeedsAlloc`): requested_qty > 0, temp_qty_data not a
+    non-empty / non-`[]` string, item_selection set. PREPARE allocates these lines; SUBMIT writes them unpicked.
+- **Gates:** the classic allocates before `i8zWlzBw` / `LOTqtyComplete`. In SUBMIT, an allocation line reaches them as picked
+  (sm_quantity = requested_qty), so the location / quantity / lines-without-stock texts are the classic's post-allocation
+  ones.
+- **Item screens for allocation lines** (their batch is unknown until PREPARE):
+  - serial → NOT_ELIGIBLE;
+  - costing migration → checked on the (item, no batch) key for non-batch items only;
+  - DIRECT / STAGE: a WA item with no WA row at the plant at all → STOP `LOT_NO_WA_RECORD` (GLOBAL_INVENTORY_VALIDATION's
+    text without the batch part).
+  - A batch item's per-batch WA and costing checks happen after allocation (PREPARE / the engine).
+- **Counts:** lineCount = flat lines (bundle parents excluded, children included; the guard's rule).
+  - An allocation line = 1 row, 2 movements.
+  - DIRECT / STAGE / DRAFT: movements = 2 × (picked entries + allocation lines).
+  - COMPLETE: 2 × (incoming picked entries + allocation lines + reconcile pairs). EDIT: 2 × (reconcile pairs + allocation
+    lines).
+  - The reconcile estimate leaves allocation lines out on both sides.
+  - CANCEL counts the STORED rows minus stored bundle parents (`item_bundle_id` set and no `parent_id`).
+  - PREPARE enforces the real 5,000 cap after allocation.
+- **Writes:** DIRECT / STAGE write `allData.stock_movement` as the tree (parents with nested `children`, fm_key /
+  parent_fm_key, bundle fields), exactly as the classic's `add_node_xxQX3uMU` / `update_node_0rtpXydw` receive it from
+  yPlLXIZW. The S|..|LINES `stock_movement` is the same tree.
+- **Fingerprints are per STORED ROW, bundle parents included,** because FP_LINES reads every row back.
+  - lineFingerprint is unchanged (stored rows).
+  - **incomingFingerprint (COMPLETE / EDIT) = `lotLineFingerprint` over every row of the filled-back tree (parents +
+    children), not over flatLines** (section 3's "flatLines" wording).
+  - For a LOT without bundles the two are the same rows, so nothing changes there.
+- **COMPLETE / EDIT:** every row of the incoming tree (bundle parents included) must be a stored row: a row without an id,
+  or with an unknown id, is STOP 400 `LOT_LINES_ADDED`. A stored row arriving unpicked (the client cleared a child's
+  picks after a parent qty change) is an allocation line: allowed.
+- **For A / C (not SUBMIT's to fix):**
+  1. Stored bundle children have `item_bundle_id` + `parent_id` but no `parent_fm_key`. The table has no fm_key columns; see
+     get_node_LOTmainLines in dev run 2105231522690142210. yPlLXIZW's `isBundleParent` (`item_bundle_id && !parent_fm_key`)
+     therefore drops them from flatLines whenever it runs over a STORED document.
+     - This hits PREPARE's DIRECT / STAGE / CANCEL lift over the stored doc: bundle children would move nothing.
+     - The classic's own CANCEL of a bundle LOT has the same latent defect.
+  2. incomingFingerprint is the pre-allocation tree. When PREPARE merges allocated picks into the lines L2 writes, L2's
+     read-back will not equal it; the post-allocation fingerprint must come from PREPARE (manifest).
+
 ---------------------------------------------------------------------------------------------------------------------------
 ## 8. LOT_V2_WORKER (f)
 
@@ -544,6 +606,34 @@ The worker never trusts an answer: it reads the job row back after each call (gr
 - **No engine PLAN** [design]. **Ready** -> READY_TO_COMMIT with ENGINE, LABELS, IT, HDR, ITEMS (section 5); a failure ->
   FAILED + unlock (grv2 prepare/ready.js). > 5,000 movements -> FAILED `LOT_SPLIT_REQUIRED`. A plan that throws ->
   `LOT_PLAN_BROKEN`, with the unlock only when the throw came after the lock check passed.
+- **V2.1 bundles (A, 2026-10-19):**
+  - **Client tree.** Every document PREPARE rebuilds from stored rows (DIRECT / STAGE "new", COMPLETE / EDIT "old", CANCEL, and
+    the four get-node outputs) is the CLIENT tree: top-level rows in line_index order, children under their parent's
+    `children` (parent_id), every row `fm_key` = its id, every child `parent_fm_key` = its parent's `fm_key`. Stored rows have
+    neither key, and `yPlLXIZW` / `LOTallocPrep` take `item_bundle_id && !parent_fm_key` for a bundle parent. Golden-tested:
+    stored LOT-20260930/0078 and /0077 give the classic fillback's flatLines of their client payloads.
+  - **Auto allocation**, every action but CANCEL (classic `if_LOTallocGate`: saveAs not Draft / Cancelled), before the
+    fillback. Lifted verbatim: `code_node_LOTallocPrep`, `LOTallocCurrent`, `LOTallocParams`, `LOTallocResult` (v82) and
+    GLOBAL_ALLOCATION v34's `code_node_ItemNorm` + `code_node_hDa6pSw5`, run in-process by GD Edit V2's `geGlobalAllocation`
+    (copied). The allocated lines reach `yPlLXIZW` as `get_cache_node_LOTallocOut`, so flatLines, the compute, the movements
+    and the ledger see what the classic sees. Per-row contexts carry only the row's own line and tracker entry (O(1) per row).
+  - **Reads** (two more in the fork-join, copies of gde's): `aitem` (GLOBAL_ALLOCATION's Get Item) and `abal` (item / batch
+    balances at the LOT's plant + organization, id order) for the candidate items: stored lines with requested_qty > 0 and an
+    item, DIRECT / STAGE only the unpicked ones (`allocScope` EMPTY), COMPLETE / EDIT any (`allocScope` REQ; their lines come
+    from S|..|LINES). Not read: Pending / HU-allocated / own-reserved rows (isPending 0, includeReservedQty 0: GLOBAL_ALLOCATION
+    does not use them). A row to allocate whose item / plant / organization the reads did not cover -> FAILED
+    `LOT_PLAN_FAILED` ("line <n> (<item>) has no stock selected and cannot be allocated in the background ...").
+  - GLOBAL_ALLOCATION's 400 -> FAILED `LOT_ALLOC_FAILED` with its message (classic `return_node_LOTallocErr`), + unlock. The
+    5,000-movement cap counts after allocation. The picks go to COMMIT in the ALLOC part (section 5).
+  - **COMPLETE / EDIT: the S part is checked** before anything runs: `lotLineFingerprint` over every row of its tree (bundle
+    parents included; SUBMIT's `lotTreeRows`) must equal `request.incomingFingerprint`, else FAILED `LOT_INVALID_REQUEST`
+    "Please save again." (+ unlock; before L1, so a mismatch can never surface after stock moved).
+  - **lineCount** (manifest, the job's `line_count`; COMMIT's PARK > 1,000) = flat lines: bundle parents out, children in
+    (the client's, SUBMIT's `flatOf` / `lotStoredFlat`, the guard's count) = max(request.lineCount, stored flat rows,
+    the fillback's flatLines).
+  - **CANCEL of a bundle LOT** moves the children back (the client tree above). The classic's own cancel runs the fillback
+    over the stored document, drops the children (no `parent_fm_key`) and closes their ledger rows without moving their
+    In Transit stock - a classic defect V2 does not copy (ruling 6).
 
 ### COMMIT [design]
 
@@ -560,6 +650,29 @@ conflict -> REVIEW); writes; reads back; writes a `<STEP> DONE` row. Step framew
 | L4_FINISH | B | HDR + ITEMS parts; the header now | Item `last_transaction_date` (slices <= 250; DIRECT / STAGE / COMPLETE), then the header (status; CANCEL + number) | header at `after` -> DONE; at `before` -> write; else REQUIRES_REVIEW |
 | finish | B | - | job COMPLETED, progress 100, finished_at, lease released | the header write was the unlock [design: "Unlock, then the job is COMPLETED"] |
 
+**V2.1 bundles (L2, 2026-10-19).** PREPARE writes the ALLOC part `P|<nonce>|ALLOC|<nnn>` only when it auto-allocated rows (bundle
+children with no stock picked): `{ "lines": [{ "id", "fm_key", "temp_qty_data": "<JSON text>", "total_quantity": <number> }],
+"fingerprint": "LF1:..." }` (fingerprint = `lotLineFingerprint` of the merged lines). `manifest.parts.ALLOC` is optional; when
+present it must be a non-empty list and the action not CANCEL, else the manifest is refused (FAILED before L1 / REVIEW after).
+- L2 runs for COMPLETE / EDIT as before, and for DIRECT / STAGE when ALLOC exists (the stored picks must be the allocated ones:
+  a later reconcile / cancel compares them). It runs in phase B (after L1), before L3.
+- DIRECT / STAGE: reads the stored lines fresh with every line-schema column (minus the audit / tenant / parent-document
+  columns: a column missing from a written row is stored NULL) and the header's `TxDhhT03` columns; writes ONE whole-subform
+  update of ALL rows, shaped like the form's tree (PO_SAVE's proven tree update, dev run 2110620888312238082): top-level rows,
+  bundle children nested under `children`, ids kept, `fm_key` = id on every row, each child with `parent_fm_key` = `parent_id` =
+  its parent's id; each ALLOC line's `temp_qty_data` + `total_quantity` set by id. Before: the stored lines at
+  `lineFingerprint` with the ALLOC lines read blank (they had no stock picked), each ALLOC line blank or already at its picks;
+  every ALLOC line at its picks (and the fingerprint) -> done without writing; else REQUIRES_REVIEW.
+- COMPLETE / EDIT: the ALLOC values are merged into the `S|..|LINES` lines by id before the write.
+- Target: `ALLOC.fingerprint` (checked against the merged lines before the write; without it: DIRECT / STAGE = `lineFingerprint`
+  with the ALLOC lines blank, COMPLETE / EDIT = the merged lines, every row), else `incomingFingerprint`. SUBMIT's
+  `incomingFingerprint` covers EVERY row of the incoming tree, bundle parents included (`lotTreeRows`, code/submit/gate.js), as
+  `lineFingerprint` covers every stored row (FP_LINES). COMMIT fingerprints the S tree and the read-back over every row and
+  over the flat lines (bundle parents out); either may equal the target (an ALLOC.fingerprint may be either view). Without
+  bundles the two views are the same rows.
+- Done: read back at the target, every ALLOC line at its `temp_qty_data` text and `total_quantity` (numerically, `sameStored`),
+  every row under the parent it was written under. No ALLOC part: as before.
+
 Phase A ends after L1 (SPLIT / PARK). Phase B never unlocks and never fails: a step that does not complete retries with
 backoff (2 s x 2^n, max 30 s, 3 retries) and then goes to REQUIRES_REVIEW `LOT_RECONCILIATION_MISMATCH` (grv2 stepEnd).
 `failNoWrite` (phase A only) = job FAILED (progress_message `Not completed: <reason>`) + `{ id, stock_movement_status:
@@ -574,7 +687,7 @@ GD / GR / Putaway V2 on those items) and stays Processing.
 
 | Code | Where | Route / job | User-facing message |
 |---|---|---|---|
-| LOT_INVALID_REQUEST | SUBMIT guard; PREPARE entry; COMMIT entry | INVALID 400; FAILED | SUBMIT: what is wrong ("saveAs must be Draft, In Progress, Completed or Cancelled" ...); PREPARE: "The save stopped before the Location Transfer was linked to its job: please save it again."; COMMIT (no `sparts.LINES` for COMPLETE / EDIT): "The lines of this save are missing: nothing was moved, please save it again."; COMMIT (no lineFingerprint): "The save has no line fingerprint: nothing was moved, please save it again." |
+| LOT_INVALID_REQUEST | SUBMIT guard; PREPARE entry; COMMIT entry | INVALID 400; FAILED | SUBMIT: what is wrong ("saveAs must be Draft, In Progress, Completed or Cancelled" ...); PREPARE: "The save stopped before the Location Transfer was linked to its job: please save it again."; COMMIT (no `sparts.LINES` for COMPLETE / EDIT): "The lines of this save are missing: nothing was moved, please save it again."; COMMIT (no lineFingerprint): "The save has no line fingerprint: nothing was moved, please save it again."; PREPARE V2.1 (the S part's fingerprint is not `incomingFingerprint`): "Please save again." |
 | LOT_NOT_FOUND | SUBMIT; PREPARE | STOP 400; FAILED | "Location Transfer not found - it may have been deleted." |
 | LOT_BUSY | SUBMIT; classic guard | BUSY 409; classic 400 | "This Location Transfer is being processed in the background - please wait for it to finish." [design text] |
 | LOT_UNDER_REVIEW | SUBMIT | BUSY 409 | "Its last save stopped half-way and is under review: please contact support." |
@@ -599,6 +712,7 @@ GD / GR / Putaway V2 on those items) and stays Processing.
 | LOT_TRANSIT_SHORTAGE | PREPARE | FAILED | "Insufficient In Transit quantity to complete this Location Transfer." [classic return_node_LOTmainShort] |
 | LOT_RECON_SHORTAGE | PREPARE | FAILED | "In Transit reconcile shortage on Location Transfer edit." [classic return_node_LOTreconShort] |
 | LOT_PLAN_FAILED / LOT_PLAN_BROKEN | PREPARE | FAILED | "The save could not be prepared: <reason>" (internal invariant broken: BROKEN) |
+| LOT_ALLOC_FAILED | PREPARE (V2.1) | FAILED | GLOBAL_ALLOCATION's message, as classic `return_node_LOTallocErr` answers it (e.g. "Insufficient stock for item CCTV. Available: 1, Requested: 2") |
 | LOT_INVENTORY_<engine code> | COMMIT L1 400 | FAILED | the mapped engine message (section 5 LABELS), e.g. "Insufficient quantity - line 4 (FG-0042), from bin A1-B2-C3 (Unrestricted)" |
 | LOT_INVENTORY_LOCK_BUSY | COMMIT L1 | FAILED | "The stock of its items stayed locked by another operation: nothing was moved, save it again later." |
 | LOT_LOCK_WAIT, LOT_STEP_RETRY, LOT_WAIT, LOT_TRANSIENT | COMMIT / WORKER | transient (job stays open) | progress_message only |
@@ -610,7 +724,8 @@ GD / GR / Putaway V2 on those items) and stays Processing.
 
 Worker hard codes (fail at once, no retry; grv2 `PKC.hard`): `LOT_INVALID_REQUEST, LOT_INVALID_DATA, LOT_NOT_FOUND,
 LOT_NOT_LOCKED, LOT_NOT_ELIGIBLE, LOT_LINES_CHANGED, LOT_LEDGER_CHANGED, LOT_TRANSIT_SHORTAGE, LOT_RECON_SHORTAGE,
-LOT_SPLIT_REQUIRED, LOT_PLAN_BROKEN, JOB_ILLEGAL_TRANSITION`.
+LOT_SPLIT_REQUIRED, LOT_PLAN_BROKEN, JOB_ILLEGAL_TRANSITION`; V2.1 adds `LOT_ALLOC_FAILED` (PREPARE writes it FAILED itself, so
+the worker never retries it either way).
 
 ---------------------------------------------------------------------------------------------------------------------------
 ## 11. Classic guard (B) [design]
@@ -765,3 +880,9 @@ COMMIT entry checks (sections 2, 5, 7, 9, 10); `lotParseJ` no longer quotes frac
 Fix wave (final review, 2026-10-16): SUBMIT `min_lines` + the list Cancel's classic fallback (sections 7, 12); an Add / Clone
 answered without `lot_id` stays open (sections 7, 12); PREPARE's catch unlocks only after the lock check (section 9);
 `sameVal` and long numeric text (section 14).
+
+**V2.1 bundles (2026-10-19; user yes 14:10).** Bundles and unpicked rows are eligible (section 7 V2.1). PREPARE allocates them
+as the classic does (section 9 V2.1), rebuilds stored documents as the client tree, and hands the picks to COMMIT in the
+ALLOC part (sections 5, 9). COMMIT L2 stores them, DIRECT / STAGE included (section 9 COMMIT V2.1).
+6. (controller, via the coordinator 2026-10-19) Every document rebuilt from stored rows is the client tree, CANCEL included: a V2
+   cancel of a bundle LOT moves the children's In Transit stock back (the classic cancel does not - a classic defect, reported).

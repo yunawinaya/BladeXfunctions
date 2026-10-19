@@ -70,6 +70,10 @@ when the list opens (at most once every 2 minutes per browser).
 - Pending quantities are checked against the stored line, never the client's copy.
 - The in-transit `target_doc_line_id` is the stored line id (the classic wrote `''`). Records carry the stored item
   description (the mobile client omits it).
+- A COMMIT run's job lease is sized to the job (since 2026-10-19; dev GR_COMPLETE_COMMIT v8, PUTAWAY_BULK_COMMIT v8, GR_REVERT_COMMIT v7):
+  10 min + 0.6 s per stock movement, at most 90 min. The engine's stock step takes about 0.14 s per lock key on dev
+  (2026-10-19), so a 2,000-2,500-line job can post for 12-23 min. With the old flat 10 min, a re-kick after the lease ran
+  out started a second run of the same job while the first was still posting, and the stock movements were duplicated.
 
 ## Tested
 

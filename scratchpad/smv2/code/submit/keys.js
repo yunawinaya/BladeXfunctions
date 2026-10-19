@@ -1,16 +1,9 @@
 // LOT_V2_SUBMIT - Keys: the form's record (INVALID when it is not one); what the background save does not take that the form's
-// lines alone show (CONTRACT section 7: bundles, HU, rows waiting for auto-allocation, serial lines, production-order links,
-// entry categories other than Unrestricted / Blocked; not for a Cancel - the list sends no lines; a Draft is never refused:
-// NOT_ELIGIBLE); and the digit-only ids the reads take (a read that is not needed gets "0" / NO and touches no table)
+// lines alone show (CONTRACT section 7: HU, serial lines, production-order links, entry categories other than Unrestricted /
+// Blocked; bundles and lines waiting for auto-allocation are taken since V2.1; not for a Cancel - the list sends no lines; a
+// Draft is never refused: NOT_ELIGIBLE); and the digit-only ids the reads take (a read that is not needed gets "0" / NO)
 const lotFormReasons = function lotFormReasons(form, flat) {
   if (num(form.is_production_order) === 1) return "it is linked to a production order";
-  for (const row of Array.isArray(form.stock_movement) ? form.stock_movement : []) {
-    if (row && typeof row === "object" && (s(row.item_bundle_id) || (Array.isArray(row.children) && row.children.length))) return "it has item bundles";
-  }
-  for (const l of flat) {
-    const raw = s(l.temp_qty_data);
-    if (num(l.requested_qty) > 0 && (raw === "" || raw === "[]") && s(l.item_selection)) return "it has lines waiting for auto-allocation";
-  }
   return lotLineReasons(flat);
 };
 const submitKeys = function submitKeys(guard, entry, form) {

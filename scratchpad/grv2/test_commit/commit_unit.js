@@ -22,6 +22,12 @@ const baseEntry = (extra) => Object.assign({ jobId: JOB, organizationId: "112359
   const pay = [{ prepared_payload: J(manifest) }];
   let r = commitEntry(guard, job(), [], pay, gr, [], [{ id: "77" }]);
   ok(r.route === "GO" && r.phase === "A" && r.needC0 === "YES" && r.needC1 === "YES" && r.needC1B === "YES" && r.needC2 === "YES" && r.needC3 === "NO", "entry phase A", r);
+  // the lease outlasts the engine call: 10 min + 0.6 s per movement, at most 90 min (the SPLIT hand-over carries the same)
+  const lease = (n) => { const mm = JSON.parse(J(manifest)); mm.counts.movements = n; const x = commitEntry(guard, job(), [], [{ prepared_payload: J(mm) }], gr, [], [{ id: "77" }]);
+    return [x.jobRows[0].lease_expires_at, x.leaseUntil]; };
+  ok(J(lease(undefined)) === J(["2026-10-14 10:10:00", "2026-10-14 10:10:00"]), "lease: no movements -> 10 min", lease(undefined));
+  ok(J(lease(2500)) === J(["2026-10-14 10:35:00", "2026-10-14 10:35:00"]), "lease: 2,500 movements -> 35 min", lease(2500));
+  ok(J(lease(20000)) === J(["2026-10-14 11:30:00", "2026-10-14 11:30:00"]), "lease: capped at 90 min", lease(20000));
   ok(r.poIdsSql === "0,2,1" && r.unlockOk === "YES" && r.ourBatchIds[0] === "77" && r.prevStatus === "Created" && r.jitter === 0, "entry fields", { p: r.poIdsSql, j: r.jitter });
   r = commitEntry(guard, job({ job_status: "COMMITTING_GR", lease_owner: "SPLIT|n" }), [{ step_name: "C0_REVALIDATE", step_status: "DONE" }, { step_name: "C2_INVENTORY", step_status: "DONE" }], pay, [{ gr_status: "Processing" }], [], []);
   ok(r.route === "GO" && r.phase === "B" && r.needC3 === "YES" && r.needC4 === "NO" && r.needC5 === "YES" && r.unlockOk === "NO", "entry phase B", r);

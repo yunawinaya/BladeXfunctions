@@ -671,123 +671,252 @@
       ]
     },
     {
-      "id": "sql_node_GZBo7WZi",
-      "type": "sql-node",
+      "id": "code_node_GSsoPlan",
+      "type": "code-node",
       "data": {
-        "database_id": "",
-        "sql": "",
-        "params": {},
-        "title": "The existing job by (tenant, organization, idempotency_key), any is_deleted state (+ DB clock)",
-        "isValidator": true,
-        "nodeName": "The existing job by (tenant, organization, idempotency_key), any is_deleted state (+ DB clock)",
-        "name": "The existing job by (tenant, organization, idempotency_key), any is_deleted state (+ DB clock)",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
         "script": {
-          "type": "sql",
-          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.idempotency_key,\n       j.job_status,\n       j.payload_hash,\n       j.confirmation_hash,\n       j.progress_message,\n       j.row_version,\n       CAST(j.gd_id AS CHAR) AS gd_id,\n       j.gd_no,\n       j.is_deleted\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_EluyWNR5.data.tenantId}}'\n   AND j.organization_id = '{{node:code_node_EluyWNR5.data.organizationId}}'\n   AND j.idempotency_key = '{{node:code_node_EluyWNR5.data.idempotencyKey}}'"
+          "type": "javascript",
+          "code": "// GD_ASYNC_SUBMIT - Same sales order guard (plan): the sales orders this save delivers, as a digits-only SQL filter on\n// gd_async_job.source_so_ids (stored as a JSON list of the lines' so_id). Another unfinished save of one of them is read\n// in parallel with this save's own job; the decision (busy or not) waits for the create-or-return route.\nconst soGuardPlan = function soGuardPlan(guard) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  let ids = [];\n  try {\n    ids = JSON.parse(s(guard.sourceSoIds) || \"[]\");\n  } catch (e) {\n    ids = [];\n  }\n  ids = (Array.isArray(ids) ? ids : []).map(s).filter((x) => /^[0-9]{1,20}$/.test(x));\n  return {\n    soCount: String(ids.length),\n    soLikeSql: ids.length ? \"(\" + ids.map((x) => \"j.source_so_ids LIKE '%\\\"\" + x + \"\\\"%'\").join(\" OR \") + \")\" : \"1 = 0\",\n  };\n};\nconst res = soGuardPlan([{{node:code_node_EluyWNR5.data}}][0] || {});\nconsole.log(\"submit same-SO plan\", JSON.stringify({ sos: res.soCount }));\nreturn res;"
         },
         "response_json": [
           {
-            "key": "uqhlt1pp",
-            "name": "db_now",
-            "title": "db_now",
+            "key": "0adac97e",
+            "name": "soCount",
+            "title": "soCount",
             "description": "",
             "bsonType": "string",
             "isExpand": false,
             "children": []
           },
           {
-            "key": "keqhfzpn",
-            "name": "id",
-            "title": "id",
+            "key": "ozdko99o",
+            "name": "soLikeSql",
+            "title": "soLikeSql",
             "description": "",
             "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "mtxkucba",
-            "name": "idempotency_key",
-            "title": "idempotency_key",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "qtps6nt3",
-            "name": "job_status",
-            "title": "job_status",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "ltocousg",
-            "name": "payload_hash",
-            "title": "payload_hash",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "wc0pwbpm",
-            "name": "confirmation_hash",
-            "title": "confirmation_hash",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "776skarr",
-            "name": "progress_message",
-            "title": "progress_message",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "qtkhxqng",
-            "name": "gd_id",
-            "title": "gd_id",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "jsxfzobq",
-            "name": "gd_no",
-            "title": "gd_no",
-            "description": "",
-            "bsonType": "string",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "hynczu4d",
-            "name": "row_version",
-            "title": "row_version",
-            "description": "",
-            "bsonType": "int",
-            "isExpand": false,
-            "children": []
-          },
-          {
-            "key": "y48qu5ns",
-            "name": "is_deleted",
-            "title": "is_deleted",
-            "description": "",
-            "bsonType": "int",
             "isExpand": false,
             "children": []
           }
-        ]
+        ],
+        "title": "Same sales order guard (plan): this save's sales orders as a digits-only filter",
+        "isValidator": true,
+        "nodeName": "Same sales order guard (plan): this save's sales orders as a digits-only filter",
+        "name": "Same sales order guard (plan): this save's sales orders as a digits-only filter"
       },
       "blocks": []
+    },
+    {
+      "id": "condition_all_GSread",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Reads in parallel: this save's job by key + other unfinished saves of its sales orders",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_all_GSread_item_0",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "This save's job",
+            "filter": { "list": [] },
+            "expression": { "code": "", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "This save's job",
+            "name": "This save's job",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_GZBo7WZi",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "The existing job by (tenant, organization, idempotency_key), any is_deleted state (+ DB clock)",
+                "isValidator": true,
+                "nodeName": "The existing job by (tenant, organization, idempotency_key), any is_deleted state (+ DB clock)",
+                "name": "The existing job by (tenant, organization, idempotency_key), any is_deleted state (+ DB clock)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.idempotency_key,\n       j.job_status,\n       j.payload_hash,\n       j.confirmation_hash,\n       j.progress_message,\n       j.row_version,\n       CAST(j.gd_id AS CHAR) AS gd_id,\n       j.gd_no,\n       j.is_deleted\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_EluyWNR5.data.tenantId}}'\n   AND j.organization_id = '{{node:code_node_EluyWNR5.data.organizationId}}'\n   AND j.idempotency_key = '{{node:code_node_EluyWNR5.data.idempotencyKey}}'"
+                },
+                "response_json": [
+                  {
+                    "key": "uqhlt1pp",
+                    "name": "db_now",
+                    "title": "db_now",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "keqhfzpn",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "mtxkucba",
+                    "name": "idempotency_key",
+                    "title": "idempotency_key",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "qtps6nt3",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ltocousg",
+                    "name": "payload_hash",
+                    "title": "payload_hash",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "wc0pwbpm",
+                    "name": "confirmation_hash",
+                    "title": "confirmation_hash",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "776skarr",
+                    "name": "progress_message",
+                    "title": "progress_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "qtkhxqng",
+                    "name": "gd_id",
+                    "title": "gd_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "jsxfzobq",
+                    "name": "gd_no",
+                    "title": "gd_no",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hynczu4d",
+                    "name": "row_version",
+                    "title": "row_version",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "y48qu5ns",
+                    "name": "is_deleted",
+                    "title": "is_deleted",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_GSread_item_1",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Same sales orders",
+            "filter": { "list": [] },
+            "expression": { "code": "", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Same sales orders",
+            "name": "Same sales orders",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_GSsoBusy",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Other unfinished saves (CREATE_GD_FROM_FORM) delivering one of its sales orders",
+                "isValidator": true,
+                "nodeName": "Other unfinished saves (CREATE_GD_FROM_FORM) delivering one of its sales orders",
+                "name": "Other unfinished saves (CREATE_GD_FROM_FORM) delivering one of its sales orders",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(j.id AS CHAR) AS job_id,\n       j.job_status,\n       j.source_so_no\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_EluyWNR5.data.tenantId}}'\n   AND j.organization_id = '{{node:code_node_EluyWNR5.data.organizationId}}'\n   AND j.command = 'CREATE_GD_FROM_FORM'\n   AND j.is_deleted = 0\n   AND j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')\n   AND j.idempotency_key <> '{{node:code_node_EluyWNR5.data.idempotencyKey}}'\n   AND {{node:code_node_GSsoPlan.data.soLikeSql}}\n ORDER BY j.id\n LIMIT 5"
+                },
+                "response_json": [
+                  {
+                    "key": "e8u1h8if",
+                    "name": "job_id",
+                    "title": "job_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "vr2esgfz",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "39vescas",
+                    "name": "source_so_no",
+                    "title": "source_so_no",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "code_node_iJTFTwP3",
@@ -1244,6 +1373,326 @@
         },
         {
           "id": "ifBlock_WE8IW42K",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_GSsoBusy",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// GD_ASYNC_SUBMIT - Same sales order guard (decision): a new save (CREATE) or a confirmation (CONFIRM) is refused while\n// another unfinished save delivers one of its sales orders. PREPARE counts an in-flight save only once its COMMIT has\n// written the hidden (Processing) delivery, so two saves of one order checked before that would both pass and double it.\nconst soGuardBusy = function soGuardBusy(guard, decide, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.job_id));\n  const busy = (s(decide.route) === \"CREATE\" || s(decide.route) === \"CONFIRM\") && list.length > 0;\n  const r = list[0] || {};\n  const review = s(r.job_status) === \"REQUIRES_REVIEW\";\n  const so = s(r.source_so_no) || \"the same sales order\";\n  const message = !busy\n    ? \"\"\n    : review\n      ? \"A background save of a delivery for \" + so + \" stopped half-way and is under review (job \" + s(r.job_id) + \"): please contact support before delivering it again.\"\n      : \"A delivery for \" + so + \" is still being saved in the background (job \" + s(r.job_id) + \", \" + s(r.job_status) + \"). Wait for it to finish - it then appears in the list - before delivering this sales order again.\";\n  return {\n    route: busy ? \"BUSY\" : \"GO\",\n    result_code: busy ? (review ? \"GD_SO_SAVE_REVIEW\" : \"GD_SO_SAVE_RUNNING\") : \"\",\n    result_message: message,\n    job_id: \"\",\n    job_status: \"\",\n    created: \"NO\",\n    idempotency_key: s(guard.idempotencyKey),\n    payload_hash: s(guard.payloadHash),\n    gd_id: \"\",\n    gd_no: \"\",\n    progress_message: \"\",\n    line_errors: \"[]\",\n    evidence: JSON.stringify({ v: 1, workflow: \"GD_ASYNC_SUBMIT\", path: busy ? \"SO_BUSY\" : \"SO_FREE\", busy_job: s(r.job_id), busy_status: s(r.job_status), route: s(decide.route) }),\n  };\n};\nconst res = soGuardBusy([{{node:code_node_EluyWNR5.data}}][0] || {}, [{{node:code_node_iJTFTwP3.data}}][0] || {}, [{{node:sql_node_GSsoBusy.data}}][0]);\nconsole.log(\"submit same-SO decision\", JSON.stringify({ route: res.route, result: res.result_code }));\nreturn res;"
+        },
+        "response_json": [
+          {
+            "key": "izu7j03e",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "s6cz7qfo",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "umdgx17c",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "4lv0k44m",
+            "name": "job_id",
+            "title": "job_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fyf6fbuk",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ojq43qbj",
+            "name": "created",
+            "title": "created",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "o1b3aohd",
+            "name": "idempotency_key",
+            "title": "idempotency_key",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kbim0l5a",
+            "name": "payload_hash",
+            "title": "payload_hash",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "m9tlo71q",
+            "name": "gd_id",
+            "title": "gd_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "x2j9vagm",
+            "name": "gd_no",
+            "title": "gd_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bn182ku0",
+            "name": "progress_message",
+            "title": "progress_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "32uzcvig",
+            "name": "line_errors",
+            "title": "line_errors",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1ko3bh6z",
+            "name": "evidence",
+            "title": "evidence",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Same sales order guard (decision): CREATE / CONFIRM while another save delivers its order -> refuse",
+        "isValidator": true,
+        "nodeName": "Same sales order guard (decision): CREATE / CONFIRM while another save delivers its order -> refuse",
+        "name": "Same sales order guard (decision): CREATE / CONFIRM while another save delivers its order -> refuse"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GSsoBusy",
+      "type": "if",
+      "data": {
+        "title": "IF another unfinished save delivers the same sales order: answer, write nothing",
+        "isValidator": true,
+        "nodeName": "IF another unfinished save delivers the same sales order: answer, write nothing",
+        "name": "IF another unfinished save delivers the same sales order: answer, write nothing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798300000001,
+              "parentId": 1798300000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GSsoBusy.data.route}}' == 'BUSY'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGSsoBusy",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_GSsoBusy",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return (same sales order still saving, nothing written)",
+                "isValidator": true,
+                "nodeName": "Return (same sales order still saving, nothing written)",
+                "name": "Return (same sales order still saving, nothing written)",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "result_code",
+                      "propLabel": "result_code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.result_code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_message",
+                      "propLabel": "result_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.result_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_id",
+                      "propLabel": "job_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.job_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_status",
+                      "propLabel": "job_status",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.job_status}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "created",
+                      "propLabel": "created",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.created}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "idempotency_key",
+                      "propLabel": "idempotency_key",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.idempotency_key}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "payload_hash",
+                      "propLabel": "payload_hash",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.payload_hash}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "gd_id",
+                      "propLabel": "gd_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.gd_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "gd_no",
+                      "propLabel": "gd_no",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.gd_no}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "progress_message",
+                      "propLabel": "progress_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.progress_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "line_errors",
+                      "propLabel": "line_errors",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.line_errors}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "evidence",
+                      "propLabel": "evidence",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_GSsoBusy.data.evidence}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGSsoBusy",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []

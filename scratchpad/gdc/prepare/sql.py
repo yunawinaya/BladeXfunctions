@@ -40,7 +40,18 @@ def jobj(alias, table, extra=()):
     return "JSON_OBJECT(" + ", ".join(parts) + ")"
 
 
+def fp_sql(tenant, gd, also=""):
+    """A Force Complete's line fingerprint over what pick confirmations write onto GD lines: PREPARE takes it before its reads,
+    COMMIT's C0 takes it again and compares."""
+    cols = ["CAST(gl.gd_qty AS CHAR)", "CAST(gl.base_qty AS CHAR)", "gl.temp_qty_data", "gl.prev_temp_qty_data", "gl.picking_status",
+            "CAST(gl.picked_qty AS CHAR)", "gl.picked_temp_qty_data"]
+    joined = ", ".join("COALESCE(%s, '')" % c for c in cols)
+    return (f"SELECT COUNT(*) AS n, CAST(COALESCE(SUM(CRC32(CONCAT_WS('|', gl.id, {joined}))), 0) AS CHAR) AS fp\n"
+            f"  FROM goods_delivery_fwii8mvb_sub gl\n WHERE gl.tenant_id = {tenant} AND gl.goods_delivery_id = {gd} AND gl.is_deleted = 0{also}")
+
+
 SQL = {
+    "fp": fp_sql(T, G),
     "hdr": f"SELECT {jobj('g', 'goods_delivery')} AS j\n  FROM goods_delivery g\n WHERE g.tenant_id = {T} AND g.id = {G} AND g.is_deleted = 0",
     "lines": f"SELECT {jobj('gl', 'goods_delivery_fwii8mvb_sub')} AS j\n  FROM {LINES}\n ORDER BY gl.id",
     "setup": (

@@ -94,6 +94,7 @@ const grNo = noRule && (!allData.gr_no || allData.previous_status === "Draft") ?
 let poID = [];
 for (const gr of flatRows) poID.push(gr.line_po_id);
 poID = [...new Set(poID)];
+const poBusy = poID.map((v) => String(v === undefined || v === null ? "" : v).trim()).filter((v) => /^[0-9]{1,20}$/.test(v));
 
 const invalidMessage = kept.length === 0
   ? "All Received Quantity must not be 0. Please add at least one item with received quantity > 0."
@@ -187,4 +188,5 @@ return {
   poLineCsv: digits(lines.map((a) => a.lid)),
   itemCsv: digits(lines.map((a) => a.item)),
   lineCount,
+  poBusyJson: JSON.stringify(poBusy.length ? poBusy : ["0"]),
 };

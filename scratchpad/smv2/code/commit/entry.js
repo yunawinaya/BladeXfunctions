@@ -14,7 +14,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
     route: "NO_WRITE", phase: "", dbNow: dbNow, jsAt: String(Date.now()), jobId: guard.jobId, tenantId: guard.tenantId, organizationId: "0", lotId: "0", lotNo: "", action: "", prevStatus: "", saveAs: "",
     lineFingerprint: "", incomingFingerprint: "", lineCount: 0, idempotencyKey: "", jobStatus: job ? s(job.job_status) : "", rowVersion: job ? Number(job.row_version) || 0 : 0,
     attempts: job ? Number(job.attempt_count) || 0 : 0, leaseUntil: job ? s(job.lease_until) : "", unlockOk: "NO", partPrefix: "", sPartPrefix: "", jobRows: [], needJobUpd: "NO",
-    unlockRows: [], needUnlock: "NO", needL0: "NO", needL1: "NO", needL2: "NO", needL3: "NO", needL4: "NO", result_code: "", result_message: "", job_status: job ? s(job.job_status) : "",
+    unlockRows: [], needUnlock: "NO", needL0: "NO", needL1: "NO", needL2: "NO", needL2Full: "NO", hasAlloc: "NO", needL3: "NO", needL4: "NO", result_code: "", result_message: "", job_status: job ? s(job.job_status) : "",
   };
   const answer = (code, why) => Object.assign({}, base, { result_code: code, result_message: why });
   if (!job) return answer("LOT_INVALID_DATA", "job " + guard.jobId + " not found in tenant " + guard.tenantId);
@@ -31,9 +31,12 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   const lotId = /^LOT\|[0-9]{1,20}$/.test(corr) ? corr.slice(4) : "0";
   const action = s(job.req_action);
   const PARTS = ["ENGINE", "LABELS", "IT", "HDR", "ITEMS"];
+  // V2.1 bundles: PREPARE names an ALLOC part only when it auto-allocated rows (DIRECT / STAGE / COMPLETE / EDIT)
+  const allocNames = m && typeof m === "object" && m.parts ? m.parts.ALLOC : undefined;
+  const hasAlloc = Array.isArray(allocNames) && allocNames.length > 0;
   const sNonce = s(job.req_nonce);
   const valid = !!m && typeof m === "object" && s(m.job_id) === guard.jobId && lotId !== "0" && s(m.lot_id) === lotId && !!m.parts && PARTS.every((k) => Array.isArray(m.parts[k]) && m.parts[k].length)
-    && /^[0-9A-Za-z]{1,16}$/.test(s(m.nonce)) && LOT_ACTIONS.indexOf(action) >= 0;
+    && /^[0-9A-Za-z]{1,16}$/.test(s(m.nonce)) && LOT_ACTIONS.indexOf(action) >= 0 && (allocNames === undefined || (hasAlloc && action !== "CANCEL"));
   const mLines = valid && s(m.lineCount) !== "" && isFinite(Number(m.lineCount)) ? Number(m.lineCount) : num(job.line_count);
   const entry = { jobId: guard.jobId, tenantId: guard.tenantId, organizationId: s(job.organization_id), lotId: lotId, lotNo: valid ? s(m.lot_no) : "", action: action,
     prevStatus: s(job.prev_status), saveAs: s(job.req_save_as), lineFingerprint: s(job.line_fp), incomingFingerprint: s(job.incoming_fp), lineCount: mLines,
@@ -63,7 +66,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   }
   const c = m.counts || {};
   const itCount = c.itCreates === undefined && c.itUpdates === undefined ? -1 : num(c.itCreates) + num(c.itUpdates);
-  const needs = { L2: ["COMPLETE", "EDIT"].indexOf(action) >= 0, L3: itCount !== 0 };
+  const needs = { L2: ["COMPLETE", "EDIT"].indexOf(action) >= 0 || hasAlloc, L3: itCount !== 0 };
   const missing = Object.keys(needs).filter((k) => needs[k] && LOT_BUILT.indexOf(k) < 0);
   if (missing.length) {
     const why = action + " needs step(s) " + missing.join(", ") + " that this LOT_V2_COMMIT does not have yet";
@@ -79,6 +82,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
     needL0: phase === "A" && !done.L0_REVALIDATE ? "YES" : "NO",
     needL1: phase === "A" ? "YES" : "NO",
     needL2: phase === "B" && needs.L2 && !done.L2_LINES ? "YES" : "NO",
+    needL2Full: phase === "B" && hasAlloc && (action === "DIRECT" || action === "STAGE") && !done.L2_LINES ? "YES" : "NO", hasAlloc: hasAlloc ? "YES" : "NO",
     needL3: phase === "B" && needs.L3 && !done.L3_LEDGER ? "YES" : "NO",
     needL4: phase === "B" && !done.L4_FINISH ? "YES" : "NO",
     result_message: action + " phase " + phase + (Object.keys(done).length ? " (done: " + Object.keys(done).sort().join(", ") + ")" : ""), job_status: "COMMITTING_LOT",

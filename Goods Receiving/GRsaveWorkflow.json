@@ -406,6 +406,264 @@
       ]
     },
     {
+      "id": "code_node_GrPoBusyKeys",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Guard: the receipt's purchase orders (a save other than Draft)",
+        "isValidator": true,
+        "nodeName": "Guard: the receipt's purchase orders (a save other than Draft)",
+        "name": "Guard: the receipt's purchase orders (a save other than Draft)",
+        "script": {
+          "type": "javascript",
+          "code": "// Classic save: the receipt's purchase orders (header po_id + every line's line_po_id, digits only). A save other than Draft\n// is refused while another Goods Receiving of one of them is Processing (received in the background, quantities not written yet)\nconst str = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nlet head = [{{workflowparams:allData.po_id}}][0];\nif (typeof head === \"string\" && head.trim().charAt(0) === \"[\") {\n  try {\n    head = JSON.parse(head);\n  } catch (e) {\n    head = [];\n  }\n}\nconst rows = [{{workflowparams:allData.table_gr}}][0] || [];\nconst pos = {};\nconst add = (v) => {\n  const t = str(v && typeof v === \"object\" ? v.id : v);\n  if (/^[0-9]{1,20}$/.test(t)) pos[t] = 1;\n};\nfor (const v of Array.isArray(head) ? head : [head]) add(v);\nfor (const r of Array.isArray(rows) ? rows : []) {\n  add(r && r.line_po_id);\n  for (const c of r && Array.isArray(r.children) ? r.children : []) add(c && c.line_po_id);\n}\nconst list = Object.keys(pos);\nconst saveAs = str([{{workflowparams:saveAs}}][0]);\nreturn { need: list.length && saveAs !== \"Draft\" ? \"YES\" : \"NO\", posJson: JSON.stringify(list.length ? list : [\"0\"]) };"
+        },
+        "response_json": [
+          {
+            "key": "uhn48srb",
+            "name": "need",
+            "title": "need",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "wia8s2r9",
+            "name": "posJson",
+            "title": "posJson",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GrPoBusyNeed",
+      "type": "if",
+      "data": {
+        "title": "IF a save that receives or reserves (not Draft)",
+        "isValidator": true,
+        "nodeName": "IF a save that receives or reserves (not Draft)",
+        "name": "IF a save that receives or reserves (not Draft)",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798100000101,
+              "parentId": 1798100000102,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GrPoBusyKeys.data.need}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGrPoBusyNeed",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_GrPoBusy",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Other receipts of these POs still Processing (received in the background)",
+                "isValidator": true,
+                "nodeName": "Other receipts of these POs still Processing (received in the background)",
+                "name": "Other receipts of these POs still Processing (received in the background)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(g.id AS CHAR) AS id, g.gr_no, t.p AS po_id, po.purchase_order_no AS po_no\n  FROM goods_receiving g\n  JOIN JSON_TABLE(g.po_id, '$[*]' COLUMNS (p VARCHAR(32) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) t\n  LEFT JOIN purchase_order po ON po.tenant_id = g.tenant_id AND po.id = CAST(t.p AS UNSIGNED) AND po.is_deleted = 0\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.gr_status = 'Processing'\n   AND g.is_deleted = 0\n   AND g.id <> {{node:code_node_GrSizeGuard.data.grId}}\n   AND t.p IN (SELECT k.k FROM JSON_TABLE('{{node:code_node_GrPoBusyKeys.data.posJson}}', '$[*]' COLUMNS (k VARCHAR(32) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) k)"
+                },
+                "response_json": [
+                  {
+                    "key": "uefyqo2f",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "lzvb9vrl",
+                    "name": "gr_no",
+                    "title": "gr_no",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gxcyawu5",
+                    "name": "po_id",
+                    "title": "po_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "r8tuqgi5",
+                    "name": "po_no",
+                    "title": "po_no",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_GrPoBusy",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Guard: a purchase order received in the background?",
+                "isValidator": true,
+                "nodeName": "Guard: a purchase order received in the background?",
+                "name": "Guard: a purchase order received in the background?",
+                "script": {
+                  "type": "javascript",
+                  "code": "// PO busy: another Goods Receiving of the same purchase order is Processing (received in the background, its quantities not\n// written yet) -> the message every refusing save / the conversion answers with\nconst poBusyMessage = function poBusyMessage(rows, convert) {\n  const str = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const seen = {};\n  const parts = [];\n  for (const r of Array.isArray(rows) ? rows : rows ? [rows] : []) {\n    const po = str(r && (r.po_no || r.po_id));\n    const gr = str(r && (r.gr_no || r.id));\n    if (!po || seen[po + \"|\" + gr]) continue;\n    seen[po + \"|\" + gr] = 1;\n    parts.push({ po: po, gr: gr || \"another Goods Receiving\" });\n  }\n  if (!parts.length) return \"\";\n  if (parts.length === 1) {\n    return parts[0].po + \" is still being received in the background by \" + parts[0].gr + \". Please wait until it finishes, \"\n      + (convert ? \"then convert it again.\" : \"then try again.\");\n  }\n  return \"These purchase orders are still being received in the background: \" + parts.slice(0, 5).map((p) => p.po + \" (\" + p.gr + \")\").join(\", \")\n    + (parts.length > 5 ? \" and \" + (parts.length - 5) + \" more\" : \"\") + \". Please wait until they finish, \" + (convert ? \"then convert them again.\" : \"then try again.\");\n};\nconst message = poBusyMessage([{{node:sql_node_GrPoBusy.data}}][0], false);\nreturn { busy: message ? \"YES\" : \"NO\", message: message };"
+                },
+                "response_json": [
+                  {
+                    "key": "4epnydwt",
+                    "name": "busy",
+                    "title": "busy",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pcpyqgub",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_GrPoBusy",
+              "type": "if",
+              "data": {
+                "title": "IF a purchase order is still received in the background",
+                "isValidator": true,
+                "nodeName": "IF a purchase order is still received in the background",
+                "name": "IF a purchase order is still received in the background",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1798100000103,
+                      "parentId": 1798100000104,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_GrPoBusy.data.busy}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TGrPoBusy",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_GrPoBusy",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return purchase order busy",
+                        "isValidator": true,
+                        "nodeName": "Return purchase order busy",
+                        "name": "Return purchase order busy",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "propLabel": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_GrPoBusy.data.message}}",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FGrPoBusy",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGrPoBusyNeed",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "code_node_LFPr1wQW",
       "type": "code-node",
       "data": {

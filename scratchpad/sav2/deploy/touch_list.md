@@ -16,6 +16,8 @@
 
 | 2026-10-16 21:27 | **SWITCH ON** (user: "switch it on and carry it to prod next week"): SA form / SA list / SC form / SC list | (as above) | v314 → **v315**, v58 → **v59**, v498 → **v499**, v39 → **v40** | ASYNC_SA_ENABLED / ASYNC_SC_REVIEW_ENABLED = true (thresholds 50) + real SA_V2_SUBMIT / SA_V2_WORKER ids. SA completions > 50 entries and SC reviews > 50 approved-variance lines go V2; ≤ 50 → classic via triggerEvent; mobile unchanged. Backups `.../SA_FORM/v314_…`, `SA_LIST/v58_…`, `SC_FORM/v498_…`, `SC_LIST/v39_…` (switch-OFF builds) | 479 client checks (incl. shipped-ON sanity: 50 → classic, 51 → SUBMIT); all 4 IDENTICAL |
 
+| 2026-10-19 22:30 | SA_V2_COMMIT | 2111074444748689410 | v4 → **v5** | job lease 10 → 30 MINUTE (one constant, `build_commit.py:146`): a COMMIT that outlives its lease can be taken over mid-APPLY and the engine RESUMEs alongside the live run (duplicate inserts) - raised by dd (IA V2), same change in IA V2 / GD Completed. Rollback = `~/Documents/ASC-dev/workflow-backups/dev/SA_V2_PREPARE/v4_20261019-213232.enabled.json` (folder named after the un-renamed shell; wf_upload's own backup is the empty v5 designing row) | commit tests 144 + interpreter + SQL pass; smoke SA_INVALID_DATA; IDENTICAL |
+
 **Ships ON to prod in the 10-20/21 full deployment** together with the engine COST-lock fix (INVENTORY_BULK_APPLY v10, TOKENS v5, SEED v5 — eb).
 Live V2 tests on dev 2026-10-16 21:47-21:58 (tenant 496474): twins T1 / T2 / T3 0 tables differ, F1 nothing moved, 2k SC Review
 RECONCILED (93 s worker time). Test data only (items SAV2T-*, STC/20261016/0011-0013, SA/20261016/0010-0017); no workflow / form change.

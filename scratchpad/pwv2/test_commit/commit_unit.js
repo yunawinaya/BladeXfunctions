@@ -36,6 +36,12 @@ const IT = { updates: [{ id: "T1", transit_qty: "5.00000000", received_qty: "5.0
   const pay = [{ prepared_payload: J(m) }];
   let r = commitEntry(guard, job(), [], pay, [{ is_processing: 1, lock_ref: "K1" }]);
   ok(r.route === "GO" && r.phase === "A" && r.needP0 === "YES" && r.needP1 === "YES" && r.needP2 === "NO" && r.toId === TOID && r.grId === GRID, "entry phase A", r);
+  // the lease outlasts the engine call: 10 min + 0.6 s per movement, at most 90 min (the SPLIT hand-over carries the same)
+  const lease = (n) => { const mm = JSON.parse(J(m)); mm.counts.movements = n; const x = commitEntry(guard, job(), [], [{ prepared_payload: J(mm) }], [{ is_processing: 1, lock_ref: "K1" }]);
+    return [x.jobRows[0].lease_expires_at, x.leaseUntil]; };
+  ok(J(lease(undefined)) === J(["2026-10-15 10:10:00", "2026-10-15 10:10:00"]), "lease: no movements -> 10 min", lease(undefined));
+  ok(J(lease(2500)) === J(["2026-10-15 10:35:00", "2026-10-15 10:35:00"]), "lease: 2,500 movements -> 35 min", lease(2500));
+  ok(J(lease(20000)) === J(["2026-10-15 11:30:00", "2026-10-15 11:30:00"]), "lease: capped at 90 min", lease(20000));
   r = commitEntry(guard, job({ job_status: "COMMITTING_PUTAWAY", lease_owner: "SPLIT|n" }), [{ step_name: "P1_INVENTORY", step_status: "DONE" }], pay, [{ is_processing: 1, lock_ref: "K1" }]);
   ok(r.route === "GO" && r.phase === "B" && r.needP2 === "YES" && r.needP3 === "YES" && r.needP4 === "YES" && r.unlockOk === "NO", "entry phase B", r);
   r = commitEntry(guard, job(), [], pay, [{ is_processing: 0, lock_ref: "K1" }]);

@@ -169,7 +169,7 @@ const gcParams = function gcParams(stored, answers, source, overrides) {
     if (o[String(r.id)]) Object.assign(r, o[String(r.id)]);
   }
   const p = {
-    allData: allData, saveAs: "Completed", pageStatus: "Edit", needCL: s(a.needCL) || "required", isForceComplete: "", continueZero: s(a.continueZero),
+    allData: allData, saveAs: "Completed", pageStatus: "Edit", needCL: s(a.needCL) || "required", isForceComplete: s(a.isForceComplete) === "Yes" ? "Yes" : "", continueZero: s(a.continueZero),
     auto_gr_confirmed: "", auto_gr_skip: "", auto_si_confirmed: s(a.auto_si_confirmed), auto_si_skip: s(a.auto_si_skip),
   };
   if (s(source) === "PICKING") p.isPicking = "Yes";

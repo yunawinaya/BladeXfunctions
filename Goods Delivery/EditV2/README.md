@@ -112,6 +112,12 @@ What the form does:
   - BUSY because the delivery's GD V2 create has not made its Picking yet: the form starts GD_PICKING_OUTBOX_CONSUMER
     for that delivery's event without waiting (no Quartz on prod), and shows the warning. The GD list does the same for
     every such delivery (bladexfunctions-eb's list `mounted`).
+  - BUSY because a stored **Draft** (a new delivery going live) shares a sales order with a GD Created V2 save that has
+    not put its quantities on that SO yet: a `CREATE_GD_FROM_FORM` job in QUEUED / VALIDATING / CALCULATING /
+    READY_TO_COMMIT / COMMITTING_GD / RECONCILING_GD / REQUIRES_REVIEW whose `source_so_ids` holds one of the
+    delivery's SOs (header `so_id`, every line's `line_so_id`, bundle children included). This is GOODS_DELIVERY's and
+    GD_ASYNC_SUBMIT's same-SO guard (bladexfunctions-41), with their texts; SUBMIT's facts read it as `so_job`. A
+    stored Created delivery is never refused by it. Deployed to dev 2026-10-19 (GD_EDIT_SUBMIT v10).
 - **Opening a Processing delivery (an edit or a completion running):**
   - The form is read-only and shows a Processing badge.
   - The job's worker is started again, every 15 s while the job runs, and the job is followed for up to 180 s,
@@ -156,7 +162,7 @@ stale reservation; stock lock busy; hold, release and expiry.
 
 At 1,948 lines the largest run is COMMIT phase B, at 21.8 MB of node data.
 
-Lifted code is pinned to the deployed versions (`scratchpad/gde/lift/nodes.json`: GOODS_DELIVERY v243,
+Lifted code is pinned to the deployed versions (`scratchpad/gde/lift/nodes.json`: GOODS_DELIVERY v245,
 GD_UNUSED_FN_NEW v55, REORDER_SET_REDIS v21, GLOBAL_ALLOCATION v34). `scratchpad/gde/lift/check_fresh.sh` says when dev has moved on; then
 re-lift and re-run parity.
 

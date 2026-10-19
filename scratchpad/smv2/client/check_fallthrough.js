@@ -24,6 +24,10 @@ const rows = (n, extra) => Array.from({ length: n }, (_, i) => Object.assign({ i
   temp_qty_data: JSON.stringify([{ material_id: "I" + i, location_id: "8", sm_quantity: 1, category: "Unrestricted" }]), temp_hu_data: "" }, extra ? extra(i) : {}));
 const base = (n, o) => Object.assign({ page_status: "Add", id: "", organization_id: "1123598813738675201", stock_movement_status: "", stock_movement_no: "",
   $_v: 3, _vts: 17908, sm_item_balance: { table_item_balance: [] }, draft_status: "<html/>", stock_movement: rows(n) }, o || {});
+// plain rows + one bundle parent with its children nested (the web form's shape); children wait for the server's allocation
+const bundleRows = (plain, kids, kidExtra) => rows(plain).concat([{ id: "", item_bundle_id: "B1", item_selection: "", item_name: "BUNDLE", line_index: String(plain + 1),
+  temp_qty_data: "", temp_hu_data: "", fm_key: "p1", children: Array.from({ length: kids }, (_, j) => Object.assign({ id: "", item_bundle_id: "B1", parent_fm_key: "p1",
+    item_selection: "C" + j, requested_qty: 1, temp_qty_data: "", temp_hu_data: "" }, kidExtra ? kidExtra(j) : {})) }]);
 const edit = (status, o) => Object.assign({ page_status: "Edit", id: "77", stock_movement_status: status }, o || {});
 const wait = async () => { for (let i = 0; i < 40; i++) await new Promise((r) => setTimeout(r, 1)); };
 const quiet = { log: () => {}, error: () => {} };
@@ -86,8 +90,10 @@ const ACTIONS = [["DRAFT", "button_save_as_draft", {}], ["STAGE", "button_inprog
     await expectClassic("switch off / " + field, field, base(60), { off: true });
     await expectClassic("<= 50 lines / " + field, field, base(50));
     await expectClassic("exception before SUBMIT / " + field, field, base(60), { throws: true });
-    await expectClassic("bundle rows / " + field, field, base(60, { stock_movement: rows(60, (i) => (i === 3 ? { item_bundle_id: "B1" } : {})) }));
-    await expectClassic("bundle child rows / " + field, field, base(60, { stock_movement: rows(60, (i) => (i === 3 ? { parent_fm_key: "x" } : {})) }));
+    // bundles: flat stock lines count (the parent does not, its children do); 30 rows + 20 children = 50 flat lines
+    await expectClassic("bundle form, 50 flat lines (51 rows incl. the parent) / " + field, field, base(0, { stock_movement: bundleRows(30, 20) }));
+    await expectClassic("HU on a bundle child (> 50 flat lines) / " + field, field, base(0, { stock_movement: bundleRows(30, 25, (j) => (j === 7 ? { temp_hu_data: '[{"handling_unit_id":"9"}]' } : {})) }));
+    await expectClassic("HU entry on a bundle child / " + field, field, base(0, { stock_movement: bundleRows(30, 25, (j) => (j === 3 ? { temp_qty_data: '[{"handling_unit_id":"5","sm_quantity":1}]' } : {})) }));
     await expectClassic("HU rows / " + field, field, base(60, { stock_movement: rows(60, (i) => (i === 5 ? { temp_hu_data: '[{"handling_unit_id":"1"}]' } : {})) }));
     await expectClassic("HU entry / " + field, field, base(60, { stock_movement: rows(60, (i) => (i === 5 ? { temp_qty_data: '[{"handling_unit_id":"5","sm_quantity":1}]' } : {})) }));
     await expectClassic("View page / " + field, field, base(60, { page_status: "View" }));
@@ -111,6 +117,17 @@ const ACTIONS = [["DRAFT", "button_save_as_draft", {}], ["STAGE", "button_inprog
     { answer: { route: "SAVED", code: "200", lot_id: "77", lot_no: "LOT-1" } });
   await expectSubmit("EDIT (In Progress) -> SUBMIT, waits", "button_inprogress", base(60, edit("In Progress")), { saveAs: "In Progress", pageStatus: "Edit", lot_id: "77", key: KEY77, closed: 0 });
   await expectSubmit("COMPLETE (In Progress) -> SUBMIT, waits", "button_completed", base(60, edit("In Progress")), { saveAs: "Completed", pageStatus: "Edit", lot_id: "77", key: KEY77, closed: 0 });
+  // bundle transfers go V2 above 50 flat lines: 30 rows + a bundle of 25 children = 31 top-level rows, 55 flat lines
+  for (const [field, saveAs] of [["button_save_as_draft", "Draft"], ["button_inprogress", "In Progress"], ["button_completed", "Completed"]]) {
+    const r2 = await expectSubmit("bundle form, 55 flat lines in 31 rows -> V2 / " + field, field, base(0, { stock_movement: bundleRows(30, 25) }),
+      { saveAs: saveAs, pageStatus: "Add", lot_id: "", key: NEWKEY });
+    check("... the bundle reaches SUBMIT with its children nested / " + field, r2.submits.length === 1 && r2.submits[0].form.stock_movement.length === 31 &&
+      r2.submits[0].form.stock_movement[30].children.length === 25, r2.submits.length);
+  }
+  await expectSubmit("bundle COMPLETE (In Progress, 55 flat lines) -> V2", "button_completed", base(0, edit("In Progress", { stock_movement: bundleRows(30, 25) })),
+    { saveAs: "Completed", pageStatus: "Edit", lot_id: "77", key: KEY77, closed: 0 });
+  await expectClassic("bundle COMPLETE counts as edited: COMPLETE_EDITED switched off -> classic", "button_completed",
+    base(0, edit("In Progress", { stock_movement: bundleRows(30, 25) })), { offAction: "COMPLETE_EDITED", models: { _data: { lot_mount_fp: "LF1:31:0000000000000000" } } });
   const k1 = (await click("button_completed", base(60))).submits[0].idempotency_key, k2 = (await click("button_inprogress", base(60))).submits[0].idempotency_key;
   check("saveAs is part of the key's content", k1.split(":")[3] !== k2.split(":")[3], [k1, k2]);
   // a new transfer's job answered before SUBMIT linked it to its transfer (no lot_id; fix round 2): the form stays with the SAME

@@ -30,10 +30,13 @@ const rsEligibility = function rsEligibility(form, items, n, poLines) {
   }
   return null;
 };
-const submitGate = function submitGate(guard, entry, keys, S, form) {
+const submitGate = function submitGate(guard, entry, keys, S, form, busy) {
   const base = { route: "STOP", code: "", message: "", reason: "", allData: {}, grStatus: "" };
   if (!form || typeof form !== "object" || !Array.isArray(form.table_gr)) return Object.assign(base, answer("STOP", "400", "the form's data was not sent"));
   if (s(keys.ok) !== "YES") return Object.assign(base, answer("STOP", "400", s(keys.why)));
+  // another receipt of one of its purchase orders is still Processing: its quantities are not written yet
+  const busyText = poBusyMessage(busy, false);
+  if (busyText) return Object.assign(base, answer("STOP", "400", busyText));
   const R = grAdapt(S);
   const n = num(keys.lineCount);
   const why = rsEligibility(form, R.items.data, n, R.poLines);

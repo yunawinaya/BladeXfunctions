@@ -68,6 +68,18 @@ What the user sees:
   it, concurrent receipts lost weighted-average updates and duplicated FIFO sequences (`scratchpad/sav2/race/EVIDENCE.md`).
 - `previous_status` is `'Draft'` after Add → Completed; the classic writes `''`. This has no effect: the form resets
   it on open and Revert only reports it.
+- A receipt being received in the background (`Processing`) has not written its PO quantities yet. Since 2026-10-19
+  (dev: PO_Convert_GR v6, GOODS_RECEIVING v104, GR_CREATED v16, GR_COMPLETE_SUBMIT v9) four places refuse while another
+  receipt of the same PO is `Processing`: converting that PO (402, the list's "Unable to Convert"), the classic save
+  (mobile and desktop; every save but Draft), the Created save and this SUBMIT. All four answer "PO/… is still being received
+  in the background by GR/…". Without the guard, a classic save landing while a job was between C0 and C3 received
+  the same PO lines twice. A conversion meanwhile offered the full quantity again, and a Created save over-reserved.
+  Two background receipts were already safe: C0 re-checks on a fresh read under the PO lock. Builders:
+  `scratchpad/grv2/pobusy/patch_pobusy.py` (conversion, classic save), `phase2b/build.py`, `build_grv2.py`.
+- A COMMIT run's job lease is sized to the job (since 2026-10-19; dev GR_COMPLETE_COMMIT v8, PUTAWAY_BULK_COMMIT v8, GR_REVERT_COMMIT v7):
+  10 min + 0.6 s per stock movement, at most 90 min. The engine's stock step takes about 0.14 s per lock key on dev
+  (2026-10-19), so a 2,000-2,500-line job can post for 12-23 min. With the old flat 10 min, a re-kick after the lease ran
+  out started a second run of the same job while the first was still posting, and the stock movements were duplicated.
 
 ## Tested on dev (2026-10-15)
 
@@ -79,5 +91,6 @@ What the user sees:
 | 2,000 lines Created → Completed, 711077 (GR/202610150007) | SUBMIT 10 s, worker 124 s, COMPLETED |
 | 2,000 lines with putaway, 000000 plant …202 (GR/202610150005, re-run as GR/202610150007) | SUBMIT 13.8 s, worker 84–97 s. Status Received; one TO with 2,000 lines and 2,000 in-transit rows |
 | Unit / offline | `test_commit/commit_unit.js` 68, `test_submit/submit_unit.js` 35. Parity with 371 recorded prod runs (624/624 ADD parameter sets, 1,500 batch numbers) |
+| PO busy guards, 000000 plant …202, PO/20261019/021 (2 lines × 40), 2026-10-19 | While GR/202610190017 was `Processing`: the conversion (402), a second SUBMIT (STOP 400), a Created save (400) and a classic Completed save (400) all refused, naming it. Nothing was written: one receipt, one job, PO lines untouched. After it finished: conversion offered 30 per line, SUBMIT GR/…018 COMPLETED, classic GR/…019 saved, Created GR/…020 saved. PO lines 30 received + 10 reserved + 10 outstanding. Offline: `pobusy/test/test_pobusy.js` 14, GR_CREATED scenarios (+2) |
 
 Largest run: COMMIT 13.4 MB node data (cap ~64 MB).

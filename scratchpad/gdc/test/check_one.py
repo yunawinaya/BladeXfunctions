@@ -10,6 +10,7 @@ D = lambda v: Decimal(str(v or 0))
 problems = []
 gd = B["meta"]["gd"]
 ok = lambda cond, what: problems.append(what) if not cond else None
+live = [r for r in B["gdl"] if str(r.get("is_deleted")) != "1"]  # snap.py keeps soft-deleted lines
 
 # header
 ok(A["gd"][0]["gd_status"] == "Completed", "gd_status is %s" % A["gd"][0]["gd_status"])
@@ -19,6 +20,8 @@ ALLOWED = {"prev_temp_qty_data", "customer_id", "organization_id", "plant_id", "
 # an auto-SI (C6_SI) stamps the invoice back onto the lines
 if any(s["step_name"] == "C6_SI" and s["step_status"] == "DONE" for s in A["step"]):
     ALLOWED |= {"invoice_qty", "si_status"}
+# a force complete (C4P_PICKING) stamps picking_status / packing_status Completed, as classic does
+FORCED = {"picking_status", "packing_status"} if any(s["step_name"] == "C4P_PICKING" and s["step_status"] == "DONE" for s in A["step"]) else set()
 bl = {r["id"]: r for r in B["gdl"]}
 for r in A["gdl"]:
     o = bl.get(r["id"])
@@ -27,7 +30,7 @@ for r in A["gdl"]:
         continue
     for k in set(r) | set(o):
         x, y = o.get(k), r.get(k)
-        if k in ALLOWED or (x in (None, "") and y in (None, "")) or str(x) == str(y):
+        if k in ALLOWED or (k in FORCED and y == "Completed") or (x in (None, "") and y in (None, "")) or str(x) == str(y):
             continue
         try:
             if Decimal(str(x)) == Decimal(str(y)):
@@ -87,7 +90,7 @@ if dict(mq) != {k: v for k, v in by_key.items() if v}:
     problems.append("movement quantities differ from the reservations: %d keys vs %d" % (len(mq), len(by_key)))
 # SO lines: delivered up by the GD's quantity on each line
 gdq = defaultdict(Decimal)
-for r in B["gdl"]:
+for r in live:
     if r.get("so_line_item_id"):
         gdq[str(r["so_line_item_id"])] += D(r["gd_qty"])
 bs = {str(r["id"]): r for r in B["sol"]}
@@ -99,7 +102,7 @@ for r in A["sol"]:
 # handling units: each one's total and its item rows down by what the lines deliver from it (temp_qty_data entries with a
 # handling unit; a null batch drains any batch), movements carry the handling unit, nothing else on them changes
 deliv_hu, deliv_key, deliv_mv = defaultdict(Decimal), defaultdict(Decimal), defaultdict(Decimal)
-for r in B["gdl"]:
+for r in live:
     try:
         temps = json.loads(r.get("temp_qty_data") or "[]")
     except Exception:
@@ -160,7 +163,7 @@ steps = {s["step_name"] for s in A["step"] if s["step_status"] == "DONE"}
 for s in ["C0_REVALIDATE", "C1_SNAPSHOT", "C2_INVENTORY", "C3_RESERVATIONS", "C4_SO", "C5_GD", "C6_AFTER"] + (["C3H_HU"] if deliv_hu else []):
     ok(s in steps, "step %s not DONE" % s)
 print("%s: %d lines, %d reservations delivered, %d new reservation rows, %d balance keys, %d movements, %d SO lines, %d handling units; SO %s -> %s" % (
-    B["meta"]["no"], len(A["gdl"]), len(allocated), len(new_res), len(by_key), len(mv), len(A["sol"]), len(deliv_hu),
+    B["meta"]["no"], len(live), len(allocated), len(new_res), len(by_key), len(mv), len(A["sol"]), len(deliv_hu),
     B["so"][0]["so_status"] if B["so"] else "-", A["so"][0]["so_status"] if A["so"] else "-"))
 print("PROBLEMS: %d" % len(problems))
 for p in problems[:40]:

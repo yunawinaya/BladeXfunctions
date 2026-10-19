@@ -1,0 +1,195 @@
+{
+ "_note": "copied from scratchpad/gde/lift/fields_alloc.json (dev schema fields + sub_tenant_id, re-checked equal on dev 2026-10-19); kinds: id bigint, dec decimal, dt3 datetime(3), dt timestamp, int, str",
+ "item_balance": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "material_id": [
+   "id",
+   "id"
+  ],
+  "location_id": [
+   "id",
+   "id"
+  ],
+  "block_qty": [
+   "dec",
+   "dec"
+  ],
+  "reserved_qty": [
+   "dec",
+   "dec"
+  ],
+  "unrestricted_qty": [
+   "dec",
+   "dec"
+  ],
+  "qualityinsp_qty": [
+   "dec",
+   "dec"
+  ],
+  "balance_quantity": [
+   "dec",
+   "dec"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "intransit_qty": [
+   "dec",
+   "dec"
+  ],
+  "material_uom": [
+   "id",
+   "id"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ]
+ },
+ "item_batch_balance": {
+  "id": [
+   "id",
+   "id"
+  ],
+  "material_id": [
+   "id",
+   "id"
+  ],
+  "location_id": [
+   "id",
+   "id"
+  ],
+  "block_qty": [
+   "dec",
+   "dec"
+  ],
+  "reserved_qty": [
+   "dec",
+   "dec"
+  ],
+  "unrestricted_qty": [
+   "dec",
+   "dec"
+  ],
+  "qualityinsp_qty": [
+   "dec",
+   "dec"
+  ],
+  "balance_quantity": [
+   "dec",
+   "dec"
+  ],
+  "batch_id": [
+   "id",
+   "id"
+  ],
+  "create_user": [
+   "id",
+   "id"
+  ],
+  "create_dept": [
+   "id",
+   "id"
+  ],
+  "create_time": [
+   "dt3",
+   "dt3"
+  ],
+  "update_user": [
+   "id",
+   "id"
+  ],
+  "update_time": [
+   "dt3",
+   "dt3"
+  ],
+  "is_deleted": [
+   "int",
+   "int"
+  ],
+  "tenant_id": [
+   "str",
+   "str"
+  ],
+  "plant_id": [
+   "id",
+   "id"
+  ],
+  "organization_id": [
+   "str",
+   "str"
+  ],
+  "intransit_qty": [
+   "dec",
+   "dec"
+  ],
+  "material_uom": [
+   "id",
+   "id"
+  ],
+  "doc_date": [
+   "dt",
+   "dt"
+  ],
+  "expired_date": [
+   "dt",
+   "dt"
+  ],
+  "manufacturing_date": [
+   "dt",
+   "dt"
+  ],
+  "sub_tenant_id": [
+   "id",
+   "id"
+  ],
+  "remark3": [
+   "str",
+   "str"
+  ],
+  "remark2": [
+   "str",
+   "str"
+  ],
+  "remark": [
+   "str",
+   "str"
+  ]
+ }
+}

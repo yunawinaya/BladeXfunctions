@@ -1,0 +1,68 @@
+{
+ "_note": "Item Assembly V2 ids (CONTRACT.md section 1, RV1). The 8 *_V2_* shells (completion: IA_V2_*, revert: IA_REVERT_V2_*) are created by the user in the dev designer (folder Save Workflow / BOM + IA); created by the user 2026-10-19 19:18 (ids verified by SELECT). Every other id verified by SELECT on dev and prod 2026-10-19 (base/refs.md).",
+ "IA_V2_SUBMIT": "2112141238600376321",
+ "IA_V2_WORKER": "2112141277456408577",
+ "IA_V2_PREPARE": "2112141312130719745",
+ "IA_V2_COMMIT": "2112141346016501762",
+ "IA_REVERT_V2_SUBMIT": "2112141384234999809",
+ "IA_REVERT_V2_WORKER": "2112141417890095105",
+ "IA_REVERT_V2_PREPARE": "2112141455206817794",
+ "IA_REVERT_V2_COMMIT": "2112141490329919490",
+ "IA_SAVE": "2098335576774463489",
+ "IA_REVERT": "2099319746652852225",
+ "GENERATE_BATCH": "2060178784435535873",
+ "CHECK_REQUIRED_FIELD": "1988831880511062018",
+ "GLOBAL_INVENTORY_VALIDATION": "2056291728334573570",
+ "INVENTORY_BULK_APPLY": "2109916822821744641",
+ "INVENTORY_LOCK_TOKENS": "2105936479113383937",
+ "INVENTORY_LOCK_SEED": "2111078356478234625",
+ "ADD_INVENTORY": "2012005532688723970",
+ "SUBTRACT_INVENTORY": "2012096660219564034",
+ "HANDLING_UNIT": "2037062451509002241",
+ "ACC_PRODUCER": "2013511169625042946",
+ "SQL_FETCH_POST_DATA": "2018512118312943617",
+ "workflow_folder_IA_SAVE": "2098308285411414018",
+ "tables": {
+  "sm_item_assembly": "2098256587713404929",
+  "sm_item_assembly_tlm8ve69_sub": "2098269596661833730",
+  "item": "1901546842240438273",
+  "inventory_movement": "1902259348776800257",
+  "batch": "1902719754154655746",
+  "batch_number_config": "2058765580973846530",
+  "item_balance": "1902698977724317697",
+  "item_batch_balance": "1902718803880558594",
+  "fifo_costing_history": "1902947165008400386",
+  "wa_costing_method": "1902948453171433474",
+  "gd_async_job": "2104845286495150081",
+  "gd_publish_step": "2105131615547461634",
+  "inventory_balance_lock": "2105132021358956546",
+  "system_dict": "1897577528487428098"
+ },
+ "sources": {
+  "sm_item_assembly": "Item Assembly:Table:2098256587713404929",
+  "sm_item_assembly_tlm8ve69_sub": "Stock movement(Item Assembly):Table:2098269596661833730",
+  "item": "Item:Table:1901546842240438273",
+  "batch": "Batch:Table:1902719754154655746",
+  "gd_async_job": "GD Async Job:Table:2104845286495150081",
+  "gd_publish_step": "GD Publish Step:Table:2105131615547461634"
+ },
+ "dict": {
+  "status_parent": "1914242988707749889",
+  "Processing": "1914500993831477249"
+ },
+ "pages": {
+  "ia_list": "2098312073316716546"
+ },
+ "form": {
+  "table": "2098256587713404929",
+  "button_completed": "dxpzlyqp",
+  "comp_post_button": "lnfr8gna",
+  "classic_onClick_saveAsCompleted": "iasvcomp",
+  "classic_onClick_saveAsCompletedPost": "aymq6q8z",
+  "classic_onClick_saveAsDraft": "iasvdrft",
+  "classic_onClick_post": "e9ib2r8i",
+  "item_assembly_status_select": "4cjp73ay",
+  "revert_list_action": "8r9xuzc4",
+  "list_delete": "oh26x9gl"
+ }
+}

@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "s4i3b2hk",
+   "key": "rd29grt5",
    "name": "operation",
    "title": "operation",
    "description": "SUBMIT (default), STATUS, or (a Sales Order save) RELEASE / CANCEL_HELD of its held job",
@@ -10,7 +10,7 @@
    "children": []
   },
   {
-   "key": "07o8zcvb",
+   "key": "u9uzzuvw",
    "name": "gd_id",
    "title": "gd_id",
    "description": "goods_delivery.id (digits)",
@@ -19,7 +19,7 @@
    "children": []
   },
   {
-   "key": "rd29grt5",
+   "key": "n3lnk322",
    "name": "source",
    "title": "source",
    "description": "FORM (default) | CASCADE",
@@ -28,7 +28,7 @@
    "children": []
   },
   {
-   "key": "u9uzzuvw",
+   "key": "byfwfmqx",
    "name": "answers",
    "title": "answers",
    "description": "{ needCL, continueZero, confirmPickReversal } as GOODS_DELIVERY's prompts take them",
@@ -37,7 +37,7 @@
    "children": []
   },
   {
-   "key": "n3lnk322",
+   "key": "bf6pjerg",
    "name": "form",
    "title": "form",
    "description": "FORM: the form's data (allData); CASCADE: its payload (diffed as the form's)",
@@ -46,7 +46,7 @@
    "children": []
   },
   {
-   "key": "byfwfmqx",
+   "key": "51a38bhl",
    "name": "delta",
    "title": "delta",
    "description": "CASCADE: SO_CASCADE's edit as a delta (geDelta's shape)",
@@ -55,7 +55,7 @@
    "children": []
   },
   {
-   "key": "bf6pjerg",
+   "key": "iex7wy59",
    "name": "cascade_ref",
    "title": "cascade_ref",
    "description": "CASCADE / RELEASE / CANCEL_HELD: the Sales Order save that holds the job (released / cancelled by it)",
@@ -66,7 +66,7 @@
  ],
  "response_json": [
   {
-   "key": "51a38bhl",
+   "key": "dnt7qhlb",
    "name": "route",
    "title": "route",
    "description": "",
@@ -74,7 +74,7 @@
    "isExpand": false
   },
   {
-   "key": "iex7wy59",
+   "key": "m7yy59bg",
    "name": "code",
    "title": "code",
    "description": "",
@@ -82,7 +82,7 @@
    "isExpand": false
   },
   {
-   "key": "dnt7qhlb",
+   "key": "9p3zkcfx",
    "name": "message",
    "title": "message",
    "description": "",
@@ -90,7 +90,7 @@
    "isExpand": false
   },
   {
-   "key": "m7yy59bg",
+   "key": "f8tjhtm3",
    "name": "reason",
    "title": "reason",
    "description": "",
@@ -98,7 +98,7 @@
    "isExpand": false
   },
   {
-   "key": "9p3zkcfx",
+   "key": "t4pkpxdk",
    "name": "command",
    "title": "command",
    "description": "",
@@ -106,7 +106,7 @@
    "isExpand": false
   },
   {
-   "key": "f8tjhtm3",
+   "key": "ujn49r5z",
    "name": "job_id",
    "title": "job_id",
    "description": "",
@@ -114,7 +114,7 @@
    "isExpand": false
   },
   {
-   "key": "t4pkpxdk",
+   "key": "8jpxmbtv",
    "name": "job_status",
    "title": "job_status",
    "description": "",
@@ -122,7 +122,7 @@
    "isExpand": false
   },
   {
-   "key": "ujn49r5z",
+   "key": "1enkgs8q",
    "name": "gd_id",
    "title": "gd_id",
    "description": "",
@@ -130,7 +130,7 @@
    "isExpand": false
   },
   {
-   "key": "8jpxmbtv",
+   "key": "wkzk1p0v",
    "name": "gd_no",
    "title": "gd_no",
    "description": "",
@@ -138,7 +138,7 @@
    "isExpand": false
   },
   {
-   "key": "1enkgs8q",
+   "key": "dxm4m7ne",
    "name": "line_count",
    "title": "line_count",
    "description": "",
@@ -146,7 +146,7 @@
    "isExpand": false
   },
   {
-   "key": "wkzk1p0v",
+   "key": "65mn6cey",
    "name": "progress_percent",
    "title": "progress_percent",
    "description": "",
@@ -154,7 +154,7 @@
    "isExpand": false
   },
   {
-   "key": "dxm4m7ne",
+   "key": "gkll2bbc",
    "name": "progress_message",
    "title": "progress_message",
    "description": "",
@@ -162,7 +162,7 @@
    "isExpand": false
   },
   {
-   "key": "65mn6cey",
+   "key": "mqcmgg69",
    "name": "error_code",
    "title": "error_code",
    "description": "",
@@ -170,7 +170,7 @@
    "isExpand": false
   },
   {
-   "key": "gkll2bbc",
+   "key": "3re09sdg",
    "name": "error_message",
    "title": "error_message",
    "description": "",
@@ -178,7 +178,7 @@
    "isExpand": false
   },
   {
-   "key": "mqcmgg69",
+   "key": "6o1wdaq9",
    "name": "picking_reversal_note",
    "title": "picking_reversal_note",
    "description": "",
@@ -186,7 +186,7 @@
    "isExpand": false
   },
   {
-   "key": "3re09sdg",
+   "key": "d4yw45iv",
    "name": "credit_limit_note",
    "title": "credit_limit_note",
    "description": "",
@@ -194,7 +194,7 @@
    "isExpand": false
   },
   {
-   "key": "6o1wdaq9",
+   "key": "t0t2pe4h",
    "name": "cascade_ref",
    "title": "cascade_ref",
    "description": "",
@@ -202,7 +202,7 @@
    "isExpand": false
   },
   {
-   "key": "d4yw45iv",
+   "key": "ygxyejyh",
    "name": "evidence",
    "title": "evidence",
    "description": "",
@@ -232,7 +232,7 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GD_EDIT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic Save as Created is refused above this size: at 2,000 lines it took dev down\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background save does not handle goes to the classic save, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be saved in the background (\" + reason + \"); the classic save handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD Edit V2 - the edit's rows that may need GOODS_DELIVERY's save-time auto allocation (code_node_kJx9p9Nh: gd_qty > 0, no\n// temp_qty_data, a material) as digit lists for the allocation reads: the materials of such rows (a patched line's new material\n// too) and the stored lines whose temp_qty_data the edit empties (their stored material is read). A superset; the loop filters.\nconst geAllocIds = function geAllocIds(rows, patches) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const digits = (v) => /^[0-9]{1,20}$/.test(s(v));\n  const noTemp = (v) => s(v) === \"\" || s(v) === \"[]\";\n  const mats = new Set(), lines = new Set();\n  for (const r of rows || []) if (r && digits(r.material_id) && Number(r.gd_qty) > 0 && noTemp(r.temp_qty_data)) mats.add(s(r.material_id));\n  for (const l of patches || []) {\n    const c = (l && l.cells) || {};\n    if (digits(c.material_id)) mats.add(s(c.material_id));\n    const emptied = (Object.prototype.hasOwnProperty.call(c, \"temp_qty_data\") && noTemp(c.temp_qty_data)) || (l.drop || []).indexOf(\"temp_qty_data\") >= 0;\n    if (emptied && digits(l.id)) lines.add(s(l.id));\n  }\n  const sql = (set) => (set.size ? [...set].join(\",\") : \"0\");\n  return { deltaAllocMaterialIdsSql: sql(mats), deltaAllocLineIdsSql: sql(lines) };\n};\n// GD_EDIT_SUBMIT - Guard: operation, gd_id (digits), source (FORM: the form's allData; CASCADE: SO_CASCADE's payload or a\n// delta, + cascade_ref), the answers the classic save's prompts give (needCL, continueZero, confirmPickReversal), session\n// tenant + user; and the ids the edit brings (materials, SO lines, SOs) as digit lists, so every read covers the GD as stored\n// AND the edit. RELEASE / CANCEL_HELD: a Sales Order save's own held job on this GD, by its cascade_ref\nconst submitGuard = function submitGuard(inp) {\n  const op = s(inp.operation).toUpperCase() || \"SUBMIT\";\n  const gdId = s(inp.gdId);\n  const source = s(inp.source).toUpperCase() || \"FORM\";\n  const tenantId = s(inp.tenantId);\n  const cascadeRef = s(inp.cascadeRef);\n  const bad = (why) => answer(\"REJECT\", \"400\", why, { operation: op, gdId: \"0\", tenantId: \"0\", source: source, cascadeRef: \"\", uid: \"\", answers: {}, idLists: {} });\n  if ([\"SUBMIT\", \"STATUS\", \"RELEASE\", \"CANCEL_HELD\"].indexOf(op) < 0) return bad(\"operation must be SUBMIT, STATUS, RELEASE or CANCEL_HELD\");\n  if (!digits(gdId)) return bad(\"gd_id: digits only\");\n  if ([\"FORM\", \"CASCADE\"].indexOf(source) < 0) return bad(\"source must be FORM or CASCADE\");\n  if (!digits(tenantId)) return bad(\"no session tenant\");\n  const parse = (v) => { if (typeof v !== \"string\") return v; try { return JSON.parse(v); } catch (e) { return null; } };\n  let a = parse(inp.answers);\n  a = a && typeof a === \"object\" ? a : {};\n  const form = parse(inp.form), delta = parse(inp.delta);\n  const hasForm = !!form && Array.isArray(form.table_gd), hasDelta = !!delta && Array.isArray(delta.layout);\n  // the cascade releases / cancels its held jobs by this reference; it reaches SQL and the job's request\n  if (cascadeRef && !/^[A-Za-z0-9|:_.-]{1,80}$/.test(cascadeRef)) return bad(\"cascade_ref: letters, digits and | : _ . - only (at most 80)\");\n  if ((op === \"RELEASE\" || op === \"CANCEL_HELD\") && !cascadeRef) return bad(\"cascade_ref is required for \" + op);\n  if (op === \"SUBMIT\" && source === \"FORM\" && !hasForm) return bad(\"the form's data was not sent\");\n  if (op === \"SUBMIT\" && source === \"CASCADE\" && !hasForm && !hasDelta) return bad(\"the edit (its payload or a delta) was not sent\");\n  if (op === \"SUBMIT\" && source === \"CASCADE\" && !cascadeRef) return bad(\"cascade_ref is required for a cascade submit\");\n  // the ids of the edit: every line the payload holds (or the delta adds / changes)\n  const useForm = source === \"FORM\" || hasForm;\n  const rows = useForm ? (hasForm ? form.table_gd : []).flatMap((r) => [r].concat(r.children || []))\n    : (delta ? (delta.added || []).concat((delta.lines || []).map((l) => l.cells || {})) : []);\n  const ids = (k) => [...new Set(rows.map((r) => s(r[k])).filter(digits))];\n  const soIds = new Set(ids(\"line_so_id\"));\n  const hdrSo = useForm ? (form || {}).so_id : ((delta || {}).header || {}).so_id;\n  for (const x of Array.isArray(hdrSo) ? hdrSo : hdrSo ? [hdrSo] : []) if (digits(x)) soIds.add(s(x));\n  const sql = (arr) => (arr.length ? arr.join(\",\") : \"0\");\n  const soLines = ids(\"so_line_item_id\");\n  return answer(\"CONTINUE\", \"\", \"\", {\n    operation: op, gdId: gdId, tenantId: tenantId, source: source, cascadeRef: cascadeRef, uid: s(inp.uid), answers: { needCL: s(a.needCL) || \"required\", continueZero: s(a.continueZero), confirmPickReversal: s(a.confirmPickReversal) },\n    idLists: Object.assign({ deltaMaterialIdsSql: sql(ids(\"material_id\")), deltaSoLineIdsSql: sql(soLines), deltaSoLineIdsQuoted: soLines.length ? soLines.map((x) => \"'\" + x + \"'\").join(\",\") : \"'0'\", deltaSoIdsSql: sql([...soIds]) },\n      useForm ? geAllocIds(rows, []) : geAllocIds((delta || {}).added, (delta || {}).lines)),\n  });\n};\nconst res = submitGuard({ operation: [{{workflowparams:operation}}][0], gdId: [{{workflowparams:gd_id}}][0], source: [{{workflowparams:source}}][0], answers: [{{workflowparams:answers}}][0], form: [{{workflowparams:form}}][0], delta: [{{workflowparams:delta}}][0], cascadeRef: [{{workflowparams:cascade_ref}}][0], tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] });\nconsole.log(\"submit guard\", JSON.stringify({ route: res.route, op: res.operation, gd: res.gdId, source: res.source, message: res.message }));\nreturn res;"
+     "code": "// GD_EDIT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic Save as Created is refused above this size: at 2,000 lines it took dev down\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background save does not handle goes to the classic save, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be saved in the background (\" + reason + \"); the classic save handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD Edit V2 - the edit's rows that may need GOODS_DELIVERY's save-time auto allocation (code_node_kJx9p9Nh: gd_qty > 0, no\n// temp_qty_data, a material) as digit lists for the allocation reads: the materials of such rows (a patched line's new material\n// too) and the stored lines whose temp_qty_data the edit empties (their stored material is read). A superset; the loop filters.\nconst geAllocIds = function geAllocIds(rows, patches) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const digits = (v) => /^[0-9]{1,20}$/.test(s(v));\n  const noTemp = (v) => s(v) === \"\" || s(v) === \"[]\";\n  const mats = new Set(), lines = new Set();\n  for (const r of rows || []) if (r && digits(r.material_id) && Number(r.gd_qty) > 0 && noTemp(r.temp_qty_data)) mats.add(s(r.material_id));\n  for (const l of patches || []) {\n    const c = (l && l.cells) || {};\n    if (digits(c.material_id)) mats.add(s(c.material_id));\n    const emptied = (Object.prototype.hasOwnProperty.call(c, \"temp_qty_data\") && noTemp(c.temp_qty_data)) || (l.drop || []).indexOf(\"temp_qty_data\") >= 0;\n    if (emptied && digits(l.id)) lines.add(s(l.id));\n  }\n  const sql = (set) => (set.size ? [...set].join(\",\") : \"0\");\n  return { deltaAllocMaterialIdsSql: sql(mats), deltaAllocLineIdsSql: sql(lines) };\n};\n// GD_EDIT_SUBMIT - Guard: operation, gd_id (digits), source (FORM: the form's allData; CASCADE: SO_CASCADE's payload or a\n// delta, + cascade_ref), the answers the classic save's prompts give (needCL, continueZero, confirmPickReversal), session\n// tenant + user; and the ids the edit brings (materials, SO lines, SOs) as digit lists, so every read covers the GD as stored\n// AND the edit. RELEASE / CANCEL_HELD: a Sales Order save's own held job on this GD, by its cascade_ref\nconst submitGuard = function submitGuard(inp) {\n  const op = s(inp.operation).toUpperCase() || \"SUBMIT\";\n  const gdId = s(inp.gdId);\n  const source = s(inp.source).toUpperCase() || \"FORM\";\n  const tenantId = s(inp.tenantId);\n  const cascadeRef = s(inp.cascadeRef);\n  const bad = (why) => answer(\"REJECT\", \"400\", why, { operation: op, gdId: \"0\", tenantId: \"0\", source: source, cascadeRef: \"\", uid: \"\", answers: {}, idLists: {}, soIdsSql: \"0\" });\n  if ([\"SUBMIT\", \"STATUS\", \"RELEASE\", \"CANCEL_HELD\"].indexOf(op) < 0) return bad(\"operation must be SUBMIT, STATUS, RELEASE or CANCEL_HELD\");\n  if (!digits(gdId)) return bad(\"gd_id: digits only\");\n  if ([\"FORM\", \"CASCADE\"].indexOf(source) < 0) return bad(\"source must be FORM or CASCADE\");\n  if (!digits(tenantId)) return bad(\"no session tenant\");\n  const parse = (v) => { if (typeof v !== \"string\") return v; try { return JSON.parse(v); } catch (e) { return null; } };\n  let a = parse(inp.answers);\n  a = a && typeof a === \"object\" ? a : {};\n  const form = parse(inp.form), delta = parse(inp.delta);\n  const hasForm = !!form && Array.isArray(form.table_gd), hasDelta = !!delta && Array.isArray(delta.layout);\n  // the cascade releases / cancels its held jobs by this reference; it reaches SQL and the job's request\n  if (cascadeRef && !/^[A-Za-z0-9|:_.-]{1,80}$/.test(cascadeRef)) return bad(\"cascade_ref: letters, digits and | : _ . - only (at most 80)\");\n  if ((op === \"RELEASE\" || op === \"CANCEL_HELD\") && !cascadeRef) return bad(\"cascade_ref is required for \" + op);\n  if (op === \"SUBMIT\" && source === \"FORM\" && !hasForm) return bad(\"the form's data was not sent\");\n  if (op === \"SUBMIT\" && source === \"CASCADE\" && !hasForm && !hasDelta) return bad(\"the edit (its payload or a delta) was not sent\");\n  if (op === \"SUBMIT\" && source === \"CASCADE\" && !cascadeRef) return bad(\"cascade_ref is required for a cascade submit\");\n  // the ids of the edit: every line the payload holds (or the delta adds / changes)\n  const useForm = source === \"FORM\" || hasForm;\n  const rows = useForm ? (hasForm ? form.table_gd : []).flatMap((r) => [r].concat(r.children || []))\n    : (delta ? (delta.added || []).concat((delta.lines || []).map((l) => l.cells || {})) : []);\n  const ids = (k) => [...new Set(rows.map((r) => s(r[k])).filter(digits))];\n  const soIds = new Set(ids(\"line_so_id\"));\n  const hdrSo = useForm ? (form || {}).so_id : ((delta || {}).header || {}).so_id;\n  for (const x of Array.isArray(hdrSo) ? hdrSo : s(hdrSo).split(\",\")) if (digits(s(x).trim())) soIds.add(s(x).trim());\n  const sql = (arr) => (arr.length ? arr.join(\",\") : \"0\");\n  const soLines = ids(\"so_line_item_id\");\n  return answer(\"CONTINUE\", \"\", \"\", {\n    soIdsSql: sql([...soIds]),\n    operation: op, gdId: gdId, tenantId: tenantId, source: source, cascadeRef: cascadeRef, uid: s(inp.uid), answers: { needCL: s(a.needCL) || \"required\", continueZero: s(a.continueZero), confirmPickReversal: s(a.confirmPickReversal) },\n    idLists: Object.assign({ deltaMaterialIdsSql: sql(ids(\"material_id\")), deltaSoLineIdsSql: sql(soLines), deltaSoLineIdsQuoted: soLines.length ? soLines.map((x) => \"'\" + x + \"'\").join(\",\") : \"'0'\", deltaSoIdsSql: sql([...soIds]) },\n      useForm ? geAllocIds(rows, []) : geAllocIds((delta || {}).added, (delta || {}).lines)),\n  });\n};\nconst res = submitGuard({ operation: [{{workflowparams:operation}}][0], gdId: [{{workflowparams:gd_id}}][0], source: [{{workflowparams:source}}][0], answers: [{{workflowparams:answers}}][0], form: [{{workflowparams:form}}][0], delta: [{{workflowparams:delta}}][0], cascadeRef: [{{workflowparams:cascade_ref}}][0], tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] });\nconsole.log(\"submit guard\", JSON.stringify({ route: res.route, op: res.operation, gd: res.gdId, source: res.source, message: res.message }));\nreturn res;"
     },
     "response_json": [
      {
@@ -333,6 +333,15 @@
       "bsonType": "any",
       "isExpand": false,
       "children": []
+     },
+     {
+      "key": "nbz100r9",
+      "name": "soIdsSql",
+      "title": "soIdsSql",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
      }
     ],
     "title": "Guard: operation, gd_id (digits), source (FORM: the form; CASCADE: SO_CASCADE's delta + cascade_ref), answers, session tenant + user",
@@ -392,7 +401,7 @@
         },
         "response_json": [
          {
-          "key": "nbz100r9",
+          "key": "x881djhy",
           "name": "route",
           "title": "route",
           "description": "",
@@ -401,7 +410,7 @@
           "children": []
          },
          {
-          "key": "x881djhy",
+          "key": "yhh272ez",
           "name": "code",
           "title": "code",
           "description": "",
@@ -410,7 +419,7 @@
           "children": []
          },
          {
-          "key": "yhh272ez",
+          "key": "tobte7ib",
           "name": "message",
           "title": "message",
           "description": "",
@@ -419,7 +428,7 @@
           "children": []
          },
          {
-          "key": "tobte7ib",
+          "key": "ihls8k35",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -428,7 +437,7 @@
           "children": []
          },
          {
-          "key": "ihls8k35",
+          "key": "kkjuu2e3",
           "name": "command",
           "title": "command",
           "description": "",
@@ -437,7 +446,7 @@
           "children": []
          },
          {
-          "key": "kkjuu2e3",
+          "key": "i5huwwnt",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -446,7 +455,7 @@
           "children": []
          },
          {
-          "key": "i5huwwnt",
+          "key": "5us4ir54",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -455,7 +464,7 @@
           "children": []
          },
          {
-          "key": "5us4ir54",
+          "key": "3kmnq3bs",
           "name": "gd_id",
           "title": "gd_id",
           "description": "",
@@ -464,7 +473,7 @@
           "children": []
          },
          {
-          "key": "3kmnq3bs",
+          "key": "l5yxv82a",
           "name": "gd_no",
           "title": "gd_no",
           "description": "",
@@ -473,7 +482,7 @@
           "children": []
          },
          {
-          "key": "l5yxv82a",
+          "key": "vnngiqxl",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -482,7 +491,7 @@
           "children": []
          },
          {
-          "key": "vnngiqxl",
+          "key": "10t5oxtc",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -491,7 +500,7 @@
           "children": []
          },
          {
-          "key": "10t5oxtc",
+          "key": "ax67iuh2",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -500,7 +509,7 @@
           "children": []
          },
          {
-          "key": "ax67iuh2",
+          "key": "gng1fx5t",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -509,7 +518,7 @@
           "children": []
          },
          {
-          "key": "gng1fx5t",
+          "key": "evrj87m7",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -518,7 +527,7 @@
           "children": []
          },
          {
-          "key": "evrj87m7",
+          "key": "x51nt8os",
           "name": "picking_reversal_note",
           "title": "picking_reversal_note",
           "description": "",
@@ -527,7 +536,7 @@
           "children": []
          },
          {
-          "key": "x51nt8os",
+          "key": "g1ituu41",
           "name": "credit_limit_note",
           "title": "credit_limit_note",
           "description": "",
@@ -536,7 +545,7 @@
           "children": []
          },
          {
-          "key": "g1ituu41",
+          "key": "z20biuue",
           "name": "cascade_ref",
           "title": "cascade_ref",
           "description": "",
@@ -545,7 +554,7 @@
           "children": []
          },
          {
-          "key": "z20biuue",
+          "key": "evf5xpdl",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -1968,7 +1977,7 @@
     },
     "response_json": [
      {
-      "key": "evf5xpdl",
+      "key": "pq20btre",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -1977,7 +1986,7 @@
       "children": []
      },
      {
-      "key": "pq20btre",
+      "key": "fxuu5fmy",
       "name": "expired",
       "title": "expired",
       "description": "",
@@ -2002,7 +2011,7 @@
     },
     "response_json": [
      {
-      "key": "fxuu5fmy",
+      "key": "uwd59tkr",
       "name": "needKick",
       "title": "needKick",
       "description": "",
@@ -2011,7 +2020,7 @@
       "children": []
      },
      {
-      "key": "uwd59tkr",
+      "key": "e2bc3wt3",
       "name": "jobId",
       "title": "jobId",
       "description": "",
@@ -2156,11 +2165,11 @@
     "name": "Facts: the GD, its line count, its latest lock and that lock's job, the open jobs on it, its Pickings (lock age) and their open confirms, DB clock",
     "script": {
      "type": "sql",
-     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(g.id AS CHAR) AS gd_id,\n       g.delivery_no,\n       g.gd_status,\n       g.organization_id,\n       CAST(g.plant_id AS CHAR) AS plant_id,\n       (SELECT COUNT(*) FROM goods_delivery_fwii8mvb_sub l WHERE l.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND l.goods_delivery_id = {{node:code_node_GSguard.data.gdId}} AND l.is_deleted = 0) AS line_count,\n       (SELECT p.step_name FROM gd_publish_step p\n         WHERE p.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND p.job_id = 'GDC|{{node:code_node_GSguard.data.gdId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1) AS last_lock,\n       (SELECT CAST(JSON_OBJECT('id', CAST(x.id AS CHAR), 'command', x.command, 'job_status', x.job_status, 'progress_percent', x.progress_percent,\n                                'progress_message', x.progress_message, 'error_code', x.error_code, 'error_message', x.error_message,\n                                'notes', IF(x.command = 'EDIT_GD', JSON_EXTRACT(x.request_payload, '$.notes'), NULL),\n                                'cascade_ref', IF(x.command = 'EDIT_GD', JSON_UNQUOTE(JSON_EXTRACT(x.request_payload, '$.cascade_ref')), NULL)) AS CHAR)\n          FROM gd_async_job x\n         WHERE x.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND x.is_deleted = 0\n           AND x.idempotency_key = (SELECT p.result_ref FROM gd_publish_step p\n                                     WHERE p.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND p.job_id = 'GDC|{{node:code_node_GSguard.data.gdId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1)\n         ORDER BY x.id DESC LIMIT 1) AS lock_job,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(o.id AS CHAR), 'command', o.command, 'job_status', o.job_status, 'progress_percent', o.progress_percent,\n                                             'progress_message', o.progress_message, 'error_code', o.error_code, 'error_message', o.error_message)) AS CHAR)\n          FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND o.is_deleted = 0\n           AND ((o.correlation_id = 'GD|{{node:code_node_GSguard.data.gdId}}'\n                 AND ((o.command = 'EDIT_GD' AND o.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED'))\n                      OR (o.command = 'COMPLETE_GD' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'REQUIRES_REVIEW'))\n                      OR (o.command = 'COMPLETE_PACKING' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PACKING', 'REQUIRES_REVIEW'))))\n                OR (o.command = 'CREATE_GD_FROM_FORM' AND o.gd_id = '{{node:code_node_GSguard.data.gdId}}'\n                    AND o.job_status IN ('RECONCILING_GD', 'GD_COMMITTED', 'CREATING_PICKING', 'PICKING_RETRYING', 'PICKING_READY', 'REQUIRES_REVIEW')))) AS open_jobs,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(t.id AS CHAR), 'to_id', t.to_id, 'to_status', t.to_status, 'is_processing', t.is_processing,\n                                             'lock_age_sec', TIMESTAMPDIFF(SECOND, t.update_time, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')))) AS CHAR)\n          FROM transfer_order t\n         WHERE t.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND t.is_deleted = 0 AND t.movement_type = 'Picking'\n           AND (JSON_CONTAINS(t.gd_no, JSON_QUOTE('{{node:code_node_GSguard.data.gdId}}')) OR JSON_CONTAINS(t.gd_no, '{{node:code_node_GSguard.data.gdId}}'))) AS pickings,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(c.id AS CHAR), 'picking_id', c.picking_id, 'job_status', c.job_status)) AS CHAR)\n          FROM gd_async_job c\n         WHERE c.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND c.is_deleted = 0 AND c.command = 'CONFIRM_PICKING' AND c.job_status NOT IN ('COMPLETED',\n\t\t'FAILED', 'CANCELLED')\n           AND c.picking_id IN (SELECT CAST(t2.id AS CHAR) COLLATE utf8mb4_general_ci FROM transfer_order t2\n                                 WHERE t2.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND t2.is_deleted = 0 AND t2.movement_type = 'Picking'\n                                   AND (JSON_CONTAINS(t2.gd_no, JSON_QUOTE('{{node:code_node_GSguard.data.gdId}}')) OR JSON_CONTAINS(t2.gd_no, '{{node:code_node_GSguard.data.gdId}}')))) AS open_pickings\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = '{{node:code_node_GSguard.data.tenantId}}'\n   AND g.id = {{node:code_node_GSguard.data.gdId}}\n   AND g.is_deleted = 0"
+     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(g.id AS CHAR) AS gd_id,\n       g.delivery_no,\n       g.gd_status,\n       g.organization_id,\n       CAST(g.plant_id AS CHAR) AS plant_id,\n       (SELECT COUNT(*) FROM goods_delivery_fwii8mvb_sub l WHERE l.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND l.goods_delivery_id = {{node:code_node_GSguard.data.gdId}} AND l.is_deleted = 0) AS line_count,\n       (SELECT p.step_name FROM gd_publish_step p\n         WHERE p.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND p.job_id = 'GDC|{{node:code_node_GSguard.data.gdId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1) AS last_lock,\n       (SELECT CAST(JSON_OBJECT('id', CAST(x.id AS CHAR), 'command', x.command, 'job_status', x.job_status, 'progress_percent', x.progress_percent,\n                                'progress_message', x.progress_message, 'error_code', x.error_code, 'error_message', x.error_message,\n                                'notes', IF(x.command = 'EDIT_GD', JSON_EXTRACT(x.request_payload, '$.notes'), NULL),\n                                'cascade_ref', IF(x.command = 'EDIT_GD', JSON_UNQUOTE(JSON_EXTRACT(x.request_payload, '$.cascade_ref')), NULL)) AS CHAR)\n          FROM gd_async_job x\n         WHERE x.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND x.is_deleted = 0\n           AND x.idempotency_key = (SELECT p.result_ref FROM gd_publish_step p\n                                     WHERE p.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND p.job_id = 'GDC|{{node:code_node_GSguard.data.gdId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1)\n         ORDER BY x.id DESC LIMIT 1) AS lock_job,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(o.id AS CHAR), 'command', o.command, 'job_status', o.job_status, 'progress_percent', o.progress_percent,\n                                             'progress_message', o.progress_message, 'error_code', o.error_code, 'error_message', o.error_message)) AS CHAR)\n          FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND o.is_deleted = 0\n           AND ((o.correlation_id = 'GD|{{node:code_node_GSguard.data.gdId}}'\n                 AND ((o.command = 'EDIT_GD' AND o.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED'))\n                      OR (o.command = 'COMPLETE_GD' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'REQUIRES_REVIEW'))\n                      OR (o.command = 'COMPLETE_PACKING' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PACKING', 'REQUIRES_REVIEW'))))\n                OR (o.command = 'CREATE_GD_FROM_FORM' AND o.gd_id = '{{node:code_node_GSguard.data.gdId}}'\n                    AND o.job_status IN ('RECONCILING_GD', 'GD_COMMITTED', 'CREATING_PICKING', 'PICKING_RETRYING', 'PICKING_READY', 'REQUIRES_REVIEW')))) AS open_jobs,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(t.id AS CHAR), 'to_id', t.to_id, 'to_status', t.to_status, 'is_processing', t.is_processing,\n                                             'lock_age_sec', TIMESTAMPDIFF(SECOND, t.update_time, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')))) AS CHAR)\n          FROM transfer_order t\n         WHERE t.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND t.is_deleted = 0 AND t.movement_type = 'Picking'\n           AND (JSON_CONTAINS(t.gd_no, JSON_QUOTE('{{node:code_node_GSguard.data.gdId}}')) OR JSON_CONTAINS(t.gd_no, '{{node:code_node_GSguard.data.gdId}}'))) AS pickings,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(c.id AS CHAR), 'picking_id', c.picking_id, 'job_status', c.job_status)) AS CHAR)\n          FROM gd_async_job c\n         WHERE c.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND c.is_deleted = 0 AND c.command = 'CONFIRM_PICKING' AND c.job_status NOT IN ('COMPLETED',\n\t\t'FAILED', 'CANCELLED')\n           AND c.picking_id IN (SELECT CAST(t2.id AS CHAR) COLLATE utf8mb4_general_ci FROM transfer_order t2\n                                 WHERE t2.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND t2.is_deleted = 0 AND t2.movement_type = 'Picking'\n                                   AND (JSON_CONTAINS(t2.gd_no, JSON_QUOTE('{{node:code_node_GSguard.data.gdId}}')) OR JSON_CONTAINS(t2.gd_no, '{{node:code_node_GSguard.data.gdId}}')))) AS open_pickings,\n       IF(g.gd_status = 'Draft',\n          (SELECT CONCAT(j.job_status, '|', CAST(j.id AS CHAR), '|', COALESCE(j.source_so_no, ''))\n             FROM gd_async_job j\n            WHERE j.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND j.command = 'CREATE_GD_FROM_FORM' AND j.is_deleted = 0\n              AND j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')\n              AND EXISTS (SELECT 1 FROM JSON_TABLE(CONCAT('[', '{{node:code_node_GSguard.data.soIdsSql}}', ']'), '$[*]' COLUMNS (sid BIGINT PATH '$')) s\n                           WHERE j.source_so_ids LIKE CONCAT('%\"', CAST(s.sid AS CHAR), '\"%') COLLATE utf8mb4_general_ci)\n            ORDER BY j.id\n            LIMIT 1),\n          NULL) AS so_job\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = '{{node:code_node_GSguard.data.tenantId}}'\n   AND g.id = {{node:code_node_GSguard.data.gdId}}\n   AND g.is_deleted = 0"
     },
     "response_json": [
      {
-      "key": "e2bc3wt3",
+      "key": "vgudha6p",
       "name": "db_now",
       "title": "db_now",
       "description": "",
@@ -2169,7 +2178,7 @@
       "children": []
      },
      {
-      "key": "vgudha6p",
+      "key": "vbcai5hm",
       "name": "gd_id",
       "title": "gd_id",
       "description": "",
@@ -2178,7 +2187,7 @@
       "children": []
      },
      {
-      "key": "vbcai5hm",
+      "key": "d8t0019q",
       "name": "delivery_no",
       "title": "delivery_no",
       "description": "",
@@ -2187,7 +2196,7 @@
       "children": []
      },
      {
-      "key": "d8t0019q",
+      "key": "zhwbiz74",
       "name": "gd_status",
       "title": "gd_status",
       "description": "",
@@ -2196,7 +2205,7 @@
       "children": []
      },
      {
-      "key": "zhwbiz74",
+      "key": "wh0oek9a",
       "name": "organization_id",
       "title": "organization_id",
       "description": "",
@@ -2205,7 +2214,7 @@
       "children": []
      },
      {
-      "key": "wh0oek9a",
+      "key": "w48lnuhy",
       "name": "plant_id",
       "title": "plant_id",
       "description": "",
@@ -2214,7 +2223,7 @@
       "children": []
      },
      {
-      "key": "w48lnuhy",
+      "key": "h0s3qisc",
       "name": "line_count",
       "title": "line_count",
       "description": "",
@@ -2223,7 +2232,7 @@
       "children": []
      },
      {
-      "key": "h0s3qisc",
+      "key": "5hwo0837",
       "name": "last_lock",
       "title": "last_lock",
       "description": "",
@@ -2232,7 +2241,7 @@
       "children": []
      },
      {
-      "key": "5hwo0837",
+      "key": "fgt0we4i",
       "name": "lock_job",
       "title": "lock_job",
       "description": "",
@@ -2241,7 +2250,7 @@
       "children": []
      },
      {
-      "key": "fgt0we4i",
+      "key": "jgzirj8r",
       "name": "open_jobs",
       "title": "open_jobs",
       "description": "",
@@ -2250,7 +2259,7 @@
       "children": []
      },
      {
-      "key": "jgzirj8r",
+      "key": "3btys0cx",
       "name": "pickings",
       "title": "pickings",
       "description": "",
@@ -2259,9 +2268,18 @@
       "children": []
      },
      {
-      "key": "3btys0cx",
+      "key": "tgibdqgq",
       "name": "open_pickings",
       "title": "open_pickings",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "p4o6294r",
+      "name": "so_job",
+      "title": "so_job",
       "description": "",
       "bsonType": "string",
       "isExpand": false,
@@ -2280,11 +2298,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GD_EDIT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic Save as Created is refused above this size: at 2,000 lines it took dev down\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background save does not handle goes to the classic save, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be saved in the background (\" + reason + \"); the classic save handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_EDIT_SUBMIT - Entry: STATUS answers from the job holding the GD's latest lock (an edit or a completion: the form's one\n// call); SUBMIT goes on for a Created or Draft GD with nothing open on it: not Processing, no open edit / completion /\n// Packing job (REQUIRES_REVIEW counts), no unfinished GD V2 create, its Picking not held by a device or Picking V2\nconst PICK_LOCK_STALE_SEC = 900;\nconst submitEntry = function submitEntry(guard, factRows) {\n  const f = list(factRows)[0] || {};\n  const parse = (t) => { try { return t ? JSON.parse(t) : null; } catch (e) { return null; } };\n  const lockJob = parse(f.lock_job);\n  const open = list(parse(f.open_jobs)).filter((r) => s(r.id));\n  const picks = list(parse(f.pickings));\n  const openPicks = list(parse(f.open_pickings)).filter((r) => s(r.id));\n  const n = num(f.line_count);\n  const base = Object.assign({ tenantId: guard.tenantId, gdId: guard.gdId, gdNo: s(f.delivery_no), organizationId: s(f.organization_id), plantId: s(f.plant_id), lineCount: n,\n    dbNow: s(f.db_now), lockN: 1, storedStatus: s(f.gd_status), reason: \"\", command: \"\", jobId: \"\", jobStatus: \"\", progressPercent: 0, progressMessage: \"\", errorCode: \"\", errorMessage: \"\", cascadeRef: \"\" }, guard.idLists || {});\n  const job = (j) => (j ? { command: s(j.command), jobId: s(j.id), jobStatus: s(j.job_status), progressPercent: num(j.progress_percent), progressMessage: s(j.progress_message), errorCode: s(j.error_code), errorMessage: s(j.error_message), notes: j.notes && typeof j.notes === \"object\" ? j.notes : parse(j.notes) || {}, cascadeRef: s(j.cascade_ref) } : {});\n  if (guard.operation === \"STATUS\") return Object.assign(base, job(lockJob), answer(\"STATUS\", \"200\", lockJob ? s(lockJob.progress_message) : \"no job\"));\n  if (!s(f.gd_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery not found\"));\n  const status = s(f.gd_status);\n  if (status === \"Processing\") return Object.assign(base, job(lockJob), answer(\"BUSY\", \"409\", \"This delivery is being processed - please wait for it to finish.\"));\n  const blocking = open[0];\n  if (blocking) {\n    const what = { EDIT_GD: \"Its edit\", COMPLETE_GD: \"Its completion\", COMPLETE_PACKING: \"Its Packing\", CREATE_GD_FROM_FORM: \"Its creation\" }[s(blocking.command)] || \"Its job\";\n    return Object.assign(base, job(blocking), answer(\"BUSY\", \"409\", s(blocking.job_status) === \"REQUIRES_REVIEW\" ? what + \" stopped half-way and is under review: please contact support.\" : what + \" is being saved - please wait for it to finish.\"));\n  }\n  const held = picks.filter((p) => num(p.is_processing) === 1 && num(p.lock_age_sec) <= PICK_LOCK_STALE_SEC)[0];\n  if (held) return Object.assign(base, answer(\"BUSY\", \"409\", \"Picking \" + s(held.to_id) + \" is being processed on a device right now. Try again in a moment.\"));\n  if (openPicks.length) return Object.assign(base, answer(\"BUSY\", \"409\", \"Its Picking is being confirmed in the background - please wait for it to finish.\"));\n  if (status !== \"Created\" && status !== \"Draft\") return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery is \" + (status || \"without a status\") + \": only a Created or Draft delivery can be saved as Created\"));\n  if (!digits(f.organization_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery has no organization\"));\n  const m = s(f.last_lock).match(/^LOCK\\|([0-9]+)$/);\n  // a device lock older than PICKING_LOOP's takeover is not a device's any more: the gate reads it released, post.js takes it over\n  const staleLocks = picks.filter((p) => num(p.is_processing) === 1 && num(p.lock_age_sec) > PICK_LOCK_STALE_SEC).map((p) => s(p.id)).filter(digits);\n  return Object.assign(base, answer(\"GO\", \"\", \"\"), { lockN: m ? Number(m[1]) + 1 : 1, staleLocks: staleLocks });\n};\nconst res = submitEntry([{{node:code_node_GSguard.data}}][0], [{{node:sql_node_GSfacts.data}}][0]);\nconsole.log(\"submit entry\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lockN: res.lockN }));\nreturn res;"
+     "code": "// GD_EDIT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic Save as Created is refused above this size: at 2,000 lines it took dev down\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background save does not handle goes to the classic save, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be saved in the background (\" + reason + \"); the classic save handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_EDIT_SUBMIT - Entry: STATUS answers from the job holding the GD's latest lock (an edit or a completion: the form's one\n// call); SUBMIT goes on for a Created or Draft GD with nothing open on it: not Processing, no open edit / completion /\n// Packing job (REQUIRES_REVIEW counts), no unfinished GD V2 create, its Picking not held by a device or Picking V2\nconst PICK_LOCK_STALE_SEC = 900;\nconst submitEntry = function submitEntry(guard, factRows) {\n  const f = list(factRows)[0] || {};\n  const parse = (t) => { try { return t ? JSON.parse(t) : null; } catch (e) { return null; } };\n  const lockJob = parse(f.lock_job);\n  const open = list(parse(f.open_jobs)).filter((r) => s(r.id));\n  const picks = list(parse(f.pickings));\n  const openPicks = list(parse(f.open_pickings)).filter((r) => s(r.id));\n  const n = num(f.line_count);\n  const base = Object.assign({ tenantId: guard.tenantId, gdId: guard.gdId, gdNo: s(f.delivery_no), organizationId: s(f.organization_id), plantId: s(f.plant_id), lineCount: n,\n    dbNow: s(f.db_now), lockN: 1, storedStatus: s(f.gd_status), reason: \"\", command: \"\", jobId: \"\", jobStatus: \"\", progressPercent: 0, progressMessage: \"\", errorCode: \"\", errorMessage: \"\", cascadeRef: \"\" }, guard.idLists || {});\n  const job = (j) => (j ? { command: s(j.command), jobId: s(j.id), jobStatus: s(j.job_status), progressPercent: num(j.progress_percent), progressMessage: s(j.progress_message), errorCode: s(j.error_code), errorMessage: s(j.error_message), notes: j.notes && typeof j.notes === \"object\" ? j.notes : parse(j.notes) || {}, cascadeRef: s(j.cascade_ref) } : {});\n  if (guard.operation === \"STATUS\") return Object.assign(base, job(lockJob), answer(\"STATUS\", \"200\", lockJob ? s(lockJob.progress_message) : \"no job\"));\n  if (!s(f.gd_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery not found\"));\n  const status = s(f.gd_status);\n  if (status === \"Processing\") return Object.assign(base, job(lockJob), answer(\"BUSY\", \"409\", \"This delivery is being processed - please wait for it to finish.\"));\n  const blocking = open[0];\n  if (blocking) {\n    const what = { EDIT_GD: \"Its edit\", COMPLETE_GD: \"Its completion\", COMPLETE_PACKING: \"Its Packing\", CREATE_GD_FROM_FORM: \"Its creation\" }[s(blocking.command)] || \"Its job\";\n    return Object.assign(base, job(blocking), answer(\"BUSY\", \"409\", s(blocking.job_status) === \"REQUIRES_REVIEW\" ? what + \" stopped half-way and is under review: please contact support.\" : what + \" is being saved - please wait for it to finish.\"));\n  }\n  // a stored Draft is a new delivery: it waits while a GD Created V2 save of one of its SOs has not put its quantities on the SO yet\n  const soJob = s(f.so_job).split(\"|\");\n  if (status === \"Draft\" && soJob[0]) {\n    const so = soJob.slice(2).join(\"|\") || \"this sales order\";\n    return Object.assign(base, answer(\"BUSY\", \"409\", soJob[0] === \"REQUIRES_REVIEW\"\n      ? \"A background save of a delivery for \" + so + \" stopped half-way and is under review (job \" + soJob[1] + \"): please contact support before delivering it again.\"\n      : \"A delivery for \" + so + \" is still being saved in the background (job \" + soJob[1] + \", \" + soJob[0] + \"). Wait for it to finish - it then appears in the Goods Delivery list - before saving another delivery for it.\"));\n  }\n  const held = picks.filter((p) => num(p.is_processing) === 1 && num(p.lock_age_sec) <= PICK_LOCK_STALE_SEC)[0];\n  if (held) return Object.assign(base, answer(\"BUSY\", \"409\", \"Picking \" + s(held.to_id) + \" is being processed on a device right now. Try again in a moment.\"));\n  if (openPicks.length) return Object.assign(base, answer(\"BUSY\", \"409\", \"Its Picking is being confirmed in the background - please wait for it to finish.\"));\n  if (status !== \"Created\" && status !== \"Draft\") return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery is \" + (status || \"without a status\") + \": only a Created or Draft delivery can be saved as Created\"));\n  if (!digits(f.organization_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery has no organization\"));\n  const m = s(f.last_lock).match(/^LOCK\\|([0-9]+)$/);\n  // a device lock older than PICKING_LOOP's takeover is not a device's any more: the gate reads it released, post.js takes it over\n  const staleLocks = picks.filter((p) => num(p.is_processing) === 1 && num(p.lock_age_sec) > PICK_LOCK_STALE_SEC).map((p) => s(p.id)).filter(digits);\n  return Object.assign(base, answer(\"GO\", \"\", \"\"), { lockN: m ? Number(m[1]) + 1 : 1, staleLocks: staleLocks });\n};\nconst res = submitEntry([{{node:code_node_GSguard.data}}][0], [{{node:sql_node_GSfacts.data}}][0]);\nconsole.log(\"submit entry\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lockN: res.lockN }));\nreturn res;"
     },
     "response_json": [
      {
-      "key": "tgibdqgq",
+      "key": "ql1ghzln",
       "name": "route",
       "title": "route",
       "description": "",
@@ -2293,7 +2311,7 @@
       "children": []
      },
      {
-      "key": "p4o6294r",
+      "key": "qgarmunm",
       "name": "code",
       "title": "code",
       "description": "",
@@ -2302,7 +2320,7 @@
       "children": []
      },
      {
-      "key": "ql1ghzln",
+      "key": "40nm1sg6",
       "name": "message",
       "title": "message",
       "description": "",
@@ -2311,7 +2329,7 @@
       "children": []
      },
      {
-      "key": "qgarmunm",
+      "key": "8gp5o4q2",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -2320,7 +2338,7 @@
       "children": []
      },
      {
-      "key": "40nm1sg6",
+      "key": "39yzl0v2",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -2329,7 +2347,7 @@
       "children": []
      },
      {
-      "key": "8gp5o4q2",
+      "key": "zkfodkwv",
       "name": "gdId",
       "title": "gdId",
       "description": "",
@@ -2338,7 +2356,7 @@
       "children": []
      },
      {
-      "key": "39yzl0v2",
+      "key": "4dl04jut",
       "name": "gdNo",
       "title": "gdNo",
       "description": "",
@@ -2347,7 +2365,7 @@
       "children": []
      },
      {
-      "key": "zkfodkwv",
+      "key": "8437q4qv",
       "name": "organizationId",
       "title": "organizationId",
       "description": "",
@@ -2356,7 +2374,7 @@
       "children": []
      },
      {
-      "key": "4dl04jut",
+      "key": "ufdwbit9",
       "name": "plantId",
       "title": "plantId",
       "description": "",
@@ -2365,7 +2383,7 @@
       "children": []
      },
      {
-      "key": "8437q4qv",
+      "key": "tsxko9qx",
       "name": "lineCount",
       "title": "lineCount",
       "description": "",
@@ -2374,7 +2392,7 @@
       "children": []
      },
      {
-      "key": "ufdwbit9",
+      "key": "kqxz2x95",
       "name": "dbNow",
       "title": "dbNow",
       "description": "",
@@ -2383,7 +2401,7 @@
       "children": []
      },
      {
-      "key": "tsxko9qx",
+      "key": "gzeydad8",
       "name": "lockN",
       "title": "lockN",
       "description": "",
@@ -2392,7 +2410,7 @@
       "children": []
      },
      {
-      "key": "kqxz2x95",
+      "key": "8vhjo8h3",
       "name": "storedStatus",
       "title": "storedStatus",
       "description": "",
@@ -2401,7 +2419,7 @@
       "children": []
      },
      {
-      "key": "gzeydad8",
+      "key": "q5lq31br",
       "name": "command",
       "title": "command",
       "description": "",
@@ -2410,7 +2428,7 @@
       "children": []
      },
      {
-      "key": "8vhjo8h3",
+      "key": "qchqr44u",
       "name": "jobId",
       "title": "jobId",
       "description": "",
@@ -2419,7 +2437,7 @@
       "children": []
      },
      {
-      "key": "q5lq31br",
+      "key": "hsz4rh4k",
       "name": "jobStatus",
       "title": "jobStatus",
       "description": "",
@@ -2428,7 +2446,7 @@
       "children": []
      },
      {
-      "key": "qchqr44u",
+      "key": "ri1pslm2",
       "name": "progressPercent",
       "title": "progressPercent",
       "description": "",
@@ -2437,7 +2455,7 @@
       "children": []
      },
      {
-      "key": "hsz4rh4k",
+      "key": "fbi3l16r",
       "name": "progressMessage",
       "title": "progressMessage",
       "description": "",
@@ -2446,7 +2464,7 @@
       "children": []
      },
      {
-      "key": "ri1pslm2",
+      "key": "z2hdi3oo",
       "name": "errorCode",
       "title": "errorCode",
       "description": "",
@@ -2455,7 +2473,7 @@
       "children": []
      },
      {
-      "key": "fbi3l16r",
+      "key": "n2loq7mn",
       "name": "errorMessage",
       "title": "errorMessage",
       "description": "",
@@ -2464,7 +2482,7 @@
       "children": []
      },
      {
-      "key": "z2hdi3oo",
+      "key": "7kd0mats",
       "name": "notes",
       "title": "notes",
       "description": "",
@@ -2473,7 +2491,7 @@
       "children": []
      },
      {
-      "key": "n2loq7mn",
+      "key": "ez565b3i",
       "name": "cascadeRef",
       "title": "cascadeRef",
       "description": "",
@@ -2482,7 +2500,7 @@
       "children": []
      },
      {
-      "key": "7kd0mats",
+      "key": "dk451cq4",
       "name": "deltaMaterialIdsSql",
       "title": "deltaMaterialIdsSql",
       "description": "",
@@ -2491,7 +2509,7 @@
       "children": []
      },
      {
-      "key": "ez565b3i",
+      "key": "gd0q1a75",
       "name": "deltaSoLineIdsSql",
       "title": "deltaSoLineIdsSql",
       "description": "",
@@ -2500,7 +2518,7 @@
       "children": []
      },
      {
-      "key": "dk451cq4",
+      "key": "foyn5m0y",
       "name": "deltaSoLineIdsQuoted",
       "title": "deltaSoLineIdsQuoted",
       "description": "",
@@ -2509,7 +2527,7 @@
       "children": []
      },
      {
-      "key": "gd0q1a75",
+      "key": "3mc5ogc6",
       "name": "deltaSoIdsSql",
       "title": "deltaSoIdsSql",
       "description": "",
@@ -2518,7 +2536,7 @@
       "children": []
      },
      {
-      "key": "foyn5m0y",
+      "key": "dt766s7j",
       "name": "deltaAllocMaterialIdsSql",
       "title": "deltaAllocMaterialIdsSql",
       "description": "",
@@ -2527,7 +2545,7 @@
       "children": []
      },
      {
-      "key": "3mc5ogc6",
+      "key": "51yg38zt",
       "name": "deltaAllocLineIdsSql",
       "title": "deltaAllocLineIdsSql",
       "description": "",
@@ -2602,7 +2620,7 @@
         },
         "response_json": [
          {
-          "key": "dt766s7j",
+          "key": "q7btqdq8",
           "name": "route",
           "title": "route",
           "description": "",
@@ -2611,7 +2629,7 @@
           "children": []
          },
          {
-          "key": "51yg38zt",
+          "key": "r2zrb66b",
           "name": "code",
           "title": "code",
           "description": "",
@@ -2620,7 +2638,7 @@
           "children": []
          },
          {
-          "key": "q7btqdq8",
+          "key": "vul62dvj",
           "name": "message",
           "title": "message",
           "description": "",
@@ -2629,7 +2647,7 @@
           "children": []
          },
          {
-          "key": "r2zrb66b",
+          "key": "36hx9568",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -2638,7 +2656,7 @@
           "children": []
          },
          {
-          "key": "vul62dvj",
+          "key": "kap2oxn1",
           "name": "command",
           "title": "command",
           "description": "",
@@ -2647,7 +2665,7 @@
           "children": []
          },
          {
-          "key": "36hx9568",
+          "key": "p5v9cmbc",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -2656,7 +2674,7 @@
           "children": []
          },
          {
-          "key": "kap2oxn1",
+          "key": "cec20ks3",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -2665,7 +2683,7 @@
           "children": []
          },
          {
-          "key": "p5v9cmbc",
+          "key": "sdwrs9cb",
           "name": "gd_id",
           "title": "gd_id",
           "description": "",
@@ -2674,7 +2692,7 @@
           "children": []
          },
          {
-          "key": "cec20ks3",
+          "key": "hb1nfvcu",
           "name": "gd_no",
           "title": "gd_no",
           "description": "",
@@ -2683,7 +2701,7 @@
           "children": []
          },
          {
-          "key": "sdwrs9cb",
+          "key": "7c4qg3ri",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -2692,7 +2710,7 @@
           "children": []
          },
          {
-          "key": "hb1nfvcu",
+          "key": "cyrgrcif",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -2701,7 +2719,7 @@
           "children": []
          },
          {
-          "key": "7c4qg3ri",
+          "key": "gulmf0q0",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -2710,7 +2728,7 @@
           "children": []
          },
          {
-          "key": "cyrgrcif",
+          "key": "kp52lxrn",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -2719,7 +2737,7 @@
           "children": []
          },
          {
-          "key": "gulmf0q0",
+          "key": "fzj61ddd",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -2728,7 +2746,7 @@
           "children": []
          },
          {
-          "key": "kp52lxrn",
+          "key": "bzkqxx5v",
           "name": "picking_reversal_note",
           "title": "picking_reversal_note",
           "description": "",
@@ -2737,7 +2755,7 @@
           "children": []
          },
          {
-          "key": "fzj61ddd",
+          "key": "d1c6rpvx",
           "name": "credit_limit_note",
           "title": "credit_limit_note",
           "description": "",
@@ -2746,7 +2764,7 @@
           "children": []
          },
          {
-          "key": "bzkqxx5v",
+          "key": "oztmgla2",
           "name": "cascade_ref",
           "title": "cascade_ref",
           "description": "",
@@ -2755,7 +2773,7 @@
           "children": []
          },
          {
-          "key": "d1c6rpvx",
+          "key": "pp7hcqd4",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -3031,7 +3049,7 @@
         },
         "response_json": [
          {
-          "key": "oztmgla2",
+          "key": "ei2y3a4r",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3081,7 +3099,7 @@
         },
         "response_json": [
          {
-          "key": "pp7hcqd4",
+          "key": "goqqwl3s",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3131,7 +3149,7 @@
         },
         "response_json": [
          {
-          "key": "ei2y3a4r",
+          "key": "di8fg757",
           "name": "k",
           "title": "k",
           "description": "",
@@ -3140,7 +3158,7 @@
           "children": []
          },
          {
-          "key": "goqqwl3s",
+          "key": "osde1fu4",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3190,7 +3208,7 @@
         },
         "response_json": [
          {
-          "key": "di8fg757",
+          "key": "6qob5yt9",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3240,7 +3258,7 @@
         },
         "response_json": [
          {
-          "key": "osde1fu4",
+          "key": "k96uzj7n",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3290,7 +3308,7 @@
         },
         "response_json": [
          {
-          "key": "6qob5yt9",
+          "key": "tawkcnn0",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3340,7 +3358,7 @@
         },
         "response_json": [
          {
-          "key": "k96uzj7n",
+          "key": "1npw2txy",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3390,7 +3408,7 @@
         },
         "response_json": [
          {
-          "key": "tawkcnn0",
+          "key": "wxpm2uuj",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3440,7 +3458,7 @@
         },
         "response_json": [
          {
-          "key": "1npw2txy",
+          "key": "lzyoefps",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3490,7 +3508,7 @@
         },
         "response_json": [
          {
-          "key": "wxpm2uuj",
+          "key": "svjz6r1g",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3540,7 +3558,7 @@
         },
         "response_json": [
          {
-          "key": "lzyoefps",
+          "key": "rgp7ofit",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3590,7 +3608,7 @@
         },
         "response_json": [
          {
-          "key": "svjz6r1g",
+          "key": "rsz6401r",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3640,7 +3658,7 @@
         },
         "response_json": [
          {
-          "key": "rgp7ofit",
+          "key": "rrijozfa",
           "name": "step_name",
           "title": "step_name",
           "description": "",
@@ -3649,7 +3667,7 @@
           "children": []
          },
          {
-          "key": "rsz6401r",
+          "key": "t1r8lvi8",
           "name": "result_ref",
           "title": "result_ref",
           "description": "",
@@ -3699,7 +3717,7 @@
         },
         "response_json": [
          {
-          "key": "rrijozfa",
+          "key": "trr05xp8",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3749,7 +3767,7 @@
         },
         "response_json": [
          {
-          "key": "t1r8lvi8",
+          "key": "b1zrqa9j",
           "name": "k",
           "title": "k",
           "description": "",
@@ -3758,7 +3776,7 @@
           "children": []
          },
          {
-          "key": "trr05xp8",
+          "key": "ccz14q1f",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3808,7 +3826,7 @@
         },
         "response_json": [
          {
-          "key": "b1zrqa9j",
+          "key": "k9xnr1rr",
           "name": "k",
           "title": "k",
           "description": "",
@@ -3817,7 +3835,7 @@
           "children": []
          },
          {
-          "key": "ccz14q1f",
+          "key": "bopidbhd",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3867,7 +3885,7 @@
         },
         "response_json": [
          {
-          "key": "k9xnr1rr",
+          "key": "2vjjbwjl",
           "name": "k",
           "title": "k",
           "description": "",
@@ -3876,7 +3894,7 @@
           "children": []
          },
          {
-          "key": "bopidbhd",
+          "key": "mdp2097t",
           "name": "j",
           "title": "j",
           "description": "",
@@ -3905,7 +3923,7 @@
     },
     "response_json": [
      {
-      "key": "2vjjbwjl",
+      "key": "mcg7bc9r",
       "name": "route",
       "title": "route",
       "description": "",
@@ -3914,7 +3932,7 @@
       "children": []
      },
      {
-      "key": "mdp2097t",
+      "key": "nq202ru5",
       "name": "code",
       "title": "code",
       "description": "",
@@ -3923,7 +3941,7 @@
       "children": []
      },
      {
-      "key": "mcg7bc9r",
+      "key": "0raafzuc",
       "name": "message",
       "title": "message",
       "description": "",
@@ -3932,7 +3950,7 @@
       "children": []
      },
      {
-      "key": "nq202ru5",
+      "key": "llzpa0ju",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -3941,7 +3959,7 @@
       "children": []
      },
      {
-      "key": "0raafzuc",
+      "key": "kkg0dy09",
       "name": "needCL",
       "title": "needCL",
       "description": "",
@@ -3950,7 +3968,7 @@
       "children": []
      },
      {
-      "key": "llzpa0ju",
+      "key": "m2kgho1f",
       "name": "clAutoOverride",
       "title": "clAutoOverride",
       "description": "",
@@ -3959,7 +3977,7 @@
       "children": []
      },
      {
-      "key": "kkg0dy09",
+      "key": "nzmmtuz0",
       "name": "customer",
       "title": "customer",
       "description": "",
@@ -3968,7 +3986,7 @@
       "children": []
      },
      {
-      "key": "m2kgho1f",
+      "key": "cuz9k122",
       "name": "total",
       "title": "total",
       "description": "",
@@ -3977,7 +3995,7 @@
       "children": []
      },
      {
-      "key": "nzmmtuz0",
+      "key": "0xa89z9f",
       "name": "qtyStop",
       "title": "qtyStop",
       "description": "",
@@ -3986,7 +4004,7 @@
       "children": []
      },
      {
-      "key": "cuz9k122",
+      "key": "njqny5sm",
       "name": "delta",
       "title": "delta",
       "description": "",
@@ -3995,7 +4013,7 @@
       "children": []
      },
      {
-      "key": "0xa89z9f",
+      "key": "6xnxmfk0",
       "name": "pickingId",
       "title": "pickingId",
       "description": "",
@@ -4004,7 +4022,7 @@
       "children": []
      },
      {
-      "key": "njqny5sm",
+      "key": "jfgkkmyr",
       "name": "pickingReversalNote",
       "title": "pickingReversalNote",
       "description": "",
@@ -4070,7 +4088,7 @@
         },
         "response_json": [
          {
-          "key": "6xnxmfk0",
+          "key": "1kri0e3f",
           "name": "route",
           "title": "route",
           "description": "",
@@ -4079,7 +4097,7 @@
           "children": []
          },
          {
-          "key": "jfgkkmyr",
+          "key": "09vjtv2d",
           "name": "code",
           "title": "code",
           "description": "",
@@ -4088,7 +4106,7 @@
           "children": []
          },
          {
-          "key": "1kri0e3f",
+          "key": "9tzdf2lo",
           "name": "message",
           "title": "message",
           "description": "",
@@ -4097,7 +4115,7 @@
           "children": []
          },
          {
-          "key": "09vjtv2d",
+          "key": "i88mnumx",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -4106,7 +4124,7 @@
           "children": []
          },
          {
-          "key": "9tzdf2lo",
+          "key": "w6jlnxci",
           "name": "command",
           "title": "command",
           "description": "",
@@ -4115,7 +4133,7 @@
           "children": []
          },
          {
-          "key": "i88mnumx",
+          "key": "sw2j93km",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -4124,7 +4142,7 @@
           "children": []
          },
          {
-          "key": "w6jlnxci",
+          "key": "y1ob29mp",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -4133,7 +4151,7 @@
           "children": []
          },
          {
-          "key": "sw2j93km",
+          "key": "0xl07r9l",
           "name": "gd_id",
           "title": "gd_id",
           "description": "",
@@ -4142,7 +4160,7 @@
           "children": []
          },
          {
-          "key": "y1ob29mp",
+          "key": "r89jxmjn",
           "name": "gd_no",
           "title": "gd_no",
           "description": "",
@@ -4151,7 +4169,7 @@
           "children": []
          },
          {
-          "key": "0xl07r9l",
+          "key": "j0ejed28",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -4160,7 +4178,7 @@
           "children": []
          },
          {
-          "key": "r89jxmjn",
+          "key": "tqzcv48u",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -4169,7 +4187,7 @@
           "children": []
          },
          {
-          "key": "j0ejed28",
+          "key": "7own1lj8",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -4178,7 +4196,7 @@
           "children": []
          },
          {
-          "key": "tqzcv48u",
+          "key": "jyh67zk3",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -4187,7 +4205,7 @@
           "children": []
          },
          {
-          "key": "7own1lj8",
+          "key": "ycvijzmv",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -4196,7 +4214,7 @@
           "children": []
          },
          {
-          "key": "jyh67zk3",
+          "key": "s356tnqz",
           "name": "picking_reversal_note",
           "title": "picking_reversal_note",
           "description": "",
@@ -4205,7 +4223,7 @@
           "children": []
          },
          {
-          "key": "ycvijzmv",
+          "key": "gziwf5bd",
           "name": "credit_limit_note",
           "title": "credit_limit_note",
           "description": "",
@@ -4214,7 +4232,7 @@
           "children": []
          },
          {
-          "key": "s356tnqz",
+          "key": "hvl75y3a",
           "name": "cascade_ref",
           "title": "cascade_ref",
           "description": "",
@@ -4223,7 +4241,7 @@
           "children": []
          },
          {
-          "key": "gziwf5bd",
+          "key": "6zvfvtbu",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -4580,7 +4598,7 @@
     },
     "response_json": [
      {
-      "key": "hvl75y3a",
+      "key": "7739ma0n",
       "name": "route",
       "title": "route",
       "description": "",
@@ -4589,7 +4607,7 @@
       "children": []
      },
      {
-      "key": "6zvfvtbu",
+      "key": "qgve1tgd",
       "name": "code",
       "title": "code",
       "description": "",
@@ -4598,7 +4616,7 @@
       "children": []
      },
      {
-      "key": "7739ma0n",
+      "key": "cjmran3s",
       "name": "message",
       "title": "message",
       "description": "",
@@ -4607,7 +4625,7 @@
       "children": []
      },
      {
-      "key": "qgve1tgd",
+      "key": "zws1utwx",
       "name": "idemKey",
       "title": "idemKey",
       "description": "",
@@ -4616,7 +4634,7 @@
       "children": []
      },
      {
-      "key": "cjmran3s",
+      "key": "5atllbkv",
       "name": "notes",
       "title": "notes",
       "description": "",
@@ -4625,29 +4643,9 @@
       "children": []
      },
      {
-      "key": "zws1utwx",
+      "key": "p0hpq8oh",
       "name": "lockRows",
       "title": "lockRows",
-      "description": "",
-      "bsonType": "array",
-      "isExpand": true,
-      "children": [
-       {
-        "key": "5atllbkv",
-        "name": "items",
-        "title": "",
-        "description": "",
-        "bsonType": "any",
-        "isExpand": false,
-        "isArrayItem": true,
-        "children": []
-       }
-      ]
-     },
-     {
-      "key": "p0hpq8oh",
-      "name": "jobRows",
-      "title": "jobRows",
       "description": "",
       "bsonType": "array",
       "isExpand": true,
@@ -4666,8 +4664,8 @@
      },
      {
       "key": "s9zpzqxu",
-      "name": "gdRows",
-      "title": "gdRows",
+      "name": "jobRows",
+      "title": "jobRows",
       "description": "",
       "bsonType": "array",
       "isExpand": true,
@@ -4686,8 +4684,8 @@
      },
      {
       "key": "sffsgvoj",
-      "name": "pickLockRows",
-      "title": "pickLockRows",
+      "name": "gdRows",
+      "title": "gdRows",
       "description": "",
       "bsonType": "array",
       "isExpand": true,
@@ -4706,6 +4704,26 @@
      },
      {
       "key": "61bm4d6f",
+      "name": "pickLockRows",
+      "title": "pickLockRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "8tqzi3wo",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "mj28pfqj",
       "name": "needPickLock",
       "title": "needPickLock",
       "description": "",
@@ -4771,7 +4789,7 @@
         },
         "response_json": [
          {
-          "key": "8tqzi3wo",
+          "key": "f5whkgqb",
           "name": "route",
           "title": "route",
           "description": "",
@@ -4780,7 +4798,7 @@
           "children": []
          },
          {
-          "key": "mj28pfqj",
+          "key": "c4zj1j88",
           "name": "code",
           "title": "code",
           "description": "",
@@ -4789,7 +4807,7 @@
           "children": []
          },
          {
-          "key": "f5whkgqb",
+          "key": "gngjs9pe",
           "name": "message",
           "title": "message",
           "description": "",
@@ -4798,7 +4816,7 @@
           "children": []
          },
          {
-          "key": "c4zj1j88",
+          "key": "srm2hrzg",
           "name": "reason",
           "title": "reason",
           "description": "",
@@ -4807,7 +4825,7 @@
           "children": []
          },
          {
-          "key": "gngjs9pe",
+          "key": "cwac0rwo",
           "name": "command",
           "title": "command",
           "description": "",
@@ -4816,7 +4834,7 @@
           "children": []
          },
          {
-          "key": "srm2hrzg",
+          "key": "oj2p23w4",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -4825,7 +4843,7 @@
           "children": []
          },
          {
-          "key": "cwac0rwo",
+          "key": "snh6d4pf",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -4834,7 +4852,7 @@
           "children": []
          },
          {
-          "key": "oj2p23w4",
+          "key": "ss841hka",
           "name": "gd_id",
           "title": "gd_id",
           "description": "",
@@ -4843,7 +4861,7 @@
           "children": []
          },
          {
-          "key": "snh6d4pf",
+          "key": "dkqs6wlh",
           "name": "gd_no",
           "title": "gd_no",
           "description": "",
@@ -4852,7 +4870,7 @@
           "children": []
          },
          {
-          "key": "ss841hka",
+          "key": "8siusye4",
           "name": "line_count",
           "title": "line_count",
           "description": "",
@@ -4861,7 +4879,7 @@
           "children": []
          },
          {
-          "key": "dkqs6wlh",
+          "key": "lxituvtf",
           "name": "progress_percent",
           "title": "progress_percent",
           "description": "",
@@ -4870,7 +4888,7 @@
           "children": []
          },
          {
-          "key": "8siusye4",
+          "key": "mg54k793",
           "name": "progress_message",
           "title": "progress_message",
           "description": "",
@@ -4879,7 +4897,7 @@
           "children": []
          },
          {
-          "key": "lxituvtf",
+          "key": "cf12fv1d",
           "name": "error_code",
           "title": "error_code",
           "description": "",
@@ -4888,7 +4906,7 @@
           "children": []
          },
          {
-          "key": "mg54k793",
+          "key": "h7g1wy49",
           "name": "error_message",
           "title": "error_message",
           "description": "",
@@ -4897,7 +4915,7 @@
           "children": []
          },
          {
-          "key": "cf12fv1d",
+          "key": "3zo4jkqo",
           "name": "picking_reversal_note",
           "title": "picking_reversal_note",
           "description": "",
@@ -4906,7 +4924,7 @@
           "children": []
          },
          {
-          "key": "h7g1wy49",
+          "key": "fzzwb4kf",
           "name": "credit_limit_note",
           "title": "credit_limit_note",
           "description": "",
@@ -4915,7 +4933,7 @@
           "children": []
          },
          {
-          "key": "3zo4jkqo",
+          "key": "w13f7i8x",
           "name": "cascade_ref",
           "title": "cascade_ref",
           "description": "",
@@ -4924,7 +4942,7 @@
           "children": []
          },
          {
-          "key": "fzzwb4kf",
+          "key": "w5jkz66d",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -5602,7 +5620,7 @@
     },
     "response_json": [
      {
-      "key": "w13f7i8x",
+      "key": "4lj8lnby",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -5611,7 +5629,7 @@
       "children": []
      },
      {
-      "key": "w5jkz66d",
+      "key": "z4496hsj",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -5620,7 +5638,7 @@
       "children": []
      },
      {
-      "key": "4lj8lnby",
+      "key": "gztszewe",
       "name": "gd_status",
       "title": "gd_status",
       "description": "",
@@ -5629,7 +5647,7 @@
       "children": []
      },
      {
-      "key": "z4496hsj",
+      "key": "cia45zit",
       "name": "queued_at",
       "title": "queued_at",
       "description": "",
@@ -5638,7 +5656,7 @@
       "children": []
      },
      {
-      "key": "gztszewe",
+      "key": "z9kar7pi",
       "name": "request_payload",
       "title": "request_payload",
       "description": "",
@@ -5647,7 +5665,7 @@
       "children": []
      },
      {
-      "key": "cia45zit",
+      "key": "rmslf3xh",
       "name": "lock_ref",
       "title": "lock_ref",
       "description": "",
@@ -5656,7 +5674,7 @@
       "children": []
      },
      {
-      "key": "z9kar7pi",
+      "key": "osa6fmrw",
       "name": "pick_id",
       "title": "pick_id",
       "description": "",
@@ -5665,7 +5683,7 @@
       "children": []
      },
      {
-      "key": "rmslf3xh",
+      "key": "dzdk9s5k",
       "name": "pick_processing",
       "title": "pick_processing",
       "description": "",
@@ -5674,7 +5692,7 @@
       "children": []
      },
      {
-      "key": "osa6fmrw",
+      "key": "km1fegdm",
       "name": "pick_update_time",
       "title": "pick_update_time",
       "description": "",
@@ -5699,7 +5717,7 @@
     },
     "response_json": [
      {
-      "key": "dzdk9s5k",
+      "key": "a1q0npwc",
       "name": "dueRows",
       "title": "dueRows",
       "description": "",
@@ -5707,7 +5725,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "km1fegdm",
+        "key": "jbsgthkj",
         "name": "items",
         "title": "",
         "description": "",
@@ -5719,7 +5737,7 @@
       ]
      },
      {
-      "key": "a1q0npwc",
+      "key": "np8hnchj",
       "name": "needDue",
       "title": "needDue",
       "description": "",
@@ -5879,7 +5897,7 @@
     },
     "response_json": [
      {
-      "key": "jbsgthkj",
+      "key": "tz07afci",
       "name": "route",
       "title": "route",
       "description": "",
@@ -5888,7 +5906,7 @@
       "children": []
      },
      {
-      "key": "np8hnchj",
+      "key": "dfsfmbe2",
       "name": "code",
       "title": "code",
       "description": "",
@@ -5897,7 +5915,7 @@
       "children": []
      },
      {
-      "key": "tz07afci",
+      "key": "fe3fsv9e",
       "name": "message",
       "title": "message",
       "description": "",
@@ -5906,7 +5924,7 @@
       "children": []
      },
      {
-      "key": "dfsfmbe2",
+      "key": "45u2oc1l",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -5915,7 +5933,7 @@
       "children": []
      },
      {
-      "key": "fe3fsv9e",
+      "key": "lrydwmm8",
       "name": "command",
       "title": "command",
       "description": "",
@@ -5924,7 +5942,7 @@
       "children": []
      },
      {
-      "key": "45u2oc1l",
+      "key": "2pm41me6",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -5933,7 +5951,7 @@
       "children": []
      },
      {
-      "key": "lrydwmm8",
+      "key": "0l6o5dsa",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -5942,7 +5960,7 @@
       "children": []
      },
      {
-      "key": "2pm41me6",
+      "key": "y1v7d54b",
       "name": "gd_id",
       "title": "gd_id",
       "description": "",
@@ -5951,7 +5969,7 @@
       "children": []
      },
      {
-      "key": "0l6o5dsa",
+      "key": "8s2loevk",
       "name": "gd_no",
       "title": "gd_no",
       "description": "",
@@ -5960,7 +5978,7 @@
       "children": []
      },
      {
-      "key": "y1v7d54b",
+      "key": "eh4f6i5h",
       "name": "line_count",
       "title": "line_count",
       "description": "",
@@ -5969,7 +5987,7 @@
       "children": []
      },
      {
-      "key": "8s2loevk",
+      "key": "tiew29h8",
       "name": "progress_percent",
       "title": "progress_percent",
       "description": "",
@@ -5978,7 +5996,7 @@
       "children": []
      },
      {
-      "key": "eh4f6i5h",
+      "key": "duscd267",
       "name": "progress_message",
       "title": "progress_message",
       "description": "",
@@ -5987,7 +6005,7 @@
       "children": []
      },
      {
-      "key": "tiew29h8",
+      "key": "i6ht863k",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -5996,7 +6014,7 @@
       "children": []
      },
      {
-      "key": "duscd267",
+      "key": "ied6o8th",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -6005,7 +6023,7 @@
       "children": []
      },
      {
-      "key": "i6ht863k",
+      "key": "ujymbicv",
       "name": "picking_reversal_note",
       "title": "picking_reversal_note",
       "description": "",
@@ -6014,7 +6032,7 @@
       "children": []
      },
      {
-      "key": "ied6o8th",
+      "key": "61t7irx8",
       "name": "credit_limit_note",
       "title": "credit_limit_note",
       "description": "",
@@ -6023,7 +6041,7 @@
       "children": []
      },
      {
-      "key": "ujymbicv",
+      "key": "s4i3b2hk",
       "name": "cascade_ref",
       "title": "cascade_ref",
       "description": "",
@@ -6032,7 +6050,7 @@
       "children": []
      },
      {
-      "key": "61t7irx8",
+      "key": "07o8zcvb",
       "name": "evidence",
       "title": "evidence",
       "description": "",

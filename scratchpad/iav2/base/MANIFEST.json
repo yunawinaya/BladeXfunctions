@@ -1,0 +1,252 @@
+{
+ "pulled_from": "dev (.dbtools/db --dev, SELECT only); prod compared by normalized JSON",
+ "files": {
+  "IA_SAVE.v12.json": {
+   "id": "2098335576774463489",
+   "role": "base of the guarded classic v12; lifted bodies (code_fillback, code_validate, code_receipt_prep, code_batch_decide)",
+   "history_id": "2112142596393050114",
+   "created": "2026-10-19 19:23:31.341000",
+   "md5": "0d0aed27f01bb6feda8be6a2c81b2ab1",
+   "designing": [],
+   "prod_version": 11,
+   "prod_same_normalized": false,
+   "prod_md5": "add587fca6e86fd76d68cb7e82eb24b3"
+  },
+  "IA_REVERT.v5.json": {
+   "id": "2099319746652852225",
+   "role": "must keep reverting V2-completed IAs (movement / FIFO / batch shapes)",
+   "history_id": "2112142600650268674",
+   "created": "2026-10-19 19:23:32.356000",
+   "md5": "08cdc938c9d5fa81ea74ee4ed5a5624b",
+   "designing": [],
+   "prod_version": 4,
+   "prod_same_normalized": false,
+   "prod_md5": "89aa3b08fd6ab756bebe1f02542e29ec"
+  },
+  "CHECK_REQUIRED_FIELD.v8.json": {
+   "id": "1988831880511062018",
+   "role": "lifted in SUBMIT",
+   "history_id": "1996161689612054530",
+   "created": "2025-12-03 18:16:48.351000",
+   "md5": "c3c37c0e255bb39851347b527f7a8199",
+   "designing": [
+    {
+     "v": 9,
+     "same": true
+    }
+   ],
+   "prod_version": 8,
+   "prod_same_normalized": true,
+   "prod_md5": "c3c37c0e255bb39851347b527f7a8199"
+  },
+  "GLOBAL_INVENTORY_VALIDATION.v11.json": {
+   "id": "2056291728334573570",
+   "role": "classic 402 pre-check callee; message texts",
+   "history_id": "2102249942294065154",
+   "created": "2026-09-22 12:13:38.815000",
+   "md5": "248c9eb105a5a69d3334fd0a997f2424",
+   "designing": [],
+   "prod_version": 11,
+   "prod_same_normalized": true,
+   "prod_md5": "248c9eb105a5a69d3334fd0a997f2424"
+  },
+  "GENERATE_BATCH.v20.json": {
+   "id": "2060178784435535873",
+   "role": "called by SUBMIT for 'According To System Settings' parents (pass organization_id)",
+   "history_id": "2102250079493943298",
+   "created": "2026-09-22 12:14:11.526000",
+   "md5": "d32086b10fb3ba385938be390b178c4a",
+   "designing": [],
+   "prod_version": 20,
+   "prod_same_normalized": true,
+   "prod_md5": "d32086b10fb3ba385938be390b178c4a"
+  },
+  "INVENTORY_BULK_APPLY.v10.json": {
+   "id": "2109916822821744641",
+   "role": "the engine, called unchanged by COMMIT I2 / I3 (two operations)",
+   "history_id": "2111082157633343490",
+   "created": "2026-10-16 21:09:43.046000",
+   "md5": "42e1a34ffc73bc7121019573075378ae",
+   "designing": [],
+   "prod": "absent"
+  },
+  "INVENTORY_LOCK_TOKENS.v5.json": {
+   "id": "2105936479113383937",
+   "role": "called by the engine",
+   "history_id": "2111074217052508161",
+   "created": "2026-10-16 20:38:09.864000",
+   "md5": "faf5ea95a2d2ee02000123d07b0dbb2e",
+   "designing": [],
+   "prod": "absent"
+  },
+  "INVENTORY_LOCK_SEED.v5.json": {
+   "id": "2111078356478234625",
+   "role": "called by the engine",
+   "history_id": "2111081505179996162",
+   "created": "2026-10-16 21:07:07.489000",
+   "md5": "c2a4d8f7c39785c429200df60324df44",
+   "designing": [],
+   "prod": "absent"
+  },
+  "ADD_INVENTORY.v65.json": {
+   "id": "2012005532688723970",
+   "role": "classic IN callee; Batch row columns (add_node_F9KqZLfd); parity reference",
+   "history_id": "2100854466608758786",
+   "created": "2026-09-18 15:48:31.484000",
+   "md5": "5fcf78a1a39eff466033c381513d5527",
+   "designing": [
+    {
+     "v": 59,
+     "same": false
+    },
+    {
+     "v": 60,
+     "same": false
+    },
+    {
+     "v": 61,
+     "same": false
+    },
+    {
+     "v": 62,
+     "same": false
+    },
+    {
+     "v": 63,
+     "same": false
+    }
+   ],
+   "prod_version": 65,
+   "prod_same_normalized": true,
+   "prod_md5": "5fcf78a1a39eff466033c381513d5527"
+  },
+  "SUBTRACT_INVENTORY.v59.json": {
+   "id": "2012096660219564034",
+   "role": "classic OUT callee; parity reference",
+   "history_id": "2106937625105862657",
+   "created": "2026-10-05 10:40:49.490000",
+   "md5": "a6b5a04125b9ebacd63596239f3ad3b7",
+   "designing": [
+    {
+     "v": 46,
+     "same": false
+    },
+    {
+     "v": 49,
+     "same": false
+    },
+    {
+     "v": 52,
+     "same": false
+    },
+    {
+     "v": 53,
+     "same": false
+    }
+   ],
+   "prod_version": 58,
+   "prod_same_normalized": false,
+   "prod_md5": "4ab79c01b5c04296f9f530b0ee773aad"
+  },
+  "ACC_PRODUCER.v119.json": {
+   "id": "2013511169625042946",
+   "role": "the client's post call (post_item_assembly)",
+   "history_id": "2103423917572407297",
+   "created": "2026-09-25 17:58:36.331000",
+   "md5": "29293f486626f50695412e165be3d2f9",
+   "designing": [
+    {
+     "v": 118,
+     "same": false
+    },
+    {
+     "v": 120,
+     "same": true
+    },
+    {
+     "v": 121,
+     "same": false
+    }
+   ],
+   "prod_version": 68,
+   "prod_same_normalized": false,
+   "prod_md5": "9960f2fdec29c6d58a3d9f1e6e892d24"
+  },
+  "SQL_FETCH_POST_DATA.v221.json": {
+   "id": "2018512118312943617",
+   "role": "posting fetch preconditions (POST ITEM ASSEMBLY branch)",
+   "history_id": "2112108585880821761",
+   "created": "2026-10-19 17:08:22.603000",
+   "md5": "f2866cdb426791e52f46d85dbb5531b8",
+   "designing": [
+    {
+     "v": 160,
+     "same": false
+    },
+    {
+     "v": 161,
+     "same": false
+    },
+    {
+     "v": 166,
+     "same": false
+    },
+    {
+     "v": 182,
+     "same": false
+    },
+    {
+     "v": 184,
+     "same": false
+    },
+    {
+     "v": 186,
+     "same": false
+    },
+    {
+     "v": 202,
+     "same": false
+    },
+    {
+     "v": 222,
+     "same": true
+    }
+   ],
+   "prod_version": 178,
+   "prod_same_normalized": false,
+   "prod_md5": "0b7be078a0e72b02faa881c1ad3f0807"
+  },
+  "ia_form_v36.json": {
+   "table_id": "2098256587713404929",
+   "history_id": "2112173760071643137",
+   "created": "2026-10-19 21:27:21",
+   "md5": "3fd73ecbf835c0db1b729b76a19519e3",
+   "working_copy_same": true,
+   "prod_version": 31,
+   "prod_same_normalized": false,
+   "prod_md5": "ca8c32f427c4451b16f5a75e0d10d3d2"
+  },
+  "schema_sm_item_assembly.json": {
+   "table_id": "2098256587713404929",
+   "md5": "baa25cf16f2b2492edc24d6576b0439f"
+  },
+  "schema_sm_item_assembly_tlm8ve69_sub.json": {
+   "table_id": "2098269596661833730",
+   "md5": "fceffe7358df18586a376c337f162380"
+  },
+  "schema_batch.json": {
+   "table_id": "1902719754154655746",
+   "md5": "530475b523fa418e1ed2c42f791c748f"
+  },
+  "ia_list_v22.json": {
+   "page_id": "2098312073316716546",
+   "history_id": "2112173765029310466",
+   "created": "2026-10-19 21:27:23",
+   "md5": "430b0658b3174aa28691bc12816e7484",
+   "designing": [],
+   "prod_version": 17,
+   "prod_same_normalized": false,
+   "prod_md5": "2e2bb5d198d36ccddc664a838df9a102"
+  }
+ }
+}

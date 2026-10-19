@@ -4,7 +4,14 @@ there; the tenant / org / varchar ids are hand-quoted, bigint ids bare.
 
 Shapes (code/prepare/adapter.js turns them into what the classic's read nodes handed on): bigint ids CAST AS CHAR, decimals of the
 ledger CAST AS CHAR (exact text; the adapter makes the search-node numbers from it), datetimes 'YYYY-MM-DD HH:MM:SS'.
+The auto allocation's reads (aitem / abal, V2.1) copy GD Edit V2's (scratchpad/gde/prepare/sql.py) with gdc's jobj row builder.
 """
+import json
+import os
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+# item_balance / item_batch_balance columns and kinds (a copy of gde's lift/fields_alloc.json)
+ALLOC_COLS = {k: v for k, v in json.load(open(os.path.join(HERE, "..", "lift", "fields_alloc.json"))).items() if not k.startswith("_")}
 GUARD = "code_node_LPguard"
 ENTRY = "code_node_LPentry"
 
@@ -15,6 +22,30 @@ ORG = "{{node:%s.data.organizationId}}" % ENTRY
 ET = "'{{node:%s.data.tenantId}}'" % ENTRY
 
 LINES_OF = f"sm_location_transfer_d2c7o1jd_sub l WHERE l.tenant_id = {ET} AND l.sm_location_transfer_id = {LOT} AND l.is_deleted = 0"
+SCOPE = "'{{node:%s.data.allocScope}}'" % ENTRY
+PLANT = f"(SELECT h.issuing_operation_faci FROM sm_location_transfer h WHERE h.tenant_id = {ET} AND h.id = {LOT} AND h.is_deleted = 0)"
+# the items the auto allocation may run for (code/prepare/alloc.js lotAllocScope is the same rule): stored lines asking for a
+# quantity with an item; DIRECT / STAGE (EMPTY) only the unpicked ones, COMPLETE / EDIT (REQ) any (their lines come from S|..|LINES)
+CAND = (f"SELECT CAST(l.item_selection AS UNSIGNED) FROM {LINES_OF} AND l.requested_qty > 0 AND COALESCE(l.item_selection, '') <> ''\n"
+        f"                     AND ({SCOPE} = 'REQ' OR ({SCOPE} = 'EMPTY' AND (l.temp_qty_data IS NULL OR TRIM(l.temp_qty_data) IN ('', '[]'))))")
+
+
+def jobj(alias, table):
+    """gdc's prepare/sql.py jobj: bigint / decimal / int raw (JSON numbers), datetimes as the platform prints them"""
+    parts = []
+    for c, (k, _phys) in ALLOC_COLS[table].items():
+        col = f"{alias}.`{c}`"
+        if k == "dt":
+            e = f"DATE_FORMAT({col}, '%Y-%m-%d %H:%i:%s')"
+        elif k == "dt3":
+            e = f"SUBSTRING(DATE_FORMAT({col}, '%Y-%m-%d %H:%i:%s.%f'), 1, 23)"
+        elif k == "date":
+            e = f"DATE_FORMAT({col}, '%Y-%m-%d')"
+        else:
+            e = col
+        parts.append(f"'{c}', {e}")
+    return "JSON_OBJECT(" + ", ".join(parts) + ")"
+
 
 # the job (+ DB clock, lease flag, request) and, for a SUBMIT that stopped before "link", the LOT it left Processing
 JOB_SQL = f"""SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
@@ -59,7 +90,7 @@ READS = {
        'quantity_uom', CAST(l.quantity_uom AS CHAR), 'location_id', CAST(l.location_id AS CHAR), 'storage_location_id', CAST(l.storage_location_id AS CHAR),
        'temp_qty_data', l.temp_qty_data, 'total_quantity', l.total_quantity, 'organization_id', l.organization_id, 'issuing_plant', CAST(l.issuing_plant AS CHAR),
        'receiving_plant', CAST(l.receiving_plant AS CHAR), 'item_remark', l.item_remark, 'parent_id', CAST(l.parent_id AS CHAR),
-       'item_bundle_id', l.item_bundle_id) AS j
+       'item_bundle_id', l.item_bundle_id, 'requested_qty', l.requested_qty) AS j
   FROM {LINES_OF}
  ORDER BY CAST(l.line_index AS UNSIGNED), l.id""", ["j"]),
     # every in-transit row of the document, all statuses (the classic's search: doc_id + organization_id, not deleted)
@@ -90,6 +121,26 @@ READS = {
    AND b.is_deleted = 0
    AND b.plant_id = (SELECT h.issuing_operation_faci FROM sm_location_transfer h WHERE h.tenant_id = {ET} AND h.id = {LOT} AND h.is_deleted = 0)
  ORDER BY b.id""", ["j"]),
+    # GLOBAL_ALLOCATION's sql_node_ItemAlloc for every candidate at once (an sql-node row: its JSON columns stay text)
+    "aitem": (f"""SELECT JSON_OBJECT('id', CAST(i.id AS CHAR), 'material_code', i.material_code, 'item_batch_management', i.item_batch_management,
+       'stock_control', i.stock_control,
+       'uom_conversion_json', CAST(COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('alt_uom_id', CAST(u.alt_uom_id AS CHAR), 'base_qty', u.base_qty))
+                                             FROM item_mji552rc_sub u WHERE u.Item_id = i.id AND u.is_deleted = 0), '[]') AS CHAR),
+       'default_bin_json', CAST(COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('plant_id', CAST(b.plant_id AS CHAR), 'bin_location', CAST(b.bin_location AS CHAR)))
+                                          FROM item_wu520fpw_sub b WHERE b.Item_id = i.id AND b.is_deleted = 0), '[]') AS CHAR)) AS j
+  FROM item i
+ WHERE i.tenant_id = {ET}
+   AND i.is_deleted = 0
+   AND i.id IN ({CAND})
+ ORDER BY i.id""", ["j"]),
+    # GLOBAL_ALLOCATION's balance searches (search_node_mb8Vv8fZ / search_node_ARAmvXyd: material, organization, plant), id order
+    "abal": (f"""SELECT x.k, x.j FROM (
+SELECT 'IB' AS k, b.id AS sid, {jobj('b', 'item_balance')} AS j FROM item_balance b
+ WHERE b.tenant_id = {ET} AND b.is_deleted = 0 AND b.organization_id = '{ORG}' AND b.plant_id = {PLANT} AND b.material_id IN ({CAND})
+UNION ALL
+SELECT 'IBB' AS k, bb.id AS sid, {jobj('bb', 'item_batch_balance')} AS j FROM item_batch_balance bb
+ WHERE bb.tenant_id = {ET} AND bb.is_deleted = 0 AND bb.organization_id = '{ORG}' AND bb.plant_id = {PLANT} AND bb.material_id IN ({CAND})
+) x ORDER BY x.k, x.sid""", ["k", "j"]),
     # the LOT's latest document lock (result_ref = the owning job's idempotency_key)
     "lock": (f"""SELECT p.step_name, p.result_ref
   FROM gd_publish_step p

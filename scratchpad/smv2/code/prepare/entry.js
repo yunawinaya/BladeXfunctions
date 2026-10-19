@@ -4,7 +4,7 @@
 const prepareEntry = function prepareEntry(guard, rows, uuid) {
   const job = lotList(rows).filter((r) => r && lotS(r.id))[0] || null;
   const base = { route: "NOOP", jobId: guard.jobId, tenantId: guard.tenantId, organizationId: "0", lotId: "0", idempotencyKey: "", rowVersion: 0, attempts: 0, dbNow: "", nonce: "",
-    request: {}, action: "", prevStatus: "", saveAs: "", unlockRows: [], result_code: "", result_message: "" };
+    request: {}, action: "", prevStatus: "", saveAs: "", allocScope: "NONE", unlockRows: [], result_code: "", result_message: "" };
   if (!job || String(job.is_deleted) === "1") return Object.assign(base, { result_code: "LOT_INVALID_DATA", result_message: "job " + guard.jobId + " not found" });
   if (lotS(job.command) !== "SAVE_LOT") return Object.assign(base, { result_code: "LOT_INVALID_DATA", result_message: "job command is " + lotS(job.command) });
   if (lotS(job.job_status) !== "VALIDATING") return Object.assign(base, { result_code: "JOB_ILLEGAL_TRANSITION", result_message: "job is " + lotS(job.job_status) + ": only a VALIDATING job is prepared" });
@@ -22,7 +22,9 @@ const prepareEntry = function prepareEntry(guard, rows, uuid) {
     return Object.assign(base, common, { route: "FAIL", prevStatus: prev, unlockRows: stray, result_code: "LOT_INVALID_REQUEST",
       result_message: "The save stopped before the Location Transfer was linked to its job: please save it again." });
   }
-  return Object.assign(base, common, { route: "GO", lotId: m[1], request: req, action: lotS(req.action), prevStatus: prev, saveAs: lotS(req.saveAs),
+  // which stored lines the auto allocation's reads cover (prepare/sql.py CAND): DIRECT / STAGE the unpicked ones, COMPLETE / EDIT any
+  const scope = { DIRECT: "EMPTY", STAGE: "EMPTY", COMPLETE: "REQ", EDIT: "REQ" }[lotS(req.action)] || "NONE";
+  return Object.assign(base, common, { route: "GO", lotId: m[1], request: req, action: lotS(req.action), prevStatus: prev, saveAs: lotS(req.saveAs), allocScope: scope,
     result_message: lotS(req.action) + " Location Transfer " + (lotS(req.lotNo) || m[1]) });
 };
 const guard = [{{node:code_node_LPguard.data}}][0];

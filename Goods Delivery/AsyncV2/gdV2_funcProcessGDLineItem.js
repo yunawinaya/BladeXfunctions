@@ -18,6 +18,8 @@ const GD_V2_WF = {
 // frozen func_processGDLineItem (the only change is the hop through this handler). Off while R4 is open: the stock
 // check has never run in a real organization.
 const STOCK_CHECK_ENABLED = false;
+// Convert to GD (the form opened in Add with the SO's lines) uses the stock check even while STOCK_CHECK_ENABLED is off
+const CONVERT_STOCK_CHECK_ENABLED = true;
 
 const UXC = {"ux_of_job":{"QUEUED":"QUEUED","VALIDATING":"PREPARING","AWAITING_CONFIRMATION":"PREPARING","CALCULATING":"PREPARING","READY_TO_COMMIT":"PREPARING","COMMITTING_GD":"PUBLISHING","RECONCILING_GD":"PUBLISHING","GD_COMMITTED":"CREATED","CREATING_PICKING":"CREATED","PICKING_RETRYING":"CREATED","PICKING_READY":"CREATED","COMPLETED":"CREATED","FAILED":"REJECTED","CANCELLED":"REJECTED","REQUIRES_REVIEW":"REQUIRES_REVIEW"},"labels":{"QUEUED":"Queued","PREPARING":"Preparing","PUBLISHING":"Publishing","CREATED":"Created","REJECTED":"Rejected","REQUIRES_REVIEW":"Requires review"},"display":{"QUEUED":"Queued for processing","VALIDATING":"Validating","AWAITING_CONFIRMATION":"Conditions changed; confirmation needed","CALCULATING":"Checking stock and allocation","READY_TO_COMMIT":"Ready to publish","COMMITTING_GD":"Publishing Goods Delivery","RECONCILING_GD":"GD {gd_no} created; finishing publication","GD_COMMITTED":"GD {gd_no} created","CREATING_PICKING":"GD {gd_no} created; creating Picking","PICKING_RETRYING":"GD {gd_no} created; Picking retrying","PICKING_READY":"GD {gd_no} created; Picking {picking_no} ready","COMPLETED":"GD {gd_no} created; processing complete","FAILED":"Not created; correct the highlighted lines","CANCELLED":"Cancelled before publishing","REQUIRES_REVIEW":"Under review (ref {review_reference}); do not retry"},"pre_commit":["QUEUED","VALIDATING","AWAITING_CONFIRMATION","CALCULATING","READY_TO_COMMIT"],"cancellable":["QUEUED","VALIDATING","AWAITING_CONFIRMATION","CALCULATING","READY_TO_COMMIT"],"post_commit":["GD_COMMITTED","CREATING_PICKING","PICKING_RETRYING","PICKING_READY","COMPLETED"],"terminal":["COMPLETED","FAILED","CANCELLED","REQUIRES_REVIEW"],"retry_codes":["GD_TRANSIENT_DEADLOCK","GD_TRANSIENT_LOCK_TIMEOUT","GD_TRANSIENT_CONNECTIVITY","GD_TRANSIENT_RETRIES_EXHAUSTED","GD_INVENTORY_RETRYABLE_REJECTION"],"uncertain_ops":["MUTATING","VERIFYING","REQUIRES_REVIEW"],"claim_prefix":"W0_CLAIM_","rclaim_prefix":"R0_CLAIM_","cancel_owner_prefix":"CAN|","lease_minutes":10,"stock_chunk":50,"poll":{"first_ms":2000,"factor":1.5,"max_ms":10000,"budget_ms":600000},"key_prefix":"GDF","header_fields":["plant_id","customer_name","currency_code","so_no","pp_no","so_id","gd_billing_address","gd_shipping_address","delivery_no","gd_contact_name","contact_number","email_address","gd_delivery_method","delivery_date","document_description","assigned_to","organization_id","gd_created_by","acc_integration_type","reference_type","gd_ref_doc","last_sync_date","customer_credit_limit","overdue_limit","outstanding_balance","overdue_inv_total_amount","is_accurate","driver_name","ic_no","driver_contact_no","vehicle_no","pickup_date","validity_of_collection","courier_company","shipping_date","freight_charges","tracking_number","est_arrival_date","est_delivery_date","delivery_cost","shipping_company","shipping_method","tpt_vehicle_number","tpt_transport_name","tpt_ic_no","tpt_driver_contact_no","select_vehicle_id","gd_vehicle_type","gd_vehicle_capacity","gd_vehicle_cap_uom","select_driver_id","gd_driver_contact","gd_driver_ic","gd_total","order_tnc","order_payment_details","order_delivery_term","order_remark","order_remark2","order_remark3","order_remark4","order_remark5","picking_status","billing_address_name","billing_address_phone","billing_address_line_1","billing_address_line_2","billing_address_line_3","billing_address_line_4","billing_address_city","billing_postal_code","billing_address_state","billing_address_country","billing_attention","billing_address_fax","billing_address_code","shipping_address_code","shipping_address_fax","shipping_address_name","shipping_address_phone","shipping_address_line_1","shipping_address_line_2","shipping_address_line_3","shipping_address_line_4","shipping_address_city","shipping_postal_code","shipping_address_state","shipping_address_country","shipping_attention","delivery_no_type","to_no","is_select_picking","pp_id","sp_vehicle_no","gd_area_id","tpt_driver_name","di_shipping_method","di_driver_name","di_ic_no","di_driver_contact_no","di_shipping_company","di_transport_name","di_vehicle_number","di_est_delivery_date","di_est_arrival_date","di_pickup_date","di_validity_of_collection","di_tracking_number","di_freight_charges","project_id","sales_person"],"cancel_message":"Saving has started; cancellation is no longer possible","mismatch_message":"Save outcome requires review"};
 const gdV2StockRequests = function gdV2StockRequests(items) {
@@ -331,8 +333,7 @@ const gdV2LoadStockFacts = (items, plantId) => {
     }
     if (failed) {
       console.error("GD V2 stock check failed:", failed);
-      this.$message.error("Stock check failed (" + failed + "): quantities are not suggested. Use Select Stock on each line.");
-      return gdV2FactsMaps(gdV2MergeFacts([]));
+      return Object.assign(gdV2FactsMaps(gdV2MergeFacts([])), { failed: failed });
     }
     console.log("GD V2 stock check: " + requests.length + " GD_STOCK_CHECK call(s) for " + (items || []).length + " line(s)");
     return gdV2FactsMaps(Object.assign(gdV2MergeFacts(facts), { calls: requests.length }));
@@ -1248,7 +1249,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
   // V2 is behind a switch (this form definition serves every tenant): the new stock check runs only while
   // STOCK_CHECK_ENABLED is true and GD_STOCK_CHECK has an id; otherwise the frozen handler runs, unchanged, before
   // anything else happens (no overlay, no read, no workflow call here)
-  if (!GD_V2_WF.STOCK_CHECK || STOCK_CHECK_ENABLED !== true) {
+  const gdV2Convert = CONVERT_STOCK_CHECK_ENABLED === true && this.getValue("page_status") === "Add";
+  if (!GD_V2_WF.STOCK_CHECK || (STOCK_CHECK_ENABLED !== true && !gdV2Convert)) {
     console.log("GD V2: stock check switched off (STOCK_CHECK_ENABLED) or not configured; running func_processGDLineItem");
     await this.triggerEvent("func_processGDLineItem", arguments[0]);
     return;
@@ -1338,7 +1340,12 @@ const createTableGdWithBaseUOM = async (allItems) => {
 
   console.log("new all item", allItems);
   // V2: the stock facts of every line - one GD_STOCK_CHECK call per <= 50 lines, loaded once
-  await gdV2LoadStockFacts(allItems, plant);
+  if ((await gdV2LoadStockFacts(allItems, plant)).failed) {
+    console.log("GD V2: stock check failed; running func_processGDLineItem");
+    this.hideLoading();
+    await this.triggerEvent("func_processGDLineItem", arguments[0]);
+    return;
+  }
   let newTableGd = await createTableGdWithBaseUOM(allItems);
 
   // Update table_gd with empty insufficient dialog (will be populated by checkInventoryWithDuplicates)

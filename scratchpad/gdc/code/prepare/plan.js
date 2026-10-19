@@ -4,6 +4,8 @@
 const GC_HEADER_COLS = ["gd_status", "gd_total", "picking_status", "so_id", "so_no"];
 const GC_LINE_COLS = ["prev_temp_qty_data", "customer_id", "organization_id", "plant_id", "billing_state_id", "billing_country_id", "shipping_state_id",
   "shipping_country_id", "assigned_to", "area_id", "line_index", "gd_undelivered_qty", "packing_qty", "net_weight"];
+// a Force Complete's fill-back also stamps every line's picking_status (and a descriptive line's packing_status) Completed
+const GC_FORCE_LINE_COLS = ["picking_status", "packing_status"];
 const gcPlan = function gcPlan(entry, S) {
   const s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
   const num = (v) => Number(v || 0);
@@ -11,6 +13,8 @@ const gcPlan = function gcPlan(entry, S) {
   const fail = (code, message) => Object.assign(base, { code: code, message: message });
   const req = entry.request || {};
   const answers = req.answers || {};
+  const forced = s(answers.isForceComplete) === "Yes";
+  const lineCols = forced ? GC_LINE_COLS.concat(GC_FORCE_LINE_COLS) : GC_LINE_COLS;
 
   const R = gcAdapt(S);
   if (!R.gd.count) return fail("GDC_GD_NOT_FOUND", "Goods Delivery " + s(entry.gdId) + " not found");
@@ -116,7 +120,7 @@ const gcPlan = function gcPlan(entry, S) {
   // anything else would be a code path this port has not seen
   const outside = [];
   for (const c of Object.keys(header)) if (GC_HEADER_COLS.indexOf(c) < 0) outside.push("header." + c);
-  for (const l of lines) for (const c of Object.keys(l)) if (c !== "id" && GC_LINE_COLS.indexOf(c) < 0 && outside.indexOf("line." + c) < 0) outside.push("line." + c);
+  for (const l of lines) for (const c of Object.keys(l)) if (c !== "id" && lineCols.indexOf(c) < 0 && outside.indexOf("line." + c) < 0) outside.push("line." + c);
   if (outside.length) return fail("GDC_UNEXPECTED_PATCH", "the completion would also change " + outside.join(", "));
 
   // GD_COMPLETION_SNAPSHOT reads only these fields of allData (code_node_zRrqNcLM, code_node_RxN5tWmA)
@@ -166,9 +170,14 @@ const gcPlan = function gcPlan(entry, S) {
     }
     manifestParts[name] = names;
   }
+  // Force Complete: COMMIT closes the GD's Picking rows (C4P) and, at C0, re-reads this line fingerprint (taken before the reads): a
+  // pick confirmation that passed its GD check just before SUBMIT may have written the lines after PREPARE read them
+  const fp = (Array.isArray(S.fp) ? S.fp : S.fp ? [S.fp] : [])[0] || {};
+  if (forced && (s(fp.n) === "" || s(fp.fp) === "")) return fail("GDC_INVALID_DATA", "the delivery lines' fingerprint could not be read");
   const manifest = {
     v: 1, prepared_by: "GD_COMPLETE_PREPARE", job_id: jobId, gd_id: s(stored.id), gd_no: P.no, organization_id: P.org, plant_id: P.plant,
     source: s(req.source), submitted_by: s(req.submitted_by), nonce: nonce, parts: manifestParts,
+    force: forced ? 1 : 0, fp: forced ? { n: s(fp.n), sum: s(fp.fp) } : null,
     counts: { lines: flat(stored.table_gd).length, movements: movements.length, reservation_updates: resUpdates.length, reservation_creates: resCreates.length,
       gd_line_patches: lines.length, so_lines: so.tableGD.length, hu: (exec.huUpdates || []).length, picking_stamps: (ob.pickingRecordUpdates || []).length },
   };

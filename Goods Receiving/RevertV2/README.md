@@ -51,6 +51,10 @@ Switch: `ASYNC_REVERT_ENABLED` at the top of the handler (`false` = classic for 
   key another job holds means a 5 s wait that does not count as a retry. The locks are given back on every R2 exit and
   after R2 DONE, then read back; a lock still held makes the job retry with backoff before it moves on to R3. The
   classic revert takes no lock, like every classic posting.
+- A COMMIT run's job lease is sized to the job (since 2026-10-19; dev GR_COMPLETE_COMMIT v8, PUTAWAY_BULK_COMMIT v8, GR_REVERT_COMMIT v7):
+  10 min + 0.6 s per stock movement, at most 90 min. The engine's stock step takes about 0.14 s per lock key on dev
+  (2026-10-19), so a 2,000-2,500-line job can post for 12-23 min. With the old flat 10 min, a re-kick after the lease ran
+  out started a second run of the same job while the first was still posting, and the stock movements were duplicated.
 
 ## Tested on dev (tenant 711077, 2026-10-15)
 

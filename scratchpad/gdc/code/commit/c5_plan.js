@@ -1,7 +1,8 @@
 // GD_COMPLETE_COMMIT - C5 plan: the GD part's patches on the GD as stored (raw, so a "" stays ""): the changed lines in
-// slices (the 14 columns the Completed path sets on a line) and the header (gd_status Completed + the 4 it can change)
+// slices (the 14 columns the Completed path sets on a line, + a Force Complete's picking / packing stamps) and the header
+// (gd_status Completed + the 4 it can change)
 const GC_LINE_COLS = ["prev_temp_qty_data", "customer_id", "organization_id", "plant_id", "billing_state_id", "billing_country_id", "shipping_state_id",
-  "shipping_country_id", "assigned_to", "area_id", "line_index", "gd_undelivered_qty", "packing_qty", "net_weight"];
+  "shipping_country_id", "assigned_to", "area_id", "line_index", "gd_undelivered_qty", "packing_qty", "net_weight", "picking_status", "packing_status"];
 const DEC = { gd_total: 1, gd_undelivered_qty: 1, packing_qty: 1, net_weight: 1 };
 const JSONC = { so_id: 1, assigned_to: 1 };
 const cell = function cell(c, v) {

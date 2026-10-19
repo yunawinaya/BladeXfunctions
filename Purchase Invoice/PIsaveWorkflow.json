@@ -597,74 +597,328 @@
       "blocks": []
     },
     {
-      "id": "search_node_po",
-      "type": "search-node",
+      "id": "condition_all_pi_fetch",
+      "type": "condition-all-node",
       "data": {
-        "table_id": {
-          "source": "Purchase Order:Table:1902776039445217282",
-          "rules": {
-            "collectionId": "1902776039445217282",
-            "list": [
-              {
-                "id": 1772617932161,
-                "parentId": 1772617932160,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_pi_fillback.data.entry.po_id}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
+        "title": "Parallel Fetch",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "condition_all_pi_fetch_item_po",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 1",
+            "filter": {
+              "list": [
+                {
+                  "id": 1792300000108,
+                  "parentId": 1792300000107,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "true", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 1",
+            "name": "Branch 1",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_node_po",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Purchase Order:Table:1902776039445217282",
+                  "rules": {
+                    "collectionId": "1902776039445217282",
+                    "list": [
+                      {
+                        "id": 1772617932161,
+                        "parentId": 1772617932160,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_pi_fillback.data.entry.po_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Fetch PO Data",
+                "isValidator": true,
+                "nodeName": "Fetch PO Data",
+                "name": "Fetch PO Data"
+              },
+              "blocks": []
+            }
+          ]
         },
-        "condition": {},
-        "limit": 100,
-        "title": "Fetch PO Data",
+        {
+          "id": "condition_all_pi_fetch_item_gr",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 2",
+            "filter": {
+              "list": [
+                {
+                  "id": 1792300000110,
+                  "parentId": 1792300000109,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "true", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 2",
+            "name": "Branch 2",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "search_node_gr",
+              "type": "search-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Receiving:Table:1901845517592285186",
+                  "rules": {
+                    "collectionId": "1901845517592285186",
+                    "list": [
+                      {
+                        "id": 1772617963175,
+                        "parentId": 1772617963174,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_pi_fillback.data.entry.gr_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "condition": {},
+                "limit": 100,
+                "title": "Fetch GR Data",
+                "isValidator": true,
+                "nodeName": "Fetch GR Data",
+                "name": "Fetch GR Data"
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "condition_all_pi_fetch_item_pi",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Branch 3",
+            "filter": {
+              "list": [
+                {
+                  "id": 1792300000112,
+                  "parentId": 1792300000111,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "true", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Branch 3",
+            "name": "Branch 3",
+            "condition_type": "Expression"
+          },
+          "blocks": [
+            {
+              "id": "if_pi_edit",
+              "type": "if",
+              "data": {
+                "title": "Edit?",
+                "isValidator": true,
+                "nodeName": "Edit?",
+                "name": "Edit?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{workflowparams:data.page_status}}' == 'Edit'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_pi_edit_true",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "get_node_pi_stored",
+                      "type": "get-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Purchase Invoice:Table:1902777443710779394",
+                          "rules": {
+                            "collectionId": "1902777443710779394",
+                            "list": [
+                              {
+                                "id": 1792300000106,
+                                "parentId": 1792300000105,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_pi_fillback.data.entry.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "condition": {},
+                        "title": "Fetch Stored PI",
+                        "isValidator": true,
+                        "nodeName": "Fetch Stored PI",
+                        "name": "Fetch Stored PI"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_pi_edit_false",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_pi_guard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Stored PI Still Draft?",
         "isValidator": true,
-        "nodeName": "Fetch PO Data",
-        "name": "Fetch PO Data"
+        "nodeName": "Stored PI Still Draft?",
+        "name": "Stored PI Still Draft?",
+        "script": {
+          "type": "javascript",
+          "code": "const entry = {{node:code_pi_fillback.data.entry}};\nconst stored = {{node:get_node_pi_stored.data.data}};\n\nconst record = (Array.isArray(stored) ? stored : [stored]).find((row) => row && String(row.id) === String(entry.id));\nconst storedStatus = record ? String(record.pi_status || \"\") : \"\";\nconst blocked = storedStatus !== \"\" && storedStatus !== \"Draft\";\n\nreturn {\n  blocked: blocked ? 1 : 0,\n  message: blocked\n    ? `Purchase Invoice ${record.purchase_invoice_no || \"\"} is already ${storedStatus}, so it was not saved again. Close and reopen it to see its current state.`\n    : \"\",\n};"
+        },
+        "response_json": [
+          {
+            "key": "guardblk",
+            "name": "blocked",
+            "title": "blocked",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "guardmsg",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
       },
       "blocks": []
     },
     {
-      "id": "search_node_gr",
-      "type": "search-node",
+      "id": "if_pi_guard_failed",
+      "type": "if",
       "data": {
-        "table_id": {
-          "source": "Goods Receiving:Table:1901845517592285186",
-          "rules": {
-            "collectionId": "1901845517592285186",
-            "list": [
-              {
-                "id": 1772617963175,
-                "parentId": 1772617963174,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{node:code_pi_fillback.data.entry.gr_id}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "主键ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
-        },
-        "condition": {},
-        "limit": 100,
-        "title": "Fetch GR Data",
+        "title": "Already Saved?",
         "isValidator": true,
-        "nodeName": "Fetch GR Data",
-        "name": "Fetch GR Data"
+        "nodeName": "Already Saved?",
+        "name": "Already Saved?",
+        "condition_type": "Expression",
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_pi_guard.data.blocked}}' == '1'"
+        }
       },
-      "blocks": []
+      "blocks": [
+        {
+          "id": "ifBlock_pi_guard_failed_true",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "end_pi_409",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_pi_guard.data.message}}"
+                },
+                "code": 409
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_pi_guard_failed_false",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "if_pi_completed_validate",
@@ -2386,122 +2640,80 @@
                 "name": "Map Updated PO & GR (apply)",
                 "script": {
                   "type": "javascript",
-                  "code": "const poList = {{node:search_node_po.data.data}} || [];\nconst grList = {{node:search_node_gr.data.data}} || [];\nconst data = {{node:code_pi_fillback.data.entry}};\n\nconst absRound8 = (value) => {\n  let positiveValue = Math.abs(value);\n  return Math.round((parseFloat(positiveValue) || 0) * 100000000) / 100000000;\n};\n\n// A bundle line has no item of its own; the items under it carry both the\n// bundle and an item. All three tables reach this node in one of two shapes --\n// nested under `children`, which is what the form hands over, or flat with a\n// bundle's items following their bundle line, which is what table_po / table_gr\n// read back from the database look like -- so both are read here.\n//\n// Both levels carry an invoiced quantity, so both are walked, and each row\n// remembers the position of its bundle line (-1 when it is not in a bundle) and\n// whether it was nested to begin with. Status flows down that link, and what is\n// written back keeps the shape it arrived in rather than being re-nested.\nconst bundleKey = (row) => {\n  const bundle = row.item_bundle_id;\n\n  if (bundle && typeof bundle === \"object\") {\n    return String(bundle.id || bundle.ib_no || \"\");\n  }\n\n  return String(bundle || \"\");\n};\n\nconst flattenWithParent = (rows, itemKey) => {\n  const flat = [];\n  const positionOf = new Map();\n\n  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];\n  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);\n\n  let openBundle = -1; // bundle line the flat rows below it belong to\n\n  for (const [index, row] of (rows || []).entries()) {\n    const position = flat.length;\n    positionOf.set(index, position);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    // Already a tree: nothing to reattach, and a bundle spelled out this way\n    // ends whatever run was open above it.\n    if (children.length > 0) {\n      openBundle = -1;\n      flat.push({ row, parent: -1, nested: false });\n\n      for (const child of children) {\n        flat.push({ row: child, parent: position, nested: true });\n      }\n\n      continue;\n    }\n\n    if (isBundleRow(row)) {\n      openBundle = position;\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    if (!isBundleItem(row)) {\n      openBundle = -1; // a plain line closes the bundle above it\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    // A flat item: linked to its bundle line by id, or else belonging to the\n    // bundle line it follows, as long as that is the same bundle.\n    let parent = -1;\n\n    for (let candidate = index - 1; candidate >= 0; candidate--) {\n      const candidateRow = rows[candidate];\n\n      if (!isBundleRow(candidateRow)) continue;\n\n      const byId =\n        row.parent_id != null &&\n        candidateRow.id != null &&\n        String(row.parent_id) === String(candidateRow.id);\n      const byKey =\n        row.parent_fm_key != null &&\n        candidateRow.fm_key != null &&\n        String(row.parent_fm_key) === String(candidateRow.fm_key);\n\n      if (byId || byKey) {\n        parent = positionOf.get(candidate);\n        break;\n      }\n    }\n\n    if (\n      parent === -1 &&\n      openBundle !== -1 &&\n      bundleKey(flat[openBundle].row) === bundleKey(row)\n    ) {\n      parent = openBundle;\n    }\n\n    flat.push({ row, parent, nested: false });\n  }\n\n  return flat;\n};\n\nconst flattenRows = (rows, itemKey) =>\n  flattenWithParent(rows, itemKey).map((item) => item.row);\n\nconst processItems = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey) => {\n  const filteredPI = flattenRows(tablePi, \"material_id\").filter((item) => item[docIdKey] === docId);\n\n  // Distribute combined split-parent PI lines (gr_line_id empty) across their\n  // constituent Split-Parent GR rows, fill-order by remaining capacity.\n  const isGR = piLineIdKey === \"gr_line_id\";\n  const distributedByRowId = {};\n  if (isGR) {\n    const combinedPIs = filteredPI.filter((pi) => (!pi.gr_line_id || pi.gr_line_id === \"\") && pi.po_line_id);\n    for (const cpi of combinedPIs) {\n      const groupRows = items.filter((r) => r.parent_or_child === \"Split-Parent\" && r.po_line_item_id === cpi.po_line_id).sort((a, b) => String(a.line_index).localeCompare(String(b.line_index), undefined, { numeric: true }));\n      let remainingToAllocate = absRound8(cpi.invoice_qty);\n      for (const r of groupRows) {\n        if (remainingToAllocate <= 0) break;\n        const already = distributedByRowId[r.id] || 0;\n        const capacity = absRound8((parseFloat(r.received_qty) || 0) - (parseFloat(r.invoice_qty) || 0) - already);\n        if (capacity <= 0) continue;\n        const alloc = Math.min(remainingToAllocate, capacity);\n        distributedByRowId[r.id] = absRound8(already + alloc);\n        remainingToAllocate = absRound8(remainingToAllocate - alloc);\n      }\n    }\n  }\n\n  // Invoiced quantity is set on every line, a bundle's items included.\n  const updated = flattenWithParent(items, \"item_id\").map(({ row, parent, nested }) => {\n    const matchedPIs = filteredPI.filter((pi) => pi[piLineIdKey] === row.id);\n    const directQty = matchedPIs.length > 0 ? absRound8(matchedPIs.reduce((s, pi) => s + (parseFloat(pi.invoice_qty) || 0), 0)) : 0;\n    const distributedQty = distributedByRowId[row.id] || 0;\n    const piInvoicedQty = absRound8(directQty + distributedQty);\n    if (piInvoicedQty !== 0) {\n      const currentInvoicedQty = absRound8(row.invoice_qty);\n      const totalInvoicedQty = absRound8(currentInvoicedQty + piInvoicedQty);\n      return { row: { ...row, invoice_qty: totalInvoicedQty }, parent, nested };\n    }\n    return { row: { ...row }, parent, nested };\n  });\n\n  // Only a bundle line's own quantity decides its status — its items cannot be\n  // invoiced independently of it — so status is worked out on the top-level\n  // lines and then handed down. Split children are skipped here as before.\n  let totalItems = 0;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n\n  for (const entry of updated) {\n    if (entry.parent !== -1) continue;\n    if (entry.row.parent_or_child === \"Child\") continue;\n\n    totalItems++;\n\n    if (absRound8(entry.row.invoice_qty) > 0) {\n      partiallyInvoicedItems++;\n      entry.row.pi_status = \"Partially Invoiced\";\n      if (absRound8(entry.row.invoice_qty) >= absRound8(entry.row[qtyKey] || 0)) {\n        fullyInvoicedItems++;\n        entry.row.pi_status = \"Fully Invoiced\";\n      }\n    }\n  }\n\n  // A bundle's items carry the bundle's status, whatever it came out as.\n  for (const entry of updated) {\n    if (entry.parent === -1) continue;\n\n    entry.row.pi_status = updated[entry.parent].row.pi_status;\n  }\n\n  // Written back as table_po / table_gr in the shape it arrived in: a bundle's\n  // items go back under their bundle line only if that is where they came from,\n  // and stay where they are when the document keeps them as flat rows.\n  const updatedItems = [];\n\n  for (const [index, entry] of updated.entries()) {\n    if (entry.nested) continue;\n\n    const children = updated\n      .filter((candidate) => candidate.nested && candidate.parent === index)\n      .map((candidate) => candidate.row);\n\n    if (children.length > 0) {\n      updatedItems.push({ ...entry.row, children });\n    } else if (Array.isArray(entry.row.children)) {\n      updatedItems.push({ ...entry.row, children: [] });\n    } else {\n      updatedItems.push(entry.row);\n    }\n  }\n\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newPIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { updatedItems, newPIStatus };\n};\n\nconst poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\nlet updatedPO = [];\nfor (const poID of poIds) {\n  const poData = poList.find((po) => po.id === poID);\n  if (!poData) continue;\n  const poItems = poData.table_po || [];\n  const { updatedItems, newPIStatus } = processItems(poItems, data.table_pi, poData.id, \"line_po_id\", \"po_line_id\", \"quantity\");\n  updatedPO.push({ po_id: poData.id, pi_status: newPIStatus, table_po: updatedItems });\n}\n\nlet updatedGR = [];\nif (data.gr_id && data.gr_id.length > 0) {\n  const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n  for (const grID of grIds) {\n    const grData = grList.find((gr) => gr.id === grID);\n    if (!grData) continue;\n    const grItems = grData.table_gr || [];\n    const { updatedItems, newPIStatus } = processItems(grItems, data.table_pi, grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\");\n    updatedGR.push({ gr_id: grData.id, pi_status: newPIStatus, table_gr: updatedItems });\n  }\n}\n\nreturn { updatedPO, updatedGR };"
+                  "code": "const poList = {{node:search_node_po.data.data}} || [];\nconst grList = {{node:search_node_gr.data.data}} || [];\nconst data = {{node:code_pi_fillback.data.entry}};\n\nconst absRound8 = (value) => {\n  let positiveValue = Math.abs(value);\n  return Math.round((parseFloat(positiveValue) || 0) * 100000000) / 100000000;\n};\nconst qtyStr = (value) => absRound8(value).toFixed(8);\n\n// A bundle line has no item of its own; the items under it carry both the\n// bundle and an item. All three tables reach this node in one of two shapes --\n// nested under `children`, which is what the form hands over, or flat with a\n// bundle's items following their bundle line, which is what table_po / table_gr\n// read back from the database look like -- so both are read here.\n//\n// Both levels carry an invoiced quantity, so both are walked, and each row\n// remembers the position of its bundle line (-1 when it is not in a bundle) and\n// whether it was nested to begin with. Status flows down that link.\nconst bundleKey = (row) => {\n  const bundle = row.item_bundle_id;\n\n  if (bundle && typeof bundle === \"object\") {\n    return String(bundle.id || bundle.ib_no || \"\");\n  }\n\n  return String(bundle || \"\");\n};\n\nconst flattenWithParent = (rows, itemKey) => {\n  const flat = [];\n  const positionOf = new Map();\n\n  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];\n  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);\n\n  let openBundle = -1; // bundle line the flat rows below it belong to\n\n  for (const [index, row] of (rows || []).entries()) {\n    const position = flat.length;\n    positionOf.set(index, position);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    // Already a tree: nothing to reattach, and a bundle spelled out this way\n    // ends whatever run was open above it.\n    if (children.length > 0) {\n      openBundle = -1;\n      flat.push({ row, parent: -1, nested: false });\n\n      for (const child of children) {\n        flat.push({ row: child, parent: position, nested: true });\n      }\n\n      continue;\n    }\n\n    if (isBundleRow(row)) {\n      openBundle = position;\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    if (!isBundleItem(row)) {\n      openBundle = -1; // a plain line closes the bundle above it\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    // A flat item: linked to its bundle line by id, or else belonging to the\n    // bundle line it follows, as long as that is the same bundle.\n    let parent = -1;\n\n    for (let candidate = index - 1; candidate >= 0; candidate--) {\n      const candidateRow = rows[candidate];\n\n      if (!isBundleRow(candidateRow)) continue;\n\n      const byId =\n        row.parent_id != null &&\n        candidateRow.id != null &&\n        String(row.parent_id) === String(candidateRow.id);\n      const byKey =\n        row.parent_fm_key != null &&\n        candidateRow.fm_key != null &&\n        String(row.parent_fm_key) === String(candidateRow.fm_key);\n\n      if (byId || byKey) {\n        parent = positionOf.get(candidate);\n        break;\n      }\n    }\n\n    if (\n      parent === -1 &&\n      openBundle !== -1 &&\n      bundleKey(flat[openBundle].row) === bundleKey(row)\n    ) {\n      parent = openBundle;\n    }\n\n    flat.push({ row, parent, nested: false });\n  }\n\n  return flat;\n};\n\nconst flattenRows = (rows, itemKey) =>\n  flattenWithParent(rows, itemKey).map((item) => item.row);\n\nconst processItems = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey) => {\n  const filteredPI = flattenRows(tablePi, \"material_id\").filter((item) => item[docIdKey] === docId);\n\n  // Distribute combined split-parent PI lines (gr_line_id empty) across their\n  // constituent Split-Parent GR rows, fill-order by remaining capacity.\n  const isGR = piLineIdKey === \"gr_line_id\";\n  const distributedByRowId = {};\n  if (isGR) {\n    const combinedPIs = filteredPI.filter((pi) => (!pi.gr_line_id || pi.gr_line_id === \"\") && pi.po_line_id);\n    for (const cpi of combinedPIs) {\n      const groupRows = items.filter((r) => r.parent_or_child === \"Split-Parent\" && r.po_line_item_id === cpi.po_line_id).sort((a, b) => String(a.line_index).localeCompare(String(b.line_index), undefined, { numeric: true }));\n      let remainingToAllocate = absRound8(cpi.invoice_qty);\n      for (const r of groupRows) {\n        if (remainingToAllocate <= 0) break;\n        const already = distributedByRowId[r.id] || 0;\n        const capacity = absRound8((parseFloat(r.received_qty) || 0) - (parseFloat(r.invoice_qty) || 0) - already);\n        if (capacity <= 0) continue;\n        const alloc = Math.min(remainingToAllocate, capacity);\n        distributedByRowId[r.id] = absRound8(already + alloc);\n        remainingToAllocate = absRound8(remainingToAllocate - alloc);\n      }\n    }\n  }\n\n  // Invoiced quantity is set on every line, a bundle's items included.\n  const source = flattenWithParent(items, \"item_id\");\n  const updated = source.map(({ row, parent }) => {\n    const matchedPIs = filteredPI.filter((pi) => pi[piLineIdKey] === row.id);\n    const directQty = matchedPIs.length > 0 ? absRound8(matchedPIs.reduce((s, pi) => s + (parseFloat(pi.invoice_qty) || 0), 0)) : 0;\n    const distributedQty = distributedByRowId[row.id] || 0;\n    const piInvoicedQty = absRound8(directQty + distributedQty);\n    if (piInvoicedQty !== 0) {\n      const currentInvoicedQty = absRound8(row.invoice_qty);\n      const totalInvoicedQty = absRound8(currentInvoicedQty + piInvoicedQty);\n      return { row: { ...row, invoice_qty: totalInvoicedQty }, parent };\n    }\n    return { row: { ...row }, parent };\n  });\n\n  // Only a bundle line's own quantity decides its status — its items cannot be\n  // invoiced independently of it — so status is worked out on the top-level\n  // lines and then handed down. Split children are skipped here as before.\n  let totalItems = 0;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n\n  for (const entry of updated) {\n    if (entry.parent !== -1) continue;\n    if (entry.row.parent_or_child === \"Child\") continue;\n\n    totalItems++;\n\n    if (absRound8(entry.row.invoice_qty) > 0) {\n      partiallyInvoicedItems++;\n      entry.row.pi_status = \"Partially Invoiced\";\n      if (absRound8(entry.row.invoice_qty) >= absRound8(entry.row[qtyKey] || 0)) {\n        fullyInvoicedItems++;\n        entry.row.pi_status = \"Fully Invoiced\";\n      }\n    }\n  }\n\n  // A bundle's items carry the bundle's status, whatever it came out as.\n  for (const entry of updated) {\n    if (entry.parent === -1) continue;\n\n    entry.row.pi_status = updated[entry.parent].row.pi_status;\n  }\n\n  // Only the counters of changed lines go back: a whole-row write re-validates every other column.\n  const lineUpdates = [];\n\n  for (const [index, entry] of updated.entries()) {\n    const before = source[index].row;\n\n    if (\n      absRound8(entry.row.invoice_qty) === absRound8(before.invoice_qty) &&\n      String(entry.row.pi_status || \"\") === String(before.pi_status || \"\")\n    ) {\n      continue;\n    }\n\n    lineUpdates.push({\n      id: entry.row.id,\n      invoice_qty: qtyStr(entry.row.invoice_qty),\n      pi_status: entry.row.pi_status || \"\",\n    });\n  }\n\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newPIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { lineUpdates, newPIStatus };\n};\n\nconst poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\nconst poHeaders = [];\nconst poLines = [];\nfor (const poID of poIds) {\n  const poData = poList.find((po) => po.id === poID);\n  if (!poData) continue;\n  const poItems = poData.table_po || [];\n  const { lineUpdates, newPIStatus } = processItems(poItems, data.table_pi, poData.id, \"line_po_id\", \"po_line_id\", \"quantity\");\n  poHeaders.push({ id: poData.id, pi_status: newPIStatus });\n  poLines.push(...lineUpdates);\n}\n\nconst grHeaders = [];\nconst grLines = [];\nif (data.gr_id && data.gr_id.length > 0) {\n  const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n  for (const grID of grIds) {\n    const grData = grList.find((gr) => gr.id === grID);\n    if (!grData) continue;\n    const grItems = grData.table_gr || [];\n    const { lineUpdates, newPIStatus } = processItems(grItems, data.table_pi, grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\");\n    grHeaders.push({ id: grData.id, pi_status: newPIStatus });\n    grLines.push(...lineUpdates);\n  }\n}\n\nconst flag = (rows) => (rows.length > 0 ? 1 : 0);\n\nreturn {\n  poHeaders,\n  hasPoHeaders: flag(poHeaders),\n  poLines,\n  hasPoLines: flag(poLines),\n  grHeaders,\n  hasGrHeaders: flag(grHeaders),\n  grLines,\n  hasGrLines: flag(grLines),\n};"
                 },
                 "response_json": [
                   {
-                    "key": "2dfillv5",
-                    "name": "updatedPO",
-                    "title": "",
+                    "key": "pohdrs01",
+                    "name": "poHeaders",
+                    "title": "poHeaders",
                     "description": "",
                     "bsonType": "array",
-                    "isExpand": true,
-                    "children": [
-                      {
-                        "key": "d1ejxm7o",
-                        "name": "items",
-                        "title": "",
-                        "description": "",
-                        "bsonType": "object",
-                        "isExpand": true,
-                        "isArrayItem": true,
-                        "children": [
-                          {
-                            "key": "c8pivrbp",
-                            "name": "po_id",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "string",
-                            "isExpand": false
-                          },
-                          {
-                            "key": "bvznt3s2",
-                            "name": "pi_status",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "string",
-                            "isExpand": false
-                          },
-                          {
-                            "key": "9ennxcwz",
-                            "name": "table_po",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "array",
-                            "isExpand": true,
-                            "children": [
-                              {
-                                "key": "se3ktm9l",
-                                "name": "items",
-                                "title": "",
-                                "description": "",
-                                "bsonType": "any",
-                                "isExpand": false,
-                                "isArrayItem": true,
-                                "children": []
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
+                    "isExpand": false,
+                    "children": []
                   },
                   {
-                    "key": "9yvajl0j",
-                    "name": "updatedGR",
-                    "title": "",
+                    "key": "haspohd1",
+                    "name": "hasPoHeaders",
+                    "title": "hasPoHeaders",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "polines1",
+                    "name": "poLines",
+                    "title": "poLines",
                     "description": "",
                     "bsonType": "array",
-                    "isExpand": true,
-                    "children": [
-                      {
-                        "key": "gedjnyrs",
-                        "name": "items",
-                        "title": "",
-                        "description": "",
-                        "bsonType": "object",
-                        "isExpand": true,
-                        "isArrayItem": true,
-                        "children": [
-                          {
-                            "key": "jutcfffd",
-                            "name": "gr_id",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "string",
-                            "isExpand": false
-                          },
-                          {
-                            "key": "86a3z6gd",
-                            "name": "pi_status",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "string",
-                            "isExpand": false
-                          },
-                          {
-                            "key": "4raaw4ua",
-                            "name": "table_gr",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "array",
-                            "isExpand": true,
-                            "children": [
-                              {
-                                "key": "bt8m7aj6",
-                                "name": "items",
-                                "title": "",
-                                "description": "",
-                                "bsonType": "any",
-                                "isExpand": false,
-                                "isArrayItem": true,
-                                "children": []
-                              }
-                            ]
-                          }
-                        ]
-                      }
-                    ]
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "haspoln1",
+                    "name": "hasPoLines",
+                    "title": "hasPoLines",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "grhdrs01",
+                    "name": "grHeaders",
+                    "title": "grHeaders",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hasgrhd1",
+                    "name": "hasGrHeaders",
+                    "title": "hasGrHeaders",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "grlines1",
+                    "name": "grLines",
+                    "title": "grLines",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "hasgrln1",
+                    "name": "hasGrLines",
+                    "title": "hasGrLines",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
                   }
                 ]
               },
@@ -2546,68 +2758,184 @@
                   },
                   "blocks": [
                     {
-                      "id": "update_node_po",
-                      "type": "update-node",
+                      "id": "if_pi_po_lines",
+                      "type": "if",
                       "data": {
-                        "table_id": {
-                          "source": "Purchase Order:Table:1902776039445217282",
-                          "rules": {
-                            "collectionId": "1902776039445217282",
-                            "list": [
-                              {
-                                "id": 1772677979432,
-                                "parentId": 1772677979431,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_pi_fillback.data.entry.po_id}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              }
-                            ]
-                          }
-                        },
-                        "fields": [],
-                        "condition": {},
-                        "title": "Update PO",
+                        "title": "Has PO Lines?",
                         "isValidator": true,
-                        "nodeName": "Update PO",
-                        "name": "Update PO",
-                        "props": {
-                          "modelName": "",
-                          "list": [
-                            {
-                              "prop": "id",
-                              "valueType": "field",
-                              "value": "{{node:code_pi_apply.data.updatedPO.po_id}}",
-                              "operator": "",
-                              "valueLabel": "",
-                              "propLabel": "主键ID"
-                            },
-                            {
-                              "prop": "pi_status",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_pi_apply.data.updatedPO.pi_status}}",
-                              "valueLabel": "",
-                              "propLabel": "PI Status"
-                            },
-                            {
-                              "prop": "table_po",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_pi_apply.data.updatedPO.table_po}}",
-                              "valueLabel": "",
-                              "propLabel": "Purchase Order Table"
-                            }
-                          ]
+                        "nodeName": "Has PO Lines?",
+                        "name": "Has PO Lines?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_pi_apply.data.hasPoLines}}' == '1'"
                         }
                       },
-                      "blocks": []
+                      "blocks": [
+                        {
+                          "id": "ifBlock_pi_po_lines_true",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_po_lines",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item Table(Purchase Order):Table:1939901372270747649",
+                                  "rules": {
+                                    "collectionId": "1939901372270747649",
+                                    "list": [
+                                      {
+                                        "id": 1792300000102,
+                                        "parentId": 1792300000101,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_pi_apply.data.poLines.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Update PO Lines",
+                                "isValidator": true,
+                                "nodeName": "Update PO Lines",
+                                "name": "Update PO Lines",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.poLines.id}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "invoice_qty",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.poLines.invoice_qty}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Invoice Qty"
+                                    },
+                                    {
+                                      "prop": "pi_status",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.poLines.pi_status}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Line PI Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_pi_po_lines_false",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_pi_po_header",
+                      "type": "if",
+                      "data": {
+                        "title": "Has PO?",
+                        "isValidator": true,
+                        "nodeName": "Has PO?",
+                        "name": "Has PO?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_pi_apply.data.hasPoHeaders}}' == '1'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_pi_po_header_true",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_po",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Purchase Order:Table:1902776039445217282",
+                                  "rules": {
+                                    "collectionId": "1902776039445217282",
+                                    "list": [
+                                      {
+                                        "id": 1772677979432,
+                                        "parentId": 1772677979431,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_pi_apply.data.poHeaders.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Update PO",
+                                "isValidator": true,
+                                "nodeName": "Update PO",
+                                "name": "Update PO",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.poHeaders.id}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "pi_status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.poHeaders.pi_status}}",
+                                      "valueLabel": "",
+                                      "propLabel": "PI Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_pi_po_header_false",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
                     }
                   ]
                 },
@@ -2640,68 +2968,184 @@
                   },
                   "blocks": [
                     {
-                      "id": "update_node_gr",
-                      "type": "update-node",
+                      "id": "if_pi_gr_lines",
+                      "type": "if",
                       "data": {
-                        "table_id": {
-                          "source": "Goods Receiving:Table:1901845517592285186",
-                          "rules": {
-                            "collectionId": "1901845517592285186",
-                            "list": [
-                              {
-                                "id": 1772678110110,
-                                "parentId": 1772678110109,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_pi_fillback.data.entry.gr_id}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              }
-                            ]
-                          }
-                        },
-                        "fields": [],
-                        "condition": {},
-                        "title": "Update GR",
+                        "title": "Has GR Lines?",
                         "isValidator": true,
-                        "nodeName": "Update GR",
-                        "name": "Update GR",
-                        "props": {
-                          "modelName": "",
-                          "list": [
-                            {
-                              "prop": "id",
-                              "valueType": "field",
-                              "value": "{{node:code_pi_apply.data.updatedGR.gr_id}}",
-                              "operator": "",
-                              "valueLabel": "",
-                              "propLabel": "主键ID"
-                            },
-                            {
-                              "prop": "pi_status",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_pi_apply.data.updatedGR.pi_status}}",
-                              "valueLabel": "",
-                              "propLabel": "PI Status"
-                            },
-                            {
-                              "prop": "table_gr",
-                              "operator": "",
-                              "valueType": "field",
-                              "value": "{{node:code_pi_apply.data.updatedGR.table_gr}}",
-                              "valueLabel": "",
-                              "propLabel": "table_gr"
-                            }
-                          ]
+                        "nodeName": "Has GR Lines?",
+                        "name": "Has GR Lines?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_pi_apply.data.hasGrLines}}' == '1'"
                         }
                       },
-                      "blocks": []
+                      "blocks": [
+                        {
+                          "id": "ifBlock_pi_gr_lines_true",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_gr_lines",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item Table(Goods Receiving):Table:1939901512083677186",
+                                  "rules": {
+                                    "collectionId": "1939901512083677186",
+                                    "list": [
+                                      {
+                                        "id": 1792300000104,
+                                        "parentId": 1792300000103,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_pi_apply.data.grLines.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Update GR Lines",
+                                "isValidator": true,
+                                "nodeName": "Update GR Lines",
+                                "name": "Update GR Lines",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.grLines.id}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "invoice_qty",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.grLines.invoice_qty}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Invoice Qty"
+                                    },
+                                    {
+                                      "prop": "pi_status",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.grLines.pi_status}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "Line PI Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_pi_gr_lines_false",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "if_pi_gr_header",
+                      "type": "if",
+                      "data": {
+                        "title": "Has GR?",
+                        "isValidator": true,
+                        "nodeName": "Has GR?",
+                        "name": "Has GR?",
+                        "condition_type": "Expression",
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_pi_apply.data.hasGrHeaders}}' == '1'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_pi_gr_header_true",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "update_node_gr",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Goods Receiving:Table:1901845517592285186",
+                                  "rules": {
+                                    "collectionId": "1901845517592285186",
+                                    "list": [
+                                      {
+                                        "id": 1772678110110,
+                                        "parentId": 1772678110109,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_pi_apply.data.grHeaders.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "Update GR",
+                                "isValidator": true,
+                                "nodeName": "Update GR",
+                                "name": "Update GR",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.grHeaders.id}}",
+                                      "operator": "",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "pi_status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_pi_apply.data.grHeaders.pi_status}}",
+                                      "valueLabel": "",
+                                      "propLabel": "PI Status"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_pi_gr_header_false",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
                     }
                   ]
                 }

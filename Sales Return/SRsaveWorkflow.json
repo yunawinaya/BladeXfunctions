@@ -3205,6 +3205,502 @@
               "blocks": []
             },
             {
+              "id": "code_node_SrSiStatus",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "12a. Invoice Status Under Deduct",
+                "isValidator": true,
+                "nodeName": "12a. Invoice Status Under Deduct",
+                "name": "12a. Invoice Status Under Deduct",
+                "script": {
+                  "type": "javascript",
+                  "code": "// Under \"Deduct from Invoice\" a returned quantity is settled by never billing it, so a return can finish an invoice status.\nconst setupRaw = {{node:get_node_rx6bgxbr.data.data}};\nconst setup = (Array.isArray(setupRaw) ? setupRaw[0] : setupRaw) || {};\nconst gdRaw = [{{node:search_node_gnlJ7vR5.data.data}}][0];\nconst gdList = Array.isArray(gdRaw) ? gdRaw : gdRaw ? [gdRaw] : [];\nconst soRaw = [{{node:search_node_srSOLine1.data.data}}][0];\nconst soLines = Array.isArray(soRaw) ? soRaw : soRaw ? [soRaw] : [];\nconst srLines = {{node:code_node_qYJ8wTWS.data.srLines}} || [];\n\nconst result = {\n  gdLineUpdates: [], gdUpdates: [], soLineUpdates: [], soUpdates: [],\n  hasGdLineUpdates: 0, hasGdUpdates: 0, hasSoLineUpdates: 0, hasSoUpdates: 0,\n};\nif (setup.return_billing_method !== \"Deduct from Invoice\") return result;\n\nconst q8 = (v) => Math.round((parseFloat(v) || 0) * 100000000) / 100000000;\nconst ref = (v) => String(v && typeof v === \"object\" ? v.id || \"\" : v || \"\");\n\n// SI_SAVE's rule with the returned quantity left out of what is billable.\nconst judgeBy = (billable, inv) => ({\n  invoiced: inv > 0,\n  resolved: inv > 0 ? inv >= billable : billable <= 0,\n  label: inv > 0 ? (inv >= billable ? \"Fully Invoiced\" : \"Partially Invoiced\") : null,\n});\nconst judge = (qty, invoiced, returned) => judgeBy(Math.max(0, q8(qty) - q8(returned)), q8(invoiced));\n\nconst addedBy = (key) => {\n  const added = {};\n  for (const line of srLines) {\n    const id = ref(line[key]);\n    if (id) added[id] = q8((added[id] || 0) + q8(line.expected_return_qty));\n  }\n  return added;\n};\n\n// A bundle line and its items (nested, or flat right after it) share one status;\n// only top-level lines decide the document's.\nconst groups = (rows, itemKey) => {\n  const out = [];\n  for (const row of rows || []) {\n    const kids = Array.isArray(row.children) ? row.children : [];\n    const isItemOfBundle = Boolean(ref(row.item_bundle_id)) && Boolean(ref(row[itemKey]));\n    if (isItemOfBundle && kids.length === 0 && out.length > 0 && out[out.length - 1].bundle) {\n      out[out.length - 1].kids.push(row);\n      continue;\n    }\n    out.push({ row, kids: [...kids], bundle: Boolean(ref(row.item_bundle_id)) && !ref(row[itemKey]) });\n  }\n  return out;\n};\n\nconst settle = (rows, itemKey, qtyKey, returnedAfter, added, headerStatus, lineUpdates) => {\n  let anyInvoiced = false;\n  let allResolved = true;\n  let changed = false;\n  for (const { row, kids } of groups(rows, itemKey)) {\n    const after = q8(returnedAfter(row));\n    const before = judge(row[qtyKey], row.invoice_qty, Math.max(0, q8(after - (added[ref(row.id)] || 0))));\n    const now = judge(row[qtyKey], row.invoice_qty, after);\n    anyInvoiced = anyInvoiced || now.invoiced;\n    allResolved = allResolved && now.resolved;\n    if (now.resolved !== before.resolved) changed = true;\n    if (now.label && now.label !== (row.si_status || null)) {\n      for (const line of [row, ...kids]) lineUpdates.push({ id: line.id, si_status: now.label });\n    }\n  }\n  if (!changed || !anyInvoiced) return null;\n  const header = allResolved ? \"Fully Invoiced\" : \"Partially Invoiced\";\n  return header !== headerStatus ? header : null;\n};\n\n// Deliveries: re-read after \"7. Update GD Line Item\", so return_qty already holds this return.\nconst gdAdded = addedBy(\"gd_line_id\");\nfor (const gd of gdList) {\n  const header = settle(gd.table_gd, \"material_id\", \"gd_qty\", (row) => row.return_qty, gdAdded,\n    gd.si_status || \"\", result.gdLineUpdates);\n  if (header) result.gdUpdates.push({ id: gd.id, si_status: header });\n}\n\n// Orders: read before \"11d. Update SO Line Item\", so this return is added here.\nconst soAdded = addedBy(\"so_line_id\");\nconst byOrder = {};\nfor (const line of soLines) {\n  const key = ref(line.sales_order_id);\n  (byOrder[key] = byOrder[key] || { id: line.sales_order_id, rows: [] }).rows.push(line);\n}\nfor (const key of Object.keys(byOrder)) {\n  const header = settle(byOrder[key].rows, \"item_name\", \"so_quantity\",\n    (row) => q8(row.return_qty) + (soAdded[ref(row.id)] || 0), soAdded, null, result.soLineUpdates);\n  if (header) result.soUpdates.push({ id: byOrder[key].id, si_status: header });\n}\n\nresult.hasGdLineUpdates = result.gdLineUpdates.length > 0 ? 1 : 0;\nresult.hasGdUpdates = result.gdUpdates.length > 0 ? 1 : 0;\nresult.hasSoLineUpdates = result.soLineUpdates.length > 0 ? 1 : 0;\nresult.hasSoUpdates = result.soUpdates.length > 0 ? 1 : 0;\nreturn result;\n"
+                },
+                "response_json": [
+                  {
+                    "key": "srs1gdln",
+                    "name": "gdLineUpdates",
+                    "title": "gdLineUpdates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srs2gdhd",
+                    "name": "gdUpdates",
+                    "title": "gdUpdates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srs3soln",
+                    "name": "soLineUpdates",
+                    "title": "soLineUpdates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srs4sohd",
+                    "name": "soUpdates",
+                    "title": "soUpdates",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srs5hgl0",
+                    "name": "hasGdLineUpdates",
+                    "title": "hasGdLineUpdates",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srs6hgd0",
+                    "name": "hasGdUpdates",
+                    "title": "hasGdUpdates",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srs7hsl0",
+                    "name": "hasSoLineUpdates",
+                    "title": "hasSoLineUpdates",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "srs8hso0",
+                    "name": "hasSoUpdates",
+                    "title": "hasSoUpdates",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_SrSiGdLines",
+              "type": "if",
+              "data": {
+                "title": "IF GD Line Invoice Status Changes",
+                "isValidator": true,
+                "nodeName": "IF GD Line Invoice Status Changes",
+                "name": "IF GD Line Invoice Status Changes",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1792500000004,
+                      "parentId": 1792500000003,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_SrSiStatus.data.hasGdLineUpdates}}' == '1'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_SrSiGdLinesT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "update_node_SrSiGdLines",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "(Goods Delivery):Table:1939904186426433537",
+                          "rules": {
+                            "collectionId": "1939904186426433537",
+                            "list": [
+                              {
+                                "id": 1792500000002,
+                                "parentId": 1792500000001,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_SrSiStatus.data.gdLineUpdates.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "12b. Update GD Line Invoice Status",
+                        "isValidator": true,
+                        "nodeName": "12b. Update GD Line Invoice Status",
+                        "name": "12b. Update GD Line Invoice Status",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SrSiStatus.data.gdLineUpdates.id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "si_status",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SrSiStatus.data.gdLineUpdates.si_status}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Line SI Status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_SrSiGdLinesF",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_SrSiGd",
+              "type": "if",
+              "data": {
+                "title": "IF GD Invoice Status Changes",
+                "isValidator": true,
+                "nodeName": "IF GD Invoice Status Changes",
+                "name": "IF GD Invoice Status Changes",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1792500000008,
+                      "parentId": 1792500000007,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_SrSiStatus.data.hasGdUpdates}}' == '1'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_SrSiGdT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "update_node_SrSiGd",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Goods Delivery:Table:1902054888473481218",
+                          "rules": {
+                            "collectionId": "1902054888473481218",
+                            "list": [
+                              {
+                                "id": 1792500000006,
+                                "parentId": 1792500000005,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_SrSiStatus.data.gdUpdates.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "12c. Update GD Invoice Status",
+                        "isValidator": true,
+                        "nodeName": "12c. Update GD Invoice Status",
+                        "name": "12c. Update GD Invoice Status",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SrSiStatus.data.gdUpdates.id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "si_status",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SrSiStatus.data.gdUpdates.si_status}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "SI Status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_SrSiGdF",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_SrSiSoLines",
+              "type": "if",
+              "data": {
+                "title": "IF SO Line Invoice Status Changes",
+                "isValidator": true,
+                "nodeName": "IF SO Line Invoice Status Changes",
+                "name": "IF SO Line Invoice Status Changes",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1792500000012,
+                      "parentId": 1792500000011,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_SrSiStatus.data.hasSoLineUpdates}}' == '1'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_SrSiSoLinesT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "update_node_SrSiSoLines",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+                          "rules": {
+                            "collectionId": "1939903359943024642",
+                            "list": [
+                              {
+                                "id": 1792500000010,
+                                "parentId": 1792500000009,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_SrSiStatus.data.soLineUpdates.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "12d. Update SO Line Invoice Status",
+                        "isValidator": true,
+                        "nodeName": "12d. Update SO Line Invoice Status",
+                        "name": "12d. Update SO Line Invoice Status",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SrSiStatus.data.soLineUpdates.id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "si_status",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SrSiStatus.data.soLineUpdates.si_status}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Line SI Status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_SrSiSoLinesF",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_SrSiSo",
+              "type": "if",
+              "data": {
+                "title": "IF SO Invoice Status Changes",
+                "isValidator": true,
+                "nodeName": "IF SO Invoice Status Changes",
+                "name": "IF SO Invoice Status Changes",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1792500000016,
+                      "parentId": 1792500000015,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_SrSiStatus.data.hasSoUpdates}}' == '1'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_SrSiSoT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "update_node_SrSiSo",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Sales Order:Table:1902773735979597826",
+                          "rules": {
+                            "collectionId": "1902773735979597826",
+                            "list": [
+                              {
+                                "id": 1792500000014,
+                                "parentId": 1792500000013,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_SrSiStatus.data.soUpdates.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "12e. Update SO Invoice Status",
+                        "isValidator": true,
+                        "nodeName": "12e. Update SO Invoice Status",
+                        "name": "12e. Update SO Invoice Status",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SrSiStatus.data.soUpdates.id}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "si_status",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SrSiStatus.data.soUpdates.si_status}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "SI Status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_SrSiSoF",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "code_node_uBAI8nUk",
               "type": "code-node",
               "data": {
@@ -3217,7 +3713,7 @@
                 "name": "12. Check create CN",
                 "script": {
                   "type": "javascript",
-                  "code": "const srSetup = {{node:get_node_rx6bgxbr.data.data}} ?? null;\n// Pre-update snapshot: this node fetched the delivery lines before \"7. Update GD\n// Line Item\" added this return to them, which is exactly the invoice_qty and\n// gd_qty the split below needs.\nconst gdLineItemList = {{node:search_node_OfTEOTAo.data.data}} || [];\nconst srLines = {{node:code_node_qYJ8wTWS.data.srLines}} || [];\n\nconst round8 = (value) =>\n  Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\nif (!srSetup || !srSetup.id || srSetup.id === '') {\n  return { createCN: 'No', creditQty: [] };\n}\n\n// How a sales return is billed. The credit note is the default and what every\n// setup row does today; the other method nets the returned quantity off what is\n// invoiced in the first place. Only the \"Sales Return\" timing can deduct -- the\n// delivery line carries the EXPECTED return quantity, written when the return is\n// issued, and there is no received figure on it for the other timing to read.\n// Unset until the column is configured, and unset means the credit note.\nconst deductReturnQty =\n  srSetup.return_billing_method === 'Deduct from Invoice' &&\n  srSetup.trigger_by === 'Sales Return';\n\nif (srSetup.auto_cn != 1 || srSetup.trigger_by != 'Sales Return') {\n  return { createCN: 'No', creditQty: [] };\n}\n\nif (!deductReturnQty) {\n  return { createCN: 'Yes', creditQty: [] };\n}\n\n// Under the deduct method a return is credited only where it cannot be deducted\n// -- that is, where the delivery line was already invoiced. What is still\n// uninvoiced simply never gets billed, so crediting it too would pay the\n// customer twice.\nconst gdLineById = {};\nfor (const gdLine of gdLineItemList) {\n  gdLineById[String(gdLine.id)] = gdLine;\n}\n\nconst creditQty = [];\nlet totalToCredit = 0;\n\nfor (const srLine of srLines) {\n  const gdLine = gdLineById[String(srLine.gd_line_id)];\n  if (!gdLine) continue;\n\n  const returnQty = parseFloat(srLine.expected_return_qty) || 0;\n  const uninvoiced = Math.max(\n    0,\n    round8(\n      (parseFloat(gdLine.gd_qty) || 0) - (parseFloat(gdLine.invoice_qty) || 0),\n    ),\n  );\n\n  const deductible = Math.min(returnQty, uninvoiced);\n  const toCredit = Math.max(0, round8(returnQty - deductible));\n\n  creditQty.push({ gd_line_id: srLine.gd_line_id, qty: toCredit });\n  totalToCredit = round8(totalToCredit + toCredit);\n}\n\nreturn {\n  createCN: totalToCredit > 0 ? 'Yes' : 'No',\n  creditQty,\n};\n"
+                  "code": "const srSetup = {{node:get_node_rx6bgxbr.data.data}} ?? null;\n// Pre-update snapshot: this node fetched the delivery lines before \"7. Update GD\n// Line Item\" added this return to them, which is exactly the invoice_qty and\n// gd_qty the split below needs.\nconst gdLineItemList = {{node:search_node_OfTEOTAo.data.data}} || [];\nconst srLines = {{node:code_node_qYJ8wTWS.data.srLines}} || [];\n\nconst round8 = (value) =>\n  Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\nif (!srSetup || !srSetup.id || srSetup.id === '') {\n  return { createCN: 'No', creditQty: [] };\n}\n\n// How a sales return is billed. The credit note is the default; the other method\n// nets the returned quantity off what is invoiced in the first place, whatever\n// Trigger By says -- that only decides when an automatic credit note is raised.\n// Unset until the column is configured, and unset means the credit note.\nconst deductReturnQty = srSetup.return_billing_method === 'Deduct from Invoice';\n\nif (srSetup.auto_cn != 1 || srSetup.trigger_by != 'Sales Return') {\n  return { createCN: 'No', creditQty: [] };\n}\n\nif (!deductReturnQty) {\n  return { createCN: 'Yes', creditQty: [] };\n}\n\n// Under the deduct method a return is credited only where it cannot be deducted\n// -- that is, where the delivery line was already invoiced. What is still\n// uninvoiced simply never gets billed, so crediting it too would pay the\n// customer twice.\nconst gdLineById = {};\nfor (const gdLine of gdLineItemList) {\n  gdLineById[String(gdLine.id)] = gdLine;\n}\n\nconst creditQty = [];\nlet totalToCredit = 0;\nconst deductedOnLine = {};\n\nfor (const srLine of srLines) {\n  const gdLine = gdLineById[String(srLine.gd_line_id)];\n  if (!gdLine) continue;\n\n  const returnQty = parseFloat(srLine.expected_return_qty) || 0;\n  // Earlier returns, and earlier lines of this one, already came off what is uninvoiced.\n  const lineKey = String(srLine.gd_line_id);\n  const uninvoiced = Math.max(\n    0,\n    round8(\n      (parseFloat(gdLine.gd_qty) || 0) -\n        (parseFloat(gdLine.invoice_qty) || 0) -\n        (parseFloat(gdLine.return_qty) || 0) -\n        (deductedOnLine[lineKey] || 0),\n    ),\n  );\n\n  const deductible = Math.min(returnQty, uninvoiced);\n  deductedOnLine[lineKey] = round8((deductedOnLine[lineKey] || 0) + deductible);\n  const toCredit = Math.max(0, round8(returnQty - deductible));\n\n  creditQty.push({ gd_line_id: srLine.gd_line_id, qty: toCredit });\n  totalToCredit = round8(totalToCredit + toCredit);\n}\n\nreturn {\n  createCN: totalToCredit > 0 ? 'Yes' : 'No',\n  creditQty,\n};\n"
                 },
                 "response_json": [
                   {

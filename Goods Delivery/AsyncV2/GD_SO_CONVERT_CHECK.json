@@ -1,0 +1,402 @@
+{
+  "request_json": [
+    {
+      "key": "kbim0l5a",
+      "name": "so_ids",
+      "title": "so_ids",
+      "description": "the sales order ids to convert (a list of digits, or comma-separated)",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "m9tlo71q",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "x2j9vagm",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "bn182ku0",
+      "name": "busy_json",
+      "title": "busy_json",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "32uzcvig",
+      "name": "busy_count",
+      "title": "busy_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "title": "Start Node",
+        "isValidator": true,
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_SCguard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// GD_SO_CONVERT_CHECK - Guard: the sales orders to convert (digits only, at most 500) as a JSON list for the read\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst raw = [{{workflowparams:so_ids}}][0];\nconst ids = Array.from(new Set((Array.isArray(raw) ? raw : s(raw).split(\",\")).map(s).filter((x) => x)));\nconst bad = ids.filter((x) => !/^[0-9]{1,20}$/.test(x));\nconst why = !ids.length ? \"no sales order ids\" : bad.length ? \"sales order ids must be digits\" : ids.length > 500 ? \"at most 500 sales orders per check\" : \"\";\nreturn { route: why ? \"REJECT\" : \"GO\", soIdsJson: JSON.stringify(why ? [] : ids), count: String(ids.length), code: why ? \"400\" : \"200\", message: why };"
+        },
+        "response_json": [
+          {
+            "key": "0adac97e",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ozdko99o",
+            "name": "soIdsJson",
+            "title": "soIdsJson",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "e8u1h8if",
+            "name": "count",
+            "title": "count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vr2esgfz",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "39vescas",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Guard: the sales order ids (digits only, at most 500)",
+        "isValidator": true,
+        "nodeName": "Guard: the sales order ids (digits only, at most 500)",
+        "name": "Guard: the sales order ids (digits only, at most 500)"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_SCreject",
+      "type": "if",
+      "data": {
+        "title": "IF the input is invalid: answer, read nothing",
+        "isValidator": true,
+        "nodeName": "IF the input is invalid: answer, read nothing",
+        "name": "IF the input is invalid: answer, read nothing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798400000001,
+              "parentId": 1798400000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_SCguard.data.route}}' == 'REJECT'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TSCreject",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_SCreject",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return (rejected input)",
+                "isValidator": true,
+                "nodeName": "Return (rejected input)",
+                "name": "Return (rejected input)",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SCguard.data.code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SCguard.data.message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "busy_json",
+                      "propLabel": "busy_json",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "[]",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "busy_count",
+                      "propLabel": "busy_count",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "0",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FSCreject",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_SCbusy",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Unfinished background saves (CREATE_GD_FROM_FORM) delivering one of the sales orders",
+        "isValidator": true,
+        "nodeName": "Unfinished background saves (CREATE_GD_FROM_FORM) delivering one of the sales orders",
+        "name": "Unfinished background saves (CREATE_GD_FROM_FORM) delivering one of the sales orders",
+        "script": {
+          "type": "sql",
+          "code": "SELECT t.sid AS so_id,\n       CAST(j.id AS CHAR) AS job_id,\n       j.job_status\n  FROM JSON_TABLE('{{node:code_node_SCguard.data.soIdsJson}}', '$[*]' COLUMNS (sid VARCHAR(20) PATH '$')) t\n  JOIN gd_async_job j\n    ON j.tenant_id = '{{system:tenantId}}'\n   AND j.command = 'CREATE_GD_FROM_FORM'\n   AND j.is_deleted = 0\n   AND j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')\n   AND j.source_so_ids LIKE CONCAT('%\"', t.sid, '\"%') COLLATE utf8mb4_general_ci\n ORDER BY t.sid, j.id\n LIMIT 500"
+        },
+        "response_json": [
+          {
+            "key": "izu7j03e",
+            "name": "so_id",
+            "title": "so_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "s6cz7qfo",
+            "name": "job_id",
+            "title": "job_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "umdgx17c",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_SCresult",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// GD_SO_CONVERT_CHECK - Result: the busy sales orders as a JSON text (busy_json: [{so_id, job_id, job_status}])\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst rows = [{{node:sql_node_SCbusy.data}}][0];\nconst seen = {};\nconst busy = [];\nfor (const r of (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.so_id))) {\n  if (seen[s(r.so_id)]) continue;\n  seen[s(r.so_id)] = true;\n  busy.push({ so_id: s(r.so_id), job_id: s(r.job_id), job_status: s(r.job_status) });\n}\nreturn { code: \"200\", message: busy.length ? busy.length + \" sales order(s) still have a delivery saving in the background\" : \"\", busy_json: JSON.stringify(busy), busy_count: String(busy.length) };"
+        },
+        "response_json": [
+          {
+            "key": "4lv0k44m",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fyf6fbuk",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ojq43qbj",
+            "name": "busy_json",
+            "title": "busy_json",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "o1b3aohd",
+            "name": "busy_count",
+            "title": "busy_count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Result: the busy sales orders",
+        "isValidator": true,
+        "nodeName": "Result: the busy sales orders",
+        "name": "Result: the busy sales orders"
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_SCdone",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return",
+        "isValidator": true,
+        "nodeName": "Return",
+        "name": "Return",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "busy_json",
+              "propLabel": "busy_json",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.busy_json}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "busy_count",
+              "propLabel": "busy_count",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.busy_count}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "title": "End Node",
+        "isValidator": true,
+        "nodeName": "End Node",
+        "name": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

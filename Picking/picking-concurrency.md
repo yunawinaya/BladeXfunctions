@@ -28,6 +28,7 @@
 | Mobile pull-to-refresh                                                             | Shipped (app repo)                            |
 | Auto-created Picking now stamps the GD lines (`update_node_StampGDLines`)          | **Deployed to dev** 2026-09-04                |
 | Mobile coverage guard on Convert to Picking                                        | Shipped (app repo) 2026-09-04                 |
+| Double-Picking guard on a Picking going live (`PICKING_LOOP`, Part 5)              | **Deployed to dev** 2026-10-19 (v88)          |
 
 Live on dev as of 2026-09-02: `PICKING_LOOP` **v80**, `PICKING` **v121**,
 `PUTAWAY_LOOP` **v14**, `STOCK_PICKING_LOOP` **v4** — all byte-identical to the repo
@@ -493,6 +494,55 @@ Three details worth knowing when maintaining it:
   under a picker mid-scan. The picker is told what changed via a Toast.
 
 ---
+
+## Part 5 — Double-Picking guard on a new Picking — DEPLOYED TO DEV 2026-10-19 (v88)
+
+**The bug.** Convert to Picking checks the GD lines when it builds the Picking (`picking_status = "Not Created"`, or
+the remaining quantity with Full Picking), but the Picking is written later, by `PICKING_LOOP`'s Add, when the user
+saves the Add form or confirms the split dialog. The split dialog re-reads the Pickings in `finalize` since 2026-10-09
+(client-side, in `SplitPickingAssigneeConfirm.js`); the Add form does not, and nothing re-checks on the server. So a
+second conversion of the same lines lands whenever it was started before the first one's Picking existed: a double
+click, a retry after a slow save, two users, or a Picking the GD Created V2 consumer creates in the background
+meanwhile. Prod, last 12 months:
+12 Picking-lines in 8 GDs, every one picked again on top of the first Picking. GD-2610-67 (LSH, 2026-10-09) is two
+users 8 s apart, 30 units picked against 15. GD/20260610/006 (846302) is one user 14 s apart. The other 8 lines are
+in 900938, 2025-10 to 2026-01.
+
+**The guard** (`code_node_CoverIds` → `if_CoverCheck` → `sql_node_Cover` → `code_node_Cover` → `if_CoverOver`, at
+the top level right after the GD busy check, before the loop):
+
+- **When it runs:** only for a Picking that goes live: an Add saved as Created / Completed, or a Draft saved as
+  Created / Completed. Confirms of a live Picking (mobile, the form, Auto Pick) read nothing.
+- **The rule:** for each GD line, what OTHER live Pickings hold plus what this call adds may not exceed `gd_qty`
+  (1e-6 tolerance). Open Pickings count their `qty_to_pick`; Completed ones count their records' `store_out_qty`.
+  Rows of Cancelled and Draft Pickings, Cancelled rows and HU header rows count for nothing. This is Convert to
+  Picking's own `buildConsumedQtyMap` rule, so a Full Picking remainder passes.
+- **Scope:** a split call's Pickings are summed together, and a Draft's own id is excluded.
+- **When it refuses:** answers `400` with the GD, the item, what is held and on which Pickings, before any Picking of
+  the call is written. The Add form and the split dialog show it as they show any `PICKING_LOOP` 400.
+- **Reads:** Pickings by `gd_no` (`JSON_OVERLAPS`), then their lines and records by parent id, the same reach as
+  PICKING's `sql_node_SibRecs`. The LSH 300-GD Picking (2,096 lines) takes 0.57 s on prod.
+
+**Checked:**
+
+- `scratchpad/pkdup/test/test_cover_guard.js`: 18 cases, 8 mutants killed.
+- `scratchpad/pkdup/test/sql_cover_live.py`: real prod and dev data, read-only. The GD-2610-67 doubles are refused,
+  an LSH Full Picking remainder (2 of 40) passes, 3 of 40 is refused, and the 300-GD Picking passes.
+- A replay of the rule over 12 months of prod: the 12 doubles above would have been refused, and none of the 1,728
+  other Picking-lines on multi-Picking GD lines.
+- Live on dev v88 (tenant 496474, two calls without a plant, so neither could write):
+  - re-adding PI-20261016-0072's two lines → 400 "…5 of 5 already on PI-20261016-0072";
+  - an uncovered line → the guard passes and the run stops at "Validation Error: Plant".
+  - The traces show `check 1` / `over 1` and `check 0` → `over 0`. An empty `covered` comes back as `0E-8`, which reads as 0.
+  - Nothing was written.
+
+**Not covered:**
+
+- **Mobile's Convert to Picking** inserts the Picking itself, client-side (see Known gaps), so this guard never sees
+  it. The app's own coverage guard covers the sequential case.
+- **The GD Created V2 consumer** creates through its own add-node. It adopts an existing live Picking instead of
+  adding a second one; only a manual add landing inside the consumer's own run (seconds) can still double.
+- **The window between this read and the add:** about 1 s. Two saves inside the same second still race (see 1a).
 
 ## Known gaps
 

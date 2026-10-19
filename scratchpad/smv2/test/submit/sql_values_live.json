@@ -1,0 +1,18 @@
+{
+ "*": {
+  "tenantId": "000000",
+  "lotId": "2105231525751984129"
+ },
+ "LOT_V2_SUBMIT": {
+  "key": "PKM:2109853777360162819:mvaqhptwasau19",
+  "draftAdd": "YES",
+  "itemIdsSql": "0,2064633018934157313,2069242655534825474,2070758892513914881",
+  "storedLotId": "2105231525751984129",
+  "needStored": "YES",
+  "needAfter": "YES",
+  "plantId": "1123598813738675202",
+  "organizationId": "1123598813738675201",
+  "jobId": "2111018563727917057"
+ },
+ "missing_cols": {}
+}

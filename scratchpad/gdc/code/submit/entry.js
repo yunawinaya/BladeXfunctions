@@ -38,7 +38,6 @@ const submitEntry = function submitEntry(guard, factRows) {
   if (status === "Draft") return Object.assign(base, notEligible("a Draft is completed by the classic save", n));
   if (status !== "Created") return Object.assign(base, answer("STOP", "400", "Goods Delivery is " + (status || "without a status") + ": only a Created delivery can be completed"));
   if (!digits(f.organization_id)) return Object.assign(base, answer("STOP", "400", "Goods Delivery has no organization"));
-  if (guard.answers.isForceComplete === "Yes") return Object.assign(base, notEligible("force-completing its Picking", n));
   const m = s(f.last_lock).match(/^LOCK\|([0-9]+)$/);
   return Object.assign(base, answer("GO", "", ""), { lockN: m ? Number(m[1]) + 1 : 1 });
 };

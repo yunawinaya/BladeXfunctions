@@ -17,7 +17,9 @@ const MUT = { held: ["entry.js", "if (held) return", "if (false) return"], cl_or
   ref_shape: ["guard.js", "if (cascadeRef && !/^[A-Za-z0-9|:_.-]{1,80}$/.test(cascadeRef))", "if (false)"],
   ops_gate: ["ops.js", "if (num(r.gate_taken) > 0)", "if (false)"],
   ops_ref: ["ops.js", " || s(r.cascade_ref) !== guard.cascadeRef", ""],
-  cascade_form: ["gate.js", "if (guard.source === \"CASCADE\" && guard.delta && Array.isArray(guard.delta.layout)) {", "if (guard.source === \"CASCADE\") {"] };
+  cascade_form: ["gate.js", "if (guard.source === \"CASCADE\" && guard.delta && Array.isArray(guard.delta.layout)) {", "if (guard.source === \"CASCADE\") {"],
+  so_draft: ["entry.js", "if (status === \"Draft\" && soJob[0]) {", "if (soJob[0]) {"], so_busy: ["entry.js", "if (status === \"Draft\" && soJob[0]) {", "if (false) {"],
+  so_hdr: ["guard.js", "s(hdrSo).split(\",\")", "[]"] };
 const mutate = process.argv.indexOf("--mutate") >= 0 ? process.argv.splice(process.argv.indexOf("--mutate"), 2)[1] : "";
 const SRC = [R + "scratchpad/gdc/lift/runtime.js", D + "/lift/lifted_edit.js", R + "scratchpad/gdc/code/prepare/chain.js", R + "scratchpad/gdc/code/prepare/adapter.js",
   D + "/code/prepare/chain_edit.js", D + "/code/submit/delta.js", D + "/code/prepare/apply_delta.js", D + "/code/prepare/adapter_edit.js",
@@ -285,6 +287,46 @@ it("gate: the lifted reconcile reads a stale-locked Picking as released (SUBMIT 
   assert.strictEqual(call(sb0, "gsUnstale", R("6", 1), ["7"]).pick.data.is_processing, 1);
   assert.strictEqual(call(sb0, "gsUnstale", R("6", 1), null).pick.data.is_processing, 1);
   assert.deepStrictEqual(call(sb0, "gsUnstale", { pick: { count: 0, data: {} } }, ["6"]).pick.data, {});
+});
+
+// same-SO guard (parity with GOODS_DELIVERY / GD_ASYNC_SUBMIT, bladexfunctions-41): a stored Draft saved as Created waits while
+// a GD Created V2 save of one of its sales orders has not projected its quantities onto the SO yet
+it("guard: the delivery's SO ids (every line's line_so_id incl. bundle children, the header so_id as array or comma text) as soIdsSql", () => {
+  const form = { so_id: "2110957064359641090,2110957064359641091", table_gd: [{ id: "1", line_so_id: "2110957064359641092", children: [{ id: "2", line_so_id: "2110957064359641093" }] },
+    { id: "3", line_so_id: "x) OR (1=1" }] };
+  const g = call(sb0, "submitGuard", { operation: "SUBMIT", gdId: "2100000000000000001", source: "FORM", tenantId: "1", form });
+  assert.deepStrictEqual(g.soIdsSql.split(",").sort(), ["2110957064359641090", "2110957064359641091", "2110957064359641092", "2110957064359641093"]);
+  assert.strictEqual(call(sb0, "submitGuard", { operation: "SUBMIT", gdId: "2100000000000000001", source: "FORM", tenantId: "1", form: { so_id: ["2110957064359641090"], table_gd: [] } }).soIdsSql, "2110957064359641090");
+  assert.strictEqual(call(sb0, "submitGuard", { operation: "STATUS", gdId: "2100000000000000001", tenantId: "1" }).soIdsSql, "0");
+  assert.strictEqual(call(sb0, "submitGuard", { operation: "BAD", gdId: "21", tenantId: "1" }).soIdsSql, "0");
+});
+it("entry: a stored Draft whose SO has an unfinished GD Created V2 save is BUSY with GOODS_DELIVERY's text; no command (the client must not kick that GD's Picking)", () => {
+  const r = call(sb0, "submitEntry", guard, facts({ gd_status: "Draft", so_job: "COMMITTING_GD|2111000000000000005|SO/20261019-001" }));
+  assert.strictEqual(r.route, "BUSY"); assert.strictEqual(r.code, "409"); assert.strictEqual(r.command, "");
+  assert.strictEqual(r.message, "A delivery for SO/20261019-001 is still being saved in the background (job 2111000000000000005, COMMITTING_GD). Wait for it to finish - it then appears in the Goods Delivery list - before saving another delivery for it.");
+  const v = call(sb0, "submitEntry", guard, facts({ gd_status: "Draft", so_job: "REQUIRES_REVIEW|2111000000000000005|SO/20261019-001" }));
+  assert.strictEqual(v.route, "BUSY");
+  assert.strictEqual(v.message, "A background save of a delivery for SO/20261019-001 stopped half-way and is under review (job 2111000000000000005): please contact support before delivering it again.");
+  assert.ok(/this sales order/.test(call(sb0, "submitEntry", guard, facts({ gd_status: "Draft", so_job: "QUEUED|7|" })).message));
+});
+it("entry: a stored Created GD is never refused by the same-SO guard; a Draft with no such job goes on", () => {
+  assert.strictEqual(call(sb0, "submitEntry", guard, facts({ gd_status: "Created", so_job: "COMMITTING_GD|7|SO/1" })).route, "GO");
+  assert.strictEqual(call(sb0, "submitEntry", guard, facts({ gd_status: "Draft", so_job: null })).route, "GO");
+  assert.strictEqual(call(sb0, "submitEntry", guard, facts({ gd_status: "Draft", so_job: "" })).route, "GO");
+});
+it("built SUBMIT: the facts read the first unfinished GD Created V2 job of the delivery's SOs, for a stored Draft only (GOODS_DELIVERY's predicate)", () => {
+  const W = JSON.parse(fs.readFileSync(R + "Goods Delivery/EditV2/GD_EDIT_SUBMIT.json", "utf8"));
+  const all = []; const walk = (l) => { for (const x of l || []) { all.push(x); walk(x.blocks); } }; walk(W.nodes);
+  const fq = all.filter((x) => x.id === "sql_node_GSfacts")[0];
+  const sq = fq.data.script.code;
+  assert.ok(/IF\(g\.gd_status = 'Draft',/.test(sq) && /\) AS so_job/.test(sq), "Draft-only so_job");
+  assert.ok(/j\.tenant_id = '\{\{node:code_node_GSguard\.data\.tenantId\}\}' AND j\.command = 'CREATE_GD_FROM_FORM' AND j\.is_deleted = 0/.test(sq), "job filter");
+  assert.ok(sq.indexOf("j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')") >= 0, "blocking statuses");
+  assert.ok(sq.indexOf("JSON_TABLE(CONCAT('[', '{{node:code_node_GSguard.data.soIdsSql}}', ']'), '$[*]' COLUMNS (sid BIGINT PATH '$'))") >= 0, "SO ids");
+  assert.ok(sq.indexOf("j.source_so_ids LIKE CONCAT('%\"', CAST(s.sid AS CHAR), '\"%') COLLATE utf8mb4_general_ci") >= 0, "SO match");
+  assert.ok(/CONCAT\(j\.job_status, '\|', CAST\(j\.id AS CHAR\), '\|', COALESCE\(j\.source_so_no, ''\)\)/.test(sq) && /ORDER BY j\.id\s+LIMIT 1/.test(sq), "first job");
+  assert.ok(fq.data.response_json.some((x) => x.name === "so_job"), "so_job undeclared");
+  assert.ok(all.filter((x) => x.id === "code_node_GSguard")[0].data.response_json.some((x) => x.name === "soIdsSql"), "soIdsSql undeclared");
 });
 
 console.log(JSON.stringify({ cases: n, failed: failed }));

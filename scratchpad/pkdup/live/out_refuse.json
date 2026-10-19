@@ -1,0 +1,1 @@
+{"code":200,"data":{"code":"400","message":"Picking not saved: these Goods Delivery lines are already on another Picking. GD/20261016/075 Normal Item: 5 of 5 already on PI-20261016-0072; GD/20261016/075 Auto Batch Item: 5 of 5 already on PI-20261016-0072. Refresh the list and convert only what is left."},"msg":"操作成功","success":true}

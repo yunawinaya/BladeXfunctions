@@ -1,9 +1,18 @@
 // GD_COMPLETE_COMMIT - C0 REVALIDATE: the GD is still Processing under this job's lock, every reservation the plan updates
 // still holds what PREPARE read, and the handling units it delivers from still hold enough -> DONE; else FAILED, the GD back
-// to Created (nothing was written; the classic save fails at its HU node after the stock moved)
+// to Created (nothing was written; the classic save fails at its HU node after the stock moved). A Force Complete also needs
+// its open Pickings free (if_FcBusy's rule) and its lines as PREPARE read them (the fingerprint).
 const RES_COLS = ["target_gd_id", "status", "reserved_qty", "open_qty", "delivered_qty", "doc_no", "doc_id", "doc_line_id", "source_reserved_id", "item_uom"];
-const commitC0 = function commitC0(entry, partRows, rowRows, huPartRows, huRows, itemRows) {
+const commitC0 = function commitC0(entry, partRows, rowRows, huPartRows, huRows, itemRows, pickRows, fpRows) {
   if (entry.unlockOk !== "YES") return failNoWrite(entry, "GDC_NOT_LOCKED", "the Goods Delivery is no longer Processing under this job's lock");
+  const m = entry.manifest || {};
+  if (num(m.force) === 1) {
+    const plan = fcPlan(list(pickRows), entry.gdId);
+    if (plan.busyNos.length) return failNoWrite(entry, "GDC_PICKING_BUSY", plan.busyMessage);
+    const now = list(fpRows)[0] || {};
+    const was = m.fp || {};
+    if (s(now.n) === "" || s(now.n) !== s(was.n) || s(now.fp) !== s(was.sum)) return failNoWrite(entry, "GDC_STALE", "a Picking changed the delivery's lines since the completion was prepared: nothing was written");
+  }
   const res = joinChunks(partRows, entry.partPrefix + "RES|");
   if (!res || !Array.isArray(res.updates)) return failNoWrite(entry, "GDC_INVALID_DATA", "the reservation part of the prepared payload is missing");
   const hu = joinChunks(huPartRows, entry.partPrefix + "HU|");
@@ -24,6 +33,7 @@ const commitC0 = function commitC0(entry, partRows, rowRows, huPartRows, huRows,
   return stepOk(entry, "C0_REVALIDATE", res.updates.length + " reservation(s) unchanged, " + hu.length + " handling-unit draw(s) covered", "revalidated");
 };
 const res = commitC0([{{node:code_node_CCentry.data}}][0], [{{node:sql_node_CCc0part.data}}][0], [{{node:sql_node_CCc0rows.data}}][0],
-  [{{node:sql_node_CCc0hupart.data}}][0], [{{node:sql_node_CCc0hus.data}}][0], [{{node:sql_node_CCc0huitems.data}}][0]);
+  [{{node:sql_node_CCc0hupart.data}}][0], [{{node:sql_node_CCc0hus.data}}][0], [{{node:sql_node_CCc0huitems.data}}][0],
+  [{{node:sql_node_CCc0pick.data}}][0], [{{node:sql_node_CCc0fp.data}}][0]);
 console.log("commit C0", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));
 return res;

@@ -34,7 +34,8 @@ async function scenario(name, submits, userSays, values) {
   await scenario("401 yes then 403 yes then queued", [{ route: "STOP", code: "401", message: "zero qty?" }, { route: "STOP", code: "403", message: "Override - over limit" }, Q], [true, true]);
   await scenario("401 cancel", [{ route: "STOP", code: "401", message: "zero qty?" }], [false]);
   await scenario("412 no -> skip invoice", [{ route: "STOP", code: "412", message: "invoice?" }, Q], [false]);
-  await scenario("406 -> classic", [{ route: "STOP", code: "406", message: "picking?" }], []);
+  await scenario("406 proceed -> forced V2 queued", [{ route: "STOP", code: "406", message: "picking?" }, Q], [true]);
+  await scenario("406 cancel", [{ route: "STOP", code: "406", message: "picking?" }], [false]);
   await scenario("402 block", [{ route: "STOP", code: "402", message: "Block - over credit" }], []);
   await scenario("busy", [{ route: "BUSY", code: "409", message: "This delivery is already being completed - please wait for it to finish." }], []);
   await scenario("400 over 500 lines", [{ route: "STOP", code: "400", message: "This delivery has 1948 lines and unsaved changes (x). Save it as Created first, then complete it." }], []);

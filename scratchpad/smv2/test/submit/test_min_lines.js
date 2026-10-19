@@ -1,6 +1,6 @@
 // node test/submit/test_min_lines.js - min_lines on the BUILT LOT_V2_SUBMIT (its guard, entry and entry-answer code nodes run
 // through lib/harness.js): a CANCEL of <= min_lines stored flat lines answers NOT_ELIGIBLE "classic" before any write; absent /
-// invalid min_lines, more lines, other actions, BUSY / STALE and STATUS are unchanged.
+// invalid min_lines, more lines, other actions, BUSY / STALE and STATUS are unchanged; a bundle LOT's cancel always goes V2.
 const fs = require("fs");
 const path = require("path");
 const H = require(path.join(__dirname, "..", "..", "lib", "harness.js"));
@@ -20,7 +20,7 @@ H.truthy("request declares min_lines", doc.request_json.some((r) => r.name === "
 const LOT = "2105231525751984129";
 const facts = (o) => Object.assign({ db_now: "2026-10-16 10:00:00", key_job: null, key_lot: null, lot_id: LOT, stock_movement_no: "LOT-1", stock_movement_status: "In Progress",
   organization_id: "9", plant_id: "8", no_type: "1", movement_type: "Location Transfer", issue_date: "2026-10-16 00:00:00", is_production_order: 0, line_count: 50,
-  last_lock: "LOCK|2", open_jobs: null, last_job: null, lot_v2_job_id: null, link_job: null, issued_reuse: 0 }, o || {});
+  bundle_children: 0, last_lock: "LOCK|2", open_jobs: null, last_job: null, lot_v2_job_id: null, link_job: null, issued_reuse: 0 }, o || {});
 const run = (o) => {
   const p = Object.assign({ operation: "SUBMIT", saveAs: "Cancelled", pageStatus: "Edit", lot_id: LOT, idempotency_key: "LOT:9:" + LOT + ":abc12345", source: "LIST",
     min_lines: "50", formStatus: "In Progress", facts: facts() }, o);
@@ -53,4 +53,11 @@ H.eq("Draft + cancel -> STOP not cancellable", run({ formStatus: "Draft", facts:
 H.eq("stale list row -> STALE", pick(run({ formStatus: "Draft", facts: facts({ line_count: 10 }) })).route, "STALE");
 H.eq("this key already has a job -> its STATUS", pick(run({ facts: facts({ line_count: 10, key_job: JSON.stringify({ id: "5", job_status: "QUEUED",
   correlation_id: "LOT|" + LOT, progress_percent: 0, progress_message: "Queued for processing" }) }) })).route, "STATUS");
+// V2.1 M3: a bundle LOT's small cancel goes V2 (the classic cancel strands its stored children's In Transit stock)
+H.eq("bundle cancel, 3 flat lines, min_lines 50 -> CANCEL goes on (V2)", pick(run({ facts: facts({ line_count: 3, bundle_children: 3 }) })),
+  { route: "GO", action: "CANCEL", reason: "" });
+H.eq("bundle cancel, bundle_children as text \"2\" -> V2", pick(run({ facts: facts({ line_count: 3, bundle_children: "2" }) })).route, "GO");
+H.eq("plain cancel, 3 lines, min_lines 50 -> NOT_ELIGIBLE classic", pick(run({ facts: facts({ line_count: 3, bundle_children: 0 }) })),
+  { route: "NOT_ELIGIBLE", action: "CANCEL", reason: "classic" });
+H.eq("plain cancel, bundle_children absent -> NOT_ELIGIBLE classic", pick(run({ facts: facts({ line_count: 3, bundle_children: undefined }) })).route, "NOT_ELIGIBLE");
 H.done();

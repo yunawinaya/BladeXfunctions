@@ -24,6 +24,12 @@ const baseEntry = (extra) => Object.assign({ jobId: JOB, organizationId: "112359
   const pay = [{ prepared_payload: J(manifest) }];
   let r = commitEntry(guard, job(), [], pay, gr, []);
   ok(r.route === "GO" && r.phase === "A" && r.needR0 === "YES" && r.needR1 === "YES" && r.needR2 === "NO" && r.needR5 === "NO", "entry phase A", r);
+  // the lease outlasts the engine call: 10 min + 0.6 s per movement, at most 90 min (the SPLIT hand-over carries the same)
+  const lease = (n) => { const mm = JSON.parse(J(manifest)); mm.counts.movements = n; const x = commitEntry(guard, job(), [], [{ prepared_payload: J(mm) }], gr, []);
+    return [x.jobRows[0].lease_expires_at, x.leaseUntil]; };
+  ok(J(lease(undefined)) === J(["2026-10-15 10:10:00", "2026-10-15 10:10:00"]), "lease: no movements -> 10 min", lease(undefined));
+  ok(J(lease(2500)) === J(["2026-10-15 10:35:00", "2026-10-15 10:35:00"]), "lease: 2,500 movements -> 35 min", lease(2500));
+  ok(J(lease(20000)) === J(["2026-10-15 11:30:00", "2026-10-15 11:30:00"]), "lease: capped at 90 min", lease(20000));
   ok(r.poIdsSql === "0,2,1" && r.unlockOk === "YES" && r.prevStatus === "Received" && r.grNoSql === "GR''1" && r.jobRows[0].job_status === "COMMITTING_REVERT" && r.jobRows[0].lease_owner === "PUB|x", "entry fields + claim", r);
   r = commitEntry(guard, job({ job_status: "COMMITTING_REVERT", lease_owner: "SPLIT|n" }), [{ step_name: "R0_REVALIDATE", step_status: "DONE" }, { step_name: "R1_INVENTORY", step_status: "DONE" }], pay, [{ gr_status: "Processing" }], []);
   ok(r.route === "GO" && r.phase === "B" && r.needR2 === "YES" && r.needR3 === "NO" && r.needR4 === "YES" && r.needR5 === "YES" && r.unlockOk === "NO", "entry phase B", r);

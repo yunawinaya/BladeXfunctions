@@ -1,7 +1,7 @@
 // __HANDLER_NAME__ - Location Transfer form, onClick of __BUTTON_MODEL__ (Save as __SAVE_AS__). The build makes one handler per
 // save button from one source; each knows its own button and classic handler as constants.
 // Stock Movement V2: a save of more than 50 stock lines whose action is switched on goes to LOT_V2_SUBMIT. Everything else
-// (switch off, <= 50 lines, handling units / bundles, a NOT_ELIGIBLE or INVALID answer, any error before SUBMIT is called)
+// (switch off, <= 50 flat stock lines, handling units, a NOT_ELIGIBLE or INVALID answer, any error before SUBMIT is called)
 // runs the button's classic handler through triggerEvent, unchanged.
 const LOT_WF = {
   SUBMIT: "__LOT_V2_SUBMIT__", // LOT_V2_SUBMIT
@@ -99,7 +99,17 @@ const listOf = (v) => {
     return null;
   }
 };
-const isBundle = (r) => s(r.item_bundle_id) !== "" || s(r.parent_fm_key) !== "" || (Array.isArray(r.children) && r.children.length > 0);
+// flat stock lines as SUBMIT counts them (code/submit/_common.js flatOf): rows, then their children; bundle parents excluded
+const isBundleParent = (r) => Boolean(r.item_bundle_id && !r.parent_fm_key);
+const flatLines = (rows) => {
+  const out = [];
+  for (const r of rows) {
+    if (!r || typeof r !== "object") continue;
+    if (!isBundleParent(r)) out.push(r);
+    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === "object" && !isBundleParent(c)) out.push(c);
+  }
+  return out;
+};
 const hasHU = (r) => {
   const hu = listOf(r.temp_hu_data);
   if (hu === null || hu.length > 0) return true;
@@ -121,13 +131,15 @@ const routeOf = (v, saveAs) => {
   if (action === "COMPLETE" ? LOT_V2_ACTIONS.COMPLETE !== true && LOT_V2_ACTIONS.COMPLETE_EDITED !== true : LOT_V2_ACTIONS[action] !== true) {
     return { why: action + " switched off" };
   }
-  const rows = Array.isArray(v.stock_movement) ? v.stock_movement : [];
-  if (rows.some(isBundle)) return { why: "item bundles" };
-  if (rows.some(hasHU)) return { why: "handling units" };
-  if (rows.length <= V2_MIN_LINES) return { why: rows.length + " lines" };
+  const rows = (Array.isArray(v.stock_movement) ? v.stock_movement : []).filter((r) => r && typeof r === "object");
+  const flat = flatLines(rows);
+  if (rows.concat(flat).some(hasHU)) return { why: "handling units" };
+  if (flat.length <= V2_MIN_LINES) return { why: flat.length + " flat stock lines" };
   if (action === "COMPLETE") {
+    // the fingerprint taken at open covers the top-level rows only, so a transfer with bundles counts as edited
+    const bundles = rows.some((r) => isBundleParent(r) || (Array.isArray(r.children) && r.children.length > 0));
     const atOpen = s(data_().lot_mount_fp);
-    if (!atOpen || atOpen !== lotLineFingerprint(rows)) action = "COMPLETE_EDITED";
+    if (bundles || !atOpen || atOpen !== lotLineFingerprint(rows)) action = "COMPLETE_EDITED";
     if (LOT_V2_ACTIONS[action] !== true) return { why: action + " switched off" };
   }
   return { action: action, isNew: isNew, page: page };

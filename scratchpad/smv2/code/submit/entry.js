@@ -60,8 +60,9 @@ const submitEntry = function submitEntry(guard, factRows, formStatus, minLinesIn
   }
   if (stored === "In Progress") {
     if (saveAs === "Draft") return Object.assign(base, answer("STOP", "400", "An In Progress transfer can't be saved back to Draft.", { errorCode: "LOT_IP_TO_DRAFT" }));
-    // the caller's small cancels stay classic (within the classic's 500 lines)
-    if (saveAs === "Cancelled" && minLines > 0 && base.lineCount <= minLines && base.lineCount <= MAX_OLD_PATH_LINES) {
+    // the caller's small cancels stay classic (within the classic's 500 lines), except a bundle LOT's: the classic cancel drops
+    // its stored children (no parent_fm_key) and strands their In Transit stock
+    if (saveAs === "Cancelled" && minLines > 0 && base.lineCount <= minLines && base.lineCount <= MAX_OLD_PATH_LINES && num(f.bundle_children) === 0) {
       return Object.assign(base, { action: "CANCEL", prevStatus: "In Progress" }, answer("NOT_ELIGIBLE", "300", "classic", { reason: "classic", errorCode: "LOT_NOT_ELIGIBLE" }));
     }
     return pick(saveAs === "In Progress" ? "EDIT" : saveAs === "Completed" ? "COMPLETE" : "CANCEL", "In Progress");

@@ -22,6 +22,14 @@ const submitEntry = function submitEntry(guard, factRows) {
     const what = { EDIT_GD: "Its edit", COMPLETE_GD: "Its completion", COMPLETE_PACKING: "Its Packing", CREATE_GD_FROM_FORM: "Its creation" }[s(blocking.command)] || "Its job";
     return Object.assign(base, job(blocking), answer("BUSY", "409", s(blocking.job_status) === "REQUIRES_REVIEW" ? what + " stopped half-way and is under review: please contact support." : what + " is being saved - please wait for it to finish."));
   }
+  // a stored Draft is a new delivery: it waits while a GD Created V2 save of one of its SOs has not put its quantities on the SO yet
+  const soJob = s(f.so_job).split("|");
+  if (status === "Draft" && soJob[0]) {
+    const so = soJob.slice(2).join("|") || "this sales order";
+    return Object.assign(base, answer("BUSY", "409", soJob[0] === "REQUIRES_REVIEW"
+      ? "A background save of a delivery for " + so + " stopped half-way and is under review (job " + soJob[1] + "): please contact support before delivering it again."
+      : "A delivery for " + so + " is still being saved in the background (job " + soJob[1] + ", " + soJob[0] + "). Wait for it to finish - it then appears in the Goods Delivery list - before saving another delivery for it."));
+  }
   const held = picks.filter((p) => num(p.is_processing) === 1 && num(p.lock_age_sec) <= PICK_LOCK_STALE_SEC)[0];
   if (held) return Object.assign(base, answer("BUSY", "409", "Picking " + s(held.to_id) + " is being processed on a device right now. Try again in a moment."));
   if (openPicks.length) return Object.assign(base, answer("BUSY", "409", "Its Picking is being confirmed in the background - please wait for it to finish."));

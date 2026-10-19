@@ -1,7 +1,7 @@
 """LOT_V2_PREPARE builder (package A; CONTRACT.md sections 5, 9, 14). build_lot.py imports BUILDERS.
 
 Graph (grv2 / pwv2 PREPARE shape): guard -> job read -> entry (NOOP answers) -> ONE fork-join of uncapped SQL reads ->
-plan (adapter + the lifted v82 bodies + fold + manifest parts) -> ready -> writes (parts, READY | unlock + FAILED / REVIEW) ->
+plan (adapter + the lifted v82 bodies (auto allocation incl., V2.1) + fold + manifest parts) -> ready -> writes (parts, READY | unlock + FAILED / REVIEW) ->
 read-back -> result.
 """
 import importlib.util
@@ -41,7 +41,9 @@ def build_prepare():
     noop_body = ("const e = [%s][0] || {};\nreturn { job_id: e.jobId || \"\", job_status: \"\", result_code: e.result_code || \"\", result_message: e.result_message || \"\", "
                  "evidence: JSON.stringify({ v: 1, workflow: \"LOT_V2_PREPARE\", path: \"NOOP\" }) };") % N(E, "data")
     reads = [("parts", "SUBMIT's payload parts of the job (S|..|LINES)"), ("hdr", "The Location Transfer header"), ("lines", "Its stored lines (line_index order)"),
-             ("transit", "Its In Transit rows (every status)"), ("items", "Items of its lines"), ("bins", "The plant's bins (LABELS)"), ("lock", "Its latest document lock")]
+             ("transit", "Its In Transit rows (every status)"), ("items", "Items of its lines"), ("bins", "The plant's bins (LABELS)"),
+             ("aitem", "Auto allocation: GLOBAL_ALLOCATION's Get Item for the lines asking for stock"),
+             ("abal", "Auto allocation: their item / batch balances at the plant (GLOBAL_ALLOCATION's searches)"), ("lock", "Its latest document lock")]
     branches = [("cai_LP" + k, title, [K.sql("sql_node_LP" + k, title, PSQL.READS[k][0], PSQL.READS[k][1])]) for k, title in reads]
     plan_tail = "\n".join([
         "const entry = [%s][0];" % N(E, "data"),
@@ -59,7 +61,8 @@ def build_prepare():
         "return { route: res.route, code: res.code, message: res.message, payload: res.payload, partRows: res.partRows, lineCount: res.lineCount,",
         "  movementCount: res.movementCount, unlockOk: res.unlockOk };",
     ])
-    plan_code = "\n".join([shared("lot_common.js"), src("lib/lift/runtime.js"), src("lift/lifted_prepare.js"), src("code/prepare/adapter.js"), src("code/prepare/plan.js"), plan_tail])
+    plan_code = "\n".join([shared("lot_common.js"), shared("fingerprint.js"), src("lib/lift/runtime.js"), src("lift/lifted_prepare.js"), src("code/prepare/adapter.js"),
+                           src("code/prepare/alloc.js"), src("code/prepare/plan.js"), plan_tail])
     plan_fields = ["route", "code", "message", "payload", "partRows", "lineCount", "movementCount", "unlockOk"]
     ready_fields = ["route", "needParts", "needReady", "readyRows", "needJobUpd", "jobRows", "needUnlock", "unlockRows", "result_code", "result_message", "job_status"]
     unlock = V.status_unlock(LOT_TABLE, "stock_movement_status", {"stock_movement_status": "Stock Movement Status"})
@@ -72,7 +75,7 @@ def build_prepare():
         K.code(E, "Entry: a VALIDATING SAVE_LOT job under a live lease; its correlation -> the LOT; its request (prevStatus, action)",
                shared("lot_common.js") + "\n" + src("code/prepare/entry.js"),
                ["route", "jobId", "tenantId", "organizationId", "lotId", "idempotencyKey", "rowVersion", "attempts", "dbNow", "nonce", "request", "action", "prevStatus", "saveAs",
-                "unlockRows", "result_code", "result_message"], arrays=("unlockRows",), objects=("request", "rowVersion", "attempts")),
+                "allocScope", "unlockRows", "result_code", "result_message"], arrays=("unlockRows",), objects=("request", "rowVersion", "attempts")),
         K.if_(ids, "if_LPnoop", "IF the job is not this run's to prepare: answer, write nothing", V.is_(E, "route", "NOOP"), [
             K.code("code_node_LPnoop", "Answer (not prepared)", noop_body, RES),
             K.ret("return_node_LPnoop", "Return (not prepared)", [(f, N("code_node_LPnoop", "data." + f)) for f in RES])]),

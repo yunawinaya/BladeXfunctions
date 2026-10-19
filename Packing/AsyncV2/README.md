@@ -1,7 +1,9 @@
-# Packing completion, background save (V2) — dev only
+# Packing completion, background save (V2)
 
-Built 2026-10-13; live on dev (workflows, form, PACKING_SAVE guard) and tested 2026-10-14: small Packings, a 2,000-line
-Packing (about 3.5 min in the background) and batch items. Not in prod. It replaces the desktop Packing form's synchronous Save as Completed. Before this, a
+Built 2026-10-13; live on dev (workflows, form, PACKING_SAVE guards) and tested 2026-10-14..16: small Packings, a 2,000-line
+Packing (about 3.5 min in the background), batch items, the classic fallback, a stuck job restarted from the form, Packings
+whose Picking moved the stock (classic and Picking V2), and the mobile app on an iPhone. Ships to prod switched ON with the
+full dev→prod deployment of the week of 2026-10-19 (ids carry over). It replaces the desktop Packing form's synchronous Save as Completed. Before this, a
 completion re-saved the whole Goods Delivery through `GOODS_DELIVERY`. On prod (LSH) a 74-line Packing took 96 s, 71 s
 of it in `GD_UNUSED_FN_NEW` moving reservations into the HU one line at a time. At 2,000 lines that is about 40 min,
 the same re-save that took dev down on 2026-10-09.
@@ -15,12 +17,16 @@ The four workflows are generated from tested code. **From now on, edit the JSON 
 Packing form "Completed" ──► pending HUs completed ONE AT A TIME (TableHUCompleted, bulk mode), the Packing written once
   (NOT_ELIGIBLE → the old  ──► PACKING_ASYNC_SUBMIT ──► gd_async_job (command COMPLETE_PACKING, QUEUED)    dialog closes
    onSave_Completed)              Packing lock = PKGJOB-<job> (the mobile app cannot enter it while the job runs)
-      └─ kick ──► PACKING_ASYNC_WORKER (also a Quartz row) ── claim W0_CLAIM_<row_version> + 10-min lease
+      └─ kick ──► PACKING_ASYNC_WORKER (no Quartz row: the clients kick it) ── claim W0_CLAIM_<row_version> + 10-min lease
                     ├─► PACKING_BULK_PREPARE   VALIDATING → READY_TO_COMMIT (prepared_payload) or FAILED (+ lock given back)
                     └─► PACKING_BULK_COMMIT    run A: P0 revalidate → P1 inventory → P2 reservations → SPLIT
                         PACKING_BULK_COMMIT    run B: P3 GD lines → P4 sales order → P5 Packing → COMPLETED
-mobile app ──► PACKING_SAVE (unchanged, plus a size guard: a Completed save above 500 GD lines is refused)
+mobile app ──► PACKING_SAVE (classic, plus guards that refuse a Completed save before any write: above 500 GD lines, or
+               while the delivery is Processing or has an open EDIT_GD / COMPLETE_GD / COMPLETE_PACKING job)
 ```
+
+GOODS_DELIVERY (v243, owned by the GD Completed session) refuses an Edit save on the same conditions, so a mobile GD save
+cannot land in the middle of a Packing job.
 
 **It never re-saves the Goods Delivery.** Of that re-save, a Packing completion needs only what `detectBinHuMigrations`
 (`GD_UNUSED_FN_NEW` `code_node_b71wypDJ`) does: each packed line's reservations move from the loose bin into the HU. The
@@ -115,22 +121,25 @@ UPDATE gd_async_job SET job_status = 'COMMITTING_PACKING', attempt_count = 0, ne
 - `TableHUCompleted` bulk mode: no loading overlay or Packing write of its own; it reports to `_data.pkgv2_hu_<row>`.
   The new handler completes pending HUs one at a time and writes the Packing once (also when an HU fails), instead of
   the old parallel completion (packaging-stock races, whole-Packing writes overwriting each other).
-- `mounted` `pkgV2ShowJobState`: the latest job through SUBMIT `STATUS`; save buttons hidden while a job is open;
-  FAILED / under review reported once.
+- `mounted` `pkgV2ShowJobState`: the latest job through SUBMIT `STATUS`; save buttons hidden while a job is open, and
+  the worker kicked again for it (no scheduled worker; a run in progress holds the job's lease, so a second kick does
+  nothing); FAILED / under review reported once.
 - `PackingRecomputeSource` and `onPackingModeChange` write only the cells that change. Opening a 2,000-line Packing
   wrote 8,000 cells and fired the qty_to_pick handler 2,000 times; a re-open now writes nothing.
 - `PackingPickItemToHU` / `PackingBulkPickItems` read the GD once per open (kept in `_data.pkgv2_picked`); a tap the
   kept map would refuse reads it again first.
 - `table_item_source` uses the GD / Picking table settings (auto paging, no virtual table).
 
-Mobile keeps calling PACKING_SAVE; its own pass comes after the Picking mobile pass.
+Mobile: the app's V2 (`sudu-mobile-expo`, branch `feature/v2_background`) is built to `MOBILE_PACKING_V2_GUIDE.md` and
+passed an iPhone run on dev 2026-10-16; it is switched on by the dev backend URL only. On prod the app keeps calling the
+classic PACKING_SAVE until the user releases its V2.
 
 ## Workflows (dev ids)
 
 | Workflow | id | Called by |
 |---|---|---|
 | PACKING_ASYNC_SUBMIT | 2109924558618333185 | Packing form (save, mounted STATUS) |
-| PACKING_ASYNC_WORKER | 2109924593737240578 | form (one kick per job) + Quartz |
+| PACKING_ASYNC_WORKER | 2109924593737240578 | form (after SUBMIT, and on opening a Packing with an open job); mobile on dev |
 | PACKING_BULK_PREPARE | 2109924633813815298 | WORKER |
 | PACKING_BULK_COMMIT | 2109924671239589890 | WORKER (twice per tick on a SPLIT); calls INVENTORY_APPLY_OPERATION 2105133980371554305 |
 
@@ -141,5 +150,5 @@ Mobile keeps calling PACKING_SAVE; its own pass comes after the Picking mobile p
 2. Regenerate with their ids (scratchpad `pkg/build.py`, `client_patch.py`; done).
 3. Paste and enable PREPARE, COMMIT, WORKER, SUBMIT (done 2026-10-13, v3); then the Packing form (it calls SUBMIT, so
    not before); then the guarded PACKING_SAVE (one code node: CLI publish).
-4. Optional but recommended: a Quartz `WorkflowJob` row for PACKING_ASYNC_WORKER (as for Picking V2). Without it a job
-   that needs a retry waits for the next kick.
+4. No Quartz row (decision 2026-10-14: too expensive). A job that needs a retry waits for the next kick, which comes
+   from anyone opening that Packing.

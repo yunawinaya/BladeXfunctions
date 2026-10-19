@@ -344,8 +344,21 @@ def build_created():
                                 "bsonType": "string", "isExpand": False})
     for name in ("gr_no", "duplicate"):
         doc["response_json"].append({"key": k.key(), "name": name, "title": name, "description": "", "bsonType": "string", "isExpand": False})
-    doc["nodes"] = [old["start"], prep, if_size, key_hit] + stored_nodes + [if_zero, if_invalid, if_validate, reads, qty, if_qty, if_over, if_edit,
-                    if_lines, po_status, po_hdr, if_hdr, ok, old["end"]]
+    # PO busy (2026-10-19): another receipt of one of its purchase orders is Processing -> refused (made last: the nodes above
+    # keep their filter ids and keys)
+    sys.path.insert(0, os.path.join(HERE, "..", "pobusy"))
+    from patch_pobusy import MSG, busy_sql  # noqa: E402
+    prep["data"]["response_json"] += k.resp(["poBusyJson"])
+    reads["blocks"].append(k.parallel("tmp", "", [("condition_all_node_item_GcPoBusy", "Receipts of its POs in the background", [
+        k.sql("sql_node_GcPoBusy", "Other receipts of these POs still Processing (received in the background)",
+              busy_sql("{{system:tenantId}}", "{{node:%s.data.grId}}" % P, "{{node:%s.data.poBusyJson}}" % P), ["id", "gr_no", "po_id", "po_no"])])])["blocks"][0])
+    po_busy = k.code("code_node_GcPoBusy", "Guard: a purchase order received in the background?",
+                     MSG + "\nconst message = poBusyMessage([{{node:sql_node_GcPoBusy.data}}][0], false);\nreturn { busy: message ? \"YES\" : \"NO\", message: message };",
+                     ["busy", "message"])
+    if_po_busy = k.if_("if_GcPoBusy", "IF a purchase order is still received in the background", "'{{node:code_node_GcPoBusy.data.busy}}' == 'YES'", [
+        k.ret("ret_pobusy", "Return purchase order busy", 400, [("message", "{{node:code_node_GcPoBusy.data.message}}", True)])])
+    doc["nodes"] = [old["start"], prep, if_size, key_hit] + stored_nodes + [if_zero, if_invalid, if_validate, reads, po_busy, if_po_busy, qty, if_qty,
+                    if_over, if_edit, if_lines, po_status, po_hdr, if_hdr, ok, old["end"]]
     index(doc)
     doc = patch_exact("GR_CREATED", doc)
     write(CREATED_REL, doc)

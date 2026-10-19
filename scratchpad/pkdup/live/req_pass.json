@@ -1,0 +1,25 @@
+{
+ "arrayData": [
+  {
+   "gd_no": [
+    "2097538370145222658"
+   ],
+   "ref_doc_type": "Goods Delivery",
+   "to_status": "",
+   "table_picking_items": [
+    {
+     "gd_id": "2097538370145222658",
+     "gd_line_id": "2097538370187165701",
+     "item_code": "2021057152383930674",
+     "item_name": "TOMATO",
+     "qty_to_pick": 1000.0,
+     "line_status": "Open",
+     "row_type": "item"
+    }
+   ],
+   "table_picking_records": []
+  }
+ ],
+ "saveAs": "Created",
+ "pageStatus": "Add"
+}

@@ -9,17 +9,18 @@ wrote. A 1,948-line delivery completes in ~84 s on dev. The classic path took de
 | GD_COMPLETE_SUBMIT `2110182609618337794` | runs GOODS_DELIVERY's gates in its order (same codes, same texts), then queues: lock row + `COMPLETE_GD` job + `gd_status = 'Processing'`. `operation: STATUS` reports the latest job |
 | GD_COMPLETE_WORKER `2110182645714518018` | claims due jobs (≤ 5 per tick), calls PREPARE then COMMIT (twice: COMMIT splits) |
 | GD_COMPLETE_PREPARE `2110182689117175810` | set-based reads + GOODS_DELIVERY / GD_UNUSED_FN_NEW code (copied verbatim) + INVENTORY_BULK_APPLY in PLAN mode → the prepared payload |
-| GD_COMPLETE_COMMIT `2110182729927753730` | C0 revalidate (incl. handling units hold enough) · C1 snapshot (GD_COMPLETION_SNAPSHOT, so Revert Completed works) · C2 inventory (INVENTORY_BULK_APPLY, all-or-nothing) · C3 reservations · C3H handling units · C4 sales orders · C5 the delivery (Completed) · C6 item dates, reorder, auto-SI |
+| GD_COMPLETE_COMMIT `2110182729927753730` | C0 revalidate (incl. handling units hold enough) · C1 snapshot (GD_COMPLETION_SNAPSHOT, so Revert Completed works) · C2 inventory (INVENTORY_BULK_APPLY, all-or-nothing) · C3 reservations · C3H handling units · C4 sales orders · C4P a Force Complete's Picking rows · C5 the delivery (Completed) · C6 item dates, reorder, auto-SI |
 | INVENTORY_BULK_APPLY `2109916822821744641` | general set-based SUBTRACT/ADD engine (Balance Table/) |
 
-Built from `scratchpad/gdc/` (`python3 scratchpad/gdc/build_gdc.py --write`, all four at once).
+Built from `scratchpad/gdc/` (`python3 scratchpad/gdc/build_gdc.py --write [NAME ...]`; a node whose content did not change keeps
+its published data byte for byte, so `scratchpad/gdc/test/node_diff.py NAME` lists exactly what a publish changes).
 Published with `.dbtools/wf_upload.mjs`. Each Edit save of GOODS_DELIVERY (v241) first checks the stored status,
 and refuses the save while a delivery is `Processing`.
 
 ## What goes async
 
 Everything the Completed button / list Complete sends, except (these run the classic save, unchanged):
-- a Draft or a new delivery; force-completing an In Progress Picking (406);
+- a Draft or a new delivery;
 - unsaved edits on the form (any column the classic save writes; `gd_undelivered_qty` is carried instead);
 - serial-numbered items, a delivery from a Picking Plan, internal-trading auto-GR, lines needing auto-allocation;
 - a line linked to a Picking (`line_to_id`, `picking_record_id`): the classic save stamps that Picking. In the data only
@@ -31,6 +32,22 @@ batch matches any batch, as the classic atomic node drops it); `hu_status`, `ite
 
 Above 500 lines these are refused with the reason, since the classic save cannot carry them.
 
+## Force Complete (406)
+
+Since 2026-10-19 a delivery whose Picking is not finished is force-completed in the background too, with GOODS_DELIVERY
+v245's result: every line's `picking_status` (and a descriptive line's `packing_status`) Completed, the header
+`picking_status` Completed, the full `gd_qty` delivered as in a normal completion, and the delivery's open Picking rows
+closed (`line_status` Completed, `pending_process_qty` 0; a Picking header only when every row is this delivery's or done,
+so a shared Picking stays open; status only, no pick records). The form asks the 406 question as the classic save does;
+the list forces without asking, as its classic path does. 407 (packing required) still stops it.
+- SUBMIT refuses (400, the classic text) while a device holds one of the Pickings (`is_processing`, lock <= 900 s) or a
+  Picking V2 confirm is open; the job carries the answer (`answers.isForceComplete`, form / list only).
+- PREPARE takes a line fingerprint before its reads; C0 re-checks the Pickings and the fingerprint, and fails the job
+  with nothing written (GD back to Created) if a pick landed meanwhile.
+- C4P closes the rows after C4, while the delivery is still Processing (no Picking writer accepts it then); intent
+  `C4P|I|nnn`, a re-run writes only rows still at their before-values, anything else goes to review.
+- Kept as the classic save does: a Picking with a handling-unit header row is not closed.
+
 ## Client (paste into the dev designer)
 
 1. **GD form** — add an event script `gdc_onClick_save_as_completed` = `gdc_onClick_save_as_completed.js`; set
@@ -38,7 +55,8 @@ Above 500 lines these are refused with the reason, since the classic save cannot
 2. **GD list page** (built on dev v391) — replace `func_bulkComplete` with `gdc_list_func_bulkComplete.js` and
    `mounted` with `gdc_list_mounted.js`.
 
-Switch: `ASYNC_COMPLETE_ENABLED` at the top of both handlers (`false` = classic everywhere). There is no Quartz
+Switches: `ASYNC_COMPLETE_ENABLED` at the top of both handlers (`false` = classic everywhere), and
+`FORCE_COMPLETE_V2_ENABLED` (`false` = a 406 runs the classic save). There is no Quartz
 schedule (user decision: cost). The worker runs when the form queues a job, when bulk Complete queues jobs (it keeps
 ticking while ticks find work), and when the list opens (at most every 2 minutes per browser).
 

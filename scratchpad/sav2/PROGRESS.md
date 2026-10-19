@@ -23,6 +23,32 @@ Plan (approved 2026-10-16): `~/.claude/plans/help-me-build-stock-frolicking-knut
 - NEXT: Phase C (measure the 2k count document: browser steps are the user's; server-side no-SA Review / Sync need a yes),
   the user's browser click-through, COMMIT shell rename.
 
+## 2026-10-19 (Mon, deployment week; this session is now bladexfunctions-fb; all peers restarted under new names)
+- Checked: 6 workflows IDENTICAL, SA form v315 / SC form v499 / SA list v59 / SC list v40 IDENTICAL; no COMPLETE_SA job since the
+  10-16 tests; COMMIT shell 2111074444748689410 still named SA_V2_PREPARE.
+- Correction: prod alternate-UOM SA lines = 12, ALL Outs → the alt-UOM In costing bug has 0 prod exposure (I first said 1 line).
+- Written: `Stock Adjustment/AsyncV2/README.md` (switches, eligibility, job conventions, locks, guard, errors, REQUIRES_REVIEW runbook,
+  tests) + `Stock Count/AsyncV2/README.md`.
+- Sent: mobile note → sudu-mobile-expo-15 (guard 400, whole-count saves, item_list / stock_count_no_type NULLed by mobile saves:
+  prod 0/18 Issued vs 15/85 counted); final change list → all 8 other sessions.
+- Still waiting on the user: browser click-through; yes for the Phase C writes (two more 2k counts on dev 496474); COMMIT rename;
+  alt-UOM fix decision (no exposure, can wait). After the cut: prod SELECT checks.
+- dd (IA V2) flagged: SA_LOCK_JOIN (build_worker.py) lacks `AND g.is_deleted = 0` (as smv2's LOT join). Verified; impact = the worker's
+  unlock writing stock_adjustment_status onto an already soft-deleted row (PREPARE / COMMIT filter is_deleted, so no stock moves).
+  Reachable only via a stale list's bulk delete during a job. NOT republished in cut week; add the filter with the next WORKER publish.
+- dd flagged: a COMMIT outliving its 10-min lease can be taken over mid-APPLY → the engine RESUMEs alongside (IBclaim keeps keys held by
+  the same op) → duplicate inserts. Verified (worker poll: lease_expires_at <= NOW(); IBclaim "HELD"). My 2k engine run: seed 3.3 /
+  TAKE 15.7 / plan 1.6 / writes 15.5 / verify 0.8 / release 24.8 s = ~23 ms per lock key; SA worst (5,000 entries, ~15k keys) ≈ 6 min,
+  ~17 min at 3× slower. PREPARED (not published): build_commit.py:146 lease INTERVAL 10 → 30 MINUTE, rebuilt SA_V2_COMMIT.json (only
+  that string differs), commit tests 144 + interpreter + SQL all pass, validate clean. Plan `deploy/wf_upload.sa.commit_lease30.plan.json`
+  (base guard dropped: getCurrent returns an EMPTY v5 designing row; enabled v4 == base checked by hand; backup
+  `workflow-backups/dev/SA_V2_PREPARE/v4_20261019-213232.enabled.json` - the folder is named after the un-renamed shell). If the user
+  says no: restore `<session SP>/lease30/build_commit.py.orig` + `SA_V2_COMMIT.v4_live.json`. Told dd + 41 (engine owner).
+- 22:30 PUBLISHED (user yes): SA_V2_COMMIT v5 = lease 30 min; smoke OK; IDENTICAL; 0 open COMPLETE_SA jobs. dd then measured dev 7x
+  slower since the weekend (TAKE 5 → 35 ms/key; update-node rows ~33 ms): at today's dev rate a worst-shape 5,000-entry SA (~15k keys)
+  could still exceed 30 min; typical shapes (≤ ~6,800 keys) ≈ 18 min fit. Robust fix = 41's engine run marker (+ UNIQUE
+  operation_effect_key) after the deployment. Option not taken: lower the V2 cap 5,000 → 2,500 (SUBMIT + PREPARE republish).
+
 ## RESUMED 2026-10-16 19:14 (user: "continue and all other sessions"; all 7 told to resume)
 - WP0 DONE 19:40: `CONTRACT.md` (§1-§16 + rulings; §16 = the shared review chain owned by A), `ids.json` (shells "0"),
   `code/shared/{sa_common.js, fingerprint.js, movekey.js, sql.py}` (tests: `node test/shared/test_shared.js` 35 ok;

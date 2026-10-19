@@ -12,8 +12,16 @@ const submitForm = async (data) => {
     {
       allData: data,
     },
-    (res) => {
+    async (res) => {
       this.$message.success(`${this.isEdit ? "Update" : "Add"} successfully`);
+      // The receiving is saved either way; a credit note it could not raise is reported, not hidden.
+      if (res?.data?.cn_status === "Failed") {
+        await this.$alert(
+          `The credit note was not created: ${res.data.cn_message}`,
+          "Credit Note Not Created",
+          { confirmButtonText: "OK", type: "warning" },
+        ).catch(() => {});
+      }
       closeDialog();
     },
     async (error) => {

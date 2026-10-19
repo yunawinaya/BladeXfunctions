@@ -164,6 +164,27 @@ function mocks() {
       return out;
     },
     sql_node_GcPoStatus: (s, ctx, e) => poStatusRows(e.db, s),
+    // PO busy: other receipts Processing that name one of the POs (the sim's GR rows carry no po_id: their lines' POs)
+    sql_node_GcPoBusy: (s, ctx, e) => {
+      const self = s.match(/AND g\.id <> ([0-9]+)/)[1];
+      const pos = JSON.parse(s.match(/JSON_TABLE\('(\[[^']*\])', '\$\[\*\]' COLUMNS \(k /)[1]).map(String);
+      const out = [];
+      for (const g of e.db.t.gr) {
+        if (g.is_deleted || g.gr_status !== "Processing" || g.id === self) continue;
+        const mine = new Set();
+        for (const l of liveGrl(e.db, [g.id])) {
+          if (l.line_po_id) mine.add(String(l.line_po_id));
+          const p = e.db.t.pol.find((x) => x.id === String(l.po_line_item_id));
+          if (p) mine.add(String(p.purchase_order_id));
+        }
+        for (const pid of mine) {
+          if (!pos.includes(pid)) continue;
+          const po = e.db.t.po.find((x) => x.id === pid);
+          out.push({ id: g.id, gr_no: g.gr_no, po_id: pid, po_no: po ? po.purchase_order_no : null });
+        }
+      }
+      return out;
+    },
     // GR_CANCEL_CREATED
     sql_node_CcGuard: (s, ctx, e) => {
       const ids = csvIn(s, /g\.id IN \(([0-9,]*)\)/);
@@ -184,7 +205,14 @@ function mocks() {
     },
     sql_node_CcPoStatus: (s, ctx, e) => poStatusRows(e.db, s),
   };
-  return { sql, read: {} };
+  const read = {
+    // the custom-field keep (cfwipe, 10-16): the stored receipt; the sim's rows hold no custom fields
+    get_node_CfStored1: (v, ctx, e) => {
+      const g = e.db.t.gr.find((x) => x.id === String(v) && !x.is_deleted);
+      return g ? { count: 1, data: { id: g.id, custom_fields_e9609s2l: null, table_gr: liveGrl(e.db, [g.id]) } } : { count: 0, data: [] };
+    },
+  };
+  return { sql, read };
 }
 
 module.exports = { GrDB, mocks, T };

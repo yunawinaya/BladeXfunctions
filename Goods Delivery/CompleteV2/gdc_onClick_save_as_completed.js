@@ -9,6 +9,8 @@ const GDC_WF = {
 };
 // Switch: false = every click runs the classic save
 const ASYNC_COMPLETE_ENABLED = true;
+// Switch: false = a Force Complete (the 406 prompt) runs the classic save
+const FORCE_COMPLETE_V2_ENABLED = true;
 
 const closeDialog = () => {
   if (this.parentGenerateForm) {
@@ -100,8 +102,13 @@ const submit = async (data, answers) => {
       "Auto-create Sales Invoice", "Yes, create invoice", "No, complete only", "info");
     return submit(data, yes ? { ...answers, auto_si_confirmed: "true" } : { ...answers, auto_si_skip: "true" });
   }
-  // force-completing an In Progress Picking stays on the classic save, which asks this itself
-  if (code === "406") return classic("406: picking not completed");
+  if (code === "406") {
+    // Force Complete: the classic save's prompt, then V2 completes the delivery and closes its Picking rows
+    if (FORCE_COMPLETE_V2_ENABLED !== true || answers.isForceComplete === "Yes") return classic("406: picking not completed");
+    this.hideLoading();
+    if (!(await confirm(message || "Picking is currently under In Progress status.\nProceeding will force complete picking process.\n\nWould you like to proceed?", "", "Proceed", "Cancel", "warning"))) return release();
+    return submit(data, { ...answers, isForceComplete: "Yes" });
+  }
   release();
   if (code === "402") return alertBox((message || "Credit limit exceeded").replace(/^Block - /, ""), "error");
   if (code === "405" || code === "407") return alertBox(message, "warning");

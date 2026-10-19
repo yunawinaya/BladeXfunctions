@@ -1,0 +1,18 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    {
+      "name": "PICKING_LOOP",
+      "dataId": "2021065804251615233",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/PickingLoopWorkflow.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkdup/deploy/PickingLoopWorkflow.v87.json"
+    },
+    {
+      "name": "GD_EDIT_SUBMIT",
+      "dataId": "2110618741159940097",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_SUBMIT.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkdup/deploy/GD_EDIT_SUBMIT.v9.json"
+    }
+  ]
+}

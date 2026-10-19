@@ -76,11 +76,8 @@ const fetchDeductReturnQty = async (organizationId) => {
   const setup = res?.data?.[0];
   if (!setup) return false;
 
-  // Unset until the column is configured, and unset means the credit note.
-  return (
-    setup.return_billing_method === "Deduct from Invoice" &&
-    setup.trigger_by === "Sales Return"
-  );
+  // Unset until the column is configured, and unset means the credit note. Trigger By only times the credit note.
+  return setup.return_billing_method === "Deduct from Invoice";
 };
 
 // The item-first pickers hand over rows built in the browser, which are not

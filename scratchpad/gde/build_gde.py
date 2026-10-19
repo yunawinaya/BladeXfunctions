@@ -1148,12 +1148,22 @@ def build_submit():
          WHERE c.tenant_id = '@TEN' AND c.is_deleted = 0 AND c.command = 'CONFIRM_PICKING' AND c.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')
            AND c.picking_id IN (SELECT CAST(t2.id AS CHAR) COLLATE utf8mb4_general_ci FROM transfer_order t2
                                  WHERE t2.tenant_id = '@TEN' AND t2.is_deleted = 0 AND t2.movement_type = 'Picking'
-                                   AND (JSON_CONTAINS(t2.gd_no, JSON_QUOTE('@GDID')) OR JSON_CONTAINS(t2.gd_no, '@GDID')))) AS open_pickings
+                                   AND (JSON_CONTAINS(t2.gd_no, JSON_QUOTE('@GDID')) OR JSON_CONTAINS(t2.gd_no, '@GDID')))) AS open_pickings,
+       IF(g.gd_status = 'Draft',
+          (SELECT CONCAT(j.job_status, '|', CAST(j.id AS CHAR), '|', COALESCE(j.source_so_no, ''))
+             FROM gd_async_job j
+            WHERE j.tenant_id = '@TEN' AND j.command = 'CREATE_GD_FROM_FORM' AND j.is_deleted = 0
+              AND j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')
+              AND EXISTS (SELECT 1 FROM JSON_TABLE(CONCAT('[', '@SOIDS', ']'), '$[*]' COLUMNS (sid BIGINT PATH '$')) s
+                           WHERE j.source_so_ids LIKE CONCAT('%"', CAST(s.sid AS CHAR), '"%') COLLATE utf8mb4_general_ci)
+            ORDER BY j.id
+            LIMIT 1),
+          NULL) AS so_job
   FROM (SELECT NOW(3) AS t) n
   LEFT JOIN goods_delivery g
     ON g.tenant_id = '@TEN'
    AND g.id = @GDID
-   AND g.is_deleted = 0""", OPEN=open_jobs, TEN=TEN, GDID=GDID)
+   AND g.is_deleted = 0""", OPEN=open_jobs, TEN=TEN, GDID=GDID, SOIDS=N(G, "data.soIdsSql"))
     held = q("""SELECT CAST(x.id AS CHAR) AS job_id, (x.next_attempt_at IS NOT NULL AND x.next_attempt_at <= NOW(3)) AS expired
   FROM gd_async_job x
  WHERE x.tenant_id = '@TEN' AND x.is_deleted = 0 AND x.command = 'EDIT_GD' AND x.job_status = 'HELD' AND x.correlation_id = 'GD|@GDID'
@@ -1249,7 +1259,7 @@ def build_submit():
               tail("submitGuard({ operation: [{{workflowparams:operation}}][0], gdId: [{{workflowparams:gd_id}}][0], source: [{{workflowparams:source}}][0], "
                    "answers: [{{workflowparams:answers}}][0], form: [{{workflowparams:form}}][0], delta: [{{workflowparams:delta}}][0], cascadeRef: [{{workflowparams:cascade_ref}}][0], "
                    "tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] })", "submit guard", "{ route: res.route, op: res.operation, gd: res.gdId, source: res.source, message: res.message }"),
-              ["route", "code", "message", "operation", "gdId", "tenantId", "source", "cascadeRef", "uid", "answers", "idLists"], objects=("answers", "idLists")),
+              ["route", "code", "message", "operation", "gdId", "tenantId", "source", "cascadeRef", "uid", "answers", "idLists", "soIdsSql"], objects=("answers", "idLists")),
         K.if_(ids, "if_GSreject", "IF the input is invalid: answer, write nothing", is_(G, "route", "REJECT"), sres("rej", "rejected input", pick(G, ["route", "code", "message"]))),
         K.if_(ids, "if_GSops", "IF RELEASE / CANCEL_HELD (a Sales Order save's own held job on this GD): claim-gated writes, then answer",
               "%s || %s" % (is_(G, "operation", "RELEASE"), is_(G, "operation", "CANCEL_HELD")), ops_nodes),
@@ -1260,7 +1270,7 @@ def build_submit():
             call(ids, "workflow_node_GSkick", "GD_EDIT_WORKER for that job (its EXPIRE path: CANCELLED, the GD and our Picking unlocked; claim-gated)",
                  ("GD_EDIT_WORKER", IDS.get("GD_EDIT_WORKER", "0")), [("job_id", N("code_node_GSheld", "data.jobId"))])]),
         K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest lock and that lock's job, the open jobs on it, its Pickings (lock age) and their open confirms, DB clock",
-              facts, ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "lock_job", "open_jobs", "pickings", "open_pickings"]),
+              facts, ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "lock_job", "open_jobs", "pickings", "open_pickings", "so_job"]),
         plus_field(cnode(E, "Entry: STATUS (the latest lock's job); SUBMIT goes on for a Created or Draft GD with nothing open on it (BUSY / STOP otherwise)", SC + ["code/submit/entry.js"],
               tail("submitEntry(%s, %s)" % (d(G), d("sql_node_GSfacts")), "submit entry", "{ route: res.route, code: res.code, message: res.message, lockN: res.lockN }"),
               E_FIELDS, objects=("lineCount", "lockN", "progressPercent", "notes")), "stalesub", "staleLocks", "array"),

@@ -29,16 +29,32 @@ const flatOf = (rows) => {
   }
   return out;
 };
+// every row of a stock_movement tree, parents and children (the stored rows: what FP_LINES reads back)
+const lotTreeRows = (rows) => {
+  const out = [];
+  for (const row of Array.isArray(rows) ? rows : []) {
+    if (!row || typeof row !== "object") continue;
+    out.push(row);
+    for (const c of Array.isArray(row.children) ? row.children : []) if (c && typeof c === "object") out.push(c);
+  }
+  return out;
+};
+// a stored row (no parent_fm_key in the table) is a bundle parent when it names a bundle and has no parent row
+const lotStoredFlat = (rows) => list(rows).filter((r) => !(s(r.item_bundle_id) && !digits(r.parent_id)));
+// code_node_LOTallocPrep's rule (V2.1): a line the classic auto-allocates before its gates; PREPARE allocates it
+const lotNeedsAlloc = (row) => {
+  const t = row && typeof row.temp_qty_data === "string" ? row.temp_qty_data.trim() : "";
+  return Boolean(row) && (parseFloat(row.requested_qty) || 0) > 0 && (typeof row.temp_qty_data !== "string" || t === "" || t === "[]") && Boolean(row.item_selection);
+};
 const parseJson = (t) => {
   if (t && typeof t === "object") return t;
   return lotParseJ(t);
 };
-// a line set the background save does not take (form lines or stored lines): bundles, HU, serial lines, and entries that move
-// HU or a category other than Unrestricted / Blocked
+// a line set the background save does not take (form lines or stored lines): HU, serial lines, and entries that move HU or a
+// category other than Unrestricted / Blocked (bundles and lines waiting for auto-allocation are taken since V2.1)
 const LOT_OK_CATEGORIES = ["", "Unrestricted", "Blocked", "UNR", "BLK"];
 const lotLineReasons = function lotLineReasons(flat) {
   for (const l of flat) {
-    if (s(l.item_bundle_id) || digits(l.parent_id)) return "it has item bundles";
     if (lotJsonList(l.temp_hu_data).length || s(l.handling_unit_id)) return "it has handling units";
     if (num(l.is_serialized_item) === 1) return "it has serial-numbered items";
     for (const e of lotJsonList(l.temp_qty_data)) {

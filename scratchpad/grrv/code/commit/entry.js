@@ -1,6 +1,9 @@
 // GR_REVERT_COMMIT - Entry: the job, its step rows, the manifest, the receipt's lock and the purchase-order locks -> what this
 // run does (phase A = R0 revalidate + purchase-order locks, R1 inventory, then SPLIT; phase B = R2 costing, R3 documents,
 // R4 purchase orders, R5 the receipt, then COMPLETED)
+// a run's lease: 10 min + 0.6 s per stock movement (about twice the 0.14 s per lock key the engine took on dev, 2026-10-19),
+// at most 90 min - it must outlast the engine call, or a re-kick runs the job a second time while this run still posts
+const leaseFor = (dbNow, movements) => dbAddSeconds(dbNow, Math.min(5400, 600 + Math.ceil(0.6 * Math.max(0, Number(movements) || 0))));
 const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, grRows, lockRows) {
   const jobs = list(jobRows);
   const job = jobs.filter((r) => s(r.id))[0] || null;
@@ -53,12 +56,13 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   if (!done.R1_INVENTORY && !lockMine) return Object.assign({}, base, entry, failNoWrite(entry, "GRV_NOT_LOCKED", "the Goods Receiving is no longer Processing under this job: no stock was moved"), { route: "FAIL" });
   const phase = done.R1_INVENTORY ? "B" : "A";
   const c = m.counts || {};
+  const leaseUntil = leaseFor(dbNow, c.movements) || s(job.lease_until);
   const claim = jobRow(entry, { job_status: "COMMITTING_REVERT", progress_percent: Math.max(Number(job.progress_percent) || 0, phase === "A" ? 70 : 85),
     progress_message: phase === "A" ? "Taking back the stock of " + num(c.lines) + " line(s)" : "Restoring costing, documents and purchase orders", attempt_count: entry.attempts,
     row_version: entry.rowVersion + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null,
-    lease_owner: guard.leaseOwner, lease_expires_at: s(job.lease_until) });
+    lease_owner: guard.leaseOwner, lease_expires_at: leaseUntil });
   return Object.assign({}, base, entry, {
-    route: "GO", phase: phase, idempotencyKey: s(job.idempotency_key), partPrefix: "P|" + s(m.nonce).replace(/[^0-9A-Za-z]/g, "") + "|", manifest: m,
+    route: "GO", phase: phase, idempotencyKey: s(job.idempotency_key), partPrefix: "P|" + s(m.nonce).replace(/[^0-9A-Za-z]/g, "") + "|", manifest: m, leaseUntil: leaseUntil,
     jobRows: [claim], needJobUpd: "YES",
     needR0: phase === "A" && !done.R0_REVALIDATE ? "YES" : "NO",
     needR1: phase === "A" ? "YES" : "NO",

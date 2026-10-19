@@ -8,7 +8,7 @@ const submitGuard = function submitGuard(inp) {
   const source = s(inp.source).toUpperCase() || "FORM";
   const tenantId = s(inp.tenantId);
   const cascadeRef = s(inp.cascadeRef);
-  const bad = (why) => answer("REJECT", "400", why, { operation: op, gdId: "0", tenantId: "0", source: source, cascadeRef: "", uid: "", answers: {}, idLists: {} });
+  const bad = (why) => answer("REJECT", "400", why, { operation: op, gdId: "0", tenantId: "0", source: source, cascadeRef: "", uid: "", answers: {}, idLists: {}, soIdsSql: "0" });
   if (["SUBMIT", "STATUS", "RELEASE", "CANCEL_HELD"].indexOf(op) < 0) return bad("operation must be SUBMIT, STATUS, RELEASE or CANCEL_HELD");
   if (!digits(gdId)) return bad("gd_id: digits only");
   if (["FORM", "CASCADE"].indexOf(source) < 0) return bad("source must be FORM or CASCADE");
@@ -31,10 +31,11 @@ const submitGuard = function submitGuard(inp) {
   const ids = (k) => [...new Set(rows.map((r) => s(r[k])).filter(digits))];
   const soIds = new Set(ids("line_so_id"));
   const hdrSo = useForm ? (form || {}).so_id : ((delta || {}).header || {}).so_id;
-  for (const x of Array.isArray(hdrSo) ? hdrSo : hdrSo ? [hdrSo] : []) if (digits(x)) soIds.add(s(x));
+  for (const x of Array.isArray(hdrSo) ? hdrSo : s(hdrSo).split(",")) if (digits(s(x).trim())) soIds.add(s(x).trim());
   const sql = (arr) => (arr.length ? arr.join(",") : "0");
   const soLines = ids("so_line_item_id");
   return answer("CONTINUE", "", "", {
+    soIdsSql: sql([...soIds]),
     operation: op, gdId: gdId, tenantId: tenantId, source: source, cascadeRef: cascadeRef, uid: s(inp.uid), answers: { needCL: s(a.needCL) || "required", continueZero: s(a.continueZero), confirmPickReversal: s(a.confirmPickReversal) },
     idLists: Object.assign({ deltaMaterialIdsSql: sql(ids("material_id")), deltaSoLineIdsSql: sql(soLines), deltaSoLineIdsQuoted: soLines.length ? soLines.map((x) => "'" + x + "'").join(",") : "'0'", deltaSoIdsSql: sql([...soIds]) },
       useForm ? geAllocIds(rows, []) : geAllocIds((delta || {}).added, (delta || {}).lines)),

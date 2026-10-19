@@ -121,6 +121,36 @@ const buildCreatedSummary = (created, blocked) => {
   return sections.join("<br><br>");
 };
 
+// GD_SO_CONVERT_CHECK (read-only): the selected sales orders that still have a delivery saving in the background (an
+// unfinished GD Created V2 save). A check that cannot run answers none: GD_ASYNC_SUBMIT still refuses such a save.
+const SO_CONVERT_CHECK_WORKFLOW_ID = "2112084100104495105";
+
+const checkSavingInBackground = (records) =>
+  new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        SO_CONVERT_CHECK_WORKFLOW_ID,
+        { so_ids: records.map((record) => String(record.id)) },
+        (res) => {
+          let busy = [];
+          try {
+            busy = JSON.parse((res && res.data && res.data.busy_json) || "[]");
+          } catch (error) {
+            busy = [];
+          }
+          resolve(Array.isArray(busy) ? busy : []);
+        },
+        (err) => {
+          console.error("Convert check failed:", err);
+          resolve([]);
+        },
+      );
+    } catch (error) {
+      console.error("Convert check could not run:", error);
+      resolve([]);
+    }
+  });
+
 // A few sales orders per call: one call for 250 ran 54 minutes, and a single failing
 // sales order ended the whole batch.
 const CONVERT_BATCH_SIZE = 5;
@@ -289,7 +319,7 @@ const handleConvertGD = async (
 
 (async () => {
   try {
-    const selectedRecords = arguments[0].selectedRecords;
+    let selectedRecords = arguments[0].selectedRecords;
     const plantID = arguments[0].plantID;
     const organizationID = arguments[0].organizationID;
 
@@ -335,6 +365,43 @@ const handleConvertGD = async (
     }
 
     const convertAsCreated = Number(pickingSetup.convert_gd_created) === 1;
+
+    // A sales order whose delivery is still saving in the background is not converted again: its remaining quantity only
+    // drops once that save finishes, so a second delivery now would deliver it twice
+    const saving = await checkSavingInBackground(selectedRecords);
+    if (saving.length > 0) {
+      const savingIds = new Set(saving.map((item) => String(item.so_id)));
+      const savingNos = selectedRecords
+        .filter((record) => savingIds.has(String(record.id)))
+        .map((record) => escapeHTML(record.so_no || record.id));
+      const rest = selectedRecords.filter((record) => !savingIds.has(String(record.id)));
+      const intro = `${
+        savingNos.length === 1 ? "This sales order has" : "These sales orders have"
+      } a goods delivery that is still being saved in the background. Wait until it appears in the Goods Delivery list, then convert again:<br><br>${savingNos.join("<br>")}`;
+      if (rest.length === 0) {
+        await this.$alert(intro, "Delivery Still Saving", {
+          confirmButtonText: "OK",
+          type: "warning",
+          dangerouslyUseHTMLString: true,
+        });
+        return;
+      }
+      try {
+        await this.$confirm(
+          `${intro}<br><br>Convert the other ${rest.length} sales order${rest.length === 1 ? "" : "s"}?`,
+          "Delivery Still Saving",
+          {
+            confirmButtonText: "Convert the others",
+            cancelButtonText: "Cancel",
+            type: "warning",
+            dangerouslyUseHTMLString: true,
+          },
+        );
+      } catch (error) {
+        return;
+      }
+      selectedRecords = rest;
+    }
 
     if (selectedRecords.length > 1) {
       await this.$confirm(

@@ -6,7 +6,7 @@ const submitGuard = function submitGuard(inp) {
   const gdId = s(inp.gdId);
   const source = s(inp.source).toUpperCase() || "FORM";
   const tenantId = s(inp.tenantId);
-  const bad = (why) => answer("REJECT", "400", why, { operation: op, gdId: "0", tenantId: "0", source: source, uid: "", causationId: "", answers: {} });
+  const bad = (why) => answer("REJECT", "400", why, { operation: op, gdId: "0", tenantId: "0", source: source, uid: "", causationId: "", force: "", answers: {} });
   if (["SUBMIT", "STATUS"].indexOf(op) < 0) return bad("operation must be SUBMIT or STATUS");
   if (!digits(gdId)) return bad("gd_id: digits only");
   if (["FORM", "LIST", "PICKING", "PACKING"].indexOf(source) < 0) return bad("source must be FORM, LIST, PICKING or PACKING");
@@ -20,9 +20,11 @@ const submitGuard = function submitGuard(inp) {
     }
   }
   a = a && typeof a === "object" ? a : {};
+  // Force Complete is the user's answer to the 406 prompt: the form's or the list's only
+  const force = s(a.isForceComplete) === "Yes" && (source === "FORM" || source === "LIST") ? "Yes" : "";
   return answer("CONTINUE", "", "", {
-    operation: op, gdId: gdId, tenantId: tenantId, source: source, uid: s(inp.uid), causationId: s(inp.causationId).slice(0, 200),
-    answers: { needCL: s(a.needCL) || "required", continueZero: s(a.continueZero), isForceComplete: s(a.isForceComplete), auto_si_confirmed: s(a.auto_si_confirmed), auto_si_skip: s(a.auto_si_skip) },
+    operation: op, gdId: gdId, tenantId: tenantId, source: source, uid: s(inp.uid), causationId: s(inp.causationId).slice(0, 200), force: force,
+    answers: { needCL: s(a.needCL) || "required", continueZero: s(a.continueZero), isForceComplete: force, auto_si_confirmed: s(a.auto_si_confirmed), auto_si_skip: s(a.auto_si_skip) },
   });
 };
 const res = submitGuard({ operation: [{{workflowparams:operation}}][0], gdId: [{{workflowparams:gd_id}}][0], source: [{{workflowparams:source}}][0], answers: [{{workflowparams:answers}}][0],
