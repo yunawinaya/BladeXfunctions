@@ -11993,7 +11993,9 @@
                 "desensitization_replace": "",
                 "history": false,
                 "dataBind": false,
-                "dataIdentifier": false
+                "dataIdentifier": false,
+                "fixedColumn": true,
+                "fixedColumnPosition": "right"
               },
               "events": {
                 "onClick": "bbk3cqd9"

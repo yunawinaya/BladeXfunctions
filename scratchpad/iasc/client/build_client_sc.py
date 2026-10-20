@@ -305,7 +305,9 @@ def build_widgets(form, keys, pkeys):
     line_cols = [column(tin, "so_no", "Sales Order"), column(tin, "line_no", "Line"), column(tin, "customer", "Customer"),
                  column(tnum, "ordered", "Ordered"), column(tnum, "delivered", "Delivered"), column(tnum, "suggestion", "Suggested"),
                  column(tin, "uom", "UOM"), column(tin, "line_id", "Line ID", hidden=True), column(tin, "so_id", "SO ID", hidden=True),
-                 column(tin, "uom_id", "UOM ID", hidden=True), column(link_tpl, "pick", "Select", linkName="Select")]
+                 column(tin, "uom_id", "UOM ID", hidden=True), column(link_tpl, "pick", "Select", linkName="Select",
+                        # fixed to the right (the user's designer change, dev v42)
+                        fixedColumn=True, fixedColumnPosition="right")]
     expand_cols = [column(tin, "component", "Component"), column(tnum, "level", "Level", precision=0), column(tin, "bom", "BOM"),
                    column(tin, "under", "Used Under"), column(tin, "item_id", "Item ID", hidden=True),
                    column(col["hu_select"], "expand", "Expand", fixedColumn=False)]

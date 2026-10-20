@@ -108,6 +108,9 @@ for (const [label, B] of [["OFF", OFF], ["ON", ON]]) {
   const lt = H.findModel(B.list, "sc_line_table");
   const et = H.findModel(B.list, "sc_expand_table");
   check(label + ": sc_line_table columns", !!lt && same((lt.tableColumns || []).map((c) => c.model), LINE_COLS) && lt.options.isAdd === false && lt.options.isDelete === false);
+  const pickCol = ((lt && lt.tableColumns) || []).find((c) => c.model === "pick");
+  check(label + ": the Select link column fixed to the right (the user's designer change, dev v42)", !!pickCol && pickCol.options.fixedColumn === true &&
+    pickCol.options.fixedColumnPosition === "right");
   check(label + ": sc_expand_table columns", !!et && same((et.tableColumns || []).map((c) => c.model), EXPAND_COLS) && et.options.isAdd === false && et.options.isDelete === false);
   const mode = H.findModel(B.list, "bom_consumption_mode");
   check(label + ": bom_consumption_mode = STANDARD / FLAT, no default", !!mode && same(mode.options.options.map((o) => [o.value, o.label]), [["STANDARD", "Standard"], ["FLAT", "Flat"]]) && mode.options.defaultValue === "");
@@ -274,15 +277,17 @@ for (const key of ["uhn48srb", "wia8s2r9"]) {
     Object.keys(DATA).every((m) => now.indexOf(m) < 0));
 }
 
-// ON vs the live dev v40 (the publish base, base/ia_form_v40.json): the widgets and the config identical, every event in place; only
-// sc_main changes (the platform pairs columns by key, so no widget may move or change its key)
+// ON vs the live dev v42 (base/ia_form_v42.json: v41 + the user's designer change, the Select column fixed right): identical, so a
+// publish of this build changes nothing on dev
 {
-  const V40 = H.readJSON(path.join(H.IASC, "base/ia_form_v40.json"));
-  check("ON vs v40: the widgets identical", JSON.stringify(ON.list) === JSON.stringify(V40.list));
-  const changed = ON.config.eventScript.filter((e) => JSON.stringify(H.byKey(V40, e.key)) !== JSON.stringify(e)).map((e) => e.name).sort();
-  check("ON vs v40: the same events in the same order; only sc_main changed", same(ON.config.eventScript.map((e) => e.key), V40.config.eventScript.map((e) => e.key)) &&
-    same(changed, ["sc_main"]), changed);
-  check("ON vs v40: the form config identical apart from the events", JSON.stringify(Object.assign({}, ON.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, V40.config, { eventScript: [] })));
+  const V42 = H.readJSON(path.join(H.IASC, "base/ia_form_v42.json"));
+  // the designer stores keys in its own order: compare with sorted keys
+  const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => Object.assign(o, { [k]: canon(x[k]) }), {}) : x);
+  check("ON vs v42: the widgets identical", JSON.stringify(canon(ON.list)) === JSON.stringify(canon(V42.list)));
+  const changed = ON.config.eventScript.filter((e) => JSON.stringify(H.byKey(V42, e.key)) !== JSON.stringify(e)).map((e) => e.name).sort();
+  check("ON vs v42: the same events, none changed", same(ON.config.eventScript.map((e) => e.key), V42.config.eventScript.map((e) => e.key)) && same(changed, []), changed);
+  check("ON vs v42: the form config identical apart from the events", JSON.stringify(canon(Object.assign({}, ON.config, { eventScript: [] }))) ===
+    JSON.stringify(canon(Object.assign({}, V42.config, { eventScript: [] }))));
 }
 
 // shipped state, platform tokens, syntax, mirrors
