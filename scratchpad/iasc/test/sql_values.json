@@ -1,0 +1,32 @@
+{
+ "*": {
+  "tenantId": "000000",
+  "org": "1123598813738675201",
+  "line": "2112017989484847107",
+  "so": "2112017989476458498",
+  "item": "2098252135296131074",
+  "ia": "1",
+  "iaId": "1",
+  "lineId": "2112017989484847107"
+ },
+ "missing_cols": {
+  "h.planned_output_qty": "h.item_qty",
+  "h.bom_consumption_mode": "h.page_status",
+  "h.source_so_id": "h.item_id",
+  "h.source_so_line_id": "h.item_id",
+  "h.source_so_context_json": "h.remarks",
+  "h.source_bom_id": "h.item_id",
+  "h.bom_snapshot_json": "h.remarks_2"
+ },
+ "IA_V2_SUBMIT": {
+  "key": "IA:1123598813738675201:new-x:0123456789abcdef:1",
+  "organizationId": "1123598813738675201",
+  "itemIdsSql": "0,2098252135296131074",
+  "pickPairsJson": "[]",
+  "costPairsJson": "[]",
+  "balTuplesJson": "[]",
+  "batchTuplesJson": "[]",
+  "plantId": "1123598813738675202",
+  "jobId": "0"
+ }
+}

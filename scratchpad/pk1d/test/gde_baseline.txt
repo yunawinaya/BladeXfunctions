@@ -1,0 +1,34 @@
+lift: test_lift: 42 nodes lifted, each identical to its pinned deployed version (GOODS_DELIVERY v245, GD_UNUSED_FN_NEW v55, REORDER_SET_REDIS v21, GLOBAL_ALLOCATION v34) (exit 0)
+parity: {"same":821,"diff":0,"notRecorded":0,"fixtures":29,"failed":8} (exit 1)
+alloc: {"mutant":null,"cases":3,"failed":1} (exit 1)
+alloc_parity: {"same":0,"diff":0,"notRecorded":0,"fixtures":0,"failed":0} (exit 0)
+delta: {"fixtures":19,"failed":0} (exit 0)
+plan: {"fixtures":19,"failed":1} (exit 1)
+commit: {"mutant":null,"cases":46,"failed":0} (exit 0)
+submit: {"cases":59,"failed":0} (exit 0)
+prepare_glue: 13/13 passed (exit 0)
+worker: 19/19 passed (exit 0)
+client: 18/18 passed (exit 0)
+mounted: 13/13 passed (exit 0)
+edit_open: 3/3 passed (exit 0)
+picking_guards: 16/16 passed (exit 0)
+so_save: 14/14 passed (exit 0)
+so_form: 18/18 passed (exit 0)
+cascade: 9 scenario(s) failed (exit 1)
+alloc_shape: {"kinds":0,"failed":0} (exit 0)
+alloc_fast: 2/2 passed (exit 0)
+scope: {"tables": 305, "unscoped": 0} (exit 0)
+refs: GD_EDIT_SUBMIT.json: 171 references, 0 problems (exit 0)
+parity FAIL 2110626248381091842 GD/20261015/015 Created route=PLANNED 200 ran=29
+parity FAIL 2110639844777046017 Draft/GD/0001 Draft route=PLANNED 200 ran=28
+parity FAIL 2110650688659304449 GD/20261015/017 Created route=PLANNED 200 ran=31
+parity FAIL 2110651168697397249 GD/20261015/017 Created route=PLANNED 200 ran=31
+parity FAIL 2110910796671397889 GD/20261015/015 Created route=PLANNED 200 ran=31
+parity FAIL 2110911235303321602 GD/20261015/015 Created route=PLANNED 200 ran=33
+parity FAIL 2110913022143934465 GD/20261015/015 Created route=STOP 413 ran=12 msg=Reducing this delivery reverses quantities already picked on PI-202610
+parity FAIL 2110913074522402818 GD/20261015/015 Created route=PLANNED 200 ran=32
+alloc FAIL LOOP: two rows of one material share one balance - the second sees the first's allocation (the tracker): Cannot read properties of undefined (reading '0')
+plan FAIL 2110651168697397249 GD/20261015/017
+plan    THREW Error: route FAIL GDE_NOT_ELIGIBLE lines without an allocation 
+cascade V2: the worker's PREPARE failed
+cascade 9 scenario(s) failed

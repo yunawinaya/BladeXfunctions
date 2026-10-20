@@ -13,6 +13,7 @@ const LOT_IT_CREATE = ["doc_type", "doc_id", "doc_no", "doc_line_id", "line_no",
   "target_doc_no", "target_doc_line_id", "source_transit_id"];
 const lotDate19 = (v) => {
   const t = lotS(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t + " 00:00:00";
   return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(t) ? t.slice(0, 19) : t || null;
 };
 // the entries the compute bodies walk, parsed exactly as they parse them
@@ -136,7 +137,7 @@ const lotChain = function lotChain(IN) {
   return __withContext(ctx, () => {
     if (IN.action !== "CANCEL") {
       // if_LOTallocGate (saveAs not Draft / Cancelled): the auto allocation; its lines reach yPlLXIZW as get_cache_node_LOTallocOut
-      out.alloc = lotAllocLoop(IN.alloc, IN.allocScope, IN.allocWhere);
+      out.alloc = lotAllocLoop(IN.alloc, IN.allocScope, IN.allocWhere, IN.storedPicks);
       // if_LOTallocErr -> return_node_LOTallocErr
       if (out.alloc.route === "STOP") return stop("LOT_ALLOC_FAILED", out.alloc.message);
       if (out.alloc.route === "SCOPE") {
@@ -147,6 +148,11 @@ const lotChain = function lotChain(IN) {
       if (out.alloc.route === "DONE") ctx["node:get_cache_node_LOTallocOut"] = { data: out.alloc.lines };
     }
     out.fill = __run("code_node_yPlLXIZW");
+    if (IN.action === "DIRECT" || IN.action === "STAGE") {
+      // if_PYPLDh47 -> code_node_LOTqtyComplete: after the allocation every line naming an item carries stock (classic 400)
+      const qc = __run("code_node_LOTqtyComplete");
+      if (Number(qc.isIncomplete) === 1) return stop("LOT_LINES_WITHOUT_STOCK", lotS(qc.incompleteMessage));
+    }
     if (IN.action === "CANCEL") {
       // search_node_LOTitOpenCancel: this document's In Transit rows
       ctx["node:search_node_LOTitOpenCancel"] = search(IN.ledger.filter((r) => r.status === "In Transit"));
@@ -234,14 +240,17 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
       treeRows.push(r);
       for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === "object") treeRows.push(c);
     }
-    if (lotLineFingerprint(treeRows) !== s(req.incomingFingerprint)) return fail("LOT_INVALID_REQUEST", "Please save again.");
+    if (lotLineFingerprint(treeRows) !== s(req.incomingFingerprint)) {
+      return fail("LOT_INVALID_REQUEST", "The lines of this save no longer match what was sent: nothing was moved, please save it again.");
+    }
     sTree = treeRows;
   }
 
   let out;
   try {
     out = lotChain({ action: action, saveAs: saveAs, allData: allData, doc: doc, ledger: ledger, items: items, uuid: "LOT" + jobId, alloc: lotAllocAdapt(S),
-      allocScope: lotAllocScope(storedRows, s(entry.allocScope)), allocWhere: { plant: s(hdr.issuing_operation_faci), org: orgId } });
+      allocScope: lotAllocScope(storedRows, s(entry.allocScope)), allocWhere: { plant: s(hdr.issuing_operation_faci), org: orgId },
+      storedPicks: sTree ? Object.fromEntries(storedRows.map((r) => [s(r.id), lotJsonList(r.temp_qty_data)])) : null });
   } catch (e) {
     return broken(String((e && e.message) || e).slice(0, 200));
   }

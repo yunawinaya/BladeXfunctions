@@ -1,0 +1,23 @@
+{
+ "_note": "the two table_so row actions (scratchpad/iasc/CONTRACT.md section 10); hidden = the platform's {{ JS expression }} over arguments[0].row and this",
+ "actions": [
+  {
+   "title": "Linked IAs",
+   "permission": "so_item_linked_ias",
+   "handler": "onTableSofunc_scLinkedIas",
+   "icon": "diagram-3",
+   "what": "its Item Assemblies and figures",
+   "sc_action": "",
+   "hidden": "{{!(arguments[0] && arguments[0].row && arguments[0].row.id && arguments[0].row.item_name)}}"
+  },
+  {
+   "title": "Create IA",
+   "permission": "so_item_create_ia",
+   "handler": "onTableSofunc_scCreateIa",
+   "icon": "plus-square",
+   "what": "and creates an Item Assembly for it",
+   "sc_action": "create",
+   "hidden": "{{!(arguments[0] && arguments[0].row && arguments[0].row.id && arguments[0].row.item_name) || ['Completed', 'Cancelled'].indexOf(arguments[0].row.line_status) >= 0 || ['Issued', 'Processing'].indexOf(this.getValue('so_status')) < 0}}"
+  }
+ ]
+}

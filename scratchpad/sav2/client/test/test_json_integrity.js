@@ -105,14 +105,17 @@ check("SA form: onClick_draft = base + the re-read at the Edit branch only", str
 
 // ---- SC form
 const scAdded = newKeys(SC1, SC0);
-sameEvents("SC form", SC0, SC1, ["mounted"], scAdded);
+sameEvents("SC form", SC0, SC1, ["mounted", "4gcydh2s"], scAdded);
+check("SC form: onClick_syncAll = src/scV2_onClick_syncAll.js (Phase C), the rest of its entry byte-identical",
+  JSON.stringify(Object.assign({}, H.byName(SC1, "onClick_syncAll"), { func: "" })) === JSON.stringify(Object.assign({}, H.byName(SC0, "onClick_syncAll"), { func: "" })) &&
+  H.byName(SC1, "onClick_syncAll").func === read(path.join(SRC, "scV2_onClick_syncAll.js")));
 check("SC form: classic onButtonReviewClick byte-identical", JSON.stringify(H.byName(SC1, "onButtonReviewClick")) === JSON.stringify(H.byName(SC0, "onButtonReviewClick")));
 const review = H.byName(SC1, "scV2_onButtonReviewClick").func;
 const rblock = review.slice(0, review.indexOf("// Stock Count — Save Review (workflow trigger)"));
 check("SC form: scV2_onButtonReviewClick = the V2 block + the classic body with ONE inserted line", rblock.length > 0 && strip(review.slice(rblock.length), [
   ["    if (SC_V2_ON && (await scReviewV2(data, items, allApproved, approved, createAdjustment))) return;\n\n", ""]]) === H.byName(SC0, "onButtonReviewClick").func);
 const scBlock = read(path.join(SCD, "scV2_mounted_block.js"));
-check("SC form: mounted = base + the block + one call", strip(H.byName(SC1, "mounted").func, [[scBlock, ""], ["\n\n  scBackgroundView(pageStatus);\n", "\n"]]) === H.byName(SC0, "mounted").func);
+check("SC form: mounted = base + the 2,000-line blocks + the V2 block + one call", strip(H.byName(SC1, "mounted").func, [[scBlock, ""], ["\n\n  scBackgroundView(pageStatus);\n", "\n"]]) === H.byName(H.withSc2k(SC0), "mounted").func);
 {
   const u = H.clone(SC1);
   H.findModel(u.list, "button_review").events.onClick = "ma2d8htp";
@@ -140,6 +143,7 @@ check("mirror saV2_list_mounted_kick.js", read(path.join(SAD, "saV2_list_mounted
 check("mirror scV2_onButtonReviewClick.js", read(path.join(SCD, "scV2_onButtonReviewClick.js")) === review);
 check("mirror scV2_mounted_block.js (inside mounted)", H.byName(SC1, "mounted").func.indexOf(scBlock) > 0);
 check("mirror scV2_list_mounted_kick.js", read(path.join(SCD, "scV2_list_mounted_kick.js")) === H.byName(SCL1, "mounted").func);
+check("mirror scV2_onClick_syncAll.js", read(path.join(SCD, "scV2_onClick_syncAll.js")) === H.byName(SC1, "onClick_syncAll").func);
 check("the two SA handlers differ only in their name line and SA_CLASSIC", H.byName(SA1, "saV2_onClick_completed_post").func ===
   H.byName(SA1, "saV2_onClick_completed").func.replace("// saV2_onClick_completed - Stock Adjustment form, onClick of button_completed.", "// saV2_onClick_completed_post - Stock Adjustment form, onClick of button_completed_posted.")
     .replace('const SA_CLASSIC = "onClick_completed";', 'const SA_CLASSIC = "onClick_completed_post";'));

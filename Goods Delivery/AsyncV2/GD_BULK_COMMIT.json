@@ -510,7 +510,7 @@
         "name": "Facts 1: the job (+ DB clock, lease flag, lease_until)",
         "script": {
           "type": "sql",
-          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.organization_id,\n       j.plant_id,\n       j.command,\n       j.payload_hash,\n       j.correlation_id,\n       j.job_status,\n       j.progress_percent,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.cancel_requested,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       j.line_count,\n       CAST(j.gd_id AS CHAR) AS gd_id,\n       j.gd_no,\n       DATE_FORMAT(j.started_at, '%Y-%m-%d %H:%i:%s') AS started_at,\n       (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due,\n       j.is_deleted\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}"
+          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.organization_id,\n       j.plant_id,\n       j.command,\n       j.payload_hash,\n       j.correlation_id,\n       j.job_status,\n       j.progress_percent,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.cancel_requested,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       j.line_count,\n       CAST(j.gd_id AS CHAR) AS gd_id,\n       j.gd_no,\n       DATE_FORMAT(j.started_at, '%Y-%m-%d %H:%i:%s') AS started_at,\n       (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due,\n       j.is_deleted\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}"
         },
         "response_json": [
           {
@@ -8738,7 +8738,7 @@
         "name": "Job lease read (BEFORE_P2): the DB clock and the job row",
         "script": {
           "type": "sql",
-          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
+          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
         },
         "response_json": [
           {
@@ -14811,7 +14811,7 @@
         "name": "Job lease read (BEFORE_P3_CALL): the DB clock and the job row",
         "script": {
           "type": "sql",
-          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
+          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
         },
         "response_json": [
           {
@@ -20354,7 +20354,7 @@
         "name": "Job lease read (AFTER_P3_CALL): the DB clock and the job row",
         "script": {
           "type": "sql",
-          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
+          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
         },
         "response_json": [
           {
@@ -23451,7 +23451,7 @@
         "name": "Job lease read (BEFORE_P7B): the DB clock and the job row",
         "script": {
           "type": "sql",
-          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
+          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
         },
         "response_json": [
           {
@@ -28049,7 +28049,7 @@
         "name": "Job lease read (BEFORE_P7C): the DB clock and the job row",
         "script": {
           "type": "sql",
-          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
+          "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.lease_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'\n   AND j.id = {{node:code_node_WaEyJtlE.data.jobId}}\n   AND j.is_deleted = 0"
         },
         "response_json": [
           {

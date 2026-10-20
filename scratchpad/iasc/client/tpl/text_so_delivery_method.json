@@ -1,0 +1,59 @@
+{
+  "name": "",
+  "type": "text",
+  "mainIcon": "文字",
+  "typeIcon": "文字",
+  "icon": "icon-wenzishezhi-",
+  "group": "View",
+  "groupSort": 1,
+  "enableScopes": [
+    "Component",
+    "Table",
+    "Page"
+  ],
+  "options": {
+    "defaultValue": " ",
+    "customClass": "font-bold",
+    "labelWidth": 100,
+    "isLabelWidth": false,
+    "hidden": false,
+    "dataBind": false,
+    "required": false,
+    "width": "",
+    "tip": "",
+    "color": "",
+    "fontSize": "",
+    "lineHeight": "",
+    "fontWeight": "",
+    "textAlign": "",
+    "textDecoration": "",
+    "fontStyle": "",
+    "margin": "",
+    "border": "",
+    "padding": "",
+    "lines": 0,
+    "remoteFunc": "func_0cqqsctp",
+    "remoteOption": "option_0cqqsctp",
+    "tableColumn": false,
+    "subform": false,
+    "hideLabel": true,
+    "dynamicValueFx": "",
+    "dynamicValueType": "fx",
+    "isDynamicValue": false,
+    "select-card_n7ge7fmb": [
+      "dataBind"
+    ],
+    "left": 3,
+    "right": 4,
+    "pad": "*",
+    "desensitization_pattern": "",
+    "desensitization_replace": "",
+    "dataIdentifier": false
+  },
+  "events": {
+    "onChange": ""
+  },
+  "key": "0cqqsctp",
+  "model": "delivery_method_text",
+  "rules": []
+}

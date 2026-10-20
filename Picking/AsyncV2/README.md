@@ -1,4 +1,4 @@
-# Picking confirmation, background save (V2) — dev only, stages 1a + 1b + 1c
+# Picking confirmation, background save (V2) — dev only, stages 1a + 1b + 1c (+ 1d Force Complete, built)
 
 Stage 1a (normal Goods Delivery pickings) built 2026-10-12, deployed on dev 2026-10-12. Stage 1b
 (**Full Picking**) built 2026-10-13. Stage 1c (**Loading Bay** and **bin / batch swaps**: picks that
@@ -49,7 +49,7 @@ The form and SUBMIT send a case to the **old save** (`NOT_ELIGIBLE`) when it is:
 | A new Picking (Add), a Draft, mobile / split data | not a stored confirmation | — |
 | Picking Setup: picks after **Sales Order** (Picking Plan) | not ported yet | 1f |
 | **Auto Complete GD** | the GD completion must be async too | 1e |
-| List **Force Complete** | — (still the old path) | 1d |
+| List **Force Complete** | V2 built (stage 1d, below): `STAGE.FORCE_COMPLETE` is off until its live twins | 1d |
 | A move (1c) with: Full Picking on, a handling unit on the moved line, a serial-numbered item or select picking on the moved GD, internal-trading linkage | not ported | — |
 
 Since 1c, a line picked into another bin or batch (both sides set and different, classic's test)
@@ -143,6 +143,12 @@ its read-back passes. A rerun skips DONE steps and redoes an unfinished one.
   - from PM2 (1c) or P1 to P4, **the Picking stays locked**;
   - at P5, the Picking is unlocked (it is fully saved).
 - A run that dies leaves its 10-minute lease; the next worker tick resumes it.
+  - The COMMIT lease stays at 10 minutes. Every other V2 COMMIT, GD Edit V2's included, went to 30 on 2026-10-20 after
+    bladexfunctions-af found that the engine resumes a second run of a live operation.
+  - A resumed run past P0 writes the Picking (P1) without re-checking it.
+  - PICKING_LOOP takes a stale Picking lock over after 15 minutes, so a 30-minute lease would leave a classic confirm
+    free to land before the resume.
+  - Raise it only after P1 re-checks on a resume, or after PICKING_LOOP treats an open CONFIRM_PICKING job as held.
 - The worker gives up (FAILED, unlocked) only before anything was written. For a move that means before
   PM1's stock move; after it, every stop is a review.
 - Retries are counted per job, not per step: retries spent in PM1 (a dead run, an engine intent) leave
@@ -219,6 +225,82 @@ lines' allocation and stock text, the Picking records and the Packing rows equal
 differences above and run-order noise (the balance snapshot inside `temp_qty_data`; which twin created
 a balance row). A swap into a bin with no free stock: FAILED `PK_STOCK_INSUFFICIENT`, nothing written.
 
+## Force Complete (stage 1d — built 2026-10-20, not deployed)
+
+The list's **Force Complete** closes an In Progress Picking with what was picked, in the background:
+
+```
+list "Force Complete" ──► PICKING_ASYNC_SUBMIT operation FORCE_COMPLETE ──► CONFIRM_PICKING job (request.operation FORCE_COMPLETE)
+   (NOT_ELIGIBLE + classic_ok 1 → classic PICKING_LOOP isForceComplete 1)
+WORKER ─► PREPARE        fcPlan from the database → each delivery's change as parts FCD|<nonce>|<gi>|<nnn> + READY_TO_COMMIT
+       ─► PICKING_FC_DRIVE   each tick until FC_GDS; it never runs a delivery's PREPARE / COMMIT itself:
+                         F0 (unchanged since PREPARE?) → GD_EDIT_SUBMIT per delivery (source PICKING_FC, held)
+                         → all held: FC_HOLD, COMMITTING_PICKING → RELEASE one delivery at a time → FC_GDS
+       ─► COMMIT         (the tick that writes FC_GDS) P0 → P1 rows Completed / Cancelled, Picking Completed → P4 → P5 → P6
+the screen ─► GD_EDIT_WORKER {job_id} for every edit STATUS (or the WORKER) names in `kick`: each in its own request
+```
+
+Each delivery, through GD Edit V2 (`Goods Delivery/EditV2`, source `PICKING_FC`):
+
+- picked lines shrink to the picked quantity, allocated at the picked bins / batches / HUs (temp_qty_data from
+  the records, view_stock in classic's text, temp_hu_data filtered and scaled); plan_* and is_force_complete stamped;
+- lines with nothing picked are removed; a bundle is kept whole (all picked) or removed (none picked);
+- the unpicked quantity's reservations are released GD → SO → Production, the SO gets it back, its stock goes back
+  to Unrestricted.
+
+Deliveries cancelled before the force complete are skipped (their rows close Cancelled); completed ones too (their
+open rows close Completed; P4 / P5 leave them alone).
+
+**Classic** (NOT_ELIGIBLE): the switch off, Picking Plan pickings, Full Picking, Auto Complete GD, Loading Bay, a
+delivery with serial items, select picking or internal trading. `classic_ok` 0 (above 500 lines or 25 deliveries in
+total) → the list shows the reason and does not run classic.
+
+**Refused, nothing written:**
+
+| Code | When |
+|---|---|
+| PK_FC_NOT_IN_PROGRESS | the Picking is not In Progress |
+| PK_FC_TOO_BIG | more than 25 deliveries or 2,000 delivery lines |
+| PK_FC_NO_RECORDS | nothing picked |
+| PK_FC_GD_UNPICKED | a live delivery with nothing picked: cancel it first, then force complete |
+| PK_FC_SHARED_LINE | a line also on another open Picking |
+| PK_FC_UOM | a row's unit differs from its line's order unit |
+| PK_FC_OVERPICK | records exceed the line's quantity (legacy data) |
+| PK_BUNDLE_SHORT | a bundle partly picked |
+| PK_FC_SETUP_CHANGED | Picking Setup changed since SUBMIT |
+| PK_FC_STALE | DRIVE's F0: the Picking, its rows, records or delivery statuses changed since PREPARE |
+| PK_FC_GD_CHANGED / _NOT_ELIGIBLE / _REFUSED | GD Edit V2 refused a delivery while holding: every hold is cancelled first |
+
+**Under review** (REQUIRES_REVIEW, the Picking stays locked): a delivery's edit failing after the first release
+(its own code, e.g. GDE_STALE after 2 re-plans, GDE_E1_REFUSED), COMMIT's P0 finding a change (PK_FC_STALE), a
+line the force complete did not plan still open at P1. The deliveries committed so far stay reduced.
+
+**Runbook for a review** (proven in `scratchpad/pk1d/sim/test_flow_1d.js`, case F2b):
+
+1. Fix the cause.
+2. The job's FC_REVIEW step: rename it and soft-delete it (`step_name = CONCAT(step_name, '#', id)`, `is_deleted = 1`).
+   The unique key (tenant, job, step) ignores `is_deleted`: a row only soft-deleted blocks the next FC_REVIEW.
+3. The failed delivery's EDIT_GD job: soft-delete it, so the force complete reads that delivery as not submitted and
+   submits it again (a failed edit that is not stale would otherwise send it straight back to review).
+4. The job: back to COMMITTING_PICKING with attempt_count 0, next_attempt_at now, lease and error columns cleared.
+
+The next kick re-plans the failed delivery and goes on.
+
+**Pacing.** No scheduler: the list follows each job while it moves (STATUS every 3 s; each `kick` id run with
+GD_EDIT_WORKER, then the worker kicked again; a re-kick every 15 s): it stops after 180 s without progress (an edit
+still running counts as progress) and after 15 minutes in all, telling the user to keep the list open or open it again. A hold lasts 30 minutes; a hold whose force
+complete has ended is cancelled by the next GD_EDIT_WORKER run. Opening the Picking list or the Picking form starts
+both workers again.
+
+**Switches:** `STAGE.FORCE_COMPLETE` in SUBMIT's `code_node_PSdecide` and `ASYNC_FORCE_COMPLETE_ENABLED` in the list
+handler, both off; they go on together (the list's dialog describes the background force complete). With the list's
+switch on, a Picking SUBMIT sends back (NOT_ELIGIBLE, classic_ok 1) runs classic and its result says so.
+
+Built from `scratchpad/pk1d/` (`patch_pk1d.py` from the deployed SUBMIT v9 / WORKER v3 / PREPARE v10 / COMMIT v10 /
+PICKING_LOOP v88; `build_drive.py`; `sync_clients.py` for the list page / form), with GD Edit V2's `scratchpad/gde`.
+Tests in `scratchpad/pk1d/test/`; the end-to-end simulator `scratchpad/pk1d/sim/test_flow_1d.js`. The design and
+the ledger of decisions: `~/.claude/plans/delightful-imagining-naur.md`, `.superpowers/sdd/picking-v2-1d/progress.md`.
+
 ## Known limits
 
 - **P1 reads the Picking with one get-node**, which joins every line with every record (as PICKING's
@@ -247,11 +329,17 @@ a balance row). A swap into a bin with no free stock: FAILED `PK_STOCK_INSUFFICI
 | PICKING_BULK_COMMIT | 2109531367339180034 | WORKER (twice per tick on a SPLIT) |
 | GD_REPLAN | 2111017709176225794 | PREPARE (1c), once per moved GD; writes nothing |
 | INVENTORY_BULK_APPLY | 2109916822821744641 | PREPARE (PLAN) + COMMIT PM1 (APPLY), shared with GD V2 / Location Transfer V2 |
+| PICKING_FC_DRIVE | 2112471278794440706 | WORKER, for a force complete until FC_GDS (1d) |
+| GD_EDIT_SUBMIT / GD_EDIT_WORKER | 2110618741159940097 / 2110618789356687361 | DRIVE (SUBMIT / RELEASE / CANCEL_HELD) / the screen (1d) |
 
 Client files:
 
 - `pkV2_onSave_Completed.js`: form event `pkV2_onSave_Completed`, on the Completed button.
 - `pkV2_listAutoPick.js`: the list's `AutoPickingComplete`.
+- `pkV2_listForceComplete.js`: the list's `ForceCompletePicking` (1d; the classic copy stays in
+  `Bulk Actions/Warehouse Management/Picking/ForceCompleteWorkflow.js`). The list's `mounted`
+  (`Picking Plan/PPonMountedListPage.js`) starts PICKING_ASYNC_WORKER and GD_EDIT_WORKER; Revert Completed refuses a
+  Picking force completed through V2.
 - `PickingonMounted.js`, `pkV2ShowJobState`: reads the Picking's latest job through SUBMIT with
   `operation: "STATUS"` (read only). The browser cannot read `gd_async_job` itself: "GD Async
   Job数据表尚未发布", the table has no published form.
@@ -284,6 +372,15 @@ Client files:
 3. SUBMIT with `STAGE.LOADING_BAY` / `STAGE.BIN_MOVES` on; live twins.
 4. The Picking form: `pkV2_onSave_Completed` sends a moved line with its target instead of the classic
    save.
+
+**Stage 1d on dev** (built 2026-10-20 from `scratchpad/pk1d/`; each publish with the user's yes, bases checked):
+
+1. Batch A, switch-independent: GD_EDIT_SUBMIT / PREPARE / WORKER / COMMIT (rebuilt by `scratchpad/gde/build_gde.py`)
+   and PICKING_LOOP (its open-job guard); a GD Edit V2 / classic Picking smoke.
+2. Batch B: create an empty PICKING_FC_DRIVE in the designer, put its id in `scratchpad/pk1d/ids.json`, re-run
+   `patch_pk1d.py --rebase --write` (the WORKER's call takes the id), `build_drive.py --write`; publish DRIVE with
+   SUBMIT / PREPARE / WORKER / COMMIT, `STAGE.FORCE_COMPLETE` false.
+3. The Picking list page and the Picking form (`sync_clients.py` output). Then the live twins, then the switch.
 
 **Prod:** next week's full deployment promotes dev as it stands, with these switches on. Switching
 them off (SUBMIT only) sends moves and Loading Bay back to the classic save.

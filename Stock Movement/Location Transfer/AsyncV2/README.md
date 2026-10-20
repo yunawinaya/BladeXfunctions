@@ -91,6 +91,9 @@ list page (`bulkCancel_LOT`). With only one of them changed, the other still sen
 New first nodes in `SM_LOCATION_TRANSFER`, before anything else runs:
 - If `allData.id` is a stored id, one SQL read returns the **stored** status and line count. A stored `Processing` transfer gets 400 "This Location Transfer is being processed in the background - please wait for it to finish." Mobile sends "In Progress" for such a transfer, so the guard never trusts the payload.
 - More than 500 lines on a non-Draft save gets 400. For Cancel, whose payload has no lines, the stored lines are counted.
+- A stored In Progress transfer saved as Draft gets 400 (it would strand its In Transit stock).
+- Bundle parent = `item_bundle_id` set, no `parent_fm_key` and no real `parent_id` (v85). Stored children carry only `parent_id`, so
+  before v85 a classic Cancel of a bundle transfer returned only some of the children's stock.
 - It reads only `sm_location_transfer`, never the job tables.
 
 ## Error codes
@@ -155,5 +158,5 @@ there at first.
 - Lock waits count toward `attempt_count`, so a crash after 3 waits → REQUIRES_REVIEW.
 - Engine parity on 1,872 recorded prod LOT pairs: no differences in stock or cost. 134 differ cosmetically (remark NULL vs '', date-only columns).
 - The engine copies batch dates from the SUBTRACT side (`unit_price_from`); this has never differed in recorded data.
-- Classic bug, not fixed: saving an In Progress transfer as Draft demotes it without reversing its In Transit stock (V2 refuses it).
-- Classic bug, not fixed: production-order-linked edits throw in `code_node_OHjnEcVJ` (`subformData` vs `subFormData`).
+- Classic bugs FIXED in v84 (dev 2026-10-16): the guard refuses saving a stored In Progress transfer as Draft (400), and
+  `code_node_OHjnEcVJ` loops `subFormData` with a numeric compare (production-order-linked edits no longer throw).

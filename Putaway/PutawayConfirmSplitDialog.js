@@ -1,3 +1,7 @@
+// q8 kills float residue in the split total (30 x 17.656 = 529.6800000000001); EPS keeps 3dp leniency, as the GR split
+const q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));
+const EPS = 0.0005;
+
 const setPutawayItemData = (
   itemData,
   lineIndex,
@@ -87,12 +91,12 @@ const SPLIT_PARENT_LOCKED = [
     const splitDialogData = data.split_dialog;
     const tableSplit = splitDialogData.table_split;
 
-    const totalStoreInQty = parseFloat(
+    const totalStoreInQty = q8(
       tableSplit
         .reduce((sum, item) => sum + (parseFloat(item.store_in_qty) || 0), 0),
     );
 
-    if (totalStoreInQty !== splitDialogData.qty_to_putaway) {
+    if (Math.abs(totalStoreInQty - q8(splitDialogData.qty_to_putaway)) > EPS) {
       throw new Error(
         "Total store in quantity must be equal to pending putaway quantity.",
       );

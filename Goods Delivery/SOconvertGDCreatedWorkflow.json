@@ -80,6 +80,19 @@
       "label": "Created By",
       "model": "4",
       "valueCom": "input"
+    },
+    {
+      "key": "s2gc_req_v2",
+      "name": "v2",
+      "title": "V2",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "isParamsNode": true,
+      "value": "workflowparams.v2",
+      "label": "V2",
+      "model": "4",
+      "valueCom": "input"
     }
   ],
   "response_json": [
@@ -118,6 +131,15 @@
       "children": []
     },
     {
+      "key": "s2gc_res_queued",
+      "name": "queued",
+      "title": "queued",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
       "key": "s2gc_res_createdcount",
       "name": "createdCount",
       "title": "createdCount",
@@ -129,6 +151,14 @@
       "key": "s2gc_res_blockedcount",
       "name": "blockedCount",
       "title": "blockedCount",
+      "description": "",
+      "bsonType": "int",
+      "isExpand": false
+    },
+    {
+      "key": "s2gc_res_queuedcount",
+      "name": "queuedCount",
+      "title": "queuedCount",
       "description": "",
       "bsonType": "int",
       "isExpand": false
@@ -934,6 +964,238 @@
       "blocks": []
     },
     {
+      "id": "code_v2ids",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "V2 Facts Input: Ids for V2's Own Refusals",
+        "isValidator": true,
+        "nodeName": "V2 Facts Input: Ids for V2's Own Refusals",
+        "name": "V2 Facts Input: Ids for V2's Own Refusals",
+        "script": {
+          "type": "javascript",
+          "code": "// SO_AUTO_GD V2 facts input: the ids V2's own refusals depend on (handling units, pending reservations); run 0 when V2 is off\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst ID = /^[0-9]{1,20}$/;\nconst lineIds = {};\nfor (const p of [{{node:code_build.data.payloads}}][0] || []) {\n  for (const l of (p && p.allData && p.allData.table_gd) || []) {\n    for (const x of [l].concat(Array.isArray(l.children) ? l.children : [])) {\n      if (ID.test(s(x && x.so_line_item_id))) lineIds[s(x.so_line_item_id)] = true;\n    }\n  }\n}\nconst org = s([{{workflowparams:organization_id}}][0]);\nconst plant = s([{{workflowparams:plant_id}}][0]);\nconst ok = s([{{workflowparams:v2}}][0]) === \"1\" && ID.test(org) && ID.test(plant);\nconst ids = Object.keys(lineIds);\nreturn {\n  run: ok ? 1 : 0,\n  orgSql: ok ? org : \"0\",\n  plantSql: ok ? plant : \"0\",\n  soLineIdsSql: ids.length ? ids.map((x) => \"'\" + x + \"'\").join(\",\") : \"'0'\",\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "s2gc_v2ids_run",
+            "name": "run",
+            "title": "run",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "s2gc_v2ids_org",
+            "name": "orgSql",
+            "title": "orgSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "s2gc_v2ids_plant",
+            "name": "plantSql",
+            "title": "plantSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "s2gc_v2ids_lines",
+            "name": "soLineIdsSql",
+            "title": "soLineIdsSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_v2facts",
+      "type": "if",
+      "data": {
+        "title": "IF V2 On",
+        "isValidator": true,
+        "nodeName": "IF V2 On",
+        "name": "IF V2 On",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1799200000001,
+              "parentId": 1799200000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_v2ids.data.run}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_v2facts_t",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_v2facts",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "V2 Facts: Picking Mode, Item Flags, Handling-Unit Items, Pending SO Lines (GD_ASYNC_SUBMIT's V2 fit)",
+                "isValidator": true,
+                "nodeName": "V2 Facts: Picking Mode, Item Flags, Handling-Unit Items, Pending SO Lines (GD_ASYNC_SUBMIT's V2 fit)",
+                "name": "V2 Facts: Picking Mode, Item Flags, Handling-Unit Items, Pending SO Lines (GD_ASYNC_SUBMIT's V2 fit)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT 'SETUP' AS kind, CAST(ps.id AS CHAR) AS id, COALESCE(CAST(ps.picking_mode AS CHAR), '') AS f1, '' AS f2, '' AS f3, '' AS f4, '' AS f5\n  FROM (SELECT p.id, p.picking_mode\n          FROM picking_setup p\n         WHERE p.organization_id = '{{node:code_v2ids.data.orgSql}}'\n           AND p.is_deleted = 0\n         ORDER BY p.id\n         LIMIT 1) ps\nUNION ALL\nSELECT 'ITEM' AS kind, CAST(i.id AS CHAR) AS id,\n       COALESCE(CAST(i.stock_control AS CHAR), '') AS f1,\n       COALESCE(CAST(i.material_costing_method AS CHAR), '') AS f2,\n       COALESCE(CAST(i.item_batch_management AS CHAR), '') AS f3,\n       COALESCE(CAST(i.serial_number_management AS CHAR), '') AS f4,\n       COALESCE(CAST(i.purchase_unit_price AS CHAR), '') AS f5\n  FROM item i\n WHERE i.organization_id = '{{node:code_v2ids.data.orgSql}}'\n   AND i.is_deleted = 0\n   AND i.id IN ({{node:code_gate.data.materialIdCsv}})\nUNION ALL\nSELECT 'HU' AS kind, CAST(hi.material_id AS CHAR) AS id, '' AS f1, '' AS f2, '' AS f3, '' AS f4, '' AS f5\n  FROM handling_unit h\n  JOIN handling_unit_atu7sreg_sub hi\n    ON hi.handling_unit_id = h.id\n   AND hi.is_deleted = 0\n WHERE h.organization_id = '{{node:code_v2ids.data.orgSql}}'\n   AND h.plant_id = {{node:code_v2ids.data.plantSql}}\n   AND h.is_deleted = 0\n   AND (h.packing_id IS NULL OR h.packing_id = '')\n   AND hi.material_id IN ({{node:code_gate.data.materialIdCsv}})\n GROUP BY hi.material_id\nUNION ALL\nSELECT 'PEND' AS kind, CAST(r.parent_line_id AS CHAR) AS id, '' AS f1, '' AS f2, '' AS f3, '' AS f4, '' AS f5\n  FROM on_reserved_gd r\n WHERE r.organization_id = '{{node:code_v2ids.data.orgSql}}'\n   AND r.plant_id = {{node:code_v2ids.data.plantSql}}\n   AND r.is_deleted = 0\n   AND r.status = 'Pending'\n   AND r.parent_line_id IN ({{node:code_v2ids.data.soLineIdsSql}})\n GROUP BY r.parent_line_id"
+                },
+                "response_json": [
+                  {
+                    "key": "s2gc_v2f_kind",
+                    "name": "kind",
+                    "title": "kind",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2gc_v2f_id",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2gc_v2f_f1",
+                    "name": "f1",
+                    "title": "f1",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2gc_v2f_f2",
+                    "name": "f2",
+                    "title": "f2",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2gc_v2f_f3",
+                    "name": "f3",
+                    "title": "f3",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2gc_v2f_f4",
+                    "name": "f4",
+                    "title": "f4",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "s2gc_v2f_f5",
+                    "name": "f5",
+                    "title": "f5",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_v2facts_f",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_v2plan",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "V2 Plan: GD Created V2 or Classic per Delivery",
+        "isValidator": true,
+        "nodeName": "V2 Plan: GD Created V2 or Classic per Delivery",
+        "name": "V2 Plan: GD Created V2 or Classic per Delivery",
+        "script": {
+          "type": "javascript",
+          "code": "// SO_AUTO_GD V2 plan: a delivery goes to GD Created V2 (GD_ASYNC_SUBMIT) when the GD form's own V2 route accepts it and the\n// V2 fit finds nothing GD_BULK_PREPARE would refuse, else to the classic save as before; gdV2Dec / gdV2Route / gdV2LineCount /\n// gdV2Payload are copied verbatim from the form, gdV2FitLines / gdV2Fit from GD_ASYNC_SUBMIT's own fit (v2fit_lib.js)\nconst UXC = {\"header_fields\": [\"plant_id\", \"customer_name\", \"currency_code\", \"so_no\", \"pp_no\", \"so_id\", \"gd_billing_address\", \"gd_shipping_address\", \"delivery_no\", \"gd_contact_name\", \"contact_number\", \"email_address\", \"gd_delivery_method\", \"delivery_date\", \"document_description\", \"assigned_to\", \"organization_id\", \"gd_created_by\", \"acc_integration_type\", \"reference_type\", \"gd_ref_doc\", \"last_sync_date\", \"customer_credit_limit\", \"overdue_limit\", \"outstanding_balance\", \"overdue_inv_total_amount\", \"is_accurate\", \"driver_name\", \"ic_no\", \"driver_contact_no\", \"vehicle_no\", \"pickup_date\", \"validity_of_collection\", \"courier_company\", \"shipping_date\", \"freight_charges\", \"tracking_number\", \"est_arrival_date\", \"est_delivery_date\", \"delivery_cost\", \"shipping_company\", \"shipping_method\", \"tpt_vehicle_number\", \"tpt_transport_name\", \"tpt_ic_no\", \"tpt_driver_contact_no\", \"select_vehicle_id\", \"gd_vehicle_type\", \"gd_vehicle_capacity\", \"gd_vehicle_cap_uom\", \"select_driver_id\", \"gd_driver_contact\", \"gd_driver_ic\", \"gd_total\", \"order_tnc\", \"order_payment_details\", \"order_delivery_term\", \"order_remark\", \"order_remark2\", \"order_remark3\", \"order_remark4\", \"order_remark5\", \"picking_status\", \"billing_address_name\", \"billing_address_phone\", \"billing_address_line_1\", \"billing_address_line_2\", \"billing_address_line_3\", \"billing_address_line_4\", \"billing_address_city\", \"billing_postal_code\", \"billing_address_state\", \"billing_address_country\", \"billing_attention\", \"billing_address_fax\", \"billing_address_code\", \"shipping_address_code\", \"shipping_address_fax\", \"shipping_address_name\", \"shipping_address_phone\", \"shipping_address_line_1\", \"shipping_address_line_2\", \"shipping_address_line_3\", \"shipping_address_line_4\", \"shipping_address_city\", \"shipping_postal_code\", \"shipping_address_state\", \"shipping_address_country\", \"shipping_attention\", \"delivery_no_type\", \"to_no\", \"is_select_picking\", \"pp_id\", \"sp_vehicle_no\", \"gd_area_id\", \"tpt_driver_name\", \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\", \"project_id\", \"sales_person\"]};\nconst gdV2Dec = function gdV2Dec(v) {\n  if (v === undefined || v === null || v === \"\") return \"0\";\n  if (typeof v === \"number\") {\n    if (!isFinite(v)) return String(v);\n    const t = v.toFixed(8).replace(/0+$/, \"\").replace(/\\.$/, \"\");\n    return t === \"-0\" ? \"0\" : t;\n  }\n  return String(v).trim();\n};\nconst gdV2Route = function gdV2Route(values, ctx) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const v = values || {};\n  const c = ctx || {};\n  const sync = (why) => ({ route: \"SYNC\", reason: why });\n  if (s(c.saveAs) !== \"Created\") return sync(\"only Save as Created is submitted asynchronously; \" + (s(c.saveAs) || \"this save\") + \" stays on the frozen path\");\n  if (!(c.isAdd || c.isCopy)) return sync(\"only a new delivery (Add / Clone) is eligible; Edit (an Edit of a Draft included) stays on the frozen path - GD_BULK_PREPARE refuses a document number that a persisted delivery already holds\");\n  if (s(v.id) !== \"\") return sync(\"the delivery is already persisted (id \" + s(v.id) + \")\");\n  const org = s(c.organizationId);\n  if (c.enabled !== true) return sync(\"the asynchronous save is switched off (ASYNC_GD_ENABLED)\");\n  const yes = (x) => x === true || x === 1 || s(x) === \"1\" || s(x).toLowerCase() === \"yes\" || s(x).toLowerCase() === \"true\";\n  if (yes(v.is_select_picking)) return sync(\"the delivery is built from a Picking\");\n  const dn = s(v.delivery_no);\n  // OI4 (2026-10-02): a number the organization's rule assigns on insert (a rule id in delivery_no_type, the number\n  // still empty) is submitted as \"issued\" and numbered when the hidden header is inserted\n  const onInsert = /^[0-9]{1,19}$/.test(s(v.delivery_no_type)) && (dn === \"\" || dn === \"issued\");\n  if (!onInsert && (!/^[A-Za-z0-9\\/._:-]{1,64}$/.test(dn) || dn === \"issued\" || dn === \"draft\")) return sync(\"no usable document number: neither typed (1-64 of A-Z a-z 0-9 / . _ : -) nor a numbering rule\");\n  const lines = Array.isArray(v.table_gd) ? v.table_gd : [];\n  if (!lines.length) return sync(\"no lines\");\n  const isId = (x) => /^[0-9]{1,19}$/.test(s(x));\n  const kidsOf = (l) => (Array.isArray(l.children) ? l.children : []);\n  const picked = (l) => s(l.line_pp_id) !== \"\" || s(l.pp_line_item_id) !== \"\" || s(l.line_to_id) !== \"\";\n  const noQty = (l) => !(Number(s(l.gd_qty)) > 0);\n  for (let i = 0; i < lines.length; i++) {\n    const l = lines[i] || {};\n    const n = String(i + 1);\n    const kids = kidsOf(l);\n    if (isId(l.material_id)) {\n      if (kids.length) return sync(\"line \" + n + \" has a material and bundle items (children): not an item bundle the asynchronous save can carry\");\n    } else if (isId(l.item_bundle_id)) {\n      if (picked(l)) return sync(\"line \" + n + \" (item bundle) is linked to a picking plan / Picking\");\n      if (noQty(l)) return sync(\"line \" + n + \" (item bundle) has no quantity: the frozen save asks its zero-quantity confirmation\");\n      if (!kids.length) return sync(\"line \" + n + \" is an item bundle without items\");\n      for (let j = 0; j < kids.length; j++) {\n        const k = kids[j] || {};\n        const nj = n + \"/\" + (j + 1);\n        if (kidsOf(k).length) return sync(\"line \" + nj + \" (bundle item) has items of its own: nested bundles stay on the frozen path\");\n        if (!isId(k.material_id)) return sync(\"line \" + nj + \" (bundle item) has no material\");\n        if (picked(k)) return sync(\"line \" + nj + \" (bundle item) is linked to a picking plan / Picking\");\n        if (noQty(k)) return sync(\"line \" + nj + \" (bundle item) has no quantity: the frozen save asks its zero-quantity confirmation\");\n      }\n      continue;\n    } else {\n      return sync(\"line \" + n + \" has no material (description-only line)\");\n    }\n    if (picked(l)) return sync(\"line \" + n + \" is linked to a picking plan / Picking\");\n    if (noQty(l)) return sync(\"line \" + n + \" has no quantity: the frozen save asks its zero-quantity confirmation\");\n  }\n  // Review fix round 1, I-1: an item that is not stock-controlled (stock_control 0; with show_delivery 0 the old save\n  // delivers it as a description-only line, code_node_IyJHrBst / code_node_kJx9p9Nh) is refused by GD_BULK_PREPARE\n  // (GD_ITEM_NOT_SUPPORTED) after the dialog closed, while the old save accepts it: such a delivery stays on the frozen\n  // path. The table rows carry no item flag, so the caller reads the item master at the click (ctx.itemFlags:\n  // { material_id: { stock_control, show_delivery } }); a material the read did not return routes SYNC too. Without\n  // ctx.itemFlags only the structure above is checked (the handler asks for the flags only when it is ASYNC).\n  if (c.itemFlags !== undefined && c.itemFlags !== null) {\n    const flags = typeof c.itemFlags === \"object\" ? c.itemFlags : {};\n    const check = (l, label) => {\n      const f = flags[s(l.material_id)];\n      if (!f) return \"line \" + label + \": the item master of material \" + s(l.material_id) + \" could not be read\";\n      if (String(f.stock_control) !== \"1\") return \"line \" + label + \" is not a stock-controlled item (stock_control \" + s(f.stock_control) + \", show_delivery \" + s(f.show_delivery) + \"): the frozen save delivers it\" + (String(f.show_delivery) === \"0\" ? \" as a description-only line\" : \"\");\n      return \"\";\n    };\n    for (let i = 0; i < lines.length; i++) {\n      const l = lines[i] || {};\n      const why = isId(l.material_id) ? check(l, String(i + 1)) : kidsOf(l).map((k, j) => check(k || {}, i + 1 + \"/\" + (j + 1))).filter((x) => x)[0] || \"\";\n      if (why) return sync(why);\n    }\n  }\n  return { route: \"ASYNC\", reason: \"new delivery, organization \" + (org || \"(none)\") + \", \" + lines.length + \" line(s)\" };\n};\nconst gdV2LineCount = function gdV2LineCount(values) {\n  let n = 0;\n  for (const l of Array.isArray((values || {}).table_gd) ? values.table_gd : []) n += 1 + (Array.isArray((l || {}).children) ? l.children.length : 0);\n  return n;\n};\nconst gdV2Payload = function gdV2Payload(values, ctx) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const v = values || {};\n  const c = ctx || {};\n  const pad = (x) => (x < 10 ? \"0\" : \"\") + x;\n  const fmtDate = (d) => {\n    if (d === undefined || d === null || d === \"\") return \"\";\n    if (typeof d === \"number\" || /^[0-9]{10,13}$/.test(s(d))) {\n      const t = new Date(Number(d) < 1e12 ? Number(d) * 1000 : Number(d));\n      return t.getFullYear() + \"-\" + pad(t.getMonth() + 1) + \"-\" + pad(t.getDate()) + \" \" + pad(t.getHours()) + \":\" + pad(t.getMinutes()) + \":\" + pad(t.getSeconds());\n    }\n    const m = s(d).match(/^([0-9]{4}-[0-9]{2}-[0-9]{2})(?:[ T]([0-9]{2}:[0-9]{2})(?::([0-9]{2}))?)?/);\n    if (!m) return s(d);\n    return m[1] + \" \" + (m[2] || \"00:00\") + \":\" + (m[3] || \"00\");\n  };\n  const header = {};\n  for (const f of UXC.header_fields) if (v[f] !== undefined) header[f] = v[f];\n  // OI4: numbered by the rule on insert -> the frozen save's own placeholder \"issued\" (+ the rule id)\n  const onInsert = /^[0-9]{1,19}$/.test(s(v.delivery_no_type)) && (s(v.delivery_no) === \"\" || s(v.delivery_no) === \"issued\");\n  header.delivery_no = onInsert ? \"issued\" : s(v.delivery_no);\n  if (onInsert) header.delivery_no_type = s(v.delivery_no_type);\n  header.plant_id = s(v.plant_id);\n  header.organization_id = s(c.organizationId) || s(v.organization_id);\n  header.customer_name = s(Array.isArray(v.customer_name) ? v.customer_name[0] : v.customer_name);\n  header.delivery_date = fmtDate(v.delivery_date);\n  header.so_id = (Array.isArray(v.so_id) ? v.so_id : s(v.so_id) ? [v.so_id] : []).map((x) => s(x)).filter((x) => x);\n  header.allocation_mode = s(c.allocationMode) || \"RESERVE\";\n  const drop = { fm_key: true, children: true, id: true, temp_qty_data: true };\n  const isId = (x) => /^[0-9]{1,19}$/.test(s(x));\n  // one per-line mapper for both levels: a top-level row (\"L<i>\", \"<i>\") and a bundle item (\"L<i>.<j>\", \"<i>/<j>\")\n  const mapLine = (row, key, index) => {\n    const r = row || {};\n    const out = {};\n    for (const k of Object.keys(r)) if (!drop[k] && k.charAt(0) !== \"_\" && k.charAt(0) !== \"$\") out[k] = r[k];\n    let allocs = r.temp_qty_data;\n    if (typeof allocs === \"string\") {\n      try {\n        allocs = allocs.trim() ? JSON.parse(allocs) : [];\n      } catch (e) {\n        allocs = allocs.trim();\n      }\n    }\n    out.stable_line_key = key;\n    out.line_index = index;\n    out.material_id = s(r.material_id);\n    if (r.item_bundle_id !== undefined && r.item_bundle_id !== null) out.item_bundle_id = s(r.item_bundle_id);\n    out.gd_order_uom_id = s(r.gd_order_uom_id) || s(r.good_delivery_uom_id);\n    out.gd_qty = gdV2Dec(r.gd_qty);\n    if (r.gd_order_quantity !== undefined && r.gd_order_quantity !== null && r.gd_order_quantity !== \"\") out.gd_order_quantity = gdV2Dec(r.gd_order_quantity);\n    out.line_so_id = s(r.line_so_id);\n    out.so_line_item_id = s(r.so_line_item_id);\n    out.line_so_no = s(r.line_so_no);\n    out.unit_price = gdV2Dec(r.unit_price);\n    out.temp_qty_data = Array.isArray(allocs)\n      ? allocs.filter((a) => a && Number(a.gd_quantity) > 0).map((a) => ({ location_id: s(a.location_id), batch_id: s(a.batch_id), handling_unit_id: s(a.handling_unit_id), gd_quantity: gdV2Dec(a.gd_quantity) }))\n      : allocs;\n    return out;\n  };\n  const lines = (Array.isArray(v.table_gd) ? v.table_gd : []).map((row, i) => {\n    const r = row || {};\n    const n = String(i + 1);\n    const out = mapLine(r, \"L\" + n, n);\n    if (!isId(r.material_id) && isId(r.item_bundle_id)) {\n      // the bundle row: no material, no allocations; its items under `children`\n      out.material_id = \"\";\n      out.item_bundle_id = s(r.item_bundle_id);\n      out.temp_qty_data = [];\n      out.children = (Array.isArray(r.children) ? r.children : []).map((k, j) => mapLine(k, \"L\" + n + \".\" + (j + 1), n + \"/\" + (j + 1)));\n    }\n    return out;\n  });\n  return { command: \"CREATE_GD_FROM_FORM\", header: header, lines: lines };\n};\n// GD Created V2 fit: a new delivery GD_BULK_PREPARE (v17) refuses where the classic save copes is saved the classic way\n// instead of failing after the dialog closed. Copied verbatim into GD_ASYNC_SUBMIT (fit plan, fit decision) and SO_AUTO_GD\n// (V2 plan). Mirrors PREPARE: code_node_FniXEIuQ (flat walk, auto lines), code_node_kyHUfWS3 (handling units, Auto mode\n// only), code_node_J5T1G2s9 (item master, handling-unit allocations, pending reservations).\nconst gdV2FitLines = function gdV2FitLines(payload) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const ID = /^[0-9]{1,19}$/;\n  const positive = (v) => {\n    const m = String(v).match(/^([0-9]+)(?:\\.([0-9]{1,8}))?$/);\n    return !!m && /[1-9]/.test(m[1] + (m[2] || \"\"));\n  };\n  const allocsOf = (l) => {\n    let a = l.temp_qty_data;\n    if (typeof a === \"string\" && a.trim()) {\n      try {\n        a = JSON.parse(a);\n      } catch (e) {\n        a = [];\n      }\n    }\n    return Array.isArray(a) ? a : [];\n  };\n  const rows = [];\n  const materials = {};\n  const auto = {};\n  const soLines = {};\n  // one row per flat line: [label, material, sales order line, auto-allocated 0/1, an allocation from a handling unit 0/1]\n  const add = (l, label, bundle) => {\n    const material = ID.test(s(l.material_id)) ? s(l.material_id) : \"\";\n    const soLine = ID.test(s(l.so_line_item_id)) ? s(l.so_line_item_id) : \"\";\n    const allocs = bundle ? [] : allocsOf(l);\n    const isAuto = !bundle && material && !allocs.length && positive(s(l.gd_qty) === \"\" ? \"0\" : s(l.gd_qty)) ? 1 : 0;\n    const huAlloc = allocs.some((a) => a && typeof a === \"object\" && (s(a.handling_unit_id) || s(a.hu_id))) ? 1 : 0;\n    if (material && !bundle) materials[material] = true;\n    if (isAuto) auto[material] = true;\n    if (soLine) soLines[soLine] = true;\n    rows.push([label, bundle ? \"\" : material, soLine, isAuto, huAlloc]);\n  };\n  (Array.isArray((payload || {}).lines) ? payload.lines : []).forEach((raw, i) => {\n    const l = raw && typeof raw === \"object\" && !Array.isArray(raw) ? raw : {};\n    const kids = Array.isArray(l.children) ? l.children : [];\n    const bundle = kids.length > 0 || (s(l.item_bundle_id) !== \"\" && s(l.material_id) === \"\");\n    add(l, String(i + 1), bundle);\n    if (bundle) kids.forEach((k, j) => add(k && typeof k === \"object\" && !Array.isArray(k) ? k : {}, i + 1 + \"/\" + (j + 1), false));\n  });\n  return { rows: rows, materialIds: Object.keys(materials), autoMaterialIds: Object.keys(auto), soLineIds: Object.keys(soLines) };\n};\n// facts: rows of the fit read - SETUP (f1 picking_mode), ITEM (f1 stock_control, f2 costing method, f3 batch, f4 serial,\n// f5 purchase price), HU (a material in an unpacked handling unit of the plant), PEND (a sales order line with a Pending\n// reservation). Returns the first reason the classic save must take the delivery, or \"\".\nconst gdV2Fit = function gdV2Fit(rows, facts) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (x) => (Array.isArray(x) ? x : x ? [x] : []);\n  const METHOD = { \"Fixed Cost\": true, \"First In First Out\": true, \"Weighted Average\": true };\n  const price = (v) => {\n    const m = s(v).match(/^(-)?([0-9]+)(?:\\.([0-9]+))?$/);\n    if (!m) return false;\n    const f = m[3] || \"\";\n    if (f.length > 8 && /[1-9]/.test(f.slice(8))) return false;\n    return !m[1] || !/[1-9]/.test(m[2] + f);\n  };\n  let setup = null;\n  const item = {};\n  const hu = {};\n  const pend = {};\n  for (const f of list(facts)) {\n    if (!f || typeof f !== \"object\") continue;\n    const kind = s(f.kind);\n    if (kind === \"SETUP\" && !setup) setup = f;\n    else if (kind === \"ITEM\") item[s(f.id)] = f;\n    else if (kind === \"HU\") hu[s(f.id)] = true;\n    else if (kind === \"PEND\") pend[s(f.id)] = true;\n  }\n  // PREPARE allocates (and refuses handling-unit stock) only in Auto picking mode; no setup row = the defaults (Auto)\n  const mode = setup ? (setup.f1 === undefined || setup.f1 === null || setup.f1 === \"\" ? \"Manual\" : String(setup.f1)) : \"Auto\";\n  for (const r of list(rows)) {\n    const at = \"line \" + s(r[0]);\n    const material = s(r[1]);\n    const it = item[material];\n    if (it) {\n      const what = at + \": material \" + material + \" \";\n      if (s(it.f1) !== \"1\") return what + \"is not stock-controlled\";\n      if (!METHOD[s(it.f2)]) return what + \"has costing method '\" + s(it.f2) + \"'\";\n      if ([\"0\", \"1\"].indexOf(s(it.f3)) < 0) return what + \"has batch management '\" + s(it.f3) + \"'\";\n      if (s(it.f4) !== \"0\") return what + \"has serial number management '\" + s(it.f4) + \"'\";\n      if (s(it.f2) === \"Fixed Cost\" && !price(it.f5)) return what + \"is Fixed Cost without a usable purchase price\";\n    }\n    if (String(r[4]) === \"1\") return at + \": stock picked from a handling unit\";\n    if (String(r[3]) === \"1\" && mode === \"Auto\" && hu[material]) return at + \": handling units in this plant hold material \" + material;\n    if (s(r[2]) && pend[s(r[2])]) return at + \": sales order line \" + s(r[2]) + \" carries a pending reservation\";\n  }\n  return \"\";\n};\nconst GD_V2_MAX_LINES = 2000;\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst asList = (v) => (Array.isArray(v) ? v : v ? [v] : []);\nconst v2On = s([{{workflowparams:v2}}][0]) === \"1\";\nconst org = s([{{workflowparams:organization_id}}][0]);\nconst payloads = asList([{{node:code_build.data.payloads}}][0]);\nconst itemFlags = {};\nfor (const it of asList([{{node:sql_node_Items.data}}][0])) {\n  if (it && s(it.id)) itemFlags[s(it.id)] = { stock_control: s(it.stock_control), show_delivery: s(it.show_delivery) };\n}\nconst facts = asList([{{node:sql_v2facts.data}}][0]);\nconst hash = (text) => {\n  let h1 = 2166136261;\n  let h2 = 5381;\n  for (let i = 0; i < text.length; i++) {\n    const c = text.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;\n    h2 = (Math.imul(h2, 33) + c) >>> 0;\n  }\n  return (\"00000000\" + h1.toString(16)).slice(-8) + (\"00000000\" + h2.toString(16)).slice(-8);\n};\nconst nonce = Date.now().toString(36) + Math.random().toString(36).slice(2, 7);\nconst out = [];\nconst blocked = [];\nlet v2Count = 0;\npayloads.forEach((p, i) => {\n  const so = s(p && p.so_no);\n  const classic = (why) => out.push({ so_no: so, allData: p.allData, route: \"CLASSIC\", reason: why, v2Key: \"\", v2Payload: \"\", v2Plant: \"\" });\n  if (!v2On) return classic(\"V2 switched off\");\n  const r = gdV2Route(p.allData, { saveAs: \"Created\", isAdd: true, organizationId: org, enabled: true, itemFlags: itemFlags });\n  if (r.route !== \"ASYNC\") return classic(r.reason);\n  const payload = gdV2Payload(p.allData, { organizationId: org, allocationMode: \"RESERVE\" });\n  const why = gdV2Fit(gdV2FitLines(payload).rows, facts);\n  if (why) return classic(why);\n  if (gdV2LineCount(p.allData) > GD_V2_MAX_LINES) {\n    blocked.push({ so_no: so, reason: \"More than \" + GD_V2_MAX_LINES + \" lines in one goods delivery. Convert this sales order through the Convert form, in parts.\" });\n    return;\n  }\n  const text = JSON.stringify(payload);\n  v2Count++;\n  out.push({\n    so_no: so,\n    allData: null,\n    route: \"V2\",\n    reason: r.reason,\n    v2Key: (\"SOA:\" + org + \":\" + so.replace(/[^A-Za-z0-9_-]/g, \"-\").slice(0, 40) + \":\" + hash(text) + \":\" + nonce + \"-\" + i).slice(0, 128),\n    v2Payload: text,\n    v2Plant: s(payload.header.plant_id),\n  });\n});\nreturn { payloads: out, blocked: blocked, v2Count: v2Count, classicCount: out.length - v2Count };\n"
+        },
+        "response_json": [
+          {
+            "key": "s2gc_v2_payloads",
+            "name": "payloads",
+            "title": "payloads",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "s2gc_v2_blocked",
+            "name": "blocked",
+            "title": "blocked",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false
+          },
+          {
+            "key": "s2gc_v2_count",
+            "name": "v2Count",
+            "title": "v2Count",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "s2gc_v2_classic",
+            "name": "classicCount",
+            "title": "classicCount",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
       "id": "set_results_init",
       "type": "set-cache-node",
       "data": {
@@ -992,7 +1254,7 @@
         },
         "loopSeletVar": {
           "type": "markdown",
-          "code": "{{node:code_build.data.payloads}}"
+          "code": "{{node:code_v2plan.data.payloads}}"
         }
       },
       "blocks": [
@@ -1010,141 +1272,314 @@
           "blocks": []
         },
         {
-          "id": "wf_gd_head",
-          "type": "workflow-node",
+          "id": "if_v2route",
+          "type": "if",
           "data": {
-            "workflow_id": "",
-            "workflow_name": "",
-            "input_params": {},
-            "title": "Save Goods Delivery as Created",
+            "title": "IF Route V2",
             "isValidator": true,
-            "nodeName": "Save Goods Delivery as Created",
-            "name": "Save Goods Delivery as Created",
-            "workflow": {
-              "source": "GOODS_DELIVERY:Workflow:2017151544868491265",
-              "rules": {
-                "collectionId": "2017151544868491265",
-                "list": [
-                  {
-                    "id": 190000000100,
-                    "parentId": 190000000101,
-                    "isTop": true,
-                    "prop": "",
-                    "operator": "",
-                    "valueType": "",
-                    "value": "",
-                    "type": "leaf",
-                    "level": 1
-                  }
-                ]
-              }
-            },
-            "remote": true,
-            "remoteType": "innerdatasource",
-            "body_params": {
+            "nodeName": "IF Route V2",
+            "name": "IF Route V2",
+            "condition_type": "Expression",
+            "filter": {
               "list": [
                 {
-                  "prop": "allData",
-                  "propLabel": "allData",
+                  "id": 1799200000005,
+                  "parentId": 1799200000006,
+                  "isTop": true,
+                  "prop": "",
                   "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "field",
-                  "valueTypeLabel": "",
-                  "value": "{{node:loop_payloads.allData}}",
-                  "valueLabel": ""
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "type": "javascript",
+              "code": "'{{node:loop_payloads.route}}' == 'V2'"
+            }
+          },
+          "blocks": [
+            {
+              "id": "if_v2route_t",
+              "type": "ifBlock",
+              "data": { "title": "true" },
+              "blocks": [
+                {
+                  "id": "wf_v2submit",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Submit to GD Created V2 (GD_ASYNC_SUBMIT)",
+                    "isValidator": true,
+                    "nodeName": "Submit to GD Created V2 (GD_ASYNC_SUBMIT)",
+                    "name": "Submit to GD Created V2 (GD_ASYNC_SUBMIT)",
+                    "workflow": {
+                      "source": "GD_ASYNC_SUBMIT:Workflow:2105133540498116609",
+                      "rules": {
+                        "collectionId": "2105133540498116609",
+                        "list": [
+                          {
+                            "id": 1799200000003,
+                            "parentId": 1799200000004,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "organization_id",
+                          "propLabel": "organization_id",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{workflowparams:organization_id}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "plant_id",
+                          "propLabel": "plant_id",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:loop_payloads.v2Plant}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "idempotency_key",
+                          "propLabel": "idempotency_key",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:loop_payloads.v2Key}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "payload",
+                          "propLabel": "payload",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:loop_payloads.v2Payload}}",
+                          "valueLabel": ""
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
                 },
                 {
-                  "prop": "saveAs",
-                  "propLabel": "saveAs",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "value",
-                  "valueTypeLabel": "",
-                  "value": "Created",
-                  "valueLabel": ""
+                  "id": "code_collect_v2",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Collect V2 Submit Result",
+                    "isValidator": true,
+                    "nodeName": "Collect V2 Submit Result",
+                    "name": "Collect V2 Submit Result",
+                    "script": {
+                      "type": "javascript",
+                      "code": "// Accumulate one entry per V2 submit: GD_ASYNC_SUBMIT answers a job id (queued) or a result code (refused, no job made)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst raw = [{{node:get_results.data}}][0];\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\nconst lineErrors = [{{node:wf_v2submit.data.line_errors}}][0];\nresults.push({\n  so_no: s([{{node:loop_payloads.so_no}}][0]),\n  route: \"V2\",\n  code: s([{{node:wf_v2submit.data.result_code}}][0]),\n  message: s([{{node:wf_v2submit.data.result_message}}][0]),\n  job_id: s([{{node:wf_v2submit.data.job_id}}][0]),\n  job_status: s([{{node:wf_v2submit.data.job_status}}][0]),\n  gd_no: s([{{node:wf_v2submit.data.gd_no}}][0]),\n  line_errors: typeof lineErrors === \"string\" ? lineErrors : JSON.stringify(lineErrors || []),\n});\nreturn { results: results };\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "s2gc_results_v2",
+                        "name": "results",
+                        "title": "results",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  "blocks": []
                 },
                 {
-                  "prop": "pageStatus",
-                  "propLabel": "pageStatus",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "value",
-                  "valueTypeLabel": "",
-                  "value": "Add",
-                  "valueLabel": ""
+                  "id": "set_results_v2",
+                  "type": "set-cache-node",
+                  "data": {
+                    "cache_key": "",
+                    "cache_value": "",
+                    "expire_time": 3600,
+                    "title": "Set gdResults",
+                    "isValidator": true,
+                    "nodeName": "Set gdResults",
+                    "name": "Set gdResults",
+                    "custom_wkbocgni": {
+                      "type": "javascript",
+                      "code": "{{node:code_collect_v2.data.results}}"
+                    },
+                    "redis_key": "s2gcResults_{{node:code_unique.data.unique}}"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_v2route_f",
+              "type": "ifBlock",
+              "data": { "title": "false" },
+              "blocks": [
+                {
+                  "id": "wf_gd_head",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "Save Goods Delivery as Created",
+                    "isValidator": true,
+                    "nodeName": "Save Goods Delivery as Created",
+                    "name": "Save Goods Delivery as Created",
+                    "workflow": {
+                      "source": "GOODS_DELIVERY:Workflow:2017151544868491265",
+                      "rules": {
+                        "collectionId": "2017151544868491265",
+                        "list": [
+                          {
+                            "id": 190000000100,
+                            "parentId": 190000000101,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "allData",
+                          "propLabel": "allData",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:loop_payloads.allData}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "saveAs",
+                          "propLabel": "saveAs",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "value": "Created",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "pageStatus",
+                          "propLabel": "pageStatus",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "value": "Add",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "needCL",
+                          "propLabel": "needCL",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "value": "auto",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "continueZero",
+                          "propLabel": "continueZero",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "value",
+                          "valueTypeLabel": "",
+                          "value": "Yes",
+                          "valueLabel": ""
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
                 },
                 {
-                  "prop": "needCL",
-                  "propLabel": "needCL",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "value",
-                  "valueTypeLabel": "",
-                  "value": "auto",
-                  "valueLabel": ""
+                  "id": "code_collect",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Collect GD Result",
+                    "isValidator": true,
+                    "nodeName": "Collect GD Result",
+                    "name": "Collect GD Result",
+                    "script": {
+                      "type": "javascript",
+                      "code": "// Accumulate one entry per GD attempt. GDheadWorkflow returns 200 on success and\n// 400 / 401 / 402 / 403 on failure -- and every one of those failure paths returns\n// BEFORE its add-node, so a non-200 code means nothing was written for this SO.\nconst raw = {{node:get_results.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst gdCode = {{node:wf_gd_head.data.code}};\nconst gdMessage = {{node:wf_gd_head.data.message}};\nconst gdId = {{node:wf_gd_head.data.gdId}};\nconst gdNo = {{node:wf_gd_head.data.gdNo}};\nconst soNo = {{node:loop_payloads.so_no}};\n\nresults.push({\n  so_no: soNo || \"\",\n  code: gdCode ? String(gdCode) : \"\",\n  message: gdMessage || \"\",\n  gd_id: gdId ? String(gdId) : \"\",\n  delivery_no: gdNo || \"\",\n});\n\nreturn { results: results };\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "s2gc_results",
+                        "name": "results",
+                        "title": "results",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  "blocks": []
                 },
                 {
-                  "prop": "continueZero",
-                  "propLabel": "continueZero",
-                  "operator": "",
-                  "operatorLabel": "",
-                  "valueType": "value",
-                  "valueTypeLabel": "",
-                  "value": "Yes",
-                  "valueLabel": ""
+                  "id": "set_results",
+                  "type": "set-cache-node",
+                  "data": {
+                    "cache_key": "",
+                    "cache_value": "",
+                    "expire_time": 3600,
+                    "title": "Set gdResults",
+                    "isValidator": true,
+                    "nodeName": "Set gdResults",
+                    "name": "Set gdResults",
+                    "custom_wkbocgni": {
+                      "type": "javascript",
+                      "code": "{{node:code_collect.data.results}}"
+                    },
+                    "redis_key": "s2gcResults_{{node:code_unique.data.unique}}"
+                  },
+                  "blocks": []
                 }
               ]
             }
-          },
-          "blocks": []
-        },
-        {
-          "id": "code_collect",
-          "type": "code-node",
-          "data": {
-            "language": "javascript",
-            "code": "",
-            "timeout": 30000,
-            "title": "Collect GD Result",
-            "isValidator": true,
-            "nodeName": "Collect GD Result",
-            "name": "Collect GD Result",
-            "script": {
-              "type": "javascript",
-              "code": "// Accumulate one entry per GD attempt. GDheadWorkflow returns 200 on success and\n// 400 / 401 / 402 / 403 on failure -- and every one of those failure paths returns\n// BEFORE its add-node, so a non-200 code means nothing was written for this SO.\nconst raw = {{node:get_results.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\nconst gdCode = {{node:wf_gd_head.data.code}};\nconst gdMessage = {{node:wf_gd_head.data.message}};\nconst gdId = {{node:wf_gd_head.data.gdId}};\nconst gdNo = {{node:wf_gd_head.data.gdNo}};\nconst soNo = {{node:loop_payloads.so_no}};\n\nresults.push({\n  so_no: soNo || \"\",\n  code: gdCode ? String(gdCode) : \"\",\n  message: gdMessage || \"\",\n  gd_id: gdId ? String(gdId) : \"\",\n  delivery_no: gdNo || \"\",\n});\n\nreturn { results: results };\n"
-            },
-            "response_json": [
-              {
-                "key": "s2gc_results",
-                "name": "results",
-                "title": "results",
-                "description": "",
-                "bsonType": "any",
-                "isExpand": false,
-                "children": []
-              }
-            ]
-          },
-          "blocks": []
-        },
-        {
-          "id": "set_results",
-          "type": "set-cache-node",
-          "data": {
-            "cache_key": "",
-            "cache_value": "",
-            "expire_time": 3600,
-            "title": "Set gdResults",
-            "isValidator": true,
-            "nodeName": "Set gdResults",
-            "name": "Set gdResults",
-            "custom_wkbocgni": {
-              "type": "javascript",
-              "code": "{{node:code_collect.data.results}}"
-            },
-            "redis_key": "s2gcResults_{{node:code_unique.data.unique}}"
-          },
-          "blocks": []
+          ]
         }
       ]
     },
@@ -1174,7 +1609,7 @@
         "name": "Build Summary",
         "script": {
           "type": "javascript",
-          "code": "const raw = {{node:get_results_final.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// A combined GD is all-or-nothing: one short item anywhere in the merged lines blocks the\n// whole document, so none of the selected SOs convert. Say so, and point at the way out.\nconst gdType = {{workflowparams:gd_type}};\nconst soIds = {{workflowparams:so_ids}} || [];\nconst isCombined = gdType === \"single\" && soIds.length > 1;\n\nconst created = [];\nconst blocked = [];\n\nfor (const r of results) {\n  if (r.code === \"200\" && r.gd_id) {\n    created.push({ so_no: r.so_no, delivery_no: r.delivery_no || \"\" });\n  } else {\n    let reason = r.message || \"Failed to create the Goods Delivery.\";\n    if (isCombined) {\n      reason +=\n        \" No goods delivery was created for any of these sales orders. Retry as Multiple GDs to convert the ones that have enough stock.\";\n    }\n    blocked.push({ so_no: r.so_no, reason: reason });\n  }\n}\n\n// SOs dropped before we ever called GDheadWorkflow (nothing left to deliver).\nconst preBlocked = {{node:code_build.data.blocked}} || [];\nfor (const b of preBlocked) {\n  blocked.push(b);\n}\n\nreturn {\n  code: \"200\",\n  message:\n    \"Created \" +\n    created.length +\n    \" goods deliver\" +\n    (created.length === 1 ? \"y\" : \"ies\") +\n    (blocked.length > 0 ? \", \" + blocked.length + \" not converted.\" : \".\"),\n  created: created,\n  blocked: blocked,\n  createdCount: created.length,\n  blockedCount: blocked.length,\n};\n"
+          "code": "const raw = {{node:get_results_final.data}};\n\nlet results = [];\nif (raw) {\n  results = typeof raw === \"string\" ? JSON.parse(raw) : raw;\n}\nif (!Array.isArray(results)) results = [];\n\n// A combined GD is all-or-nothing: one short item anywhere in the merged lines blocks the\n// whole document, so none of the selected SOs convert. Say so, and point at the way out.\nconst gdType = {{workflowparams:gd_type}};\nconst soIds = {{workflowparams:so_ids}} || [];\nconst isCombined = gdType === \"single\" && soIds.length > 1;\n\nconst created = [];\nconst blocked = [];\nconst queued = [];\n\nfor (const r of results) {\n  // V2: queued with a job id (the worker creates it; the SO list follows the job), or refused before any job was made\n  if (r.route === \"V2\") {\n    if (r.code || !r.job_id) {\n      let detail = \"\";\n      try {\n        const errs = JSON.parse(r.line_errors || \"[]\");\n        if (Array.isArray(errs) && errs.length) {\n          detail =\n            \" (\" +\n            errs\n              .slice(0, 3)\n              .map((e) => (e.line_no ? \"Line \" + e.line_no : \"Header\") + \": \" + (e.message || e.code))\n              .join(\"; \") +\n            (errs.length > 3 ? \"; ...\" : \"\") +\n            \")\";\n        }\n      } catch (e) {}\n      const again = r.code === \"GD_V2_USE_CLASSIC\" ? \" Convert it again: it is then saved the classic way.\" : \"\";\n      blocked.push({ so_no: r.so_no, reason: (r.message || r.code || \"The goods delivery could not be submitted.\") + detail + again });\n    } else {\n      queued.push({ so_no: r.so_no, job_id: r.job_id, gd_no: r.gd_no || \"\" });\n    }\n    continue;\n  }\n  if (r.code === \"200\" && r.gd_id) {\n    created.push({ so_no: r.so_no, delivery_no: r.delivery_no || \"\" });\n  } else {\n    let reason = r.message || \"Failed to create the Goods Delivery.\";\n    if (isCombined) {\n      reason +=\n        \" No goods delivery was created for any of these sales orders. Retry as Multiple GDs to convert the ones that have enough stock.\";\n    }\n    blocked.push({ so_no: r.so_no, reason: reason });\n  }\n}\n\n// SOs dropped before we ever called GDheadWorkflow (nothing left to deliver), or by the V2 plan (too many lines).\nconst preBlocked = ({{node:code_build.data.blocked}} || []).concat([{{node:code_v2plan.data.blocked}}][0] || []);\nfor (const b of preBlocked) {\n  blocked.push(b);\n}\n\nreturn {\n  code: \"200\",\n  message:\n    \"Created \" +\n    created.length +\n    \" goods deliver\" +\n    (created.length === 1 ? \"y\" : \"ies\") +\n    (queued.length > 0 ? \", \" + queued.length + \" being created in the background\" : \"\") +\n    (blocked.length > 0 ? \", \" + blocked.length + \" not converted.\" : \".\"),\n  created: created,\n  blocked: blocked,\n  queued: queued,\n  createdCount: created.length,\n  blockedCount: blocked.length,\n  queuedCount: queued.length,\n};\n"
         },
         "response_json": [
           {
@@ -1212,6 +1647,15 @@
             "children": []
           },
           {
+            "key": "s2gc_sum_queued",
+            "name": "queued",
+            "title": "queued",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
             "key": "s2gc_sum_createdcount",
             "name": "createdCount",
             "title": "createdCount",
@@ -1223,6 +1667,14 @@
             "key": "s2gc_sum_blockedcount",
             "name": "blockedCount",
             "title": "blockedCount",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          },
+          {
+            "key": "s2gc_sum_queuedcount",
+            "name": "queuedCount",
+            "title": "queuedCount",
             "description": "",
             "bsonType": "int",
             "isExpand": false
@@ -1284,6 +1736,16 @@
               "valueLabel": ""
             },
             {
+              "prop": "queued",
+              "propLabel": "queued",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_summary.data.queued}}",
+              "valueLabel": ""
+            },
+            {
               "prop": "createdCount",
               "propLabel": "createdCount",
               "operator": "",
@@ -1301,6 +1763,16 @@
               "valueType": "field",
               "valueTypeLabel": "",
               "value": "{{node:code_summary.data.blockedCount}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "queuedCount",
+              "propLabel": "queuedCount",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_summary.data.queuedCount}}",
               "valueLabel": ""
             }
           ]

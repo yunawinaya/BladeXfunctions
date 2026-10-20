@@ -43,6 +43,10 @@ LOCK row). While the edit runs, the GD is `Processing` and its Picking has `is_p
 | `GD_EDIT_PREPARE` | Set-based reads with no row limits. Runs GOODS_DELIVERY's Edit/Created path and GD_UNUSED_FN_NEW's planner, lifted, in-process. Writes the payload parts (`P|<nonce>|<PART>|nnn`): ENGINE, GDL, GDH, RES, SO, PICK, STAMP, AFTER. Runs INVENTORY_BULK_APPLY in PLAN mode. Ends READY_TO_COMMIT, HELD (a cascade's job), or FAILED with the GD and its Picking unlocked. |
 | `GD_EDIT_COMMIT` | Phase A: E0 revalidate, E0N a Draft's number, E1 inventory, then SPLIT. Phase B: E2 lines, then SPLIT. Phase B2: E3 reservations, E4 sales orders, then SPLIT (one call each: at 2,000 changed lines a single phase B was 32 MB of node data). Phase C: E5 Picking and line stamps, E6 header (the unlock), E7 reorder and item dates, then COMPLETED. Each step writes only rows still at PREPARE's before-image, reads them back, and records a DONE row. A rerun resumes. A conflict after the stock moved goes to REQUIRES_REVIEW. |
 
+COMMIT holds a 30-minute lease (GD_EDIT_COMMIT v8, 2026-10-20; the worker's own claim stays at 10). The engine reads a
+second run of a live operation as a resume and can insert its movements twice, so a slow E1 must never be taken over.
+The cost: a run that really dies waits up to 30 minutes before the next kick resumes it, with the GD Processing.
+
 Job statuses: QUEUED → VALIDATING → READY_TO_COMMIT → (HELD) → COMMITTING_GD → COMPLETED | FAILED | CANCELLED, or
 REQUIRES_REVIEW. Only COMPLETED / FAILED / CANCELLED are terminal; GD_COMPLETE_SUBMIT treats any other EDIT_GD status as
 busy.
@@ -141,6 +145,33 @@ saved in the background. Wait a moment, then try again."
 
 The two convert workflows now have repo copies in `Bulk Actions/Sales & Distribution/Goods Delivery/`
 (`GDConvertPickingWorkflow.json`, `GDLineConvertPickingWorkflow.json`). Patches: `scratchpad/gde/guards/`.
+
+## Source PICKING_FC: a Picking force complete (Picking V2 stage 1d — built 2026-10-20, not deployed)
+
+PICKING_FC_DRIVE edits each delivery of a force-completed Picking through this module, one EDIT_GD job per delivery.
+It passes the edit by reference; it never runs GD_EDIT_WORKER itself (the screen runs it on the ids in STATUS's `kick`).
+
+- **SUBMIT** `{operation: SUBMIT, gd_id, source: PICKING_FC, fcd_ref: FCD|<nonce8>|<gi>, cascade_ref: PKFC|<job>,
+  causation_job_id: <job>, picking_id}`. SUBMIT reads the planned parts itself (`sql_node_GSfcd`, the job's
+  `gd_publish_step` rows `FCD|<nonce>|<gi>|<nnn>`: `{cells, removed, base}`) and turns them into this module's delta
+  (`code/submit/fc.js`; the layout = the stored lines minus the removed ones).
+  - Only closing cells may change: temp_qty_data, view_stock, temp_hu_data, gd_qty, base_qty, gd_delivered_qty,
+    gd_undelivered_qty, plan_*, is_force_complete, picking_status.
+  - Every touched line's fingerprint (gd_qty, base_qty, allocation, picking_status) must still be what the Picking's
+    PREPARE planned against (`scratchpad/pk1d/code/fc_fp.js`, shared): else STOP 409 `GDE_FC_STALE`.
+  - The force complete's own open job and its Picking lock are not "busy" for it; STOP 409 if that job is no longer
+    open. The more-than-one-Picking refusals are skipped (the Picking's PREPARE refuses a line on another open
+    Picking); serial, select picking and loading bay still refuse.
+  - The chain runs with classic PICKING's force-complete parameters: needCL auto, isPicking Yes, isLoadingBay 0.
+- **The job is held** (`hold 1`, `cascade_ref PKFC|<job>`) for 30 minutes ("Held for the force complete"). DRIVE
+  releases the holds one at a time (`RELEASE`) or cancels them (`CANCEL_HELD`).
+- **PREPARE / COMMIT** never adopt or release the force complete's Picking lock; the removed lines stay removed (the
+  Picking merge is not seeded).
+- **An orphaned hold** (its force complete COMPLETED / FAILED / CANCELLED) is due at once: the next worker run cancels
+  it and unlocks the delivery.
+
+Tests: `scratchpad/pk1d/test/test_gde_fc_{submit,prepare,worker}.js` (take the recorded fixtures as arguments) and the
+regression gate `scratchpad/pk1d/test/gde_gate.sh <fixture dir>` (this module's suites against their recorded baseline).
 
 ## Build and test
 

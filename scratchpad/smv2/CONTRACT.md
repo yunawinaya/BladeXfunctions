@@ -291,7 +291,7 @@ Shapes only (a STAGE job has creates, a COMPLETE job mostly updates):
 - **creates**: complete rows with the add-node columns of `add_node_LOTmainCreate` / `add_node_LOTreconCreate`
   (`lib/v2build.IT_COLS` + `received_date`) + `job_line_key`, after the Enrich nodes filled item_code / name / desc. Values
   exactly as the classic computes them (decimals `qtyStr` strings, dates `YYYY-MM-DD HH:MM:SS`, ids digit strings, the
-  classic's `""` / null kept). `job_line_key = <jobId>|<doc_line_id>|<n>`, n = 1-based among that line's creates; a reconcile
+  classic's `""` / null kept; a date-only doc date, as the form sends `issue_date`, gets ` 00:00:00`). `job_line_key = <jobId>|<doc_line_id>|<n>`, n = 1-based among that line's creates; a reconcile
   create has no line (`doc_line_id ""`): `<jobId>|0|<n>`, n = 1-based among the job's line-less creates. A COMPLETE create
   folded with its close [design P4] is ONE create carrying the closed values.
 - **updates**: `{ id, source, before, after }`; `after` holds exactly the columns the classic node writes for that row:
@@ -537,6 +537,7 @@ LOT_LOCK_JOIN = """LEFT JOIN sm_location_transfer g
     ON g.tenant_id = j.tenant_id
    AND j.correlation_id REGEXP '^LOT\\\\|[0-9]{1,20}$'
    AND g.id = CAST(SUBSTRING(j.correlation_id, 5) AS UNSIGNED)
+   AND g.is_deleted = 0
   LEFT JOIN gd_publish_step lk
     ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p
                  WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('SMLT|', SUBSTRING(j.correlation_id, 5)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)"""
@@ -627,7 +628,17 @@ The worker never trusts an answer: it reads the job row back after each call (gr
     5,000-movement cap counts after allocation. The picks go to COMMIT in the ALLOC part (section 5).
   - **COMPLETE / EDIT: the S part is checked** before anything runs: `lotLineFingerprint` over every row of its tree (bundle
     parents included; SUBMIT's `lotTreeRows`) must equal `request.incomingFingerprint`, else FAILED `LOT_INVALID_REQUEST`
-    "Please save again." (+ unlock; before L1, so a mismatch can never surface after stock moved).
+    "The lines of this save no longer match what was sent: nothing was moved, please save it again." (+ unlock; before L1, so
+    a mismatch can never surface after stock moved).
+  - **COMPLETE / EDIT re-allocation (I2, user 10-20; deliberate difference from the classic):** a row re-allocated there (its
+    picks emptied, e.g. after a bundle parent qty change) whose STORED line had picks gets those stored Unrestricted picks
+    (material | bin | batch, converted to base uom) added back onto copies of the matching balance rows for its own
+    GLOBAL_ALLOCATION call only - they already left their bins (In Transit / at the target), and without them the classic
+    under-counts ("Available: 2, Requested: 4" for a +2). The reconcile deltas are unchanged: a 2 -> 4 child picked again from
+    its bin moves +2 from that bin, with no re-pick across bins.
+  - **DIRECT / STAGE after the allocation (M2):** classic `code_node_LOTqtyComplete` (lifted) runs on the fillback's flatLines
+    (`if_PYPLDh47`): a line naming an item that still carries no stock (e.g. a stock_control 0 item GLOBAL_ALLOCATION placed
+    nothing for) -> FAILED `LOT_LINES_WITHOUT_STOCK` with its incompleteMessage, + unlock.
   - **lineCount** (manifest, the job's `line_count`; COMMIT's PARK > 1,000) = flat lines: bundle parents out, children in
     (the client's, SUBMIT's `flatOf` / `lotStoredFlat`, the guard's count) = max(request.lineCount, stored flat rows,
     the fillback's flatLines).
@@ -687,7 +698,7 @@ GD / GR / Putaway V2 on those items) and stays Processing.
 
 | Code | Where | Route / job | User-facing message |
 |---|---|---|---|
-| LOT_INVALID_REQUEST | SUBMIT guard; PREPARE entry; COMMIT entry | INVALID 400; FAILED | SUBMIT: what is wrong ("saveAs must be Draft, In Progress, Completed or Cancelled" ...); PREPARE: "The save stopped before the Location Transfer was linked to its job: please save it again."; COMMIT (no `sparts.LINES` for COMPLETE / EDIT): "The lines of this save are missing: nothing was moved, please save it again."; COMMIT (no lineFingerprint): "The save has no line fingerprint: nothing was moved, please save it again."; PREPARE V2.1 (the S part's fingerprint is not `incomingFingerprint`): "Please save again." |
+| LOT_INVALID_REQUEST | SUBMIT guard; PREPARE entry; COMMIT entry | INVALID 400; FAILED | SUBMIT: what is wrong ("saveAs must be Draft, In Progress, Completed or Cancelled" ...); PREPARE: "The save stopped before the Location Transfer was linked to its job: please save it again."; COMMIT (no `sparts.LINES` for COMPLETE / EDIT): "The lines of this save are missing: nothing was moved, please save it again."; COMMIT (no lineFingerprint): "The save has no line fingerprint: nothing was moved, please save it again."; PREPARE V2.1 (the S part's fingerprint is not `incomingFingerprint`): "The lines of this save no longer match what was sent: nothing was moved, please save it again." |
 | LOT_NOT_FOUND | SUBMIT; PREPARE | STOP 400; FAILED | "Location Transfer not found - it may have been deleted." |
 | LOT_BUSY | SUBMIT; classic guard | BUSY 409; classic 400 | "This Location Transfer is being processed in the background - please wait for it to finish." [design text] |
 | LOT_UNDER_REVIEW | SUBMIT | BUSY 409 | "Its last save stopped half-way and is under review: please contact support." |
@@ -703,7 +714,7 @@ GD / GR / Putaway V2 on those items) and stays Processing.
 | LOT_REQUIRED_FIELDS | SUBMIT | STOP 400 | CHECK_REQUIRED_FIELD's `data.message` (classic return_node_aQxrHqh2) |
 | LOT_LOCATION_REQUIRED | SUBMIT | STOP 400 | `code_node_i8zWlzBw` locationMessage ("Location ID is required for item <i> in Location Transfer") |
 | LOT_NO_QUANTITY | SUBMIT | STOP 400 | "No quantity selected to transfer" |
-| LOT_LINES_WITHOUT_STOCK | SUBMIT | STOP 400 | `code_node_LOTqtyComplete` incompleteMessage ("No stock selected for line <n>. Select stock for every line before saving.") |
+| LOT_LINES_WITHOUT_STOCK | SUBMIT; PREPARE V2.1 (after the allocation, DIRECT / STAGE) | STOP 400; FAILED | `code_node_LOTqtyComplete` incompleteMessage ("No stock selected for line <n>. Select stock for every line before saving.") |
 | LOT_NO_WA_RECORD | SUBMIT (DIRECT / STAGE) | STOP 400 | GLOBAL_INVENTORY_VALIDATION v11's text: "No Weighted Average costing record for item <code> at this plant[ (batch <id>)]. The batch was most likely moved between plants without its costing record; create it for this plant before issuing this stock." |
 | LOT_QUEUE_FAILED | SUBMIT | STOP 500 | "The save could not be queued: please try again." |
 | LOT_NOT_LOCKED | PREPARE; COMMIT | FAILED | "The Location Transfer is no longer locked by this save: nothing was moved." |

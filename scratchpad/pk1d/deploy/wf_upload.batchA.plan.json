@@ -1,0 +1,36 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    {
+      "name": "GD_EDIT_SUBMIT",
+      "dataId": "2110618741159940097",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_SUBMIT.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/GD_EDIT_SUBMIT.v10.json"
+    },
+    {
+      "name": "GD_EDIT_PREPARE",
+      "dataId": "2110618832105033730",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_PREPARE.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/GD_EDIT_PREPARE.v7.json"
+    },
+    {
+      "name": "GD_EDIT_WORKER",
+      "dataId": "2110618789356687361",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_WORKER.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/GD_EDIT_WORKER.v6.json"
+    },
+    {
+      "name": "GD_EDIT_COMMIT",
+      "dataId": "2110618866011787266",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_COMMIT.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/GD_EDIT_COMMIT.v8.json"
+    },
+    {
+      "name": "PICKING_LOOP",
+      "dataId": "2021065804251615233",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/PickingLoopWorkflow.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/PickingLoopWorkflow.v88.json"
+    }
+  ]
+}

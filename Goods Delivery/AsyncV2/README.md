@@ -36,6 +36,20 @@ original `onClick_save_as_created` unchanged:
 So Draft, Edit, Completed, Cancel, GDs from Picking/PP, and the Picking → GD Created path
 (loading bay shuttle) all still run through `GOODS_DELIVERY` exactly as before.
 
+**Server-side fit (GD_ASYNC_SUBMIT v12, 2026-10-20).** Before making a job, SUBMIT checks what
+`GD_BULK_PREPARE` would refuse where the old save copes:
+- item master flags: a costing method other than Fixed Cost / First In First Out / Weighted Average,
+  a batch flag other than 0 / 1, a serial flag other than 0 (NULL included), Fixed Cost without a
+  usable price;
+- an allocation picked from a handling unit, or handling-unit stock behind an auto-allocated line
+  (Auto picking mode);
+- a Pending reservation on a line's SO line.
+
+It then answers `GD_V2_USE_CLASSIC`, makes no job, and the button runs `onClick_save_as_created`.
+SO_AUTO_GD v20 applies the same rule before it submits (`scratchpad/gdc/gdcreate/v2fit.py` +
+`code/v2fit_lib.js`, copied verbatim into both). Any other caller of GD_ASYNC_SUBMIT must treat
+`GD_V2_USE_CLASSIC` as "save it the classic way".
+
 ## The flow
 
 ```

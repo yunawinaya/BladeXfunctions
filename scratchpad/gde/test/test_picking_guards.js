@@ -44,7 +44,8 @@ const facts = node(S, "sql_node_PSfacts"), decide = node(S, "code_node_PSdecide"
 const guard = { tenantId: "711077", organizationId: "o1", idempotencyKey: "k1", pickingId: "p1", operation: "CONFIRM", request: "{}", lineCount: 3 };
 const F = (x) => Object.assign({ db_now: "2026-10-15 17:00:00", id: "p1", to_id: "PI-1", to_status: "Created", is_deleted: 0, organization_id: "o1", plant_id: "pl1", is_processing: 0, is_loading_bay: 0, lock_age_sec: 5,
   picking_after: "Goods Delivery", allow_full_picking: "0", auto_completed_gd: "0", setup_loading_bay: "0", key_job: null, open_job: null, moved_rows: 0, gd_busy: null }, x || {});
-const decideRun = (f) => run(decide, { "node:code_node_PSguard.data": guard, "node:sql_node_PSfacts.data": [f], "node:sql_node_PSmove.data": [] });
+// sql_node_PSfc (Picking 1d) runs only for a force complete: a confirm's decide meets it not run (undefined, as the platform renders it)
+const decideRun = (f) => run(decide, { "node:code_node_PSguard.data": guard, "node:sql_node_PSfacts.data": [f], "node:sql_node_PSmove.data": [], "node:sql_node_PSfc.data": undefined });
 it("submit: facts read the busy GD of the stored Picking (tenant-scoped, the busy predicate) and declare gd_busy", () => {
   assert.ok(/JSON_TABLE\(IF\(JSON_VALID\(t\.gd_no\), t\.gd_no, '\[\]'\)/.test(sql(facts)), "no gd_no JSON_TABLE");
   assert.ok(/g\.tenant_id = '\{\{node:code_node_PSguard\.data\.tenantId\}\}'/.test(sql(facts)) && /g\.id = CAST\(jt\.gid AS UNSIGNED\)/.test(sql(facts)));

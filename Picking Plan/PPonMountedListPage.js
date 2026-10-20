@@ -50,3 +50,12 @@ if (type && id) {
     console.error("Error in PPonMountedListPage:", error);
   }
 })();
+
+// Picking V2: no scheduled worker - every open of the list starts the background confirmations / force completes and the
+// delivery edits a force complete waits on (each worker takes only its due jobs; a run in progress holds its job's lease)
+try {
+  this.runWorkflow("2109531412499251201", { job_id: "" }, () => {}, (e) => console.error("Picking V2: worker start failed", e));
+  this.runWorkflow("2110618789356687361", { job_id: "" }, () => {}, (e) => console.error("GD Edit V2: worker start failed", e));
+} catch (e) {
+  console.error("Picking V2: the workers could not be started", e);
+}

@@ -367,6 +367,102 @@
               "blocks": []
             }
           ]
+        },
+        {
+          "id": "cai_jobs",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "GD Jobs",
+            "filter": {
+              "list": [
+                {
+                  "id": 1783100000361,
+                  "parentId": 1783100000360,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": { "code": "" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "GD Jobs",
+            "name": "GD Jobs",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "code_node_SXsoid",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "SO ID (digits)",
+                "isValidator": true,
+                "nodeName": "SO ID (digits)",
+                "name": "SO ID (digits)",
+                "response_json": [
+                  {
+                    "key": "wf_soidsql",
+                    "name": "soIdSql",
+                    "title": "soIdSql",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ],
+                "script": {
+                  "type": "javascript",
+                  "code": "// SO_CANCEL - the sales order id, digits only, for the background-save read (the SQL is raw text)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst raw = [{{workflowparams:so_id}}][0];\nconst id = s(Array.isArray(raw) ? raw[0] : raw);\nreturn { soIdSql: /^[0-9]{1,20}$/.test(id) ? id : \"0\" };"
+                }
+              },
+              "blocks": []
+            },
+            {
+              "id": "sql_node_SXjobs",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Get Unfinished GD Saves",
+                "isValidator": true,
+                "nodeName": "Get Unfinished GD Saves",
+                "name": "Get Unfinished GD Saves",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(j.id AS CHAR) AS job_id,\n       j.job_status\n  FROM gd_async_job j\n WHERE j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')\n   AND j.tenant_id = '{{system:tenantId}}'\n   AND j.command = 'CREATE_GD_FROM_FORM'\n   AND j.is_deleted = 0\n   AND j.source_so_ids LIKE '%\"{{node:code_node_SXsoid.data.soIdSql}}\"%'\n LIMIT 20"
+                },
+                "response_json": [
+                  {
+                    "key": "wf_jobid",
+                    "name": "job_id",
+                    "title": "job_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "wf_jobstatus",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
         }
       ]
     },
@@ -383,7 +479,7 @@
         "name": "Classify",
         "script": {
           "type": "javascript",
-          "code": "const gdList = {{node:search_gd.data.data}} || [];\nconst ppList = {{node:search_pp.data.data}} || [];\nconst siList = {{node:search_si.data.data}} || [];\n\nconst createdGd = gdList.filter((d) => d.gd_status === \"Created\");\nconst createdPp = ppList.filter((d) => d.to_status === \"Created\");\nconst draftGd = gdList.filter((d) => d.gd_status === \"Draft\");\nconst draftPp = ppList.filter((d) => d.to_status === \"Draft\");\nconst invoiced = siList.filter((s) => s.si_status !== \"Draft\" && s.si_status !== \"Cancelled\");\nconst draftSI = siList.filter((s) => s.si_status === \"Draft\");\n\nlet code = \"200\";\nlet message = \"\";\nif (createdGd.length > 0 || createdPp.length > 0) {\n  code = \"400\";\n  message = \"Has a created \" + (createdPp.length > 0 ? \"picking plan\" : \"goods delivery\") + \". Cancel it first.\";\n} else if (invoiced.length > 0) {\n  code = \"400\";\n  message = \"Sales order is already invoiced. Cannot cancel.\";\n}\n\nreturn {\n  code: code,\n  message: message,\n  deleteGD: (draftGd.length > 0 && code === \"200\") ? 1 : 0,\n  deletePP: (draftPp.length > 0 && code === \"200\") ? 1 : 0,\n  deleteSI: (draftSI.length > 0 && code === \"200\") ? 1 : 0,\n  draftGdIds: draftGd.map((d) => d.id),\n  draftPpIds: draftPp.map((d) => d.id),\n  draftSiIds: draftSI.map((s) => s.id)\n};"
+          "code": "const gdList = {{node:search_gd.data.data}} || [];\nconst ppList = {{node:search_pp.data.data}} || [];\nconst siList = {{node:search_si.data.data}} || [];\nconst jobRows = [{{node:sql_node_SXjobs.data}}][0];\n// GD V2 work in flight on this SO: a delivery in Processing, or a new delivery still saving in the background\nconst busyGd = gdList.filter((d) => d.gd_status === \"Processing\");\nconst busyJobs = (Array.isArray(jobRows) ? jobRows : jobRows ? [jobRows] : []).filter((r) => r && r.job_id);\n\nconst createdGd = gdList.filter((d) => d.gd_status === \"Created\");\nconst createdPp = ppList.filter((d) => d.to_status === \"Created\");\nconst draftGd = gdList.filter((d) => d.gd_status === \"Draft\");\nconst draftPp = ppList.filter((d) => d.to_status === \"Draft\");\nconst invoiced = siList.filter((s) => s.si_status !== \"Draft\" && s.si_status !== \"Cancelled\");\nconst draftSI = siList.filter((s) => s.si_status === \"Draft\");\n\nlet code = \"200\";\nlet message = \"\";\nif (busyGd.length > 0 || busyJobs.length > 0) {\n  code = \"400\";\n  message = busyGd.length > 0\n    ? \"Goods delivery \" + busyGd.map((d) => d.delivery_no).join(\", \") + \" is being processed in the background. Try again when it finishes.\"\n    : \"A goods delivery for this sales order is still being saved in the background. Try again when it finishes.\";\n} else if (createdGd.length > 0 || createdPp.length > 0) {\n  code = \"400\";\n  message = \"Has a created \" + (createdPp.length > 0 ? \"picking plan\" : \"goods delivery\") + \". Cancel it first.\";\n} else if (invoiced.length > 0) {\n  code = \"400\";\n  message = \"Sales order is already invoiced. Cannot cancel.\";\n}\n\nreturn {\n  code: code,\n  message: message,\n  deleteGD: (draftGd.length > 0 && code === \"200\") ? 1 : 0,\n  deletePP: (draftPp.length > 0 && code === \"200\") ? 1 : 0,\n  deleteSI: (draftSI.length > 0 && code === \"200\") ? 1 : 0,\n  draftGdIds: draftGd.map((d) => d.id),\n  draftPpIds: draftPp.map((d) => d.id),\n  draftSiIds: draftSI.map((s) => s.id)\n};"
         },
         "response_json": [
           {

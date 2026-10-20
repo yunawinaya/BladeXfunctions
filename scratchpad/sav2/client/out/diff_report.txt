@@ -19,6 +19,7 @@
     /list/[key=w8jlcjrd]/list/[key=fdevqgfp]/events/onClick
     /config/eventScript/[key=yei06hlt] (added at 52: scV2_onButtonReviewClick)
     /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=4gcydh2s]/func
 == SClistPage.json vs base sc_list_v38
     /config/eventScript/[key=mounted]/func
     /config/eventScript/[key=mounted]/type (added)

@@ -82,6 +82,14 @@
       "description": "",
       "bsonType": "string",
       "isExpand": false
+    },
+    {
+      "key": "pwfn0003",
+      "name": "kick",
+      "title": "kick",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
     }
   ],
   "config": {},
@@ -1040,7 +1048,7 @@
             "timeout": 30000,
             "script": {
               "type": "javascript",
-              "code": "// PICKING_ASYNC_WORKER - Pick: this iteration's job (the cache index) from the tick's FRESH read; SKIP after the budget,\n// when no longer due, under a live lease or a live claim row; else the claim gate rows (a dead claim: row_version + 1 first)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerPick = function workerPick(guard, plan, tickRows, indexRaw) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const rows = (Array.isArray(tickRows) ? tickRows : tickRows ? [tickRows] : []).filter((r) => r);\n  const tick = rows[0] || {};\n  const dbNow = s(tick.db_now) || s(plan.dbNow);\n  const index = indexRaw === undefined || indexRaw === null || indexRaw === \"\" ? 0 : parseInt(String(indexRaw), 10) || 0;\n  const planned = (plan.items || [])[index] || null;\n  const t = (x) => {\n    const m = String(x || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) : NaN;\n  };\n  const elapsed = isNaN(t(plan.runStart)) || isNaN(t(dbNow)) ? 0 : Math.max(0, Math.round((t(dbNow) - t(plan.runStart)) / 1000));\n  const base = { route: \"SKIP\", index: index, nextIndex: index + 1, dbNow: dbNow, leaseUntil: s(tick.lease_until), elapsed: elapsed, jobId: \"0\", organizationId: \"0\", pickingId: \"0\", item: null, rvBase: 0, rvRows: [], needRvUpd: \"NO\", claimName: \"\", claimRows: [], needClaimAdd: \"NO\", result_message: \"\" };\n  if (!planned) return Object.assign(base, { result_message: \"no item at index \" + index });\n  const fresh = rows.filter((r) => s(r.id) === planned.jobId)[0] || null;\n  if (!fresh) return Object.assign(base, { jobId: planned.jobId, organizationId: planned.organizationId, result_message: \"job \" + planned.jobId + \" is gone from the fresh read: skipped\" });\n  const item = workerItem(fresh);\n  const out = Object.assign(base, { jobId: item.jobId, organizationId: item.organizationId, pickingId: item.pickingId, item: item });\n  if (index > 0 && elapsed > PKC.worker_budget_seconds) return Object.assign(out, { result_message: \"budget: \" + elapsed + \" s since the run start: job \" + item.jobId + \" is left for the next tick\" });\n  if (PKC.states.indexOf(item.jobStatus) < 0) return Object.assign(out, { result_message: \"job \" + item.jobId + \" is \" + item.jobStatus + \" now: skipped\" });\n  if (item.leaseLive === \"YES\") return Object.assign(out, { result_message: \"job \" + item.jobId + \" has a live lease of \" + s(item.leaseOwner) + \": skipped\" });\n  if (item.dueNow !== \"YES\") return Object.assign(out, { result_message: \"job \" + item.jobId + \" is not due before \" + s(item.nextAttemptAt) + \": skipped\" });\n  if (item.gateClosed) return Object.assign(out, { result_message: \"job \" + item.jobId + \": \" + item.gateClosed + \" - skipped\" });\n  const rv = item.rowVersion;\n  const dead = item.deadClaim === \"YES\";\n  const rvBase = dead ? rv + 1 : rv;\n  const name = \"W0_CLAIM_\" + rvBase;\n  const counted = dead ? Math.min(item.attempts + 1, PKC.retry.max_retries) : item.attempts;\n  return Object.assign(out, { route: \"CLAIM\", rvBase: rvBase, rvRows: dead ? [{ id: item.jobId, row_version: rvBase, attempt_count: counted }] : [], needRvUpd: dead ? \"YES\" : \"NO\", claimName: name, claimRows: [{ job_id: item.jobId, organization_id: item.organizationId, step_name: name, step_status: \"DONE\", attempt_count: 1, started_at: dbNow, inventory_operation_id: \"\", result_ref: guard.leaseOwner, error_code: null, error_message: null }], needClaimAdd: \"YES\", result_message: (dead ? \"dead claim of \" + item.claimOwner + \" moved past (retry \" + counted + \"); \" : \"\") + \"claim \" + name });\n};\nconst workerItem = function workerItem(row) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const dead = String(row.dead_lease) === \"1\";\n  const claimed = s(row.claim_id) !== \"\";\n  return { jobId: s(row.id), organizationId: s(row.organization_id), pickingId: s(row.picking_id), jobStatus: s(row.job_status), progressPercent: Number(row.progress_percent) || 0, progressMessage: s(row.progress_message), attempts: Number(row.attempt_count) || 0, nextAttemptAt: row.next_attempt_at || null, leaseOwner: row.lease_owner || null, leaseExpiresAt: row.lease_expires_at || null, deadLease: dead ? \"YES\" : \"NO\", deadOwner: dead ? s(row.lease_owner) : \"\", deadClaim: claimed && String(row.claim_live) !== \"1\" ? \"YES\" : \"NO\", claimOwner: claimed ? s(row.claim_owner) : \"\", rowVersion: Number(row.row_version) || 0, errorCode: row.error_code || null, errorMessage: row.error_message || null, errorDetails: row.error_details || null, leaseLive: String(row.lease_live) === \"1\" ? \"YES\" : \"NO\", dueNow: String(row.due_now) === \"1\" ? \"YES\" : \"NO\", gateClosed: String(row.claim_live) === \"1\" ? \"a live worker claim row W0_CLAIM_\" + s(row.row_version) + \" of \" + s(row.claim_owner) : \"\" };\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst plan = [{{node:code_node_PWplan.data}}][0];\nconst res = workerPick(guard, plan, [{{node:sql_node_PWtick.data}}][0], {{node:get_cache_PWidx.data}});\nconsole.log(\"worker pick\", JSON.stringify({ route: res.route, index: res.index, job: res.jobId, elapsed: res.elapsed, claim: res.claimName, rvUpd: res.needRvUpd, message: res.result_message }));\nreturn res;"
+              "code": "// PICKING_ASYNC_WORKER - Pick: this iteration's job (the cache index) from the tick's FRESH read; SKIP after the budget,\n// when no longer due, under a live lease or a live claim row; else the claim gate rows (a dead claim: row_version + 1 first)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\",\n    \"PK_FC_NOT_IN_PROGRESS\", \"PK_FC_NO_RECORDS\", \"PK_FC_SHARED_LINE\", \"PK_FC_UOM\", \"PK_FC_OVERPICK\", \"PK_FC_GD_UNPICKED\", \"PK_FC_SETUP_CHANGED\", \"PK_FC_STALE\", \"PK_FC_GD_CHANGED\", \"PK_FC_GD_NOT_ELIGIBLE\", \"PK_FC_GD_REFUSED\", \"PK_FC_GD_FAILED\", \"PK_FC_FAILED\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerPick = function workerPick(guard, plan, tickRows, indexRaw) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const rows = (Array.isArray(tickRows) ? tickRows : tickRows ? [tickRows] : []).filter((r) => r);\n  const tick = rows[0] || {};\n  const dbNow = s(tick.db_now) || s(plan.dbNow);\n  const index = indexRaw === undefined || indexRaw === null || indexRaw === \"\" ? 0 : parseInt(String(indexRaw), 10) || 0;\n  const planned = (plan.items || [])[index] || null;\n  const t = (x) => {\n    const m = String(x || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) : NaN;\n  };\n  const elapsed = isNaN(t(plan.runStart)) || isNaN(t(dbNow)) ? 0 : Math.max(0, Math.round((t(dbNow) - t(plan.runStart)) / 1000));\n  const base = { route: \"SKIP\", index: index, nextIndex: index + 1, dbNow: dbNow, leaseUntil: s(tick.lease_until), elapsed: elapsed, jobId: \"0\", organizationId: \"0\", pickingId: \"0\", item: null, rvBase: 0, rvRows: [], needRvUpd: \"NO\", claimName: \"\", claimRows: [], needClaimAdd: \"NO\", result_message: \"\" };\n  if (!planned) return Object.assign(base, { result_message: \"no item at index \" + index });\n  const fresh = rows.filter((r) => s(r.id) === planned.jobId)[0] || null;\n  if (!fresh) return Object.assign(base, { jobId: planned.jobId, organizationId: planned.organizationId, result_message: \"job \" + planned.jobId + \" is gone from the fresh read: skipped\" });\n  const item = workerItem(fresh);\n  const out = Object.assign(base, { jobId: item.jobId, organizationId: item.organizationId, pickingId: item.pickingId, item: item });\n  if (index > 0 && elapsed > PKC.worker_budget_seconds) return Object.assign(out, { result_message: \"budget: \" + elapsed + \" s since the run start: job \" + item.jobId + \" is left for the next tick\" });\n  if (PKC.states.indexOf(item.jobStatus) < 0) return Object.assign(out, { result_message: \"job \" + item.jobId + \" is \" + item.jobStatus + \" now: skipped\" });\n  if (item.leaseLive === \"YES\") return Object.assign(out, { result_message: \"job \" + item.jobId + \" has a live lease of \" + s(item.leaseOwner) + \": skipped\" });\n  if (item.dueNow !== \"YES\") return Object.assign(out, { result_message: \"job \" + item.jobId + \" is not due before \" + s(item.nextAttemptAt) + \": skipped\" });\n  if (item.gateClosed) return Object.assign(out, { result_message: \"job \" + item.jobId + \": \" + item.gateClosed + \" - skipped\" });\n  const rv = item.rowVersion;\n  const dead = item.deadClaim === \"YES\";\n  const rvBase = dead ? rv + 1 : rv;\n  const name = \"W0_CLAIM_\" + rvBase;\n  const counted = dead ? Math.min(item.attempts + 1, PKC.retry.max_retries) : item.attempts;\n  return Object.assign(out, { route: \"CLAIM\", rvBase: rvBase, rvRows: dead ? [{ id: item.jobId, row_version: rvBase, attempt_count: counted }] : [], needRvUpd: dead ? \"YES\" : \"NO\", claimName: name, claimRows: [{ job_id: item.jobId, organization_id: item.organizationId, step_name: name, step_status: \"DONE\", attempt_count: 1, started_at: dbNow, inventory_operation_id: \"\", result_ref: guard.leaseOwner, error_code: null, error_message: null }], needClaimAdd: \"YES\", result_message: (dead ? \"dead claim of \" + item.claimOwner + \" moved past (retry \" + counted + \"); \" : \"\") + \"claim \" + name });\n};\nconst workerItem = function workerItem(row) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const dead = String(row.dead_lease) === \"1\";\n  const claimed = s(row.claim_id) !== \"\";\n  return { jobId: s(row.id), organizationId: s(row.organization_id), pickingId: s(row.picking_id), jobStatus: s(row.job_status), progressPercent: Number(row.progress_percent) || 0, progressMessage: s(row.progress_message), attempts: Number(row.attempt_count) || 0, nextAttemptAt: row.next_attempt_at || null, leaseOwner: row.lease_owner || null, leaseExpiresAt: row.lease_expires_at || null, deadLease: dead ? \"YES\" : \"NO\", deadOwner: dead ? s(row.lease_owner) : \"\", deadClaim: claimed && String(row.claim_live) !== \"1\" ? \"YES\" : \"NO\", claimOwner: claimed ? s(row.claim_owner) : \"\", rowVersion: Number(row.row_version) || 0, errorCode: row.error_code || null, errorMessage: row.error_message || null, errorDetails: row.error_details || null, leaseLive: String(row.lease_live) === \"1\" ? \"YES\" : \"NO\", dueNow: String(row.due_now) === \"1\" ? \"YES\" : \"NO\", gateClosed: String(row.claim_live) === \"1\" ? \"a live worker claim row W0_CLAIM_\" + s(row.row_version) + \" of \" + s(row.claim_owner) : \"\" };\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst plan = [{{node:code_node_PWplan.data}}][0];\nconst res = workerPick(guard, plan, [{{node:sql_node_PWtick.data}}][0], {{node:get_cache_PWidx.data}});\nconsole.log(\"worker pick\", JSON.stringify({ route: res.route, index: res.index, job: res.jobId, elapsed: res.elapsed, claim: res.claimName, rvUpd: res.needRvUpd, message: res.result_message }));\nreturn res;"
             },
             "response_json": [
               {
@@ -1537,7 +1545,7 @@
             "timeout": 30000,
             "script": {
               "type": "javascript",
-              "code": "// PICKING_ASYNC_WORKER - Claim: after the claim row is ours - the lease WRK|<nonce> (QUEUED -> VALIDATING), a dead lease or\n// dead claim counted as a retry; exhausted after max_retries (pre-commit -> FAILED + the Picking lock released;\n// COMMITTING_PICKING -> REQUIRES_REVIEW)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerClaim = function workerClaim(guard, pick) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const item = pick.item;\n  const base = { route: \"SKIP\", dbNow: pick.dbNow, jobId: pick.jobId, jobStatus: item ? item.jobStatus : \"\", organizationId: pick.organizationId, pickingId: pick.pickingId, rowVersion: pick.rvBase, attempts: item ? item.attempts : 0, claimRows: [], needClaim: \"NO\", failRows: [], unlockRows: [], exhausted: \"NO\", result_code: \"\", result_message: pick.result_message, job_status: item ? item.jobStatus : \"\" };\n  if (pick.route !== \"CLAIM\" || !item) return base;\n  const status = item.jobStatus;\n  const dead = item.deadLease === \"YES\" || item.deadClaim === \"YES\";\n  const attempts = item.attempts;\n  const rv = pick.rvBase;\n  const exhausted = dead && attempts >= PKC.retry.max_retries;\n  const counted = dead && !exhausted ? attempts + 1 : attempts;\n  const row = { id: item.jobId, job_status: status, progress_percent: item.progressPercent, progress_message: item.progressMessage, attempt_count: counted, next_attempt_at: item.nextAttemptAt, lease_owner: item.leaseOwner, lease_expires_at: item.leaseExpiresAt, row_version: rv + 1, error_code: item.errorCode, error_message: item.errorMessage, error_details: item.errorDetails, finished_at: null };\n  const why = (dead ? \"dead \" + (item.deadLease === \"YES\" ? \"lease of \" + item.deadOwner : \"claim of \" + item.claimOwner) + \": \" : \"\") + (exhausted ? \"retries exhausted (\" + attempts + \" of \" + PKC.retry.max_retries + \")\" : dead ? \"retry \" + counted + \" of \" + PKC.retry.max_retries : \"\");\n  if (status === \"COMMITTING_PICKING\") {\n    const out = Object.assign(base, { attempts: counted, exhausted: exhausted ? \"YES\" : \"NO\", claimRows: dead && !exhausted ? [row] : [], needClaim: dead && !exhausted ? \"YES\" : \"NO\" });\n    if (exhausted) {\n      const reason = \"the run saving this confirmation died \" + attempts + \" times after it started writing; nothing is retried, the Picking stays locked\";\n      return Object.assign(out, { route: \"EXHAUST\", failRows: [Object.assign({}, row, { job_status: \"REQUIRES_REVIEW\", progress_percent: 0, progress_message: \"Under review: the confirmation stopped half-way\", error_code: \"PK_RECONCILIATION_MISMATCH\", error_message: reason, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: reason, dead_lease_owner: item.deadOwner, dead_claim_owner: item.claimOwner, attempts: attempts }), lease_owner: null, lease_expires_at: null, next_attempt_at: null, finished_at: pick.dbNow, row_version: rv + 2 })], result_code: \"PK_RECONCILIATION_MISMATCH\", result_message: reason, job_status: \"REQUIRES_REVIEW\" });\n    }\n    return Object.assign(out, { route: \"RESUME\", result_message: (why ? why + \"; \" : \"\") + \"resume PICKING_BULK_COMMIT\" });\n  }\n  if ([\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\"].indexOf(status) < 0) return Object.assign(base, { result_message: \"job is \" + status + \": not a worker state\" });\n  const toValidating = status === \"QUEUED\";\n  const claim = Object.assign({}, row, { job_status: toValidating ? \"VALIDATING\" : status, progress_percent: toValidating ? Math.max(item.progressPercent, 10) : item.progressPercent, progress_message: toValidating ? \"Validating\" : item.progressMessage, lease_owner: guard.leaseOwner, lease_expires_at: pick.leaseUntil });\n  const claimed = Object.assign(base, { attempts: counted, claimRows: [claim], needClaim: \"YES\", exhausted: exhausted ? \"YES\" : \"NO\" });\n  if (exhausted) {\n    const reason = \"the run that owned the job died \" + attempts + \" times before the confirmation was saved (max_retries \" + PKC.retry.max_retries + \"); nothing was written\";\n    return Object.assign(claimed, { route: \"EXHAUST\", failRows: [Object.assign({}, claim, { job_status: \"FAILED\", progress_message: \"Not confirmed: temporary failures persisted\", error_code: \"PK_TRANSIENT_RETRIES_EXHAUSTED\", error_message: \"Temporary failures persisted; not saved: \" + reason, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: reason, attempts: attempts }), lease_owner: null, lease_expires_at: null, finished_at: pick.dbNow, row_version: rv + 2 })], unlockRows: /^[0-9]{1,20}$/.test(s(pick.pickingId)) ? [{ id: s(pick.pickingId), is_processing: 0 }] : [], result_code: \"PK_TRANSIENT_RETRIES_EXHAUSTED\", result_message: reason, job_status: \"FAILED\" });\n  }\n  return Object.assign(claimed, { route: status === \"READY_TO_COMMIT\" ? \"PUBLISH\" : \"PREPARE\", result_message: (why ? why + \"; \" : \"\") + \"claim \" + status + (toValidating ? \" -> VALIDATING\" : \"\") });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst pick = [{{node:code_node_PWpick.data}}][0];\nconst res = workerClaim(guard, pick);\nconsole.log(\"worker claim\", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, attempts: res.attempts, write: res.needClaim, message: res.result_message }));\nreturn res;"
+              "code": "// PICKING_ASYNC_WORKER - Claim: after the claim row is ours - the lease WRK|<nonce> (QUEUED -> VALIDATING), a dead lease or\n// dead claim counted as a retry; exhausted after max_retries (pre-commit -> FAILED + the Picking lock released;\n// COMMITTING_PICKING -> REQUIRES_REVIEW)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\",\n    \"PK_FC_NOT_IN_PROGRESS\", \"PK_FC_NO_RECORDS\", \"PK_FC_SHARED_LINE\", \"PK_FC_UOM\", \"PK_FC_OVERPICK\", \"PK_FC_GD_UNPICKED\", \"PK_FC_SETUP_CHANGED\", \"PK_FC_STALE\", \"PK_FC_GD_CHANGED\", \"PK_FC_GD_NOT_ELIGIBLE\", \"PK_FC_GD_REFUSED\", \"PK_FC_GD_FAILED\", \"PK_FC_FAILED\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerClaim = function workerClaim(guard, pick) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const item = pick.item;\n  const base = { route: \"SKIP\", dbNow: pick.dbNow, jobId: pick.jobId, jobStatus: item ? item.jobStatus : \"\", organizationId: pick.organizationId, pickingId: pick.pickingId, rowVersion: pick.rvBase, attempts: item ? item.attempts : 0, claimRows: [], needClaim: \"NO\", failRows: [], unlockRows: [], exhausted: \"NO\", result_code: \"\", result_message: pick.result_message, job_status: item ? item.jobStatus : \"\" };\n  if (pick.route !== \"CLAIM\" || !item) return base;\n  const status = item.jobStatus;\n  const dead = item.deadLease === \"YES\" || item.deadClaim === \"YES\";\n  const attempts = item.attempts;\n  const rv = pick.rvBase;\n  const exhausted = dead && attempts >= PKC.retry.max_retries;\n  const counted = dead && !exhausted ? attempts + 1 : attempts;\n  const row = { id: item.jobId, job_status: status, progress_percent: item.progressPercent, progress_message: item.progressMessage, attempt_count: counted, next_attempt_at: item.nextAttemptAt, lease_owner: item.leaseOwner, lease_expires_at: item.leaseExpiresAt, row_version: rv + 1, error_code: item.errorCode, error_message: item.errorMessage, error_details: item.errorDetails, finished_at: null };\n  const why = (dead ? \"dead \" + (item.deadLease === \"YES\" ? \"lease of \" + item.deadOwner : \"claim of \" + item.claimOwner) + \": \" : \"\") + (exhausted ? \"retries exhausted (\" + attempts + \" of \" + PKC.retry.max_retries + \")\" : dead ? \"retry \" + counted + \" of \" + PKC.retry.max_retries : \"\");\n  if (status === \"COMMITTING_PICKING\") {\n    const out = Object.assign(base, { attempts: counted, exhausted: exhausted ? \"YES\" : \"NO\", claimRows: dead && !exhausted ? [row] : [], needClaim: dead && !exhausted ? \"YES\" : \"NO\" });\n    if (exhausted) {\n      const reason = \"the run saving this confirmation died \" + attempts + \" times after it started writing; nothing is retried, the Picking stays locked\";\n      return Object.assign(out, { route: \"EXHAUST\", failRows: [Object.assign({}, row, { job_status: \"REQUIRES_REVIEW\", progress_percent: 0, progress_message: \"Under review: the confirmation stopped half-way\", error_code: \"PK_RECONCILIATION_MISMATCH\", error_message: reason, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: reason, dead_lease_owner: item.deadOwner, dead_claim_owner: item.claimOwner, attempts: attempts }), lease_owner: null, lease_expires_at: null, next_attempt_at: null, finished_at: pick.dbNow, row_version: rv + 2 })], result_code: \"PK_RECONCILIATION_MISMATCH\", result_message: reason, job_status: \"REQUIRES_REVIEW\" });\n    }\n    return Object.assign(out, { route: \"RESUME\", result_message: (why ? why + \"; \" : \"\") + \"resume PICKING_BULK_COMMIT\" });\n  }\n  if ([\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\"].indexOf(status) < 0) return Object.assign(base, { result_message: \"job is \" + status + \": not a worker state\" });\n  const toValidating = status === \"QUEUED\";\n  const claim = Object.assign({}, row, { job_status: toValidating ? \"VALIDATING\" : status, progress_percent: toValidating ? Math.max(item.progressPercent, 10) : item.progressPercent, progress_message: toValidating ? \"Validating\" : item.progressMessage, lease_owner: guard.leaseOwner, lease_expires_at: pick.leaseUntil });\n  const claimed = Object.assign(base, { attempts: counted, claimRows: [claim], needClaim: \"YES\", exhausted: exhausted ? \"YES\" : \"NO\" });\n  if (exhausted) {\n    const reason = \"the run that owned the job died \" + attempts + \" times before the confirmation was saved (max_retries \" + PKC.retry.max_retries + \"); nothing was written\";\n    return Object.assign(claimed, { route: \"EXHAUST\", failRows: [Object.assign({}, claim, { job_status: \"FAILED\", progress_message: \"Not confirmed: temporary failures persisted\", error_code: \"PK_TRANSIENT_RETRIES_EXHAUSTED\", error_message: \"Temporary failures persisted; not saved: \" + reason, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: reason, attempts: attempts }), lease_owner: null, lease_expires_at: null, finished_at: pick.dbNow, row_version: rv + 2 })], unlockRows: /^[0-9]{1,20}$/.test(s(pick.pickingId)) ? [{ id: s(pick.pickingId), is_processing: 0 }] : [], result_code: \"PK_TRANSIENT_RETRIES_EXHAUSTED\", result_message: reason, job_status: \"FAILED\" });\n  }\n  return Object.assign(claimed, { route: status === \"READY_TO_COMMIT\" ? \"PUBLISH\" : \"PREPARE\", result_message: (why ? why + \"; \" : \"\") + \"claim \" + status + (toValidating ? \" -> VALIDATING\" : \"\") });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst pick = [{{node:code_node_PWpick.data}}][0];\nconst res = workerClaim(guard, pick);\nconsole.log(\"worker claim\", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, attempts: res.attempts, write: res.needClaim, message: res.result_message }));\nreturn res;"
             },
             "response_json": [
               {
@@ -2912,7 +2920,7 @@
                     "timeout": 30000,
                     "script": {
                       "type": "javascript",
-                      "code": "// PICKING_ASYNC_WORKER - After prepare: the job row decides - READY_TO_COMMIT -> publish; FAILED -> lease released (PREPARE\n// released the Picking lock); a job PREPARE left VALIDATING -> a hard code fails it (+ the lock released), else a counted retry\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPrepare = function workerAfterPrepare(guard, own, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || own.dbNow : own.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: own.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", prepareResult: s(r.result_code), prepareMessage: s(r.result_message), result_code: \"\", result_message: \"\", job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PK_INVALID_DATA\", result_message: \"job vanished during prepare\" });\n  const status = s(job.job_status);\n  const ours = s(job.lease_owner) === guard.leaseOwner;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  if (status === \"READY_TO_COMMIT\") return Object.assign(base, { route: \"PUBLISH\", result_message: \"prepared: \" + s(r.result_message) });\n  if (!ours) return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"job is \" + status + \" with lease owner \" + s(job.lease_owner) + \" after prepare: nothing written\" });\n  if (status === \"FAILED\" || status === \"CANCELLED\") return Object.assign(base, { jobRows: [Object.assign({}, row, { lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: s(job.error_code), result_message: status + \": \" + (s(job.error_message) || s(r.result_message)) });\n  const unlock = /^[0-9]{1,20}$/.test(s(own.pickingId)) ? [{ id: s(own.pickingId), is_processing: 0 }] : [];\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"PK_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"PICKING_BULK_PREPARE answered \" + hard + \" (\" + s(r.result_message) + \") and left the job \" + status : \"PICKING_BULK_PREPARE left the job \" + status + \" \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not confirmed: \" + (s(r.result_message) || \"the confirmation could not be prepared\").slice(0, 200), error_code: code, error_message: why, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"PK_TRANSIENT\", result_message: \"PICKING_BULK_PREPARE left the job \" + status + \" without a code: retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst res = workerAfterPrepare(guard, own, [{{node:code_node_PWprepResp.data}}][0], [{{node:sql_node_PWprepBack.data}}][0]);\nconsole.log(\"worker after prepare\", JSON.stringify({ route: res.route, status: res.jobStatus, prepare: res.prepareResult, write: res.needJobUpd, unlock: res.needUnlock, result: res.result_code }));\nreturn res;"
+                      "code": "// PICKING_ASYNC_WORKER - After prepare: the job row decides - READY_TO_COMMIT -> publish; FAILED -> lease released (PREPARE\n// released the Picking lock); a job PREPARE left VALIDATING -> a hard code fails it (+ the lock released), else a counted retry\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\",\n    \"PK_FC_NOT_IN_PROGRESS\", \"PK_FC_NO_RECORDS\", \"PK_FC_SHARED_LINE\", \"PK_FC_UOM\", \"PK_FC_OVERPICK\", \"PK_FC_GD_UNPICKED\", \"PK_FC_SETUP_CHANGED\", \"PK_FC_STALE\", \"PK_FC_GD_CHANGED\", \"PK_FC_GD_NOT_ELIGIBLE\", \"PK_FC_GD_REFUSED\", \"PK_FC_GD_FAILED\", \"PK_FC_FAILED\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPrepare = function workerAfterPrepare(guard, own, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || own.dbNow : own.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: own.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", prepareResult: s(r.result_code), prepareMessage: s(r.result_message), result_code: \"\", result_message: \"\", job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PK_INVALID_DATA\", result_message: \"job vanished during prepare\" });\n  const status = s(job.job_status);\n  const ours = s(job.lease_owner) === guard.leaseOwner;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  if (status === \"READY_TO_COMMIT\") return Object.assign(base, { route: \"PUBLISH\", result_message: \"prepared: \" + s(r.result_message) });\n  if (!ours) return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"job is \" + status + \" with lease owner \" + s(job.lease_owner) + \" after prepare: nothing written\" });\n  if (status === \"FAILED\" || status === \"CANCELLED\") return Object.assign(base, { jobRows: [Object.assign({}, row, { lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: s(job.error_code), result_message: status + \": \" + (s(job.error_message) || s(r.result_message)) });\n  const unlock = /^[0-9]{1,20}$/.test(s(own.pickingId)) ? [{ id: s(own.pickingId), is_processing: 0 }] : [];\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"PK_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"PICKING_BULK_PREPARE answered \" + hard + \" (\" + s(r.result_message) + \") and left the job \" + status : \"PICKING_BULK_PREPARE left the job \" + status + \" \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not confirmed: \" + (s(r.result_message) || \"the confirmation could not be prepared\").slice(0, 200), error_code: code, error_message: why, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"PK_TRANSIENT\", result_message: \"PICKING_BULK_PREPARE left the job \" + status + \" without a code: retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst res = workerAfterPrepare(guard, own, [{{node:code_node_PWprepResp.data}}][0], [{{node:sql_node_PWprepBack.data}}][0]);\nconsole.log(\"worker after prepare\", JSON.stringify({ route: res.route, status: res.jobStatus, prepare: res.prepareResult, write: res.needJobUpd, unlock: res.needUnlock, result: res.result_code }));\nreturn res;"
                     },
                     "response_json": [
                       {
@@ -3399,7 +3407,7 @@
             "name": "The job before the publish decision",
             "script": {
               "type": "sql",
-              "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       j.picking_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_PWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_PWpick.data.jobId}}"
+              "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       j.picking_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at,\n       IF(JSON_VALID(j.request_payload), JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.operation')), NULL) AS operation,\n       (SELECT COUNT(*) FROM gd_publish_step s\n         WHERE s.tenant_id = '{{node:code_node_PWguard.data.tenantId}}' AND s.job_id = '{{node:code_node_PWpick.data.jobId}}'\n           AND s.step_name = 'FC_GDS' AND s.is_deleted = 0) AS fc_gds\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_PWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_PWpick.data.jobId}}"
             },
             "response_json": [
               {
@@ -3545,6 +3553,24 @@
                 "bsonType": "string",
                 "isExpand": false,
                 "children": []
+              },
+              {
+                "key": "pwfm0001",
+                "name": "operation",
+                "title": "operation",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "pwfm0002",
+                "name": "fc_gds",
+                "title": "fc_gds",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
               }
             ]
           },
@@ -3559,7 +3585,7 @@
             "timeout": 30000,
             "script": {
               "type": "javascript",
-              "code": "// PICKING_ASYNC_WORKER - Before publish: decided from the job row alone - READY_TO_COMMIT under this run's lease, or\n// COMMITTING_PICKING with no live lease (resume) -> the ONE PICKING_BULK_COMMIT call\nconst workerMid = function workerMid(guard, own, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || own.dbNow : own.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: own.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (!job || [\"PREPARE\", \"PUBLISH\", \"RESUME\"].indexOf(own.route) < 0) return base;\n  const status = s(job.job_status);\n  if (own.route === \"RESUME\") return status === \"COMMITTING_PICKING\" && String(job.lease_live) !== \"1\" ? Object.assign(base, { route: \"PUBLISH\", result_message: \"resume PICKING_BULK_COMMIT\" }) : Object.assign(base, { result_message: \"job is \" + status + (String(job.lease_live) === \"1\" ? \" with a live lease\" : \"\") + \": no publish call\" });\n  if (status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner) return Object.assign(base, { route: \"PUBLISH\", result_message: \"publish\" });\n  return Object.assign(base, { result_message: \"job is \" + status + \" (lease \" + s(job.lease_owner) + \"): no publish call\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst res = workerMid(guard, own, [{{node:sql_node_PWmid.data}}][0]);\nconsole.log(\"worker mid\", JSON.stringify(res));\nreturn res;"
+              "code": "// PICKING_ASYNC_WORKER - Before publish: decided from the job row alone - READY_TO_COMMIT under this run's lease, or\n// COMMITTING_PICKING with no live lease (resume) -> the ONE PICKING_BULK_COMMIT call\nconst workerMid = function workerMid(guard, own, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || own.dbNow : own.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: own.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (!job || [\"PREPARE\", \"PUBLISH\", \"RESUME\"].indexOf(own.route) < 0) return base;\n  const status = s(job.job_status);\n  // a force complete (Picking 1d): PICKING_FC_DRIVE updates its deliveries first (FC_GDS), then it publishes as a confirm does\n  const drive = s(job.operation) === \"FORCE_COMPLETE\" && !(Number(job.fc_gds) > 0);\n  const to = (route, why) => Object.assign(base, drive ? { route: \"DRIVE\", result_message: \"drive the force complete's deliveries\" } : { route: route, result_message: why });\n  if (own.route === \"RESUME\") return status === \"COMMITTING_PICKING\" && String(job.lease_live) !== \"1\" ? to(\"PUBLISH\", \"resume PICKING_BULK_COMMIT\") : Object.assign(base, { result_message: \"job is \" + status + (String(job.lease_live) === \"1\" ? \" with a live lease\" : \"\") + \": no publish call\" });\n  if (status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner) return to(\"PUBLISH\", \"publish\");\n  return Object.assign(base, { result_message: \"job is \" + status + \" (lease \" + s(job.lease_owner) + \"): no publish call\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst res = workerMid(guard, own, [{{node:sql_node_PWmid.data}}][0]);\nconsole.log(\"worker mid\", JSON.stringify(res));\nreturn res;"
             },
             "response_json": [
               {
@@ -3616,6 +3642,926 @@
           "blocks": []
         },
         {
+          "id": "if_PWdrive",
+          "type": "if",
+          "data": {
+            "title": "IF a force complete's deliveries are to be updated (Picking 1d): the ONE PICKING_FC_DRIVE call (it never runs a delivery's PREPARE / COMMIT: the screen kicks them)",
+            "isValidator": true,
+            "nodeName": "IF a force complete's deliveries are to be updated (Picking 1d): the ONE PICKING_FC_DRIVE call (it never runs a delivery's PREPARE / COMMIT: the screen kicks them)",
+            "name": "IF a force complete's deliveries are to be updated (Picking 1d): the ONE PICKING_FC_DRIVE call (it never runs a delivery's PREPARE / COMMIT: the screen kicks them)",
+            "condition_type": "Expression",
+            "filter": {
+              "list": [
+                {
+                  "id": 1796300000001,
+                  "parentId": 1796300000002,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                }
+              ]
+            },
+            "expression": {
+              "type": "javascript",
+              "code": "'{{node:code_node_PWmid.data.route}}' == 'DRIVE'"
+            }
+          },
+          "blocks": [
+            {
+              "id": "ifBlock_TPWdrive",
+              "type": "ifBlock",
+              "data": { "title": "true" },
+              "blocks": [
+                {
+                  "id": "workflow_node_PWdrive",
+                  "type": "workflow-node",
+                  "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "PICKING_FC_DRIVE (holds, then commits each delivery's edit through GD_EDIT_SUBMIT; stamps the job itself)",
+                    "isValidator": true,
+                    "nodeName": "PICKING_FC_DRIVE (holds, then commits each delivery's edit through GD_EDIT_SUBMIT; stamps the job itself)",
+                    "name": "PICKING_FC_DRIVE (holds, then commits each delivery's edit through GD_EDIT_SUBMIT; stamps the job itself)",
+                    "workflow": {
+                      "source": "PICKING_FC_DRIVE:Workflow:2112471278794440706",
+                      "rules": {
+                        "collectionId": "2112471278794440706",
+                        "list": [
+                          {
+                            "id": 1796300000003,
+                            "parentId": 1796300000004,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                          }
+                        ]
+                      }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                      "list": [
+                        {
+                          "prop": "job_id",
+                          "propLabel": "job_id",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_node_PWpick.data.jobId}}",
+                          "valueLabel": ""
+                        },
+                        {
+                          "prop": "lease_owner",
+                          "propLabel": "lease_owner",
+                          "operator": "",
+                          "operatorLabel": "",
+                          "valueType": "field",
+                          "valueTypeLabel": "",
+                          "value": "{{node:code_node_PWguard.data.leaseOwner}}",
+                          "valueLabel": ""
+                        }
+                      ]
+                    }
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "code_node_PWdriveResp",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "script": {
+                      "type": "javascript",
+                      "code": "// PICKING_ASYNC_WORKER - The drive response, normalized (evidence only: the job row read right after is the truth)\nconst calleeEcho = function calleeEcho(raw, fields) {\n  const s = (v) => (v === undefined || v === null ? \"\" : typeof v === \"object\" ? JSON.stringify(v) : String(v));\n  const r0 = raw && typeof raw === \"object\" ? raw : {};\n  const r = r0.result_code === undefined && r0.job_status === undefined && r0.data && typeof r0.data === \"object\" ? r0.data : r0;\n  const out = { called: \"YES\" };\n  for (const f of fields) out[f] = s(r[f]);\n  return out;\n};\nconst res = calleeEcho([{{node:workflow_node_PWdrive.data}}][0] || {}, [\"route\", \"kick\", \"actions\", \"job_id\", \"job_status\", \"result_code\", \"result_message\"]);\nconsole.log(\"drive response\", JSON.stringify(res));\nreturn res;"
+                    },
+                    "response_json": [
+                      {
+                        "key": "pwfr0000",
+                        "name": "called",
+                        "title": "called",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfr0001",
+                        "name": "route",
+                        "title": "route",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfr0002",
+                        "name": "kick",
+                        "title": "kick",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfr0003",
+                        "name": "actions",
+                        "title": "actions",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfr0004",
+                        "name": "job_id",
+                        "title": "job_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfr0005",
+                        "name": "job_status",
+                        "title": "job_status",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfr0006",
+                        "name": "result_code",
+                        "title": "result_code",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfr0007",
+                        "name": "result_message",
+                        "title": "result_message",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ],
+                    "title": "The drive response, normalized (evidence; the job row decides)",
+                    "isValidator": true,
+                    "nodeName": "The drive response, normalized (evidence; the job row decides)",
+                    "name": "The drive response, normalized (evidence; the job row decides)"
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "sql_node_PWdriveBack",
+                  "type": "sql-node",
+                  "data": {
+                    "database_id": "",
+                    "sql": "",
+                    "params": {},
+                    "title": "Read-back: the job after the drive (the truth)",
+                    "isValidator": true,
+                    "nodeName": "Read-back: the job after the drive (the truth)",
+                    "name": "Read-back: the job after the drive (the truth)",
+                    "script": {
+                      "type": "sql",
+                      "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       j.picking_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at,\n       IF(JSON_VALID(j.request_payload), JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.operation')), NULL) AS operation,\n       (SELECT COUNT(*) FROM gd_publish_step s\n         WHERE s.tenant_id = '{{node:code_node_PWguard.data.tenantId}}' AND s.job_id = '{{node:code_node_PWpick.data.jobId}}'\n           AND s.step_name = 'FC_GDS' AND s.is_deleted = 0) AS fc_gds\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_PWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_PWpick.data.jobId}}"
+                    },
+                    "response_json": [
+                      {
+                        "key": "pwfb0000",
+                        "name": "db_now",
+                        "title": "db_now",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0001",
+                        "name": "id",
+                        "title": "id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0002",
+                        "name": "job_status",
+                        "title": "job_status",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0003",
+                        "name": "progress_percent",
+                        "title": "progress_percent",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0004",
+                        "name": "progress_message",
+                        "title": "progress_message",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0005",
+                        "name": "attempt_count",
+                        "title": "attempt_count",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0006",
+                        "name": "next_attempt_at",
+                        "title": "next_attempt_at",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0007",
+                        "name": "lease_owner",
+                        "title": "lease_owner",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0008",
+                        "name": "lease_expires_at",
+                        "title": "lease_expires_at",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0009",
+                        "name": "lease_live",
+                        "title": "lease_live",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0010",
+                        "name": "row_version",
+                        "title": "row_version",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0011",
+                        "name": "error_code",
+                        "title": "error_code",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0012",
+                        "name": "error_message",
+                        "title": "error_message",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0013",
+                        "name": "error_details",
+                        "title": "error_details",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0014",
+                        "name": "picking_id",
+                        "title": "picking_id",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0015",
+                        "name": "finished_at",
+                        "title": "finished_at",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0016",
+                        "name": "operation",
+                        "title": "operation",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfb0017",
+                        "name": "fc_gds",
+                        "title": "fc_gds",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ]
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "code_node_PWdriveAfter",
+                  "type": "code-node",
+                  "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "script": {
+                      "type": "javascript",
+                      "code": "// PICKING_ASYNC_WORKER - After the drive (Picking 1d): PICKING_FC_DRIVE stamps the job itself. Every delivery updated (FC_GDS,\n// COMMITTING_PICKING, no live lease) -> the publish in this tick; the worker writes only when the drive answered without writing\n// and the job is still READY_TO_COMMIT under this run's lease (a hard code -> FAILED + the Picking lock released; else a counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\",\n    \"PK_FC_NOT_IN_PROGRESS\", \"PK_FC_NO_RECORDS\", \"PK_FC_SHARED_LINE\", \"PK_FC_UOM\", \"PK_FC_OVERPICK\", \"PK_FC_GD_UNPICKED\", \"PK_FC_SETUP_CHANGED\", \"PK_FC_STALE\", \"PK_FC_GD_CHANGED\", \"PK_FC_GD_NOT_ELIGIBLE\", \"PK_FC_GD_REFUSED\", \"PK_FC_GD_FAILED\", \"PK_FC_FAILED\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterDrive = function workerAfterDrive(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", driveRoute: s(r.route), kick: s(r.kick), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PK_INVALID_DATA\", result_message: \"job vanished during the drive\" });\n  const status = s(job.job_status);\n  if (status === \"COMMITTING_PICKING\" && Number(job.fc_gds) > 0 && String(job.lease_live) !== \"1\") return Object.assign(base, { route: \"PUBLISH\", result_message: \"every delivery is updated: PICKING_BULK_COMMIT in this tick\" });\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"PK_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"PICKING_FC_DRIVE answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"PICKING_FC_DRIVE answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.pickingId)) ? [{ id: s(own.pickingId), is_processing: 0 }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not force completed: it could not be started\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"PK_TRANSIENT\", result_message: \"PICKING_FC_DRIVE answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst mid = [{{node:code_node_PWmid.data}}][0];\nconst res = workerAfterDrive(guard, own, mid, [{{node:code_node_PWdriveResp.data}}][0], [{{node:sql_node_PWdriveBack.data}}][0]);\nconsole.log(\"worker after drive\", JSON.stringify({ route: res.route, status: res.jobStatus, drive: res.driveRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;\n"
+                    },
+                    "response_json": [
+                      {
+                        "key": "pwfa0000",
+                        "name": "route",
+                        "title": "route",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0001",
+                        "name": "dbNow",
+                        "title": "dbNow",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0002",
+                        "name": "jobId",
+                        "title": "jobId",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0003",
+                        "name": "jobStatus",
+                        "title": "jobStatus",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0004",
+                        "name": "jobRows",
+                        "title": "jobRows",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "fa0004it",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "key": "pwfa0005",
+                        "name": "needJobUpd",
+                        "title": "needJobUpd",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0006",
+                        "name": "unlockRows",
+                        "title": "unlockRows",
+                        "description": "",
+                        "bsonType": "array",
+                        "isExpand": true,
+                        "children": [
+                          {
+                            "key": "fa0006it",
+                            "name": "items",
+                            "title": "",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "isArrayItem": true,
+                            "children": []
+                          }
+                        ]
+                      },
+                      {
+                        "key": "pwfa0007",
+                        "name": "needUnlock",
+                        "title": "needUnlock",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0008",
+                        "name": "driveRoute",
+                        "title": "driveRoute",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0009",
+                        "name": "kick",
+                        "title": "kick",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0010",
+                        "name": "result_code",
+                        "title": "result_code",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0011",
+                        "name": "result_message",
+                        "title": "result_message",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      },
+                      {
+                        "key": "pwfa0012",
+                        "name": "job_status",
+                        "title": "job_status",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
+                      }
+                    ],
+                    "title": "After the drive: every delivery updated -> publish in this tick; the worker writes only when nothing was saved",
+                    "isValidator": true,
+                    "nodeName": "After the drive: every delivery updated -> publish in this tick; the worker writes only when nothing was saved",
+                    "name": "After the drive: every delivery updated -> publish in this tick; the worker writes only when nothing was saved"
+                  },
+                  "blocks": []
+                },
+                {
+                  "id": "cor_PWdriveJob",
+                  "type": "condition-or-node",
+                  "data": {
+                    "title": "Job row to write after the drive?",
+                    "filter": { "list": [] },
+                    "expression": { "code": "" },
+                    "displayContent": "sdk.form.setCondition",
+                    "nodeName": "Job row to write after the drive?",
+                    "name": "Job row to write after the drive?"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cori_YPWdriveJob",
+                      "type": "condition-or-node-item",
+                      "data": {
+                        "title": "YES",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1796300000005,
+                              "parentId": 1796300000006,
+                              "isTop": true,
+                              "prop": "node.code_node_PWdriveAfter.data.needJobUpd",
+                              "operator": "equal",
+                              "valueType": "value",
+                              "value": "YES",
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "needJobUpd",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
+                        },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition",
+                        "isValidator": true,
+                        "nodeName": "YES",
+                        "name": "YES",
+                        "condition_type": "ConditionRule"
+                      },
+                      "blocks": [
+                        {
+                          "id": "update_node_PWdriveJob",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "GD Async Job:Table:2104845286495150081",
+                              "rules": {
+                                "collectionId": "2104845286495150081",
+                                "list": [
+                                  {
+                                    "id": 1796300000007,
+                                    "parentId": 1796300000008,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_PWdriveAfter.data.jobRows.id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Job: FAILED (a hard code) / retry with backoff (lease released)",
+                            "isValidator": true,
+                            "nodeName": "Job: FAILED (a hard code) / retry with backoff (lease released)",
+                            "name": "Job: FAILED (a hard code) / retry with backoff (lease released)",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "主键ID"
+                                },
+                                {
+                                  "prop": "job_status",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.job_status}}",
+                                  "valueLabel": "",
+                                  "propLabel": "job_status"
+                                },
+                                {
+                                  "prop": "progress_percent",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.progress_percent}}",
+                                  "valueLabel": "",
+                                  "propLabel": "progress_percent"
+                                },
+                                {
+                                  "prop": "progress_message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.progress_message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "progress_message"
+                                },
+                                {
+                                  "prop": "attempt_count",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.attempt_count}}",
+                                  "valueLabel": "",
+                                  "propLabel": "attempt_count"
+                                },
+                                {
+                                  "prop": "next_attempt_at",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.next_attempt_at}}",
+                                  "valueLabel": "",
+                                  "propLabel": "next_attempt_at"
+                                },
+                                {
+                                  "prop": "lease_owner",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.lease_owner}}",
+                                  "valueLabel": "",
+                                  "propLabel": "lease_owner"
+                                },
+                                {
+                                  "prop": "lease_expires_at",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.lease_expires_at}}",
+                                  "valueLabel": "",
+                                  "propLabel": "lease_expires_at"
+                                },
+                                {
+                                  "prop": "row_version",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.row_version}}",
+                                  "valueLabel": "",
+                                  "propLabel": "row_version"
+                                },
+                                {
+                                  "prop": "error_code",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.error_code}}",
+                                  "valueLabel": "",
+                                  "propLabel": "error_code"
+                                },
+                                {
+                                  "prop": "error_message",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.error_message}}",
+                                  "valueLabel": "",
+                                  "propLabel": "error_message"
+                                },
+                                {
+                                  "prop": "error_details",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.error_details}}",
+                                  "valueLabel": "",
+                                  "propLabel": "error_details"
+                                },
+                                {
+                                  "prop": "finished_at",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.jobRows.finished_at}}",
+                                  "valueLabel": "",
+                                  "propLabel": "finished_at"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "cori_NPWdriveJob",
+                      "type": "condition-or-node-item",
+                      "data": {
+                        "title": "NO",
+                        "isDefault": true,
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.otherCondition"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "cor_PWdriveUnlock",
+                  "type": "condition-or-node",
+                  "data": {
+                    "title": "Picking lock to release after the drive?",
+                    "filter": { "list": [] },
+                    "expression": { "code": "" },
+                    "displayContent": "sdk.form.setCondition",
+                    "nodeName": "Picking lock to release after the drive?",
+                    "name": "Picking lock to release after the drive?"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cori_YPWdriveUnlock",
+                      "type": "condition-or-node-item",
+                      "data": {
+                        "title": "YES",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1796300000009,
+                              "parentId": 1796300000010,
+                              "isTop": true,
+                              "prop": "node.code_node_PWdriveAfter.data.needUnlock",
+                              "operator": "equal",
+                              "valueType": "value",
+                              "value": "YES",
+                              "type": "leaf",
+                              "level": 1,
+                              "propLabel": "needUnlock",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                            }
+                          ]
+                        },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition",
+                        "isValidator": true,
+                        "nodeName": "YES",
+                        "name": "YES",
+                        "condition_type": "ConditionRule"
+                      },
+                      "blocks": [
+                        {
+                          "id": "update_node_PWdriveUnlock",
+                          "type": "update-node",
+                          "data": {
+                            "table_id": {
+                              "source": "Transfer Order Picking:Table:1935556443668959233",
+                              "rules": {
+                                "collectionId": "1935556443668959233",
+                                "list": [
+                                  {
+                                    "id": 1796300000011,
+                                    "parentId": 1796300000012,
+                                    "isTop": true,
+                                    "prop": "id",
+                                    "operator": "in",
+                                    "valueType": "field",
+                                    "value": "{{node:code_node_PWdriveAfter.data.unlockRows.id}}",
+                                    "type": "leaf",
+                                    "level": 1,
+                                    "propLabel": "主键ID",
+                                    "valueLabel": "",
+                                    "operatorLabel": "In"
+                                  }
+                                ]
+                              }
+                            },
+                            "fields": [],
+                            "condition": {},
+                            "title": "Picking is_processing = 0 (nothing was saved)",
+                            "isValidator": true,
+                            "nodeName": "Picking is_processing = 0 (nothing was saved)",
+                            "name": "Picking is_processing = 0 (nothing was saved)",
+                            "props": {
+                              "modelName": "",
+                              "list": [
+                                {
+                                  "prop": "id",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.unlockRows.id}}",
+                                  "valueLabel": "",
+                                  "propLabel": "主键ID"
+                                },
+                                {
+                                  "prop": "is_processing",
+                                  "operator": "",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_PWdriveAfter.data.unlockRows.is_processing}}",
+                                  "valueLabel": "",
+                                  "propLabel": "Is Processing"
+                                }
+                              ]
+                            }
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "cori_NPWdriveUnlock",
+                      "type": "condition-or-node-item",
+                      "data": {
+                        "title": "NO",
+                        "isDefault": true,
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.otherCondition"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "ifBlock_FPWdrive",
+              "type": "ifBlock",
+              "data": { "title": "false" },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "code_node_PWgo",
+          "type": "code-node",
+          "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "script": {
+              "type": "javascript",
+              "code": "// PICKING_ASYNC_WORKER - Publish gate: PWmid's PUBLISH, or (Picking 1d) a force complete whose drive in THIS iteration ended\n// with every delivery updated. The after-drive node ran in this iteration only when PWmid said DRIVE: it is read only then\nconst workerGo = function workerGo(mid, after) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const m = mid || {};\n  const drove = s(m.route) === \"DRIVE\" && after && typeof after === \"object\";\n  const go = s(m.route) === \"PUBLISH\" || (drove && s(after.route) === \"PUBLISH\");\n  return { route: go ? \"PUBLISH\" : \"END\", dbNow: drove ? s(after.dbNow) || s(m.dbNow) : s(m.dbNow), jobId: s(m.jobId), jobStatus: drove ? s(after.jobStatus) : s(m.jobStatus),\n    result_message: go ? (drove ? \"publish after the drive\" : s(m.result_message)) : drove ? \"the drive is not done: no publish call\" : s(m.result_message) };\n};\nconst mid = [{{node:code_node_PWmid.data}}][0];\nconst res = workerGo(mid, mid && mid.route === \"DRIVE\" ? [{{node:code_node_PWdriveAfter.data}}][0] : null);\nconsole.log(\"worker go\", JSON.stringify(res));\nreturn res;\n"
+            },
+            "response_json": [
+              {
+                "key": "pwfg0000",
+                "name": "route",
+                "title": "route",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "pwfg0001",
+                "name": "dbNow",
+                "title": "dbNow",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "pwfg0002",
+                "name": "jobId",
+                "title": "jobId",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "pwfg0003",
+                "name": "jobStatus",
+                "title": "jobStatus",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              },
+              {
+                "key": "pwfg0004",
+                "name": "result_message",
+                "title": "result_message",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+              }
+            ],
+            "title": "Publish gate: PWmid's PUBLISH, or a force complete whose drive in this iteration updated every delivery",
+            "isValidator": true,
+            "nodeName": "Publish gate: PWmid's PUBLISH, or a force complete whose drive in this iteration updated every delivery",
+            "name": "Publish gate: PWmid's PUBLISH, or a force complete whose drive in this iteration updated every delivery"
+          },
+          "blocks": []
+        },
+        {
           "id": "if_PWpub",
           "type": "if",
           "data": {
@@ -3641,7 +4587,7 @@
             },
             "expression": {
               "type": "javascript",
-              "code": "'{{node:code_node_PWmid.data.route}}' == 'PUBLISH'"
+              "code": "'{{node:code_node_PWgo.data.route}}' == 'PUBLISH'"
             }
           },
           "blocks": [
@@ -3946,7 +4892,7 @@
                     "timeout": 30000,
                     "script": {
                       "type": "javascript",
-                      "code": "// PICKING_ASYNC_WORKER - After publish: PICKING_BULK_COMMIT writes the job itself; the worker writes only when the call\n// answered without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any\n// write, so nothing was saved: a hard code -> FAILED + the Picking lock released; no code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", publishRoute: s(r.publish_route), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PK_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"PK_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"PICKING_BULK_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"PICKING_BULK_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.pickingId)) ? [{ id: s(own.pickingId), is_processing: 0 }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not confirmed: the confirmation could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"PK_TRANSIENT\", result_message: \"PICKING_BULK_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst mid = [{{node:code_node_PWmid.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_PWpubResp.data}}][0], [{{node:sql_node_PWpubBack.data}}][0]);\nconsole.log(\"worker after publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
+                      "code": "// PICKING_ASYNC_WORKER - After publish: PICKING_BULK_COMMIT writes the job itself; the worker writes only when the call\n// answered without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any\n// write, so nothing was saved: a hard code -> FAILED + the Picking lock released; no code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\",\n    \"PK_FC_NOT_IN_PROGRESS\", \"PK_FC_NO_RECORDS\", \"PK_FC_SHARED_LINE\", \"PK_FC_UOM\", \"PK_FC_OVERPICK\", \"PK_FC_GD_UNPICKED\", \"PK_FC_SETUP_CHANGED\", \"PK_FC_STALE\", \"PK_FC_GD_CHANGED\", \"PK_FC_GD_NOT_ELIGIBLE\", \"PK_FC_GD_REFUSED\", \"PK_FC_GD_FAILED\", \"PK_FC_FAILED\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", publishRoute: s(r.publish_route), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PK_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"PK_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"PICKING_BULK_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"PICKING_BULK_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.pickingId)) ? [{ id: s(own.pickingId), is_processing: 0 }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not confirmed: the confirmation could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"PK_TRANSIENT\", result_message: \"PICKING_BULK_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst mid = [{{node:code_node_PWmid.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_PWpubResp.data}}][0], [{{node:sql_node_PWpubBack.data}}][0]);\nconsole.log(\"worker after publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
                     },
                     "response_json": [
                       {
@@ -4584,7 +5530,7 @@
             "timeout": 30000,
             "script": {
               "type": "javascript",
-              "code": "// PICKING_ASYNC_WORKER - Second publish: PICKING_BULK_COMMIT ended SPLIT (COMMITTING_PICKING under a SPLIT| hand-over lease,\n// no next attempt) -> call it again in this tick for the Packing and the finish; decided from the job row alone\nconst workerSplitResume = function workerSplitResume(guard, mid, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (s(mid.route) !== \"PUBLISH\" || !job) return Object.assign(base, { result_message: \"no publish call in this iteration\" });\n  const split = s(job.job_status) === \"COMMITTING_PICKING\" && s(job.lease_owner).indexOf(\"SPLIT|\") === 0 && !s(job.next_attempt_at);\n  if (!split) return Object.assign(base, { result_message: \"job is \" + s(job.job_status) + (s(job.lease_owner) ? \" (lease \" + s(job.lease_owner) + \")\" : \"\") + \": no second publish call\" });\n  return Object.assign(base, { route: \"PUBLISH\", result_message: \"split after the Picking was saved: the second PICKING_BULK_COMMIT call of this tick\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst mid = [{{node:code_node_PWmid.data}}][0];\nconst res = workerSplitResume(guard, mid, [{{node:sql_node_PWsplit.data}}][0]);\nconsole.log(\"worker split\", JSON.stringify(res));\nreturn res;"
+              "code": "// PICKING_ASYNC_WORKER - Second publish: PICKING_BULK_COMMIT ended SPLIT (COMMITTING_PICKING under a SPLIT| hand-over lease,\n// no next attempt) -> call it again in this tick for the Packing and the finish; decided from the job row alone\nconst workerSplitResume = function workerSplitResume(guard, mid, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (s(mid.route) !== \"PUBLISH\" || !job) return Object.assign(base, { result_message: \"no publish call in this iteration\" });\n  const split = s(job.job_status) === \"COMMITTING_PICKING\" && s(job.lease_owner).indexOf(\"SPLIT|\") === 0 && !s(job.next_attempt_at);\n  if (!split) return Object.assign(base, { result_message: \"job is \" + s(job.job_status) + (s(job.lease_owner) ? \" (lease \" + s(job.lease_owner) + \")\" : \"\") + \": no second publish call\" });\n  return Object.assign(base, { route: \"PUBLISH\", result_message: \"split after the Picking was saved: the second PICKING_BULK_COMMIT call of this tick\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst mid = [{{node:code_node_PWgo.data}}][0];\nconst res = workerSplitResume(guard, mid, [{{node:sql_node_PWsplit.data}}][0]);\nconsole.log(\"worker split\", JSON.stringify(res));\nreturn res;"
             },
             "response_json": [
               {
@@ -4971,7 +5917,7 @@
                     "timeout": 30000,
                     "script": {
                       "type": "javascript",
-                      "code": "// PICKING_ASYNC_WORKER - After second publish: PICKING_BULK_COMMIT writes the job itself; the worker writes only when the call\n// answered without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any\n// write, so nothing was saved: a hard code -> FAILED + the Picking lock released; no code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", publishRoute: s(r.publish_route), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PK_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"PK_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"PICKING_BULK_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"PICKING_BULK_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.pickingId)) ? [{ id: s(own.pickingId), is_processing: 0 }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not confirmed: the confirmation could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"PK_TRANSIENT\", result_message: \"PICKING_BULK_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst mid = [{{node:code_node_PWsplit.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_PWpub2Resp.data}}][0], [{{node:sql_node_PWpub2Back.data}}][0]);\nconsole.log(\"worker after second publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
+                      "code": "// PICKING_ASYNC_WORKER - After second publish: PICKING_BULK_COMMIT writes the job itself; the worker writes only when the call\n// answered without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any\n// write, so nothing was saved: a hard code -> FAILED + the Picking lock released; no code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PICKING\"],\n  hard: [\"PK_INVALID_REQUEST\", \"PK_INVALID_DATA\", \"PK_NOT_FOUND\", \"PK_STATUS\", \"PK_NOT_SUPPORTED\", \"PK_LINE_NOT_FOUND\", \"PK_GD_CLOSED\", \"PK_NOTHING_PICKED\", \"PK_NOTHING_LEFT\", \"PK_BUNDLE_SHORT\", \"PK_STALE\", \"JOB_ILLEGAL_TRANSITION\",\n    \"PK_FC_NOT_IN_PROGRESS\", \"PK_FC_NO_RECORDS\", \"PK_FC_SHARED_LINE\", \"PK_FC_UOM\", \"PK_FC_OVERPICK\", \"PK_FC_GD_UNPICKED\", \"PK_FC_SETUP_CHANGED\", \"PK_FC_STALE\", \"PK_FC_GD_CHANGED\", \"PK_FC_GD_NOT_ELIGIBLE\", \"PK_FC_GD_REFUSED\", \"PK_FC_GD_FAILED\", \"PK_FC_FAILED\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", publishRoute: s(r.publish_route), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"PK_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"PK_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"PICKING_BULK_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"PICKING_BULK_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.pickingId)) ? [{ id: s(own.pickingId), is_processing: 0 }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not confirmed: the confirmation could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"PICKING_ASYNC_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"PK_TRANSIENT\", result_message: \"PICKING_BULK_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst own = [{{node:code_node_PWown.data}}][0];\nconst mid = [{{node:code_node_PWsplit.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_PWpub2Resp.data}}][0], [{{node:sql_node_PWpub2Back.data}}][0]);\nconsole.log(\"worker after second publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
                     },
                     "response_json": [
                       {
@@ -5470,7 +6416,7 @@
         "name": "Read-back: the planned jobs (final)",
         "script": {
           "type": "sql",
-          "code": "SELECT CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.attempt_count,\n       j.lease_owner,\n       j.error_code,\n       j.error_message,\n       j.picking_id\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_PWguard.data.tenantId}}'\n   AND j.id IN ({{node:code_node_PWplan.data.jobIdsSql}})"
+          "code": "SELECT CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.attempt_count,\n       j.lease_owner,\n       j.error_code,\n       j.error_message,\n       j.picking_id,\n       -- only an open force complete has edits to kick; they are read through the open-job states (an index on job_status)\n       CASE WHEN JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.operation')) = 'FORCE_COMPLETE'\n             AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PICKING')\n            THEN (SELECT GROUP_CONCAT(CAST(e.id AS CHAR) ORDER BY e.id)\n                    FROM gd_async_job e\n                   WHERE e.tenant_id = j.tenant_id\n                     AND e.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'HELD')\n                     AND (e.job_status <> 'HELD' OR e.next_attempt_at <= NOW(3))\n                     AND (e.lease_expires_at IS NULL OR e.lease_expires_at <= NOW(3))\n                     AND e.is_deleted = 0 AND e.command = 'EDIT_GD' AND e.causation_id = 'PICKING_FC'\n                     AND CAST(JSON_UNQUOTE(JSON_EXTRACT(e.request_payload, '$.causation_job_id')) AS UNSIGNED) = j.id)\n       END AS kick\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_PWguard.data.tenantId}}'\n   AND j.id IN ({{node:code_node_PWplan.data.jobIdsSql}})"
         },
         "response_json": [
           {
@@ -5535,6 +6481,15 @@
             "bsonType": "string",
             "isExpand": false,
             "children": []
+          },
+          {
+            "key": "pwfn0001",
+            "name": "kick",
+            "title": "kick",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
           }
         ]
       },
@@ -5549,7 +6504,7 @@
         "timeout": 30000,
         "script": {
           "type": "javascript",
-          "code": "// PICKING_ASYNC_WORKER - Result (DONE): the planned jobs as read back at the end of the tick\nconst workerResult = function workerResult(guard, plan, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id));\n  const byId = {};\n  for (const r of list) byId[s(r.id)] = r;\n  const jobs = ((plan && plan.items) || []).map((it) => {\n    const j = byId[it.jobId] || null;\n    return { job_id: it.jobId, before: it.jobStatus, job_status: j ? s(j.job_status) : \"\", error_code: j ? s(j.error_code) : \"\", picking_id: j ? s(j.picking_id) : \"\", attempt_count: j ? s(j.attempt_count) : \"\" };\n  });\n  const first = jobs[0] || null;\n  const firstRow = first ? byId[first.job_id] || null : null;\n  return { worker_route: guard.route === \"REJECT\" ? \"REJECTED\" : !plan || plan.route === \"IDLE\" ? \"IDLE\" : \"WORKED\", processed: String(jobs.length), jobs: JSON.stringify(jobs), job_id: first ? first.job_id : \"\", job_status: first ? first.job_status : \"\", result_code: firstRow && s(firstRow.error_code) ? s(firstRow.error_code) : s(guard.result_code), result_message: firstRow && s(firstRow.error_message) ? s(firstRow.error_message) : s(guard.result_message) || s(plan && plan.result_message), picking_id: first ? first.picking_id : \"\", evidence: JSON.stringify({ v: 1, workflow: \"PICKING_ASYNC_WORKER\", path: \"DONE\" }) };\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst plan = [{{node:code_node_PWplan.data}}][0];\nconst res = workerResult(guard, plan, [{{node:sql_node_PWfinal.data}}][0]);\nconsole.log(\"worker result\", JSON.stringify({ route: res.worker_route, processed: res.processed }));\nreturn res;"
+          "code": "// PICKING_ASYNC_WORKER - Result (DONE): the planned jobs as read back at the end of the tick\nconst workerResult = function workerResult(guard, plan, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id));\n  const byId = {};\n  for (const r of list) byId[s(r.id)] = r;\n  const jobs = ((plan && plan.items) || []).map((it) => {\n    const j = byId[it.jobId] || null;\n    return { job_id: it.jobId, before: it.jobStatus, job_status: j ? s(j.job_status) : \"\", error_code: j ? s(j.error_code) : \"\", picking_id: j ? s(j.picking_id) : \"\", attempt_count: j ? s(j.attempt_count) : \"\" };\n  });\n  // the force completes' edit jobs the screen must run GD_EDIT_WORKER on (Picking 1d)\n  const kick = [];\n  for (const r of list) for (const k of s(r.kick).split(\",\")) if (k && kick.indexOf(k) < 0) kick.push(k);\n  const first = jobs[0] || null;\n  const firstRow = first ? byId[first.job_id] || null : null;\n  return { worker_route: guard.route === \"REJECT\" ? \"REJECTED\" : !plan || plan.route === \"IDLE\" ? \"IDLE\" : \"WORKED\", processed: String(jobs.length), jobs: JSON.stringify(jobs), job_id: first ? first.job_id : \"\", job_status: first ? first.job_status : \"\", result_code: firstRow && s(firstRow.error_code) ? s(firstRow.error_code) : s(guard.result_code), result_message: firstRow && s(firstRow.error_message) ? s(firstRow.error_message) : s(guard.result_message) || s(plan && plan.result_message), picking_id: first ? first.picking_id : \"\", evidence: JSON.stringify({ v: 1, workflow: \"PICKING_ASYNC_WORKER\", path: \"DONE\" }), kick: kick };\n};\nconst guard = [{{node:code_node_PWguard.data}}][0];\nconst plan = [{{node:code_node_PWplan.data}}][0];\nconst res = workerResult(guard, plan, [{{node:sql_node_PWfinal.data}}][0]);\nconsole.log(\"worker result\", JSON.stringify({ route: res.worker_route, processed: res.processed }));\nreturn res;"
         },
         "response_json": [
           {
@@ -5632,6 +6587,26 @@
             "bsonType": "string",
             "isExpand": false,
             "children": []
+          },
+          {
+            "key": "pwfn0002",
+            "name": "kick",
+            "title": "kick",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "fn0002it",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
           }
         ],
         "title": "Result (DONE)",
@@ -5741,6 +6716,16 @@
               "valueType": "field",
               "valueTypeLabel": "",
               "value": "{{node:code_node_PWresult.data.evidence}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "kick",
+              "propLabel": "kick",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_PWresult.data.kick}}",
               "valueLabel": ""
             }
           ]

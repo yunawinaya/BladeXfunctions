@@ -307,3 +307,48 @@ Tell the server owner before each live batch: some cases need dev setup changes 
 Test data already on dev 496474 (from the server's live tests): PI-20261016-0072 (GD/20261016/075, Created, 2
 lines: Normal Item and Auto Batch Item, both allocated in bin L1). Ask the server owner for more (SO clones →
 deliveries → Pickings).
+
+## Part 10 — Force Complete (stage 1d: server built 2026-10-20, not on dev yet)
+
+Today the Picking list's "⋮" menu (`usePickingBulkActions.handleBulkForceComplete`) calls classic PICKING_LOOP with
+`isForceComplete: 1`. The background version reduces each delivery to what was picked (unpicked lines removed, their
+reservations released, the sales order given the quantity back), then completes the Picking. **Switch it on only after
+the web version passed its live tests and your own device pass**; until then keep today's call.
+
+**SUBMIT** (one idempotency key per tap, reused on a retry):
+
+```jsonc
+{ "picking_id": "<picking id>", "organization_id": "<org id>", "operation": "FORCE_COMPLETE",
+  "idempotency_key": "PKF:<org>:<picking>:<random>", "payload": "{}", "confirmed_by": "<user nickname>" }
+```
+
+The answer: `route` QUEUED | EXISTING | REJECT | NOT_ELIGIBLE, `result_code`, `result_message`, `job_id`, `job_status`,
+`classic_ok`.
+
+- **QUEUED / EXISTING** → follow the job (below).
+- **NOT_ELIGIBLE** with `classic_ok` "1" → today's PICKING_LOOP call for that Picking, unchanged. With "0" (more than
+  500 lines or 25 deliveries in total: too big for the classic path) → show `result_message`, no classic call.
+- **REJECT** → show `result_message` (e.g. not In Progress, more than 25 deliveries / 2,000 lines, nothing picked).
+
+**Following the job.** There is no scheduler, and a force complete takes several steps:
+- `PICKING_ASYNC_WORKER { job_id }` right after QUEUED, fire-and-forget;
+- STATUS every 3 s while the job is open; STATUS now also answers `operation` ("FORCE_COMPLETE"),
+  `progress_percent` and **`kick`** (an array of edit job ids);
+- for every id in `kick`: `GD_EDIT_WORKER { job_id: <id> }` (`2110618789356687361`), fire-and-forget, at most one call
+  in flight per id; when that call answers, kick `PICKING_ASYNC_WORKER { job_id }` again (the force complete's next
+  step is waiting for it);
+- re-kick `PICKING_ASYNC_WORKER { job_id }` every 15 s; follow while it moves: stop after 180 s without progress
+  (a GD_EDIT_WORKER call still running counts as progress) and after 15 minutes in all ("still being saved in the
+  background: keep this screen open, or open it again, to let it finish"); opening the Picking again resumes it.
+
+**Results** (STATUS `job_status`):
+- `COMPLETED` → `result_message` is the summary ("PI-x force completed: N deliveries updated, R line(s) reduced,
+  X removed").
+- `FAILED` → nothing was saved; show `result_message` once. The Picking is unlocked and stays In Progress.
+- `REQUIRES_REVIEW` → stopped half-way (some deliveries already reduced); the Picking stays locked: "please contact
+  support" with `result_message`.
+
+The other parts of this guide apply unchanged: one live kick per job, report-once keys, and NOT_ELIGIBLE → classic.
+Revert Completed must refuse a Picking whose latest job (STATUS) has `operation` FORCE_COMPLETE and is COMPLETED
+("This Picking was force completed: its deliveries were reduced. Create a new delivery from the sales order for the
+rest.").

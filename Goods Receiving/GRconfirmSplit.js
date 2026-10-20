@@ -1,3 +1,7 @@
+// q8 kills float residue in the split total; EPS keeps the old 3dp leniency on the tolerance gate.
+const q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));
+const EPS = 0.0005;
+
 // Helper to generate letter suffix (A, B, C, ..., Z, AA, AB, ...)
 const getLetterSuffix = (index) => {
   let suffix = "";
@@ -204,10 +208,11 @@ const setGrItemData = async (
     const isParentSplit = splitDialogData.is_parent_split;
 
     // Validate total split quantity with over_receive_tolerance
-    const totalSplitQty = parseFloat(
-      tableSplit
-        .reduce((sum, item) => sum + (parseFloat(item.received_qty) || 0), 0)
-        ,
+    const totalSplitQty = q8(
+      tableSplit.reduce(
+        (sum, item) => sum + (parseFloat(item.received_qty) || 0),
+        0,
+      ),
     );
 
     // Validate against ordered qty (not remaining), accounting for prior receipts
@@ -235,18 +240,16 @@ const setGrItemData = async (
     }
 
     // Maximum allowed total qty with tolerance (ordered qty based)
-    const maxAllowedTotalQty = parseFloat(
-      ((orderedQty * (100 + overReceiveTolerance)) / 100),
+    const maxAllowedTotalQty = q8(
+      (orderedQty * (100 + overReceiveTolerance)) / 100,
     );
 
     if (totalSplitQty <= 0) {
       throw new Error("Total split quantity must be greater than 0.");
     }
 
-    if (totalSplitQty + initialReceivedQty > maxAllowedTotalQty) {
-      const maxAllowedQty = parseFloat(
-        (maxAllowedTotalQty - initialReceivedQty),
-      );
+    if (q8(totalSplitQty + initialReceivedQty) - maxAllowedTotalQty > EPS) {
+      const maxAllowedQty = q8(maxAllowedTotalQty - initialReceivedQty);
       throw new Error(
         `Total split quantity (${totalSplitQty}) exceeds maximum allowed quantity (${maxAllowedQty}) based on tolerance.`,
       );

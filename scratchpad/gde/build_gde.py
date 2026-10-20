@@ -373,7 +373,7 @@ def build_commit():
 
     # ---- SQL
     job = q("""SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
-       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,
+       DATE_FORMAT(n.t + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,
        CAST(j.id AS CHAR) AS id, j.organization_id, j.command, j.job_status, j.progress_percent, j.progress_message, j.attempt_count,
        DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at, j.lease_owner, DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,
        (j.lease_expires_at > n.t) AS lease_live, (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due,
@@ -906,12 +906,13 @@ def build_worker():
     res_fields = ["worker_route", "processed", "jobs", "job_id", "job_status", "result_code", "result_message", "gd_id", "evidence"]
     poll = q("""SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
        x.id, x.organization_id, x.gd_id, x.stored_status, x.pick_id, x.job_status, x.progress_percent, x.progress_message, x.attempt_count, x.next_attempt_at,
-       x.lease_owner, x.lease_expires_at, x.dead_lease, x.row_version, x.error_code, x.error_message, x.error_details, x.claim_id, x.claim_started_at, x.claim_owner
+       x.lease_owner, x.lease_expires_at, x.dead_lease, x.row_version, x.error_code, x.error_message, x.error_details, x.claim_id, x.claim_started_at, x.claim_owner, x.causation_id
   FROM (SELECT NOW(3) AS t) n
   LEFT JOIN (SELECT CAST(j.id AS CHAR) AS id,
                     j.organization_id,
                     @UNLOCK,
                     j.job_status,
+                    j.causation_id,
                     j.progress_percent,
                     j.progress_message,
                     j.attempt_count,
@@ -940,7 +941,13 @@ def build_worker():
                 AND (@JOBID = 0 OR j.id = @JOBID)
                 AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'HELD')
                 AND (j.lease_expires_at IS NULL OR j.lease_expires_at <= NOW(3))
-                AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW(3))
+                -- due: the time came, or (PICKING_FC) the force complete that holds it has ended
+                AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW(3)
+                     OR (j.job_status = 'HELD' AND j.causation_id = 'PICKING_FC'
+                         AND EXISTS (SELECT 1 FROM gd_async_job f
+                                      WHERE f.tenant_id = j.tenant_id AND f.is_deleted = 0 AND f.command = 'CONFIRM_PICKING'
+                                        AND f.id = CAST(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.causation_job_id')) AS UNSIGNED)
+                                        AND f.job_status IN ('COMPLETED', 'FAILED', 'CANCELLED'))))
                 AND (c.id IS NULL OR c.started_at <= NOW(3) - INTERVAL 10 MINUTE)
                 AND (@JOBID <> 0 OR NOT EXISTS (SELECT 1 FROM gd_publish_step r WHERE r.tenant_id = j.tenant_id AND r.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)
                                                  AND r.step_name = 'RELEASE' AND r.is_deleted = 0 AND r.started_at > NOW(3) - INTERVAL 10 SECOND))
@@ -961,7 +968,13 @@ def build_worker():
        DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,
        (j.lease_expires_at > n.t) AS lease_live,
        (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= n.t) AS dead_lease,
-       (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due_now,
+       (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t
+        -- (PICKING_FC) a hold whose force complete has ended is due at once, as the poll reads it
+        OR (j.job_status = 'HELD' AND j.causation_id = 'PICKING_FC'
+            AND EXISTS (SELECT 1 FROM gd_async_job f
+                         WHERE f.tenant_id = j.tenant_id AND f.is_deleted = 0 AND f.command = 'CONFIRM_PICKING'
+                           AND f.id = CAST(JSON_UNQUOTE(JSON_EXTRACT(j.request_payload, '$.causation_job_id')) AS UNSIGNED)
+                           AND f.job_status IN ('COMPLETED', 'FAILED', 'CANCELLED')))) AS due_now,
        j.row_version,
        j.error_code,
        j.error_message,
@@ -1016,7 +1029,8 @@ def build_worker():
 
     plan_ref = d("code_node_GWplan")
     item_cols = ["db_now", "id", "organization_id", "gd_id", "stored_status", "pick_id", "job_status", "progress_percent", "progress_message", "attempt_count", "next_attempt_at",
-                 "lease_owner", "lease_expires_at", "dead_lease", "row_version", "error_code", "error_message", "error_details", "claim_id", "claim_started_at", "claim_owner"]
+                 "lease_owner", "lease_expires_at", "dead_lease", "row_version", "error_code", "error_message", "error_details", "claim_id", "claim_started_at", "claim_owner",
+                 "causation_id"]
     nodes = [
         K.code(G, "Guard: optional job_id, session tenant, this run's lease owner WRK|<nonce>", wcode("guard.js"), ["route", "jobId", "tenantId", "nonce", "leaseOwner", "result_code", "result_message"]),
         K.if_(ids, "if_GWreject", "IF the input is invalid: answer, write nothing", is_(G, "route", "REJECT"), [
@@ -1099,7 +1113,8 @@ S_READS = ["hdr", "lines", "setup", "link", "items", "sohl", "soh", "pick", "pic
 SUB_RES = ["route", "code", "message", "reason", "command", "job_id", "job_status", "gd_id", "gd_no", "line_count", "progress_percent", "progress_message",
            "error_code", "error_message", "picking_reversal_note", "credit_limit_note", "cascade_ref", "evidence"]
 GATE_MODS = ["gdc/lift/runtime.js", "@lift", "gdc/code/prepare/chain.js", "gdc/code/prepare/adapter.js", "code/prepare/alloc_edit.js", "code/prepare/chain_edit.js", "code/submit/delta.js",
-             "code/prepare/apply_delta.js", "code/prepare/adapter_edit.js", "gdc/code/submit/required.js", "code/submit/_common.js", "code/submit/gate.js", "@kinds"]
+             "code/prepare/apply_delta.js", "code/prepare/adapter_edit.js", "gdc/code/submit/required.js", "code/submit/_common.js", "../pk1d/code/fc_fp.js", "code/submit/fc.js",
+             "code/submit/gate.js", "@kinds"]
 SC = ["code/submit/_common.js"]
 
 
@@ -1164,7 +1179,18 @@ def build_submit():
     ON g.tenant_id = '@TEN'
    AND g.id = @GDID
    AND g.is_deleted = 0""", OPEN=open_jobs, TEN=TEN, GDID=GDID, SOIDS=N(G, "data.soIdsSql"))
-    held = q("""SELECT CAST(x.id AS CHAR) AS job_id, (x.next_attempt_at IS NOT NULL AND x.next_attempt_at <= NOW(3)) AS expired
+    # a Picking force complete's planned parts for this GD (PICKING_BULK_PREPARE wrote them under its job; the guard checked the refs)
+    fcd = q("""SELECT p.step_name, p.result_ref
+  FROM gd_publish_step p
+ WHERE p.tenant_id = '@TEN' AND p.job_id = '@JOB' AND p.step_name LIKE CONCAT('@REF', '|%') AND p.step_status = 'PAYLOAD' AND p.is_deleted = 0
+ ORDER BY p.step_name""", TEN=TEN, JOB=N(G, "data.causationJobId"), REF=N(G, "data.fcdRef"))
+    held = q("""SELECT CAST(x.id AS CHAR) AS job_id,
+       ((x.next_attempt_at IS NOT NULL AND x.next_attempt_at <= NOW(3))
+        OR (x.causation_id = 'PICKING_FC'
+            AND EXISTS (SELECT 1 FROM gd_async_job f
+                         WHERE f.tenant_id = x.tenant_id AND f.is_deleted = 0 AND f.command = 'CONFIRM_PICKING'
+                           AND f.id = CAST(JSON_UNQUOTE(JSON_EXTRACT(x.request_payload, '$.causation_job_id')) AS UNSIGNED)
+                           AND f.job_status IN ('COMPLETED', 'FAILED', 'CANCELLED')))) AS expired
   FROM gd_async_job x
  WHERE x.tenant_id = '@TEN' AND x.is_deleted = 0 AND x.command = 'EDIT_GD' AND x.job_status = 'HELD' AND x.correlation_id = 'GD|@GDID'
  ORDER BY x.next_attempt_at, x.id
@@ -1251,15 +1277,17 @@ def build_submit():
                 "deltaSoIdsSql", "deltaAllocMaterialIdsSql", "deltaAllocLineIdsSql"]
     E_SMALL = pick(E, ["route", "code", "message", "reason", "gdNo", "lineCount", "command", "jobId", "jobStatus", "progressPercent", "progressMessage", "errorCode",
                        "errorMessage", "notes", "cascadeRef"])
-    gate_pre = ("const guard = %s;\nconst entry = %s;\nconst S = Object.assign({ organizationId: entry.organizationId }, %s);\n"
+    gate_pre = ("const guard = %s;\nconst entry = %s;\nconst S = Object.assign({ organizationId: entry.organizationId, fcPartRows: " + d("sql_node_GSfcd") + " || [] }, %s);\n"
                 "const g = Object.assign({}, guard, { delta: guard.source === \"CASCADE\" ? %s : null });\nconst form = %s;") % (
         d(G), d(E), reads_obj("GS", S_READS), param("delta"), param("form"))
     nodes = [
         cnode(G, "Guard: operation, gd_id (digits), source (FORM: the form; CASCADE: SO_CASCADE's delta + cascade_ref), answers, session tenant + user", SC + ["code/prepare/alloc_ids.js", "code/submit/guard.js"],
               tail("submitGuard({ operation: [{{workflowparams:operation}}][0], gdId: [{{workflowparams:gd_id}}][0], source: [{{workflowparams:source}}][0], "
                    "answers: [{{workflowparams:answers}}][0], form: [{{workflowparams:form}}][0], delta: [{{workflowparams:delta}}][0], cascadeRef: [{{workflowparams:cascade_ref}}][0], "
+                   "fcdRef: [{{workflowparams:fcd_ref}}][0], causationJobId: [{{workflowparams:causation_job_id}}][0], pickingId: [{{workflowparams:picking_id}}][0], "
                    "tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] })", "submit guard", "{ route: res.route, op: res.operation, gd: res.gdId, source: res.source, message: res.message }"),
-              ["route", "code", "message", "operation", "gdId", "tenantId", "source", "cascadeRef", "uid", "answers", "idLists", "soIdsSql"], objects=("answers", "idLists")),
+              ["route", "code", "message", "operation", "gdId", "tenantId", "source", "cascadeRef", "uid", "answers", "idLists", "soIdsSql", "fcdRef", "causationJobId", "pickingId"],
+              objects=("answers", "idLists")),
         K.if_(ids, "if_GSreject", "IF the input is invalid: answer, write nothing", is_(G, "route", "REJECT"), sres("rej", "rejected input", pick(G, ["route", "code", "message"]))),
         K.if_(ids, "if_GSops", "IF RELEASE / CANCEL_HELD (a Sales Order save's own held job on this GD): claim-gated writes, then answer",
               "%s || %s" % (is_(G, "operation", "RELEASE"), is_(G, "operation", "CANCEL_HELD")), ops_nodes),
@@ -1275,6 +1303,9 @@ def build_submit():
               tail("submitEntry(%s, %s)" % (d(G), d("sql_node_GSfacts")), "submit entry", "{ route: res.route, code: res.code, message: res.message, lockN: res.lockN }"),
               E_FIELDS, objects=("lineCount", "lockN", "progressPercent", "notes")), "stalesub", "staleLocks", "array"),
         K.if_(ids, "if_GSanswer", "IF answered here (STATUS / BUSY / STOP): answer, write nothing", "'%s' != 'GO'" % N(E, "data.route"), sres("ans", "entry", E_SMALL, E_SMALL)),
+        # its own id range: the nodes after it keep their generated rule ids
+        K.if_(K.Ids(1798490000000), "if_GSfcd", "IF a Picking force complete (source PICKING_FC): read its planned parts", is_(G, "source", "PICKING_FC"), [
+            K.sql("sql_node_GSfcd", "Force complete parts: gd_publish_step <fcd_ref>|nnn under its job (PAYLOAD; the text in result_ref)", fcd, ["step_name", "result_ref"])]),
         K.parallel("condition_all_GSread", "PREPARE's reads to the gates, in parallel (no row limits): the GD as stored AND the edit", sql_reads("GS", E, S_READS)),
         cnode(GT, "Gate: the edit as a delta, what the background save does not take (classic; refused above 500 lines), GOODS_DELIVERY's gates in its order (lifted)", GATE_MODS,
               tail("submitGate(g, entry, S, form, GE_KINDS)", "submit gate", "{ route: res.route, code: res.code, message: res.message, needCL: res.needCL, picking: res.pickingId }", pre=gate_pre),
@@ -1308,10 +1339,13 @@ def build_submit():
             rows_update(ids, "update_node_GSdue", "Job due now (+ the Picking's version as locked)", JOB, "code_node_GSdue", "dueRows", ["next_attempt_at", "request_payload"])]),
     ] + sres("done", "queued", pick(PO, ["route", "code", "message", "idemKey", "notes"]), E_SMALL, d("sql_node_GSback"))
     return K.workflow([("operation", "string", "SUBMIT (default), STATUS, or (a Sales Order save) RELEASE / CANCEL_HELD of its held job"), ("gd_id", "string", "goods_delivery.id (digits)"),
-                       ("source", "string", "FORM (default) | CASCADE"),
+                       ("source", "string", "FORM (default) | CASCADE | PICKING_FC"),
                        ("answers", "any", "{ needCL, continueZero, confirmPickReversal } as GOODS_DELIVERY's prompts take them"),
                        ("form", "any", "FORM: the form's data (allData); CASCADE: its payload (diffed as the form's)"), ("delta", "any", "CASCADE: SO_CASCADE's edit as a delta (geDelta's shape)"),
-                       ("cascade_ref", "string", "CASCADE / RELEASE / CANCEL_HELD: the Sales Order save that holds the job (released / cancelled by it)")], SUB_RES, nodes)
+                       ("cascade_ref", "string", "CASCADE / RELEASE / CANCEL_HELD: the Sales Order save that holds the job (released / cancelled by it); PICKING_FC: PKFC|<job>"),
+                       ("fcd_ref", "string", "PICKING_FC: FCD|<nonce>|<gi>, its planned parts under causation_job_id"),
+                       ("causation_job_id", "string", "PICKING_FC: the force complete's CONFIRM_PICKING job (digits)"),
+                       ("picking_id", "string", "PICKING_FC: the Picking being force completed (digits)")], SUB_RES, nodes)
 
 
 BUILDERS = [("GD_EDIT_PREPARE", build_prepare), ("GD_EDIT_COMMIT", build_commit), ("GD_EDIT_WORKER", build_worker), ("GD_EDIT_SUBMIT", build_submit)]

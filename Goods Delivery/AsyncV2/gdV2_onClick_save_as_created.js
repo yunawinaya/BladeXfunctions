@@ -225,6 +225,7 @@ const gdV2SubmitOutcome = function gdV2SubmitOutcome(d) {
   const code = s(x.result_code);
   const jobId = s(x.job_id);
   if (code === "IDEMPOTENCY_KEY_REUSED") return { action: "NEW_ATTEMPT", level: "", message: "" };
+  if (code === "GD_V2_USE_CLASSIC") return { action: "FROZEN", level: "", message: s(x.result_message) };
   if (code || !jobId) {
     let errs = [];
     try {
@@ -386,6 +387,12 @@ const closeDialog = () => {
     }
     if (!outcome) {
       this.$message.error("Not submitted: earlier saves of this delivery keep ending without creating it. Please contact support.");
+      return;
+    }
+    if (outcome.action === "FROZEN") {
+      // GD_ASYNC_SUBMIT created no job: a delivery GD_BULK_PREPARE would refuse goes to the frozen save
+      console.log("GD V2: submit answered GD_V2_USE_CLASSIC -", outcome.message);
+      await this.triggerEvent("onClick_save_as_created");
       return;
     }
     if (outcome.action !== "CLOSE") {

@@ -212,6 +212,196 @@
           "data": { "title": "true" },
           "blocks": [
             {
+              "id": "code_node_PkTermPrep",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Resolve Packing Id",
+                "isValidator": true,
+                "nodeName": "Resolve Packing Id",
+                "name": "Resolve Packing Id",
+                "script": {
+                  "type": "javascript",
+                  "code": "// a save never rewrites a Packing already Cancelled or Completed: a stale form or device would reopen it\nconst entry = {{workflowparams:entry}} || {};\nconst digits = (v) => (/^[0-9]{1,20}$/.test(String(v || \"\")) ? String(v) : \"0\");\nreturn { packingId: digits(entry.id), tenantId: digits([{{system:tenantId}}][0]) };"
+                },
+                "response_json": [
+                  {
+                    "key": "j1b3ka9k",
+                    "name": "packingId",
+                    "title": "packingId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "61rkia1q",
+                    "name": "tenantId",
+                    "title": "tenantId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "sql_node_PkTerm",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Stored Packing Status",
+                "isValidator": true,
+                "nodeName": "Stored Packing Status",
+                "name": "Stored Packing Status",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT p.packing_status\n  FROM packing p\n WHERE p.tenant_id = '{{node:code_node_PkTermPrep.data.tenantId}}'\n   AND p.id = {{node:code_node_PkTermPrep.data.packingId}}\n   AND p.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "49h2lo01",
+                    "name": "packing_status",
+                    "title": "packing_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PkTermChk",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Packing Cancelled Or Completed",
+                "isValidator": true,
+                "nodeName": "Packing Cancelled Or Completed",
+                "name": "Packing Cancelled Or Completed",
+                "script": {
+                  "type": "javascript",
+                  "code": "const rows = [{{node:sql_node_PkTerm.data}}][0];\nconst stored = String(((Array.isArray(rows) ? rows[0] : rows) || {}).packing_status || \"\");\nreturn {\n  terminal: stored === \"Cancelled\" || stored === \"Completed\" ? \"1\" : \"0\",\n  message: stored === \"Cancelled\" ? \"This Packing was cancelled with its Goods Delivery. Nothing was saved.\" : \"This Packing is already Completed. Nothing was saved.\",\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "r77noq57",
+                    "name": "terminal",
+                    "title": "terminal",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "p2ui8naw",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_PkTerm",
+              "type": "if",
+              "data": {
+                "title": "IF Packing Cancelled Or Completed",
+                "isValidator": true,
+                "nodeName": "IF Packing Cancelled Or Completed",
+                "name": "IF Packing Cancelled Or Completed",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1,
+                      "parentId": 0,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "code": "'{{node:code_node_PkTermChk.data.terminal}}' == '1'",
+                  "type": "javascript"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_PkTerm_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "return_node_PkTerm",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "errorStatus",
+                              "propLabel": "Error Status",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "\"terminalStatus\"",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PkTermChk.data.message}}",
+                              "valueLabel": "",
+                              "propLabel": "Message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0,
+                        "title": "Return Packing Closed",
+                        "isValidator": true,
+                        "nodeName": "Return Packing Closed",
+                        "name": "Return Packing Closed"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_PkTerm_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "code_node_PkStoredPrep",
               "type": "code-node",
               "data": {

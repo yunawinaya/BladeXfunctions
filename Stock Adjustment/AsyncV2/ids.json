@@ -8,5 +8,5 @@
  "INVENTORY_BULK_APPLY": "2109916822821744641",
  "REORDER_SET_REDIS": "2065256261729759233",
  "CHECK_REQUIRED_FIELD": "1988831880511062018",
- "_note": "SA_V2_COMMIT 2111074444748689410 was created in the dev designer under the name SA_V2_PREPARE (user asked to rename it, 2026-10-16)"
+ "_note": "COMMIT's shell was created under the name SA_V2_PREPARE; renamed to SA_V2_COMMIT on dev 2026-10-20 (su_code_workflow.name)."
 }

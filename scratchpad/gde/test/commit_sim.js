@@ -78,7 +78,7 @@ function mocks(w) {
     const j = w.job;
     const live = j.lease_expires_at && Date.parse(j.lease_expires_at.replace(" ", "T") + "Z") > w.now ? 1 : 0;
     const due = !j.next_attempt_at || Date.parse(j.next_attempt_at.replace(" ", "T") + "Z") <= w.now ? 1 : 0;
-    return Object.assign({}, j, { db_now: fmt(w.now), lease_until: fmt(w.now + 600000), lease_live: live, due: due });
+    return Object.assign({}, j, { db_now: fmt(w.now), lease_until: fmt(w.now + 1800000), lease_live: live, due: due });
   };
   const req = () => JSON.parse(w.job.request_payload);
   const lockedPick = () => { const p = w.picks[req().picking_id]; return p && !p.is_deleted ? [{ id: String(p.id), is_processing: p.is_processing, update_time: p.update_time }] : []; };

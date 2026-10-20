@@ -1,0 +1,21 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SA_V2_WORKER",
+   "dataId": "2111074368689180673",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Adjustment/AsyncV2/SA_V2_WORKER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/sav2/base/sa_v2_worker_v3.live.json",
+   "smoke": {
+    "request": {
+     "job_id": ""
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  }
+ ]
+}

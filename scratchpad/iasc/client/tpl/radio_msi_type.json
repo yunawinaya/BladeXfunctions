@@ -1,0 +1,92 @@
+{
+ "version": "1.0.0",
+ "type": "radio",
+ "mainIcon": "单选",
+ "typeIcon": "单选项",
+ "icon": "icon-radio-active",
+ "group": "Select",
+ "groupSort": 0,
+ "enableScopes": [
+  "Component",
+  "Table",
+  "Page"
+ ],
+ "options": {
+  "inline": true,
+  "defaultValue": "",
+  "options": [
+   {
+    "value": "Standard",
+    "label": "Standard",
+    "explain": ""
+   },
+   {
+    "value": "Reference",
+    "label": "Reference",
+    "explain": ""
+   }
+  ],
+  "required": false,
+  "requiredMessage": "",
+  "validatorCheck": false,
+  "validator": "",
+  "width": "",
+  "remote": false,
+  "remoteType": "datasource",
+  "remoteOption": "option_n73e21ni",
+  "remoteOptions": [],
+  "props": {
+   "value": "",
+   "label": "",
+   "image": "",
+   "icon": "",
+   "explain": ""
+  },
+  "remoteFunc": "func_n73e21ni",
+  "customClass": "",
+  "labelWidth": 100,
+  "isLabelWidth": false,
+  "hidden": false,
+  "dataBind": true,
+  "disabled": "{{!{{value:issuing_operation_faci}} || {{value:issuing_operation_faci}} == null}}",
+  "customProps": {},
+  "tip": "",
+  "tableColumn": false,
+  "subform": false,
+  "datasource": {
+   "rules": {
+    "collectionId": "",
+    "list": [
+     {
+      "id": 1723795236686,
+      "parentId": 1723795236685,
+      "isTop": true,
+      "prop": "",
+      "operator": "",
+      "valueType": "",
+      "value": "",
+      "type": "leaf",
+      "level": 1
+     }
+    ]
+   },
+   "source": "static"
+  },
+  "auto_refresh": 0,
+  "auto_refresh_debounce": 100,
+  "select-card_n7ge7fmb": [],
+  "left": 3,
+  "right": 4,
+  "pad": "*",
+  "desensitization_pattern": "",
+  "desensitization_replace": ""
+ },
+ "events": {
+  "onChange": "o6m8caig"
+ },
+ "name": "Type",
+ "novalid": {},
+ "key": "n73e21ni",
+ "model": "msi_type",
+ "rules": []
+}

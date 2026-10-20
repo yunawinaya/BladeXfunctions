@@ -151,11 +151,14 @@ const gePlan = function gePlan(entry, R, K) {
   const stored = clone(stored0);
   stored.gd_status = s(req.stored_status) || "Created";
   // our Picking lock (SUBMIT: is_processing 1 at the recorded version, or adopted) is released with a failure
-  const pv = geAdoptPickVersion(req, R);
-  if (R.pick && R.pick.data && s(R.pick.data.id) && num(R.pick.data.is_processing) === 1 && pv && s(R.pick.data.update_time) === pv) base.pickUnlockId = s(R.pick.data.id);
+  // a Picking force complete (PICKING_FC) edits under ITS job's Picking lock: never adopted, never released here
+  const fcSrc = s(req.source) === "PICKING_FC";
+  const pv = fcSrc ? "" : geAdoptPickVersion(req, R);
+  if (!fcSrc && R.pick && R.pick.data && s(R.pick.data.id) && num(R.pick.data.is_processing) === 1 && pv && s(R.pick.data.update_time) === pv) base.pickUnlockId = s(R.pick.data.id);
   // the Picking as the classic save would read it: our own lock (SUBMIT, at the recorded version) is not a device's
   let pick = R.pick && R.pick.data && s(R.pick.data.id) ? clone(R.pick) : G0;
-  if (pick !== G0) {
+  if (pick !== G0 && fcSrc) pick.data.is_processing = 0;
+  else if (pick !== G0) {
     if (num(pick.data.is_processing) === 1) {
       if (!pv || s(pick.data.update_time) !== pv) return fail("GDE_PICKING_CHANGED", "the Picking was changed or taken over since the edit was submitted");
       pick.data.is_processing = 0;
@@ -164,7 +167,9 @@ const gePlan = function gePlan(entry, R, K) {
   const allData = geApplyDelta(stored, req.delta || { header: {}, dropHeader: [], lines: [], added: [], removed: [], layout: (stored.table_gd || []).map((r) => ({ ref: String(r.id), children: (r.children || []).map((c) => String(c.id)) })) }, K);
   allData.gd_status = stored.gd_status;
   const a = req.answers || {};
-  const params = s(req.source) === "CASCADE"
+  // the force complete's re-save is classic PICKING's (code_node_GdPlan), as GD_EDIT_SUBMIT's gate ran it
+  const params = fcSrc ? { allData, saveAs: "Created", pageStatus: "Edit", needCL: "not required", continueZero: "Yes", confirmPickReversal: "", isPicking: "Yes", isLoadingBay: 0 }
+    : s(req.source) === "CASCADE"
     ? { allData, saveAs: "Created", pageStatus: "Edit", needCL: "auto", continueZero: "Yes", confirmPickReversal: s(a.confirmPickReversal) }
     : { allData, saveAs: "Created", pageStatus: "Edit", needCL: s(a.needCL) || "required", continueZero: s(a.continueZero), confirmPickReversal: s(a.confirmPickReversal), auto_gr_confirmed: "", auto_gr_skip: "" };
   const reads = Object.assign({}, R, { gd: { count: 1, data: stored }, pick: pick });

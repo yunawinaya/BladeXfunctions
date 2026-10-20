@@ -53,6 +53,14 @@ SA_BADGES = [
 SC_REVIEW = ("button_review", "onButtonReviewClick", "ma2d8htp", "scV2_onButtonReviewClick")
 SC_INSERT_ANCHOR = '    } else if (approved.length && allApproved) {\n      createAdjustment = "Yes";\n    }\n\n'
 SC_INSERT_LINE = "    if (SC_V2_ON && (await scReviewV2(data, items, allApproved, approved, createAdjustment))) return;\n\n"
+# 2,000-line Stock Counts (Phase C): mounted's per-line awaited calls -> batched blocks; Sync -> chunked reads + one table write
+SC2K_COUNT_START = ('  setTimeout(async () => {\n    if (scStatus === "In Progress") {\n      const tableStockCount = await this.getValue("table_stock_count");\n\n'
+                    '      for (let index = 0; index < tableStockCount.length; index++) {\n        if (tableStockCount[index].line_status === "Approved") {')
+SC2K_COUNT_END = '};\n\nconst showReview = async (scStatus, reviewStatus) => {'
+SC2K_REVIEW_START = ('  setTimeout(async () => {\n    if (scStatus === "In Progress") {\n      const tableStockCount = await this.getValue("table_stock_count");\n\n'
+                     '      for (let index = 0; index < tableStockCount.length; index++) {\n        if (tableStockCount[index].line_status === "Pending") {')
+SC2K_REVIEW_END = '};\n\n(async () => {\n  let pageStatus = "";\n'
+SC_SYNC = ("onClick_syncAll", "4gcydh2s")
 DRAFT_ANCHOR = '      } else if (page_status === "Edit") {\n'
 
 LIST_PROCESSING_DIV_INLINE = ("<div v-if=\"scope.value==='Processing'\" style=\" padding: 0 10px; border: 2px solid #8B5CF6; background-color: #EDE9FE; "
@@ -147,6 +155,14 @@ def find(n, model, parent=None):
 def replace_once(text, old, new, what):
     assert text.count(old) == 1, (what, text.count(old))
     return text.replace(old, new)
+
+
+def replace_between(text, start, end, new, what):
+    """replace [start, end) - both unique - with new; end is kept"""
+    assert text.count(start) == 1 and text.count(end) == 1, (what, text.count(start), text.count(end))
+    i, j = text.index(start), text.index(end)
+    assert i < j, what
+    return text[:i] + new + text[j:]
 
 
 def by_name(doc):
@@ -294,10 +310,15 @@ def build_sc_form(c, rng, taken):
     btn["events"]["onClick"] = k
     m = h["mounted"]
     assert m["type"] == "js"
+    m2k = replace_between(m["func"], SC2K_COUNT_START, SC2K_COUNT_END, src("sc2k_count_block.js", c), "2k count block")
+    m2k = replace_between(m2k, SC2K_REVIEW_START, SC2K_REVIEW_END, src("sc2k_review_block.js", c), "2k review block")
+    sync = h[SC_SYNC[0]]
+    assert sync["key"] == SC_SYNC[1] and sync["type"] == "js", (sync["key"], sync["type"])
+    sync["func"] = src("scV2_onClick_syncAll.js", c)
     block = src("scV2_mounted_block.js", c)
-    t = replace_once(m["func"], '(async () => {\n  let pageStatus = "";\n', block + '(async () => {\n  let pageStatus = "";\n', "sc block")
+    t = replace_once(m2k, '(async () => {\n  let pageStatus = "";\n', block + '(async () => {\n  let pageStatus = "";\n', "sc block")
     m["func"] = replace_once(t, '      break;\n  }\n})();\n', '      break;\n  }\n\n  scBackgroundView(pageStatus);\n})();\n', "sc view call")
-    return base, form, {"scV2_onButtonReviewClick.js": func, "scV2_mounted_block.js": block}, (k, name)
+    return base, form, {"scV2_onButtonReviewClick.js": func, "scV2_mounted_block.js": block, "scV2_onClick_syncAll.js": sync["func"]}, (k, name)
 
 
 def build_sc_list(c):
@@ -413,7 +434,7 @@ def expected_paths(fa, fb, la, lb, sca, scb, scla, sclb, sa_added, sc_added):
              "/list/[key=xrzk87y6]/tabs/[key=63erc1n4]/list/[key=jczaii1t]/options/customProps/columns/[key=v442g7n3]/configCustom/content"}
     k, name = sc_added
     e_sc = {"/config/eventScript/[key=%s] (added at %d: %s)" % (k, [x["key"] for x in scb["config"]["eventScript"]].index(k), name),
-            "/config/eventScript/[key=mounted]/func",
+            "/config/eventScript/[key=mounted]/func", "/config/eventScript/[key=%s]/func" % SC_SYNC[1],
             "/list/[key=w8jlcjrd]/list/[key=fdevqgfp]/events/onClick"}
     e_scl = {"/config/eventScript/[key=mounted]/func", "/config/eventScript/[key=mounted]/type (added)"}
     return e_sa, e_sal, e_sc, e_scl

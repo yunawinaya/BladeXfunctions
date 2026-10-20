@@ -30,9 +30,12 @@ const workerClaim = function workerClaim(guard, pick) {
     // the hold's end is its next_attempt_at (GD_EDIT_PREPARE parks the job for 15 minutes); the lease write first, so a
     // late RELEASE / AMEND that moved the job meanwhile is seen by own.js and nothing is written
     const lease = Object.assign({}, row, { lease_owner: guard.leaseOwner, lease_expires_at: pick.leaseUntil });
-    const reason = "the sales order save that held this edit did not release it before " + s(item.nextAttemptAt) + ": cancelled, nothing was written";
+    // a Picking force complete's hold (PICKING_FC) also ends when that force complete has ended (the poll makes it due)
+    const fc = s(item.heldBy) === "PICKING_FC";
+    const reason = (fc ? "the force complete that held this edit did not release it (it ended, or its hold ran out at " : "the sales order save that held this edit did not release it before ")
+      + s(item.nextAttemptAt) + (fc ? ")" : "") + ": cancelled, nothing was written";
     return Object.assign(base, { route: "EXPIRE", attempts: counted, claimRows: [lease], needClaim: "YES",
-      failRows: [Object.assign({}, lease, { job_status: "CANCELLED", progress_percent: 0, progress_message: "Cancelled: the sales order save that held this edit did not finish", error_code: "GDE_HOLD_EXPIRED", error_message: reason, error_details: JSON.stringify({ step: "GD_EDIT_WORKER", why: reason }), lease_owner: null, lease_expires_at: null, next_attempt_at: null, finished_at: pick.dbNow, row_version: rv + 2 })],
+      failRows: [Object.assign({}, lease, { job_status: "CANCELLED", progress_percent: 0, progress_message: fc ? "Cancelled: the force complete that held this edit did not release it" : "Cancelled: the sales order save that held this edit did not finish", error_code: "GDE_HOLD_EXPIRED", error_message: reason, error_details: JSON.stringify({ step: "GD_EDIT_WORKER", why: reason }), lease_owner: null, lease_expires_at: null, next_attempt_at: null, finished_at: pick.dbNow, row_version: rv + 2 })],
       unlockRows: unlock, pickUnlockRows: pickUnlock, result_code: "GDE_HOLD_EXPIRED", result_message: reason, job_status: "CANCELLED" });
   }
   if (["QUEUED", "VALIDATING", "READY_TO_COMMIT"].indexOf(status) < 0) return Object.assign(base, { result_message: "job is " + status + ": not a worker state" });

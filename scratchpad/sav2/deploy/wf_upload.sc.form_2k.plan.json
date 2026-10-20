@@ -1,0 +1,16 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SC_FORM",
+   "kind": "form",
+   "dataId": "1970062686583369729",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Count/AsyncV2/SCform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/sav2/base/sc_form_v499.live_on.json",
+   "acceptDrift": [
+    "/config/allow_print_use"
+   ]
+  }
+ ]
+}

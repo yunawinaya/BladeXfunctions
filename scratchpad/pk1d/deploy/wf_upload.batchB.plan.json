@@ -1,0 +1,35 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    {
+      "name": "PICKING_FC_DRIVE",
+      "dataId": "2112471278794440706",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_FC_DRIVE.json"
+    },
+    {
+      "name": "PICKING_BULK_PREPARE",
+      "dataId": "2109531157594619905",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_BULK_PREPARE.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/PICKING_BULK_PREPARE.v10.json"
+    },
+    {
+      "name": "PICKING_BULK_COMMIT",
+      "dataId": "2109531367339180034",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_BULK_COMMIT.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/PICKING_BULK_COMMIT.v10.json"
+    },
+    {
+      "name": "PICKING_ASYNC_WORKER",
+      "dataId": "2109531412499251201",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_ASYNC_WORKER.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/PICKING_ASYNC_WORKER.v3.json"
+    },
+    {
+      "name": "PICKING_ASYNC_SUBMIT",
+      "dataId": "2109531449614647297",
+      "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_ASYNC_SUBMIT.json",
+      "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/base/PICKING_ASYNC_SUBMIT.v9.json"
+    }
+  ]
+}

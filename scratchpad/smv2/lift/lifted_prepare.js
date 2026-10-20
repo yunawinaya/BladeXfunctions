@@ -876,6 +876,46 @@ return {
 };
 
 } };
+// base/SM_LOCATION_TRANSFER.v82.json :: code_node_LOTqtyComplete
+__N["code_node_LOTqtyComplete"] = { decl: [["isIncomplete", "int"], ["incompleteLines", "array"], ["incompleteMessage", "string"]], fn: function () {
+const console = __QUIET;
+const lines = __v("node:code_node_yPlLXIZW.data.flatLines") || [];
+
+const hasValidBalance = (tempData) => {
+  if (!tempData) return false;
+  try {
+    const parsed = JSON.parse(tempData);
+    return Array.isArray(parsed) && parsed.some(
+      (entry) => entry.sm_quantity && parseFloat(entry.sm_quantity) > 0
+    );
+  } catch (e) {
+    return false;
+  }
+};
+
+// Every line that names an item has to be carrying stock by now: either the user
+// picked it, or auto-allocation filled it in. A line that still has none would
+// be saved as a movement of nothing.
+const incompleteLines = [];
+
+for (const line of lines) {
+  if (!line.item_selection) continue;
+  if (hasValidBalance(line.temp_qty_data)) continue;
+  incompleteLines.push(line.line_index);
+}
+
+const isIncomplete = incompleteLines.length > 0 ? 1 : 0;
+
+return {
+  isIncomplete: isIncomplete,
+  incompleteLines: incompleteLines,
+  incompleteMessage: isIncomplete
+    ? "No stock selected for line " + incompleteLines.join(", ") +
+      ". Select stock for every line before saving."
+    : ""
+};
+
+} };
 // lift/src/GLOBAL_ALLOCATION.v34.json :: code_node_ItemNorm
 __N["code_node_ItemNorm"] = { decl: [["itemFound", "int"], ["isBatchManaged", "int"], ["itemData", "any"]], fn: function () {
 const console = __QUIET;

@@ -7,7 +7,7 @@ const rawId = a && typeof a === "object" ? a.id : null;
 // an unsafe 19-digit NUMBER is not the stored id: no stored read (the classic's own writes would miss it too)
 const id = typeof rawId === "number" ? (Number.isSafeInteger(rawId) && rawId >= 0 ? String(rawId) : "") : String(rawId === undefined || rawId === null ? "" : rawId).trim();
 const digits = (v) => /^[0-9]{1,20}$/.test(v);
-const isBundleParent = (row) => Boolean(row.item_bundle_id && !row.parent_fm_key);
+const isBundleParent = (row) => Boolean(row.item_bundle_id && !row.parent_fm_key && !/^[1-9][0-9]*$/.test(String(row.parent_id == null ? "" : row.parent_id)));
 let payloadLines = 0;
 for (const row of Array.isArray(a.stock_movement) ? a.stock_movement : []) {
   if (!row || typeof row !== "object") continue;

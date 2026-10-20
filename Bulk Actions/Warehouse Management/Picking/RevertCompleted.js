@@ -56,6 +56,37 @@
         item.delivery_status !== "Partially Delivered",
     );
 
+    // Picking V2: a Picking force completed in the background reduced its deliveries; reverting it would leave them reduced
+    // under a reopened Picking (its latest job comes from PICKING_ASYNC_SUBMIT STATUS: the browser cannot read gd_async_job)
+    let statusOrg = this.getVarGlobal("deptParentId");
+    if (!statusOrg || statusOrg === "0") statusOrg = String(this.getVarSystem("deptIds") || "").split(",")[0];
+    const forceCompleted = [];
+    for (const item of validPickings) {
+      const job = await new Promise((resolve) => {
+        try {
+          this.runWorkflow(
+            "2109531449614647297",
+            { picking_id: String(item.id), organization_id: String(item.organization_id || statusOrg), operation: "STATUS" },
+            (res) => resolve((res && res.data) || null),
+            () => resolve(null),
+          );
+        } catch (e) {
+          resolve(null);
+        }
+      });
+      if (job && job.operation === "FORCE_COMPLETE" && job.job_status === "COMPLETED") forceCompleted.push(item);
+    }
+    if (forceCompleted.length > 0) {
+      this.$message.error(
+        `${forceCompleted.map((item) => item.to_id).join(", ")}: This Picking was force completed: its deliveries were reduced. Create a new delivery from the sales order for the rest.`,
+      );
+      for (const item of forceCompleted) validPickings.splice(validPickings.indexOf(item), 1);
+      if (validPickings.length === 0) {
+        this.hideLoading();
+        return;
+      }
+    }
+
     const pickingNumbers = validPickings.map((item) => item.to_id);
 
     await this.$confirm(

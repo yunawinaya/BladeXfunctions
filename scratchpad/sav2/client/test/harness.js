@@ -228,6 +228,29 @@ const shippedState = (code) => {
   return { on: sw[0] === "true", SUBMIT: sub[0] || "", WORKER: wrk[0] };
 };
 const IDS = readJSON(path.join(SAV2, "ids.json"));
+// Phase C: the SC base with the 2,000-line blocks applied as build_client.py does (its anchors, re-derived here): the reference
+// for call-for-call mounted traces; test_sc_2k.js checks the blocks themselves against the real base on a stateful form
+const SC2K = [
+  ['  setTimeout(async () => {\n    if (scStatus === "In Progress") {\n      const tableStockCount = await this.getValue("table_stock_count");\n\n' +
+   '      for (let index = 0; index < tableStockCount.length; index++) {\n        if (tableStockCount[index].line_status === "Approved") {',
+   '};\n\nconst showReview = async (scStatus, reviewStatus) => {', "sc2k_count_block.js"],
+  ['  setTimeout(async () => {\n    if (scStatus === "In Progress") {\n      const tableStockCount = await this.getValue("table_stock_count");\n\n' +
+   '      for (let index = 0; index < tableStockCount.length; index++) {\n        if (tableStockCount[index].line_status === "Pending") {',
+   '};\n\n(async () => {\n  let pageStatus = "";\n', "sc2k_review_block.js"],
+];
+const srcOf = (f) => fs.readFileSync(path.join(SAV2, "client/src", f), "utf8");
+const withSc2k = (doc) => {
+  const d = clone(doc);
+  const m = byName(d, "mounted");
+  for (const [start, end, file] of SC2K) {
+    const i = m.func.indexOf(start);
+    const j = m.func.indexOf(end);
+    if (i < 0 || j < i || m.func.indexOf(start, i + 1) >= 0 || m.func.indexOf(end, j + 1) >= 0) throw new Error("withSc2k: anchors of " + file);
+    m.func = m.func.slice(0, i) + srcOf(file) + m.func.slice(j);
+  }
+  byName(d, "onClick_syncAll").func = srcOf("scV2_onClick_syncAll.js");
+  return d;
+};
 const REAL = { SUBMIT: IDS.SA_V2_SUBMIT, WORKER: IDS.SA_V2_WORKER };
 
-module.exports = { ROOT, SAV2, FILES, IDS, REAL, OFF_IDS, readJSON, clone, findModel, byName, byKey, sourceOf, world, compile, makeThis, drain, click, check, done, same, replaceOnce, variant, shippedState };
+module.exports = { withSc2k, ROOT, SAV2, FILES, IDS, REAL, OFF_IDS, readJSON, clone, findModel, byName, byKey, sourceOf, world, compile, makeThis, drain, click, check, done, same, replaceOnce, variant, shippedState };

@@ -174,6 +174,7 @@ def gen_worker():
 
 SA_LOCK_JOIN = """LEFT JOIN stock_adjustment g
     ON g.tenant_id = j.tenant_id
+   AND g.is_deleted = 0
    AND j.correlation_id REGEXP '^SA\\\\|[0-9]{1,20}$'
    AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)
   LEFT JOIN gd_publish_step lk

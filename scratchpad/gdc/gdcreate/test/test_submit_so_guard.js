@@ -53,6 +53,7 @@ const run = (existing, others, confirmationHash) => {
       sql: {
         sql_node_GZBo7WZi: () => [Object.assign({ db_now: "2026-10-19 10:00:00" }, existing || {})],
         sql_node_GSsoBusy: (text) => { soSql = text; return others || []; },
+        sql_node_GSfit: () => [],
         sql_node_mhbRT14u: () => [{ id: existing ? existing.id : "7000", job_status: existing ? existing.job_status : "QUEUED", idempotency_key: REQ.idempotency_key, payload_hash: existing ? existing.payload_hash : "", gd_id: "", gd_no: "", is_deleted: 0, row_version: 0, progress_message: "" }],
       },
       read: {},

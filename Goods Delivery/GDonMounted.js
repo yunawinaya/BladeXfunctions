@@ -23,9 +23,10 @@ const showStatusHTML = (status) => {
 
 // A delivery saved in the background stays Processing (read-only) until its job ends; opening it re-kicks and follows the job.
 const GD_BG_WF = {
-  STATUS: "2110618741159940097", // GD_EDIT_SUBMIT (its STATUS covers edits and completions)
+  STATUS: "2110618741159940097", // GD_EDIT_SUBMIT (its STATUS covers edits, completions and cancels)
   EDIT_GD: "2110618789356687361", // GD_EDIT_WORKER
   COMPLETE_GD: "2110182645714518018", // GD_COMPLETE_WORKER
+  CANCEL_GD: "2112455700319932418", // GD_CANCEL_WORKER
 };
 const GD_BG_POLL_MS = 3000;
 const GD_BG_KICK_MS = 15000;
@@ -86,12 +87,16 @@ const followBackgroundSave = async (gdId, gdNo) => {
   for (;;) {
     if (s && s.job_id) {
       const st = s.job_status;
-      const completion = s.command === "COMPLETE_GD";
+      const [done, act] = {
+        COMPLETE_GD: ["completed", "completion"],
+        CANCEL_GD: ["cancelled", "cancellation"],
+      }[s.command] || ["saved", "save"];
       if (st === "COMPLETED") {
         this.$message.success(
           name +
-            (completion ? " has been completed." : " has been saved.") +
-            " Reopen it to see the result.",
+            " has been " +
+            done +
+            ". Reopen it to see the result.",
         );
         refreshList();
         return;
@@ -105,7 +110,7 @@ const followBackgroundSave = async (gdId, gdNo) => {
           reason +
             (/[.!?]$/.test(reason) ? "" : ".") +
             " Reopen it to continue.",
-          name + (completion ? " was not completed" : " was not saved"),
+          name + " was not " + done,
           "error",
         );
         return;
@@ -113,7 +118,7 @@ const followBackgroundSave = async (gdId, gdNo) => {
       if (st === "REQUIRES_REVIEW") {
         await alertBox(
           "It stopped part-way through its " +
-            (completion ? "completion" : "save") +
+            act +
             " and needs a review before it can be changed. Please contact support." +
             (s.error_message ? " (" + s.error_message + ")" : ""),
           name + " needs a review",
@@ -127,7 +132,7 @@ const followBackgroundSave = async (gdId, gdNo) => {
           this.$message.info(
             name +
               " is being " +
-              (completion ? "completed" : "saved") +
+              done +
               " in the background. It is read-only until that finishes.",
           );
         kickedAt = Date.now();

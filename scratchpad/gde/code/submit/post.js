@@ -18,8 +18,11 @@ const submitPost = function submitPost(guard, entry, gate, cl) {
   }
   if (s(gate.qtyStop)) return stop("400", gate.qtyStop);
   const key = "GDE|" + entry.gdId + "|" + entry.lockN;
+  // held for its caller: a Sales Order save (CASCADE) or a Picking force complete (PICKING_FC), released / cancelled by cascade_ref
+  const held = guard.source === "CASCADE" || guard.source === "PICKING_FC";
   const request = { v: 1, gd_id: entry.gdId, gd_no: entry.gdNo, source: guard.source, stored_status: entry.storedStatus, submitted_by: guard.uid, answers: guard.answers,
-    delta: gate.delta, picking_id: s(gate.pickingId), picking_version: "", hold: guard.source === "CASCADE" ? 1 : 0, cascade_ref: guard.source === "CASCADE" ? s(guard.cascadeRef) : "", notes: { pickingReversalNote: s(gate.pickingReversalNote), creditLimitNote: clNote } };
+    delta: gate.delta, picking_id: s(gate.pickingId), picking_version: "", hold: held ? 1 : 0, cascade_ref: held ? s(guard.cascadeRef) : "",
+    causation_job_id: s(guard.causationJobId), fcd_ref: s(guard.fcdRef), notes: { pickingReversalNote: s(gate.pickingReversalNote), creditLimitNote: clNote } };
   return answer("QUEUE", "200", "queued", {
     idemKey: key, notes: request.notes,
     lockRows: [{ job_id: "GDC|" + entry.gdId, organization_id: entry.organizationId, step_name: "LOCK|" + entry.lockN, step_status: "LOCK", attempt_count: 0, started_at: entry.dbNow, result_ref: key }],

@@ -18,6 +18,9 @@
 
 | 2026-10-19 22:30 | SA_V2_COMMIT | 2111074444748689410 | v4 → **v5** | job lease 10 → 30 MINUTE (one constant, `build_commit.py:146`): a COMMIT that outlives its lease can be taken over mid-APPLY and the engine RESUMEs alongside the live run (duplicate inserts) - raised by dd (IA V2), same change in IA V2 / GD Completed. Rollback = `~/Documents/ASC-dev/workflow-backups/dev/SA_V2_PREPARE/v4_20261019-213232.enabled.json` (folder named after the un-renamed shell; wf_upload's own backup is the empty v5 designing row) | commit tests 144 + interpreter + SQL pass; smoke SA_INVALID_DATA; IDENTICAL |
 
+| 2026-10-20 16:55 | SA_V2_WORKER | 2111074368689180673 | v3 → **v4** | job→SA join skips soft-deleted SAs (`AND g.is_deleted = 0` in SA_LOCK_JOIN; raised by dd). Backup `.../SA_V2_WORKER/v3_20261020T085542.enabled.json` | commit/worker suite + SQL checks; smoke IDLE; IDENTICAL |
+| 2026-10-20 16:55 | SC form (stock_count) | 1970062686583369729 | v499 → **v500** | Phase C, 2,000-line counts: mounted Stock Count / Review modes batched (2,002 / 2,287 per-line calls → 3 / 4); Sync = chunked `material_id in` reads with .limit(5000) + one table write (was 2,000-branch OR reads without a limit + ~13,600 row-path writes); loading mask hidden on empty / error. Backup `.../SC_FORM/v499_20261020T085548.enabled.json` | test_sc_2k 31/31 (stateful 2,000-line equivalence) + 480 client checks; IDENTICAL |
+
 **Ships ON to prod in the 10-20/21 full deployment** together with the engine COST-lock fix (INVENTORY_BULK_APPLY v10, TOKENS v5, SEED v5 — eb).
 Live V2 tests on dev 2026-10-16 21:47-21:58 (tenant 496474): twins T1 / T2 / T3 0 tables differ, F1 nothing moved, 2k SC Review
 RECONCILED (93 s worker time). Test data only (items SAV2T-*, STC/20261016/0011-0013, SA/20261016/0010-0017); no workflow / form change.

@@ -1,7 +1,8 @@
 // GD_EDIT_SUBMIT - Guard: operation, gd_id (digits), source (FORM: the form's allData; CASCADE: SO_CASCADE's payload or a
 // delta, + cascade_ref), the answers the classic save's prompts give (needCL, continueZero, confirmPickReversal), session
 // tenant + user; and the ids the edit brings (materials, SO lines, SOs) as digit lists, so every read covers the GD as stored
-// AND the edit. RELEASE / CANCEL_HELD: a Sales Order save's own held job on this GD, by its cascade_ref
+// AND the edit. RELEASE / CANCEL_HELD: a Sales Order save's own held job on this GD, by its cascade_ref.
+// PICKING_FC: a Picking force complete's planned changes, by reference (fcd_ref) under its job (causation_job_id, PKFC|<job>)
 const submitGuard = function submitGuard(inp) {
   const op = s(inp.operation).toUpperCase() || "SUBMIT";
   const gdId = s(inp.gdId);
@@ -11,7 +12,7 @@ const submitGuard = function submitGuard(inp) {
   const bad = (why) => answer("REJECT", "400", why, { operation: op, gdId: "0", tenantId: "0", source: source, cascadeRef: "", uid: "", answers: {}, idLists: {}, soIdsSql: "0" });
   if (["SUBMIT", "STATUS", "RELEASE", "CANCEL_HELD"].indexOf(op) < 0) return bad("operation must be SUBMIT, STATUS, RELEASE or CANCEL_HELD");
   if (!digits(gdId)) return bad("gd_id: digits only");
-  if (["FORM", "CASCADE"].indexOf(source) < 0) return bad("source must be FORM or CASCADE");
+  if (["FORM", "CASCADE", "PICKING_FC"].indexOf(source) < 0) return bad("source must be FORM, CASCADE or PICKING_FC");
   if (!digits(tenantId)) return bad("no session tenant");
   const parse = (v) => { if (typeof v !== "string") return v; try { return JSON.parse(v); } catch (e) { return null; } };
   let a = parse(inp.answers);
@@ -24,6 +25,13 @@ const submitGuard = function submitGuard(inp) {
   if (op === "SUBMIT" && source === "FORM" && !hasForm) return bad("the form's data was not sent");
   if (op === "SUBMIT" && source === "CASCADE" && !hasForm && !hasDelta) return bad("the edit (its payload or a delta) was not sent");
   if (op === "SUBMIT" && source === "CASCADE" && !cascadeRef) return bad("cascade_ref is required for a cascade submit");
+  const fcdRef = s(inp.fcdRef), causationJobId = s(inp.causationJobId), pickingId = s(inp.pickingId);
+  if (op === "SUBMIT" && source === "PICKING_FC") {
+    if (!/^FCD\|[0-9a-z]{8}\|[0-9]{1,2}$/.test(fcdRef)) return bad("fcd_ref: FCD|<8 letters or digits>|<delivery number> is required for a force complete");
+    if (!/^PKFC\|[0-9]{1,20}$/.test(cascadeRef)) return bad("cascade_ref: PKFC|<job id> is required for a force complete");
+    if (!digits(causationJobId) || cascadeRef !== "PKFC|" + causationJobId) return bad("causation_job_id: the force complete's job id (digits, as in its cascade_ref)");
+    if (!digits(pickingId)) return bad("picking_id: digits only");
+  }
   // the ids of the edit: every line the payload holds (or the delta adds / changes)
   const useForm = source === "FORM" || hasForm;
   const rows = useForm ? (hasForm ? form.table_gd : []).flatMap((r) => [r].concat(r.children || []))
@@ -36,6 +44,7 @@ const submitGuard = function submitGuard(inp) {
   const soLines = ids("so_line_item_id");
   return answer("CONTINUE", "", "", {
     soIdsSql: sql([...soIds]),
+    fcdRef: source === "PICKING_FC" ? fcdRef : "", causationJobId: source === "PICKING_FC" ? causationJobId : "", pickingId: source === "PICKING_FC" ? pickingId : "",
     operation: op, gdId: gdId, tenantId: tenantId, source: source, cascadeRef: cascadeRef, uid: s(inp.uid), answers: { needCL: s(a.needCL) || "required", continueZero: s(a.continueZero), confirmPickReversal: s(a.confirmPickReversal) },
     idLists: Object.assign({ deltaMaterialIdsSql: sql(ids("material_id")), deltaSoLineIdsSql: sql(soLines), deltaSoLineIdsQuoted: soLines.length ? soLines.map((x) => "'" + x + "'").join(",") : "'0'", deltaSoIdsSql: sql([...soIds]) },
       useForm ? geAllocIds(rows, []) : geAllocIds((delta || {}).added, (delta || {}).lines)),

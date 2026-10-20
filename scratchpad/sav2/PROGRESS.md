@@ -216,3 +216,31 @@ Nothing published, nothing written to any DB. Only local files in `scratchpad/sa
   workflow status". → the STOCK_COUNT guard must refuse via an END node (code 400 + msg → envelope {code 400, success
   false, data null, msg}), not a return node. Check the web SC handlers read that envelope too. Owe them the Phase C
   hand-off (whole-SC save, NULLed item_list / stock_count_no_type, object pageStatus).
+
+## 2026-10-20 (Tue; user via af: "no deferring to after the cut - build it now")
+- BUILT, NOT PUBLISHED (need the user's yes; dev gateway https://dev.mes.sudu.ai/api answered 404 to everything at ~the end):
+  1. SA_V2_WORKER: SA_LOCK_JOIN `AND g.is_deleted = 0` (build_worker.py); 8 SQL strings differ; commit/worker suite + SQL checks pass.
+     Plan `deploy/wf_upload.sa.worker_isdeleted.plan.json` (base `base/sa_v2_worker_v3.live.json` = live v3; dry-run passed before the 404).
+  2. Phase C, SC form (stock_count): mounted Stock Count mode (2,002 per-line awaited calls -> 3) and Review mode (2,287 -> 4) batched
+     (`client/src/sc2k_count_block.js`, `sc2k_review_block.js`); Sync (`client/src/scV2_onClick_syncAll.js`): chunked `material_id in`
+     reads (100 / chunk) with .limit(5000) + per-material re-read when capped + is_deleted 0, ONE table write (was ~13,600 row paths +
+     ~1,950 onAdjustedQtyChange runs) with that handler's text applied, loading mask hidden on empty / error. Builder wired
+     (replace_between anchors, expected paths +4gcydh2s, mirror scV2_onClick_syncAll.js). Tests: NEW test_sc_2k.js 31/31 (stateful
+     2,000-line form: same final table as base v497 in every mode, Sync under both whole-table onChange behaviours, capped chunk,
+     deleted rows), SC form 55/55 (traces vs base + 2k blocks), JSON integrity 189/189, SA 196, lists 28, shipped 12 (check_fallthrough
+     now runs test_sc_2k too). Plan `deploy/wf_upload.sc.form_2k.plan.json` (base `base/sc_form_v499.live_on.json` = live v499).
+     Findings: base Sync had no .limit (server default unknown); base count mode set count_qty flags by index BEFORE removing
+     Approved lines (204 of 2,000 remaining lines locked under a path-keyed flag model).
+  Restore if declined: `<SP>/wrkdel/{build_worker.py.orig,SA_V2_WORKER.v3_live.json,build_client.py.orig}`, `<SP>/sc2k_backup/SC/*`.
+- Not built (decision): alt-UOM In costing fix (classic + V2 behaviour change; 0 prod exposure) - the user's call.
+- 16:55 PUBLISHED (user yes): SA_V2_WORKER v4 (smoke IDLE) + SC form v500; both IDENTICAL; read-only STATUS OK. Dev outage 16:52-16:53
+  was not ours (only read-only calls; told af). Open: the user's browser pass (SC 2k form: needs a fresh 2k count in Stock Count /
+  Review state - the two extra counts still wait on a yes), alt-UOM decision, post-cut prod checks, engine run-marker re-test.
+- 10-20 ~17:00 (user yes): browser-pass count STC/20261020/0014 (2112468434926305281) on 496474 plant 1942795438353035266 - 2,000 lines
+  counted, all with variance, Completed / To Be Reviewed (issue 7.4 s, count save 10.4 s on slowed dev). Its Review → V2 (2,000
+  movements, ~1,157 SA lines; engine PLAN OK today). Stock Count mode's batched block needs an In Progress count (partly counted) - not made.
+- 10-20 (user yes): COMMIT renamed SA_V2_PREPARE → SA_V2_COMMIT (dbw on su_code_workflow.name, 1 row; ids.json note updated).
+  Alt-UOM costing: NOT a product bug - form lines always carry the base unit (only onChange_itemSelection sets uom_id, to based_uom;
+  the column is disabled; onConfirm_item_balance converts dialog quantities back to the line unit) and price = per-base purchase
+  price. Only kit-built / imported documents can carry an alternate unit. No fix built (would guess at an undefined meaning);
+  README corrected.

@@ -32,6 +32,18 @@ FIX_OLD = """for (const sm of subformData) {
   if (sm.total_quantity !== sm.requested_qty) {"""
 FIX_NEW = """for (const sm of subFormData) {
   if (Math.abs((parseFloat(sm.total_quantity) || 0) - (parseFloat(sm.requested_qty) || 0)) > 1e-9) {"""
+# user-approved (10-20): a STORED bundle child (the Cancel re-reads the stored doc) has parent_id but no parent_fm_key, so
+# isBundleParent dropped it from flatLines and its In Transit stock was never moved back. A row with a real parent id (digits,
+# not 0) is never a bundle parent. Client payloads carry parent_fm_key on children and no parent_id on parents: unchanged.
+REAL_PARENT = '!/^[1-9][0-9]*$/.test(String(row.parent_id == null ? "" : row.parent_id))'
+BUNDLE_NOTE = "// A stored child (the Cancel re-reads the stored doc) has a parent_id but no parent_fm_key.\n"
+FIXES = [
+    (FIXED_NODE, FIX_OLD, FIX_NEW),
+    ("code_node_yPlLXIZW", "const isBundleParent = (row) =>\n  Boolean(row.item_bundle_id && !row.parent_fm_key)\n",
+     BUNDLE_NOTE + "const isBundleParent = (row) =>\n  Boolean(row.item_bundle_id && !row.parent_fm_key && " + REAL_PARENT + ")\n"),
+    ("code_node_LOTallocPrep", "const isBundleParent = (row) =>\n  Boolean(row.item_bundle_id && !row.parent_fm_key);\n",
+     BUNDLE_NOTE + "const isBundleParent = (row) =>\n  Boolean(row.item_bundle_id && !row.parent_fm_key && " + REAL_PARENT + ");\n"),
+]
 
 
 def text(name):
@@ -146,9 +158,12 @@ def build():
     ]
     doc = copy.deepcopy(base)
     doc["nodes"] = doc["nodes"][:1] + nodes + doc["nodes"][1:]
-    fixed = index(doc)[FIXED_NODE]["data"]["script"]
-    assert fixed["code"].count(FIX_OLD) == 1 and "subformData" not in fixed["code"].replace(FIX_OLD, ""), FIXED_NODE + ": v82 body not as expected"
-    fixed["code"] = fixed["code"].replace(FIX_OLD, FIX_NEW)
+    at = index(doc)
+    for nid, old_text, new_text in FIXES:
+        fixed = at[nid]["data"]["script"]
+        assert fixed["code"].count(old_text) == 1, nid + ": v82 body not as expected"
+        fixed["code"] = fixed["code"].replace(old_text, new_text)
+    assert "subformData" not in at[FIXED_NODE]["data"]["script"]["code"]
     got = index(doc)
     assert sorted(set(got) - set(old)) == sorted(GUARD_IDS), sorted(set(got) - set(old))
     return doc

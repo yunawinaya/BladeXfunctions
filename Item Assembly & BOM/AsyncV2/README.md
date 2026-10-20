@@ -1,5 +1,11 @@
 # Item Assembly V2: background completion and revert
 
+> **Since 2026-10-20 dev runs the Small Cycle versions** (`Item Assembly & BOM/SmallCycle/`, built by `scratchpad/iasc/`):
+> IA_SAVE v13, IA_V2_SUBMIT v4 and the IA form v38. `IA_SAVE.json`, `IA_V2_SUBMIT.json` and `IAform.json` here are their bases
+> (v12 / v3 / v36): **never publish them again**, it would remove Small Cycle. To change one, change the base here, re-run
+> `scratchpad/iasc` (`classic/patch_v13.py`, `submit/patch_v4.py` or `client/build_client_sc.py`; each pins its base md5, so
+> update the pin) and publish the SmallCycle output. The other IA V2 files here are unchanged and still live.
+
 Big Item Assemblies complete in the background on the shared engine INVENTORY_BULK_APPLY instead of the classic IA_SAVE's one
 synchronous request (more than 50 stock picks), and big Completed IAs are reverted to Draft in the background from the list's
 "Revert Completed" (more than 50 live stock rows). The classics stay for small IAs, Draft saves, handling-unit / serial IAs and

@@ -1,9 +1,8 @@
-"""Node-level proof: the guarded classic = base v82 + the guard nodes + code_node_OHjnEcVJ's two-line body fix, nothing else.
+"""Node-level proof: the guarded classic = base v82 + the guard nodes + the exact-text body fixes of build_classic.FIXES, nothing else.
 usage: python3 classic/diff_v82.py [<guarded JSON>]   (default: Stock Movement/Location Transfer/AsyncV2/SM_LOCATION_TRANSFER.json)
-Checks: request_json / response_json / config / edges identical; every v82 node present with byte-identical JSON (data + blocks)
-except code_node_OHjnEcVJ, whose only difference is build_classic.FIX_OLD -> FIX_NEW in data.script.code; the only new ids are
-build_classic.GUARD_IDS; the top-level order = start, the 3 guard nodes, then v82's top-level nodes in order; removing the 3
-top-level guard nodes and reverting the fix gives v82 exactly."""
+Checks: request_json / response_json / config / edges identical; with every fix reverted, every v82 node is byte-identical; each
+fixed node differs from v82 only by its old -> new text in data.script.code; the only new ids are build_classic.GUARD_IDS; the top
+level = start, the 3 guard nodes, then v82's top-level nodes in order; removing the guard nodes and reverting the fixes gives v82."""
 import copy
 import difflib
 import hashlib
@@ -29,24 +28,27 @@ for k in ("request_json", "response_json", "config", "edges"):
 if set(out) != set(base):
     problems.append("top-level keys differ: %s" % sorted(set(out) ^ set(base)))
 bi, oi = B.index(base), B.index(out)
-# raw comparison: OHjnEcVJ and the containers that hold it differ; with its code reverted every v82 node must be identical
 changed = sorted(nid for nid, n in bi.items() if nid in oi and canon(n) != canon(oi[nid]))
-rev = copy.deepcopy(out)
-ri = B.index(rev)
-ri[B.FIXED_NODE]["data"]["script"]["code"] = ri[B.FIXED_NODE]["data"]["script"]["code"].replace(B.FIX_NEW, B.FIX_OLD)
+
+
+def reverted(doc):
+    r = copy.deepcopy(doc)
+    ri = B.index(r)
+    for nid, old_text, new_text in B.FIXES:
+        ri[nid]["data"]["script"]["code"] = ri[nid]["data"]["script"]["code"].replace(new_text, old_text)
+    return r, ri
+
+
+rev, ri = reverted(out)
 for nid, n in bi.items():
     if nid not in ri:
         problems.append("v82 node missing: " + nid)
     elif canon(n) != canon(ri[nid]):
-        problems.append("v82 node changed beyond the fix: " + nid)
-old_code = bi[B.FIXED_NODE]["data"]["script"]["code"]
-new_code = oi[B.FIXED_NODE]["data"]["script"]["code"]
-if new_code != old_code.replace(B.FIX_OLD, B.FIX_NEW) or old_code.count(B.FIX_OLD) != 1:
-    problems.append(B.FIXED_NODE + ": the code is not v82's with exactly FIX_OLD -> FIX_NEW")
-reverted = copy.deepcopy(oi[B.FIXED_NODE])
-reverted["data"]["script"]["code"] = new_code.replace(B.FIX_NEW, B.FIX_OLD)
-if canon(reverted) != canon(bi[B.FIXED_NODE]):
-    problems.append(B.FIXED_NODE + ": differs from v82 outside its code")
+        problems.append("v82 node changed beyond the fixes: " + nid)
+for nid, old_text, new_text in B.FIXES:
+    old_code, new_code = bi[nid]["data"]["script"]["code"], oi[nid]["data"]["script"]["code"]
+    if old_code.count(old_text) != 1 or new_code != old_code.replace(old_text, new_text):
+        problems.append(nid + ": the code is not v82's with exactly its fix applied")
 new = sorted(set(oi) - set(bi))
 if new != sorted(B.GUARD_IDS):
     problems.append("new ids are not exactly the guard: %s" % new)
@@ -54,19 +56,20 @@ top_out = [n["id"] for n in out["nodes"]]
 top_base = [n["id"] for n in base["nodes"]]
 if top_out != top_base[:1] + B.TOP_IDS + top_base[1:]:
     problems.append("top-level order: %s" % top_out[:6])
-stripped = copy.deepcopy(dict(out, nodes=[n for n in out["nodes"] if n["id"] not in B.TOP_IDS]))
-B.index(stripped)[B.FIXED_NODE]["data"]["script"]["code"] = new_code.replace(B.FIX_NEW, B.FIX_OLD)
+stripped, _ = reverted(dict(out, nodes=[n for n in out["nodes"] if n["id"] not in B.TOP_IDS]))
 same = canon(stripped) == canon(base)
 if not same:
-    problems.append("output minus the guard nodes (fix reverted) != v82")
-print("v82 nodes (any type with a string id): %d; byte-identical: %d; differing only through %s's code: %s" % (len(bi), len(bi) - len(changed), B.FIXED_NODE,
+    problems.append("output minus the guard nodes (fixes reverted) != v82")
+fixed = [f[0] for f in B.FIXES]
+print("v82 nodes (any type with a string id): %d; byte-identical: %d; differing (fixed nodes + their containers): %s" % (len(bi), len(bi) - len(changed),
       ", ".join(changed) or "none"))
-print("with %s's two lines reverted, all %d v82 nodes identical: %s" % (B.FIXED_NODE, len(bi), not any(p.startswith("v82 node") for p in problems)))
-print("%s code diff:" % B.FIXED_NODE)
-for line in difflib.unified_diff(old_code.split("\n"), new_code.split("\n"), "v82", "guarded", n=0, lineterm=""):
-    print("   " + line)
+print("with the fixes of %s reverted, all %d v82 nodes identical: %s" % (", ".join(fixed), len(bi), not any(p.startswith("v82 node") for p in problems)))
+for nid in fixed:
+    print("%s code diff:" % nid)
+    for line in difflib.unified_diff(bi[nid]["data"]["script"]["code"].split("\n"), oi[nid]["data"]["script"]["code"].split("\n"), "v82", "guarded", n=0, lineterm=""):
+        print("   " + line)
 print("new nodes: %d -> %s" % (len(new), ", ".join(new)))
 print("top level: %s ... (%d nodes; v82 had %d)" % (" > ".join(top_out[:6]), len(top_out), len(top_base)))
-print("output minus the 3 top-level guard nodes, OHjnEcVJ fix reverted == v82 (canonical JSON): %s" % ("YES" if same else "NO"))
+print("output minus the 3 top-level guard nodes, fixes reverted == v82 (canonical JSON): %s" % ("YES" if same else "NO"))
 print("PROBLEMS: %d" % len(problems) + ("" if not problems else "\n  " + "\n  ".join(problems)))
 sys.exit(1 if problems else 0)

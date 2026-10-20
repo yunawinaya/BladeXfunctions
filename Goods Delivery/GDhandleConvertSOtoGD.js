@@ -5,6 +5,9 @@
 
 const CONVERT_GD_CREATED_WORKFLOW_ID = "2076557490389835777";
 const CONVERT_GD_DRAFT_WORKFLOW_ID = "1985267806223810561";
+// Switch: true = SO_AUTO_GD sends the deliveries the GD form's V2 rules accept to GD Created V2; false = all classic
+const CONVERT_CREATED_V2 = true;
+const GD_ASYNC_WORKER_ID = "2104840667119411201";
 
 // Org-scoped like GDheadWorkflow: a plant-scoped read is empty for plants with no row of
 // their own, which would read as "no picking setup".
@@ -92,7 +95,7 @@ const handleConvertGDDraft = async (
   );
 };
 
-const buildCreatedSummary = (created, blocked) => {
+const buildCreatedSummary = (created, blocked, pending = []) => {
   const sections = [];
 
   if (created.length > 0) {
@@ -107,6 +110,14 @@ const buildCreatedSummary = (created, blocked) => {
             )})</span>`,
         )
         .join("<br>")}`,
+    );
+  }
+
+  if (pending.length > 0) {
+    sections.push(
+      `<strong>Being created in the background (${pending.length}):</strong><br>${pending
+        .map((item) => escapeHTML(item.so_no))
+        .join("<br>")}<br>They appear in the Goods Delivery list when done.`,
     );
   }
 
@@ -166,6 +177,7 @@ const runConvertBatch = (soIds, plantID, organizationID, convertType) =>
           plant_id: plantID,
           organization_id: organizationID,
           created_by: this.getVarGlobal("nickname"),
+          v2: CONVERT_CREATED_V2 ? "1" : "",
         },
         (res) => resolve({ ok: true, result: res?.data || {} }),
         (err) => resolve({ ok: false, error: err }),
@@ -174,6 +186,97 @@ const runConvertBatch = (soIds, plantID, organizationID, convertType) =>
       resolve({ ok: false, error });
     }
   });
+
+// GD Created V2: the list follows the queued deliveries for at most this long, then reports the rest as in the background
+const FOLLOW_MS = 120000;
+const FOLLOW_EVERY_MS = 3000;
+const CREATED_STATES = ["GD_COMMITTED", "CREATING_PICKING", "PICKING_RETRYING", "PICKING_READY", "COMPLETED"];
+
+const kickWorker = (jobId) => {
+  try {
+    this.runWorkflow(
+      GD_ASYNC_WORKER_ID,
+      { job_id: jobId },
+      () => {},
+      (err) => console.error("GD V2 worker for job " + jobId + ":", err),
+    );
+  } catch (error) {
+    console.error("GD V2 worker could not be started:", error);
+  }
+};
+
+const readJobs = (jobIds) =>
+  new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        SO_CONVERT_CHECK_WORKFLOW_ID,
+        { job_ids: jobIds },
+        (res) => {
+          let jobs = null;
+          try {
+            jobs = JSON.parse((res && res.data && res.data.jobs_json) || "[]");
+          } catch (error) {
+            jobs = null;
+          }
+          resolve(Array.isArray(jobs) ? jobs : null);
+        },
+        (err) => {
+          console.error("Job check failed:", err);
+          resolve(null);
+        },
+      );
+    } catch (error) {
+      console.error("Job check could not run:", error);
+      resolve(null);
+    }
+  });
+
+// Starts the worker for each queued delivery, then moves each one to created / blocked as its job ends; returns the rest
+const followBackground = async (queued, created, blocked) => {
+  let pending = queued.slice();
+  pending.forEach((item) => kickWorker(item.job_id));
+  const started = Date.now();
+  let round = 0;
+  while (pending.length > 0 && Date.now() - started < FOLLOW_MS) {
+    this.hideLoading();
+    this.showLoading(
+      `Creating goods deliveries in the background: ${queued.length - pending.length} of ${queued.length} done...`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, FOLLOW_EVERY_MS));
+    const jobs = await readJobs(pending.map((item) => item.job_id));
+    if (!jobs) continue;
+    const byId = {};
+    jobs.forEach((job) => {
+      byId[String(job.job_id)] = job;
+    });
+    const still = [];
+    for (const item of pending) {
+      const job = byId[String(item.job_id)];
+      const status = job ? job.job_status : "";
+      if (CREATED_STATES.indexOf(status) >= 0) {
+        created.push({ so_no: item.so_no, delivery_no: job.gd_no || item.gd_no || "" });
+      } else if (status === "FAILED" || status === "CANCELLED") {
+        blocked.push({ so_no: item.so_no, reason: job.error_message || "The goods delivery could not be created." });
+      } else if (status === "REQUIRES_REVIEW") {
+        blocked.push({
+          so_no: item.so_no,
+          reason: `Held for review by an administrator${job.error_message ? ": " + job.error_message : "."} Do not convert it again.`,
+        });
+      } else if (status === "AWAITING_CONFIRMATION") {
+        blocked.push({
+          so_no: item.so_no,
+          reason: "Conditions changed while it was being saved and a confirmation is needed. Convert it through the Convert form.",
+        });
+      } else {
+        still.push(item);
+      }
+    }
+    pending = still;
+    // a worker run that ended before its job did (stock locks held by another save) is started again
+    if (++round % 5 === 0) pending.forEach((item) => kickWorker(item.job_id));
+  }
+  return pending;
+};
 
 const handleConvertGDCreated = async (
   selectedRecords,
@@ -195,6 +298,8 @@ const handleConvertGDCreated = async (
   const total = selectedRecords.length;
   const created = [];
   const blocked = [];
+  const queued = [];
+  let pending = [];
   let setupMessage = "";
 
   try {
@@ -230,18 +335,25 @@ const handleConvertGDCreated = async (
       const result = reply.result;
       const batchCreated = result.created || [];
       const batchBlocked = result.blocked || [];
+      const batchQueued = result.queued || [];
       created.push(...batchCreated);
       blocked.push(...batchBlocked);
+      queued.push(...batchQueued);
 
       // A setup gate (picking setup, picking mode) refuses every batch alike: stop at the first.
       if (
         batchCreated.length === 0 &&
         batchBlocked.length === 0 &&
+        batchQueued.length === 0 &&
         String(result.code) !== "200"
       ) {
         setupMessage = result.message || "";
         break;
       }
+    }
+
+    if (queued.length > 0) {
+      pending = await followBackground(queued, created, blocked);
     }
   } finally {
     this.hideLoading();
@@ -249,7 +361,7 @@ const handleConvertGDCreated = async (
   }
 
   // Per-SO reasons first: the server message carries real text only when a setup gate fired.
-  if (created.length === 0) {
+  if (created.length === 0 && pending.length === 0) {
     await this.$alert(
       blocked.length > 0
         ? blocked
@@ -273,7 +385,7 @@ const handleConvertGDCreated = async (
 
   await this.refresh();
   await this.$alert(
-    buildCreatedSummary(created, blocked),
+    buildCreatedSummary(created, blocked, pending),
     blocked.length > 0
       ? "Converted with Exceptions"
       : "Converted to Goods Deliveries",

@@ -6,6 +6,8 @@ const H = require("./harness");
 const { check, same, replaceOnce } = H;
 
 const BASE = H.readJSON(H.FILES.scFormBase);
+// mounted is compared call for call with the base + the Phase C 2,000-line blocks (test_sc_2k.js: those blocks vs the real base)
+const BASE2K = H.withSc2k(BASE);
 const BUILT = H.readJSON(H.FILES.scForm);
 const SUBMIT = "9001";
 const WORKER = "9002";
@@ -184,11 +186,11 @@ const QUEUED = { route: "QUEUED", code: "200", job_id: "J1", job_status: "QUEUED
   const mountCases = [["Edit review", { isEdit: true }, { is_review: "1" }], ["Edit stock count", { isEdit: true }, { is_stock_count: "1" }], ["Edit", { isEdit: true }, {}], ["View", { isView: true }, {}], ["Add", { isAdd: true }, {}]];
   for (const [what, flags, params] of mountCases) {
     const v = scRecord(lines(5));
-    const a = await mount(BASE, v, flags, { params: params, script: { processing: true } });
+    const a = await mount(BASE2K, v, flags, { params: params, script: { processing: true } });
     const b = await mount(OFFDOC, v, flags, { params: params, script: { processing: true } });
     check("mounted OFF " + what + " (a Processing SA exists): identical to base, no read", same(a, b) && !b.some((t) => t[0] === "db.get" || t[0] === "runWorkflow"), { a: a.length, b: b.length });
     // the shipped switch ON, no Processing SA for this count: the base mounted plus one Stock Adjustment read (none on Add)
-    const a2 = await mount(BASE, v, flags, { params: params, script: { processing: false } });
+    const a2 = await mount(BASE2K, v, flags, { params: params, script: { processing: false } });
     const c = await mount(BUILT, v, flags, { params: params, script: { processing: false } });
     const reads = c.filter((x) => x[0] === "db.get");
     check("mounted shipped " + what + " (no Processing SA): the base + " + (what === "Add" ? "nothing" : "one read"), same(c.filter((x) => x[0] !== "db.get" && !(x[0] === "getValue" && x[1] === "id")), a2) &&

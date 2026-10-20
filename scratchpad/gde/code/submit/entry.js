@@ -15,6 +15,9 @@ const submitEntry = function submitEntry(guard, factRows) {
   const job = (j) => (j ? { command: s(j.command), jobId: s(j.id), jobStatus: s(j.job_status), progressPercent: num(j.progress_percent), progressMessage: s(j.progress_message), errorCode: s(j.error_code), errorMessage: s(j.error_message), notes: j.notes && typeof j.notes === "object" ? j.notes : parse(j.notes) || {}, cascadeRef: s(j.cascade_ref) } : {});
   if (guard.operation === "STATUS") return Object.assign(base, job(lockJob), answer("STATUS", "200", lockJob ? s(lockJob.progress_message) : "no job"));
   if (!s(f.gd_id)) return Object.assign(base, answer("STOP", "400", "Goods Delivery not found"));
+  // a Picking force complete edits under its own open job: that job and its Picking's lock are not "busy" for it
+  const fcJob = guard.source === "PICKING_FC" ? openPicks.filter((r) => s(r.id) === s(guard.causationJobId))[0] : null;
+  if (guard.source === "PICKING_FC" && !fcJob) return Object.assign(base, answer("STOP", "409", "The force complete (job " + s(guard.causationJobId) + ") that asked for this edit is no longer open."));
   const status = s(f.gd_status);
   if (status === "Processing") return Object.assign(base, job(lockJob), answer("BUSY", "409", "This delivery is being processed - please wait for it to finish."));
   const blocking = open[0];
@@ -30,9 +33,9 @@ const submitEntry = function submitEntry(guard, factRows) {
       ? "A background save of a delivery for " + so + " stopped half-way and is under review (job " + soJob[1] + "): please contact support before delivering it again."
       : "A delivery for " + so + " is still being saved in the background (job " + soJob[1] + ", " + soJob[0] + "). Wait for it to finish - it then appears in the Goods Delivery list - before saving another delivery for it."));
   }
-  const held = picks.filter((p) => num(p.is_processing) === 1 && num(p.lock_age_sec) <= PICK_LOCK_STALE_SEC)[0];
+  const held = picks.filter((p) => num(p.is_processing) === 1 && num(p.lock_age_sec) <= PICK_LOCK_STALE_SEC && !(fcJob && s(p.id) === s(fcJob.picking_id)))[0];
   if (held) return Object.assign(base, answer("BUSY", "409", "Picking " + s(held.to_id) + " is being processed on a device right now. Try again in a moment."));
-  if (openPicks.length) return Object.assign(base, answer("BUSY", "409", "Its Picking is being confirmed in the background - please wait for it to finish."));
+  if (openPicks.filter((r) => !fcJob || s(r.id) !== s(fcJob.id)).length) return Object.assign(base, answer("BUSY", "409", "Its Picking is being confirmed in the background - please wait for it to finish."));
   if (status !== "Created" && status !== "Draft") return Object.assign(base, answer("STOP", "400", "Goods Delivery is " + (status || "without a status") + ": only a Created or Draft delivery can be saved as Created"));
   if (!digits(f.organization_id)) return Object.assign(base, answer("STOP", "400", "Goods Delivery has no organization"));
   const m = s(f.last_lock).match(/^LOCK\|([0-9]+)$/);

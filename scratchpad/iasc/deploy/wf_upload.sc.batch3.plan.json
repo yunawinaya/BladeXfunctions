@@ -1,0 +1,45 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SO_IA_PROJECTION",
+   "dataId": "2112448183267332097",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/SO_IA_PROJECTION.json",
+   "smoke": {
+    "request": {
+     "operation": "SUMMARY",
+     "so_id": "",
+     "so_line_id": "1",
+     "item_id": "1",
+     "exclude_ia_id": "",
+     "organization_id": "1",
+     "proposal_qty": "",
+     "proposal_uom_id": "",
+     "baseline": ""
+    },
+    "expect": {
+     "key": "code",
+     "equals": "200"
+    }
+   }
+  },
+  {
+   "name": "IA_SC_RELINK",
+   "dataId": "2112448260018900994",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SC_RELINK.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "so_line_id": "1",
+     "item_id": "1",
+     "organization_id": "1"
+    },
+    "expect": {
+     "key": "code",
+     "equals": "400"
+    }
+   }
+  }
+ ]
+}

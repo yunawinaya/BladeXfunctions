@@ -52,8 +52,11 @@ const lotAllocScope = function lotAllocScope(rawLines, scope) {
 // LOTallocParams the tracker entry of its row's material, LOTallocResult its own line alone (at index 0) and an empty tracker -
 // the line and the line's bucket go back in place. -> { route: NONE | DONE | STOP | SCOPE, lines (the cache get_cache_node_LOTallocOut
 // hands yPlLXIZW), done (the flat indexes allocated, in order), message, row, line }. SCOPE: a row whose item / plant the reads did
-// not cover (where = the stored plant and organization the balances were read at)
-const lotAllocLoop = function lotAllocLoop(A, scope, where) {
+// not cover (where = the stored plant and organization the balances were read at). storedPicks (COMPLETE / EDIT): { <line id>:
+// its STORED entries } - those picks already left their bins (In Transit / at the target), so for that row's call only they are
+// added back onto copies of the matching Unrestricted balance rows (material | bin | batch, base uom); the reconcile then moves
+// just the delta
+const lotAllocLoop = function lotAllocLoop(A, scope, where, storedPicks) {
   const s = lotS;
   const prep = __run("code_node_LOTallocPrep");
   const rows = lotList(prep.rowsNeedingAllocation);
@@ -70,6 +73,24 @@ const lotAllocLoop = function lotAllocLoop(A, scope, where) {
   const ibb = byMat(A.batchBalances);
   const tracker = {};
   const done = [];
+  const backOf = (mat, line) => {
+    const ents = storedPicks && line ? storedPicks[s(line.id)] : null;
+    if (!Array.isArray(ents) || !ents.length) return null;
+    const conv = lotJsonList((items[mat] || {}).uom_conversion_json);
+    const add = {};
+    for (const e of ents) {
+      const q = lotQ8(e && e.sm_quantity);
+      if (q <= 0 || s(e.material_id || mat) !== mat || lotCategory(s(e.category) || "Unrestricted") !== "Unrestricted" || s(e.handling_unit_id)) continue;
+      const c = conv.filter((x) => x && s(x.alt_uom_id) === s(e.material_uom))[0];
+      const k = s(e.location_id) + "|" + (lotIdStr(e.batch_id) || "");
+      add[k] = lotQ8((add[k] || 0) + q * (c && parseFloat(c.base_qty) ? parseFloat(c.base_qty) : 1));
+    }
+    return Object.keys(add).length ? add : null;
+  };
+  const withBack = (rows, add) => (add ? lotList(rows).map((r) => {
+    const k = s(r.location_id) + "|" + (lotIdStr(r.batch_id) || "");
+    return add[k] ? Object.assign({}, r, { unrestricted_qty: lotQ8((parseFloat(r.unrestricted_qty) || 0) + add[k]) }) : r;
+  }) : rows || []);
   const loopCtx = { "workflowparams:allData": { id: __v("workflowparams:allData.id") } };
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i];
@@ -85,8 +106,9 @@ const lotAllocLoop = function lotAllocLoop(A, scope, where) {
       // workflow_node_LOTallocRun: the params as the callee receives them (a JSON text declared string arrives parsed)
       const p = {};
       for (const k of Object.keys(P)) p[k] = typeof P[k] === "string" && /^[[{]/.test(P[k]) ? lotParseJ(P[k]) : P[k];
-      const ga = geGlobalAllocation(p, { items: items[mat] ? [items[mat]] : [], itemBalances: ib[mat] || [], batchBalances: ibb[mat] || [], pending: [], huAllocated: [],
-        ownReserved: [] });
+      const add = backOf(mat, lines[row.lineIndex]);
+      const ga = geGlobalAllocation(p, { items: items[mat] ? [items[mat]] : [], itemBalances: withBack(ib[mat], add), batchBalances: withBack(ibb[mat], add), pending: [],
+        huAllocated: [], ownReserved: [] });
       __set("node:workflow_node_LOTallocRun", { data: ga });
       // if_LOTallocErr -> return_node_LOTallocErr
       if (s(ga.code) === "400") return { stop: s(ga.message) };

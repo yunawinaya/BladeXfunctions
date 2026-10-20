@@ -31,9 +31,11 @@ const prepareReady = function prepareReady(entry, plan, engine) {
   const row = { id: s(e.jobId), job_status: "READY_TO_COMMIT", progress_percent: 60, progress_message: ("Ready to save: " + s(p.message)).slice(0, 250), row_version: (Number(e.rowVersion) || 0) + 1,
     error_code: null, error_message: null, error_details: null, prepared_payload: s(p.payload), line_count: Number(p.lineCount) || 0 };
   if (Number(req.hold) === 1) {
-    const hold = addSeconds(e.dbNow, 900);
+    // a Picking force complete holds each delivery while it holds the others: 30 minutes; a Sales Order save 15
+    const fcHold = s(req.source) === "PICKING_FC";
+    const hold = addSeconds(e.dbNow, fcHold ? 1800 : 900);
     return Object.assign(base, { route: "OK", needParts: "YES", needHold: "YES",
-      holdRows: [Object.assign(row, { job_status: "HELD", progress_message: ("Held for the sales order save: " + s(p.message)).slice(0, 250), lease_owner: null, lease_expires_at: null, next_attempt_at: hold })],
+      holdRows: [Object.assign(row, { job_status: "HELD", progress_message: ((fcHold ? "Held for the force complete: " : "Held for the sales order save: ") + s(p.message)).slice(0, 250), lease_owner: null, lease_expires_at: null, next_attempt_at: hold })],
       result_message: "held until " + hold + ": " + s(p.message), job_status: "HELD" });
   }
   return Object.assign(base, { route: "OK", needParts: "YES", needReady: "YES", readyRows: [row], result_message: s(p.message), job_status: "READY_TO_COMMIT" });

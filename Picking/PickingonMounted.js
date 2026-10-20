@@ -744,9 +744,18 @@ const pkV2ShowJobState = async () => {
     }
   });
   if (!job || !job.job_id) return;
+  const fc = job.operation === "FORCE_COMPLETE";
   if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PICKING"].includes(job.job_status)) {
     this.hide(["button_save_as_draft", "button_created", "button_inprogress", "button_completed"]);
-    this.$message.warning("This Picking is being saved in the background (" + (job.result_message || job.job_status) + "). Reopen it in a moment.");
+    this.$message.warning("This Picking is being " + (fc ? "force completed" : "saved") + " in the background (" + (job.result_message || job.job_status) + "). Reopen it in a moment.");
+    // a force complete's delivery edits run in their own requests (GD_EDIT_WORKER on each id STATUS names), not in the worker
+    for (const editId of fc && Array.isArray(job.kick) ? job.kick : []) {
+      try {
+        this.runWorkflow("2110618789356687361", { job_id: String(editId) }, () => {}, (err) => console.error("Picking V2: delivery edit start failed", err));
+      } catch (e) {
+        console.error("Picking V2: delivery edit could not be started", e);
+      }
+    }
     // no scheduled worker: every open starts it again (a run in progress holds the job's lease, so a second start does nothing)
     try {
       this.runWorkflow(
@@ -771,8 +780,9 @@ const pkV2ShowJobState = async () => {
     seen = false;
   }
   if (seen) return;
-  if (job.job_status === "FAILED") this.$message.error("The last confirmation was not saved: " + (job.result_message || "unknown reason"));
-  else if (job.job_status === "REQUIRES_REVIEW") this.$message.error("The last confirmation stopped half-way and is under review: " + job.result_message + " Please contact support.");
+  const what = fc ? "The force complete" : "The last confirmation";
+  if (job.job_status === "FAILED") this.$message.error(what + " was not saved: " + (job.result_message || "unknown reason"));
+  else if (job.job_status === "REQUIRES_REVIEW") this.$message.error(what + " stopped half-way and is under review: " + job.result_message + " Please contact support.");
   else if (job.job_status === "COMPLETED" && job.result_code === "PK_CLAMPED") this.$message.warning(job.result_message);
 };
 

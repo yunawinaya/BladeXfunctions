@@ -133,6 +133,7 @@ LOT_LOCK_JOIN = """LEFT JOIN sm_location_transfer g
     ON g.tenant_id = j.tenant_id
    AND j.correlation_id REGEXP '^LOT\\\\|[0-9]{1,20}$'
    AND g.id = CAST(SUBSTRING(j.correlation_id, 5) AS UNSIGNED)
+   AND g.is_deleted = 0
   LEFT JOIN gd_publish_step lk
     ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p
                  WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('SMLT|', SUBSTRING(j.correlation_id, 5)) AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0)"""

@@ -104,9 +104,11 @@ There is no Quartz schedule. A job nobody kicks stays queued until someone opens
 - the stored `movement_type` casing;
 - "Completed & Post" completes only;
 - a form-completed SA linked to a Stock Count marks every Approved line Adjusted.
-- **Known classic bug, not fixed:** an In entered in an alternate UOM is costed per BASE unit. "2 BOX @ 60" with BOX = 10 PCS
-  stores 20 PCS @ 60, ten times the value. Outs are unaffected: they are costed from the FIFO / WA rows. Prod has never hit it:
-  its 12 alternate-UOM SA lines (out of 2,163, checked 2026-10-19) are all Outs.
+- **Prices are per base unit, by design.** Every line made in the SA form carries the item's base unit (item selection sets
+  it and the unit column is locked; the balance dialog's unit picker converts what you type back to it on confirm), and its
+  price defaults to the item's per-base purchase price. Classic and V2 cost an In at that per-base price. Only a document built
+  outside the form (an import, the live test kit) can carry an alternate unit; its price is then also taken per base unit.
+  Prod has no priced alternate-unit In line (its 12 alternate-unit SA lines are all Outs, checked 2026-10-19).
 
 ## Job conventions (shared tables, used unchanged)
 
