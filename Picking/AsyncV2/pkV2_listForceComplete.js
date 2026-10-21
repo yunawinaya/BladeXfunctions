@@ -15,7 +15,7 @@ const PK_FC_WF = {
   LOOP: "2021065804251615233", // PICKING_LOOP (the classic force complete)
 };
 // on together with PICKING_ASYNC_SUBMIT's STAGE.FORCE_COMPLETE (off: the dialog would promise what classic does not do)
-const ASYNC_FORCE_COMPLETE_ENABLED = false;
+const ASYNC_FORCE_COMPLETE_ENABLED = true;
 const PK_FC_POLL_MS = 3000;
 const PK_FC_KICK_MS = 15000;
 // followed while it moves: stop after this long without progress, and after PK_FC_MAX_MS in all

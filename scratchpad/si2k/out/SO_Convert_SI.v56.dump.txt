@@ -1,0 +1,1126 @@
+====================================================================================================
+start [start-node] Start Node
+====================================================================================================
+search_node_AHtHRmqi [search-node] 1. Fetch All SO Data
+{
+ "table_id": {
+  "source": "Sales Order:Table:1902773735979597826",
+  "rules": {
+   "collectionId": "1902773735979597826",
+   "list": [
+    {
+     "id": 1772588022475,
+     "parentId": 1772588022474,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{workflowparams:so_ids}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "1. Fetch All SO Data",
+ "isValidator": true,
+ "nodeName": "1. Fetch All SO Data",
+ "name": "1. Fetch All SO Data"
+}
+====================================================================================================
+code_node_5lS2tGyt [code-node] 2-1. Check SO Status
+response_json: ["status", "message"]
+const soList = {{node:search_node_AHtHRmqi.data.data}};
+const filterDraft = {{workflowparams:filter_draft}};
+const draftSO = soList.filter((so) => so.so_status === 'Draft');
+
+if(draftSO.length > 0 && filterDraft == 'no') {
+  return {
+    status: 'Failed',
+    message: 'Selected Sales Orders with Draft status cannot be converted.<br><br> If proceed, it will filter out the draft SO.'
+  }
+} else {
+  return {
+    status: 'Success',
+    message: ''
+  }
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "2-1. Check SO Status", "name": "2-1. Check SO Status"}
+====================================================================================================
+if_K1anOq9v [if] IF failed?
+{
+ "title": "IF failed?",
+ "isValidator": true,
+ "nodeName": "IF failed?",
+ "name": "IF failed?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_5lS2tGyt.data.status}}' == 'Failed'"
+ }
+}
+====================================================================================================
+if_block_mvtPR2cE [ifBlock] true
+====================================================================================================
+end_zUhaNxBw [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "Default",
+ "code": 401,
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:code_node_5lS2tGyt.data.message}}"
+ }
+}
+====================================================================================================
+if_block_kwj9N1p7 [ifBlock] false
+====================================================================================================
+search_node_d39M3W6h [search-node] 2-2. Existing SI Validation
+{
+ "table_id": {
+  "source": "Sales Invoice:Table:1902525285396496385",
+  "rules": {
+   "collectionId": "1902525285396496385",
+   "list": [
+    {
+     "id": 1772587858258,
+     "parentId": 1772767629590,
+     "isTop": true,
+     "prop": "so_id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{workflowparams:so_ids}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "SO ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "2-2. Existing SI Validation",
+ "isValidator": true,
+ "nodeName": "2-2. Existing SI Validation",
+ "name": "2-2. Existing SI Validation"
+}
+====================================================================================================
+if_oYmToArz [if] IF has existing SI?
+{
+ "title": "IF has existing SI?",
+ "isValidator": true,
+ "nodeName": "IF has existing SI?",
+ "name": "IF has existing SI?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "{{node:search_node_d39M3W6h.data.total}} > 0"
+ }
+}
+====================================================================================================
+if_block_ngrbeyd7 [ifBlock] true
+====================================================================================================
+code_node_6JxbETDC [code-node] 2-2-1. Existing SI Err Msg
+response_json: ["message"]
+return {
+  message: 'Selected Sales Order(s) already has existing Sales Invoice and cannot be converted.'
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "2-2-1. Existing SI Err Msg", "name": "2-2-1. Existing SI Err Msg"}
+====================================================================================================
+end_EKbfI_dO [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "Default",
+ "code": 402,
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:code_node_6JxbETDC.data.message}}"
+ }
+}
+====================================================================================================
+if_block_Y77qArCb [ifBlock] false
+====================================================================================================
+search_node_bOF3TVA2 [search-node] 2-3. Fetch SO Data
+{
+ "table_id": {
+  "source": "Sales Order:Table:1902773735979597826",
+  "rules": {
+   "collectionId": "1902773735979597826",
+   "list": [
+    {
+     "id": 1772589714186,
+     "parentId": 1772589714187,
+     "isTop": true,
+     "type": "branch",
+     "operator": "all",
+     "prop": "",
+     "valueType": "",
+     "value": "",
+     "level": 1,
+     "children": [
+      {
+       "id": 1772589689477,
+       "parentId": 1772589714186,
+       "isTop": false,
+       "prop": "id",
+       "operator": "in",
+       "valueType": "field",
+       "value": "{{workflowparams:so_ids}}",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "主键ID",
+       "valueLabel": "",
+       "operatorLabel": "In"
+      },
+      {
+       "id": 1772589714188,
+       "parentId": 1772589714186,
+       "isTop": false,
+       "prop": "so_status",
+       "operator": "notEqual",
+       "valueType": "value",
+       "value": "Draft",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "SO Status",
+       "valueLabel": "",
+       "operatorLabel": "Not Equal"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "2-3. Fetch SO Data",
+ "isValidator": true,
+ "nodeName": "2-3. Fetch SO Data",
+ "name": "2-3. Fetch SO Data"
+}
+====================================================================================================
+code_node_LqEGUXmi [code-node] 2-4. Check Customer
+response_json: ["status", "code", "message"]
+const soList = {{node:search_node_bOF3TVA2.data.data}}
+const isMultiple = {{workflowparams:is_multiple}}
+let customers = new Set(
+  soList
+    .map(so => so.customer_name)
+);
+
+if (customers.size > 1 && isMultiple === 'single') {
+  return {
+    status: 'Failed',
+    code: 405,
+    message: 'All selected Sales Order(s) must be from the same customer to create a single Sales Invoice.'
+  }
+} else {
+  return {
+    status: 'Success',
+    code: 200,
+    message: ''
+  }
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "2-4. Check Customer", "name": "2-4. Check Customer"}
+====================================================================================================
+if_uiTR0Npr [if] IF failed?
+{
+ "title": "IF failed?",
+ "isValidator": true,
+ "nodeName": "IF failed?",
+ "name": "IF failed?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_LqEGUXmi.data.status}}' == 'Failed'"
+ }
+}
+====================================================================================================
+if_block_jrZVL-pX [ifBlock] true
+====================================================================================================
+end_B8T7r2uw [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "Default",
+ "code": 405,
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:code_node_LqEGUXmi.data.message}}"
+ }
+}
+====================================================================================================
+if_block_B-WBW0gK [ifBlock] false
+====================================================================================================
+code_node_ssy49eEb [code-node] 3. Get Org ID
+response_json: ["organization_id"]
+const soList = {{node:search_node_bOF3TVA2.data.data}};
+
+return {
+  organization_id: soList[0].organization_id
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "3. Get Org ID", "name": "3. Get Org ID"}
+====================================================================================================
+get_node_yDMG0Sab [get-node] 4. Get SI Doc Format
+{
+ "table_id": {
+  "source": "流水号规则表:Table:1994006139209117697",
+  "rules": {
+   "collectionId": "1994006139209117697",
+   "list": [
+    {
+     "id": 1772590641107,
+     "parentId": 1772590641108,
+     "isTop": true,
+     "type": "branch",
+     "operator": "all",
+     "prop": "",
+     "valueType": "",
+     "value": "",
+     "level": 1,
+     "children": [
+      {
+       "id": 1772590553494,
+       "parentId": 1772590641107,
+       "isTop": false,
+       "prop": "department_id",
+       "operator": "numberEqual",
+       "valueType": "field",
+       "value": "{{node:code_node_ssy49eEb.data.organization_id}}",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "部门ID",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      },
+      {
+       "id": 1772590641109,
+       "parentId": 1772590641107,
+       "isTop": false,
+       "prop": "business_type",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "Sales Invoices",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "Document Type",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      },
+      {
+       "id": 1772590641110,
+       "parentId": 1772590641107,
+       "isTop": false,
+       "prop": "is_default",
+       "operator": "numberEqual",
+       "valueType": "value",
+       "value": 1,
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "Default",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "4. Get SI Doc Format",
+ "isValidator": true,
+ "nodeName": "4. Get SI Doc Format",
+ "name": "4. Get SI Doc Format"
+}
+====================================================================================================
+get_node_srSetup1 [get-node] 4b. Get SR Setup
+{
+ "table_id": {
+  "source": "Sales Return Setup:Table:2046120455801585665",
+  "rules": {
+   "collectionId": "2046120455801585665",
+   "list": [
+    {
+     "id": 1777400000001,
+     "parentId": 1777400000000,
+     "isTop": true,
+     "prop": "organization_id",
+     "operator": "equal",
+     "valueType": "field",
+     "value": "{{node:code_node_ssy49eEb.data.organization_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "Organization",
+     "valueLabel": "",
+     "operatorLabel": "Equal"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "4b. Get SR Setup",
+ "isValidator": true,
+ "nodeName": "4b. Get SR Setup",
+ "name": "4b. Get SR Setup"
+}
+====================================================================================================
+code_node_sQX9tldw [code-node] 5. Map SI Data
+response_json: ["siList"]
+const soList = {{node:search_node_bOF3TVA2.data.data}};
+const isMultiple = {{workflowparams:is_multiple}};
+const convertTo = {{workflowparams:convert_to}};
+const autoPi = {{workflowparams:auto_pi}};
+const docFormat = {{node:get_node_yDMG0Sab.data.data}};
+let plant_id = {{workflowparams:plant_id}} || '';
+let siList = [];
+
+if (plant_id == "" && isMultiple === "single") {
+  let plants = new Set(soList.map((so) => so.plant_name));
+
+  if (plants.size > 1) {
+    plant_id = soList[0].organization_id;
+  } else {
+    plant_id = Array.from(plants)[0];
+  }
+}
+
+// ==========================================================================
+// ITEM BUNDLES
+// --------------------------------------------------------------------------
+// An item bundle is ONE line on the order with the bundle's items beneath it,
+// and it is invoiced as a whole. The order hands that tree over in one of two
+// shapes -- the items nested under the bundle line's `children`, or flat rows
+// of table_so pointing back through parent_id -- so both are read here and
+// turned into one list with each bundle's items directly after their bundle.
+//
+// table_si is then built with the same shape: the bundle is one row carrying
+// its items under `children`, which is exactly what the form hands SI_SAVE
+// when a bundle is added there. Without it the items land beside the bundle as
+// loose lines, the invoice shows no bundle at all, and SI_SAVE has nothing to
+// hang them under.
+//
+// A bundle line carries no item of its own, so it has no material, no item
+// category, no UOM and no tax rate. Those are id-typed columns on the invoice
+// and a null reaching one comes back as a BigInt conversion failure, so they
+// are blanked rather than stringified into "null" / "undefined". so_discount is
+// never written on a bundle line either, and parseFloat(undefined) would put
+// the string "NaN" into a numeric column.
+// ==========================================================================
+const referenceId = (value) => {
+  if (value && typeof value === "object") return value.id || null;
+  return value || null;
+};
+
+// The order's lines as one list: each bundle's items directly after their
+// bundle line, linked back to it by parentId. A row that sits under a bundle is
+// not repeated as a line of its own.
+const flattenSoLines = (lines) => {
+  const rows = lines || [];
+
+  const childrenOf = (line) => {
+    const nested = Array.isArray(line.children) ? line.children : [];
+    if (nested.length > 0) return nested;
+
+    return rows.filter(
+      (row) =>
+        row.parent_id !== undefined &&
+        row.parent_id !== null &&
+        row.parent_id !== "" &&
+        String(row.parent_id) === String(line.id),
+    );
+  };
+
+  const claimed = new Set();
+
+  rows.forEach((line) => {
+    childrenOf(line).forEach((child) => {
+      if (child && child.id !== undefined && child.id !== null) {
+        claimed.add(String(child.id));
+      }
+    });
+  });
+
+  const flat = [];
+
+  rows.forEach((line) => {
+    if (claimed.has(String(line.id))) return;
+
+    flat.push({ line: line, parentId: null });
+
+    childrenOf(line).forEach((child) => {
+      flat.push({ line: child, parentId: String(line.id) });
+    });
+  });
+
+  return flat;
+};
+
+
+// How a sales return is billed is a per-plant setting: a credit note raised
+// after the fact (the default, and what every setup row does today), or netting
+// the returned quantity off what is invoiced in the first place. The two are
+// alternatives -- applying both credits the customer twice.
+//
+// Only the "Sales Return" timing is honoured: the line carries the EXPECTED
+// return quantity, written when the return is issued, and there is no received
+// figure for the "Sales Return Receiving" timing to read.
+// Scoped by ORGANISATION, not plant. `plant_id` on a sales invoice can hold an
+// organisation rather than a plant -- the same as on a sales order, and that is
+// what a document spanning several plants stores -- so a plant-keyed lookup finds
+// nothing and the setting silently reads as off. Every plant row in an org is
+// written with the same values by the setup page's save, so any row for the
+// organisation answers the question.
+const srSetupRaw = {{node:get_node_srSetup1.data.data}};
+const srSetup = Array.isArray(srSetupRaw) ? srSetupRaw[0] : srSetupRaw;
+// Unset until the column is configured, and unset means the credit note.
+// Trigger By only decides when an automatic credit note is raised, not whether a return is billed.
+const deductReturnQty = Boolean(
+  srSetup && srSetup.return_billing_method === "Deduct from Invoice",
+);
+
+// Clamped: a line can be returned in full, and over-delivery tolerance can push
+// the subtraction below zero, which is not a quantity anyone can bill.
+const billableQty = (item) =>
+  Math.max(
+    0,
+    (parseFloat(item.so_quantity) || 0) -
+      (deductReturnQty ? parseFloat(item.return_qty) || 0 : 0),
+  );
+
+const mapLineItem = (item, record, lineIndex) => {
+  const lineItemPromise = {
+    tax_amount: parseFloat(item.so_tax_amount).toFixed(8),
+    so_order_quantity: parseFloat(item.so_quantity).toFixed(8),
+    plant_id: plant_id || record.plant_name,
+    si_discount: parseFloat(item.so_discount || 0).toFixed(8),
+    available_inv_qty: billableQty(item).toFixed(8),
+    agent_id: item.sales_person_id,
+    discount_amount: parseFloat(item.so_discount_amount).toFixed(8),
+    invoice_qty: billableQty(item).toFixed(8),
+    invoice_qty_uom_id: referenceId(item.so_item_uom) || "",
+    so_order_uom_id: referenceId(item.so_item_uom) || "",
+    material_desc: item.so_desc,
+    more_desc: item.more_desc,
+    si_discount_uom_id: item.so_discount_uom,
+    item_category_id: referenceId(item.item_category_id) || "",
+    payment_term_id: item.payment_term_id,
+    line_so_id: record.id,
+    material_name: item.item_id,
+    si_amount: parseFloat(item.so_amount).toFixed(8),
+    gross: parseFloat(item.so_gross).toFixed(8),
+    so_line_id: item.id,
+    si_tax_inclusive: item.so_tax_inclusive,
+    si_tax_rate_id: referenceId(item.so_tax_preference) || "",
+    tax_percent: item.so_tax_percentage,
+    unit_price: item.so_item_price,
+    good_delivery_quantity: 0,
+    line_so_no: record.so_no,
+    material_id: referenceId(item.item_name) || "",
+    item_bundle_id: referenceId(item.item_bundle_id) || "",
+    customer_id: item.customer_id,
+    line_index: lineIndex,
+    area_id: item.area_id,
+    line_remark_3: item.line_remark_3,
+    line_remark_2: item.line_remark_2,
+    line_remark_1: item.line_remark_1,
+    tariff_id: item.tariff_id,
+    custom_fields: item.custom_fields,
+    further_description: item.further_description,
+    project_id: item.project_id ?? null,
+    
+  };
+
+  return lineItemPromise;
+};
+
+// The invoice date and time on the engine's own clock, "YYYY-MM-DD HH:mm:ss".
+// toISOString() would shift it to UTC -- an hour that reads wrong and, before
+// 08:00 local, a calendar day early -- and toLocaleString() hands back
+// "Wed Aug 26 2026 10:41:38 GMT+0800 (...)", which Add Data cannot parse into
+// a TimeStamp at all. The local getters read the same clock the user sees.
+const localDateTimeString = (date) => {
+  const pad = (n) => String(n).padStart(2, "0");
+
+  const day = [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join("-");
+
+  const time = [
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    pad(date.getSeconds()),
+  ].join(":");
+
+  return `${day} ${time}`;
+};
+
+const mapHeaderData = (record, lineItemPromise, soNoDisplay, soID, totals) => {
+  const data = {
+    page_status: "Convert", // 'Convert' if from convert
+    si_status: convertTo === "draft" ? "Draft" : "Completed",
+    invoice_type: record.so_type,
+    plant_id: plant_id || record.plant_name,
+    so_no_display: soNoDisplay,
+    gd_no_display: "",
+    so_id: soID,
+    gd_id: [],
+    customer_id: record.customer_name,
+    currency_code: record.so_currency,
+    si_billing_address: record.cust_billing_address,
+    si_shipping_address: record.cust_shipping_address,
+    sales_invoice_no: convertTo === "draft" ? "draft" : "issued",
+    sales_invoice_no_type: docFormat.id,
+    sales_invoice_date: localDateTimeString(new Date()),
+    sales_person_id: record.so_sales_person,
+    si_payment_term_id: record.so_payment_term,
+    exchange_rate_currency: record.exchange_rate_currency,
+    exchange_rate: record.exchange_rate,
+    exchange_rate_myr: "MYR",
+    si_description: record.so_description || "Sales",
+    posted_date: "",
+    si_area_id: record.so_area_id || "",
+    posted_status: convertTo === "draft" ? "" : "Unposted",
+    organization_id: record.organization_id,
+    acc_integration_type: record.acc_integration_type,
+    previous_status: "",
+    customer_credit_limit: record.customer_credit_limit,
+    overdue_limit: record.overdue_limit,
+    outstanding_balance: record.outstanding_balance,
+    overdue_inv_total_amount: record.overdue_inv_total_amount,
+    is_accurate: record.is_accurate,
+    is_posted: 0,
+    table_si: lineItemPromise,
+    total_gross_currency: record.total_gross_currency,
+    total_discount_currency: record.total_discount_currency,
+    total_tax_currency: record.total_tax_currency,
+    total_amount_currency: record.total_amount_currency,
+    total_amount_myr: "MYR",
+    // Use calculated totals
+    invoice_subtotal: totals.invoice_subtotal,
+    invoice_total_discount: totals.invoice_total_discount,
+    invoice_taxes_amount: totals.invoice_taxes_amount,
+    invoice_total: totals.invoice_total,
+    myr_total_amount: totals.myr_total_amount,
+    tnc: record.so_tnc,
+    payment_term: record.so_payment_details,
+    delivery_term: record.so_delivery_term,
+    remarks: record.so_remarks,
+    remarks2: record.so_remarks2,
+    remarks3: record.so_remarks3,
+    remarks4: record.so_remarks4,
+    remarks5: record.so_remarks5,
+    billing_address_name: record.billing_address_name,
+    billing_address_phone: record.billing_address_phone,
+    billing_address_line_1: record.billing_address_line_1,
+    billing_address_line_2: record.billing_address_line_2,
+    billing_address_line_3: record.billing_address_line_3,
+    billing_address_line_4: record.billing_address_line_4,
+    billing_address_city: record.billing_address_city,
+    billing_postal_code: record.billing_postal_code,
+    billing_address_state: record.billing_address_state,
+    billing_address_country: record.billing_address_country,
+    billing_attention: record.billing_attention,
+    billing_address_fax: record.billing_address_fax,
+    shipping_address_name: record.shipping_address_name,
+    shipping_address_phone: record.shipping_address_phone,
+    shipping_address_line_1: record.shipping_address_line_1,
+    shipping_address_line_2: record.shipping_address_line_2,
+    shipping_address_line_3: record.shipping_address_line_3,
+    shipping_address_line_4: record.shipping_address_line_4,
+    shipping_address_city: record.shipping_address_city,
+    shipping_postal_code: record.shipping_postal_code,
+    shipping_address_state: record.shipping_address_state,
+    shipping_address_country: record.shipping_address_country,
+    shipping_attention: record.shipping_attention,
+    shipping_address_fax: record.shipping_address_fax,
+  };
+
+  // SI_SAVE pre-gates internal-trading SIs with pi_confirm 411 and saves NOTHING until the caller
+  // answers it. Nobody here answered it before, so completing an internal-trading SO produced no
+  // invoice at all while still reporting success. handleConvertSOtoSI now asks the user and passes
+  // the answer down as auto_pi.
+  // Harmless when nothing is internally linked -- the gate never arms and both flags are ignored.
+  // Draft never arms it either (the gate requires si_status "Completed").
+  if (autoPi === "confirmed") {
+    data.auto_pi_confirmed = true;
+  } else if (autoPi === "skip") {
+    data.auto_pi_skip = true;
+  }
+
+  data.project_id = record.project_id ?? null;
+
+  return data;
+};
+
+// Helper function to calculate totals from SO data
+const calculateTotals = (soDataList) => {
+  let totals = {
+    invoice_subtotal: 0,
+    invoice_total_discount: 0,
+    invoice_taxes_amount: 0,
+    invoice_total: 0,
+    myr_total_amount: 0,
+  };
+
+  for (const so of soDataList) {
+    totals.invoice_subtotal += parseFloat(so.so_total_gross) || 0;
+    totals.invoice_total_discount += parseFloat(so.so_total_discount) || 0;
+    totals.invoice_taxes_amount += parseFloat(so.so_total_tax) || 0;
+    totals.invoice_total += parseFloat(so.so_total) || 0;
+    totals.myr_total_amount += parseFloat(so.myr_total_amount) || 0;
+  }
+
+  // Round to 4 decimal places
+  totals.invoice_subtotal = totals.invoice_subtotal.toFixed(8);
+  totals.invoice_total_discount = totals.invoice_total_discount.toFixed(8);
+  totals.invoice_taxes_amount = totals.invoice_taxes_amount.toFixed(8);
+  totals.invoice_total = totals.invoice_total.toFixed(8);
+  totals.myr_total_amount = totals.myr_total_amount.toFixed(8);
+
+  return totals;
+};
+
+if (isMultiple === "multiple") {
+  for (const soData of soList) {
+    // Calculate totals for this single SO
+    const totals = calculateTotals([soData]);
+    let siLineItem = [];
+
+    // The invoice is built with the same shape the order has: a bundle is one
+    // row with the bundle's items under its `children`. flattenSoLines has
+    // already put each bundle's items directly after their bundle line, so the
+    // row an item hangs under has always been built by the time it is reached.
+    const siRowBySoLine = {};
+    let lineNumber = 0;
+
+    for (const entry of flattenSoLines(soData.table_so)) {
+      const parentRow = entry.parentId ? siRowBySoLine[entry.parentId] : null;
+
+      // An item under a bundle that was not billed is not billed either: a
+      // bundle is invoiced whole or not at all, and without this the item would
+      // fall through and be added as a loose top-level line.
+      if (entry.parentId && !parentRow) continue;
+
+      // A fully returned line has nothing left to bill, and a zero-quantity line
+      // is what SI_SAVE rejects with 407.
+      if (deductReturnQty && billableQty(entry.line) <= 0) continue;
+
+      if (parentRow) {
+        if (!Array.isArray(parentRow.children)) parentRow.children = [];
+
+        const childItem = mapLineItem(
+          entry.line,
+          soData,
+          `${parentRow.line_index}-${parentRow.children.length + 1}`,
+        );
+
+        parentRow.children.push(childItem);
+        siRowBySoLine[String(entry.line.id)] = childItem;
+        continue;
+      }
+
+      lineNumber++;
+
+      const lineItemPromise = mapLineItem(entry.line, soData, lineNumber);
+      siLineItem.push(lineItemPromise);
+      siRowBySoLine[String(entry.line.id)] = lineItemPromise;
+    }
+
+    const soNoDisplay = soData.so_no;
+    const soID = [soData.id];
+    const mappedData = mapHeaderData(
+      soData,
+      siLineItem,
+      soNoDisplay,
+      soID,
+      totals,
+    );
+    siList.push(mappedData);
+  }
+} else if (isMultiple === "single") {
+  const soData = soList[0];
+  const soNoDisplay = soList.map((item) => item.so_no).join(", ");
+  const soID = soList.map((item) => item.id);
+
+  // Calculate totals for all SOs combined
+  const totals = calculateTotals(soList);
+
+  let siLineItem = [];
+  let lineCounter = 0;
+  // The same tree as above, carried across every order this one invoice covers.
+  const siRowBySoLine = {};
+
+  for (const so of soList) {
+    for (const entry of flattenSoLines(so.table_so)) {
+      const parentRow = entry.parentId ? siRowBySoLine[entry.parentId] : null;
+
+      // An item under a bundle that was not billed is not billed either: a
+      // bundle is invoiced whole or not at all, and without this the item would
+      // fall through and be added as a loose top-level line.
+      if (entry.parentId && !parentRow) continue;
+
+      // A fully returned line has nothing left to bill, and a zero-quantity line
+      // is what SI_SAVE rejects with 407.
+      if (deductReturnQty && billableQty(entry.line) <= 0) continue;
+
+      if (parentRow) {
+        if (!Array.isArray(parentRow.children)) parentRow.children = [];
+
+        const childItem = mapLineItem(
+          entry.line,
+          so,
+          `${parentRow.line_index}-${parentRow.children.length + 1}`,
+        );
+
+        parentRow.children.push(childItem);
+        siRowBySoLine[String(entry.line.id)] = childItem;
+        continue;
+      }
+
+      lineCounter++;
+
+      const lineItemPromise = mapLineItem(entry.line, so, lineCounter);
+      siLineItem.push(lineItemPromise);
+      siRowBySoLine[String(entry.line.id)] = lineItemPromise;
+    }
+  }
+  const mappedData = mapHeaderData(
+    soData,
+    siLineItem,
+    soNoDisplay,
+    soID,
+    totals,
+  );
+  siList.push(mappedData);
+}
+
+return { siList };
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "5. Map SI Data", "name": "5. Map SI Data"}
+====================================================================================================
+code_node_YRozjK8Z [code-node] 6-1. Set Redis Name
+response_json: ["redis_name", "initial_state"]
+const userID = {{system:uid}};
+const now = new Date();
+const date = now.toISOString().split('T')[0]; // YYYY-MM-DD
+const time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS
+
+// One key carries the whole run. It held the loop's cursor alone while nothing
+// came back out of the loop; the caller now wants the invoices that were
+// created, and a code node cannot reach Redis by itself -- only 6-3 reads the
+// key and 9 writes it -- so the created invoices ride along with the cursor in
+// the same value, as JSON.
+return {
+  redis_name: `CONVERT_SI:${userID}:${date}:${time}`,
+  // Example: "CONVERT_SI:12345:2024-02-24:143022"
+  initial_state: JSON.stringify({ index: 0, si_list: [] })
+};
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "6-1. Set Redis Name", "name": "6-1. Set Redis Name"}
+====================================================================================================
+set_cache_node_LhSMNwfs [set-cache-node] 6-2. Set Redis Cache
+{
+ "cache_key": "",
+ "cache_value": "",
+ "expire_time": 3600,
+ "title": "6-2. Set Redis Cache",
+ "isValidator": true,
+ "nodeName": "6-2. Set Redis Cache",
+ "name": "6-2. Set Redis Cache",
+ "custom_wkbocgni": {
+  "type": "javascript",
+  "code": "{{node:code_node_YRozjK8Z.data.initial_state}}"
+ },
+ "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+}
+====================================================================================================
+loop_9Jv4BHg1 [loop] Loop
+{
+ "title": "Loop",
+ "isValidator": true,
+ "nodeName": "Loop",
+ "name": "Loop",
+ "loopType": "Var",
+ "loopSeletVar": {
+  "type": "markdown",
+  "code": "{{node:code_node_sQX9tldw.data.siList}}"
+ }
+}
+====================================================================================================
+get_cache_node_l03kAFq7 [get-cache-node] 6-3. Get Redis Cache
+{
+ "cache_key": "",
+ "title": "6-3. Get Redis Cache",
+ "isValidator": true,
+ "nodeName": "6-3. Get Redis Cache",
+ "name": "6-3. Get Redis Cache",
+ "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+}
+====================================================================================================
+code_node_9PRotptG [code-node] 7. Current SI
+response_json: ["siData", "nextIndex", "collected"]
+const stateRaw = {{node:get_cache_node_l03kAFq7.data}};
+const siList = {{node:code_node_sQX9tldw.data.siList}};
+
+// The key carries `{ index, si_list }` as JSON. A key that expired or was never
+// written reads back empty, and a run that started before the invoices were
+// collected stored a bare index -- both mean "nothing done yet" rather than a
+// broken run, so neither is allowed to throw here and strand the loop.
+const readState = (raw) => {
+  const empty = { index: 0, si_list: [] };
+
+  if (raw === null || raw === undefined || raw === "") return empty;
+
+  let state = raw;
+
+  if (typeof state === "string") {
+    try {
+      state = JSON.parse(state);
+    } catch (error) {
+      // A bare index written by an older run.
+      return { index: parseInt(raw, 10) || 0, si_list: [] };
+    }
+  }
+
+  if (!state || typeof state !== "object") return empty;
+
+  return {
+    index: parseInt(state.index, 10) || 0,
+    si_list: Array.isArray(state.si_list) ? state.si_list : [],
+  };
+};
+
+const state = readState(stateRaw);
+const siData = siList[state.index];
+
+console.log("Convert SI - invoice", state.index + 1, "of", siList.length);
+
+return {
+  siData,
+  nextIndex: state.index + 1,
+  // Handed to 8-1 so it can append this iteration's invoice without a second
+  // read of the key.
+  collected: state.si_list,
+};
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "7. Current SI", "name": "7. Current SI"}
+====================================================================================================
+workflow_node_gz6u8DqY [workflow-node] 8. Create SI 
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "8. Create SI ",
+ "isValidator": true,
+ "nodeName": "8. Create SI ",
+ "name": "8. Create SI ",
+ "workflow": {
+  "source": "SI_SAVE:Workflow:2029040374929154050",
+  "rules": {
+   "collectionId": "2029040374929154050",
+   "list": [
+    {
+     "id": 1723795236686,
+     "parentId": 1723795236685,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "body_params": {
+  "list": [
+   {
+    "prop": "data",
+    "propLabel": "Data",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_9PRotptG.data.siData}}",
+    "valueLabel": ""
+   }
+  ]
+ },
+ "remote": true,
+ "remoteType": "innerdatasource"
+}
+====================================================================================================
+code_node_CollectSI01 [code-node] 8-1. Collect SI Result
+response_json: ["si_list", "state"]
+const siResult = {{node:workflow_node_gz6u8DqY.data}} || {};
+const collected = {{node:code_node_9PRotptG.data.collected}} || [];
+const nextIndex = {{node:code_node_9PRotptG.data.nextIndex}};
+
+// SI_SAVE ends with `id` and `si_no` for the invoice it saved. Every other way
+// out of it is an error end carrying a code and a message, which stops this
+// workflow before this node runs, so anything arriving here without an id saved
+// nothing and is left out of the list rather than added as a blank row.
+const siId =
+  siResult.id === undefined || siResult.id === null ? "" : String(siResult.id);
+const siNo =
+  siResult.si_no === undefined || siResult.si_no === null
+    ? ""
+    : String(siResult.si_no);
+
+const si_list = collected.slice();
+
+if (siId) {
+  si_list.push({ si_id: siId, si_no: siNo });
+  console.log("Convert SI - created", siNo, siId);
+} else {
+  console.error("Convert SI - Create SI returned no id", siResult);
+}
+
+return {
+  si_list,
+  // Written straight back to the same key by node 9: the cursor the loop reads
+  // on its next pass and everything created so far, in one value.
+  state: JSON.stringify({ index: nextIndex, si_list }),
+};
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "8-1. Collect SI Result", "name": "8-1. Collect SI Result"}
+====================================================================================================
+set_cache_node_FdcwMlCb [set-cache-node] 9. Set Redis Cache
+{
+ "cache_key": "",
+ "cache_value": "",
+ "expire_time": 3600,
+ "title": "9. Set Redis Cache",
+ "isValidator": true,
+ "nodeName": "9. Set Redis Cache",
+ "name": "9. Set Redis Cache",
+ "custom_wkbocgni": {
+  "type": "javascript",
+  "code": "{{node:code_node_CollectSI01.data.state}}"
+ },
+ "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+}
+====================================================================================================
+get_cache_node_ConvertSI10 [get-cache-node] 10. Get Redis Cache
+{
+ "cache_key": "",
+ "title": "10. Get Redis Cache",
+ "isValidator": true,
+ "nodeName": "10. Get Redis Cache",
+ "name": "10. Get Redis Cache",
+ "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
+}
+====================================================================================================
+code_node_MapSIOut11 [code-node] 11. Map SI Output
+response_json: ["si_list"]
+const stateRaw = {{node:get_cache_node_ConvertSI10.data}};
+
+// The same `{ index, si_list }` the loop has been writing, read once now that
+// the loop is done. Nodes share no code, so this repeats node 7's reader.
+// An empty read means the key expired mid-run or the loop created nothing --
+// an empty list is returned rather than failing a run whose invoices were
+// already saved.
+const readState = (raw) => {
+  const empty = { index: 0, si_list: [] };
+
+  if (raw === null || raw === undefined || raw === "") return empty;
+
+  let state = raw;
+
+  if (typeof state === "string") {
+    try {
+      state = JSON.parse(state);
+    } catch (error) {
+      return empty;
+    }
+  }
+
+  if (!state || typeof state !== "object") return empty;
+
+  return {
+    index: parseInt(state.index, 10) || 0,
+    si_list: Array.isArray(state.si_list) ? state.si_list : [],
+  };
+};
+
+const si_list = readState(stateRaw).si_list;
+
+console.log("Convert SI - invoices created", si_list);
+
+return { si_list };
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "11. Map SI Output", "name": "11. Map SI Output"}
+====================================================================================================
+end_convert_si_ok [end-node] 12. Return SI List
+{
+ "isValidator": true,
+ "title": "12. Return SI List",
+ "nodeName": "12. Return SI List",
+ "name": "12. Return SI List",
+ "back_data_type": "OutputParams",
+ "msg": {
+  "type": "javascript",
+  "code": ""
+ },
+ "response_value": {
+  "list": [
+   {
+    "prop": "si_list",
+    "propLabel": "si_list",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "{{node:code_node_MapSIOut11.data.si_list}}",
+    "is_negative_number": false
+   }
+  ]
+ }
+}
+====================================================================================================
+end [end-node] End Node
+{
+ "isValidator": true,
+ "title": "End Node",
+ "nodeName": "End Node",
+ "name": "End Node"
+}

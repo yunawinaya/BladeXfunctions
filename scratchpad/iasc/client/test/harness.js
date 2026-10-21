@@ -353,9 +353,9 @@ const legacyTrace = (trace) => trace.filter((t) => !/^sc:/.test(t[0]) && !(t[0] 
 
 // a built Small Cycle script with its switch and workflow ids set: on = true / false, wf = { SO_IA_PROJECTION, IA_SC_RELINK }
 const SC_SWITCH_RE = /const SC_ENABLED = (true|false);/g;
-const SC_ID_RE = /"([0-9]+)"([^"\n]*\/\/ (SO_IA_PROJECTION|IA_SC_RELINK|SO_LINKED_IAS_PAGE))$/gm;
-const SC_TEST_IDS = { SO_IA_PROJECTION: "9101", IA_SC_RELINK: "9102", SO_LINKED_IAS_PAGE: "9103" };
-const SC_OFF_IDS = { SO_IA_PROJECTION: "0", IA_SC_RELINK: "0", SO_LINKED_IAS_PAGE: "0" };
+const SC_ID_RE = /"([0-9]+)"([^"\n]*\/\/ (SO_IA_PROJECTION|IA_SC_RELINK|SO_LINKED_IAS_PAGE|IA_HOLD))$/gm;
+const SC_TEST_IDS = { SO_IA_PROJECTION: "9101", IA_SC_RELINK: "9102", SO_LINKED_IAS_PAGE: "9103", IA_HOLD: "9104" };
+const SC_OFF_IDS = { SO_IA_PROJECTION: "0", IA_SC_RELINK: "0", SO_LINKED_IAS_PAGE: "0", IA_HOLD: "0" };
 const scVariantCode = (code, on, wf) =>
   code.replace(SC_SWITCH_RE, () => "const SC_ENABLED = " + (on ? "true" : "false") + ";").replace(SC_ID_RE, (m, id, rest, which) => '"' + (wf || SC_TEST_IDS)[which] + '"' + rest);
 // the whole form with every js event's switch / ids set
@@ -369,7 +369,22 @@ const scVariant = (doc, on, wf) => {
   });
   return d;
 };
+// RES-01: the raw-material hold switch in every built script that has one (the build ships it false); n = how many were set
+const RES_SWITCH_RE = /const RES_ENABLED = (true|false);/g;
+const resVariant = (doc, on) => {
+  const d = clone(doc);
+  let n = 0;
+  const set = (code) => code.replace(RES_SWITCH_RE, () => (n++, "const RES_ENABLED = " + (on ? "true" : "false") + ";"));
+  d.config.eventScript.forEach((e) => {
+    if (e.func) e.func = set(e.func);
+    (e.rules || []).forEach((r) => {
+      if (r.options && r.options.func) r.options.func = set(r.options.func);
+    });
+  });
+  d.resSwitches = n;
+  return d;
+};
 const IDS = readJSON(process.env.SC_IDS || path.join(IASC, "ids.json"));
 
 module.exports = { IASC, ROOT, OUT, FILES, IDS, SC_TEST_IDS, SC_OFF_IDS, readJSON, clone, findModel, byName, byKey, sourceOf, matches, tableDb, world,
-  compile, makeThis, changeEvents, drain, fire, check, done, same, scVariant, scVariantCode, getPath, setPath, SC_KEYS, legacyTrace };
+  compile, makeThis, changeEvents, drain, fire, check, done, same, scVariant, scVariantCode, resVariant, getPath, setPath, SC_KEYS, legacyTrace };

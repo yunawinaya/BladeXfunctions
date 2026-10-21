@@ -634,7 +634,7 @@ WJOB_COLS = ["db_now", "id", "job_status", "progress_percent", "progress_message
 
 def build_worker():
     ids = K.Ids(1797300000000)
-    G = "code_node_GWguard"
+    G = "code_node_GWguard2"
     T = N(G, "data.tenantId")
     prep = ("GD_COMPLETE_PREPARE", GD_IDS.get("GD_COMPLETE_PREPARE", "0"))
     comm = ("GD_COMPLETE_COMMIT", GD_IDS.get("GD_COMPLETE_COMMIT", "0"))
@@ -856,8 +856,10 @@ def build_submit():
        (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(o.id AS CHAR), 'command', o.command, 'job_status', o.job_status, 'progress_percent', o.progress_percent,
                                              'progress_message', o.progress_message, 'error_code', o.error_code, 'error_message', o.error_message)) AS CHAR)
           FROM gd_async_job o
-         WHERE o.tenant_id = '@T' AND o.is_deleted = 0 AND o.correlation_id = 'GD|@G'
-           AND (@OPEN)) AS open_jobs,
+         WHERE o.tenant_id = '@T' AND o.is_deleted = 0
+           AND ((o.correlation_id = 'GD|@G' AND (@OPEN))
+                OR (o.command = 'CREATE_GD_FROM_FORM' AND o.gd_id = '@G'
+                    AND o.job_status IN ('RECONCILING_GD', 'GD_COMMITTED', 'CREATING_PICKING', 'PICKING_RETRYING', 'PICKING_READY', 'REQUIRES_REVIEW')))) AS open_jobs,
        (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(pj.id AS CHAR), 'command', pj.command, 'job_status', pj.job_status)) AS CHAR)
           FROM gd_async_job pj
          WHERE pj.tenant_id = '@T' AND pj.is_deleted = 0 AND pj.command = 'CONFIRM_PICKING'
@@ -915,7 +917,7 @@ def build_submit():
         K.code(G, "Guard: operation, gd_id (digits), source, answers, session tenant + user", scode("guard.js"),
                ["route", "code", "message", "operation", "gdId", "tenantId", "source", "uid", "causationId", "answers", "force"], objects=("answers",)),
         K.if_(ids, "if_GSreject", "IF the input is invalid: answer, write nothing", is_(G, "route", "REJECT"), sres("rej", G, "rejected input")),
-        K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock", facts,
+        K.sql("sql_node_GSfacts", "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, a GD Created V2 job still making its Picking, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock", facts,
               ["db_now", "gd_id", "delivery_no", "gd_status", "organization_id", "plant_id", "line_count", "last_lock", "open_jobs", "picking_jobs", "last_job", "picking_locks"]),
         K.code(E, "Entry: STATUS; SUBMIT goes on for a Created GD with no open job (BUSY / NOT_ELIGIBLE / STOP otherwise)", scode("entry.js"), entry_fields,
                objects=("lineCount", "lockN", "progressPercent")),

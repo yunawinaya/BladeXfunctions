@@ -37,8 +37,11 @@ function completed(spec) {
     const total = (c.layers || [[10, 1]]).reduce((n, l) => n + l[0], 0);
     const batchId = c.batch ? w.id() : null;
     c.batchId = batchId;
-    w.ib.push({ id: w.id(), material_id: c.it.id, location_id: BIN, plant_id: PLANT, organization_id: ORG, unrestricted_qty: total, reserved_qty: 0, block_qty: 0, qualityinsp_qty: 0,
-      intransit_qty: 0, balance_quantity: total, is_deleted: 0 });
+    // RES-01: sp.reserved = the components the IA held (their stock in Reserved, issued from Reserved by the completion), held from
+    // sp.heldFrom (Unrestricted unless said)
+    const held = (sp.reserved || []).indexOf(comps.indexOf(c)) >= 0;
+    w.ib.push({ id: w.id(), material_id: c.it.id, location_id: BIN, plant_id: PLANT, organization_id: ORG, unrestricted_qty: held ? 0 : total, reserved_qty: held ? total : 0, block_qty: 0,
+      qualityinsp_qty: 0, intransit_qty: 0, balance_quantity: total, is_deleted: 0 });
     if (batchId) w.bb.push({ id: w.id(), material_id: c.it.id, location_id: BIN, batch_id: batchId, plant_id: PLANT, organization_id: ORG, unrestricted_qty: total, reserved_qty: 0, block_qty: 0,
       qualityinsp_qty: 0, intransit_qty: 0, balance_quantity: total, is_deleted: 0 });
     if ((c.method || FIFO) === FIFO) {
@@ -61,7 +64,8 @@ function completed(spec) {
   const before = snapshot(w);
   // the IA (its id precedes every row the completion writes)
   const ia = { id: w.id(), item_id: parent.id, item_qty: P.qty, item_uom: UOM, location_id: FG_BIN, inventory_category: sp.cat || "Unrestricted", batch_no: P.batch ? "B-0001" : "",
-    issuing_operation_faci: PLANT, organization_id: ORG, stock_movement_no: "IA-SIM-" + String(w.seq).slice(-4), item_assembly_status: "Processing", posted_status: null, ia_v2_job_id: null, is_deleted: 0 };
+    issuing_operation_faci: PLANT, organization_id: ORG, stock_movement_no: "IA-SIM-" + String(w.seq).slice(-4), item_assembly_status: "Processing", posted_status: null, ia_v2_job_id: null, is_deleted: 0,
+    material_hold_status: sp.hold === undefined ? null : sp.hold };
   w.ias.push(ia);
   const cjob = w.id();
   const op = (side, movements) => {
@@ -71,8 +75,8 @@ function completed(spec) {
   };
   const doc = "2026-10-19 00:00:00";
   const a1 = op("I", comps.map((c, i) => ({ movement_key: "M" + (i + 1), direction: "SUBTRACT", plant_id: PLANT, organization_id: ORG, material_id: c.it.id, quantity: c.qty, material_uom: UOM,
-    transaction_type: "IA", trx_no: ia.stock_movement_no, parent_trx_no: "", inventory_category: "Unrestricted", location_id: BIN, batch_id: c.batchId, doc_date: doc, isMovingInv: 0,
-    handling_unit_id: null })));
+    transaction_type: "IA", trx_no: ia.stock_movement_no, parent_trx_no: "", inventory_category: (sp.reserved || []).indexOf(i) >= 0 ? "Reserved" : "Unrestricted", location_id: BIN,
+    batch_id: c.batchId, doc_date: doc, isMovingInv: 0, handling_unit_id: null })));
   const outTotal = w.mv.filter((m) => /\|I\|/.test(m.operation_effect_key || "") && m.operation_effect_key.indexOf("IAC|" + cjob + "|I|") === 0).reduce((n, m) => n + Number(m.total_price), 0);
   const price = Number((outTotal / P.qty).toFixed(8));
   let batchId = null;
@@ -84,6 +88,10 @@ function completed(spec) {
     trx_no: ia.stock_movement_no, parent_trx_no: "", inventory_category: sp.cat || "Unrestricted", location_id: FG_BIN, batch_id: P.batch ? batchId : null, unit_price: price, doc_date: doc,
     manufacturing_date: null, expired_date: null, remark: "", remark2: "", remark3: "", isMovingInv: 0, handling_unit_id: null }]);
   Object.assign(ia, { item_assembly_status: "Completed", posted_status: "Unposted", ia_v2_job_id: sp.classic ? null : cjob });
+  // an IA that reserves: its completion's CLOSE delivered the holds it issued from Reserved (the bucket each came from)
+  if (sp.hold) (sp.reserved || []).forEach((i) => w.holds.push({ id: w.id(), doc_type: "Item Assembly", doc_id: ia.id, doc_no: ia.stock_movement_no, organization_id: ORG,
+    is_deleted: 0, status: "Delivered", material_id: comps[i].it.id, bin_location: BIN, batch_id: comps[i].batchId, from_category: sp.heldFrom || "Unrestricted",
+    delivered_qty: String(comps[i].qty), reserved_qty: String(comps[i].qty), open_qty: "0", item_uom: UOM }));
   // the completion's lock row and job (the IA's lock sequence continues from it)
   w.steps.push({ id: w.id(), job_id: "IAC|" + ia.id, step_name: "LOCK|1", step_status: "LOCK", result_ref: "IA:" + ORG + ":" + ia.id + ":h:1", is_deleted: 0, started_at: w.now - 3600000 });
   w.jobs.push({ id: cjob, organization_id: ORG, plant_id: PLANT, command: "COMPLETE_IA", idempotency_key: "IA:" + ORG + ":" + ia.id + ":h:1", job_status: "COMPLETED", progress_percent: 100,

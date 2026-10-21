@@ -21,7 +21,7 @@ const workerOwn = function workerOwn(guard, claim, rows) {
   if (status !== expect) return Object.assign(base, { route: "LOST", needFail: "NO", needUnlock: "NO", result_code: "JOB_ILLEGAL_TRANSITION", result_message: "job is " + status + " after the claim (expected " + expect + ")" });
   return base;
 };
-const guard = [{{node:code_node_XWguard.data}}][0];
+const guard = [{{node:code_node_XWguard2.data}}][0];
 const claim = [{{node:code_node_XWclaim.data}}][0];
 const res = workerOwn(guard, claim, [{{node:sql_node_XWown.data}}][0]);
 console.log("worker own", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, result: res.result_code, message: res.result_message }));

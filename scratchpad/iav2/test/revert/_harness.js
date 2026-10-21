@@ -9,7 +9,8 @@ const IAV2 = path.join(__dirname, "..", "..");
 const read = (f) => fs.readFileSync(path.join(IAV2, f), "utf8");
 const strip = (t) => t.split("\n").filter((l) => !l.startsWith("if (typeof module")).join("\n");
 const LIFT = ["revert/lift/runtime.js", "revert/lift/lifted_revert.js"];
-const SHARED = ["code/shared/ia_common.js", "code/shared/fingerprint.js", "code/shared/movekey.js"];
+// + RES-01 R5's shared core (resRevertAdds, inlined into the plan node by build_revert.py)
+const SHARED = ["code/shared/ia_common.js", "code/shared/fingerprint.js", "code/shared/movekey.js", "../iasc/res01/code/shared/revert.js"];
 
 // clock: epoch ms for new Date() / Date.now(), or undefined for the real clock
 function sandbox(clock) {

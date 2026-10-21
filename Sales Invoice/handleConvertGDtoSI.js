@@ -25,7 +25,8 @@ const fetchCashOnlyGDIds = async (selectedRecords) => {
   const gdIds = [...new Set(selectedRecords.map((r) => String(r.id)))];
 
   // Read back rather than taken off the list rows, which only carry the
-  // columns the view shows.
+  // columns the view shows. Only so_id: a whole delivery comes back with every
+  // one of its lines, 2,000 of them on the largest.
   const gdRes = await db
     .collection("goods_delivery")
     .filter([
@@ -35,6 +36,7 @@ const fetchCashOnlyGDIds = async (selectedRecords) => {
         children: [{ prop: "id", operator: "in", value: gdIds }],
       },
     ])
+    .field("so_id")
     .get();
 
   const soIdsByGD = new Map(
@@ -56,6 +58,7 @@ const fetchCashOnlyGDIds = async (selectedRecords) => {
         ],
       },
     ])
+    .field("so_type")
     .get();
 
   const cashSOIds = new Set((soRes?.data || []).map((so) => String(so.id)));

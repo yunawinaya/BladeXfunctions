@@ -107,7 +107,8 @@ def build():
 
     sql = {"database_id": "", "sql": "", "params": {}}
     sql.update(title("Small Cycle: the stored fields and the linked SO line + header"))
-    sql["script"] = {"type": "sql", "code": V.wrap_sql(V.sub(S.CLASSIC_SC_SOURCE, T=V.N(G, "data.tenantId"), IA=V.N(SCIN, "data.iaId"), LINE=V.N(SCIN, "data.lineId")))}
+    sql["script"] = {"type": "sql", "code": V.wrap_sql(V.sub(S.CLASSIC_SC_SOURCE, T=V.N(G, "data.tenantId"), IA=V.N(SCIN, "data.iaId"), LINE=V.N(SCIN, "data.lineId"),
+                                                             ORG=V.N(SCIN, "data.org"), UID=V.N(SCIN, "data.uid")))}
     sql["response_json"] = resp(["j"])
     branch_tpl = old["condition_all_ISread"]["blocks"][0]
     branch = copy.deepcopy(branch_tpl)

@@ -1,0 +1,42 @@
+== OFF build (switches {'ASYNC_IDA_ENABLED': 'false', 'IDA_V2_COMPLETE': 'true', 'IDA_V2_COMPLETE_POST': 'true'}, ids {'IDA_V2_SUBMIT': '2112748971830149121', 'IDA_V2_WORKER': '2112749010379997186'})
+-- IDAform.json vs base ida_form_v35
+    /config/eventScript/[key=e9ib2r8i]/func
+    /config/eventScript/[key=ida_src_item]/func
+    /config/eventScript/[key=jhdhdqkw] (added at 39: idaV2_onClick_completed_post)
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=zzaobddh] (added at 38: idaV2_onClick_completed)
+    /list/[key=2det1nd2]/list/[key=a9xr7gjg] (added at 5: processing_status)
+    /list/[key=4cjp73ay]/options/datasource/rules/list/0/children/1/children (length 4 -> 5)
+    /list/[key=eq7puqul] (added at 7: ida_idem_key)
+    /list/[key=t3fgnzgy] (added at 6: ida_v2_job_id)
+    /list/[key=t6y2yh5r]/list/[key=dxpzlyqp]/events/onClick
+    /list/[key=t6y2yh5r]/list/[key=lnfr8gna]/events/onClick
+-- IDAlistPage.json vs base ida_list_v17d
+    /config/eventScript/[key=ee9v0c1h]/func
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=mounted]/type (added)
+    /config/eventScript/[key=q82pv0wg]/func
+    /list/[key=s6wz5vvo]/options/customProps/rowActions/1/hidden
+-- NOT_RECORD: 21 keys (+ every dialog_* key); none read by IDA_SAVE v6; every recorded payload key is a column, stripped or a field v35 no longer has ['location_id', 'storage_location_id', 'textarea_rrkivr2e']; stripped columns (display-only badges, never written by the classic): ['completed_status', 'draft_status', 'fullyposted_status', 'ida_idem_key', 'ida_v2_job_id', 'issued_status']
+-- new keys: events [('zzaobddh', 'idaV2_onClick_completed', 'button_completed'), ('jhdhdqkw', 'idaV2_onClick_completed_post', 'comp_post_button')], badge ('a9xr7gjg', 'processing_status'), fields [('t3fgnzgy', 'ida_v2_job_id', 'V2 Job ID'), ('eq7puqul', 'ida_idem_key', 'Idempotency Key')]
+== ON build (switches {'ASYNC_IDA_ENABLED': 'true', 'IDA_V2_COMPLETE': 'true', 'IDA_V2_COMPLETE_POST': 'false'}, ids {'IDA_V2_SUBMIT': '2112748971830149121', 'IDA_V2_WORKER': '2112749010379997186'})
+-- IDAform.json vs base ida_form_v35
+    /config/eventScript/[key=e9ib2r8i]/func
+    /config/eventScript/[key=ida_src_item]/func
+    /config/eventScript/[key=jhdhdqkw] (added at 39: idaV2_onClick_completed_post)
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=zzaobddh] (added at 38: idaV2_onClick_completed)
+    /list/[key=2det1nd2]/list/[key=a9xr7gjg] (added at 5: processing_status)
+    /list/[key=4cjp73ay]/options/datasource/rules/list/0/children/1/children (length 4 -> 5)
+    /list/[key=eq7puqul] (added at 7: ida_idem_key)
+    /list/[key=t3fgnzgy] (added at 6: ida_v2_job_id)
+    /list/[key=t6y2yh5r]/list/[key=dxpzlyqp]/events/onClick
+    /list/[key=t6y2yh5r]/list/[key=lnfr8gna]/events/onClick
+-- IDAlistPage.json vs base ida_list_v17d
+    /config/eventScript/[key=ee9v0c1h]/func
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=mounted]/type (added)
+    /config/eventScript/[key=q82pv0wg]/func
+    /list/[key=s6wz5vvo]/options/customProps/rowActions/1/hidden
+-- NOT_RECORD: 21 keys (+ every dialog_* key); none read by IDA_SAVE v6; every recorded payload key is a column, stripped or a field v35 no longer has ['location_id', 'storage_location_id', 'textarea_rrkivr2e']; stripped columns (display-only badges, never written by the classic): ['completed_status', 'draft_status', 'fullyposted_status', 'ida_idem_key', 'ida_v2_job_id', 'issued_status']
+-- new keys: events [('zzaobddh', 'idaV2_onClick_completed', 'button_completed'), ('jhdhdqkw', 'idaV2_onClick_completed_post', 'comp_post_button')], badge ('a9xr7gjg', 'processing_status'), fields [('t3fgnzgy', 'ida_v2_job_id', 'V2 Job ID'), ('eq7puqul', 'ida_idem_key', 'Idempotency Key')]

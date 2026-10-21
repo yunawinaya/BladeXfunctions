@@ -39,6 +39,8 @@ const scNames = async (collection, ids, field) => {
 };
 const ROLE = { produced: "Produced", open: "Open", excluded: "Excluded", none: "Not counted" };
 const MODE = { STANDARD: "Standard", FLAT: "Flat" };
+const OPEN_ST = { Draft: 1, Processing: 1 };
+const DONE_ST = { Completed: 1, "Fully Posted": 1 };
 // the summary: one fact per row (the line left, the production right, the warnings below); a row without a fact is hidden
 const SUMMARY = ["sli_summary_so", "sli_summary_customer", "sli_summary_item", "sli_summary_ordered", "sli_summary_delivered", "sli_summary_planned", "sli_summary_produced",
   "sli_summary_open", "sli_summary_suggest", "sli_summary_warn"];
@@ -55,15 +57,18 @@ const scShowRows = (row) => {
     const params = { operation: "SUMMARY", so_id: scP("so_id"), so_line_id: scP("so_line_id"), item_id: scP("item_id"), exclude_ia_id: "", organization_id: scP("organization_id"),
       proposal_qty: "", proposal_uom_id: "", baseline: "" };
     let r = null;
+    // a refusal (400, e.g. the user is not assigned to the organisation: FIX-03) is shown with its reason
+    let refused = "";
     try {
       const res = await scRun(SC_WF_PROJECTION, params);
       const d = (res && res.data) || {};
       r = scS(d.code) === "200" ? scParseJ(d.result_json) : null;
+      if (scS(d.code) === "400") refused = scS(d.message);
     } catch (e) {
       console.error("SO Linked IAs: SUMMARY failed", e);
     }
     if (!r || !r.totals) {
-      const down = { sli_summary_so: "figures unavailable right now: press Refresh to try again" };
+      const down = { sli_summary_so: refused || "figures unavailable right now: press Refresh to try again" };
       await this.setData(Object.assign(scRows(down), { sli_ias: [], sli_orphans: [] }));
       scShowRows(down);
       this.hide(["sli_btn_create", "sli_orphans"]);
@@ -91,16 +96,21 @@ const scShowRows = (row) => {
       sli_summary_planned: lineQty(t.planned) + " in this line's IAs",
       sli_summary_produced: lineQty(t.produced),
       sli_summary_open: lineQty(t.open) + " in open IAs",
-      sli_summary_suggest: t.suggestion === null || t.complete === false ? "unavailable: a unit conversion is missing"
+      // a delivery may have come from the linked production: nothing records which, so no figure (FIX-01)
+      sli_summary_suggest: t.unavailable === "OVERLAP" ? "Unavailable: nothing records whether the " + lineQty(t.delivered) + " delivered came from the " + lineQty(t.produced) + " produced"
+        : t.suggestion === null || t.complete === false ? "Unavailable: a unit conversion is missing"
         : !active ? lineQty(0) + ": the line has no remaining demand"
         : lineQty(t.suggestion) + " = " + scQ8(t.ordered) + " ordered \u2212 " + done + " \u2212 " + scQ8(t.open) + " in progress",
     };
     const warnings = r.warnings || [];
     if (warnings.length) row.sli_summary_warn = warnings.map((w) => "\u26a0 " + swap(w.text)).join("   ");
-    const rows = (r.ias || []).map((x) => ({ ia_no: scS(x.no), status: scS(x.status), mode: MODE[scS(x.mode)] || "", planned: scQ8(x.planned), actual: scQ8(x.itemQty), uom: u(x.uomId),
+    // UI-01: an open IA's quantity is still to be received, a completed one's received; an IA the figures do not count shows neither
+    const rows = (r.ias || []).map((x) => ({ ia_no: scS(x.no), status: scS(x.status), mode: MODE[scS(x.mode)] || "", planned: scQ8(x.planned),
+      to_receive: scS(x.role) === "open" ? scQ8(x.itemQty) : null, actual: scS(x.role) === "produced" ? scQ8(x.itemQty) : null, uom: u(x.uomId),
       counted: ROLE[scS(x.role)] || "Not counted", ia_id: scS(x.id) }));
     const lost = orphans.map((x) => ({ ia_no: scS(x.no), status: scS(x.status), mode: MODE[scS(x.mode)] || "", planned: scQ8(scS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty),
-      actual: scQ8(x.item_qty), uom: u(x.item_uom), counted: "Line removed", ia_id: scS(x.id) }));
+      to_receive: OPEN_ST[scS(x.status)] ? scQ8(x.item_qty) : null, actual: DONE_ST[scS(x.status)] ? scQ8(x.item_qty) : null, uom: u(x.item_uom), counted: "Line removed",
+      ia_id: scS(x.id) }));
     await this.setData(Object.assign(scRows(row), { sli_ias: rows, sli_orphans: lost }));
     scShowRows(row);
     if (lost.length) this.display(["sli_orphans"]);

@@ -439,6 +439,16 @@ def build_commit():
         gate(ids, "cor_RCfinfree", "PO locks to free?", FIN, "needFree", [step_add(ids, "add_node_RCfinfree", "PO locks: FREE|<n>", FIN, "freeRows")]),
         job_update(ids, "update_node_RCdone", "Job COMPLETED (lease released)", FIN, "jobRows"),
     ] + cres("done", FIN, "DONE")
+    # C1 post-insert re-check (2026-10-21): the live batch rows with our numbers again, after the insert; made last so the nodes above keep their keys
+    def find(ns, nid):
+        for n in ns:
+            if n["id"] == nid:
+                return n
+            hit = find(n.get("blocks") or [], nid)
+            if hit:
+                return hit
+    find(nodes, "condition_all_RCc1back")["blocks"].append(K.parallel("tmp", "", [("cai_RCc1back3", "Numbers", [
+        sq("sql_node_RCc1dupB", "C1 read-back: live batch rows of the organization with those numbers", "dup")])])["blocks"][0])
     return K.workflow([("job_id", "string", "gd_async_job.id (digits) of a COMPLETE_GR job (READY_TO_COMMIT, or COMMITTING_GR to resume)")], RES_FIELDS, nodes)
 
 

@@ -1,0 +1,39 @@
+{
+ "why": "RES-01 R3: an enrolled IA's own holds added back to what its auto-allocation and Transfer Stock picker read (src/sc_res_own.js; a stored IA that reserves only: review I2 / I4)",
+ "block": "sc_res_own.js",
+ "wv07g9xe": {
+  "blockBefore": "const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {\n",
+  "pairs": [
+   {
+    "was": "const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {\n",
+    "now": "const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {\n  let resIaMemo = null;\n  const resIa = () => (resIaMemo === null ? (resIaMemo = resOwnIdOf(reservationRes.data, () => this.getValues() || {})) : resIaMemo);\n"
+   },
+   {
+    "was": "    const available = Math.max(\n      0,\n      (parseFloat(balance.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0)\n    );",
+    "now": "    const available = Math.max(\n      0,\n      (parseFloat(balance.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0)\n    ) + resOwnHeld(reservationRes.data, resIa(), balance.material_id, balance.location_id, balance.batch_id, \"Unrestricted\", itemMap.get(balance.material_id));"
+   }
+  ]
+ },
+ "iacqty01": {
+  "blockBefore": "",
+  "pairs": [
+   {
+    "was": "          \"material_name,serial_number_management,item_batch_management,table_default_bin,stock_control\"\n        ),",
+    "now": "          \"material_name,serial_number_management,item_batch_management,table_default_bin,stock_control\" + (resOwnId(allData) ? \",based_uom,table_uom_conversion\" : \"\")\n        ),"
+   },
+   {
+    "was": "          available: Math.max(\n            0,\n            (parseFloat(balance.unrestricted_qty) || 0) -\n              (huQtyMap.get(key) || 0) -\n              (siblingStaged.get(key) || 0)\n          ),",
+    "now": "          available: Math.max(\n            0,\n            (parseFloat(balance.unrestricted_qty) || 0) -\n              (huQtyMap.get(key) || 0) -\n              (siblingStaged.get(key) || 0)\n          ) + resOwnHeld(reservationRes.data, resOwnId(allData), balance.material_id, balance.location_id, balance.batch_id, \"Unrestricted\", item),"
+   }
+  ]
+ },
+ "evhzkk8e": {
+  "blockBefore": "",
+  "pairs": [
+   {
+    "was": "      }\n      return freshDbData;\n    };",
+    "now": "      }\n      // RES-01: this IA's own holds back into the free stock it shows (and out of the reserved)\n      if (resOwnId(allData) && !isSerial) {\n        for (const row of freshDbData) {\n          [\"Unrestricted\", \"Blocked\"].forEach((category) => {\n            const own = resOwnHeld(activeReservations, resOwnId(allData), row.material_id, row.location_id, row.batch_id, category, itemData);\n            if (!(own > 0)) return;\n            if (category === \"Unrestricted\") row.unrestricted_qty = (parseFloat(row.unrestricted_qty) || 0) + own;\n            else row.block_qty = (parseFloat(row.block_qty) || 0) + own;\n            row.reserved_qty = Math.max(0, (parseFloat(row.reserved_qty) || 0) - own);\n          });\n        }\n      }\n      return freshDbData;\n    };"
+   }
+  ]
+ }
+}

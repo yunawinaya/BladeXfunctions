@@ -1,0 +1,30 @@
+== SAform.json vs base sa_form_v313
+    /list/[key=tp9swgvv]/list/[key=a4w0xz3h] (added at 4: processing_status)
+    /list/[key=tp9swgvv]/list/[key=o96ujiq7] (added at 5: cancel_status)
+    /list/[key=v442g7n3]/options/datasource/rules/list/0/children/1/children (length 3 -> 5)
+    /list/[key=ww47eo29]/columns/[key=025fcgsf]/list/[key=ihktvh3w] (added at 9: sa_v2_job_id)
+    /list/[key=ww47eo29]/columns/[key=025fcgsf]/list/[key=deufwe9e] (added at 10: sa_idem_key)
+    /list/[key=shjmh0gq]/list/[key=t6wunwef]/events/onClick
+    /list/[key=shjmh0gq]/list/[key=s7l6l7ii]/events/onClick
+    /config/eventScript/[key=i9609s2l] (added at 50: saV2_onClick_completed)
+    /config/eventScript/[key=g7o7rdkd] (added at 51: saV2_onClick_completed_post)
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=uk4w8v1h]/rules/[key=q6qdaerx]/options/func
+== SAlistPage.json vs base sa_list_v57
+    /list/[key=xrzk87y6]/tabs/[key=6xnviupb]/list/[key=y5ewf6w9]/options/customProps/columns/[key=txqcfxzs]/configCustom/content
+    /list/[key=xrzk87y6]/tabs/[key=63erc1n4]/list/[key=jczaii1t]/options/customProps/columns/[key=v442g7n3]/configCustom/content
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=mounted]/type (added)
+== SCform.json vs base sc_form_v497
+    /list/[key=w8jlcjrd]/list/[key=fdevqgfp]/events/onClick
+    /config/eventScript/[key=yei06hlt] (added at 52: scV2_onButtonReviewClick)
+    /config/eventScript/[key=mounted]/func
+== SClistPage.json vs base sc_list_v38
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=mounted]/type (added)
+== schema_stock_adjustment.json vs base schema
+    /properties/stock_adjustment_status/component/rules/0/children/1/children (length 3 -> 5)
+    /properties/processing_status (added)
+    /properties/cancel_status (added)
+    /properties/sa_v2_job_id (added)
+    /properties/sa_idem_key (added)

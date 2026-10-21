@@ -83,9 +83,13 @@ PAGE_V221_PROPS = [(["list", 0, "tabs", 1, "list", 0, "options", "customProps"],
                    (["list", 1, "options", "customProps", "columns", 6], ["align", "allowEditFx", "columnEvents", "defaultHidden", "hoverView", "showStyle"])]
 
 
+# the list page as last published: v221 + the 1d handlers (10-20), then v222 = the force complete switch on (10-21)
+PUBLISHED_PAGE = "PickingListPage.fcon.json"
+
+
 def mirror_published_page(write):
     path = R + "Picking/PickingListPageFullJSON.json"
-    published = json.load(open(os.path.join(HERE, "deploy", "PickingListPage.v221+1d.json"), encoding="utf-8"))
+    published = json.load(open(os.path.join(HERE, "deploy", PUBLISHED_PAGE), encoding="utf-8"))
     text = open(path, encoding="utf-8").read()
     for p, keys in PAGE_V221_PROPS:
         node = published
@@ -98,7 +102,7 @@ def mirror_published_page(write):
         if todo:
             text = add_members(text, p, todo)
     assert json.loads(text) == published, "the repo page is not the published one"
-    print("Picking/PickingListPageFullJSON.json = the published list page (v221 + the 1d handlers)")
+    print("Picking/PickingListPageFullJSON.json = the published list page (" + PUBLISHED_PAGE + ")")
     if write:
         open(path, "w", encoding="utf-8").write(text)
         print("   written")

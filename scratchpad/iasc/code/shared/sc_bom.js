@@ -164,6 +164,12 @@ const scResolve = async (input, io) => {
         });
         return refs;
       };
+      // every BOM line that uses an item (a tick applies to all of them): its parent and the BOM that line resolves to
+      const uses = [];
+      const used = (rows, parentId) => rows.forEach((r) => {
+        uses.push({ itemId: scS(r.bom_material_code), parentId: parentId, refBomId: scS(r.bom_type) === "reference" ? scS(r.ref_bom_id) : "" });
+      });
+      used(rootRows, itemId);
       const rootRefs = refsOf(rootRows);
       let frontier = scUniq(rootRows.map((r) => r.bom_material_code)).map((id) => ({ itemId: id, parentItemId: itemId, refBomId: rootRefs[scS(id)] || "" }));
       frontier.forEach((f) => {
@@ -185,6 +191,7 @@ const scResolve = async (input, io) => {
           tree.push({ itemId: f.itemId, name: nameOf(f.itemId), depth: depth, parentItemId: f.parentItemId, expandable: !reason, reason: reason,
             bomId: child ? scS(child.id) : "", version: child ? scS(child.parent_mat_bom_version) : "" });
           const refs = refsOf(usable);
+          used(usable, f.itemId);
           usable.forEach((r) => {
             const id = scS(r.bom_material_code);
             if (!seen[id]) {
@@ -195,6 +202,18 @@ const scResolve = async (input, io) => {
         });
         frontier = next;
       }
+      // read once all levels are: the uses, parents and versions of each listed item
+      tree.forEach((t) => {
+        const mine = uses.filter((u) => u.itemId === t.itemId);
+        const own = bomsByItem[t.itemId] || [];
+        const versionOf = (u) => {
+          const b = u.refBomId ? own.filter((x) => scS(x.id) === u.refBomId)[0] : scPickBom(own);
+          return b ? scS(b.parent_mat_bom_version) : "";
+        };
+        t.uses = mine.length;
+        t.parents = scUniq(mine.map((u) => nameOf(u.parentId)));
+        t.versions = scUniq(mine.map(versionOf).filter((v) => v));
+      });
     } else {
       await readItemsFor(rootRows.map((r) => r.bom_material_code));
     }

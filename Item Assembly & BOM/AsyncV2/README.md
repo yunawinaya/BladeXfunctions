@@ -185,6 +185,13 @@ other node byte-identical (`test/revert/diff_v4.py`).
 - Complete & Post posts with the classic `postToAccounting` code, verbatim, only once the job is COMPLETED; if the 420 s wait
   ends first: "Still completing in the background; post it from the list once it shows Completed." With `COMPLETE_POST` off
   (and `COMPLETE` on) a big Complete & Post completes in the background and is posted from the list.
+- One click at a time, one post per job (dev IA form v47, 21 October; reported by bladexfunctions-8c): the click claims
+  `ia_submitting` before its first await (a second click while it validates or reads the BOM is told to wait; it used to start
+  a twin flow on the same key, and both posted); the classic route and a Cancel at the BOM check free it again. A COMPLETED job
+  is posted once per browser (`localStorage ia_v2_posted_<jobId>`) and only while the stored IA is Completed and Unposted /
+  Failed Post / blank. The live form is built by the Small Cycle builder: this fix is its patch
+  `scratchpad/iasc/client/src/v2_double_patch.json` (the iav2 client source here is not the live build path). Open: the classic
+  path (50 picks or fewer) has no double-click guard, and the classic IA_SAVE does not refuse a second Completed save.
 - A Processing IA opens read-only (badge, no save / post button, components locked); with a switch on it follows the job
   (STATUS, worker kick every 15 s: the completion or the revert worker by the job's action). A failed job is shown once per
   browser (`localStorage ia_v2_failed_seen_<jobId>`).

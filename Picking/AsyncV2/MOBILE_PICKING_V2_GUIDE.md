@@ -308,7 +308,7 @@ Test data already on dev 496474 (from the server's live tests): PI-20261016-0072
 lines: Normal Item and Auto Batch Item, both allocated in bin L1). Ask the server owner for more (SO clones →
 deliveries → Pickings).
 
-## Part 10 — Force Complete (stage 1d: server built 2026-10-20, not on dev yet)
+## Part 10 — Force Complete (stage 1d: on dev since 2026-10-20, web switches ON since 2026-10-21)
 
 Today the Picking list's "⋮" menu (`usePickingBulkActions.handleBulkForceComplete`) calls classic PICKING_LOOP with
 `isForceComplete: 1`. The background version reduces each delivery to what was picked (unpicked lines removed, their
@@ -347,6 +347,11 @@ The answer: `route` QUEUED | EXISTING | REJECT | NOT_ELIGIBLE, `result_code`, `r
 - `FAILED` → nothing was saved; show `result_message` once. The Picking is unlocked and stays In Progress.
 - `REQUIRES_REVIEW` → stopped half-way (some deliveries already reduced); the Picking stays locked: "please contact
   support" with `result_message`.
+
+**Seen live on dev 496474 (2026-10-21):** a 1-delivery force complete takes about 12 s and 8 calls; a 2,000-line one
+took 238 s and 13 calls, its delivery's GD_EDIT_WORKER commit call alone 186 s. Treat GD_EDIT_WORKER as
+fire-and-forget and expect such a call to outlive the phone's HTTP timeout: the server run continues and STATUS shows
+it. Two saves of the same item at once serialize on the stock engine's lock (one edit commit waited 173 s).
 
 The other parts of this guide apply unchanged: one live kick per job, report-once keys, and NOT_ELIGIBLE → classic.
 Revert Completed must refuse a Picking whose latest job (STATUS) has `operation` FORCE_COMPLETE and is COMPLETED

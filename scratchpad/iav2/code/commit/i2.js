@@ -1,7 +1,8 @@
 // IA_V2_COMMIT - I2 ISSUE: INVENTORY_BULK_APPLY APPLY of op 1 (IAC|<job>|I; all-or-nothing, replayed on a re-run).
 // 200 (also REPLAYED; "401" skips inside it tolerated, as the classic) or no movement -> DONE + the hand-over: SPLIT (the worker
 // calls phase B now) or, above 1,000 picks, PARK (due now, no lease: the next tick); attempt_count back to 0, progress 75.
-// 409, no answer, or a 400 without a result_code -> intent rows ? retry (review once spent) : 8 lock waits then FAILED;
+// engine v12's 409 "the same operation is still running" -> 8 lock waits (even with intent rows) then review; another 409, no answer,
+// or a 400 without a result_code -> intent rows ? retry (review once spent) : 8 lock waits then FAILED;
 // 400 with a result_code -> FAILED (LABELS-worded); 500 or anything else -> REQUIRES_REVIEW. FAILED unlocks the IA and
 // soft-deletes this job's Batch row (I1's)
 const commitI2 = function commitI2(entry, guard, input, ans, ops, labelRows, i1) {
@@ -29,6 +30,12 @@ const commitI2 = function commitI2(entry, guard, input, ans, ops, labelRows, i1)
     return failNoWrite(entry, "IA_INVENTORY_" + s(ans.result_code), text, why, ours);
   }
   if (code === "409" || code === "" || code === "400") {
+    // engine v12: this operation's earlier run is still alive (a resumed pass): wait it out even with intent rows; review once the
+    // waits are spent, never FAILED (that run may still be writing)
+    if (code === "409" && s(ans.message).indexOf("the same operation is still running") >= 0) {
+      if (num(entry.attempts) >= IA_LOCK_WAIT_TRIES) return stepEnd(entry, "I2_ISSUE", why + " after " + num(entry.attempts) + " waits", true);
+      return lockWait(entry, why);
+    }
     if (num((ops || {}).intents) > 0) return stepEnd(entry, "I2_ISSUE", why + " with " + num(ops.intents) + " intent row(s)", false);
     if (num(entry.attempts) >= IA_LOCK_WAIT_TRIES) return failNoWrite(entry, "IA_INVENTORY_LOCK_BUSY", IA_TEXT.lockBusy, why.slice(0, 1000) + ": nothing was moved", ours);
     return lockWait(entry, why);

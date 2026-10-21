@@ -107,13 +107,23 @@ R_IA = """SELECT JSON_OBJECT('id', CAST(h.id AS CHAR), 'no', h.stock_movement_no
    AND h.id = @IA
    AND h.is_deleted = 0"""
 
+# FIX-03: whether the session user (@UID) is assigned to the organisation (@ORG) or one of its plants: blade_user.dept_id, the CSV
+# INVENTORY_APPLY_OPERATION's permission check reads, against the organisation's dept subtree; bare digits ("0" matches nobody)
+MEMBER_EXPR = """(SELECT COUNT(*) FROM blade_dept p
+          WHERE p.tenant_id = '@T' AND p.is_deleted = 0 AND @ORG > 0 AND (p.id = @ORG OR FIND_IN_SET('@ORG', p.ancestors) > 0)
+            AND FIND_IN_SET(CAST(p.id AS CHAR) COLLATE utf8mb4_general_ci,
+                  (SELECT COALESCE(u.dept_id, '') FROM blade_user u WHERE u.tenant_id = '@T' AND u.is_deleted = 0 AND u.id = @UID LIMIT 1)) > 0)"""
+MEMBER = """SELECT JSON_OBJECT('member', """ + MEMBER_EXPR + """) AS j"""
+
 # the new / dev columns the IA form publish creates (sqlcheck stand-ins until then)
 NEW_IA_COLUMNS = ["source_so_id", "source_so_line_id", "source_so_context_json", "bom_consumption_mode", "source_bom_id",
                   "bom_snapshot_json", "planned_output_qty"]
 
 # IA_SAVE v13 / IA_V2_SUBMIT v4: the stored Small Cycle fields of an Edit (@IA, "0" = Add / Clone) and the line of the payload's
-# link (@LINE), else of the stored link, with its SO header; one row
+# link (@LINE), else of the stored link, with its SO header, and whether the session user (@UID) is assigned to the IA's
+# organisation (@ORG, FIX-03); one row
 CLASSIC_SC_SOURCE = """SELECT JSON_OBJECT(
+       'member', """ + MEMBER_EXPR + """,
        'stored', IF(h.id IS NULL, NULL, JSON_OBJECT('source_so_id', h.source_so_id, 'source_so_line_id', h.source_so_line_id,
          'source_so_context_json', h.source_so_context_json, 'bom_consumption_mode', h.bom_consumption_mode, 'source_bom_id', h.source_bom_id,
          'bom_snapshot_json', h.bom_snapshot_json, 'planned_output_qty', CAST(h.planned_output_qty AS CHAR), 'item_id', h.item_id)),
@@ -128,11 +138,59 @@ CLASSIC_SC_SOURCE = """SELECT JSON_OBJECT(
    AND l.id = IF(@LINE > 0, @LINE, IF(h.source_so_line_id REGEXP '^[0-9]{1,20}$', CAST(h.source_so_line_id AS UNSIGNED), 0))
   LEFT JOIN sales_order s ON s.tenant_id = '@T' AND s.id = l.sales_order_id"""
 
-# IA_SAVE only: the same row + the stored non-empty sc_ref_key of the payload lines that came back with an id but without one (@IDS,
-# "0" = none; a mobile save), by primary key
+# IA_SAVE only: the same row + the stored sc_ref_key, required_qty and requested_qty (RES-01) of the payload lines asked for (@IDS,
+# "0" = none: those without sc_ref_key, a mobile save; holds on: every line with an id), by primary key; and the stored
+# material_hold_status (RES-01 enrolment)
 CLASSIC_SC_SOURCE_KEYS = CLASSIC_SC_SOURCE.replace(
     "'organization_id', s.organization_id, 'customer_id', CAST(s.customer_name AS CHAR), 'is_deleted', s.is_deleted))) AS j",
     "'organization_id', s.organization_id, 'customer_id', CAST(s.customer_name AS CHAR), 'is_deleted', s.is_deleted)),\n"
-    "       'keys', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(x.id AS CHAR), 'k', x.sc_ref_key)) FROM sm_item_assembly_tlm8ve69_sub x\n"
-    "         WHERE x.tenant_id = '@T' AND x.id IN (@IDS) AND x.sm_item_assembly_id = @IA AND x.is_deleted = 0 AND x.sc_ref_key <> '')) AS j", 1)
+    "       'hold', h.material_hold_status,\n"
+    "       'keys', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(x.id AS CHAR), 'k', x.sc_ref_key, 'r', CAST(x.required_qty AS CHAR), 'q', CAST(x.requested_qty AS CHAR))) FROM sm_item_assembly_tlm8ve69_sub x\n"
+    "         WHERE x.tenant_id = '@T' AND x.id IN (@IDS) AND x.sm_item_assembly_id = @IA AND x.is_deleted = 0)) AS j", 1)
 assert CLASSIC_SC_SOURCE_KEYS != CLASSIC_SC_SOURCE
+
+# RES-01 R4 (IA_SAVE, a completion of an IA that reserves): its own holds (Allocated, and Processing / Releasing in flight) and its
+# hold tickets still running (HELD within IA_HOLD's 10-minute lease; started_at is written from the same UTC+8 clock). @T, @IAQ and
+# @ORG are digits (code_node_RESdue); the organisation lets the on_reserved_gd (tenant, organisation, is_deleted, doc_type) index serve it
+RES_OWN = """SELECT JSON_OBJECT(
+       'rows', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(r.id AS CHAR), 'status', r.status, 'doc_line_id', r.doc_line_id, 'material_id', CAST(r.material_id AS CHAR),
+                'bin_location', CAST(r.bin_location AS CHAR), 'batch_id', CAST(r.batch_id AS CHAR), 'from_category', r.from_category, 'open_qty', CAST(r.open_qty AS CHAR),
+                'item_uom', CAST(r.item_uom AS CHAR)))
+                FROM on_reserved_gd r WHERE r.tenant_id = '@T' AND r.organization_id = '@ORG' AND r.is_deleted = 0 AND r.doc_type = 'Item Assembly'
+                 AND r.doc_id = '@IAQ' AND r.status IN ('Allocated', 'Processing', 'Releasing')),
+       'live', (SELECT COUNT(*) FROM gd_publish_step p WHERE p.tenant_id = '@T' AND p.job_id = 'IAH|@IAQ' AND p.step_name LIKE 'TICKET|%' AND p.step_status = 'HELD'
+                 AND p.is_deleted = 0 AND p.started_at > CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00') - INTERVAL 10 MINUTE)) AS j"""
+
+# RES-01 R5 + review I3 (the reverts): the same + the IA's Delivered rows (CLOSE: what each hold's completion used, in the row's unit, and the
+# bucket it came from); a revert keeps those of the cycle it undoes (resRevertBound)
+RES_DELIVERED = """       'delivered', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(d.id AS CHAR), 'material_id', CAST(d.material_id AS CHAR),
+                'bin_location', CAST(d.bin_location AS CHAR), 'batch_id', CAST(d.batch_id AS CHAR), 'from_category', d.from_category,
+                'delivered_qty', CAST(d.delivered_qty AS CHAR), 'item_uom', CAST(d.item_uom AS CHAR)))
+                FROM on_reserved_gd d WHERE d.tenant_id = '@T' AND d.organization_id = '@ORG' AND d.is_deleted = 0 AND d.doc_type = 'Item Assembly'
+                 AND d.doc_id = '@IAQ' AND d.status = 'Delivered'),
+"""
+RES_REVERT_OWN = RES_OWN.replace("       'live', (SELECT COUNT(*)", RES_DELIVERED + "       'live', (SELECT COUNT(*)", 1)
+assert RES_REVERT_OWN != RES_OWN
+
+
+def res_gate(sql, empty):
+    """review M13: prod's on_reserved_gd has only its primary key, so an own-holds read scans the whole table: a read made on every V2
+    completion or revert (the PREPAREs) reads it only for an IA with a stored hold status (CASE: otherwise the scan is never executed;
+    EXPLAIN ANALYZE on dev 10-21); @IA = the IA id as bare digits (bigint)"""
+    assert sql.startswith("SELECT JSON_OBJECT(") and sql.endswith(" AS j"), sql[:40]
+    return ("SELECT CASE WHEN (SELECT h.material_hold_status FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = @IA) <> '' THEN "
+            + sql[len("SELECT "):-len(" AS j")] + " ELSE " + empty + " END AS j")
+
+
+def res_hold(sql):
+    """the same + the IA's material_hold_status (whether it reserves)"""
+    out = sql.replace("SELECT JSON_OBJECT(\n       'rows',",
+                      "SELECT JSON_OBJECT(\n       'hold', (SELECT h.material_hold_status FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = @IA),\n"
+                      "       'rows',", 1)
+    assert out != sql
+    return out
+
+
+# RES-01 R4 (IA_V2_PREPARE) and R5 (IA_REVERT_V2_PREPARE): with the hold status, read only for an IA that reserves
+RES_OWN_HOLD = res_gate(res_hold(RES_OWN), "JSON_OBJECT('hold', '', 'rows', NULL, 'live', 0)")
+RES_REVERT_OWN_HOLD = res_gate(res_hold(RES_REVERT_OWN), "JSON_OBJECT('hold', '', 'rows', NULL, 'delivered', NULL, 'live', 0)")

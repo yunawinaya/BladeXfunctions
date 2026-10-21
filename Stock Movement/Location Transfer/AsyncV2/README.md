@@ -148,14 +148,23 @@ The UNIQUE keys are load-bearing: idempotency, the worker's claim gate, and the 
 them would let duplicate jobs or claims through. Prod's largest Location Transfer so far is 44 lines, so V2 will rarely run
 there at first.
 
-## Known gaps / risks (first live runs are the first tests: the user waived testing for this release)
-**Least proven** (no recorded classic runs to compare against):
-- COMPLETE with edits (the reconcile/ledger fold), EDIT and CANCEL;
-- L2's whole-subform line update, L3's slice loops, and the PARK resume above 1,000 lines.
+## Known gaps / risks
+**Live-tested on dev** (`.superpowers/sdd/gd-picking-packing-gr-fluffy-bentley/live-report.md`):
+- 10-16: every action at small size, including COMPLETE with edits (the fold), EDIT, CANCEL, the FAILED path and lock contention.
+- 10-19: a 1,458-line bundle DIRECT (PARK), and one-bundle STAGE → COMPLETE.
+- 10-20: a classic bundle cancel, and a bundle qty raise on EDIT (51 lines).
+- 10-21: 1,050 lines STAGE → COMPLETE → restore. L3 wrote 5 slices of up to 250; COMPLETE carried 5 S parts; each step PARKed once.
+  On the slowed dev each engine APPLY took 176–345 s (prod is ~6× faster).
+
+**Not live-tested:** costed-item pricing (engine parity covers it), the L0 changed-lines / changed-ledger refusals, REQUIRES_REVIEW
+recovery, and the client JS handlers (the BA's browser pass).
 
 **Behaviour to know about:**
 - A crash inside L2's single platform call → REQUIRES_REVIEW.
 - Lock waits count toward `attempt_count`, so a crash after 3 waits → REQUIRES_REVIEW.
+- An engine 409 waits up to 8 times (15 s × 2^n, max 5 min, ~23 min in all). Without this operation's intent rows it then FAILs
+  cleanly; with them (an earlier run may have written; engine v12 answers 409 for up to 20 min after such a run dies) it goes to
+  REQUIRES_REVIEW, never a clean FAILED (COMMIT v8, 2026-10-21).
 - Engine parity on 1,872 recorded prod LOT pairs: no differences in stock or cost. 134 differ cosmetically (remark NULL vs '', date-only columns).
 - The engine copies batch dates from the SUBTRACT side (`unit_price_from`); this has never differed in recorded data.
 - Classic bugs FIXED in v84 (dev 2026-10-16): the guard refuses saving a stored In Progress transfer as Draft (400), and

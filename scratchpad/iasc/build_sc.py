@@ -32,7 +32,7 @@ def ret(nid, title, src):
 def build_projection():
     ids = K.Ids(1792000000000)
     G = "code_node_SPguard"
-    t, line, so, item, org = N(G, "data.tenantId"), N(G, "data.line"), N(G, "data.so"), N(G, "data.item"), N(G, "data.org")
+    t, line, so, item, org, uid = N(G, "data.tenantId"), N(G, "data.line"), N(G, "data.so"), N(G, "data.item"), N(G, "data.org"), N(G, "data.uid")
     j = ["j"]
     summary = [
         K.parallel("condition_all_SPread", "SUMMARY reads (independent, one join)", [
@@ -41,6 +41,7 @@ def build_projection():
             ("cai_SPfg", "FG", [K.sql("sql_node_SPfg", "The FG item and its UOM conversions", V.sub(S.P_FG, T=t, ITEM=item), j)]),
             ("cai_SPrelink", "Re-link candidates", [K.sql("sql_node_SPrelink", "Live lines of the same SO for the same item", V.sub(S.P_RELINK, T=t, LINE=line, SO=so, ITEMQ=item), j)]),
             ("cai_SPorphans", "Orphans", [K.sql("sql_node_SPorphans", "IAs of this SO whose line no longer exists", V.sub(S.P_ORPHANS, T=t, ORG=org, LINE=line, SO=so), j)]),
+            ("cai_SPmember", "Member", [K.sql("sql_node_SPmember", "Is the session user assigned to the organisation (FIX-03)", V.sub(S.MEMBER, T=t, ORG=org, UID=uid), j)]),
         ]),
         node("code_node_SPsummary", "SUMMARY: sales vs production figures (scProject)", "projection/summary.js", ["code", "message", "result_json"]),
         ret("return_node_SPsummary", "Return SUMMARY", "code_node_SPsummary"),
@@ -50,13 +51,14 @@ def build_projection():
             ("cai_SPcand", "Lines", [K.sql("sql_node_SPcand", "Live lines of eligible SOs for the item (newest 200)", V.sub(S.P_CAND, T=t, ITEMQ=item, ORG=org), j)]),
             ("cai_SPcandIas", "Linked IAs", [K.sql("sql_node_SPcandIas", "The linked IAs of the item", V.sub(S.P_CAND_IAS, T=t, ORG=org, ITEMQ=item), j)]),
             ("cai_SPcfg", "FG", [K.sql("sql_node_SPcfg", "The FG item and its UOM conversions", V.sub(S.P_FG, T=t, ITEM=item), j)]),
+            ("cai_SPcmember", "Member", [K.sql("sql_node_SPcmember", "Is the session user assigned to the organisation (FIX-03)", V.sub(S.MEMBER, T=t, ORG=org, UID=uid), j)]),
         ]),
         node("code_node_SPcand", "CANDIDATES: eligible lines with their suggestion (scCandidates)", "projection/candidates.js", ["code", "message", "result_json"]),
         ret("return_node_SPcand", "Return CANDIDATES", "code_node_SPcand"),
     ]
     nodes = [
-        node("code_node_SPguard", "Guard: operation, session tenant, digit ids", "projection/guard.js",
-             ["route", "code", "tenantId", "so", "line", "item", "exclude", "org", "proposal", "baseline", "result_code", "result_message", "result_json"],
+        node("code_node_SPguard", "Guard: operation, session tenant and user, digit ids", "projection/guard.js",
+             ["route", "code", "tenantId", "uid", "so", "line", "item", "exclude", "org", "proposal", "baseline", "result_code", "result_message", "result_json"],
              objects=("proposal", "baseline")),
         K.if_(ids, "if_SPreject", "IF the request is invalid", V.is_(G, "route", "REJECT"),
               [K.ret("return_node_SPreject", "Return 400", [("code", N(G, "data.code")), ("message", N(G, "data.result_message")), ("result_json", N(G, "data.result_json"))])],
@@ -71,12 +73,13 @@ def build_projection():
 def build_relink():
     ids = K.Ids(1792100000000)
     G = "code_node_RLguard"
-    t, ia, line = N(G, "data.tenantId"), N(G, "data.ia"), N(G, "data.line")
+    t, ia, line, org, uid = N(G, "data.tenantId"), N(G, "data.ia"), N(G, "data.line"), N(G, "data.org"), N(G, "data.uid")
     j = ["j"]
     go = [
         K.parallel("condition_all_RLread", "Reads (independent, one join)", [
             ("cai_RLia", "IA", [K.sql("sql_node_RLia", "The IA (status, link, context) and whether its line is still live", V.sub(S.R_IA, T=t, IA=ia), j)]),
             ("cai_RLline", "New line", [K.sql("sql_node_RLline", "The chosen line and its SO header", V.sub(S.P_LINE, T=t, LINE=line, SO="0"), j)]),
+            ("cai_RLmember", "Member", [K.sql("sql_node_RLmember", "Is the session user assigned to the organisation (FIX-03)", V.sub(S.MEMBER, T=t, ORG=org, UID=uid), j)]),
         ]),
         node("code_node_RLcheck", "Check: a completed IA whose line is gone, onto a live line of the same SO and item", "relink/check.js",
              ["route", "code", "message", "rows", "needUpd"], arrays=("rows",)),
@@ -92,14 +95,15 @@ def build_relink():
                ret("return_node_RLdone", "Return", "code_node_RLresult")]),
     ]
     nodes = [
-        node("code_node_RLguard", "Guard: digit ids, session tenant and user", "relink/guard.js",
-             ["route", "code", "tenantId", "ia", "line", "item", "org", "uid", "result_message", "result_json"]),
+        node("code_node_RLguard", "Guard: digit ids, session tenant and user, the link and status the user saw", "relink/guard.js",
+             ["route", "code", "tenantId", "ia", "line", "item", "org", "uid", "expectLine", "expectStatus", "result_message", "result_json"]),
         K.if_(ids, "if_RLreject", "IF the request is invalid", V.is_(G, "route", "REJECT"),
               [K.ret("return_node_RLreject", "Return 400", [("code", N(G, "data.code")), ("message", N(G, "data.result_message")), ("result_json", N(G, "data.result_json"))])],
               go),
     ]
     request = [(n, "string", d) for n, d in [("ia_id", "the completed IA"), ("so_line_id", "the live line to link"), ("item_id", "the IA's FG item"),
-                                              ("organization_id", "the caller's organisation")]]
+                                              ("organization_id", "the caller's organisation"), ("expected_line_id", "the IA's SO line as the user saw it"),
+                                              ("expected_status", "the IA's status as the user saw it")]]
     return K.workflow(request, ["code", "message", "result_json"], nodes)
 
 

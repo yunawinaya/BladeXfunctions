@@ -34,6 +34,7 @@ const q8s = (v) => (v === undefined || v === null || v === "" ? null : Number((p
 class Model {
   constructor(opts) {
     this.tenantId = T;
+    this.uid = "2109866916722085890";
     this.seq = 2112300000000000000n;
     this.no = 41;
     this.ia = {};
@@ -163,7 +164,10 @@ class Model {
     const stored = h ? Object.assign({ item_id: h.item_id }, ...SC.map((k) => ({ [k]: h[k] === undefined ? (k === "planned_output_qty" ? null : "") : h[k] }))) : null;
     const want = lineId && lineId !== "0" ? lineId : stored && stored.source_so_line_id;
     const line = want && sc.lines && sc.lines[want] ? sc.lines[want] : null;
-    return [{ j: JSON.stringify({ stored: stored, line: line, header: line && sc.headers ? sc.headers[line.sales_order_id] || null : null }) }];
+    this.scSql = (this.scSql || []).concat([sql]);
+    // FIX-03: whether the session user is assigned to the IA's organisation (sc.member 0 = not assigned)
+    return [{ j: JSON.stringify({ member: sc.member === undefined ? 1 : sc.member, stored: stored, line: line,
+      header: line && sc.headers ? sc.headers[line.sales_order_id] || null : null }) }];
   }
   back(sql) {
     const key = sql.match(/j\.idempotency_key = '([^']*)'/)[1];
@@ -393,6 +397,14 @@ eq("SC Flat without a snapshot: STOP 400, nothing written", [r.out.route, r.out.
 m = new Model();
 r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-s4"), form: record(lines60(), linked({ organization_id: "" })) }, SCL);
 eq("SC new link without an organization: refused 400 (the required-field gate, before the link check), nothing written", [r.out && r.out.code, m.writes.length], ["400", 0]);
+m = new Model();
+r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-s5"), form: record(lines60(), linked()) }, Object.assign({}, SCL, { member: 0 }));
+eq("SC new link by a user not assigned to the organisation: STOP 400 IA_SC_INVALID, nothing written (FIX-03)", [r.out && r.out.route, r.out && r.out.error_code,
+  /not assigned to this organisation/.test((r.out && r.out.message) || ""), m.writes.length], ["STOP", "IA_SC_INVALID", true, 0]);
+eq("SC membership read: the session user and the form's organisation (FIX-03)", (m.scSql || []).some((s) => {
+  const q = s.replace(/\s+/g, " ");
+  return q.indexOf("u.id = 2109866916722085890 LIMIT 1") >= 0 && q.indexOf("(p.id = " + ORG + " OR FIND_IN_SET('" + ORG + "', p.ancestors) > 0)") >= 0;
+}), true);
 
 // re-link through Edit (SUBMIT): the stored link L1, the form L2; the SO side changing the line's item does not block
 const LINE2 = "2112017989484847108";

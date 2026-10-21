@@ -50,41 +50,76 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
       "blocks": []
     },
     {
-      "id": "search_node_AHtHRmqi",
-      "type": "search-node",
+      "id": "code_node_grcvStart",
+      "type": "code-node",
       "data": {
-        "table_id": {
-          "source": "Goods Receiving:Table:1901845517592285186",
-          "rules": {
-            "collectionId": "1901845517592285186",
-            "list": [
-              {
-                "id": 1782439092615,
-                "parentId": 1782439092614,
-                "isTop": true,
-                "prop": "id",
-                "operator": "in",
-                "valueType": "field",
-                "value": "{{workflowparams:ids}}",
-                "type": "leaf",
-                "level": 1,
-                "propLabel": "Primary Key ID",
-                "valueLabel": "",
-                "operatorLabel": "In"
-              }
-            ]
-          }
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "const ids = {{workflowparams:ids}};\nconst tenant = [{{system:tenantId}}][0];\nconst list = (Array.isArray(ids) ? ids : [ids]).map((x) => (x === undefined || x === null ? \"\" : String(x).trim())).filter((x) => /^[0-9]{1,20}$/.test(x));\nreturn {\n  idsSql: list.length ? [...new Set(list)].join(\",\") : \"0\",\n  tenantId: /^[0-9]{1,20}$/.test(String(tenant)) ? String(tenant) : \"0\",\n};"
         },
-        "condition": {},
-        "limit": 100,
-        "title": "1. Fetch All GR Data",
+        "response_json": [
+          {
+            "key": "e8u1h8if",
+            "name": "idsSql",
+            "title": "idsSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vr2esgfz",
+            "name": "tenantId",
+            "title": "tenantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "0. Ids + tenant for the reads",
         "isValidator": true,
-        "nodeName": "1. Fetch All GR Data",
-        "name": "1. Fetch All GR Data"
+        "nodeName": "0. Ids + tenant for the reads",
+        "name": "0. Ids + tenant for the reads"
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_grcvHeads",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "1. Selected GRs: status and purchase orders",
+        "isValidator": true,
+        "nodeName": "1. Selected GRs: status and purchase orders",
+        "name": "1. Selected GRs: status and purchase orders",
+        "script": {
+          "type": "sql",
+          "code": "SELECT JSON_OBJECT('id', CAST(g.id AS CHAR), 'gr_status', g.gr_status, 'po_id', g.po_id) AS j\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{node:code_node_grcvStart.data.tenantId}}' AND g.is_deleted = 0\n   AND g.id IN ({{node:code_node_grcvStart.data.idsSql}})\n ORDER BY g.id"
+        },
+        "response_json": [
+          {
+            "key": "39vescas",
+            "name": "j",
+            "title": "j",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
       },
       "blocks": []
     },
@@ -101,7 +136,7 @@
         "name": "2-1. Check GR Status",
         "script": {
           "type": "javascript",
-          "code": "const grList = {{node:search_node_AHtHRmqi.data.data}};\nconst filterDraft = {{workflowparams:filter_draft}};\nconst unCompletedGR = grList.filter((gr) => gr.gr_status !== \"Completed\" && gr.gr_status !== 'Received');\n\nif (unCompletedGR.length > 0 && filterDraft == \"no\") {\n  return {\n    status: \"Failed\",\n    message:\n      \"Selected Goods Receivings with Draft/Created status cannot be converted.<br><br> If proceed, it will filter out the draft/created GR.\",\n  };\n} else {\n  return {\n    status: \"Success\",\n    message: \"\",\n  };\n}\n"
+          "code": "// Rows from a sql-node (one JSON text per row) in the shape the old search nodes gave: null and \"\" keys left off, bigint\n// columns as exact strings from 16 digits up and as numbers below that, a document's lines under its line key with a bundle's\n// items under `children`, documents and lines in id order.\nconst cvParse = function cvParse(t) {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst cvRows = function cvRows(rows, bigints) {\n  const big = new Set(bigints || []);\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    const o = cvParse(r && r.j !== undefined ? r.j : r);\n    if (!o) continue;\n    const row = {};\n    for (const k of Object.keys(o)) {\n      let v = o[k];\n      if (v === null || v === undefined || v === \"\") continue;\n      if (big.has(k) && typeof v === \"string\" && /^-?\\d{1,15}$/.test(v)) v = Number(v);\n      row[k] = v;\n    }\n    out.push(row);\n  }\n  return out;\n};\nconst cvDocs = function cvDocs(headRows, lineRows, lineKey, headBigints, lineBigints) {\n  const heads = cvRows(headRows, headBigints);\n  const byDoc = new Map();\n  for (const l of cvRows(lineRows, (lineBigints || []).concat([\"doc\"]))) {\n    const doc = String(l.doc);\n    delete l.doc;\n    if (!byDoc.has(doc)) byDoc.set(doc, []);\n    byDoc.get(doc).push(l);\n  }\n  return heads.map((h) => {\n    const lines = byDoc.get(String(h.id)) || [];\n    const present = new Set(lines.map((l) => String(l.id)));\n    const kids = new Map();\n    for (const l of lines) {\n      if (l.parent_id === undefined || !present.has(String(l.parent_id))) continue;\n      if (!kids.has(String(l.parent_id))) kids.set(String(l.parent_id), []);\n      kids.get(String(l.parent_id)).push(l);\n    }\n    const top = lines.filter((l) => l.parent_id === undefined || !present.has(String(l.parent_id)));\n    return Object.assign({}, h, { [lineKey]: top.map((l) => (kids.has(String(l.id)) ? Object.assign({}, l, { children: kids.get(String(l.id)) }) : l)) });\n  });\n};\n\nconst grList = cvRows([{{node:sql_node_grcvHeads.data}}][0], [\"id\"]);\nconst filterDraft = {{workflowparams:filter_draft}};\nconst unCompletedGR = grList.filter((gr) => gr.gr_status !== \"Completed\" && gr.gr_status !== 'Received');\n\nif (unCompletedGR.length > 0 && filterDraft == \"no\") {\n  return {\n    status: \"Failed\",\n    message:\n      \"Selected Goods Receivings with Draft/Created status cannot be converted.<br><br> If proceed, it will filter out the draft/created GR.\",\n  };\n} else {\n  return {\n    status: \"Success\",\n    message: \"\",\n  };\n}\n"
         },
         "response_json": [
           {
@@ -142,7 +177,9 @@
         {
           "id": "if_block_mvtPR2cE",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "end_zUhaNxBw",
@@ -151,7 +188,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -170,7 +211,9 @@
         {
           "id": "if_block_kwj9N1p7",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -188,7 +231,7 @@
         "name": "2-2. Map PO IDs",
         "script": {
           "type": "javascript",
-          "code": "const grList = {{node:search_node_AHtHRmqi.data.data}};\n\n// Use flatMap to combine all po_id arrays into one flat array\nconst poIDs = grList.flatMap((gr) => gr.po_id || []);\n\n// If you want to remove duplicates\nconst uniquePoIDs = [...new Set(poIDs)];\n\nreturn {\n  uniquePoIDs,\n};\n"
+          "code": "// Rows from a sql-node (one JSON text per row) in the shape the old search nodes gave: null and \"\" keys left off, bigint\n// columns as exact strings from 16 digits up and as numbers below that, a document's lines under its line key with a bundle's\n// items under `children`, documents and lines in id order.\nconst cvParse = function cvParse(t) {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst cvRows = function cvRows(rows, bigints) {\n  const big = new Set(bigints || []);\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    const o = cvParse(r && r.j !== undefined ? r.j : r);\n    if (!o) continue;\n    const row = {};\n    for (const k of Object.keys(o)) {\n      let v = o[k];\n      if (v === null || v === undefined || v === \"\") continue;\n      if (big.has(k) && typeof v === \"string\" && /^-?\\d{1,15}$/.test(v)) v = Number(v);\n      row[k] = v;\n    }\n    out.push(row);\n  }\n  return out;\n};\nconst cvDocs = function cvDocs(headRows, lineRows, lineKey, headBigints, lineBigints) {\n  const heads = cvRows(headRows, headBigints);\n  const byDoc = new Map();\n  for (const l of cvRows(lineRows, (lineBigints || []).concat([\"doc\"]))) {\n    const doc = String(l.doc);\n    delete l.doc;\n    if (!byDoc.has(doc)) byDoc.set(doc, []);\n    byDoc.get(doc).push(l);\n  }\n  return heads.map((h) => {\n    const lines = byDoc.get(String(h.id)) || [];\n    const present = new Set(lines.map((l) => String(l.id)));\n    const kids = new Map();\n    for (const l of lines) {\n      if (l.parent_id === undefined || !present.has(String(l.parent_id))) continue;\n      if (!kids.has(String(l.parent_id))) kids.set(String(l.parent_id), []);\n      kids.get(String(l.parent_id)).push(l);\n    }\n    const top = lines.filter((l) => l.parent_id === undefined || !present.has(String(l.parent_id)));\n    return Object.assign({}, h, { [lineKey]: top.map((l) => (kids.has(String(l.id)) ? Object.assign({}, l, { children: kids.get(String(l.id)) }) : l)) });\n  });\n};\n\nconst grList = cvRows([{{node:sql_node_grcvHeads.data}}][0], [\"id\"]);\n\n// Use flatMap to combine all po_id arrays into one flat array\nconst poIDs = grList.flatMap((gr) => gr.po_id || []);\n\n// If you want to remove duplicates\nconst uniquePoIDs = [...new Set(poIDs)];\n\nreturn {\n  uniquePoIDs,\n  poIdsSql: uniquePoIDs.map(String).filter((x) => /^[0-9]{1,20}$/.test(x)).join(\",\") || \"0\",\n};\n"
         },
         "response_json": [
           {
@@ -197,6 +240,15 @@
             "title": "",
             "description": "",
             "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "izu7j03e",
+            "name": "poIdsSql",
+            "title": "poIdsSql",
+            "description": "",
+            "bsonType": "string",
             "isExpand": false,
             "children": []
           }
@@ -283,7 +335,9 @@
         {
           "id": "if_block_ngrbeyd7",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_6JxbETDC",
@@ -320,7 +374,11 @@
                 "title": "结束节点",
                 "outputs": {
                   "type": "object",
-                  "properties": { "result": { "type": "string" } }
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "isValidator": true,
                 "nodeName": "结束节点",
@@ -339,69 +397,337 @@
         {
           "id": "if_block_Y77qArCb",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
-              "id": "search_node_bOF3TVA2",
-              "type": "search-node",
+              "id": "condition_all_grcvRead",
+              "type": "condition-all-node",
               "data": {
-                "table_id": {
-                  "source": "Goods Receiving:Table:1901845517592285186",
-                  "rules": {
-                    "collectionId": "1901845517592285186",
-                    "list": [
-                      {
-                        "id": 1782439414061,
-                        "parentId": 1782439414062,
-                        "isTop": true,
-                        "type": "branch",
-                        "operator": "all",
-                        "prop": "",
-                        "valueType": "",
-                        "value": "",
-                        "level": 1,
-                        "children": [
+                "title": "2-3. Completed / Received GRs and PO data (parallel)",
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "cai_grcvDone",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Completed / Received GRs",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Completed / Received GRs",
+                    "name": "Completed / Received GRs",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "sql_node_grcvDone",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "2-3. Completed / Received GRs (header fields the PI takes)",
+                        "isValidator": true,
+                        "nodeName": "2-3. Completed / Received GRs (header fields the PI takes)",
+                        "name": "2-3. Completed / Received GRs (header fields the PI takes)",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT JSON_OBJECT('id', CAST(g.id AS CHAR), 'gr_status', g.gr_status, 'po_id', g.po_id, 'supplier_name', CAST(g.supplier_name AS CHAR),\n       'plant_id', CAST(g.plant_id AS CHAR), 'gr_no', g.gr_no, 'gr_remark1', g.gr_remark1, 'gr_remark2', g.gr_remark2, 'gr_remark3', g.gr_remark3,\n       'gr_remark4', g.gr_remark4, 'gr_remark5', g.gr_remark5, 'currency_code', g.currency_code, 'billing_address_name', g.billing_address_name,\n       'billing_address_phone', g.billing_address_phone, 'billing_address_line_1', g.billing_address_line_1,\n       'billing_address_line_2', g.billing_address_line_2, 'billing_address_line_3', g.billing_address_line_3,\n       'billing_address_line_4', g.billing_address_line_4, 'billing_address_city', g.billing_address_city,\n       'billing_postal_code', g.billing_postal_code, 'billing_address_state', CAST(g.billing_address_state AS CHAR),\n       'billing_address_country', CAST(g.billing_address_country AS CHAR), 'billing_attention', g.billing_attention,\n       'billing_address_fax', g.billing_address_fax, 'shipping_address_name', g.shipping_address_name,\n       'shipping_address_phone', g.shipping_address_phone, 'shipping_address_line_1', g.shipping_address_line_1,\n       'shipping_address_line_2', g.shipping_address_line_2, 'shipping_address_line_3', g.shipping_address_line_3,\n       'shipping_address_line_4', g.shipping_address_line_4, 'shipping_address_city', g.shipping_address_city,\n       'shipping_postal_code', g.shipping_postal_code, 'shipping_address_state', CAST(g.shipping_address_state AS CHAR),\n       'shipping_address_country', CAST(g.shipping_address_country AS CHAR), 'shipping_attention', g.shipping_attention,\n       'shipping_address_fax', g.shipping_address_fax, 'gr_billing_address', g.gr_billing_address, 'gr_shipping_address', g.gr_shipping_address,\n       'organization_id', g.organization_id, 'purchase_order_number', g.purchase_order_number, 'project_id', CAST(g.project_id AS CHAR),\n       'custom_fields_e9609s2l', g.custom_fields_e9609s2l) AS j\n  FROM goods_receiving g\n WHERE g.tenant_id = '{{node:code_node_grcvStart.data.tenantId}}' AND g.is_deleted = 0 AND g.gr_status IN ('Completed', 'Received')\n   AND g.id IN ({{node:code_node_grcvStart.data.idsSql}})\n ORDER BY g.id"
+                        },
+                        "response_json": [
                           {
-                            "id": 1782439428701,
-                            "parentId": 1782439414061,
-                            "isTop": false,
-                            "prop": "id",
-                            "operator": "in",
-                            "valueType": "field",
-                            "value": "{{workflowparams:ids}}",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "Primary Key ID",
-                            "valueLabel": "",
-                            "operatorLabel": "In"
-                          },
-                          {
-                            "id": 1782439414063,
-                            "parentId": 1782439414061,
-                            "isTop": false,
-                            "prop": "gr_status",
-                            "operator": "equal",
-                            "valueType": "value",
-                            "value": "Completed",
-                            "type": "leaf",
-                            "level": 2,
-                            "propLabel": "GR Status",
-                            "valueLabel": "",
-                            "operatorLabel": "Equal"
+                            "key": "s6cz7qfo",
+                            "name": "j",
+                            "title": "j",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
                           }
                         ]
-                      }
-                    ]
-                  }
+                      },
+                      "blocks": []
+                    }
+                  ]
                 },
-                "condition": {},
-                "limit": 100,
-                "title": "2-3. Fetch GR Data",
+                {
+                  "id": "cai_grcvLines",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Their lines",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Their lines",
+                    "name": "Their lines",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "sql_node_grcvLines",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "2-3. Their lines (fields the PI takes)",
+                        "isValidator": true,
+                        "nodeName": "2-3. Their lines (fields the PI takes)",
+                        "name": "2-3. Their lines (fields the PI takes)",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT JSON_OBJECT('doc', CAST(g.id AS CHAR), 'id', CAST(l.id AS CHAR), 'item_id', CAST(l.item_id AS CHAR), 'item_name', l.item_name,\n       'item_bundle_id', CAST(l.item_bundle_id AS CHAR), 'item_desc', l.item_desc, 'more_desc', l.more_desc, 'line_po_no', l.line_po_no,\n       'received_qty', l.received_qty, 'item_uom', CAST(l.item_uom AS CHAR), 'line_remark_1', l.line_remark_1, 'line_remark_2', l.line_remark_2,\n       'line_po_id', CAST(l.line_po_id AS CHAR), 'po_line_item_id', CAST(l.po_line_item_id AS CHAR),\n       'item_category_id', CAST(l.item_category_id AS CHAR), 'billing_country_id', CAST(l.billing_country_id AS CHAR),\n       'shipping_country_id', CAST(l.shipping_country_id AS CHAR), 'billing_state_id', CAST(l.billing_state_id AS CHAR),\n       'supplier_id', CAST(l.supplier_id AS CHAR), 'tariff_id', CAST(l.tariff_id AS CHAR), 'further_description', l.further_description,\n       'project_id', CAST(l.project_id AS CHAR), 'custom_fields_d7o7rdkd', l.custom_fields_d7o7rdkd, 'parent_or_child', l.parent_or_child,\n       'parent_id', CAST(l.parent_id AS CHAR)) AS j\n  FROM goods_receiving g\n  JOIN goods_receiving_eg6l4ywi_sub l ON l.goods_receiving_id = g.id AND l.is_deleted = 0\n WHERE g.tenant_id = '{{node:code_node_grcvStart.data.tenantId}}' AND g.is_deleted = 0 AND g.gr_status IN ('Completed', 'Received')\n   AND g.id IN ({{node:code_node_grcvStart.data.idsSql}})\n ORDER BY g.id, l.id"
+                        },
+                        "response_json": [
+                          {
+                            "key": "umdgx17c",
+                            "name": "j",
+                            "title": "j",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_grcvPoHeads",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "PO data",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "PO data",
+                    "name": "PO data",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "sql_node_grcvPoHeads",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "4. PO exchange rates",
+                        "isValidator": true,
+                        "nodeName": "4. PO exchange rates",
+                        "name": "4. PO exchange rates",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT JSON_OBJECT('id', CAST(p.id AS CHAR), 'exchange_rate', p.exchange_rate, 'exchange_rate_currency', p.exchange_rate_currency) AS j\n  FROM purchase_order p\n WHERE p.tenant_id = '{{node:code_node_grcvStart.data.tenantId}}' AND p.is_deleted = 0\n   AND p.id IN ({{node:code_node_42o2wYvS.data.poIdsSql}})\n ORDER BY p.id"
+                        },
+                        "response_json": [
+                          {
+                            "key": "4lv0k44m",
+                            "name": "j",
+                            "title": "j",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_grcvPoLines",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "PO line data",
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "PO line data",
+                    "name": "PO line data",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "sql_node_grcvPoLines",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "4. PO lines of the selected GRs (price / tax fields)",
+                        "isValidator": true,
+                        "nodeName": "4. PO lines of the selected GRs (price / tax fields)",
+                        "name": "4. PO lines of the selected GRs (price / tax fields)",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT JSON_OBJECT('id', CAST(pl.id AS CHAR), 'quantity', pl.quantity, 'unit_price', pl.unit_price, 'discount', pl.discount,\n       'discount_amount', pl.discount_amount, 'tax_amount', pl.tax_amount, 'po_amount', pl.po_amount, 'discount_uom', pl.discount_uom,\n       'tax_preference', CAST(pl.tax_preference AS CHAR), 'tax_percent', pl.tax_percent, 'tax_inclusive', pl.tax_inclusive,\n       'invoice_qty', pl.invoice_qty, 'payment_term_id', CAST(pl.payment_term_id AS CHAR)) AS j\n  FROM purchase_order_2ukyuanr_sub pl\n WHERE pl.tenant_id = '{{node:code_node_grcvStart.data.tenantId}}' AND pl.is_deleted = 0\n   AND pl.id IN (\n       SELECT gl.po_line_item_id FROM goods_receiving_eg6l4ywi_sub gl\n        WHERE gl.tenant_id = '{{node:code_node_grcvStart.data.tenantId}}' AND gl.is_deleted = 0\n          AND gl.goods_receiving_id IN ({{node:code_node_grcvStart.data.idsSql}}))\n ORDER BY pl.id"
+                        },
+                        "response_json": [
+                          {
+                            "key": "fyf6fbuk",
+                            "name": "j",
+                            "title": "j",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "code_node_grcvNone",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// Rows from a sql-node (one JSON text per row) in the shape the old search nodes gave: null and \"\" keys left off, bigint\n// columns as exact strings from 16 digits up and as numbers below that, a document's lines under its line key with a bundle's\n// items under `children`, documents and lines in id order.\nconst cvParse = function cvParse(t) {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst cvRows = function cvRows(rows, bigints) {\n  const big = new Set(bigints || []);\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    const o = cvParse(r && r.j !== undefined ? r.j : r);\n    if (!o) continue;\n    const row = {};\n    for (const k of Object.keys(o)) {\n      let v = o[k];\n      if (v === null || v === undefined || v === \"\") continue;\n      if (big.has(k) && typeof v === \"string\" && /^-?\\d{1,15}$/.test(v)) v = Number(v);\n      row[k] = v;\n    }\n    out.push(row);\n  }\n  return out;\n};\nconst cvDocs = function cvDocs(headRows, lineRows, lineKey, headBigints, lineBigints) {\n  const heads = cvRows(headRows, headBigints);\n  const byDoc = new Map();\n  for (const l of cvRows(lineRows, (lineBigints || []).concat([\"doc\"]))) {\n    const doc = String(l.doc);\n    delete l.doc;\n    if (!byDoc.has(doc)) byDoc.set(doc, []);\n    byDoc.get(doc).push(l);\n  }\n  return heads.map((h) => {\n    const lines = byDoc.get(String(h.id)) || [];\n    const present = new Set(lines.map((l) => String(l.id)));\n    const kids = new Map();\n    for (const l of lines) {\n      if (l.parent_id === undefined || !present.has(String(l.parent_id))) continue;\n      if (!kids.has(String(l.parent_id))) kids.set(String(l.parent_id), []);\n      kids.get(String(l.parent_id)).push(l);\n    }\n    const top = lines.filter((l) => l.parent_id === undefined || !present.has(String(l.parent_id)));\n    return Object.assign({}, h, { [lineKey]: top.map((l) => (kids.has(String(l.id)) ? Object.assign({}, l, { children: kids.get(String(l.id)) }) : l)) });\n  });\n};\n\nconst left = cvRows([{{node:sql_node_grcvDone.data}}][0], [\"id\"]);\n\nreturn {\n  none: left.length === 0 ? \"1\" : \"0\",\n  message: \"None of the selected Goods Receivings can be converted. Only Completed or Received Goods Receivings can be invoiced.\",\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "kbim0l5a",
+                    "name": "none",
+                    "title": "none",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "m9tlo71q",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "2-3. Anything left to convert?",
                 "isValidator": true,
-                "nodeName": "2-3. Fetch GR Data",
-                "name": "2-3. Fetch GR Data"
+                "nodeName": "2-3. Anything left to convert?",
+                "name": "2-3. Anything left to convert?"
               },
               "blocks": []
+            },
+            {
+              "id": "if_grcvNone",
+              "type": "if",
+              "data": {
+                "title": "Nothing left to convert?",
+                "isValidator": true,
+                "nodeName": "Nothing left to convert?",
+                "name": "Nothing left to convert?",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1799400000001,
+                      "parentId": 1799400000002,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_grcvNone.data.none}}' == '1'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TgrcvNone",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "end_grcvNone",
+                      "type": "end-node",
+                      "data": {
+                        "title": "结束节点",
+                        "outputs": {
+                          "type": "object",
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "isValidator": true,
+                        "nodeName": "结束节点",
+                        "name": "结束节点",
+                        "back_data_type": "Default",
+                        "code": 402,
+                        "msg": {
+                          "type": "javascript",
+                          "code": "{{node:code_node_grcvNone.data.message}}"
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FgrcvNone",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
             },
             {
               "id": "code_node_LqEGUXmi",
@@ -416,7 +742,7 @@
                 "name": "2-4. Check Supplier & Plant",
                 "script": {
                   "type": "javascript",
-                  "code": "const grList = {{node:search_node_bOF3TVA2.data.data}}\nconst isMultiple = {{workflowparams:is_multiple}}\nlet suppliers = new Set(grList.map((gr) => gr.supplier_name));\nlet plants = new Set(grList.map((gr) => gr.plant_id));\nif (suppliers.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Receiving(s) must be from the same supplier to create a single Purchase Invoice.\",\n  };\n} else if (plants.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Receiving(s) must be from the same plant to create a single Purchase Invoice.\",\n  };\n} else {\n  return {\n    status: \"Success\",\n    code: 200,\n    message: \"\",\n  };\n}\n"
+                  "code": "// Rows from a sql-node (one JSON text per row) in the shape the old search nodes gave: null and \"\" keys left off, bigint\n// columns as exact strings from 16 digits up and as numbers below that, a document's lines under its line key with a bundle's\n// items under `children`, documents and lines in id order.\nconst cvParse = function cvParse(t) {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst cvRows = function cvRows(rows, bigints) {\n  const big = new Set(bigints || []);\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    const o = cvParse(r && r.j !== undefined ? r.j : r);\n    if (!o) continue;\n    const row = {};\n    for (const k of Object.keys(o)) {\n      let v = o[k];\n      if (v === null || v === undefined || v === \"\") continue;\n      if (big.has(k) && typeof v === \"string\" && /^-?\\d{1,15}$/.test(v)) v = Number(v);\n      row[k] = v;\n    }\n    out.push(row);\n  }\n  return out;\n};\nconst cvDocs = function cvDocs(headRows, lineRows, lineKey, headBigints, lineBigints) {\n  const heads = cvRows(headRows, headBigints);\n  const byDoc = new Map();\n  for (const l of cvRows(lineRows, (lineBigints || []).concat([\"doc\"]))) {\n    const doc = String(l.doc);\n    delete l.doc;\n    if (!byDoc.has(doc)) byDoc.set(doc, []);\n    byDoc.get(doc).push(l);\n  }\n  return heads.map((h) => {\n    const lines = byDoc.get(String(h.id)) || [];\n    const present = new Set(lines.map((l) => String(l.id)));\n    const kids = new Map();\n    for (const l of lines) {\n      if (l.parent_id === undefined || !present.has(String(l.parent_id))) continue;\n      if (!kids.has(String(l.parent_id))) kids.set(String(l.parent_id), []);\n      kids.get(String(l.parent_id)).push(l);\n    }\n    const top = lines.filter((l) => l.parent_id === undefined || !present.has(String(l.parent_id)));\n    return Object.assign({}, h, { [lineKey]: top.map((l) => (kids.has(String(l.id)) ? Object.assign({}, l, { children: kids.get(String(l.id)) }) : l)) });\n  });\n};\n\nconst grList = cvRows([{{node:sql_node_grcvDone.data}}][0], [\"id\", \"supplier_name\", \"plant_id\", \"billing_address_state\", \"billing_address_country\", \"shipping_address_state\", \"shipping_address_country\", \"project_id\"])\nconst isMultiple = {{workflowparams:is_multiple}}\nlet suppliers = new Set(grList.map((gr) => gr.supplier_name));\nlet plants = new Set(grList.map((gr) => gr.plant_id));\nif (suppliers.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Receiving(s) must be from the same supplier to create a single Purchase Invoice.\",\n  };\n} else if (plants.size > 1 && isMultiple === \"single\") {\n  return {\n    status: \"Failed\",\n    code: 403,\n    message:\n      \"All selected Goods Receiving(s) must be from the same plant to create a single Purchase Invoice.\",\n  };\n} else {\n  return {\n    status: \"Success\",\n    code: 200,\n    message: \"\",\n  };\n}\n"
                 },
                 "response_json": [
                   {
@@ -466,7 +792,9 @@
                 {
                   "id": "if_block_jrZVL-pX",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_B8T7r2uw",
@@ -475,7 +803,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -494,7 +826,9 @@
                 {
                   "id": "if_block_B-WBW0gK",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_yDMG0Sab",
@@ -572,105 +906,6 @@
                       "blocks": []
                     },
                     {
-                      "id": "code_node_ZtKdDFYw",
-                      "type": "code-node",
-                      "data": {
-                        "language": "javascript",
-                        "code": "",
-                        "timeout": 30000,
-                        "title": "4. Map PO Line IDs",
-                        "isValidator": true,
-                        "nodeName": "4. Map PO Line IDs",
-                        "name": "4. Map PO Line IDs",
-                        "script": {
-                          "type": "javascript",
-                          "code": "const grList = {{node:search_node_AHtHRmqi.data.data}};\n\n// table_gr can be a tree: an item bundle is ONE row with the bundle's items\n// under `children`. Those items are invoiced as lines in their own right and\n// each takes its price and tax from its own PO line, so their PO lines have to\n// be fetched as well -- without this they are missing from the PO line list and\n// the invoice builder drops them.\n//\n// Flat rows need nothing here: a bundle's items are already siblings in\n// table_gr and are picked up by the map below.\nconst flattenGrRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n// Get all po_line_item_id from table_gr arrays\nconst poLineIds = grList.flatMap((gr) => {\n  // Check if table_gr exists and is an array\n  if (gr.table_gr && Array.isArray(gr.table_gr)) {\n    return flattenGrRows(gr.table_gr).map((item) => item.po_line_item_id);\n  }\n  return [];\n}).filter(id => id !== null && id !== undefined && id !== '');\n\n// Remove duplicates if needed\nconst uniquePoLineIds = [...new Set(poLineIds)];\n\nreturn {\n  uniquePoLineIds\n};"
-                        },
-                        "response_json": [
-                          {
-                            "key": "4k3iuqrm",
-                            "name": "uniquePoLineIds",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "any",
-                            "isExpand": false,
-                            "children": []
-                          }
-                        ]
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "search_node_Ivek0yYx",
-                      "type": "search-node",
-                      "data": {
-                        "table_id": {
-                          "source": "Purchase Order:Table:1902776039445217282",
-                          "rules": {
-                            "collectionId": "1902776039445217282",
-                            "list": [
-                              {
-                                "id": 1782439695084,
-                                "parentId": 1782439695083,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_node_42o2wYvS.data.uniquePoIDs}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "Primary Key ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "limit": 100,
-                        "title": "4. Get PO Data",
-                        "isValidator": true,
-                        "nodeName": "4. Get PO Data",
-                        "name": "4. Get PO Data"
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "search_node_r3bnMaWy",
-                      "type": "search-node",
-                      "data": {
-                        "table_id": {
-                          "source": "Item Table(Purchase Order):Table:1939901372270747649",
-                          "rules": {
-                            "collectionId": "1939901372270747649",
-                            "list": [
-                              {
-                                "id": 1782439720174,
-                                "parentId": 1782439720173,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_node_ZtKdDFYw.data.uniquePoLineIds}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "limit": 100,
-                        "title": "4. Get PO Line Data",
-                        "isValidator": true,
-                        "nodeName": "4. Get PO Line Data",
-                        "name": "4. Get PO Line Data"
-                      },
-                      "blocks": []
-                    },
-                    {
                       "id": "code_node_sQX9tldw",
                       "type": "code-node",
                       "data": {
@@ -683,7 +918,7 @@
                         "name": "5. Map PI Data",
                         "script": {
                           "type": "javascript",
-                          "code": "const grList = {{node:search_node_bOF3TVA2.data.data}};\nconst isMultiple = {{workflowparams:is_multiple}};\nconst convertTo = {{workflowparams:convert_to}};\nconst docFormat = {{node:get_node_yDMG0Sab.data.data}};\nconst poLineItemList = {{node:search_node_r3bnMaWy.data.data}};\nconst poList = {{node:search_node_Ivek0yYx.data.data}};\nlet piList = [];\n\nconst round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\n// Custom fields travel as one object; a JSON column can arrive as text, and a NULL one is left off the row.\nconst customFields = (value) => {\n  if (typeof value === \"string\") {\n    try {\n      value = JSON.parse(value);\n    } catch (e) {\n      return {};\n    }\n  }\n  return value && typeof value === \"object\" && !Array.isArray(value) ? value : {};\n};\n\n// A GR's lines can arrive as one flat array -- an item bundle's row and the\n// bundle's items as siblings -- so the tree is rebuilt here. A bundle row is the\n// one carrying a bundle but no item of its own; the item rows carry both.\n//\n// Three ways a child points back at its parent are handled, because which one is\n// present depends on where the rows came from:\n//\n//   1. already nested under `children`, when the document was read from the DB\n//   2. parent_id / parent_fm_key on the child row\n//   3. neither -- a bundle row followed by its item rows, which is what a tree\n//      looks like once it has been flattened and lost its links\n//\n// Returns { childrenOf, claimed }: childrenOf maps a parent's index to its\n// children's indexes, and claimed holds every index now owned by a parent, so\n// the caller can skip those rows rather than invoicing them twice.\nconst groupBundleRows = (rows, getItemId) => {\n  const childrenOf = new Map();\n  const claimed = new Set();\n\n  const isBundleRow = (row) => !!row.item_bundle_id && !getItemId(row);\n  const isBundleItem = (row) => !!row.item_bundle_id && !!getItemId(row);\n\n  let openParent = null;\n\n  rows.forEach((row, index) => {\n    if (isBundleRow(row)) {\n      // Already a tree: nothing to reattach.\n      if (Array.isArray(row.children) && row.children.length > 0) {\n        openParent = null;\n        return;\n      }\n\n      childrenOf.set(index, []);\n      openParent = index;\n      return;\n    }\n\n    if (!isBundleItem(row)) {\n      openParent = null; // a plain line closes the bundle above it\n      return;\n    }\n\n    let parentIndex = null;\n\n    rows.forEach((candidate, candidateIndex) => {\n      if (parentIndex !== null || !childrenOf.has(candidateIndex)) return;\n\n      const byId =\n        row.parent_id != null &&\n        candidate.id != null &&\n        String(row.parent_id) === String(candidate.id);\n      const byKey =\n        row.parent_fm_key != null &&\n        candidate.fm_key != null &&\n        String(row.parent_fm_key) === String(candidate.fm_key);\n\n      if (byId || byKey) parentIndex = candidateIndex;\n    });\n\n    // No link on the row: it belongs to the bundle it follows, as long as that\n    // is the same bundle.\n    if (\n      parentIndex === null &&\n      openParent !== null &&\n      String(rows[openParent].item_bundle_id) === String(row.item_bundle_id)\n    ) {\n      parentIndex = openParent;\n    }\n\n    if (parentIndex === null) return; // orphan: invoiced as a line of its own\n\n    childrenOf.get(parentIndex).push(index);\n    claimed.add(index);\n  });\n\n  return { childrenOf, claimed };\n};\n\nconst mapLineItem = (grItem, poLineItem, record, index, poData, plantID) => {\n  // Calculate based on GR quantity\n  const grQuantity = parseFloat(grItem.received_qty) || 0;\n  const poQuantity = parseFloat(poLineItem.quantity) || 1;\n  const unitPrice = parseFloat(poLineItem.unit_price) || 0;\n  let discount = parseFloat(poLineItem.discount) || 0;\n  const discountAmount = parseFloat(poLineItem.discount_amount) || 0;\n  const taxAmount = parseFloat(poLineItem.tax_amount) || 0;\n  const totalAmount = parseFloat(poLineItem.po_amount) || 0;\n\n  // Recalculate amounts based on GR quantity\n  const ratio = poQuantity > 0 ? grQuantity / poQuantity : 0;\n  const recalculatedGross = unitPrice * grQuantity;\n  const recalculatedDiscountAmount = discountAmount * ratio;\n  const recalculatedTaxAmount = taxAmount * ratio;\n  const recalculatedAmount = totalAmount * ratio;\n\n  if (poLineItem.discount_uom && poLineItem.discount_uom === \"Amount\") {\n    discount = discount * ratio;\n  }\n\n  const lineItemPromise = {\n    material_id: grItem.item_id,\n    material_name: grItem.item_name,\n    // A bundle row carries a bundle instead of an item, and the bundle's items\n    // carry it too, so a line can be traced back to its bundle on its own.\n    item_bundle_id: grItem.item_bundle_id || \"\",\n    item_desc: grItem.item_desc,\n    more_desc: grItem.more_desc,\n    purchase_order_no: grItem.line_po_no,\n    order_qty: round8(poQuantity),\n    received_qty: round8(grQuantity),\n    invoice_qty: round8(grQuantity),\n    quantity_uom: grItem.item_uom,\n    order_unit_price: round8(unitPrice),\n    order_gross: round8(recalculatedGross),\n    order_discount: round8(discount),\n    discount_uom: poLineItem.discount_uom,\n    discount_amount: round8(recalculatedDiscountAmount),\n    tax_preference: poLineItem.tax_preference,\n    tax_percent: poLineItem.tax_percent,\n    tax_amount: round8(recalculatedTaxAmount),\n    tax_inclusive: poLineItem.tax_inclusive,\n    invoice_amount: round8(recalculatedAmount),\n    line_remark_1: grItem.line_remark_1,\n    line_remark_2: grItem.line_remark_2,\n    available_inv_qty: round8(\n      parseFloat(poLineItem.quantity || 0) -\n        parseFloat(poLineItem.invoice_qty || 0),\n    ),\n    goods_receiving_no: record.gr_no,\n    gr_line_id: grItem.id,\n    line_po_id: grItem.line_po_id,\n    line_gr_id: record.id,\n    po_line_id: grItem.po_line_item_id,\n    item_category_id: grItem.item_category_id,\n    line_index: index + 1,\n    billing_country_id: grItem.billing_country_id,\n    agent_id: null,\n    shipping_country_id: grItem.shipping_country_id,\n    billing_state_id: grItem.billing_state_id,\n    supplier_id: grItem.supplier_id,\n    shipping_state_id: null,\n    plant_id: plantID,\n    tariff_id: grItem.tariff_id,\n    payment_term_id: poLineItem.payment_term_id,\n\n    exchange_rate:\n      parseFloat(poData.exchange_rate) === 0\n        ? 1\n        : parseFloat(poData.exchange_rate),\n    exchange_rate_currency: poData.exchange_rate_currency,\n    further_description: grItem.further_description,\n    project_id: grItem.project_id ?? null,\n    custom_fields_y78jfz24: customFields(grItem.custom_fields_d7o7rdkd),\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (\n  record,\n  lineItemPromise,\n  poNoDisplay,\n  poID,\n  grNoDisplay,\n  grID,\n  totals,\n) => {\n  const data = {\n    page_status: \"Add\",\n    purchase_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    invoice_date: new Date().toISOString().split(\"T\")[0],\n    exchange_rate: lineItemPromise[0].exchange_rate,\n    invoice_payment_term_id: lineItemPromise[0].payment_term_id,\n    pi_description: \"Purchase\",\n    table_pi: lineItemPromise,\n    invoice_subtotal: totals.invoice_subtotal,\n    invoice_total_discount: totals.invoice_total_discount,\n    invoice_taxes_amount: totals.invoice_taxes_amount,\n    invoice_total: totals.invoice_total,\n    remarks: record.gr_remark1,\n    currency_code: record.currency_code,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n    pi_billing_address: record.gr_billing_address,\n    pi_shipping_address: record.gr_shipping_address,\n    supplier_name: record.supplier_name,\n    pi_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    plant_id: record.plant_id,\n    organization_id: record.organization_id,\n    gr_no_display: grNoDisplay,\n    myr_total_amount: totals.myr_total_amount,\n    po_no_display: poNoDisplay,\n    total_amount_currency: record.currency_code,\n    exchange_rate_currency: record.currency_code,\n    total_discount_currency: record.currency_code,\n    total_tax_currency: record.currency_code,\n    total_gross_currency: record.currency_code,\n    po_id: poID,\n    gr_id: grID,\n    remarks2: record.gr_remark2,\n    remarks3: record.gr_remark3,\n    purchase_invoice_no_type: docFormat.id,\n    remarks4: record.gr_remark4,\n    remarks5: record.gr_remark5,\n    project_id: record.project_id ?? null,\n    custom_fields_d10wd6ob: customFields(record.custom_fields_e9609s2l),\n  };\n\n  return data;\n};\n\n// Helper function to calculate totals from GR lines\nconst calculateTotalsFromGrLines = (grLines) => {\n  let totals = {\n    invoice_subtotal: 0,\n    invoice_total_discount: 0,\n    invoice_taxes_amount: 0,\n    invoice_total: 0,\n    myr_total_amount: 0,\n  };\n\n  for (const grLine of grLines) {\n    totals.invoice_subtotal += parseFloat(grLine.recalculated_gross) || 0;\n    totals.invoice_total_discount +=\n      parseFloat(grLine.recalculated_discount_amount) || 0;\n    totals.invoice_taxes_amount +=\n      parseFloat(grLine.recalculated_tax_amount) || 0;\n    totals.invoice_total += parseFloat(grLine.recalculated_amount) || 0;\n    totals.myr_total_amount += parseFloat(grLine.myr_amount) || 0;\n  }\n\n  totals.invoice_subtotal = round8(totals.invoice_subtotal);\n  totals.invoice_total_discount = round8(totals.invoice_total_discount);\n  totals.invoice_taxes_amount = round8(totals.invoice_taxes_amount);\n  totals.invoice_total = round8(totals.invoice_total);\n  totals.myr_total_amount = round8(totals.myr_total_amount);\n\n  return totals;\n};\n\n// Helper function to find matching PO line item\nconst findPoLineItem = (grItem, poLineItemList) => {\n  return poLineItemList.find((item) => item.id === grItem.po_line_item_id);\n};\n\nconst findPOData = (grItem, poList) => {\n  return poList.find((item) => item.id === grItem.line_po_id);\n};\n\n// Process GR list and create PI\nconst processGrList = (grListData) => {\n  const piLineItems = [];\n  let lineCounter = 0;\n  let allGrLines = [];\n  const plantID = grListData[0].plant_id;\n\n  for (const gr of grListData) {\n    // Get GR lines\n    const grLines = gr.table_gr || [];\n    // Combined split-parent lines (is_parent_split=1) keyed by po_line_item_id\n    const splitGroups = new Map();\n\n    // An item bundle cannot be split, so a bundle row never reaches the\n    // consolidation below. Its items are invoiced under it rather than as lines\n    // of their own, in whichever shape they arrive.\n    const { childrenOf, claimed } = groupBundleRows(\n      grLines,\n      (row) => row.item_id,\n    );\n\n    for (const [index, grItem] of grLines.entries()) {\n      // Skip hierarchy child rows (inventory-level detail; parent holds the total)\n      if (grItem.parent_or_child === \"Child\") continue;\n\n      // Already nested under its bundle row below; not a line of its own.\n      if (claimed.has(index)) continue;\n\n      // Find matching PO line item\n      const poLineItem = findPoLineItem(grItem, poLineItemList);\n      const poData = findPOData(grItem, poList);\n\n      if (poLineItem) {\n        // Calculate amounts based on GR quantity\n        const grQuantity = parseFloat(grItem.received_qty) || 0;\n        const poQuantity = parseFloat(poLineItem.quantity);\n        const unitPrice = parseFloat(poLineItem.unit_price) || 0;\n        const discountAmount = parseFloat(poLineItem.discount_amount) || 0;\n        const taxAmount = parseFloat(poLineItem.tax_amount) || 0;\n        const totalAmount = parseFloat(poLineItem.po_amount) || 0;\n\n        const ratio = poQuantity > 0 ? grQuantity / poQuantity : 0;\n        const recalculatedGross = unitPrice * grQuantity;\n        const recalculatedDiscountAmount = discountAmount * ratio;\n        const recalculatedTaxAmount = taxAmount * ratio;\n        const recalculatedAmount = totalAmount * ratio;\n\n        // Store recalculated values for totals calculation\n        grItem.recalculated_gross = recalculatedGross;\n        grItem.recalculated_discount_amount = recalculatedDiscountAmount;\n        grItem.recalculated_tax_amount = recalculatedTaxAmount;\n        grItem.recalculated_amount = recalculatedAmount;\n        grItem.myr_amount =\n          recalculatedAmount * (parseFloat(poData.exchange_rate) || 1);\n\n        allGrLines.push(grItem);\n\n        if (grItem.parent_or_child === \"Split-Parent\") {\n          // Consolidate split-parent rows sharing a po_line into ONE combined\n          // PI line. gr_line_id === \"\" signals the PI save-back to re-derive\n          // the split rows and distribute invoiced qty fill-order.\n          const key = grItem.po_line_item_id;\n          const existing = splitGroups.get(key);\n          if (!existing) {\n            const combined = mapLineItem(\n              grItem,\n              poLineItem,\n              gr,\n              lineCounter,\n              poData,\n              plantID,\n            );\n            combined.gr_line_id = \"\";\n            splitGroups.set(key, combined);\n            lineCounter++;\n          } else {\n            existing.received_qty = round8(\n              (parseFloat(existing.received_qty) || 0) + grQuantity,\n            );\n            existing.invoice_qty = round8(\n              (parseFloat(existing.invoice_qty) || 0) + grQuantity,\n            );\n            existing.order_gross = round8(\n              (parseFloat(existing.order_gross) || 0) + recalculatedGross,\n            );\n            existing.discount_amount = round8(\n              (parseFloat(existing.discount_amount) || 0) +\n                recalculatedDiscountAmount,\n            );\n            existing.tax_amount = round8(\n              (parseFloat(existing.tax_amount) || 0) + recalculatedTaxAmount,\n            );\n            existing.invoice_amount = round8(\n              (parseFloat(existing.invoice_amount) || 0) + recalculatedAmount,\n            );\n          }\n        } else {\n          const lineItem = mapLineItem(\n            grItem,\n            poLineItem,\n            gr,\n            lineCounter,\n            poData,\n            plantID,\n          );\n          lineCounter++;\n\n          // A bundle's items are invoiced under the bundle line. Each is priced\n          // and taxed from its own PO line -- the bundle row has none of its\n          // own, which is what its items are summed onto it for.\n          const nested = Array.isArray(grItem.children) ? grItem.children : [];\n          const regrouped = (childrenOf.get(index) || []).map(\n            (childIndex) => grLines[childIndex],\n          );\n          const bundleChildren = nested.length > 0 ? nested : regrouped;\n          const children = [];\n\n          for (const child of bundleChildren) {\n            const childPOLine = findPoLineItem(child, poLineItemList);\n\n            // Without its PO line there is no price to invoice it at, so it is\n            // left off rather than billed at nothing.\n            if (!childPOLine) continue;\n\n            const childLine = mapLineItem(\n              child,\n              childPOLine,\n              gr,\n              children.length,\n              findPOData(child, poList) || poData,\n              plantID,\n            );\n\n            // A bundle's items are numbered within their own bundle.\n            childLine.line_index = `${lineItem.line_index}-${\n              children.length + 1\n            }`;\n\n            children.push(childLine);\n          }\n\n          if (children.length > 0) {\n            // A bundle is worth what its items come to, so the parent's own\n            // amounts are replaced by their sum -- that is how the invoice\n            // calculation costs a bundle row and how the PO totals one. The\n            // amounts stamped on the GR row above are replaced for the same\n            // reason: the document total counts a bundle once, through its\n            // parent, and never its items on top of that.\n            const sumOf = (field) =>\n              children.reduce(\n                (total, line) => total + (parseFloat(line[field]) || 0),\n                0,\n              );\n\n            const bundleGross = sumOf(\"order_gross\");\n            const bundleDiscount = sumOf(\"discount_amount\");\n            const bundleTax = sumOf(\"tax_amount\");\n            const bundleAmount = sumOf(\"invoice_amount\");\n            const bundleQty = parseFloat(lineItem.invoice_qty) || 0;\n\n            lineItem.order_gross = round8(bundleGross);\n            lineItem.discount_amount = round8(bundleDiscount);\n            lineItem.tax_amount = round8(bundleTax);\n            lineItem.invoice_amount = round8(bundleAmount);\n            // What one bundle costs, worked back out of its items.\n            lineItem.order_unit_price =\n              bundleQty > 0\n                ? round8(bundleGross / bundleQty)\n                : 0;\n            lineItem.children = children;\n\n            grItem.recalculated_gross = bundleGross;\n            grItem.recalculated_discount_amount = bundleDiscount;\n            grItem.recalculated_tax_amount = bundleTax;\n            grItem.recalculated_amount = bundleAmount;\n            grItem.myr_amount =\n              bundleAmount * (parseFloat(poData.exchange_rate) || 1);\n          }\n\n          piLineItems.push(lineItem);\n        }\n      }\n    }\n\n    // Append combined split-parent lines for this GR\n    for (const combined of splitGroups.values()) {\n      piLineItems.push(combined);\n    }\n  }\n\n  return { piLineItems, allGrLines };\n};\n\nif (isMultiple === \"multiple\") {\n  for (const grData of grList) {\n    const { piLineItems, allGrLines } = processGrList([grData]);\n    const totals = calculateTotalsFromGrLines(allGrLines);\n    const poNoDisplay = grData.purchase_order_number;\n    const poID = grData.po_id;\n    const grNoDisplay = grData.gr_no;\n    const grID = [grData.id];\n    const mappedData = mapHeaderData(\n      grData,\n      piLineItems,\n      poNoDisplay,\n      poID,\n      grNoDisplay,\n      grID,\n      totals,\n    );\n    piList.push(mappedData);\n  }\n} else if (isMultiple === \"single\") {\n  const grData = grList[0];\n  const { piLineItems, allGrLines } = processGrList(grList);\n  const totals = calculateTotalsFromGrLines(allGrLines);\n  const poNoDisplay = grList\n    .map((item) => item.purchase_order_number)\n    .join(\", \");\n  const poID = grList.flatMap((gr) => gr.po_id || []);\n  const grNoDisplay = grList.map((item) => item.gr_no).join(\", \");\n  const grID = grList.map((item) => item.id);\n  const mappedData = mapHeaderData(\n    grData,\n    piLineItems,\n    poNoDisplay,\n    poID,\n    grNoDisplay,\n    grID,\n    totals,\n  );\n  piList.push(mappedData);\n}\n\nreturn { piList };"
+                          "code": "// Rows from a sql-node (one JSON text per row) in the shape the old search nodes gave: null and \"\" keys left off, bigint\n// columns as exact strings from 16 digits up and as numbers below that, a document's lines under its line key with a bundle's\n// items under `children`, documents and lines in id order.\nconst cvParse = function cvParse(t) {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst cvRows = function cvRows(rows, bigints) {\n  const big = new Set(bigints || []);\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    const o = cvParse(r && r.j !== undefined ? r.j : r);\n    if (!o) continue;\n    const row = {};\n    for (const k of Object.keys(o)) {\n      let v = o[k];\n      if (v === null || v === undefined || v === \"\") continue;\n      if (big.has(k) && typeof v === \"string\" && /^-?\\d{1,15}$/.test(v)) v = Number(v);\n      row[k] = v;\n    }\n    out.push(row);\n  }\n  return out;\n};\nconst cvDocs = function cvDocs(headRows, lineRows, lineKey, headBigints, lineBigints) {\n  const heads = cvRows(headRows, headBigints);\n  const byDoc = new Map();\n  for (const l of cvRows(lineRows, (lineBigints || []).concat([\"doc\"]))) {\n    const doc = String(l.doc);\n    delete l.doc;\n    if (!byDoc.has(doc)) byDoc.set(doc, []);\n    byDoc.get(doc).push(l);\n  }\n  return heads.map((h) => {\n    const lines = byDoc.get(String(h.id)) || [];\n    const present = new Set(lines.map((l) => String(l.id)));\n    const kids = new Map();\n    for (const l of lines) {\n      if (l.parent_id === undefined || !present.has(String(l.parent_id))) continue;\n      if (!kids.has(String(l.parent_id))) kids.set(String(l.parent_id), []);\n      kids.get(String(l.parent_id)).push(l);\n    }\n    const top = lines.filter((l) => l.parent_id === undefined || !present.has(String(l.parent_id)));\n    return Object.assign({}, h, { [lineKey]: top.map((l) => (kids.has(String(l.id)) ? Object.assign({}, l, { children: kids.get(String(l.id)) }) : l)) });\n  });\n};\n\nconst grList = cvDocs([{{node:sql_node_grcvDone.data}}][0], [{{node:sql_node_grcvLines.data}}][0], \"table_gr\", [\"id\", \"supplier_name\", \"plant_id\", \"billing_address_state\", \"billing_address_country\", \"shipping_address_state\", \"shipping_address_country\", \"project_id\"], [\"id\", \"item_id\", \"item_bundle_id\", \"item_uom\", \"line_po_id\", \"po_line_item_id\", \"item_category_id\", \"billing_country_id\", \"shipping_country_id\", \"billing_state_id\", \"supplier_id\", \"tariff_id\", \"project_id\", \"parent_id\"]);\nconst isMultiple = {{workflowparams:is_multiple}};\nconst convertTo = {{workflowparams:convert_to}};\nconst docFormat = {{node:get_node_yDMG0Sab.data.data}};\nconst poLineItemList = cvRows([{{node:sql_node_grcvPoLines.data}}][0], [\"id\", \"tax_preference\", \"payment_term_id\"]);\nconst poList = cvRows([{{node:sql_node_grcvPoHeads.data}}][0], [\"id\"]);\nlet piList = [];\n\nconst round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\n// Custom fields travel as one object; a JSON column can arrive as text, and a NULL one is left off the row.\nconst customFields = (value) => {\n  if (typeof value === \"string\") {\n    try {\n      value = JSON.parse(value);\n    } catch (e) {\n      return {};\n    }\n  }\n  return value && typeof value === \"object\" && !Array.isArray(value) ? value : {};\n};\n\n// A GR's lines can arrive as one flat array -- an item bundle's row and the\n// bundle's items as siblings -- so the tree is rebuilt here. A bundle row is the\n// one carrying a bundle but no item of its own; the item rows carry both.\n//\n// Three ways a child points back at its parent are handled, because which one is\n// present depends on where the rows came from:\n//\n//   1. already nested under `children`, when the document was read from the DB\n//   2. parent_id / parent_fm_key on the child row\n//   3. neither -- a bundle row followed by its item rows, which is what a tree\n//      looks like once it has been flattened and lost its links\n//\n// Returns { childrenOf, claimed }: childrenOf maps a parent's index to its\n// children's indexes, and claimed holds every index now owned by a parent, so\n// the caller can skip those rows rather than invoicing them twice.\nconst groupBundleRows = (rows, getItemId) => {\n  const childrenOf = new Map();\n  const claimed = new Set();\n\n  const isBundleRow = (row) => !!row.item_bundle_id && !getItemId(row);\n  const isBundleItem = (row) => !!row.item_bundle_id && !!getItemId(row);\n\n  let openParent = null;\n\n  rows.forEach((row, index) => {\n    if (isBundleRow(row)) {\n      // Already a tree: nothing to reattach.\n      if (Array.isArray(row.children) && row.children.length > 0) {\n        openParent = null;\n        return;\n      }\n\n      childrenOf.set(index, []);\n      openParent = index;\n      return;\n    }\n\n    if (!isBundleItem(row)) {\n      openParent = null; // a plain line closes the bundle above it\n      return;\n    }\n\n    let parentIndex = null;\n\n    rows.forEach((candidate, candidateIndex) => {\n      if (parentIndex !== null || !childrenOf.has(candidateIndex)) return;\n\n      const byId =\n        row.parent_id != null &&\n        candidate.id != null &&\n        String(row.parent_id) === String(candidate.id);\n      const byKey =\n        row.parent_fm_key != null &&\n        candidate.fm_key != null &&\n        String(row.parent_fm_key) === String(candidate.fm_key);\n\n      if (byId || byKey) parentIndex = candidateIndex;\n    });\n\n    // No link on the row: it belongs to the bundle it follows, as long as that\n    // is the same bundle.\n    if (\n      parentIndex === null &&\n      openParent !== null &&\n      String(rows[openParent].item_bundle_id) === String(row.item_bundle_id)\n    ) {\n      parentIndex = openParent;\n    }\n\n    if (parentIndex === null) return; // orphan: invoiced as a line of its own\n\n    childrenOf.get(parentIndex).push(index);\n    claimed.add(index);\n  });\n\n  return { childrenOf, claimed };\n};\n\nconst mapLineItem = (grItem, poLineItem, record, index, poData, plantID) => {\n  // Calculate based on GR quantity\n  const grQuantity = parseFloat(grItem.received_qty) || 0;\n  const poQuantity = parseFloat(poLineItem.quantity) || 1;\n  const unitPrice = parseFloat(poLineItem.unit_price) || 0;\n  let discount = parseFloat(poLineItem.discount) || 0;\n  const discountAmount = parseFloat(poLineItem.discount_amount) || 0;\n  const taxAmount = parseFloat(poLineItem.tax_amount) || 0;\n  const totalAmount = parseFloat(poLineItem.po_amount) || 0;\n\n  // Recalculate amounts based on GR quantity\n  const ratio = poQuantity > 0 ? grQuantity / poQuantity : 0;\n  const recalculatedGross = unitPrice * grQuantity;\n  const recalculatedDiscountAmount = discountAmount * ratio;\n  const recalculatedTaxAmount = taxAmount * ratio;\n  const recalculatedAmount = totalAmount * ratio;\n\n  if (poLineItem.discount_uom && poLineItem.discount_uom === \"Amount\") {\n    discount = discount * ratio;\n  }\n\n  const lineItemPromise = {\n    material_id: grItem.item_id,\n    material_name: grItem.item_name,\n    // A bundle row carries a bundle instead of an item, and the bundle's items\n    // carry it too, so a line can be traced back to its bundle on its own.\n    item_bundle_id: grItem.item_bundle_id || \"\",\n    item_desc: grItem.item_desc,\n    more_desc: grItem.more_desc,\n    purchase_order_no: grItem.line_po_no,\n    order_qty: round8(poQuantity),\n    received_qty: round8(grQuantity),\n    invoice_qty: round8(grQuantity),\n    quantity_uom: grItem.item_uom,\n    order_unit_price: round8(unitPrice),\n    order_gross: round8(recalculatedGross),\n    order_discount: round8(discount),\n    discount_uom: poLineItem.discount_uom,\n    discount_amount: round8(recalculatedDiscountAmount),\n    tax_preference: poLineItem.tax_preference,\n    tax_percent: poLineItem.tax_percent,\n    tax_amount: round8(recalculatedTaxAmount),\n    tax_inclusive: poLineItem.tax_inclusive,\n    invoice_amount: round8(recalculatedAmount),\n    line_remark_1: grItem.line_remark_1,\n    line_remark_2: grItem.line_remark_2,\n    available_inv_qty: round8(\n      parseFloat(poLineItem.quantity || 0) -\n        parseFloat(poLineItem.invoice_qty || 0),\n    ),\n    goods_receiving_no: record.gr_no,\n    gr_line_id: grItem.id,\n    line_po_id: grItem.line_po_id,\n    line_gr_id: record.id,\n    po_line_id: grItem.po_line_item_id,\n    item_category_id: grItem.item_category_id,\n    line_index: index + 1,\n    billing_country_id: grItem.billing_country_id,\n    agent_id: null,\n    shipping_country_id: grItem.shipping_country_id,\n    billing_state_id: grItem.billing_state_id,\n    supplier_id: grItem.supplier_id,\n    shipping_state_id: null,\n    plant_id: plantID,\n    tariff_id: grItem.tariff_id,\n    payment_term_id: poLineItem.payment_term_id,\n\n    exchange_rate:\n      parseFloat(poData.exchange_rate) === 0\n        ? 1\n        : parseFloat(poData.exchange_rate),\n    exchange_rate_currency: poData.exchange_rate_currency,\n    further_description: grItem.further_description,\n    project_id: grItem.project_id ?? null,\n    custom_fields_y78jfz24: customFields(grItem.custom_fields_d7o7rdkd),\n  };\n\n  return lineItemPromise;\n};\n\nconst mapHeaderData = (\n  record,\n  lineItemPromise,\n  poNoDisplay,\n  poID,\n  grNoDisplay,\n  grID,\n  totals,\n) => {\n  const data = {\n    page_status: \"Add\",\n    purchase_invoice_no: convertTo === \"draft\" ? \"draft\" : \"issued\",\n    invoice_date: new Date().toISOString().split(\"T\")[0],\n    exchange_rate: lineItemPromise[0].exchange_rate,\n    invoice_payment_term_id: lineItemPromise[0].payment_term_id,\n    pi_description: \"Purchase\",\n    table_pi: lineItemPromise,\n    invoice_subtotal: totals.invoice_subtotal,\n    invoice_total_discount: totals.invoice_total_discount,\n    invoice_taxes_amount: totals.invoice_taxes_amount,\n    invoice_total: totals.invoice_total,\n    remarks: record.gr_remark1,\n    currency_code: record.currency_code,\n    billing_address_name: record.billing_address_name,\n    billing_address_phone: record.billing_address_phone,\n    billing_address_line_1: record.billing_address_line_1,\n    billing_address_line_2: record.billing_address_line_2,\n    billing_address_line_3: record.billing_address_line_3,\n    billing_address_line_4: record.billing_address_line_4,\n    billing_address_city: record.billing_address_city,\n    billing_postal_code: record.billing_postal_code,\n    billing_address_state: record.billing_address_state,\n    billing_address_country: record.billing_address_country,\n    billing_attention: record.billing_attention,\n    billing_address_fax: record.billing_address_fax,\n    shipping_address_name: record.shipping_address_name,\n    shipping_address_phone: record.shipping_address_phone,\n    shipping_address_line_1: record.shipping_address_line_1,\n    shipping_address_line_2: record.shipping_address_line_2,\n    shipping_address_line_3: record.shipping_address_line_3,\n    shipping_address_line_4: record.shipping_address_line_4,\n    shipping_address_city: record.shipping_address_city,\n    shipping_postal_code: record.shipping_postal_code,\n    shipping_address_state: record.shipping_address_state,\n    shipping_address_country: record.shipping_address_country,\n    shipping_attention: record.shipping_attention,\n    shipping_address_fax: record.shipping_address_fax,\n    pi_billing_address: record.gr_billing_address,\n    pi_shipping_address: record.gr_shipping_address,\n    supplier_name: record.supplier_name,\n    pi_status: convertTo === \"draft\" ? \"Draft\" : \"Completed\",\n    posted_status: convertTo === \"draft\" ? \"\" : \"Unposted\",\n    plant_id: record.plant_id,\n    organization_id: record.organization_id,\n    gr_no_display: grNoDisplay,\n    myr_total_amount: totals.myr_total_amount,\n    po_no_display: poNoDisplay,\n    total_amount_currency: record.currency_code,\n    exchange_rate_currency: record.currency_code,\n    total_discount_currency: record.currency_code,\n    total_tax_currency: record.currency_code,\n    total_gross_currency: record.currency_code,\n    po_id: poID,\n    gr_id: grID,\n    remarks2: record.gr_remark2,\n    remarks3: record.gr_remark3,\n    purchase_invoice_no_type: docFormat.id,\n    remarks4: record.gr_remark4,\n    remarks5: record.gr_remark5,\n    project_id: record.project_id ?? null,\n    custom_fields_d10wd6ob: customFields(record.custom_fields_e9609s2l),\n  };\n\n  return data;\n};\n\n// Helper function to calculate totals from GR lines\nconst calculateTotalsFromGrLines = (grLines) => {\n  let totals = {\n    invoice_subtotal: 0,\n    invoice_total_discount: 0,\n    invoice_taxes_amount: 0,\n    invoice_total: 0,\n    myr_total_amount: 0,\n  };\n\n  for (const grLine of grLines) {\n    totals.invoice_subtotal += parseFloat(grLine.recalculated_gross) || 0;\n    totals.invoice_total_discount +=\n      parseFloat(grLine.recalculated_discount_amount) || 0;\n    totals.invoice_taxes_amount +=\n      parseFloat(grLine.recalculated_tax_amount) || 0;\n    totals.invoice_total += parseFloat(grLine.recalculated_amount) || 0;\n    totals.myr_total_amount += parseFloat(grLine.myr_amount) || 0;\n  }\n\n  totals.invoice_subtotal = round8(totals.invoice_subtotal);\n  totals.invoice_total_discount = round8(totals.invoice_total_discount);\n  totals.invoice_taxes_amount = round8(totals.invoice_taxes_amount);\n  totals.invoice_total = round8(totals.invoice_total);\n  totals.myr_total_amount = round8(totals.myr_total_amount);\n\n  return totals;\n};\n\n// Helper function to find matching PO line item\nconst findPoLineItem = (grItem, poLineItemList) => {\n  return poLineItemList.find((item) => item.id === grItem.po_line_item_id);\n};\n\nconst findPOData = (grItem, poList) => {\n  return poList.find((item) => item.id === grItem.line_po_id);\n};\n\n// Process GR list and create PI\nconst processGrList = (grListData) => {\n  const piLineItems = [];\n  let lineCounter = 0;\n  let allGrLines = [];\n  const plantID = grListData[0].plant_id;\n\n  for (const gr of grListData) {\n    // Get GR lines\n    const grLines = gr.table_gr || [];\n    // Combined split-parent lines (is_parent_split=1) keyed by po_line_item_id\n    const splitGroups = new Map();\n\n    // An item bundle cannot be split, so a bundle row never reaches the\n    // consolidation below. Its items are invoiced under it rather than as lines\n    // of their own, in whichever shape they arrive.\n    const { childrenOf, claimed } = groupBundleRows(\n      grLines,\n      (row) => row.item_id,\n    );\n\n    for (const [index, grItem] of grLines.entries()) {\n      // Skip hierarchy child rows (inventory-level detail; parent holds the total)\n      if (grItem.parent_or_child === \"Child\") continue;\n\n      // Already nested under its bundle row below; not a line of its own.\n      if (claimed.has(index)) continue;\n\n      // Find matching PO line item\n      const poLineItem = findPoLineItem(grItem, poLineItemList);\n      const poData = findPOData(grItem, poList);\n\n      if (poLineItem) {\n        // Calculate amounts based on GR quantity\n        const grQuantity = parseFloat(grItem.received_qty) || 0;\n        const poQuantity = parseFloat(poLineItem.quantity);\n        const unitPrice = parseFloat(poLineItem.unit_price) || 0;\n        const discountAmount = parseFloat(poLineItem.discount_amount) || 0;\n        const taxAmount = parseFloat(poLineItem.tax_amount) || 0;\n        const totalAmount = parseFloat(poLineItem.po_amount) || 0;\n\n        const ratio = poQuantity > 0 ? grQuantity / poQuantity : 0;\n        const recalculatedGross = unitPrice * grQuantity;\n        const recalculatedDiscountAmount = discountAmount * ratio;\n        const recalculatedTaxAmount = taxAmount * ratio;\n        const recalculatedAmount = totalAmount * ratio;\n\n        // Store recalculated values for totals calculation\n        grItem.recalculated_gross = recalculatedGross;\n        grItem.recalculated_discount_amount = recalculatedDiscountAmount;\n        grItem.recalculated_tax_amount = recalculatedTaxAmount;\n        grItem.recalculated_amount = recalculatedAmount;\n        grItem.myr_amount =\n          recalculatedAmount * (parseFloat(poData.exchange_rate) || 1);\n\n        allGrLines.push(grItem);\n\n        if (grItem.parent_or_child === \"Split-Parent\") {\n          // Consolidate split-parent rows sharing a po_line into ONE combined\n          // PI line. gr_line_id === \"\" signals the PI save-back to re-derive\n          // the split rows and distribute invoiced qty fill-order.\n          const key = grItem.po_line_item_id;\n          const existing = splitGroups.get(key);\n          if (!existing) {\n            const combined = mapLineItem(\n              grItem,\n              poLineItem,\n              gr,\n              lineCounter,\n              poData,\n              plantID,\n            );\n            combined.gr_line_id = \"\";\n            splitGroups.set(key, combined);\n            lineCounter++;\n          } else {\n            existing.received_qty = round8(\n              (parseFloat(existing.received_qty) || 0) + grQuantity,\n            );\n            existing.invoice_qty = round8(\n              (parseFloat(existing.invoice_qty) || 0) + grQuantity,\n            );\n            existing.order_gross = round8(\n              (parseFloat(existing.order_gross) || 0) + recalculatedGross,\n            );\n            existing.discount_amount = round8(\n              (parseFloat(existing.discount_amount) || 0) +\n                recalculatedDiscountAmount,\n            );\n            existing.tax_amount = round8(\n              (parseFloat(existing.tax_amount) || 0) + recalculatedTaxAmount,\n            );\n            existing.invoice_amount = round8(\n              (parseFloat(existing.invoice_amount) || 0) + recalculatedAmount,\n            );\n          }\n        } else {\n          const lineItem = mapLineItem(\n            grItem,\n            poLineItem,\n            gr,\n            lineCounter,\n            poData,\n            plantID,\n          );\n          lineCounter++;\n\n          // A bundle's items are invoiced under the bundle line. Each is priced\n          // and taxed from its own PO line -- the bundle row has none of its\n          // own, which is what its items are summed onto it for.\n          const nested = Array.isArray(grItem.children) ? grItem.children : [];\n          const regrouped = (childrenOf.get(index) || []).map(\n            (childIndex) => grLines[childIndex],\n          );\n          const bundleChildren = nested.length > 0 ? nested : regrouped;\n          const children = [];\n\n          for (const child of bundleChildren) {\n            const childPOLine = findPoLineItem(child, poLineItemList);\n\n            // Without its PO line there is no price to invoice it at, so it is\n            // left off rather than billed at nothing.\n            if (!childPOLine) continue;\n\n            const childLine = mapLineItem(\n              child,\n              childPOLine,\n              gr,\n              children.length,\n              findPOData(child, poList) || poData,\n              plantID,\n            );\n\n            // A bundle's items are numbered within their own bundle.\n            childLine.line_index = `${lineItem.line_index}-${\n              children.length + 1\n            }`;\n\n            children.push(childLine);\n          }\n\n          if (children.length > 0) {\n            // A bundle is worth what its items come to, so the parent's own\n            // amounts are replaced by their sum -- that is how the invoice\n            // calculation costs a bundle row and how the PO totals one. The\n            // amounts stamped on the GR row above are replaced for the same\n            // reason: the document total counts a bundle once, through its\n            // parent, and never its items on top of that.\n            const sumOf = (field) =>\n              children.reduce(\n                (total, line) => total + (parseFloat(line[field]) || 0),\n                0,\n              );\n\n            const bundleGross = sumOf(\"order_gross\");\n            const bundleDiscount = sumOf(\"discount_amount\");\n            const bundleTax = sumOf(\"tax_amount\");\n            const bundleAmount = sumOf(\"invoice_amount\");\n            const bundleQty = parseFloat(lineItem.invoice_qty) || 0;\n\n            lineItem.order_gross = round8(bundleGross);\n            lineItem.discount_amount = round8(bundleDiscount);\n            lineItem.tax_amount = round8(bundleTax);\n            lineItem.invoice_amount = round8(bundleAmount);\n            // What one bundle costs, worked back out of its items.\n            lineItem.order_unit_price =\n              bundleQty > 0\n                ? round8(bundleGross / bundleQty)\n                : 0;\n            lineItem.children = children;\n\n            grItem.recalculated_gross = bundleGross;\n            grItem.recalculated_discount_amount = bundleDiscount;\n            grItem.recalculated_tax_amount = bundleTax;\n            grItem.recalculated_amount = bundleAmount;\n            grItem.myr_amount =\n              bundleAmount * (parseFloat(poData.exchange_rate) || 1);\n          }\n\n          piLineItems.push(lineItem);\n        }\n      }\n    }\n\n    // Append combined split-parent lines for this GR\n    for (const combined of splitGroups.values()) {\n      piLineItems.push(combined);\n    }\n  }\n\n  return { piLineItems, allGrLines };\n};\n\nif (isMultiple === \"multiple\") {\n  for (const grData of grList) {\n    const { piLineItems, allGrLines } = processGrList([grData]);\n    const totals = calculateTotalsFromGrLines(allGrLines);\n    const poNoDisplay = grData.purchase_order_number;\n    const poID = grData.po_id;\n    const grNoDisplay = grData.gr_no;\n    const grID = [grData.id];\n    const mappedData = mapHeaderData(\n      grData,\n      piLineItems,\n      poNoDisplay,\n      poID,\n      grNoDisplay,\n      grID,\n      totals,\n    );\n    piList.push(mappedData);\n  }\n} else if (isMultiple === \"single\") {\n  const grData = grList[0];\n  const { piLineItems, allGrLines } = processGrList(grList);\n  const totals = calculateTotalsFromGrLines(allGrLines);\n  const poNoDisplay = grList\n    .map((item) => item.purchase_order_number)\n    .join(\", \");\n  const poID = grList.flatMap((gr) => gr.po_id || []);\n  const grNoDisplay = grList.map((item) => item.gr_no).join(\", \");\n  const grID = grList.map((item) => item.id);\n  const mappedData = mapHeaderData(\n    grData,\n    piLineItems,\n    poNoDisplay,\n    poID,\n    grNoDisplay,\n    grID,\n    totals,\n  );\n  piList.push(mappedData);\n}\n\nreturn { piList };"
                         },
                         "response_json": [
                           {
@@ -696,53 +931,6 @@
                             "children": []
                           }
                         ]
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "code_node_YRozjK8Z",
-                      "type": "code-node",
-                      "data": {
-                        "language": "javascript",
-                        "code": "",
-                        "timeout": 30000,
-                        "title": "6-1. Set Redis Name",
-                        "isValidator": true,
-                        "nodeName": "6-1. Set Redis Name",
-                        "name": "6-1. Set Redis Name",
-                        "script": {
-                          "type": "javascript",
-                          "code": "const userID = {{system:uid}};\nconst now = new Date();\nconst date = now.toISOString().split('T')[0]; // YYYY-MM-DD\nconst time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS\n\nreturn {\n  redis_name: `GR_CONVERT_PI:${userID}:${date}:${time}`\n  // Example: \"GR_CONVERT_PI:12345:2024-02-24:143022\"\n};"
-                        },
-                        "response_json": [
-                          {
-                            "key": "21x9xe5u",
-                            "name": "redis_name",
-                            "title": "",
-                            "description": "",
-                            "bsonType": "string",
-                            "isExpand": false
-                          }
-                        ]
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "set_cache_node_LhSMNwfs",
-                      "type": "set-cache-node",
-                      "data": {
-                        "cache_key": "",
-                        "cache_value": "",
-                        "expire_time": 3600,
-                        "title": "6-2. Set Redis Cache",
-                        "isValidator": true,
-                        "nodeName": "6-2. Set Redis Cache",
-                        "name": "6-2. Set Redis Cache",
-                        "custom_wkbocgni": {
-                          "type": "javascript",
-                          "code": "0"
-                        },
-                        "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
                       },
                       "blocks": []
                     },
@@ -762,19 +950,6 @@
                       },
                       "blocks": [
                         {
-                          "id": "get_cache_node_l03kAFq7",
-                          "type": "get-cache-node",
-                          "data": {
-                            "cache_key": "",
-                            "title": "6-3. Get Redis Cache",
-                            "isValidator": true,
-                            "nodeName": "6-3. Get Redis Cache",
-                            "name": "6-3. Get Redis Cache",
-                            "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
-                          },
-                          "blocks": []
-                        },
-                        {
                           "id": "code_node_9PRotptG",
                           "type": "code-node",
                           "data": {
@@ -787,7 +962,7 @@
                             "name": "7. Current PI",
                             "script": {
                               "type": "javascript",
-                              "code": "const currentIndexRaw = {{node:get_cache_node_l03kAFq7.data}};\nconst index = currentIndexRaw ? parseInt(currentIndexRaw, 10) : 0;\nconst piList = {{node:code_node_sQX9tldw.data.piList}}\nconst piData = piList[index];\n\nreturn {\n  piData,\n  nextIndex: index + 1\n}"
+                              "code": "// The invoice of this pass: the loop's own item\nconst piData = {{node:loop_9Jv4BHg1}};\n\nreturn {\n  piData,\n};"
                             },
                             "response_json": [
                               {
@@ -796,15 +971,6 @@
                                 "title": "",
                                 "description": "",
                                 "bsonType": "any",
-                                "isExpand": false,
-                                "children": []
-                              },
-                              {
-                                "key": "fwepmsgw",
-                                "name": "nextIndex",
-                                "title": "",
-                                "description": "",
-                                "bsonType": "int",
                                 "isExpand": false,
                                 "children": []
                               }
@@ -858,25 +1024,6 @@
                             },
                             "remote": true,
                             "remoteType": "innerdatasource"
-                          },
-                          "blocks": []
-                        },
-                        {
-                          "id": "set_cache_node_FdcwMlCb",
-                          "type": "set-cache-node",
-                          "data": {
-                            "cache_key": "",
-                            "cache_value": "",
-                            "expire_time": 3600,
-                            "title": "9. Set Redis Cache",
-                            "isValidator": true,
-                            "nodeName": "9. Set Redis Cache",
-                            "name": "9. Set Redis Cache",
-                            "custom_wkbocgni": {
-                              "type": "javascript",
-                              "code": "{{node:code_node_9PRotptG.data.nextIndex}}"
-                            },
-                            "redis_key": "{{node:code_node_YRozjK8Z.data.redis_name}}"
                           },
                           "blocks": []
                         }

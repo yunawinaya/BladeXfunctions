@@ -1,0 +1,29 @@
+{
+ "note": "GD Revert V2 lifts these code nodes from the DEPLOYED dev versions pinned here (never the repo working copy). check_fresh.sh says when dev has moved on.",
+ "sources": [
+  {
+   "name": "GD_REVERT_COMPLETED",
+   "workflow_id": "2058819647368241153",
+   "version": 17,
+   "repo_file": "Goods Delivery/RevertCompletedGD/GDheadRevertWorkflow.json",
+   "nodes": [
+    "code_node_hrExtract",
+    "code_node_hrParseSnap",
+    "code_node_hrPickParams",
+    "code_node_hrComputeSoUpdates",
+    "code_node_hrPickStatus"
+   ]
+  },
+  {
+   "name": "GD_PROCESS_REVERT",
+   "workflow_id": "2058820005398224897",
+   "version": 14,
+   "repo_file": "Goods Delivery/RevertCompletedGD/GDrevertInventoryProcessWorkflow.json",
+   "nodes": [
+    "code_node_inExtract",
+    "code_node_inParseSnap",
+    "code_node_inConflictBatch"
+   ]
+  }
+ ]
+}

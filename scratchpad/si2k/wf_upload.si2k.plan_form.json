@@ -1,0 +1,7 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "Sales Invoice form", "kind": "form", "dataId": "1902525285396496385", "file": "scratchpad/si2k/client/out_SI_form.json", "base": "scratchpad/si2k/client/base_SI_form.v387.json" }
+  ]
+}

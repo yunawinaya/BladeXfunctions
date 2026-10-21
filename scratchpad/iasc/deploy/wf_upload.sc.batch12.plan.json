@@ -1,0 +1,122 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA form (FIX-03/05/06)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v44.json"
+  },
+  {
+   "name": "SO Linked IAs page (FIX-03 refusal reason)",
+   "kind": "page",
+   "dataId": "2112449353901772801",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/SOLinkedIAsPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/page_so_linked_ias_v6.json"
+  },
+  {
+   "name": "SO_IA_PROJECTION",
+   "dataId": "2112448183267332097",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/SO_IA_PROJECTION.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/SO_IA_PROJECTION/v5_20261021-112729.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "SUMMARY",
+     "so_id": "",
+     "so_line_id": "1",
+     "item_id": "1",
+     "exclude_ia_id": "",
+     "organization_id": "1",
+     "proposal_qty": "",
+     "proposal_uom_id": "",
+     "baseline": ""
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Your user is not assigned to this organisation, so its Sales Order figures cannot be shown."
+    }
+   }
+  },
+  {
+   "name": "IA_SC_RELINK",
+   "dataId": "2112448260018900994",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SC_RELINK.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_SC_RELINK/v5_20261021-112730.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "so_line_id": "1",
+     "item_id": "1",
+     "organization_id": "1"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "expected_line_id: digits only"
+    }
+   }
+  },
+  {
+   "name": "IA_SAVE",
+   "dataId": "2098335576774463489",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SAVE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_SAVE/v16_20261021-112727.enabled.json",
+   "smoke": {
+    "request": {
+     "allData": {
+      "page_status": "Add",
+      "organization_id": "1",
+      "issuing_operation_faci": "1",
+      "item_id": "1",
+      "item_qty": 1,
+      "item_uom": "1",
+      "storage_location_id": "1",
+      "location_id": "1",
+      "stock_movement_no": "",
+      "stock_movement_no_type": "1",
+      "stock_movement": [
+       {
+        "item_selection": "1",
+        "requested_qty": 1,
+        "total_quantity": 1,
+        "quantity_uom": "1",
+        "temp_qty_data": "",
+        "temp_hu_data": ""
+       }
+      ],
+      "source_so_id": "1",
+      "source_so_line_id": "1"
+     },
+     "saveAs": "Draft",
+     "pageStatus": "Add"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Your user is not assigned to this organisation, so this Item Assembly cannot be linked to its Sales Order line."
+    }
+   }
+  },
+  {
+   "name": "IA_V2_SUBMIT",
+   "dataId": "2112141238600376321",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_SUBMIT/v6_20261021-112728.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "",
+     "ia_id": "2112143339233648642",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  }
+ ]
+}

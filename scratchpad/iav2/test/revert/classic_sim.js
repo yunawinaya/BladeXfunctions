@@ -29,7 +29,8 @@ function state(w, z) {
   const wa = w.wa.map((r) => [r.material_id, r.batch_id || "", Number(r.wa_quantity), Number(Number(r.wa_cost_price).toFixed(8)), r.is_deleted]).sort();
   const mv = w.mv.filter((m) => m.transaction_type === "IA-R").map((m) => [m.movement, m.item_id, m.bin_location_id, m.batch_number_id || "", m.inventory_category, Number(m.base_qty),
     Number(m.unit_price), Number(m.total_price)]).sort();
-  return { ia: [ia.item_assembly_status, ia.posted_status, ia.stock_movement_no], stock: S.snapshot(w), fifo: fifo, wa: wa, batch: w.batch.map((b) => [b.material_id, b.batch_number, b.is_deleted]).sort(), mv: mv };
+  return { ia: [ia.item_assembly_status, ia.posted_status, ia.stock_movement_no, ia.material_hold_status === undefined ? null : ia.material_hold_status], stock: S.snapshot(w), fifo: fifo, wa: wa,
+    batch: w.batch.map((b) => [b.material_id, b.batch_number, b.is_deleted]).sort(), mv: mv };
 }
 
 // ---------------------------------------------------------------- v4 = v5 at and below the cap
@@ -83,7 +84,7 @@ console.log("ok   up to 250 picks (251 live rows) v5 = v4: answer, writes, final
 // ---------------------------------------------------------------- TWIN: classic v5 vs Revert V2 on one engine-completed IA
 for (const [label, spec] of [["FIFO", {}], ["WA running average", { parent: { method: S.WA, qty: 2 }, parentStock: [10, 4] }], ["WA batch parent", { parent: { method: S.WA, batch: true, qty: 2 } }],
   ["FIFO batch parent, batch components", { parent: { batch: true, qty: 3 }, comps: [{ qty: 2, layers: [[6, 1.5]], batch: true }, { qty: 1, layers: [[3, 4]] }] }],
-  ["Blocked receipt", { cat: "Blocked" }]]) {
+  ["Blocked receipt", { cat: "Blocked" }], ["RES-01: a held component (issued from Reserved), an IA that reserves", { reserved: [0], hold: "CLOSED" }]]) {
   const z = S.completed(spec);
   const a = cloneWorld(z.w);
   const b = cloneWorld(z.w);
@@ -99,5 +100,71 @@ for (const [label, spec] of [["FIFO", {}], ["WA running average", { parent: { me
   for (const k of ["ia", "stock", "fifo", "wa", "batch", "mv"]) ok(J(sa[k]) === J(sb[k]), label + " twin: " + k + " classic = V2", { classic: sa[k], v2: sb[k] });
   ok(b.mv.filter((m) => m.transaction_type === "IA-R").every((m) => /^IAV\|[0-9]+\|M[0-9]+$/.test(m.operation_effect_key)), label + " twin: V2's IA-R rows carry IAV|<job>|M<n>");
 }
-console.log("ok   TWIN classic v5 = Revert V2 (stock, FIFO, WA, Batch, header, IA-R rows): FIFO, WA running average, WA batch, FIFO batch + batch components, Blocked receipt");
+console.log("ok   TWIN classic v6 = Revert V2 (stock, FIFO, WA, Batch, header, IA-R rows): FIFO, WA running average, WA batch, FIFO batch + batch components, Blocked receipt, RES-01 held");
+// RES-01 R5 through Revert V2: its holds still open -> FAILED IA_RV_HOLDS_OPEN, the IA back to Completed, nothing moved
+{
+  const o = S.completed({ reserved: [0], hold: "FULL" });
+  o.w.holds.push({ id: o.w.id(), doc_type: "Item Assembly", doc_id: o.ia.id, organization_id: S.ORG, is_deleted: 0, open_qty: 1, status: "Allocated" });
+  const b = cloneWorld(o.w);
+  const s = runWorkflow(b, "IA_REVERT_V2_SUBMIT", { operation: "SUBMIT", ia_id: o.ia.id, idempotency_key: o.key, source: "LIST", min_picks: "0", form: Object.assign({}, o.row) });
+  const job = b.jobs.find((j) => j.command === "REVERT_IA");
+  const t = runWorkflow(b, "IA_REVERT_V2_WORKER", { job_id: job.id });
+  ok(!s.err && !t.err && job.job_status === "FAILED" && job.error_code === "IA_RV_HOLDS_OPEN" && b.ia(o.ia.id).item_assembly_status === "Completed" &&
+    b.mv.filter((m) => m.transaction_type === "IA-R").length === 0, "RES-01 R5 V2: open holds -> FAILED IA_RV_HOLDS_OPEN, back to Completed, nothing moved",
+    { job: [job.job_status, job.error_code], ia: b.ia(o.ia.id).item_assembly_status });
+  console.log("ok   RES-01 R5 through Revert V2: open holds refused (FAILED, back to Completed, nothing moved)");
+}
+// ---------------------------------------------------------------- RES-01 R5: an IA that reserves (its stored material_hold_status set)
+{
+  const bal = (w, z, c) => {
+    const b = w.ib.find((x) => x.material_id === z.comps[c].it.id && !x.is_deleted);
+    return [Number(b.unrestricted_qty), Number(b.reserved_qty)];
+  };
+  // component 1 (3 units) was held and issued from Reserved; component 2 (4) from Unrestricted
+  const z = classicCompleted({ reserved: [0], hold: "CLOSED" });
+  const a = cloneWorld(z.w);
+  const b = cloneWorld(z.w);
+  const r4 = v4(a, z);
+  const r6 = v5(b, z);
+  ok(!r6.err && r6.out.code === "200", "R5: an IA that reserves reverts", r6.out || r6.err);
+  // [unrestricted, reserved]: 10 held in Reserved, 3 issued from it
+  ok(J(bal(b, z, 0)) === J([3, 7]) && J(bal(a, z, 0)) === J([0, 10]), "R5: the held component comes back to Unrestricted (its hold was closed at completion); v4 put it back in Reserved",
+    { v6: bal(b, z, 0), v4: bal(a, z, 0) });
+  ok(J(bal(b, z, 1)) === J(bal(a, z, 1)), "R5: the component issued from Unrestricted as v4", { v6: bal(b, z, 1), v4: bal(a, z, 1) });
+  ok(b.mv.filter((m) => m.transaction_type === "IA-R" && m.movement === "IN" && m.item_id === z.comps[0].it.id).every((m) => m.inventory_category === "Unrestricted"),
+    "R5: its IA-R row says Unrestricted");
+  ok(b.ia(z.ia.id).item_assembly_status === "Draft" && b.ia(z.ia.id).material_hold_status === "RESERVING", "R5: Draft, marked RESERVING (the next open or save reserves again)",
+    b.ia(z.ia.id));
+  // review I3: a component held from Blocked (its Delivered row says so) comes back to Blocked, never freed into Unrestricted
+  const zb = classicCompleted({ reserved: [0], hold: "CLOSED", heldFrom: "Blocked" });
+  const bb = cloneWorld(zb.w);
+  const rb = v5(bb, zb);
+  const ib = bb.ib.find((x) => x.material_id === zb.comps[0].it.id && !x.is_deleted);
+  ok(!rb.err && rb.out.code === "200" && J([Number(ib.unrestricted_qty), Number(ib.reserved_qty), Number(ib.block_qty)]) === J([0, 7, 3]) &&
+    bb.mv.filter((m) => m.transaction_type === "IA-R" && m.movement === "IN" && m.item_id === zb.comps[0].it.id).every((m) => m.inventory_category === "Blocked"),
+    "R5 (review I3): a component held from Blocked comes back to Blocked", { out: rb.out || rb.err, bal: ib && [ib.unrestricted_qty, ib.reserved_qty, ib.block_qty] });
+  // never reserved: v6 = v4 exactly, a Reserved-issued component included
+  const n = classicCompleted({ reserved: [0] });
+  const c = cloneWorld(n.w);
+  const d = cloneWorld(n.w);
+  const n4 = v4(c, n);
+  const n6 = v5(d, n);
+  ok(J(n4.out) === J(n6.out) && J(c.writes) === J(d.writes) && J(state(c, n)) === J(state(d, n)) && J(bal(d, n, 0)) === J([0, 10]), "R5: an IA that never reserved: v6 = v4 (answer, writes, state)",
+    { v4: c.writes.length, v6: d.writes.length });
+  // its holds still open (CLOSE not done) or a hold run in flight: refused, nothing written
+  for (const [label, hold] of [["an Allocated hold", { status: "Allocated" }], ["a Releasing hold", { status: "Releasing" }]]) {
+    const o = classicCompleted({ reserved: [0], hold: "FULL" });
+    o.w.holds.push(Object.assign({ id: o.w.id(), doc_type: "Item Assembly", doc_id: o.ia.id, organization_id: S.ORG, is_deleted: 0, open_qty: 1 }, hold));
+    const e = cloneWorld(o.w);
+    const r = v5(e, o);
+    ok(!r.err && r.out.code === "409" && /holds/.test(r.out.message) && e.writes.length === 0 && e.ia(o.ia.id).item_assembly_status === "Completed",
+      "R5: " + label + " still open: 409, nothing written", r.out || r.err);
+  }
+  const l = classicCompleted({ reserved: [0], hold: "CLOSED" });
+  l.w.steps.push({ id: l.w.id(), job_id: "IAH|" + l.ia.id, step_name: "TICKET|3", step_status: "HELD", result_ref: "IAH|" + l.ia.id + "|3", is_deleted: 0, started_at: l.w.now - 60000 });
+  const f = cloneWorld(l.w);
+  const rl = v5(f, l);
+  ok(!rl.err && rl.out.code === "409" && f.writes.length === 0, "R5: a hold run in flight (a live ticket): 409, nothing written", rl.out || rl.err);
+  console.log("ok   RES-01 R5: a held component back to Unrestricted, RESERVING; never reserved = v4; open holds or a live ticket refused");
+}
 console.log(checks + " checks passed");

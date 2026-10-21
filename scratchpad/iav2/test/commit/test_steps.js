@@ -299,6 +299,13 @@ const identity = { batch_number: X.BATCH_NO, material_id: PARENT, plant_id: PLAN
   ok(r.result_code === "IA_LOCK_WAIT" && r.jobRows[0].attempt_count === 1 && r.needUnlock === "NO", "I2: 409, no intent -> lock wait");
   r = commitI2(e({ attempts: 8 }), guard, input, { code: "409", result_code: "LOCK_BUSY" }, { intents: 0 }, [], null);
   ok(r.job_status === "FAILED" && r.result_code === "IA_INVENTORY_LOCK_BUSY" && r.needUnlock === "YES" && r.needBatchDel === "YES", "I2: 409 after 8 waits -> FAILED IA_INVENTORY_LOCK_BUSY");
+  // engine v12: this operation's earlier run is still alive (a resumed pass): wait it out even with intent rows; review once the waits
+  // are spent, never FAILED (that run may still be writing)
+  const alive = { code: "409", result_code: "LOCK_BUSY", message: "the same operation is still running (run 3, last heartbeat 2026-10-21 17:30:00)" };
+  r = commitI2(e(), guard, input, alive, { intents: 4 }, [], null);
+  ok(r.result_code === "IA_LOCK_WAIT" && r.jobRows[0].attempt_count === 1 && r.needUnlock === "NO" && r.needBatchDel === "NO", "I2: v12 'the same operation is still running' WITH intent rows -> lock wait", r);
+  r = commitI2(e({ attempts: 8 }), guard, input, alive, { intents: 0 }, [], null);
+  ok(r.job_status === "REQUIRES_REVIEW" && r.needUnlock === "NO" && r.needBatchDel === "NO", "I2: v12 'the same operation is still running' after 8 waits -> REQUIRES_REVIEW, never FAILED", r);
   r = commitI2(e(), guard, input, { code: "", result_code: "" }, { intents: 1 }, [], null);
   ok(r.result_code === "IA_STEP_RETRY" && r.needUnlock === "NO" && r.needBatchDel === "NO", "I2: no answer WITH intent rows -> retry, never a failure");
   r = commitI2(e(), guard, input, { code: "500", result_code: "REQUIRES_REVIEW" }, null, [], null);

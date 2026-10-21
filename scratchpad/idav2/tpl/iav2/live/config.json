@@ -1,0 +1,96 @@
+{
+ "_about": "Item Assembly V2 live-check kit (package E). DEV only. Ids verified read-only 2026-10-19 (E report). Workflow ids come from scratchpad/iav2/ids.json at run time (the 8 V2 shells are \"0\" until the user creates them). Tenant 711077 is -41's GD test tenant: never pick 'blade, loose' 2105492637718319110 at bin 2106278340907413505, never deliver / edit / cancel SO/20261016-034 / -035; announce the window to -41 before and after.",
+ "tenants": {
+  "711077": {
+   "identity": "scratchpad/gdc/tools/id711077.json",
+   "org": "2105190589240086530",
+   "plant": "2105200506810306561",
+   "_plant": "HQ of Test Mosca; every stocked balance sits in bin A1-01 2106278340907413505 (the default bin of the default Common storage location Warehouse 2105223032261218305), 6,024 FIFO materials, no WA, no HU, no duplicate balance key",
+   "nickname": "admin",
+   "ia_rule": "2105200574229549126",
+   "_ia_rule": "su_code_serial_no_rule 'Item Assembly' is_default 1, is_draft 0, department 2105190589240086530 (the form's default stock_movement_no_type)",
+   "batch_cfg": "2106278653580193794 Organization Level B-%5d, Document Created Date",
+   "accounting": "SQL Accounting V2 agent SYNC-AGT-WELUGI (do NOT post here)"
+  },
+  "000000": {
+   "identity": "scratchpad/gdc/tools/id000000.json",
+   "org": "1123598813738675201",
+   "plant": "1123598813738675202",
+   "_plant": "ASAI HQ; default bin 2018912822846582786",
+   "nickname": "admin",
+   "ia_rule": "2098266711093927937",
+   "batch_cfg": "2062365526375706626 Organization Level Batch-%5d, Document Created Date",
+   "accounting": "SQL Accounting V2 agent SYNC-AGT-TMU7NK, posts into the dev accounting DB (verification item 9: the user's yes first)"
+  }
+ },
+ "nonstock": {
+  "I-DL": "2105490681599791130",
+  "I-IDL": "2105490681599791131",
+  "I-VO": "2105490681599791132",
+  "_": "711077 Direct Labour / Indirect Labour / Variable Overhead: stock_control 0, Fixed Cost (534.40 / 355.63 / 804.69), UOM 2105486663217483800; on 170 BOMs, NOT on the 830-component BOM"
+ },
+ "subjects": {
+  "a": {
+   "tenant": "711077", "kind": "bom", "bom": "2105498079022452744", "qty": 1,
+   "add_nonstock": ["2105490681599791130", "2105490681599791131", "2105490681599791132"], "nonstock_qty": 1,
+   "_": "verification items 4 + 6: 830 FIFO stock lines (base UOM) + I-DL / I-IDL / I-VO added by Batch Add with qty 1 = 833 lines, 830 picks"
+  },
+  "a2": {
+   "tenant": "711077", "kind": "bom", "bom": "2105498122743877647", "qty": 1,
+   "_": "the 829-component BOM as is: 826 stock lines + its own I-DL / I-IDL / I-VO lines (the non-stock lines as a BOM brings them)"
+  },
+  "b": {
+   "tenant": "711077", "kind": "twin", "min_lines": 60, "max_lines": 80, "qty": 1,
+   "_": "verification item 3: twin A classic (IA_SAVE direct), twin B V2, sequential on the same stock"
+  },
+  "r1": {
+   "tenant": "000000", "kind": "manual", "parent": "2094626841323700251", "components": 2, "component_qty": 1, "qty": 1,
+   "_": "verification items 1 / 2: the classic regression subject - TES500 (FIFO, non-batch) + 2 stocked FIFO components"
+  },
+  "c-fifo": {
+   "tenant": "000000", "kind": "manual", "parent_code": "ITM-20260600005-A", "components": 3, "component_qty": 1, "qty": 2,
+   "_": "verification item 5: FIFO batch parent, batch 'According To System Settings' (SUBMIT calls GENERATE_BATCH)"
+  },
+  "c-wa": {
+   "tenant": "000000", "kind": "manual", "parent_code": "FRESH FJORD TROUT; SUP 5-6KG", "components": 3, "component_qty": 1, "qty": 2,
+   "_": "verification item 5: WA batch parent, system batch"
+  },
+  "c-blocked": {
+   "tenant": "000000", "kind": "manual", "parent_code": "ITM-20260600005-A", "components": 3, "component_qty": 1, "qty": 1, "category": "Blocked",
+   "_": "verification item 5: receipt into Blocked"
+  },
+  "c-manual": {
+   "tenant": "000000", "kind": "manual", "parent_code": "JN-MANUAL-02", "components": 3, "component_qty": 1, "qty": 1, "v2": false,
+   "expect_reason": "manual batch number",
+   "_": "verification item 5: Fixed Cost, Manual Input batch -> SUBMIT NOT_ELIGIBLE (classic); batch_no = a live batch of this item made by another document (reuse, must survive IA_REVERT)"
+  },
+  "c-post": {
+   "tenant": "000000", "kind": "manual", "parent": "2094626841323700251", "components": 55, "component_qty": 1, "qty": 1,
+   "_": "verification item 9 (Complete & Post in the browser): 000000 has no BOM above 3 components and the client routes V2 only above 50 picks - plan.json lists 55 clean stocked FIFO components for the BOM the user creates first (or Batch Add); submit.json is the same IA for a direct V2 completion"
+  },
+  "s-ns": {
+   "tenant": "711077", "kind": "manual", "parent": "2105487152315273265", "components": 3, "component_qty": 1, "qty": 1,
+   "add_nonstock": ["2105490681599791130", "2105490681599791131", "2105490681599791132"], "nonstock_qty": 1,
+   "_": "verification item 6: a SMALL classic IA with I-DL / I-IDL / I-VO lines (3 picks: the client routes it classic; run IA_SAVE)"
+  },
+  "m250": {
+   "tenant": "711077", "kind": "k2", "picks": 240, "offset": 3000, "component_qty": 1, "qty": 1, "parent": "2105486978226491394",
+   "_": "the classic IA_REVERT measurement at ~200-250 live rows (240 OUT + 1 IN = 241 <= 250): no 711077 BOM has 200-249 lines (150-199: 8, 250-299: 4), so 240 Batch-Add lines; parent = a 487-component BOM's parent"
+  },
+  "d": {
+   "tenant": "711077", "kind": "k2", "picks": 2000, "component_qty": 1, "qty": 1, "parent": "2105488442084724764",
+   "_": "verification item 11: 2,000 distinct stocked FIFO items, one pick each; parent = the 787-component BOM's parent; never post it (> 1,000 items)"
+  }
+ },
+ "workflows_classic": {
+  "IA_SAVE": "2098335576774463489",
+  "IA_REVERT": "2099319746652852225",
+  "INVENTORY_BULK_APPLY": "2109916822821744641",
+  "GENERATE_BATCH": "2060178784435535873",
+  "ACC_PRODUCER": "2013511169625042946"
+ },
+ "budget_mb": {
+  "IA_V2_SUBMIT": 15, "IA_V2_PREPARE": 25, "IA_V2_COMMIT": 20, "IA_V2_WORKER": 35, "tick": 35,
+  "_": "CONTRACT section 14 estimates: SUBMIT 10-15 MB at 830 picks, PREPARE 15-25, COMMIT A 12-20 / B < 10, one tick <= ~35 MB at <= 1,000 picks; the dev crashes began near 60 MB"
+ }
+}

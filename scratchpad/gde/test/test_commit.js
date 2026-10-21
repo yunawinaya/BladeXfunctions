@@ -121,6 +121,15 @@ it("E1: a 409 with engine intents is a retry, never a clean fail", () => {
   const r = call("commitE1", E(), guard, { ok: "YES", needCall: "YES" }, { code: "409" }, { intents: 3 }, []);
   assert.strictEqual(r.result_code, "GDE_STEP_RETRY"); assert.deepStrictEqual(r.unlockRows, []);
 });
+it("E1: the engine's own operation still running (engine v12, a run that died mid-APPLY) waits even with intents; after the waits, review - never a clean fail", () => {
+  const SAME = { code: "409", result_code: "LOCK_BUSY", message: "the same operation is still running" };
+  const w = call("commitE1", E(), guard, { ok: "YES", needCall: "YES" }, SAME, { intents: 3 }, []);
+  assert.deepStrictEqual([w.result_code, w.jobRows[0].error_code, w.jobRows[0].next_attempt_at], ["GDE_STEP_RETRY", "GDE_LOCK_WAIT", "2026-10-15 10:00:15"]);
+  const late = call("commitE1", E({ attempts: 7 }), guard, { ok: "YES", needCall: "YES" }, SAME, { intents: 3 }, []);
+  assert.deepStrictEqual([late.jobRows[0].error_code, late.jobRows[0].next_attempt_at], ["GDE_LOCK_WAIT", "2026-10-15 10:05:00"]);
+  const gave = call("commitE1", E({ attempts: 8 }), guard, { ok: "YES", needCall: "YES" }, SAME, {}, []);
+  assert.deepStrictEqual([gave.job_status, gave.unlockRows], ["REQUIRES_REVIEW", []]);
+});
 
 // ---- E2
 const L = (o) => Object.assign({ id: "4001", is_deleted: 0, gd_qty: 5, temp_qty_data: "[{\"gd_quantity\":5}]", line_remark_1: "a", job_line_key: null, picking_status: "Not Created" }, o || {});

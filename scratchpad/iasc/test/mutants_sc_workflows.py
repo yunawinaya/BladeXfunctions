@@ -18,7 +18,19 @@ MUTANTS = [
     ("relink: other SO allowed", "relink/check.js", "if (spS(line.sales_order_id) !== spS(ia.source_so_id)) return stop(", "if (false) return stop("),
     ("relink: other item allowed", "relink/check.js", "if (spS(line.item_name) !== spS(ia.item_id)) return stop(", "if (false) return stop("),
     ("relink: history not kept", "relink/check.js", "(Array.isArray(old.history) ? old.history : [])", "[]"),
-    ("relink: id unchecked", "relink/guard.js", "const wrong = [\"ia_id\", \"so_line_id\", \"item_id\", \"organization_id\"]", "const wrong = [\"so_line_id\", \"item_id\", \"organization_id\"]"),
+    ("relink: id unchecked", "relink/guard.js", "const wrong = [\"ia_id\", \"so_line_id\",", "const wrong = [\"so_line_id\","),
+    # FIX-03: the session user and the membership; FIX-06: the IA as the user saw it, and the history
+    ("projection: no session user check", "projection/guard.js", "if (!digits(inp.uid)) return bad(\"no session user\");", ""),
+    ("projection: a non-member sees the figures", "projection/summary.js", "if (!(Number((spRows([{{node:sql_node_SPmember.data}}][0])[0] || {}).member) > 0)) {", "if (false) {"),
+    ("projection: a non-member sees the lines", "projection/candidates.js", "if (!(Number((spRows([{{node:sql_node_SPcmember.data}}][0])[0] || {}).member) > 0)) {", "if (false) {"),
+    ("relink: no session user check", "relink/guard.js", "if (!digits(inp.uid)) return bad(\"no session user\");", ""),
+    ("relink: the expected line unchecked", "relink/guard.js", "\"organization_id\", \"expected_line_id\"]", "\"organization_id\"]"),
+    ("relink: the expected status not required", "relink/guard.js", "if (!spS(inp.expected_status)) return bad(", "if (false) return bad("),
+    ("relink: a non-member re-links", "relink/check.js", "if (!(Number(member) > 0)) return stop(", "if (false) return stop("),
+    ("relink: a changed link overwritten", "relink/check.js", " || spS(ia.source_so_line_id) !== spS(g.expectLine)) {", ") {"),
+    ("relink: a changed status overwritten", "relink/check.js", "if (status !== spS(g.expectStatus) || ", "if ("),
+    ("relink: history without the old line", "relink/check.js", "fromLineId: spS(ia.source_so_line_id), ", ""),
+    ("relink: history without the reason", "relink/check.js", ", reason: \"LINE_REMOVED\" }", " }"),
     ("projection: another organisation's line shows its figures", "projection/summary.js", "if (lh.header && spS(lh.header.organization_id) !== spS(g.org)) {", "if (false) {"),
 ]
 survived = 0

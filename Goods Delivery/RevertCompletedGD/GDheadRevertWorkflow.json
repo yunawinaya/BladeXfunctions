@@ -270,6 +270,127 @@
       ]
     },
     {
+      "id": "code_node_hrSizeGuard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Size Guard",
+        "isValidator": true,
+        "nodeName": "Size Guard",
+        "name": "Size Guard",
+        "script": {
+          "type": "javascript",
+          "code": "// Classic revert makes one inventory child run per stock movement: past 500 lines that one request can take the server down\nconst tableData = {{node:code_node_hrExtract.data.tableData}} || [];\nconst bundleParentLines = {{node:code_node_hrExtract.data.bundleParentLines}} || [];\nconst gdNo = {{node:code_node_hrExtract.data.gdNo}} || \"\";\nconst lineCount = (Array.isArray(tableData) ? tableData.length : 0) + (Array.isArray(bundleParentLines) ? bundleParentLines.length : 0);\nreturn {\n  tooBig: lineCount > 500 ? 1 : 0,\n  message: \"Goods Delivery \" + gdNo + \" has \" + lineCount + \" lines. Reverting a completed delivery supports at most 500 lines for now; please contact support.\"\n};"
+        },
+        "response_json": [
+          {
+            "key": "hr1szbig01",
+            "name": "tooBig",
+            "title": "tooBig",
+            "description": "",
+            "bsonType": "number",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hr1szmsg01",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_hrTooBig",
+      "type": "if",
+      "data": {
+        "title": "IF Too Many Lines",
+        "isValidator": true,
+        "nodeName": "IF Too Many Lines",
+        "name": "IF Too Many Lines",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1779334300051,
+              "parentId": 1779334300050,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_hrSizeGuard.data.tooBig}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_hrTooBigTrue",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_node_hrTooBig",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Too Many Lines",
+                "isValidator": true,
+                "nodeName": "Return Too Many Lines",
+                "name": "Return Too Many Lines",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": "400",
+                      "valueLabel": "",
+                      "propLabel": "code"
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_hrSizeGuard.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_hrTooBigFalse",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "search_node_hrFindSnap",
       "type": "search-node",
       "data": {

@@ -1,0 +1,10 @@
+{
+ "_note": "lib/sqlcheck.py values for IA_V2_PREPARE on dev (read-only): a real dev job (another command: only the columns matter) and IA-2609-010 (3 lines). ia_v2_job_id does not exist until the form publish (CONTRACT.md section 13).",
+ "*": {},
+ "IA_V2_PREPARE": {
+  "tenantId": "000000",
+  "jobId": "2112066434782371841",
+  "iaId": "2102337892356845570"
+ },
+ "missing_cols": {"h.ia_v2_job_id": "NULL", "g.ia_v2_job_id": "NULL"}
+}

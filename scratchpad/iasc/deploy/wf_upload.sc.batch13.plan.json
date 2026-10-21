@@ -1,0 +1,37 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "On Reserved Goods Delivery form (doc_type Item Assembly)",
+   "kind": "form",
+   "dataId": "1935880014687440897",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/res01/out/on_reserved_gd_form.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/res01/base/on_reserved_gd_form_v19.json"
+  },
+  {
+   "name": "IA form (RES-01 R1 fields)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v45.json"
+  },
+  {
+   "name": "IA_HOLD",
+   "dataId": "2112752274794217473",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_HOLD.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "organization_id": "1",
+     "operation": "RECONCILE",
+     "source": "SAVE"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Item Assembly not found."
+    }
+   }
+  }
+ ]
+}

@@ -63,6 +63,8 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
     incomingFingerprint: valid ? s(m.incomingFingerprint) : "", scFingerprint: valid ? s(m.scFingerprint) : "", scAfterFingerprint: valid ? s(m.scAfterFingerprint) : "",
     entryCount: num(c.entries) || num(c.movements), idempotencyKey: s(job.idempotency_key), dbNow: dbNow, jsAt: String(Date.now()), attempts: Number(job.attempt_count) || 0, rowVersion: Number(job.row_version) || 0,
     leaseUntil: s(job.lease_until) };
+  // the lease must outlast the engine call (a re-kick after it runs the job twice): 10 min + 0.6 s per entry, at most 90 min (GR / Putaway's rule)
+  entry.leaseUntil = dbAddSeconds(dbNow, Math.min(5400, 600 + Math.ceil(0.6 * Math.max(0, entry.entryCount)))) || s(job.lease_until);
   // the job owns the Stock Adjustment: Processing, its sa_v2_job_id, and the latest SAC| LOCK row carries the job's key (CONTRACT section 4)
   const keyed = saId !== "0" && s(sa.sa_id) === saId && s(sa.lock_ref) !== "" && s(sa.lock_ref) === entry.idempotencyKey && s(sa.sa_v2_job_id) === guard.jobId;
   const lockMine = keyed && s(sa.stock_adjustment_status) === "Processing";
@@ -82,7 +84,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, payloadRows, 
   const claim = jobRow(entry, { job_status: "COMMITTING_SA", progress_percent: Math.max(Number(job.progress_percent) || 0, phase === "A" ? 70 : 85),
     progress_message: phase === "A" ? "Moving the stock of " + entry.entryCount + " entr" + (entry.entryCount === 1 ? "y" : "ies") : "Updating the Stock Count, the items and the Stock Adjustment",
     attempt_count: entry.attempts, row_version: entry.rowVersion + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null,
-    lease_owner: guard.leaseOwner, lease_expires_at: s(job.lease_until) });
+    lease_owner: guard.leaseOwner, lease_expires_at: entry.leaseUntil });
   return Object.assign({}, base, entry, {
     route: "GO", phase: phase, partPrefix: "P|" + s(m.nonce) + "|", doneReorder: done.A4_REORDER ? "YES" : "NO", triedA1: tried.A1_TRY ? "YES" : "NO", jobRows: [claim], needJobUpd: "YES",
     a0ScId: review ? scId : "0",

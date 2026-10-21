@@ -165,7 +165,8 @@ function fcPlan(input) {
     const cells = {}, base = {}, so = {};
     for (const p of plans) {
       const l = p.l, id = s(l.id);
-      const c = { picking_status: "Completed", is_force_complete: 1, plan_qty: q8(num(l.gd_qty)), plan_temp_qty_data: s(l.temp_qty_data) || "[]", plan_view_stock: s(l.view_stock) };
+      const c = { picking_status: "Completed", is_force_complete: 1, plan_qty: q8(num(l.gd_qty)), plan_temp_qty_data: s(l.temp_qty_data) || "[]",
+        plan_view_stock: l.view_stock === undefined || l.view_stock === null ? "" : String(l.view_stock) };
       if (!p.bundle && (p.allocChanged || p.reduced)) {
         c.temp_qty_data = JSON.stringify(p.entries);
         c.view_stock = buildViewStock(p.entries, uomFromViewStock(l.view_stock), names);

@@ -1,0 +1,10 @@
+{
+ "_note": "lib/sqlcheck.py values for IDA_V2_PREPARE on dev (read-only): a real dev job (another command: only the columns matter) and IDA-2610-003 (4 lines, the header pick's bin and a line in another bin: BINS_STORED's JSON_TABLE on a must-match case; two Batch rows holding its line numbers: BATCH_TYPED_STORED must-match). ida_v2_job_id / ida_idem_key do not exist until the form publish (CONTRACT.md section 13).",
+ "*": {},
+ "IDA_V2_PREPARE": {
+  "tenantId": "000000",
+  "jobId": "2112736276208812034",
+  "idaId": "2110985744909729793"
+ },
+ "missing_cols": {"h.ida_v2_job_id": "NULL", "g.ida_v2_job_id": "NULL", "h.ida_idem_key": "NULL"}
+}

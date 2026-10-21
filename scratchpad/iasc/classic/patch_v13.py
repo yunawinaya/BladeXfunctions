@@ -29,15 +29,24 @@ BASE = os.path.join(REPO, "Item Assembly & BOM", "AsyncV2", "IA_SAVE.json")
 BASE_MD5 = "3faadd2358a747f3dff7b48ef305d2cf"
 OUT = os.environ.get("IASC_OUT") or os.path.join(REPO, "Item Assembly & BOM", "SmallCycle")
 CODE = os.environ.get("IASC_CODE") or os.path.join(IASC, "code")
+# RES-01's shared cores (the completion split): scratchpad/iasc/res01/code
+RES_CODE = os.environ.get("HD_CODE") or os.path.join(IASC, "res01", "code")
 SEED = 20261020
 FILTER_BASE = 1792200000000
 IN, SRC, CHK = "code_node_SCin", "sql_node_SCsource", "code_node_SCcheck"
-NEW_IDS = [IN, "if_SCread", "if_SCread_t", "if_SCread_f", SRC, CHK, "if_SCfailed", "if_SCfailed_t", "if_SCfailed_f", "return_node_SC400"]
-IN_FIELDS = ["need", "edit", "tenantId", "iaId", "lineId", "present"]
+ENROL = "code_node_RESenrol"
+DUE, OWN, SPLIT = "code_node_RESdue", "sql_node_RESown", "code_node_RESsplit"
+NEW_IDS = [IN, "if_SCread", "if_SCread_t", "if_SCread_f", SRC, CHK, "if_SCfailed", "if_SCfailed_t", "if_SCfailed_f", "return_node_SC400",
+           ENROL, "if_RESenrol", "if_RESenrol_t", "if_RESenrol_f", "update_node_RESenrol",
+           DUE, "if_RESdue", "if_RESdue_t", "if_RESdue_f", OWN, SPLIT, "if_RESbusy", "if_RESbusy_t", "if_RESbusy_f", "return_node_RES409"]
+# RES-01 R4: the pre-check and issue loops read the lines split by the IA's holds (code_node_RESsplit; the lines as sent when not due)
+LOOPS = {"loop_precheck_lines": "{{node:code_fillback.data.allData.stock_movement}}", "loop_issue_lines": "{{node:code_fillback.data.allData.stock_movement}}"}
+LOOPS_TO = "{{node:code_node_RESsplit.data.lines}}"
+IN_FIELDS = ["need", "edit", "tenantId", "iaId", "lineId", "present", "org", "uid"]
 SC_PROPS = ["source_so_id", "source_so_line_id", "source_so_context_json", "bom_consumption_mode", "source_bom_id", "bom_snapshot_json", "planned_output_qty"]
 CHK_FIELDS = ["route", "message"] + SC_PROPS
 # IA_SAVE only (IA_V2_SUBMIT v4 declares IN_FIELDS / CHK_FIELDS as they are): the ids whose stored keys to read, the lines to write
-CLASSIC_IN_FIELDS = IN_FIELDS + ["lineIds"]
+CLASSIC_IN_FIELDS = IN_FIELDS + ["lineIds", "res"]
 CLASSIC_CHK_FIELDS = CHK_FIELDS + ["scLines"]
 # the lines the 4 writes take: code_fillback's, with the stored sc_ref_key put back on a line a mobile save sent without one
 LINES_FROM, LINES_TO = "{{node:code_fillback.data.allData.stock_movement}}", "{{node:code_node_SCcheck.data.scLines.stock_movement}}"
@@ -105,7 +114,7 @@ def build():
 
     def resp(names):
         # scLines carries the line array, typed like code_fillback's allData
-        return [{"key": key(), "name": n, "title": "", "description": "", "bsonType": "any" if n == "scLines" else "string", "isExpand": False, "children": []}
+        return [{"key": key(), "name": n, "title": "", "description": "", "bsonType": "any" if n in ("scLines", "lines") else "string", "isExpand": False, "children": []}
                 for n in names]
 
     def code(nid, t, text, names):
@@ -148,16 +157,55 @@ def build():
         code(IN, "Small Cycle: stored fields to keep (Edit) or a link to check?", body("sc_in.js"), CLASSIC_IN_FIELDS),
         if_("if_SCread", "IF Small Cycle data to read", "'%s' == 'YES'" % V.N(IN, "data.need"), [
             sql(SRC, "Small Cycle: the stored fields and the linked SO line + header",
-                V.sub(S.CLASSIC_SC_SOURCE_KEYS, T=V.N(IN, "data.tenantId"), IA=V.N(IN, "data.iaId"), LINE=V.N(IN, "data.lineId"), IDS=V.N(IN, "data.lineIds")),
+                V.sub(S.CLASSIC_SC_SOURCE_KEYS, T=V.N(IN, "data.tenantId"), IA=V.N(IN, "data.iaId"), LINE=V.N(IN, "data.lineId"), IDS=V.N(IN, "data.lineIds"),
+                      ORG=V.N(IN, "data.org"), UID=V.N(IN, "data.uid")),
                 ["j"])]),
         code(CHK, "Small Cycle: merge, link and snapshot checks", body("sc_check.js"), CLASSIC_CHK_FIELDS),
         if_("if_SCfailed", "IF the Small Cycle check refused", "'%s' == 'STOP'" % V.N(CHK, "data.route"), [r400]),
     ]
+    # RES-01 enrolment: after the Draft write (code_doc_id has the saved id), the header marked RESERVING; the form starts IA_HOLD
+    up = copy.deepcopy(old["update_draft"])
+    up["id"] = "update_node_RESenrol"
+    up["data"].update(title("RES-01: mark the Draft RESERVING (enrolled; the form starts IA_HOLD)"))
+    leaf = up["data"]["table_id"]["rules"]["list"][0]
+    assert leaf["prop"] == "id" and leaf["operator"] == "in"
+    fid[0] += 2
+    leaf.update({"id": fid[0] - 1, "parentId": fid[0], "value": V.N(ENROL, "data.id")})
+    tpl_p = [x for x in up["data"]["props"]["list"] if x["prop"] == "id"][0]
+    up["data"]["props"]["list"] = [dict(tpl_p, value=V.N(ENROL, "data.id")), dict(tpl_p, prop="material_hold_status", propLabel="material_hold_status", value=V.N(ENROL, "data.hold"))]
+    enrol = [code(ENROL, "RES-01: enrol this Draft (holds on, a new IA or one that reserves)?", V.raw(CODE, "classic/res_enrol.js"), ["enrol", "id", "hold"]),
+             if_("if_RESenrol", "IF RES-01: an enrolled Draft to mark RESERVING", "'%s' == 'YES'" % V.N(ENROL, "data.enrol"), [up])]
+    # RES-01 R4: before the pre-check, an IA that reserves reads its holds; its picks split (held part from Reserved); 409 while one runs
+    r409 = copy.deepcopy(old["return_idem_409"])
+    l409 = r409["data"]["response_value"]["list"]
+    assert [x["prop"] for x in l409] == ["code", "message"] and l409[0]["value"] == "409"
+    r409["id"] = "return_node_RES409"
+    r409["data"].update(title("Return 409 (RES-01: the materials are being reserved)"))
+    l409[1]["value"] = V.N(SPLIT, "data.message")
+    split = [code(DUE, "RES-01: a completion of an IA that reserves?", V.raw(CODE, "classic/res_due.js"), ["due", "ia", "tenantId", "org"]),
+             if_("if_RESdue", "IF RES-01: its own holds to read", "'%s' == 'YES'" % V.N(DUE, "data.due"), [
+                 sql(OWN, "RES-01: this IA's own holds and its running hold tickets", V.sub(S.RES_OWN, T=V.N(DUE, "data.tenantId"), IAQ=V.N(DUE, "data.ia"),
+                                                                                          ORG=V.N(DUE, "data.org")), ["j"])]),
+             code(SPLIT, "RES-01: the picks split by its holds (held part from Reserved)", V.include_js(RES_CODE, "shared/split.js") + "\n" + V.raw(CODE, "classic/res_split.js"),
+                  ["route", "message", "lines"]),
+             if_("if_RESbusy", "IF RES-01: a reservation is running", "'%s' == 'BUSY'" % V.N(SPLIT, "data.route"), [r409])]
     doc = copy.deepcopy(base)
     top = [n["id"] for n in doc["nodes"]]
     i = top.index("if_required_failed")
     assert top[i + 1] == "if_validate", top[i - 2:i + 3]
     doc["nodes"] = doc["nodes"][:i + 1] + nodes + doc["nodes"][i + 1:]
+    top = [n["id"] for n in doc["nodes"]]
+    j = top.index("code_doc_id")
+    assert top[j + 1] == "return_ok", top[j - 1:j + 3]
+    doc["nodes"] = doc["nodes"][:j + 1] + enrol + doc["nodes"][j + 1:]
+    vt = index(doc)["if_validate"]["blocks"][0]["blocks"]
+    vi = [n["id"] for n in vt].index("loop_precheck_lines")
+    assert [n["id"] for n in vt][vi - 1] == "if_edit_guard"
+    vt[vi:vi] = split
+    for nid, was in LOOPS.items():
+        lp = index(doc)[nid]["data"]["loopSeletVar"]
+        assert lp["code"] == was, (nid, lp)
+        lp["code"] = LOOPS_TO
     got = index(doc)
     for nid, count in WRITES.items():
         props = got[nid]["data"]["props"]["list"]
@@ -174,6 +222,10 @@ def build():
     assert sorted(set(got) - set(old)) == sorted(NEW_IDS), sorted(set(got) - set(old))
     rev = copy.deepcopy(doc)
     ri = index(rev)
+    for nid, was in LOOPS.items():
+        ri[nid]["data"]["loopSeletVar"]["code"] = was
+    vb = ri["if_validate"]["blocks"][0]
+    vb["blocks"] = [n for n in vb["blocks"] if n["id"] not in {x["id"] for x in split}]
     for nid, count in WRITES.items():
         ri[nid]["data"]["props"]["list"] = ri[nid]["data"]["props"]["list"][:count]
         for p in ri[nid]["data"]["props"]["list"]:
@@ -182,7 +234,7 @@ def build():
     for nid, n in old.items():
         assert canon(ri[nid]) == canon(n), "v12 node changed: " + nid
     new_keys = []
-    for nd in nodes:
+    for nd in nodes + enrol + split:
         new_keys.extend(sorted(keys_of(nd, set())))
     assert len(new_keys) == len(set(new_keys)) and not set(new_keys) & keys_of(base, set()), "a new key repeats or collides with v12's"
     return doc

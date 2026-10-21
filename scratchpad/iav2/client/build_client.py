@@ -41,6 +41,9 @@ CLASSIC_SAVE = os.path.join(BASE, "IA_SAVE.v11.json")
 SHARED = os.path.join(IAV2, "code", "shared", "ia_common.js")
 PAYLOADS = os.path.join(HERE, "fixtures", "payload_keys.json")
 ACTIONS = ("COMPLETE", "COMPLETE_POST", "REVERT")
+# RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): the list Delete releases them first; shipped off, as build_client_sc.py
+RES_ENABLED = False
+IASC_IDS = os.path.join(IAV2, "..", "iasc", "ids.json")
 
 # the classic handlers this build replaces in place, pinned to their base v34 / v20 text (the build stops if dev moved)
 FORM_PATCHED = {  # event key -> (name, patched source, sha256 of the base func)
@@ -490,6 +493,8 @@ def build(on):
     wf = ids()
     c = dict(switches(on), **wf)
     c["IA_RV_MIN_ROWS"] = re.search(r"^const IA_RV_MIN_ROWS = (\d+);", read(SHARED), re.M).group(1)
+    c["RES_ENABLED"] = "true" if RES_ENABLED else "false"
+    c["IA_HOLD"] = str(load(IASC_IDS)["IA_HOLD"])
     taken = set()
     for p in (BASE_FORM, BASE_LIST):
         taken |= set(re.findall(r"[a-z0-9]{8}", read(p)))

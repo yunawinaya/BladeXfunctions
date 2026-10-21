@@ -319,13 +319,15 @@ for (const [step, node] of [["PM2", "sql_node_PCpm2back"], ["PM3", "sql_node_PCp
   e.st.intentOnBusy = true;
   const r = submit(e, "CONFIRM", [{ row_id: "800000", qty: 5, target_location_id: "4009" }]);
   work(e, r.job_id);
-  for (let i = 0; i < 6 && job(db, r.job_id).job_status === "COMMITTING_PICKING"; i++) {
-    db.advance(60);
+  for (let i = 0; i < 20 && job(db, r.job_id).job_status === "COMMITTING_PICKING"; i++) {
+    db.advance(300);
     work(e, "");
   }
   const j = job(db, r.job_id);
-  eq("lock busy after the engine recorded its intent: retried, then review (never FAILED), the Picking locked", [j.job_status, j.error_code, db.t.picking[0].is_processing],
-    ["REQUIRES_REVIEW", "PK_RECONCILIATION_MISMATCH", 1]);
+  // engine v12: a 409 with the intent recorded is our own APPLY still held (up to 20 min) - wait it out, then review
+  eq("lock busy after the engine recorded its intent: 8 waits, then review (never FAILED), the Picking locked",
+    [j.job_status, j.error_code, db.t.picking[0].is_processing, db.t.step.filter((x) => x.job_id === r.job_id && /^PM1_WAIT\|/.test(x.step_name)).length],
+    ["REQUIRES_REVIEW", "PK_RECONCILIATION_MISMATCH", 1, 8]);
 }
 
 // ---------------------------------------------------------------- 13. PREPARE's refusals

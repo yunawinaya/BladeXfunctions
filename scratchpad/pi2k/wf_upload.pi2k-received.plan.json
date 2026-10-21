@@ -1,0 +1,8 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "GR_Convert_PI", "dataId": "2070324857790087170", "file": "scratchpad/pi2k/out/GR_Convert_PI.json", "base": "Purchase Invoice/convertGRtoPIworkflow.json" },
+    { "name": "Batch Add (PI) page", "kind": "page", "dataId": "2089184571995197441", "file": "scratchpad/pi2k/client/out_BatchAddPI_page.json", "base": "scratchpad/pi2k/base/BatchAddPI_page.v11.json" }
+  ]
+}

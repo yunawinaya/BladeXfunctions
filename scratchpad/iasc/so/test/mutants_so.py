@@ -22,7 +22,14 @@ MUTANTS = [
     ("page: Create opens on an ineligible line", L, "    if (!r.eligibleNew) {\n      this.$message.warning(", "    if (false) {\n      this.$message.warning("),
     ("page: orphans not listed", L, "    const orphans = Array.isArray(r.orphans) ? r.orphans : [];", "    const orphans = [];"),
     ("page: every IA 'Not counted'", L, '      counted: ROLE[scS(x.role)] || "Not counted", ia_id: scS(x.id) }));', '      counted: "Not counted", ia_id: scS(x.id) }));'),
-    ("page: planned = actual", L, "planned: scQ8(x.planned), actual: scQ8(x.itemQty)", "planned: scQ8(x.itemQty), actual: scQ8(x.itemQty)"),
+    ("page: planned = the quantity", L, 'mode: MODE[scS(x.mode)] || "", planned: scQ8(x.planned),', 'mode: MODE[scS(x.mode)] || "", planned: scQ8(x.itemQty),'),
+    # UI-01: an open IA's quantity to receive, a completed one's received
+    ("page: an open IA's quantity shown as received", L, 'actual: scS(x.role) === "produced" ? scQ8(x.itemQty) : null', "actual: scQ8(x.itemQty)"),
+    ("page: nothing to receive shown", L, 'to_receive: scS(x.role) === "open" ? scQ8(x.itemQty) : null', "to_receive: null"),
+    ("page: an orphan Draft shown as received", L, "actual: DONE_ST[scS(x.status)] ? scQ8(x.item_qty) : null", "actual: scQ8(x.item_qty)"),
+    ("page: an orphan's quantity to receive not shown", L, "to_receive: OPEN_ST[scS(x.status)] ? scQ8(x.item_qty) : null", "to_receive: null"),
+    # FIX-03: a refusal shows its reason
+    ("page: a refusal's reason dropped", L, 'if (scS(d.code) === "400") refused = scS(d.message);', ""),
     ("page: the create action ignored", L, '    if (scS(scArgs.action) !== "create") return;', "    return;"),
     ("page: no sc_entry", L, '      params: { sc_entry: "1" } });', "      params: {} });"),
     ("page: no Small Cycle mode", L, ', bom_consumption_mode: "STANDARD" },', " },"),
@@ -35,6 +42,7 @@ MUTANTS = [
     ("page: rows without a fact stay shown", L, "  if (off.length) this.hide(off);\n};", "};"),
     ("page: units by id", L, "  const u = (id) => uoms[scS(id)] || scS(id);", "  const u = (id) => scS(id);"),
     ("open: a Draft only viewed", O, 'type: draft ? "edit" : "view"', 'type: "view"'),
+    ("page: an unavailable figure shown as one", L, 'sli_summary_suggest: t.unavailable === "OVERLAP" ?', "sli_summary_suggest: false ?"),
 ]
 survived = 0
 for name, rel, old, new in MUTANTS:

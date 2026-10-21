@@ -38,6 +38,7 @@ function page(backend, opts) {
 const fakeDb = (docs) => ({ collection: () => ({ doc: (id) => ({ get: () => Promise.resolve({ data: docs[id] ? [docs[id]] : [] }) }), where: () => ({ get: () => Promise.resolve({ data: [] }) }) }) });
 
 const ON = (src) => src.replace("const ASYNC_FORCE_COMPLETE_ENABLED = false;", "const ASYNC_FORCE_COMPLETE_ENABLED = true;");
+const OFF = (src) => src.replace("const ASYNC_FORCE_COMPLETE_ENABLED = true;", "const ASYNC_FORCE_COMPLETE_ENABLED = false;");
 async function run(file, p, docs, transform) {
   let src = fs.readFileSync(file, "utf8");
   if (file === FC_FILE && transform !== "AS_SHIPPED") src = ON(src);
@@ -86,10 +87,18 @@ it("6 the confirmation text, as the spec words it", async () => {
     "This runs in the background. Proceed?"]) assert.ok(text.indexOf(line) >= 0, "missing: " + line);
 });
 
-it("1 the switch ships off: today's classic force complete for each Picking, nothing in the background", async () => {
-  assert.ok(/const ASYNC_FORCE_COMPLETE_ENABLED = false;/.test(fs.readFileSync(FC_FILE, "utf8")), "the list switch must ship off until STAGE.FORCE_COMPLETE is on");
-  const b = fcBackend({ states: [] });
+it("1 the switch ships ON with SUBMIT's STAGE.FORCE_COMPLETE (user 10-21): as shipped, a force complete runs in the background", async () => {
+  assert.ok(/const ASYNC_FORCE_COMPLETE_ENABLED = true;/.test(fs.readFileSync(FC_FILE, "utf8")), "the list switch ships on");
+  assert.ok(fs.readFileSync(R + "Picking/AsyncV2/PICKING_ASYNC_SUBMIT.json", "utf8").indexOf("FORCE_COMPLETE: true }") >= 0, "SUBMIT's STAGE.FORCE_COMPLETE ships on with it");
+  const b = fcBackend({ states: [{ job_status: "COMPLETED", result_message: "PI-1 force completed: 1 delivery updated, 0 line(s) reduced, 0 removed" }] });
   const p = await run(FC_FILE, page(b, { selected: [IP("11", "PI-1")] }), { 11: { id: "11", to_id: "PI-1" } }, "AS_SHIPPED");
+  assert.strictEqual(calls(p, WF.SUBMIT).filter((c) => c[1].operation === "FORCE_COMPLETE").length, 1);
+  assert.strictEqual(calls(p, WF.LOOP).length, 0);
+});
+
+it("1b the switch off: today's classic force complete for each Picking, nothing in the background", async () => {
+  const b = fcBackend({ states: [] });
+  const p = await run(FC_FILE, page(b, { selected: [IP("11", "PI-1")] }), { 11: { id: "11", to_id: "PI-1" } }, OFF);
   assert.deepStrictEqual(calls(p, WF.SUBMIT).length, 0);
   const c = calls(p, WF.LOOP);
   assert.strictEqual(c.length, 1);

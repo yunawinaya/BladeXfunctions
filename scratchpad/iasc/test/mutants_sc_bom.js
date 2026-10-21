@@ -30,6 +30,10 @@ const MUTANTS = [
   ["tree ignores ref_bom_id", "const child = depth >= maxDepth ? null : f.refBomId ? own.filter((b) => scS(b.id) === f.refBomId)[0] || null : scPickBom(own);", "const child = depth >= maxDepth ? null : scPickBom(own);"],
   ["tree follows references at the root only", "          const refs = refsOf(usable);", "          const refs = {};"],
   ["tree names no BOM version", "version: child ? scS(child.parent_mat_bom_version) : \"\" });", "version: \"\" });"],
+  ["tree: uses not counted", "        t.uses = mine.length;", "        t.uses = 1;"],
+  ["tree: only the first parent", "        t.parents = scUniq(mine.map((u) => nameOf(u.parentId)));", "        t.parents = [nameOf(t.parentItemId)];"],
+  ["tree: one version only", "        t.versions = scUniq(mine.map(versionOf).filter((v) => v));", "        t.versions = [t.version];"],
+  ["tree: deeper lines not counted", "          used(usable, f.itemId);\n", ""],
 ];
 let survived = 0;
 MUTANTS.forEach(([name, from, to], i) => {

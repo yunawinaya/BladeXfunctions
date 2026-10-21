@@ -1,6 +1,11 @@
 // SO_IA_PROJECTION - SUMMARY: one SO line's sales and production figures (CONTRACT.md section 6)
 const g = [{{node:code_node_SPguard.data}}][0] || {};
 const lh = spRows([{{node:sql_node_SPline.data}}][0])[0] || {};
+// FIX-03: only a user assigned to the organisation (or one of its plants) sees its Sales Order figures
+if (!(Number((spRows([{{node:sql_node_SPmember.data}}][0])[0] || {}).member) > 0)) {
+  console.log("projection summary refused: the user is not assigned to the organisation", JSON.stringify({ org: g.org }));
+  return { code: "400", message: "Your user is not assigned to this organisation, so its Sales Order figures cannot be shown.", result_json: "" };
+}
 // the line is read by id within the tenant: another organisation's Sales Order shows no figures
 if (lh.header && spS(lh.header.organization_id) !== spS(g.org)) {
   console.log("projection summary refused: another organisation", JSON.stringify({ org: g.org }));

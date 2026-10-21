@@ -233,6 +233,15 @@ const BASE = [bom("10", "1", 10, [line("2", 20), line("4", 40)]), bom("20", "2",
     bom("30", "3", 1, [line("6", 1)], { parent_mat_is_default: 1 }), bom("31", "3", 1, [line("5", 1)], { parent_mat_bom_version: "V7" })], ITEMS);
   r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: [] });
   eq("tree follows a level-2 reference: 3 through BOM 31 (V7) to 5", r.tree.map((t) => [t.itemId, t.depth, t.version]), [["2", 1, "V1"], ["3", 2, "V7"], ["5", 3, ""]]);
+  // BA handoff FIX-04: a tick applies to every occurrence, so the tree says how many BOM lines use the item, under which parents,
+  // and every BOM version those lines resolve to
+  w = world([bom("10", "1", 1, [line("2", 1), line("3", 1)]), bom("20", "2", 1, [line("3", 2, { bom_type: "reference", ref_bom_id: "31" })], { parent_mat_is_default: 1 }),
+    bom("30", "3", 1, [line("6", 1)], { parent_mat_is_default: 1 }), bom("31", "3", 1, [line("5", 1)], { parent_mat_bom_version: "V7" })], ITEMS);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: [] });
+  const t3 = r.tree.filter((t) => t.itemId === "3")[0] || {};
+  eq("tree: an item on 2 BOM lines: 2 uses, both parents, both versions", [t3.uses, t3.parents, t3.versions], [2, ["N1", "N2"], ["V1", "V7"]]);
+  const t2 = r.tree.filter((t) => t.itemId === "2")[0] || {};
+  eq("tree: an item on 1 line: 1 use, its parent, its version", [t2.uses, t2.parents, t2.versions], [1, ["N1"], ["V1"]]);
 
   // ---------------------------------------------------------------- scRecompute = scResolve
   const seeds = [0.5, 1, 3, 7.25, 12, 100, 0.333];

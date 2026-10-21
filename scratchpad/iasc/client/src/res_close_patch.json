@@ -1,0 +1,23 @@
+{
+ "why": "RES-01 R4: after a completion the form closes the IA's holds (src/sc_close_after.js, switched off with RES_ENABLED)",
+ "block": "sc_close_after.js",
+ "iasvcomp": [
+  {
+   "was": "    this.$message.success(\"Item Assembly completed\");\n    this.hideLoading();\n    closeDialog();\n",
+   "now": "    resCloseAfter(workflowResult.data, data);\n    this.$message.success(\"Item Assembly completed\");\n    this.hideLoading();\n    closeDialog();\n"
+  }
+ ],
+ "aymq6q8z": [
+  {
+   "was": "    await postToAccounting(stockMovementId, organizationId);\n  } catch (error) {",
+   "now": "    resCloseAfter({ id: stockMovementId }, data);\n    await postToAccounting(stockMovementId, organizationId);\n  } catch (error) {"
+  }
+ ],
+ "uhn48srb": [
+  {
+   "was": "    if (js === \"COMPLETED\") {\n      if (ctx.mode === \"POST\") return postCompleted(job);\n",
+   "now": "    if (js === \"COMPLETED\") {\n      resCloseAfter({ id: job.iaId }, ctx.record);\n      if (ctx.mode === \"POST\") return postCompleted(job);\n"
+  }
+ ],
+ "wia8s2r9": "uhn48srb"
+}

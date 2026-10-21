@@ -1,0 +1,1295 @@
+{
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "isValidator": true,
+        "title": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_sic_start",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "const siId = {{workflowparams:si_id}};\nconst tenant = [{{system:tenantId}}][0];\nconst id = siId === undefined || siId === null ? \"\" : String(Array.isArray(siId) ? siId[0] : siId).trim();\nreturn {\n  idSql: /^[0-9]{1,20}$/.test(id) ? id : \"0\",\n  tenantId: /^[0-9]{1,20}$/.test(String(tenant)) ? String(tenant) : \"0\",\n};"
+        },
+        "response_json": [
+          {
+            "key": "e8u1h8if",
+            "name": "idSql",
+            "title": "idSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vr2esgfz",
+            "name": "tenantId",
+            "title": "tenantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "0. Invoice id + tenant for the reads",
+        "isValidator": true,
+        "nodeName": "0. Invoice id + tenant for the reads",
+        "name": "0. Invoice id + tenant for the reads"
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_all_sic_read1",
+      "type": "condition-all-node",
+      "data": {
+        "title": "1. The invoice, its lines and its receivables (parallel)",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_sic_head",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Invoice",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Invoice",
+            "name": "Invoice",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_sic_head",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "1. Invoice (status, number, orders, deliveries)",
+                "isValidator": true,
+                "nodeName": "1. Invoice (status, number, orders, deliveries)",
+                "name": "1. Invoice (status, number, orders, deliveries)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT JSON_OBJECT('id', CAST(s.id AS CHAR), 'so_id', s.so_id, 'gd_id', s.gd_id, 'si_status', s.si_status,\n       'sales_invoice_no', s.sales_invoice_no) AS j\n  FROM sales_invoice s\n WHERE s.tenant_id = '{{node:code_sic_start.data.tenantId}}' AND s.is_deleted = 0 AND s.id = {{node:code_sic_start.data.idSql}}"
+                },
+                "response_json": [
+                  {
+                    "key": "39vescas",
+                    "name": "j",
+                    "title": "j",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_sic_lines",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Invoice lines",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Invoice lines",
+            "name": "Invoice lines",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_sic_lines",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "1. Invoice lines (what the reversal reads)",
+                "isValidator": true,
+                "nodeName": "1. Invoice lines (what the reversal reads)",
+                "name": "1. Invoice lines (what the reversal reads)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT JSON_OBJECT('doc', CAST(l.sales_invoice_id AS CHAR), 'id', CAST(l.id AS CHAR), 'parent_id', CAST(l.parent_id AS CHAR),\n       'line_so_id', l.line_so_id, 'so_line_id', CAST(l.so_line_id AS CHAR), 'line_gd_id', CAST(l.line_gd_id AS CHAR),\n       'gd_line_id', CAST(l.gd_line_id AS CHAR), 'invoice_qty', l.invoice_qty) AS j\n  FROM sales_invoice_zt0c3x55_sub l\n WHERE l.tenant_id = '{{node:code_sic_start.data.tenantId}}' AND l.is_deleted = 0 AND l.sales_invoice_id = {{node:code_sic_start.data.idSql}}\n ORDER BY l.id"
+                },
+                "response_json": [
+                  {
+                    "key": "izu7j03e",
+                    "name": "j",
+                    "title": "j",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_sic_ar",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Receivables",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Receivables",
+            "name": "Receivables",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_sic_ar",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "1. Receivables of the invoice (id, number)",
+                "isValidator": true,
+                "nodeName": "1. Receivables of the invoice (id, number)",
+                "name": "1. Receivables of the invoice (id, number)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT JSON_OBJECT('id', CAST(a.id AS CHAR), 'ar_invoice_no', a.ar_invoice_no) AS j\n  FROM ar_invoice a\n WHERE a.tenant_id = '{{node:code_sic_start.data.tenantId}}' AND a.is_deleted = 0 AND a.si_id = {{node:code_sic_start.data.idSql}}\n ORDER BY a.id"
+                },
+                "response_json": [
+                  {
+                    "key": "s6cz7qfo",
+                    "name": "j",
+                    "title": "j",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_sic_ids",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// SI_CANCEL v10 \"Reverse\": v9's Map Latest SO/GD list (code_node_CtfkSP3q), reading the invoice, the orders, the deliveries and\n// the receivables from sql-nodes that hold only the columns it uses, put back into the shape the old get / search nodes gave\n// (null and \"\" keys left off, bigint ids as numbers below 16 digits, a bundle's items under `children`, id order). v9 wrote every\n// order / delivery line back through table_so / table_gd; here only the lines whose invoiced quantity, status or posted quantity\n// moves are written, through the line collections. A status v9 cleared (null, stored as NULL) is written as \"\".\nconst sicParse = function sicParse(t) {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst sicRows = function sicRows(rows, bigints) {\n  const big = new Set(bigints || []);\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    const o = sicParse(r && r.j !== undefined ? r.j : r);\n    if (!o) continue;\n    const row = {};\n    for (const k of Object.keys(o)) {\n      let v = o[k];\n      if (v === null || v === undefined || v === \"\") continue;\n      if (big.has(k) && typeof v === \"string\" && /^-?\\d{1,15}$/.test(v)) v = Number(v);\n      row[k] = v;\n    }\n    out.push(row);\n  }\n  return out;\n};\nconst sicDocs = function sicDocs(rows, lineKey, bigints) {\n  const docs = [];\n  const byDoc = new Map();\n  for (const o of sicRows(rows, (bigints || []).concat([\"doc\"]))) {\n    const key = String(o.doc);\n    if (!byDoc.has(key)) {\n      const doc = { id: o.doc, lines: [] };\n      byDoc.set(key, doc);\n      docs.push(doc);\n    }\n    if (o.id === undefined) continue;\n    const line = Object.assign({}, o);\n    delete line.doc;\n    byDoc.get(key).lines.push(line);\n  }\n  return docs.map((doc) => {\n    const ids = new Set(doc.lines.map((l) => String(l.id)));\n    const kids = new Map();\n    for (const l of doc.lines) {\n      if (l.parent_id === undefined || !ids.has(String(l.parent_id))) continue;\n      if (!kids.has(String(l.parent_id))) kids.set(String(l.parent_id), []);\n      kids.get(String(l.parent_id)).push(l);\n    }\n    const top = doc.lines.filter((l) => l.parent_id === undefined || !ids.has(String(l.parent_id)));\n    return { id: doc.id, [lineKey]: top.map((l) => (kids.has(String(l.id)) ? Object.assign({}, l, { children: kids.get(String(l.id)) }) : l)) };\n  });\n};\nconst sicReverse = function sicReverse(siHeadRows, siLineRows, soRows, gdRows, arRows) {\n  const head = sicRows(siHeadRows, [\"id\"])[0];\n  // the get-node's record: the invoice with its lines (a bundle's items under `children`)\n  const data = head ? Object.assign({}, head, { table_si: ((sicDocs(siLineRows, \"table_si\", [\"id\", \"parent_id\", \"so_line_id\", \"line_gd_id\",\n    \"gd_line_id\"])[0] || {}).table_si) || [] }) : {};\n  const soList = sicDocs(soRows, \"table_so\", [\"id\", \"parent_id\"]);\n  const gdList = sicDocs(gdRows, \"table_gd\", [\"id\", \"parent_id\"]);\n  const arList = sicRows(arRows, [\"id\"]);\n\n  // ---- code_node_CtfkSP3q (v9) ----\n  const roundTo3 = (value) => {\n    return Math.round((parseFloat(value) || 0) * 1000) / 1000;\n  };\n  const updateGoodsDelivery = (gdIds, tableSi, data) => {\n    let gdUpdatedList = [];\n    for (const gdID of gdIds) {\n      const gdData = gdList.find((gd) => gd.id === gdID) || [];\n      const gdItems = (gdData && gdData.table_gd) || [];\n      const { updatedItems, newSIStatus } = processItems(gdItems, tableSi, gdData.id, \"line_gd_id\", \"gd_line_id\", \"gd_qty\", data.si_status);\n      gdUpdatedList.push({ gd_id: gdData.id, si_status: newSIStatus, items: gdItems, updatedItems });\n    }\n    return gdUpdatedList;\n  };\n  const updateSalesOrder = (soIds, tableSi, data) => {\n    let soUpdatedList = [];\n    for (const soID of soIds) {\n      const soData = soList.find((so) => so.id === soID);\n      const soItems = soData.table_so || [];\n      const { updatedItems, newSIStatus } = processItems(soItems, tableSi, soData.id, \"line_so_id\", \"so_line_id\", \"so_quantity\", data.si_status);\n      soUpdatedList.push({ so_id: soData.id, si_status: newSIStatus, items: soItems, updatedItems });\n    }\n    return soUpdatedList;\n  };\n  const processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey, siStatus) => {\n    const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n    let totalItems = items.length;\n    // the first invoice line pointing at each order line (v9 searched the invoice per order line)\n    const firstSI = new Map();\n    for (const si of filteredSI) if (!firstSI.has(si[siLineIdKey])) firstSI.set(si[siLineIdKey], si);\n    const updatedItems = items.map((item) => {\n      const matchedSI = firstSI.get(item.id);\n      if (matchedSI) {\n        const siInvoicedQty = roundTo3(matchedSI.invoice_qty);\n        const currentInvoicedQty = roundTo3(item.invoice_qty);\n        const totalInvoicedQty = roundTo3(currentInvoicedQty - siInvoicedQty);\n        let updatedItem = { ...item, invoice_qty: totalInvoicedQty };\n        if (siStatus === \"Posted\") {\n          const currentPostedQty = roundTo3(item.posted_qty || 0);\n          const totalPostedQty = roundTo3(currentPostedQty - siInvoicedQty);\n          updatedItem.posted_qty = totalPostedQty;\n        }\n        if (roundTo3(updatedItem.invoice_qty) > 0) {\n          updatedItem.si_status = \"Partially Invoiced\";\n          if (roundTo3(updatedItem.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {\n            updatedItem.si_status = \"Fully Invoiced\";\n          }\n        } else {\n          updatedItem.si_status = null;\n        }\n        return updatedItem;\n      }\n      return { ...item };\n    });\n    let partiallyInvoicedItems = updatedItems.filter((item) => item.si_status === \"Partially Invoiced\").length;\n    let fullyInvoicedItems = updatedItems.filter((item) => item.si_status === \"Fully Invoiced\").length;\n    const allItemsComplete = fullyInvoicedItems === totalItems;\n    const anyItemProcessing = partiallyInvoicedItems > 0 || fullyInvoicedItems > 0;\n    let newSIStatus = anyItemProcessing ? (allItemsComplete ? \"Fully Invoiced\" : \"Partially Invoiced\") : \"\";\n    return { updatedItems, newSIStatus };\n  };\n  const soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\n  let updatedGD = [];\n  if (data.gd_id && data.gd_id.length > 0) {\n    const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n    updatedGD = updateGoodsDelivery(gdIds, data.table_si, data);\n  }\n  const updatedSO = updateSalesOrder(soIds, data.table_si, data);\n  const updatedAR = arList.map((ar) => ({ id: ar.id, ar_invoice_no: ar.ar_invoice_no + \"-Cancelled\" }));\n\n  // what moved, line by line (v9 wrote every line back)\n  const q8 = (v) => (Math.round((parseFloat(v) || 0) * 100000000) / 100000000).toFixed(8);\n  const st = (v) => (v === undefined || v === null ? \"\" : String(v));\n  const moved = (docs, withPosted) => {\n    const lines = [];\n    const posted = [];\n    for (const d of docs) {\n      d.updatedItems.forEach((row, i) => {\n        const before = d.items[i];\n        if (roundTo3(row.invoice_qty) !== roundTo3(before.invoice_qty) || parseFloat(row.invoice_qty || 0) !== parseFloat(before.invoice_qty || 0) ||\n          st(row.si_status) !== st(before.si_status)) {\n          lines.push({ id: row.id, invoice_qty: q8(row.invoice_qty), si_status: st(row.si_status) });\n        }\n        if (withPosted && row.posted_qty !== undefined && parseFloat(row.posted_qty) !== parseFloat(before.posted_qty || 0)) {\n          posted.push({ id: row.id, posted_qty: q8(row.posted_qty) });\n        }\n      });\n    }\n    return { lines, posted };\n  };\n  const so = moved(updatedSO, true);\n  const gd = moved(updatedGD, false);\n  const soHeaders = updatedSO.map((d) => ({ id: d.so_id, si_status: d.si_status }));\n  const gdHeaders = updatedGD.filter((d) => d.gd_id !== undefined).map((d) => ({ id: d.gd_id, si_status: d.si_status }));\n  const flag = (rows) => (rows.length > 0 ? 1 : 0);\n  return {\n    updatedSI: { id: data.id, si_status: \"Cancelled\", sales_invoice_no: data.sales_invoice_no + \"-Cancelled\" },\n    updatedAR,\n    hasAR: flag(updatedAR),\n    soHeaders,\n    hasSoHeaders: flag(soHeaders),\n    soLines: so.lines,\n    hasSoLines: flag(so.lines),\n    soPosted: so.posted,\n    hasSoPosted: flag(so.posted),\n    gdHeaders,\n    hasGdHeaders: flag(gdHeaders),\n    gdLines: gd.lines,\n    hasGdLines: flag(gd.lines),\n  };\n};\n\nconst head = sicRows([{{node:sql_node_sic_head.data}}][0], [\"id\"])[0] || {};\nconst list = (v) => (Array.isArray(v) ? v : v === undefined || v === null ? [] : [v]).map((x) => String(x).trim()).filter((x) => /^[0-9]{1,20}$/.test(x));\nconst so = list(head.so_id);\nconst gd = list(head.gd_id);\nreturn { soIdsSql: so.length ? [...new Set(so)].join(\",\") : \"0\", gdIdsSql: gd.length ? [...new Set(gd)].join(\",\") : \"0\" };"
+        },
+        "response_json": [
+          {
+            "key": "fyf6fbuk",
+            "name": "soIdsSql",
+            "title": "soIdsSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ojq43qbj",
+            "name": "gdIdsSql",
+            "title": "gdIdsSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "2. Orders and deliveries of the invoice",
+        "isValidator": true,
+        "nodeName": "2. Orders and deliveries of the invoice",
+        "name": "2. Orders and deliveries of the invoice"
+      },
+      "blocks": []
+    },
+    {
+      "id": "condition_all_sic_read2",
+      "type": "condition-all-node",
+      "data": {
+        "title": "3. Their lines (parallel)",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_sic_so",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Order lines",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Order lines",
+            "name": "Order lines",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_sic_so",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "3. Sales order lines (what the reversal reads)",
+                "isValidator": true,
+                "nodeName": "3. Sales order lines (what the reversal reads)",
+                "name": "3. Sales order lines (what the reversal reads)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT JSON_OBJECT('doc', CAST(s.id AS CHAR), 'id', CAST(l.id AS CHAR), 'parent_id', CAST(l.parent_id AS CHAR),\n       'so_quantity', l.so_quantity, 'invoice_qty', l.invoice_qty, 'posted_qty', l.posted_qty, 'si_status', l.si_status) AS j\n  FROM sales_order s\n  LEFT JOIN sales_order_axszx8cj_sub l ON l.sales_order_id = s.id AND l.is_deleted = 0\n WHERE s.tenant_id = '{{node:code_sic_start.data.tenantId}}' AND s.is_deleted = 0 AND s.id IN ({{node:code_sic_ids.data.soIdsSql}})\n ORDER BY s.id, l.id"
+                },
+                "response_json": [
+                  {
+                    "key": "o1b3aohd",
+                    "name": "j",
+                    "title": "j",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_sic_gd",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Delivery lines",
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": "",
+              "type": "javascript"
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Delivery lines",
+            "name": "Delivery lines",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_sic_gd",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "3. Goods delivery lines (what the reversal reads)",
+                "isValidator": true,
+                "nodeName": "3. Goods delivery lines (what the reversal reads)",
+                "name": "3. Goods delivery lines (what the reversal reads)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT JSON_OBJECT('doc', CAST(g.id AS CHAR), 'id', CAST(l.id AS CHAR), 'parent_id', CAST(l.parent_id AS CHAR),\n       'gd_qty', l.gd_qty, 'invoice_qty', l.invoice_qty, 'si_status', l.si_status) AS j\n  FROM goods_delivery g\n  LEFT JOIN goods_delivery_fwii8mvb_sub l ON l.goods_delivery_id = g.id AND l.is_deleted = 0\n WHERE g.tenant_id = '{{node:code_sic_start.data.tenantId}}' AND g.is_deleted = 0 AND g.id IN ({{node:code_sic_ids.data.gdIdsSql}})\n ORDER BY g.id, l.id"
+                },
+                "response_json": [
+                  {
+                    "key": "kbim0l5a",
+                    "name": "j",
+                    "title": "j",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_CtfkSP3q",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Map Latest SO/GD list",
+        "isValidator": true,
+        "nodeName": "Map Latest SO/GD list",
+        "name": "Map Latest SO/GD list",
+        "script": {
+          "type": "javascript",
+          "code": "// SI_CANCEL v10 \"Reverse\": v9's Map Latest SO/GD list (code_node_CtfkSP3q), reading the invoice, the orders, the deliveries and\n// the receivables from sql-nodes that hold only the columns it uses, put back into the shape the old get / search nodes gave\n// (null and \"\" keys left off, bigint ids as numbers below 16 digits, a bundle's items under `children`, id order). v9 wrote every\n// order / delivery line back through table_so / table_gd; here only the lines whose invoiced quantity, status or posted quantity\n// moves are written, through the line collections. A status v9 cleared (null, stored as NULL) is written as \"\".\nconst sicParse = function sicParse(t) {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst sicRows = function sicRows(rows, bigints) {\n  const big = new Set(bigints || []);\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    const o = sicParse(r && r.j !== undefined ? r.j : r);\n    if (!o) continue;\n    const row = {};\n    for (const k of Object.keys(o)) {\n      let v = o[k];\n      if (v === null || v === undefined || v === \"\") continue;\n      if (big.has(k) && typeof v === \"string\" && /^-?\\d{1,15}$/.test(v)) v = Number(v);\n      row[k] = v;\n    }\n    out.push(row);\n  }\n  return out;\n};\nconst sicDocs = function sicDocs(rows, lineKey, bigints) {\n  const docs = [];\n  const byDoc = new Map();\n  for (const o of sicRows(rows, (bigints || []).concat([\"doc\"]))) {\n    const key = String(o.doc);\n    if (!byDoc.has(key)) {\n      const doc = { id: o.doc, lines: [] };\n      byDoc.set(key, doc);\n      docs.push(doc);\n    }\n    if (o.id === undefined) continue;\n    const line = Object.assign({}, o);\n    delete line.doc;\n    byDoc.get(key).lines.push(line);\n  }\n  return docs.map((doc) => {\n    const ids = new Set(doc.lines.map((l) => String(l.id)));\n    const kids = new Map();\n    for (const l of doc.lines) {\n      if (l.parent_id === undefined || !ids.has(String(l.parent_id))) continue;\n      if (!kids.has(String(l.parent_id))) kids.set(String(l.parent_id), []);\n      kids.get(String(l.parent_id)).push(l);\n    }\n    const top = doc.lines.filter((l) => l.parent_id === undefined || !ids.has(String(l.parent_id)));\n    return { id: doc.id, [lineKey]: top.map((l) => (kids.has(String(l.id)) ? Object.assign({}, l, { children: kids.get(String(l.id)) }) : l)) };\n  });\n};\nconst sicReverse = function sicReverse(siHeadRows, siLineRows, soRows, gdRows, arRows) {\n  const head = sicRows(siHeadRows, [\"id\"])[0];\n  // the get-node's record: the invoice with its lines (a bundle's items under `children`)\n  const data = head ? Object.assign({}, head, { table_si: ((sicDocs(siLineRows, \"table_si\", [\"id\", \"parent_id\", \"so_line_id\", \"line_gd_id\",\n    \"gd_line_id\"])[0] || {}).table_si) || [] }) : {};\n  const soList = sicDocs(soRows, \"table_so\", [\"id\", \"parent_id\"]);\n  const gdList = sicDocs(gdRows, \"table_gd\", [\"id\", \"parent_id\"]);\n  const arList = sicRows(arRows, [\"id\"]);\n\n  // ---- code_node_CtfkSP3q (v9) ----\n  const roundTo3 = (value) => {\n    return Math.round((parseFloat(value) || 0) * 1000) / 1000;\n  };\n  const updateGoodsDelivery = (gdIds, tableSi, data) => {\n    let gdUpdatedList = [];\n    for (const gdID of gdIds) {\n      const gdData = gdList.find((gd) => gd.id === gdID) || [];\n      const gdItems = (gdData && gdData.table_gd) || [];\n      const { updatedItems, newSIStatus } = processItems(gdItems, tableSi, gdData.id, \"line_gd_id\", \"gd_line_id\", \"gd_qty\", data.si_status);\n      gdUpdatedList.push({ gd_id: gdData.id, si_status: newSIStatus, items: gdItems, updatedItems });\n    }\n    return gdUpdatedList;\n  };\n  const updateSalesOrder = (soIds, tableSi, data) => {\n    let soUpdatedList = [];\n    for (const soID of soIds) {\n      const soData = soList.find((so) => so.id === soID);\n      const soItems = soData.table_so || [];\n      const { updatedItems, newSIStatus } = processItems(soItems, tableSi, soData.id, \"line_so_id\", \"so_line_id\", \"so_quantity\", data.si_status);\n      soUpdatedList.push({ so_id: soData.id, si_status: newSIStatus, items: soItems, updatedItems });\n    }\n    return soUpdatedList;\n  };\n  const processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey, siStatus) => {\n    const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);\n    let totalItems = items.length;\n    // the first invoice line pointing at each order line (v9 searched the invoice per order line)\n    const firstSI = new Map();\n    for (const si of filteredSI) if (!firstSI.has(si[siLineIdKey])) firstSI.set(si[siLineIdKey], si);\n    const updatedItems = items.map((item) => {\n      const matchedSI = firstSI.get(item.id);\n      if (matchedSI) {\n        const siInvoicedQty = roundTo3(matchedSI.invoice_qty);\n        const currentInvoicedQty = roundTo3(item.invoice_qty);\n        const totalInvoicedQty = roundTo3(currentInvoicedQty - siInvoicedQty);\n        let updatedItem = { ...item, invoice_qty: totalInvoicedQty };\n        if (siStatus === \"Posted\") {\n          const currentPostedQty = roundTo3(item.posted_qty || 0);\n          const totalPostedQty = roundTo3(currentPostedQty - siInvoicedQty);\n          updatedItem.posted_qty = totalPostedQty;\n        }\n        if (roundTo3(updatedItem.invoice_qty) > 0) {\n          updatedItem.si_status = \"Partially Invoiced\";\n          if (roundTo3(updatedItem.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {\n            updatedItem.si_status = \"Fully Invoiced\";\n          }\n        } else {\n          updatedItem.si_status = null;\n        }\n        return updatedItem;\n      }\n      return { ...item };\n    });\n    let partiallyInvoicedItems = updatedItems.filter((item) => item.si_status === \"Partially Invoiced\").length;\n    let fullyInvoicedItems = updatedItems.filter((item) => item.si_status === \"Fully Invoiced\").length;\n    const allItemsComplete = fullyInvoicedItems === totalItems;\n    const anyItemProcessing = partiallyInvoicedItems > 0 || fullyInvoicedItems > 0;\n    let newSIStatus = anyItemProcessing ? (allItemsComplete ? \"Fully Invoiced\" : \"Partially Invoiced\") : \"\";\n    return { updatedItems, newSIStatus };\n  };\n  const soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];\n  let updatedGD = [];\n  if (data.gd_id && data.gd_id.length > 0) {\n    const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];\n    updatedGD = updateGoodsDelivery(gdIds, data.table_si, data);\n  }\n  const updatedSO = updateSalesOrder(soIds, data.table_si, data);\n  const updatedAR = arList.map((ar) => ({ id: ar.id, ar_invoice_no: ar.ar_invoice_no + \"-Cancelled\" }));\n\n  // what moved, line by line (v9 wrote every line back)\n  const q8 = (v) => (Math.round((parseFloat(v) || 0) * 100000000) / 100000000).toFixed(8);\n  const st = (v) => (v === undefined || v === null ? \"\" : String(v));\n  const moved = (docs, withPosted) => {\n    const lines = [];\n    const posted = [];\n    for (const d of docs) {\n      d.updatedItems.forEach((row, i) => {\n        const before = d.items[i];\n        if (roundTo3(row.invoice_qty) !== roundTo3(before.invoice_qty) || parseFloat(row.invoice_qty || 0) !== parseFloat(before.invoice_qty || 0) ||\n          st(row.si_status) !== st(before.si_status)) {\n          lines.push({ id: row.id, invoice_qty: q8(row.invoice_qty), si_status: st(row.si_status) });\n        }\n        if (withPosted && row.posted_qty !== undefined && parseFloat(row.posted_qty) !== parseFloat(before.posted_qty || 0)) {\n          posted.push({ id: row.id, posted_qty: q8(row.posted_qty) });\n        }\n      });\n    }\n    return { lines, posted };\n  };\n  const so = moved(updatedSO, true);\n  const gd = moved(updatedGD, false);\n  const soHeaders = updatedSO.map((d) => ({ id: d.so_id, si_status: d.si_status }));\n  const gdHeaders = updatedGD.filter((d) => d.gd_id !== undefined).map((d) => ({ id: d.gd_id, si_status: d.si_status }));\n  const flag = (rows) => (rows.length > 0 ? 1 : 0);\n  return {\n    updatedSI: { id: data.id, si_status: \"Cancelled\", sales_invoice_no: data.sales_invoice_no + \"-Cancelled\" },\n    updatedAR,\n    hasAR: flag(updatedAR),\n    soHeaders,\n    hasSoHeaders: flag(soHeaders),\n    soLines: so.lines,\n    hasSoLines: flag(so.lines),\n    soPosted: so.posted,\n    hasSoPosted: flag(so.posted),\n    gdHeaders,\n    hasGdHeaders: flag(gdHeaders),\n    gdLines: gd.lines,\n    hasGdLines: flag(gd.lines),\n  };\n};\n\nreturn sicReverse([{{node:sql_node_sic_head.data}}][0], [{{node:sql_node_sic_lines.data}}][0], [{{node:sql_node_sic_so.data}}][0], [{{node:sql_node_sic_gd.data}}][0], [{{node:sql_node_sic_ar.data}}][0]);"
+        },
+        "response_json": [
+          {
+            "key": "6fvethpl",
+            "name": "updatedSI",
+            "title": "updatedSI",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ha5kyvt2",
+            "name": "updatedAR",
+            "title": "updatedAR",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "m9tlo71q",
+            "name": "hasAR",
+            "title": "hasAR",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "x2j9vagm",
+            "name": "soHeaders",
+            "title": "soHeaders",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "bn182ku0",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "32uzcvig",
+            "name": "hasSoHeaders",
+            "title": "hasSoHeaders",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1ko3bh6z",
+            "name": "soLines",
+            "title": "soLines",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "fzmgfpak",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "ei3w5c6x",
+            "name": "hasSoLines",
+            "title": "hasSoLines",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "nax09br6",
+            "name": "soPosted",
+            "title": "soPosted",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "2dv8kvi9",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "7hpbxks1",
+            "name": "hasSoPosted",
+            "title": "hasSoPosted",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "nof6tvwh",
+            "name": "gdHeaders",
+            "title": "gdHeaders",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "qrhkehh2",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "9jw8066q",
+            "name": "hasGdHeaders",
+            "title": "hasGdHeaders",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6re4u2z5",
+            "name": "gdLines",
+            "title": "gdLines",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "it0u33ll",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "492zsuj7",
+            "name": "hasGdLines",
+            "title": "hasGdLines",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_sic_so_heads",
+      "type": "if",
+      "data": {
+        "title": "SO headers to update?",
+        "isValidator": true,
+        "nodeName": "SO headers to update?",
+        "name": "SO headers to update?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1799700000013,
+              "parentId": 1799700000014,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CtfkSP3q.data.hasSoHeaders}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_Tsic_so_heads",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_node_qrMaG8y2",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Sales Order:Table:1902773735979597826",
+                  "rules": {
+                    "collectionId": "1902773735979597826",
+                    "list": [
+                      {
+                        "id": 1778592077290,
+                        "parentId": 1778592077289,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CtfkSP3q.data.soHeaders.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update SO",
+                "isValidator": true,
+                "nodeName": "Update SO",
+                "name": "Update SO",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.soHeaders.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "si_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.soHeaders.si_status}}",
+                      "valueLabel": "",
+                      "propLabel": "SI Completed Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_Fsic_so_heads",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_sic_so_lines",
+      "type": "if",
+      "data": {
+        "title": "SO lines to update?",
+        "isValidator": true,
+        "nodeName": "SO lines to update?",
+        "name": "SO lines to update?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1799700000003,
+              "parentId": 1799700000004,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CtfkSP3q.data.hasSoLines}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_Tsic_so_lines",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_node_sic_so_lines",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+                  "rules": {
+                    "collectionId": "1939903359943024642",
+                    "list": [
+                      {
+                        "id": 1799700000001,
+                        "parentId": 1799700000002,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CtfkSP3q.data.soLines.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update SO Lines (invoiced qty / status)",
+                "isValidator": true,
+                "nodeName": "Update SO Lines (invoiced qty / status)",
+                "name": "Update SO Lines (invoiced qty / status)",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.soLines.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "invoice_qty",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.soLines.invoice_qty}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Qty"
+                    },
+                    {
+                      "prop": "si_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.soLines.si_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Line SI Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_Fsic_so_lines",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_sic_so_posted",
+      "type": "if",
+      "data": {
+        "title": "SO posted quantities to update?",
+        "isValidator": true,
+        "nodeName": "SO posted quantities to update?",
+        "name": "SO posted quantities to update?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1799700000007,
+              "parentId": 1799700000008,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CtfkSP3q.data.hasSoPosted}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_Tsic_so_posted",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_node_sic_so_posted",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "sales_order_axszx8cj_sub:Table:1939903359943024642",
+                  "rules": {
+                    "collectionId": "1939903359943024642",
+                    "list": [
+                      {
+                        "id": 1799700000005,
+                        "parentId": 1799700000006,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CtfkSP3q.data.soPosted.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update SO Lines (posted qty)",
+                "isValidator": true,
+                "nodeName": "Update SO Lines (posted qty)",
+                "name": "Update SO Lines (posted qty)",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.soPosted.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "posted_qty",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.soPosted.posted_qty}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Posted Qty"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_Fsic_so_posted",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_sic_gd_heads",
+      "type": "if",
+      "data": {
+        "title": "GD headers to update?",
+        "isValidator": true,
+        "nodeName": "GD headers to update?",
+        "name": "GD headers to update?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1799700000015,
+              "parentId": 1799700000016,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CtfkSP3q.data.hasGdHeaders}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_Tsic_gd_heads",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_node_3zWZ9YIP",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Goods Delivery:Table:1902054888473481218",
+                  "rules": {
+                    "collectionId": "1902054888473481218",
+                    "list": [
+                      {
+                        "id": 1778592235890,
+                        "parentId": 1778592235889,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CtfkSP3q.data.gdHeaders.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update GD",
+                "isValidator": true,
+                "nodeName": "Update GD",
+                "name": "Update GD",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.gdHeaders.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "si_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.gdHeaders.si_status}}",
+                      "valueLabel": "",
+                      "propLabel": "SI Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_Fsic_gd_heads",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_sic_gd_lines",
+      "type": "if",
+      "data": {
+        "title": "GD lines to update?",
+        "isValidator": true,
+        "nodeName": "GD lines to update?",
+        "name": "GD lines to update?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1799700000011,
+              "parentId": 1799700000012,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CtfkSP3q.data.hasGdLines}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_Tsic_gd_lines",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_node_sic_gd_lines",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "(Goods Delivery):Table:1939904186426433537",
+                  "rules": {
+                    "collectionId": "1939904186426433537",
+                    "list": [
+                      {
+                        "id": 1799700000009,
+                        "parentId": 1799700000010,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CtfkSP3q.data.gdLines.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update GD Lines (invoiced qty / status)",
+                "isValidator": true,
+                "nodeName": "Update GD Lines (invoiced qty / status)",
+                "name": "Update GD Lines (invoiced qty / status)",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.gdLines.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "invoice_qty",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.gdLines.invoice_qty}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Invoice Qty"
+                    },
+                    {
+                      "prop": "si_status",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.gdLines.si_status}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Line SI Status"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_Fsic_gd_lines",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_sic_ar",
+      "type": "if",
+      "data": {
+        "title": "Receivables to rename?",
+        "isValidator": true,
+        "nodeName": "Receivables to rename?",
+        "name": "Receivables to rename?",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1799700000017,
+              "parentId": 1799700000018,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_CtfkSP3q.data.hasAR}}' == '1'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_Tsic_ar",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "update_node_EdPzs1en",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "AR Invoice:Table:2072512608001388545",
+                  "rules": {
+                    "collectionId": "2072512608001388545",
+                    "list": [
+                      {
+                        "id": 1783048500774,
+                        "parentId": 1783048500773,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_CtfkSP3q.data.updatedAR.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update AR",
+                "isValidator": true,
+                "nodeName": "Update AR",
+                "name": "Update AR",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.updatedAR.id}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "ar_invoice_no",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_CtfkSP3q.data.updatedAR.ar_invoice_no}}",
+                      "valueLabel": "",
+                      "propLabel": "Invoice No"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_Fsic_ar",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "update_node_iH3XNTHq",
+      "type": "update-node",
+      "data": {
+        "table_id": {
+          "source": "Sales Invoice:Table:1902525285396496385",
+          "rules": {
+            "collectionId": "1902525285396496385",
+            "list": [
+              {
+                "id": 1778592311542,
+                "parentId": 1778592311541,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_CtfkSP3q.data.updatedSI.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "主键ID",
+                "valueLabel": "",
+                "operatorLabel": "In"
+              }
+            ]
+          }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Update SI",
+        "isValidator": true,
+        "nodeName": "Update SI",
+        "name": "Update SI",
+        "props": {
+          "modelName": "",
+          "list": [
+            {
+              "prop": "id",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSI.id}}",
+              "operator": "",
+              "valueLabel": "",
+              "propLabel": "主键ID"
+            },
+            {
+              "prop": "si_status",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSI.si_status}}",
+              "valueLabel": "",
+              "propLabel": "SI Status"
+            },
+            {
+              "prop": "sales_invoice_no",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{node:code_node_CtfkSP3q.data.updatedSI.sales_invoice_no}}",
+              "valueLabel": "",
+              "propLabel": "Sales Invoice Number"
+            }
+          ]
+        }
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "isValidator": true,
+        "title": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": [],
+  "request_json": [
+    {
+      "key": "3myngsyg",
+      "name": "si_id",
+      "title": "SI ID",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "response_json": [],
+  "config": {}
+}

@@ -31,7 +31,11 @@ const commitA2 = function commitA2(entry, guard, input, ans, ops, labelRows) {
   // No intent row: nothing was written -> wait like a lock (8 waits, then FAILED + unlock). With intent rows the engine may
   // have written: retry - the next APPLY resumes / replays its own intents - and REQUIRES_REVIEW only once the retries are spent
   if (code === "409" || code === "" || code === "400") {
-    if (num((ops || {}).intents) > 0) return stepEnd(entry, "A2_INVENTORY", why, false);
+    const intents = num((ops || {}).intents) > 0;
+    // engine v12: a 409 with intent rows = this operation's earlier run is alive, or died under 20 min ago (its heartbeat): wait it
+    // out like a lock (8 waits, ~23 min) and only then review - never FAILED, its stock may have moved
+    if (intents && code === "409") return entry.attempts >= LOCK_WAIT_TRIES ? stepEnd(entry, "A2_INVENTORY", why, true) : lockWait(entry, why);
+    if (intents) return stepEnd(entry, "A2_INVENTORY", why, false);
     if (entry.attempts >= LOCK_WAIT_TRIES) return failNoWrite(entry, "SA_INVENTORY_LOCK_BUSY", MSG.lockBusy, why.slice(0, 1000) + ": nothing was moved");
     return lockWait(entry, why);
   }

@@ -4,6 +4,7 @@ try {
     hdr: [{{node:sql_node_IVPhdr.data}}][0], moves: [{{node:sql_node_IVPmoves.data}}][0], batch: [{{node:sql_node_IVPbatch.data}}][0], fifo: [{{node:sql_node_IVPfifo.data}}][0],
     wa: [{{node:sql_node_IVPwa.data}}][0], costcounts: [{{node:sql_node_IVPcostcounts.data}}][0], itemBal: [{{node:sql_node_IVPitembal.data}}][0],
     batchBal: [{{node:sql_node_IVPbatchbal.data}}][0], items: [{{node:sql_node_IVPitems.data}}][0], bins: [{{node:sql_node_IVPbins.data}}][0],
+    res: [{{node:sql_node_IVPres.data}}][0],
   });
 } catch (e) {
   // the prep node passed the lock check: an invariant that broke afterwards still puts the Item Assembly back to Completed

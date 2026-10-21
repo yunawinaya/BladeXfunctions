@@ -14,6 +14,7 @@ const V12 = path.join(REPO, "Item Assembly & BOM", "AsyncV2", "IA_SAVE.json");
 const SC_NODES = new Set(["code_node_SCin", "sql_node_SCsource", "code_node_SCcheck"]);
 const SC_PROPS = ["source_so_id", "source_so_line_id", "source_so_context_json", "bom_consumption_mode", "source_bom_id", "bom_snapshot_json", "planned_output_qty"];
 const T = "000000";
+const UID = "2109866916722085890";
 const ORG = "1123598813738675201";
 const IA = "2112073133161844738";
 const PARENT = "2094626841323700251";
@@ -41,6 +42,7 @@ class Sim extends Engine {
     const sqls = [];
     const db = {
       tenantId: T,
+      uid: UID,
       insert: (table, rows) => rows.map((r0, i) => {
         const r = Object.assign({}, r0, { id: String(3000000000000000001n + BigInt(writes.length + i)) });
         if (r.stock_movement_no === "issued") r.stock_movement_no = "IA-0001";
@@ -59,6 +61,16 @@ class Sim extends Engine {
       mocks: {
         sql: {
           sql_node_IAguard: () => (sc.stored === null ? [] : [{ ia_id: IA, item_assembly_status: sc.stored }]),
+          // RES-01 R4: this IA's own holds (Allocated / in flight) and its live hold tickets, read before a completion issues
+          sql_node_RESown: (text) => {
+            sqls.push(text);
+            const q = text.replace(/\s+/g, " ");
+            if (q.indexOf("r.doc_type = 'Item Assembly' AND r.doc_id = '" + IA + "'") < 0 || q.indexOf("p.job_id = 'IAH|" + IA + "'") < 0 ||
+              q.indexOf("r.organization_id = '" + ORG + "'") < 0) throw new Error("RES SQL not filled: " + q);
+            // the hold lease against IA_HOLD's own clock (UTC+8), never NOW() (UTC on prod; review M7)
+            if (/\bNOW\(\)/.test(q) || q.indexOf("p.started_at > CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00') - INTERVAL 10 MINUTE") < 0) throw new Error("RES SQL clock: " + q);
+            return [{ j: JSON.stringify({ rows: (sc.res && sc.res.rows) || null, live: (sc.res && sc.res.live) || 0 }) }];
+          },
           sql_node_SCsource: (text) => {
             sqls.push(text);
             if (!/'000000'/.test(text)) throw new Error("SC SQL not filled: " + text);
@@ -69,8 +81,14 @@ class Sim extends Engine {
             const line = want && sc.lines && sc.lines[want] ? sc.lines[want] : null;
             // the stored keys of the payload lines that came without one (x.id IN (...)), non-empty only
             const ids = ((/x\.id IN \(([0-9,]+)\)/.exec(text) || [])[1] || "").split(",").filter((x) => x && x !== "0");
-            const keys = ids.filter((x) => iaId && iaId !== "0" && sc.storedLines && sc.storedLines[x]).map((x) => ({ id: x, k: sc.storedLines[x] }));
-            return [{ j: JSON.stringify({ stored: st, line: line, header: line && sc.headers ? sc.headers[line.sales_order_id] || null : null, keys: keys.length ? keys : null }) }];
+            const hasSql = (m, x) => !!m && Object.prototype.hasOwnProperty.call(m, x);
+            const keys = ids.filter((x) => iaId && iaId !== "0" && (hasSql(sc.storedLines, x) || hasSql(sc.storedReq, x)))
+              .map((x) => ({ id: x, k: hasSql(sc.storedLines, x) ? sc.storedLines[x] : "", r: hasSql(sc.storedReq, x) ? sc.storedReq[x] : null,
+                q: hasSql(sc.storedRef, x) ? sc.storedRef[x] : null }));
+            // FIX-03: whether the session user is assigned to the IA's organisation (sc.member 0 = not assigned)
+            if (/'hold', h\.material_hold_status/.test(text) !== true) throw new Error("SC SQL does not read the stored hold status: " + text);
+            return [{ j: JSON.stringify({ member: sc.member === undefined ? 1 : sc.member, stored: st, line: line, header: line && sc.headers ? sc.headers[line.sales_order_id] || null : null,
+              keys: keys.length ? keys : null, hold: iaId && iaId !== "0" && st ? (sc.hold === undefined ? null : sc.hold) : null }) }];
           },
         },
         read: {
@@ -147,7 +165,8 @@ function go(file, sc) {
   const steps = e.trace.filter((t) => t.startsWith("IA_SAVE ")).map((t) => t.slice(8));
   return { returned: r.returned, steps: steps, writes: e.writes, calls: e.calls, sqls: e.sqls };
 }
-const isSc = (s) => SC_NODES.has(s) || /^if_SC/.test(s);
+// the Small Cycle nodes and RES-01's enrolment (code_node_RESenrol / if_RESenrol: no write while the switch is off)
+const isSc = (s) => SC_NODES.has(s) || /^(if|code_node)_(SC|RES)/.test(s);
 const header = (res) => res.writes.filter((w) => w[1] === "Item Assembly")[0];
 const strip = (w) => JSON.parse(JSON.stringify(w, (k, v) => (SC_PROPS.indexOf(k) >= 0 ? undefined : v)).replace(/"last_transaction_date":"[^"]*"/g, '"last_transaction_date":"<now>"'));
 const sameAsV12 = (label, sc) => {
@@ -217,6 +236,14 @@ r = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: reco
 refused("new link to a missing line", r, /cannot be linked/);
 r = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2, link({ organization_id: "" })) });
 refused("new link from an IA without an organization", r, /no organization/);
+r = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2, link()), member: 0 });
+refused("new link by a user not assigned to the IA's organisation (FIX-03)", r, /not assigned to this organisation/);
+yes("the membership read: the session user and the IA's organisation (FIX-03)", r.sqls.some((s) => {
+  const q = s.replace(/\s+/g, " ");
+  return q.indexOf("u.id = " + UID + " LIMIT 1") >= 0 && q.indexOf("(p.id = " + ORG + " OR FIND_IN_SET('" + ORG + "', p.ancestors) > 0)") >= 0;
+}));
+r = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2), scStored: STORED, member: 0 });
+eq("an existing link saved by a user outside the organisation: saved (only a new link reads the SO line)", r.returned.code, "200");
 r = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2, link({ planned_output_qty: "" })) });
 eq("planned cleared -> null", scOf(r)[6], null);
 r = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2, { source_so_id: "", source_so_line_id: "" }), scStored: STORED });
@@ -307,6 +334,100 @@ for (const saveAs of ["Draft", "Completed"]) {
   eq("a new line (no id): no key added", lineOf(e).map((l) => Object.prototype.hasOwnProperty.call(l, "sc_ref_key")), [false]);
   e = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: mobile(), scStored: FLAT_STORED, storedLines: { 5001: "" } });
   eq("a stored empty key: the line left as sent", lineOf(e).map((l) => Object.prototype.hasOwnProperty.call(l, "sc_ref_key")), [false]);
+
+  // ---------------------------------------------------------------- RES-01 R3: enrolment and required_qty (switch ON variant; the build ships OFF)
+  {
+    const os = require("os");
+    const text = fs.readFileSync(V13, "utf8");
+    const off = "const RES_ENABLED = false;";
+    eq("RES-01: the build ships with the switch OFF, one constant", text.split(off).length - 1, 1);
+    const ON = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "ia-res-")), "IA_SAVE.json");
+    fs.writeFileSync(ON, text.replace(off, "const RES_ENABLED = true;"));
+    const enrolOf = (res) => res.writes.filter((w) => w[0] === "update" && w[1] === "Item Assembly" && w[2].material_hold_status !== undefined).map((w) => [w[2].id, w[2].material_hold_status]);
+    const idOf = (res) => (res.writes.find((w) => w[0] === "insert" && w[1] === "Item Assembly") || [0, 0, {}])[2].id;
+    let e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2) });
+    eq("ON, a new Draft: saved, then marked RESERVING (its new id), after the Draft write", [e.returned.code, enrolOf(e), e.writes.map((w) => w[0] + " " + w[1]).slice(-1)[0]],
+      ["200", [[idOf(e), "RESERVING"]], "update Item Assembly"]);
+    e = go(ON, { stored: "Completed", saveAs: "Draft", pageStatus: "Clone", allData: record("Clone", 2, { id: IA, item_assembly_status: "Completed" }) });
+    eq("ON, a clone saved as Draft: marked RESERVING (the clone, never the source)", enrolOf(e), [[idOf(e), "RESERVING"]]);
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2), scStored: {}, hold: "" });
+    eq("ON, an Edit of an IA that never reserved: not enrolled", enrolOf(e), []);
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2), scStored: {}, hold: "FULL" });
+    eq("ON, an Edit of an enrolled IA: RESERVING again", enrolOf(e), [[IA, "RESERVING"]]);
+    e = go(ON, { stored: "Draft", saveAs: "Completed", pageStatus: "Add", allData: record("Add", 3) });
+    eq("ON, a completion: never enrolled", [e.returned.code, enrolOf(e)], ["200", []]);
+    e = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2) });
+    eq("OFF (the build): a new Draft is not enrolled", enrolOf(e), []);
+    // required_qty: kept for a line sent without it (mobile), defaulted when empty, written as q8 text
+    // the desktop sends sc_ref_key on every line; line 5001 (as mobile would) leaves out required_qty
+    const lines = [{ id: "5001", item_selection: COMP, item_name: "A", total_quantity: 4, requested_qty: 4, sc_ref_key: "", quantity_uom: UOM, temp_qty_data: picks(1), temp_hu_data: "", line_index: 1 },
+      { id: "5002", item_selection: COMP, item_name: "B", total_quantity: 2, requested_qty: 5, required_qty: null, sc_ref_key: "", quantity_uom: UOM, temp_qty_data: picks(1), temp_hu_data: "", line_index: 2 },
+      { id: "5003", item_selection: COMP, item_name: "C", total_quantity: 3, requested_qty: 0, required_qty: "", sc_ref_key: "", quantity_uom: UOM, temp_qty_data: picks(1), temp_hu_data: "", line_index: 3 },
+      { id: "5004", item_selection: COMP, item_name: "D", total_quantity: 1, requested_qty: 1, required_qty: "2.5", sc_ref_key: "", quantity_uom: UOM, temp_qty_data: picks(1), temp_hu_data: "", line_index: 4 }];
+    const reqOf = (res) => ((header(res) || [])[2] || {}).stock_movement.map((l) => (Object.prototype.hasOwnProperty.call(l, "required_qty") ? l.required_qty : "<absent>"));
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: lines }), scStored: {}, hold: "FULL", storedReq: { 5001: "7.00000000" } });
+    eq("ON, required_qty: kept (7) for a line sent without it, defaulted to the reference (5) or the quantity (3), typed 2.5 kept", reqOf(e),
+      ["7.00000000", "5.00000000", "3.00000000", "2.50000000"]);
+    yes("ON, required_qty: the stored values read for every line with an id", /x\.id IN \(5001,5002,5003,5004\)/.test(e.sqls[0] || ""));
+    // following the BOM reference: a stored requirement equal to the stored reference follows a new reference (a legacy re-scale, mobile),
+    // unless the client changed it; one set apart from the reference stays
+    const follow = [Object.assign({}, lines[0], { requested_qty: 20, total_quantity: 20 }), Object.assign({}, lines[1], { requested_qty: 20, required_qty: "10.00000000" }),
+      Object.assign({}, lines[2], { requested_qty: 20, required_qty: "12" }), Object.assign({}, lines[3], { requested_qty: 20, required_qty: "7.00000000" })];
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: follow }), scStored: {}, hold: "FULL",
+      storedReq: { 5001: "10.00000000", 5002: "10.00000000", 5003: "10.00000000", 5004: "7.00000000" }, storedRef: { 5001: "10.00000000", 5002: "10.00000000", 5003: "10.00000000", 5004: "10.00000000" } });
+    eq("ON, required_qty follows a new reference while it was following (mobile, unchanged), not when typed or set apart", reqOf(e),
+      ["20.00000000", "20.00000000", "12.00000000", "7.00000000"]);
+    // the screen's Reserved / Short figures are display only: never written
+    const shownLines = lines.map((l) => Object.assign({}, l, { res_reserved: "20", res_short: "5" }));
+    const dropped = (res) => ((header(res) || [])[2] || {}).stock_movement.every((l) => !("res_reserved" in l) && !("res_short" in l));
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: shownLines }), scStored: {}, hold: "FULL" });
+    yes("ON: the screen's Reserved / Short never written", dropped(e));
+    e = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: shownLines }), scStored: {}, hold: "FULL" });
+    yes("OFF: the screen's Reserved / Short never written either", dropped(e));
+    e = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: lines }), scStored: {}, hold: "FULL", storedReq: { 5001: "7.00000000" } });
+    eq("OFF, required_qty: as sent (nothing kept or defaulted)", reqOf(e), ["<absent>", null, "", "2.5"]);
+  }
+
+  // ---------------------------------------------------------------- RES-01 R4: a completion issues the held part of each pick from Reserved
+  {
+    const os = require("os");
+    const ON = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "ia-res4-")), "IA_SAVE.json");
+    fs.writeFileSync(ON, fs.readFileSync(V13, "utf8").replace("const RES_ENABLED = false;", "const RES_ENABLED = true;"));
+    const pk = (qty, cat) => ({ material_id: COMP, location_id: BIN, batch_id: null, balance_id: "9001", sm_quantity: qty, category: cat || "Unrestricted" });
+    const held = [{ id: "7001", status: "Allocated", doc_line_id: "5001", material_id: COMP, bin_location: BIN, batch_id: null, from_category: "Unrestricted", open_qty: "2", item_uom: UOM },
+      { id: "7002", status: "Allocated", doc_line_id: "5001", material_id: COMP, bin_location: BIN, batch_id: null, from_category: "Blocked", open_qty: "1", item_uom: UOM }];
+    const completeLine = { id: "5001", item_selection: COMP, item_name: "TES501", total_quantity: 5, requested_qty: 5, sc_ref_key: "", required_qty: "5", quantity_uom: UOM,
+      temp_qty_data: JSON.stringify([pk(3), pk(2, "Blocked")]), temp_hu_data: "", line_index: 1 };
+    const complete = (extra, sc) => go(ON, Object.assign({ stored: "Draft", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 1, Object.assign({ stock_movement: [completeLine] }, extra || {})),
+      scStored: {}, hold: "FULL", res: { rows: held, live: 0 } }, sc || {}));
+    const called = (res, name) => res.calls.filter((c) => c[0] === name).map((c) => [c[1].category || c[1].inventory_category, c[1].quantity]);
+    let e = complete();
+    eq("R4: the held 2 (Unrestricted) and 1 (Blocked) checked and issued from Reserved, the rest as picked", [e.returned.code, called(e, "GLOBAL_INVENTORY_VALIDATION"), called(e, "SUBTRACT_INVENTORY")],
+      ["200", [["Reserved", 2], ["Unrestricted", 1], ["Reserved", 1], ["Blocked", 1]], [["Reserved", 2], ["Unrestricted", 1], ["Reserved", 1], ["Blocked", 1]]]);
+    eq("R4: the saved line keeps the picks as made", JSON.parse(((header(e) || [])[2] || {}).stock_movement[0].temp_qty_data).map((x) => [x.category, x.sm_quantity]),
+      [["Unrestricted", 3], ["Blocked", 2]]);
+    e = complete({ stock_movement: [Object.assign({}, completeLine, { total_quantity: 3, temp_qty_data: JSON.stringify([pk(1), pk(2)]) })] });
+    eq("R4: two picks on one held stock: the hold (2) used once, in pick order", called(e, "SUBTRACT_INVENTORY"), [["Reserved", 1], ["Reserved", 1], ["Unrestricted", 1]]);
+    e = complete({}, { res: { rows: held, live: 1 } });
+    eq("R4: a reservation running (live ticket): 409, nothing written or moved", [e.returned.code, e.writes.length, e.calls.filter((c) => c[0] === "SUBTRACT_INVENTORY").length], ["409", 0, 0]);
+    yes("R4: the 409 says why", /being reserved/.test(e.returned.message || ""));
+    e = complete({}, { res: { rows: held.concat([{ id: "7003", status: "Releasing", doc_line_id: "5001", material_id: COMP, bin_location: BIN, batch_id: null, from_category: "Unrestricted",
+      open_qty: "1", item_uom: UOM }]), live: 0 } });
+    eq("R4: a hold in flight (Releasing): 409", [e.returned.code, e.writes.length], ["409", 0]);
+    e = complete({}, { hold: "" });
+    eq("R4: an IA that never reserved: nothing read, issued as picked", [e.sqls.some((s) => /on_reserved_gd/.test(s)), called(e, "SUBTRACT_INVENTORY")], [false, [["Unrestricted", 3], ["Blocked", 2]]]);
+    e = go(ON, { stored: "Draft", saveAs: "Completed", pageStatus: "Clone", allData: record("Clone", 1, { id: IA, stock_movement: [completeLine] }), hold: "FULL", res: { rows: held, live: 0 } });
+    eq("R4: a clone completed at once (the source's id in the payload): the source's holds never used", [e.sqls.some((s) => /on_reserved_gd/.test(s)), called(e, "SUBTRACT_INVENTORY")],
+      [false, [["Unrestricted", 3], ["Blocked", 2]]]);
+    e = complete({}, {});
+    const offE = go(V13, { stored: "Draft", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: [completeLine] }), scStored: {}, hold: "FULL", res: { rows: held, live: 0 } });
+    // review I4: the switch only makes holds; an IA that holds stock completes from it even with the switch off (never stranded)
+    eq("R4, switch off, an IA that holds stock: still issued from its holds", [offE.returned.code, offE.sqls.some((s) => /on_reserved_gd/.test(s)), called(offE, "SUBTRACT_INVENTORY")],
+      ["200", true, [["Reserved", 2], ["Unrestricted", 1], ["Reserved", 1], ["Blocked", 1]]]);
+    const offN = go(V13, { stored: "Draft", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: [completeLine] }), scStored: {}, hold: "", res: { rows: held, live: 0 } });
+    eq("R4, switch off, an IA that never reserved: nothing read, issued as picked", [offN.sqls.some((s) => /on_reserved_gd/.test(s)), called(offN, "SUBTRACT_INVENTORY")],
+      [false, [["Unrestricted", 3], ["Blocked", 2]]]);
+  }
 
   console.log((fails ? "FAILED " + fails : "ok") + " - " + n + " checks");
   process.exit(fails ? 1 : 0);

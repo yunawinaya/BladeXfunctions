@@ -244,3 +244,24 @@ Nothing published, nothing written to any DB. Only local files in `scratchpad/sa
   the column is disabled; onConfirm_item_balance converts dialog quantities back to the line unit) and price = per-base purchase
   price. Only kit-built / imported documents can carry an alternate unit. No fix built (would guess at an undefined meaning);
   README corrected.
+
+## 2026-10-21 (Wed, cut day)
+- Live check: all 6 workflows + SA form v315 + SC form v500 IDENTICAL (others publish to dev too - c8's broadcast).
+- feedback 'prod sizes are not the target' → re-sized the COMMIT lease at 2k: a 2,000-line SA with 2-3 bins / line (4-6k entries)
+  could exceed 30 min on slowed dev. BUILT (not published): code/commit/entry.js lease = min(90 min, 10 min + 0.6 s per entry)
+  (a6's GR / Putaway rule; 2,000 → 30 min, 5,000 → 60), claim + SPLIT carry it; SQL 30 min stays as fallback. commit_sim asserts it
+  (1,145 checks), SQL checks clean. Plan `deploy/wf_upload.sa.commit_leasesize.plan.json` (base `base/sa_v2_commit_v5.live.json`),
+  dry-run OK. Waits on the user's yes.
+- 10:22 PUBLISHED (user yes): SA_V2_COMMIT v6 (per-job lease); smoke OK; IDENTICAL; 0 open COMPLETE_SA jobs.
+- Post-deploy check BUILT: `deploy/prod_check.py [--dev]` (read-only). Dev ALL 25 PASSED; prod 21 FAIL = not promoted yet
+  (no SA_V2 workflows, SA form v313 / SC form v490). Run it after the promotion.
+- 10-21 dev backend restarts 12:42, 14:10:48, 14:36:39: after each, my 6 workflows' first runs started ONE AT A TIME with no-write probes
+  (scratchpad/sav2/deploy/requests/: sa_status_probe, worker_idle_probe, invalid_job_probe x2, sa_refuse_line_too_large, sc_refuse_review_cap)
+  → all answered, 0 'is not loaded'. Engine INVENTORY_BULK_APPLY v11 live 15:40 (c8; caller contract unchanged) - offered the user a small
+  T1-style live re-test on v11 (needs a yes). PAUSE 18:00 (user): nothing running; resume = browser pass, prod_check.py after the promotion.
+- 17:16 engine v12 (c8, 17:12: run marker IBA|RUN|nnn, 409 'the same operation is still running' for 20 min after the last heartbeat).
+  Found: a2.js mapped 409 + intents → stepEnd (3 quick retries) → REQUIRES_REVIEW in ~15 s (same in gdc c2.js:24 - told c8).
+  BUILT: 409 + intents → lockWait (8 waits ≈ 23 min > the 20-min window), then REQUIRES_REVIEW (never FAILED / unlock); no-answer +
+  intents keeps the quick retry. test_steps 146 (2 new), commit_sim 1,150 (5 new v12 checks), SQL clean; only code_node_SACa2 differs
+  from live v6. Plan deploy/wf_upload.sa.commit_v12busy.plan.json (base base/sa_v2_commit_v6.live.json), dry-run OK. Needs a yes.
+- 17:17 PUBLISHED (user yes): SA_V2_COMMIT v7 (v12 409 + intents → lock wait); smoke OK; IDENTICAL; 0 open jobs.

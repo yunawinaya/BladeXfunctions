@@ -1,0 +1,10 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "PI_SAVE", "dataId": "2066342495378059266", "file": "scratchpad/pi2k/out/PI_SAVE.json", "base": "scratchpad/pi2k/base/PI_SAVE.v19.json" },
+    { "name": "GR_Convert_PI", "dataId": "2070324857790087170", "file": "scratchpad/pi2k/out/GR_Convert_PI.json", "base": "scratchpad/pi2k/base/GR_Convert_PI.v18.json" },
+    { "name": "PO_CONVERT_PI", "dataId": "2107312550576844801", "file": "scratchpad/pi2k/out/PO_CONVERT_PI.json", "base": "scratchpad/pi2k/base/PO_CONVERT_PI.v5.json" },
+    { "name": "Purchase Invoice form", "kind": "form", "dataId": "1902777443710779394", "file": "scratchpad/pi2k/client/out_PI_form.json", "base": "scratchpad/pi2k/base/PI_form.v625.json" }
+  ]
+}

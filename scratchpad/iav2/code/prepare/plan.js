@@ -1,4 +1,6 @@
 // IA_V2_PREPARE - Plan: the classic IA_SAVE v11 issue / receipt bodies (lifted) on the stored rows -> parts, manifest, PLAN requests
+// RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): an IA that reserves (its stored hold status) completes from its holds,
+// whatever the switch (the switch only makes holds; review I4)
 const IA_PLAN_BATCH_AUTO = "According To System Settings";
 const IA_PLAN_NOT_FOUND = "Item Assembly not found - it may have been deleted.";
 const IA_PLAN_PARTS = ["ENGINE_I", "ENGINE_R", "BATCH", "LABELS", "ITEMS"];
@@ -99,6 +101,18 @@ const iaPrepPlan = function iaPrepPlan(entry, S, own) {
   const header = iaAdaptHeader(hdr, s(entry.prevStatus));
   const stored = iaAdaptLines(S.lines);
   header.stock_movement = stored;
+  // RES-01 R4: each pick split by the IA's own holds (the held part from Reserved: resSplitLines); a reservation running -> FAILED
+  const resRead = iaRows(S.res)[0] || null;
+  const reserves = !!resRead && s(resRead.hold) !== "";
+  if (reserves) {
+    // only the split makes a Reserved issue: a stored pick of any other category than Unrestricted / Blocked is refused (review M8)
+    const odd = stored.map((l) => [l, iaPicks(l).find((p) => IA_OK_CATEGORIES.indexOf(iaCategory(p.category)) < 0)]).find((x) => x[1]);
+    if (odd) return failed("line " + s(odd[0].line_index) + " picks " + iaCategory(odd[1].category) + " stock.");
+    const split = resSplitLines(stored, resRead, iaRows(S.items));
+    if (split.busy) return fail("IA_RESERVING", iaPlanWhy("the materials of this Item Assembly are being reserved right now: try again in a moment."));
+    header.stock_movement = split.lines;
+  }
+  const okIssue = reserves ? IA_OK_CATEGORIES.concat(["Reserved"]) : IA_OK_CATEGORIES;
   const items = iaAdaptItems(S.items);
   const itemOf = (id) => iaItemOf(items, id);
   const parent = itemOf(hdr.item_id);
@@ -140,7 +154,7 @@ const iaPrepPlan = function iaPrepPlan(entry, S, own) {
       mv.organization_id !== orgId || mv.plant_id !== plantId || mv.trx_no !== trxNo || (mv.material_uom !== "" && !iaDigits(mv.material_uom))) {
       return broken("movement " + mk + " (line " + s(x.line.line_index) + ") has no valid item, plant, bin, batch, quantity or number.");
     }
-    if (IA_OK_CATEGORIES.indexOf(mv.inventory_category) < 0) return failed("line " + s(x.line.line_index) + " picks " + mv.inventory_category + " stock.");
+    if (okIssue.indexOf(mv.inventory_category) < 0) return failed("line " + s(x.line.line_index) + " picks " + mv.inventory_category + " stock.");
     labels[mk] = { line_index: s(x.line.line_index), line_id: s(x.line.id), item_code: s(it.material_code), item_name: s(x.line.item_name) || s(it.material_name),
       bin: bins[mv.location_id] || mv.location_id, bin_id: mv.location_id, category: mv.inventory_category, side: "out" };
     movements.push(mv);

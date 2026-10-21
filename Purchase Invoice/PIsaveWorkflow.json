@@ -38,19 +38,147 @@
       "blocks": []
     },
     {
-      "id": "if_save_draft",
+      "id": "code_pi_prep",
+      "type": "code-node",
+      "data": {
+        "title": "Prepare: doc no, required fields, invoice qty, header fields",
+        "isValidator": true,
+        "nodeName": "Prepare: doc no, required fields, invoice qty, header fields",
+        "name": "Prepare: doc no, required fields, invoice qty, header fields",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// PI_SAVE v20 \"Prepare\": v19's Check Doc No -> Required Fields -> CHECK_REQUIRED_FIELD -> Check Invoice Qty -> Fillback chain in\n// one node, so a 2,000-line invoice is copied once instead of eight times. Each step is the old node's code; its result goes\n// through the same output filter the platform applied between the old nodes.\nconst piPrep = function piPrep(data, systemTenantId) {\n  const plat = (v) => {\n    if (Array.isArray(v)) return v.map(plat);\n    if (v && typeof v === \"object\") {\n      const o = {};\n      for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== undefined) o[k] = plat(v[k]);\n      return o;\n    }\n    return v;\n  };\n  const copy = (v) => (v === undefined ? null : JSON.parse(JSON.stringify(v)));\n  const ph = (v) => (v === undefined ? null : v);\n  const fail = (route, message) => ({ route: route, message: message, entry: {}, isCompleted: \"0\", needPo: \"0\", needGr: \"0\",\n    poIdsSql: \"0\", grIdsSql: \"0\", piIdSql: \"0\", piId: null, tenantId: \"0\", check: {} });\n\n  // CHECK_REQUIRED_FIELD (1988831880511062018) v8\n  const validateField = (value, field) => {\n    if (value === undefined || value === null) return true;\n    if (typeof value === \"string\") return value.trim() === \"\";\n    if (typeof value === \"number\") return value <= 0;\n    if (Array.isArray(value)) return value.length === 0;\n    if (typeof value === \"object\") return Object.keys(value).length === 0;\n    return !value;\n  };\n  const validateForm = (entry, requiredFields) => {\n    const missingFields = [];\n    requiredFields.forEach((field) => {\n      const value = entry[field.name];\n      if (!field.isArray) {\n        if (validateField(value, field)) missingFields.push(field.label);\n        return;\n      }\n      if (!Array.isArray(value)) {\n        missingFields.push(`${field.label}`);\n        return;\n      }\n      if (value.length === 0) {\n        missingFields.push(`${field.label}`);\n        return;\n      }\n      if (field.arrayType === \"object\" && field.arrayFields && value.length > 0) {\n        value.forEach((item, index) => {\n          field.arrayFields.forEach((subField) => {\n            if (validateField(item[subField.name], subField)) missingFields.push(`${subField.label} (in ${field.label} #${index + 1})`);\n          });\n        });\n      }\n    });\n    return missingFields;\n  };\n  const required = (fields, values) => {\n    const missingFields = validateForm(JSON.parse(JSON.stringify(values)), fields);\n    return missingFields.length === 0 ? \"\" : \"Validation Error: \" + missingFields.join(\", \");\n  };\n\n  const bundleKey = (row) => {\n    const bundle = row.item_bundle_id;\n    if (bundle && typeof bundle === \"object\") return String(bundle.id || bundle.ib_no || \"\");\n    return String(bundle || \"\");\n  };\n  const flattenWithParent = (rows, itemKey) => {\n    const flat = [];\n    const positionOf = new Map();\n    const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];\n    const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);\n    let openBundle = -1;\n    for (const [index, row] of (rows || []).entries()) {\n      const position = flat.length;\n      positionOf.set(index, position);\n      const children = Array.isArray(row.children) ? row.children : [];\n      if (children.length > 0) {\n        openBundle = -1;\n        flat.push({ row, parent: -1, nested: false });\n        for (const child of children) flat.push({ row: child, parent: position, nested: true });\n        continue;\n      }\n      if (isBundleRow(row)) {\n        openBundle = position;\n        flat.push({ row, parent: -1, nested: false });\n        continue;\n      }\n      if (!isBundleItem(row)) {\n        openBundle = -1;\n        flat.push({ row, parent: -1, nested: false });\n        continue;\n      }\n      let parent = -1;\n      for (let candidate = index - 1; candidate >= 0; candidate--) {\n        const candidateRow = rows[candidate];\n        if (!isBundleRow(candidateRow)) continue;\n        const byId = row.parent_id != null && candidateRow.id != null && String(row.parent_id) === String(candidateRow.id);\n        const byKey = row.parent_fm_key != null && candidateRow.fm_key != null && String(row.parent_fm_key) === String(candidateRow.fm_key);\n        if (byId || byKey) {\n          parent = positionOf.get(candidate);\n          break;\n        }\n      }\n      if (parent === -1 && openBundle !== -1 && bundleKey(flat[openBundle].row) === bundleKey(row)) parent = openBundle;\n      flat.push({ row, parent, nested: false });\n    }\n    return flat;\n  };\n\n  // Check Invoice Qty (code_pi_checkqty)\n  const checkQty = (entry) => {\n    const flat = flattenWithParent(entry.table_pi, \"material_id\");\n    const totalQuantity = flat.reduce((sum, item) => {\n      const { invoice_qty } = item.row;\n      const positiveQty = Math.abs(invoice_qty);\n      return sum + (positiveQty || 0);\n    }, 0);\n    if (totalQuantity === 0) return null;\n    const dropped = new Set();\n    for (const [position, item] of flat.entries()) {\n      if (item.row.invoice_qty !== 0) continue;\n      dropped.add(position);\n      if (item.parent !== -1) continue;\n      for (const [childPosition, candidate] of flat.entries()) if (candidate.parent === position) dropped.add(childPosition);\n    }\n    // the bundle items of each kept row, in order (v19 scanned every row per row)\n    const nestedUnder = new Map();\n    for (const [childPosition, candidate] of flat.entries()) {\n      if (dropped.has(childPosition) || !candidate.nested) continue;\n      if (!nestedUnder.has(candidate.parent)) nestedUnder.set(candidate.parent, []);\n      nestedUnder.get(candidate.parent).push(candidate.row);\n    }\n    const keptRows = [];\n    for (const [position, item] of flat.entries()) {\n      if (dropped.has(position) || item.nested) continue;\n      const children = nestedUnder.get(position) || [];\n      if (children.length > 0) keptRows.push({ ...item.row, children });\n      else if (Array.isArray(item.row.children)) keptRows.push({ ...item.row, children: [] });\n      else keptRows.push(item.row);\n    }\n    entry.table_pi = keptRows;\n    let poID = [];\n    let grID = [];\n    let purchaseOrderNumber = [];\n    let goodsReceivingNumber = [];\n    for (const [position, item] of flat.entries()) {\n      if (dropped.has(position)) continue;\n      const pi = item.row;\n      if (pi.line_gr_id && pi.line_gr_id !== \"\") {\n        grID.push(pi.line_gr_id);\n        goodsReceivingNumber.push(pi.goods_receiving_no);\n      }\n      poID.push(pi.line_po_id);\n      purchaseOrderNumber.push(pi.purchase_order_no);\n    }\n    entry.po_id = [...new Set(poID)];\n    entry.gr_id = [...new Set(grID)];\n    entry.po_no_display = [...new Set(purchaseOrderNumber)].join(\", \");\n    entry.gr_no_display = [...new Set(goodsReceivingNumber)].join(\", \");\n    return entry;\n  };\n\n  // Fillback Header Fields (code_pi_fillback)\n  const fillback = (entry) => {\n    const stampPiLineItem = (piLineItem) => {\n      piLineItem.supplier_id = entry.supplier_name || null;\n      piLineItem.plant_id = entry.plant_id || null;\n      piLineItem.payment_term_id = entry.invoice_payment_term_id || null;\n      piLineItem.billing_state_id = entry.billing_address_state || null;\n      piLineItem.billing_country_id = entry.billing_address_country || null;\n      piLineItem.shipping_state_id = entry.shipping_address_state || null;\n      piLineItem.shipping_country_id = entry.shipping_address_country || null;\n      piLineItem.agent_id = entry.agent_id;\n    };\n    const flat = flattenWithParent(entry.table_pi, \"material_id\");\n    const itemsNumbered = new Map();\n    let lineNumber = 0;\n    for (const item of flat) {\n      stampPiLineItem(item.row);\n      if (item.parent === -1) {\n        lineNumber++;\n        item.row.line_index = lineNumber;\n        continue;\n      }\n      const childNumber = (itemsNumbered.get(item.parent) || 0) + 1;\n      itemsNumbered.set(item.parent, childNumber);\n      item.row.line_index = `${flat[item.parent].row.line_index}-${childNumber}`;\n    }\n    entry.posted_status = entry.pi_status === \"Draft\" ? \"\" : \"Unposted\";\n    return entry;\n  };\n\n  let entry;\n  if (data && data.pi_status === \"Draft\") {\n    let table = copy(data);\n    if (table.purchase_invoice_no_type !== -9999 && (!table.purchase_invoice_no || table.purchase_invoice_no === null || table.purchase_invoice_no === \"\")) {\n      table.purchase_invoice_no = \"draft\";\n    }\n    table.pi_status = \"Draft\";\n    table = plat(table);\n    const missing = required([\n      { name: \"plant_id\", label: \"Plant\" },\n      { name: \"purchase_invoice_no\", label: \"Purchase Invoice Number\" },\n      { name: \"table_pi\", label: \"Item Information\", isArray: true, arrayType: \"object\", arrayFields: [] },\n    ], { plant_id: ph(table.plant_id), purchase_invoice_no: ph(table.purchase_invoice_no), table_pi: ph(table.table_pi) });\n    if (missing) return fail(\"E406\", missing);\n    entry = table;\n  } else {\n    let table = copy(data);\n    if (table.purchase_invoice_no_type !== -9999 && (!table.purchase_invoice_no || table.purchase_invoice_no === null || table.purchase_invoice_no === \"\" ||\n      table.previous_status === \"Draft\")) {\n      table.purchase_invoice_no = \"issued\";\n    }\n    table.pi_status = \"Completed\";\n    table = plat(table);\n    const missing = required([\n      { name: \"plant_id\", label: \"Plant\" },\n      { name: \"purchase_invoice_no\", label: \"Purchase Invoice Number\" },\n      { name: \"invoice_date\", label: \"Invoice Date\" },\n      { name: \"pi_description\", label: \"Description\" },\n      { name: \"table_pi\", label: \"PI Items\", isArray: true, arrayType: \"object\", arrayFields: [] },\n    ], { plant_id: ph(table.plant_id), purchase_invoice_no: ph(table.purchase_invoice_no), invoice_date: ph(table.invoice_date),\n      pi_description: ph(table.pi_description), table_pi: ph(table.table_pi) });\n    if (missing) return fail(\"E406\", missing);\n    entry = checkQty(table);\n    if (!entry) return fail(\"E407\", \"Total invoiced quantity is 0.\");\n    entry = plat(entry);\n  }\n  entry = plat(fillback(entry));\n\n  // What the over-invoice check and the PO / GR roll-up read off the lines, keeping the tree as it is\n  const LINE_KEYS = [\"id\", \"line_po_id\", \"line_gr_id\", \"po_line_id\", \"gr_line_id\", \"invoice_qty\", \"material_id\", \"material_name\", \"item_bundle_id\",\n    \"parent_id\", \"fm_key\", \"parent_fm_key\"];\n  const compact = (row) => {\n    const out = {};\n    if (!row || typeof row !== \"object\") return out;\n    for (const k of LINE_KEYS) if (Object.prototype.hasOwnProperty.call(row, k)) out[k] = row[k];\n    if (Array.isArray(row.children)) out.children = row.children.map(compact);\n    return out;\n  };\n  const idsSql = (v) => {\n    const ids = (Array.isArray(v) ? v : [v]).map((x) => (x === undefined || x === null ? \"\" : String(x).trim())).filter((x) => /^[0-9]{1,20}$/.test(x));\n    return ids.length ? [...new Set(ids)].join(\",\") : \"0\";\n  };\n  const isCompleted = entry.pi_status === \"Completed\";\n  const tenantId = systemTenantId === undefined || systemTenantId === null ? \"\" : String(systemTenantId);\n  const poIdsSql = idsSql(entry.po_id);\n  const grIdsSql = entry.gr_id && entry.gr_id.length > 0 ? idsSql(entry.gr_id) : \"0\";\n  const rawId = entry.id === undefined || entry.id === null ? \"\" : String(entry.id).trim();\n  return {\n    route: \"OK\",\n    message: \"\",\n    entry: entry,\n    isCompleted: isCompleted ? \"1\" : \"0\",\n    needPo: isCompleted && poIdsSql !== \"0\" ? \"1\" : \"0\",\n    needGr: isCompleted && grIdsSql !== \"0\" ? \"1\" : \"0\",\n    poIdsSql: poIdsSql,\n    grIdsSql: grIdsSql,\n    piIdSql: /^[0-9]{1,20}$/.test(rawId) ? rawId : \"0\",\n    piId: entry.id === undefined ? null : entry.id,\n    tenantId: /^[0-9]{1,20}$/.test(tenantId) ? tenantId : \"0\",\n    check: isCompleted ? { po_id: entry.po_id, gr_id: entry.gr_id, table_pi: (entry.table_pi || []).map(compact) } : {},\n  };\n};\n\nreturn piPrep({{workflowparams:data}}, [{{system:tenantId}}][0]);"
+        },
+        "response_json": [
+          {
+            "key": "kbim0l5a",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "m9tlo71q",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "x2j9vagm",
+            "name": "entry",
+            "title": "entry",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "bn182ku0",
+            "name": "isCompleted",
+            "title": "isCompleted",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "32uzcvig",
+            "name": "needPo",
+            "title": "needPo",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1ko3bh6z",
+            "name": "needGr",
+            "title": "needGr",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fzmgfpak",
+            "name": "poIdsSql",
+            "title": "poIdsSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ei3w5c6x",
+            "name": "grIdsSql",
+            "title": "grIdsSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "nax09br6",
+            "name": "piIdSql",
+            "title": "piIdSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "2dv8kvi9",
+            "name": "piId",
+            "title": "piId",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "7hpbxks1",
+            "name": "tenantId",
+            "title": "tenantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "nof6tvwh",
+            "name": "check",
+            "title": "check",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_pi_prep_406",
       "type": "if",
       "data": {
-        "title": "Save Draft ?",
+        "title": "Required fields missing?",
         "isValidator": true,
-        "nodeName": "Save Draft ?",
-        "name": "Save Draft ?",
+        "nodeName": "Required fields missing?",
+        "name": "Required fields missing?",
         "condition_type": "Expression",
         "filter": {
           "list": [
             {
-              "id": 1772596157760,
-              "parentId": 1772596157759,
+              "id": 1799300000001,
+              "parentId": 1799300000002,
               "isTop": true,
               "prop": "",
               "operator": "",
@@ -63,538 +191,111 @@
         },
         "expression": {
           "type": "javascript",
-          "code": "'{{workflowparams:data.pi_status}}' == 'Draft'"
+          "code": "'{{node:code_pi_prep.data.route}}' == 'E406'"
         }
       },
       "blocks": [
         {
-          "id": "ifBlock_draft_true",
+          "id": "ifBlock_Tpi_prep_406",
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
             {
-              "id": "code_pi_draft_docno",
-              "type": "code-node",
+              "id": "end_pi_failed",
+              "type": "end-node",
               "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Draft Check Doc No",
+                "title": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
                 "isValidator": true,
-                "nodeName": "Draft Check Doc No",
-                "name": "Draft Check Doc No",
-                "script": {
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 406,
+                "msg": {
                   "type": "javascript",
-                  "code": "let table = {{workflowparams:data}};\n\nif(table.purchase_invoice_no_type !== -9999 && (\n  !table.purchase_invoice_no || table.purchase_invoice_no === null || table.purchase_invoice_no === ''\n)) {\n  table.purchase_invoice_no = 'draft'\n}\n\ntable.pi_status = 'Draft';\n\nreturn { table };"
-                },
-                "response_json": [
-                  {
-                    "key": "idwlt401",
-                    "name": "table",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "any",
-                    "isExpand": false,
-                    "children": []
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
-              "id": "code_pi_draft_required",
-              "type": "code-node",
-              "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Draft Required Fields",
-                "isValidator": true,
-                "nodeName": "Draft Required Fields",
-                "name": "Draft Required Fields",
-                "script": {
-                  "type": "javascript",
-                  "code": "return {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant\" },\n  { name: \"purchase_invoice_no\", label: \"Purchase Invoice Number\" },\n  {\n    name: \"table_pi\",\n    label: \"Item Information\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_pi_draft_docno.data.table.plant_id}},\n    purchase_invoice_no: {{node:code_pi_draft_docno.data.table.purchase_invoice_no}},\n    table_pi: {{node:code_pi_draft_docno.data.table.table_pi}}\n  })\n}"
-                },
-                "response_json": [
-                  {
-                    "key": "iomd4yaj",
-                    "name": "required_fields",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "string",
-                    "isExpand": false
-                  },
-                  {
-                    "key": "z59j2g2u",
-                    "name": "data",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "string",
-                    "isExpand": false
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
-              "id": "workflow_pi_draft_check",
-              "type": "workflow-node",
-              "data": {
-                "workflow_id": "",
-                "workflow_name": "",
-                "input_params": {},
-                "title": "Draft Run Check Required Workflow",
-                "isValidator": true,
-                "nodeName": "Draft Run Check Required Workflow",
-                "name": "Draft Run Check Required Workflow",
-                "workflow": {
-                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
-                  "rules": {
-                    "collectionId": "1988831880511062018",
-                    "list": [
-                      {
-                        "id": 1763010683443,
-                        "parentId": 1763010683442,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "",
-                        "valueType": "",
-                        "value": "",
-                        "type": "leaf",
-                        "level": 1
-                      }
-                    ]
-                  }
-                },
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "body_params": {
-                  "list": [
-                    {
-                      "prop": "entry",
-                      "propLabel": "entry",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "field",
-                      "valueTypeLabel": "",
-                      "value": "{{node:code_pi_draft_required.data.data}}",
-                      "valueLabel": ""
-                    },
-                    {
-                      "prop": "required_fields",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_pi_draft_required.data.required_fields}}",
-                      "valueLabel": "",
-                      "propLabel": "required_fields"
-                    }
-                  ]
+                  "code": "{{node:code_pi_prep.data.message}}"
                 }
               },
               "blocks": []
-            },
-            {
-              "id": "if_pi_draft_failed",
-              "type": "if",
-              "data": {
-                "title": "Validation Failed?",
-                "isValidator": true,
-                "nodeName": "Validation Failed?",
-                "name": "Validation Failed?",
-                "condition_type": "Expression",
-                "filter": {
-                  "list": [
-                    {
-                      "id": 1736695973613,
-                      "parentId": 1736695973612,
-                      "isTop": true,
-                      "prop": "",
-                      "operator": "",
-                      "valueType": "",
-                      "value": "",
-                      "type": "leaf",
-                      "level": 1
-                    }
-                  ]
-                },
-                "expression": {
-                  "type": "javascript",
-                  "code": "'{{node:workflow_pi_draft_check.data.data.status}}' == 'Failed'"
-                }
-              },
-              "blocks": [
-                {
-                  "id": "ifBlock_pi_draft_failed_true",
-                  "type": "ifBlock",
-                  "data": { "title": "true" },
-                  "blocks": [
-                    {
-                      "id": "end_pi_draft_failed",
-                      "type": "end-node",
-                      "data": {
-                        "title": "结束节点",
-                        "outputs": {
-                          "type": "object",
-                          "properties": { "result": { "type": "string" } }
-                        },
-                        "isValidator": true,
-                        "nodeName": "结束节点",
-                        "name": "结束节点",
-                        "back_data_type": "Default",
-                        "code": 406,
-                        "msg": {
-                          "type": "javascript",
-                          "code": "{{node:workflow_pi_draft_check.data.data.message}}"
-                        }
-                      },
-                      "blocks": []
-                    }
-                  ]
-                },
-                {
-                  "id": "ifBlock_pi_draft_failed_false",
-                  "type": "ifBlock",
-                  "data": { "title": "false" },
-                  "blocks": []
-                }
-              ]
             }
           ]
         },
         {
-          "id": "ifBlock_draft_false",
+          "id": "ifBlock_Fpi_prep_406",
           "type": "ifBlock",
           "data": { "title": "false" },
-          "blocks": [
-            {
-              "id": "code_pi_docno",
-              "type": "code-node",
-              "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Check Doc No",
-                "isValidator": true,
-                "nodeName": "Check Doc No",
-                "name": "Check Doc No",
-                "script": {
-                  "type": "javascript",
-                  "code": "let table = {{workflowparams:data}}\n\nif (\n  table.purchase_invoice_no_type !== -9999 &&\n  (!table.purchase_invoice_no ||\n    table.purchase_invoice_no === null ||\n    table.purchase_invoice_no === \"\" ||\n    table.previous_status === \"Draft\")\n) {\n  table.purchase_invoice_no = 'issued'\n}\n\ntable.pi_status = 'Completed';\n\nreturn { table };"
-                },
-                "response_json": [
-                  {
-                    "key": "idwlt401",
-                    "name": "table",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "any",
-                    "isExpand": false,
-                    "children": []
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
-              "id": "code_pi_required",
-              "type": "code-node",
-              "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Required Fields",
-                "isValidator": true,
-                "nodeName": "Required Fields",
-                "name": "Required Fields",
-                "script": {
-                  "type": "javascript",
-                  "code": "return {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant\" },\n  { name: \"purchase_invoice_no\", label: \"Purchase Invoice Number\" },\n  { name: \"invoice_date\", label: \"Invoice Date\" },\n  { name: \"pi_description\", label: \"Description\" },\n  {\n    name: \"table_pi\",\n    label: \"PI Items\",\n    isArray: true,\n    arrayType: \"object\",\n    arrayFields: [],\n  },\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_pi_docno.data.table.plant_id}},\n    purchase_invoice_no: {{node:code_pi_docno.data.table.purchase_invoice_no}},\n    invoice_date: {{node:code_pi_docno.data.table.invoice_date}},\n    pi_description: {{node:code_pi_docno.data.table.pi_description}},\n    table_pi: {{node:code_pi_docno.data.table.table_pi}}\n  })\n}"
-                },
-                "response_json": [
-                  {
-                    "key": "iomd4yaj",
-                    "name": "required_fields",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "string",
-                    "isExpand": false
-                  },
-                  {
-                    "key": "z59j2g2u",
-                    "name": "data",
-                    "title": "",
-                    "description": "",
-                    "bsonType": "string",
-                    "isExpand": false
-                  }
-                ]
-              },
-              "blocks": []
-            },
-            {
-              "id": "workflow_pi_check",
-              "type": "workflow-node",
-              "data": {
-                "workflow_id": "",
-                "workflow_name": "",
-                "input_params": {},
-                "title": "Check Required Workflow",
-                "isValidator": true,
-                "nodeName": "Check Required Workflow",
-                "name": "Check Required Workflow",
-                "workflow": {
-                  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
-                  "rules": {
-                    "collectionId": "1988831880511062018",
-                    "list": [
-                      {
-                        "id": 1763010683443,
-                        "parentId": 1763010683442,
-                        "isTop": true,
-                        "prop": "",
-                        "operator": "",
-                        "valueType": "",
-                        "value": "",
-                        "type": "leaf",
-                        "level": 1
-                      }
-                    ]
-                  }
-                },
-                "remote": true,
-                "remoteType": "innerdatasource",
-                "body_params": {
-                  "list": [
-                    {
-                      "prop": "entry",
-                      "propLabel": "entry",
-                      "operator": "",
-                      "operatorLabel": "",
-                      "valueType": "field",
-                      "valueTypeLabel": "",
-                      "value": "{{node:code_pi_required.data.data}}",
-                      "valueLabel": ""
-                    },
-                    {
-                      "prop": "required_fields",
-                      "operator": "",
-                      "valueType": "field",
-                      "value": "{{node:code_pi_required.data.required_fields}}",
-                      "valueLabel": "",
-                      "propLabel": "required_fields"
-                    }
-                  ]
-                }
-              },
-              "blocks": []
-            },
-            {
-              "id": "if_pi_failed",
-              "type": "if",
-              "data": {
-                "title": "Validation Failed?",
-                "isValidator": true,
-                "nodeName": "Validation Failed?",
-                "name": "Validation Failed?",
-                "condition_type": "Expression",
-                "filter": {
-                  "list": [
-                    {
-                      "id": 1736695973613,
-                      "parentId": 1736695973612,
-                      "isTop": true,
-                      "prop": "",
-                      "operator": "",
-                      "valueType": "",
-                      "value": "",
-                      "type": "leaf",
-                      "level": 1
-                    }
-                  ]
-                },
-                "expression": {
-                  "type": "javascript",
-                  "code": "'{{node:workflow_pi_check.data.data.status}}' == 'Failed'"
-                }
-              },
-              "blocks": [
-                {
-                  "id": "ifBlock_pi_failed_true",
-                  "type": "ifBlock",
-                  "data": { "title": "true" },
-                  "blocks": [
-                    {
-                      "id": "end_pi_failed",
-                      "type": "end-node",
-                      "data": {
-                        "title": "结束节点",
-                        "outputs": {
-                          "type": "object",
-                          "properties": { "result": { "type": "string" } }
-                        },
-                        "isValidator": true,
-                        "nodeName": "结束节点",
-                        "name": "结束节点",
-                        "back_data_type": "Default",
-                        "code": 406,
-                        "msg": {
-                          "type": "javascript",
-                          "code": "{{node:workflow_pi_check.data.data.message}}"
-                        }
-                      },
-                      "blocks": []
-                    }
-                  ]
-                },
-                {
-                  "id": "ifBlock_pi_failed_false",
-                  "type": "ifBlock",
-                  "data": { "title": "false" },
-                  "blocks": [
-                    {
-                      "id": "code_pi_checkqty",
-                      "type": "code-node",
-                      "data": {
-                        "language": "javascript",
-                        "code": "",
-                        "timeout": 30000,
-                        "title": "Check Invoice Qty",
-                        "isValidator": true,
-                        "nodeName": "Check Invoice Qty",
-                        "name": "Check Invoice Qty",
-                        "script": {
-                          "type": "javascript",
-                          "code": "let entry = {{node:code_pi_docno.data.table}};\n\n// A bundle line has no item of its own; the items under it carry both the\n// bundle and an item. table_pi reaches this node in either of two shapes --\n// nested under `children`, or flat with a bundle's items following their bundle\n// line -- so both are read here. Each entry remembers the position of its\n// bundle line (-1 when the row is not in a bundle) and whether it was nested to\n// begin with, so what is written back keeps the shape it arrived in.\nconst bundleKey = (row) => {\n  const bundle = row.item_bundle_id;\n\n  if (bundle && typeof bundle === \"object\") {\n    return String(bundle.id || bundle.ib_no || \"\");\n  }\n\n  return String(bundle || \"\");\n};\n\nconst flattenWithParent = (rows, itemKey) => {\n  const flat = [];\n  const positionOf = new Map();\n\n  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];\n  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);\n\n  let openBundle = -1; // bundle line the flat rows below it belong to\n\n  for (const [index, row] of (rows || []).entries()) {\n    const position = flat.length;\n    positionOf.set(index, position);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    // Already a tree: nothing to reattach, and a bundle spelled out this way\n    // ends whatever run was open above it.\n    if (children.length > 0) {\n      openBundle = -1;\n      flat.push({ row, parent: -1, nested: false });\n\n      for (const child of children) {\n        flat.push({ row: child, parent: position, nested: true });\n      }\n\n      continue;\n    }\n\n    if (isBundleRow(row)) {\n      openBundle = position;\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    if (!isBundleItem(row)) {\n      openBundle = -1; // a plain line closes the bundle above it\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    // A flat item: linked to its bundle line by id, or else belonging to the\n    // bundle line it follows, as long as that is the same bundle.\n    let parent = -1;\n\n    for (let candidate = index - 1; candidate >= 0; candidate--) {\n      const candidateRow = rows[candidate];\n\n      if (!isBundleRow(candidateRow)) continue;\n\n      const byId =\n        row.parent_id != null &&\n        candidateRow.id != null &&\n        String(row.parent_id) === String(candidateRow.id);\n      const byKey =\n        row.parent_fm_key != null &&\n        candidateRow.fm_key != null &&\n        String(row.parent_fm_key) === String(candidateRow.fm_key);\n\n      if (byId || byKey) {\n        parent = positionOf.get(candidate);\n        break;\n      }\n    }\n\n    if (\n      parent === -1 &&\n      openBundle !== -1 &&\n      bundleKey(flat[openBundle].row) === bundleKey(row)\n    ) {\n      parent = openBundle;\n    }\n\n    flat.push({ row, parent, nested: false });\n  }\n\n  return flat;\n};\n\nconst flat = flattenWithParent(entry.table_pi, \"material_id\");\n\nconst totalQuantity = flat.reduce((sum, item) => {\n    const { invoice_qty } = item.row;\n    const positiveQty = Math.abs(invoice_qty)\n    return sum + (positiveQty || 0);\n  }, 0);\n\nif (totalQuantity === 0) {\n  return {\n    entry: {},\n    status: 'Failed',\n    code: 407,\n    message: 'Total invoiced quantity is 0.'\n  }\n}\n\n// A bundle is invoiced as a whole. Nothing invoiced on the bundle line means\n// the whole bundle goes, its items with it. Inside a bundle that is kept, a\n// zero-quantity item is dropped exactly like a zero-quantity top-level line.\nconst dropped = new Set();\n\nfor (const [position, item] of flat.entries()) {\n  if (item.row.invoice_qty !== 0) continue;\n\n  dropped.add(position);\n\n  if (item.parent !== -1) continue;\n\n  for (const [childPosition, candidate] of flat.entries()) {\n    if (candidate.parent === position) {\n      dropped.add(childPosition);\n    }\n  }\n}\n\n// Rebuilt in the shape it arrived in: a bundle's items go back under their\n// bundle line only if that is where they came from.\nconst keptRows = [];\n\nfor (const [position, item] of flat.entries()) {\n  if (dropped.has(position) || item.nested) continue;\n\n  const children = [];\n\n  for (const [childPosition, candidate] of flat.entries()) {\n    if (dropped.has(childPosition) || !candidate.nested) continue;\n    if (candidate.parent !== position) continue;\n\n    children.push(candidate.row);\n  }\n\n  if (children.length > 0) {\n    keptRows.push({ ...item.row, children });\n  } else if (Array.isArray(item.row.children)) {\n    keptRows.push({ ...item.row, children: [] });\n  } else {\n    keptRows.push(item.row);\n  }\n}\n\nentry.table_pi = keptRows;\n\nlet poID = [];\nlet grID = [];\nlet purchaseOrderNumber = [];\nlet goodsReceivingNumber = [];\n\n// Read off the flattened view of what was kept: a bundle's items reference a\n// purchase order and a goods receiving of their own, and those would otherwise\n// never reach the header's po_id / gr_id / display numbers.\nfor(const [position, item] of flat.entries()) {\n  if (dropped.has(position)) continue;\n\n  const pi = item.row;\n\n  if(pi.line_gr_id && pi.line_gr_id !== \"\") {\n    grID.push(pi.line_gr_id);\n    goodsReceivingNumber.push(pi.goods_receiving_no);\n  }\n\n  poID.push(pi.line_po_id);\n  purchaseOrderNumber.push(pi.purchase_order_no);\n}\n\npoID = [...new Set(poID)];\ngrID = [...new Set(grID)];\npurchaseOrderNumber = [...new Set(purchaseOrderNumber)];\ngoodsReceivingNumber = [...new Set(goodsReceivingNumber)];\n\nentry.po_id = poID;\nentry.gr_id = grID;\nentry.po_no_display = purchaseOrderNumber.join(\", \");\nentry.gr_no_display = goodsReceivingNumber.join(\", \");\n\nreturn {\n  entry: entry,\n  status: 'Success',\n  code: 200,\n  message: ''\n};"
-                        },
-                        "response_json": [
-                          {
-                            "key": "dit9mxq9",
-                            "name": "entry",
-                            "title": "Entry",
-                            "description": "",
-                            "bsonType": "any",
-                            "isExpand": false,
-                            "children": []
-                          },
-                          {
-                            "key": "5ofsebdq",
-                            "name": "status",
-                            "title": "Status",
-                            "description": "",
-                            "bsonType": "string",
-                            "isExpand": false
-                          },
-                          {
-                            "key": "t5jewd5n",
-                            "name": "code",
-                            "title": "Code",
-                            "description": "",
-                            "bsonType": "int",
-                            "isExpand": false,
-                            "children": []
-                          },
-                          {
-                            "key": "kqmzib9j",
-                            "name": "message",
-                            "title": "Message",
-                            "description": "",
-                            "bsonType": "string",
-                            "isExpand": false
-                          }
-                        ]
-                      },
-                      "blocks": []
-                    },
-                    {
-                      "id": "if_pi_qty_failed",
-                      "type": "if",
-                      "data": {
-                        "title": "Qty Validation Failed?",
-                        "isValidator": true,
-                        "nodeName": "Qty Validation Failed?",
-                        "name": "Qty Validation Failed?",
-                        "condition_type": "Expression",
-                        "expression": {
-                          "type": "javascript",
-                          "code": "'{{node:code_pi_checkqty.data.status}}' == 'Failed'"
-                        }
-                      },
-                      "blocks": [
-                        {
-                          "id": "ifBlock_pi_qty_failed_true",
-                          "type": "ifBlock",
-                          "data": { "title": "true" },
-                          "blocks": [
-                            {
-                              "id": "end_pi_qty_failed",
-                              "type": "end-node",
-                              "data": {
-                                "title": "结束节点",
-                                "outputs": {
-                                  "type": "object",
-                                  "properties": {
-                                    "result": { "type": "string" }
-                                  }
-                                },
-                                "isValidator": true,
-                                "nodeName": "结束节点",
-                                "name": "结束节点",
-                                "back_data_type": "Default",
-                                "code": 407,
-                                "msg": {
-                                  "type": "javascript",
-                                  "code": "{{node:code_pi_checkqty.data.message}}"
-                                }
-                              },
-                              "blocks": []
-                            }
-                          ]
-                        },
-                        {
-                          "id": "ifBlock_pi_qty_failed_false",
-                          "type": "ifBlock",
-                          "data": { "title": "false" },
-                          "blocks": []
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
+          "blocks": []
         }
       ]
     },
     {
-      "id": "code_pi_fillback",
-      "type": "code-node",
+      "id": "if_pi_prep_407",
+      "type": "if",
       "data": {
-        "language": "javascript",
-        "code": "",
-        "timeout": 30000,
-        "title": "Fillback Header Fields",
-        "isValidator": true,
-        "nodeName": "Fillback Header Fields",
-        "name": "Fillback Header Fields",
-        "script": {
-          "type": "javascript",
-          "code": "let entry = {{node:code_pi_draft_docno.data.table}} || {{node:code_pi_checkqty.data.entry}}\n\n// Everything stamped onto a line regardless of where it sits in the tree. A\n// bundle's items are invoiced lines in their own right and carry the same\n// header fields as a top-level line.\nconst stampPiLineItem = (piLineItem) => {\n  piLineItem.supplier_id = entry.supplier_name || null;\n  piLineItem.plant_id = entry.plant_id || null;\n  piLineItem.payment_term_id = entry.invoice_payment_term_id || null;\n  piLineItem.billing_state_id = entry.billing_address_state || null;\n  piLineItem.billing_country_id = entry.billing_address_country || null;\n  piLineItem.shipping_state_id = entry.shipping_address_state || null;\n  piLineItem.shipping_country_id = entry.shipping_address_country || null;\n  piLineItem.agent_id = entry.agent_id;\n};\n\n// A bundle line has no item of its own; the items under it carry both the\n// bundle and an item. table_pi reaches this node in either of two shapes --\n// nested under `children`, or flat with a bundle's items following their bundle\n// line -- so both are read here. Each entry remembers the position of its\n// bundle line, -1 when the row is not in a bundle.\nconst bundleKey = (row) => {\n  const bundle = row.item_bundle_id;\n\n  if (bundle && typeof bundle === \"object\") {\n    return String(bundle.id || bundle.ib_no || \"\");\n  }\n\n  return String(bundle || \"\");\n};\n\nconst flattenWithParent = (rows, itemKey) => {\n  const flat = [];\n  const positionOf = new Map();\n\n  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];\n  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);\n\n  let openBundle = -1; // bundle line the flat rows below it belong to\n\n  for (const [index, row] of (rows || []).entries()) {\n    const position = flat.length;\n    positionOf.set(index, position);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    // Already a tree: nothing to reattach, and a bundle spelled out this way\n    // ends whatever run was open above it.\n    if (children.length > 0) {\n      openBundle = -1;\n      flat.push({ row, parent: -1, nested: false });\n\n      for (const child of children) {\n        flat.push({ row: child, parent: position, nested: true });\n      }\n\n      continue;\n    }\n\n    if (isBundleRow(row)) {\n      openBundle = position;\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    if (!isBundleItem(row)) {\n      openBundle = -1; // a plain line closes the bundle above it\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    // A flat item: linked to its bundle line by id, or else belonging to the\n    // bundle line it follows, as long as that is the same bundle.\n    let parent = -1;\n\n    for (let candidate = index - 1; candidate >= 0; candidate--) {\n      const candidateRow = rows[candidate];\n\n      if (!isBundleRow(candidateRow)) continue;\n\n      const byId =\n        row.parent_id != null &&\n        candidateRow.id != null &&\n        String(row.parent_id) === String(candidateRow.id);\n      const byKey =\n        row.parent_fm_key != null &&\n        candidateRow.fm_key != null &&\n        String(row.parent_fm_key) === String(candidateRow.fm_key);\n\n      if (byId || byKey) {\n        parent = positionOf.get(candidate);\n        break;\n      }\n    }\n\n    if (\n      parent === -1 &&\n      openBundle !== -1 &&\n      bundleKey(flat[openBundle].row) === bundleKey(row)\n    ) {\n      parent = openBundle;\n    }\n\n    flat.push({ row, parent, nested: false });\n  }\n\n  return flat;\n};\n\n// The rows are stamped in place, so the tree keeps whatever shape it arrived\n// in. A bundle's items are numbered within their own bundle rather than in the\n// document's top-level ordering: {parent_index}-{child_index}.\nconst flat = flattenWithParent(entry.table_pi, \"material_id\");\nconst itemsNumbered = new Map(); // bundle line position -> items numbered so far\nlet lineNumber = 0;\n\nfor (const item of flat) {\n  stampPiLineItem(item.row);\n\n  if (item.parent === -1) {\n    lineNumber++;\n    item.row.line_index = lineNumber;\n    continue;\n  }\n\n  const childNumber = (itemsNumbered.get(item.parent) || 0) + 1;\n  itemsNumbered.set(item.parent, childNumber);\n\n  item.row.line_index = `${flat[item.parent].row.line_index}-${childNumber}`;\n}\n\nentry.posted_status = entry.pi_status === 'Draft' ? '' : 'Unposted';\n\nreturn { entry };"
+        "title": "Invoice qty 0?",
+        "filter": {
+          "list": [
+            {
+              "id": 1799300000003,
+              "parentId": 1799300000004,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
         },
-        "response_json": [
-          {
-            "key": "nqkwxkgc",
-            "name": "entry",
-            "title": "",
-            "description": "",
-            "bsonType": "any",
-            "isExpand": false,
-            "children": []
-          }
-        ]
+        "expression": {
+          "code": "'{{node:code_pi_prep.data.route}}' == 'E407'",
+          "type": "javascript"
+        },
+        "isValidator": true,
+        "nodeName": "Invoice qty 0?",
+        "name": "Invoice qty 0?",
+        "condition_type": "Expression"
       },
-      "blocks": []
+      "blocks": [
+        {
+          "id": "ifBlock_Tpi_prep_407",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "end_pi_qty_failed",
+              "type": "end-node",
+              "data": {
+                "title": "结束节点",
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "back_data_type": "Default",
+                "code": 407,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_pi_prep.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_Fpi_prep_407",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
     },
     {
       "id": "condition_all_pi_fetch",
@@ -635,39 +336,78 @@
           },
           "blocks": [
             {
-              "id": "search_node_po",
-              "type": "search-node",
+              "id": "if_pi_need_po",
+              "type": "if",
               "data": {
-                "table_id": {
-                  "source": "Purchase Order:Table:1902776039445217282",
-                  "rules": {
-                    "collectionId": "1902776039445217282",
-                    "list": [
-                      {
-                        "id": 1772617932161,
-                        "parentId": 1772617932160,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:code_pi_fillback.data.entry.po_id}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "主键ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 100,
-                "title": "Fetch PO Data",
+                "title": "Completed with purchase orders?",
                 "isValidator": true,
-                "nodeName": "Fetch PO Data",
-                "name": "Fetch PO Data"
+                "nodeName": "Completed with purchase orders?",
+                "name": "Completed with purchase orders?",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1799300000005,
+                      "parentId": 1799300000006,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_pi_prep.data.needPo}}' == '1'"
+                }
               },
-              "blocks": []
+              "blocks": [
+                {
+                  "id": "ifBlock_Tpi_need_po",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "sql_node_pi_po",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "Purchase order lines (columns the check reads)",
+                        "isValidator": true,
+                        "nodeName": "Purchase order lines (columns the check reads)",
+                        "name": "Purchase order lines (columns the check reads)",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT JSON_OBJECT('doc', CAST(p.id AS CHAR), 'id', CAST(l.id AS CHAR), 'parent_id', CAST(l.parent_id AS CHAR),\n       'item_id', CAST(l.item_id AS CHAR), 'item_bundle_id', CAST(l.item_bundle_id AS CHAR), 'quantity', l.quantity,\n       'invoice_qty', l.invoice_qty, 'pi_status', l.pi_status) AS j\n  FROM purchase_order p\n  LEFT JOIN purchase_order_2ukyuanr_sub l ON l.purchase_order_id = p.id AND l.is_deleted = 0\n WHERE p.tenant_id = '{{node:code_pi_prep.data.tenantId}}' AND p.is_deleted = 0 AND p.id IN ({{node:code_pi_prep.data.poIdsSql}})\n ORDER BY p.id, l.id"
+                        },
+                        "response_json": [
+                          {
+                            "key": "qrhkehh2",
+                            "name": "j",
+                            "title": "j",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_Fpi_need_po",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
             }
           ]
         },
@@ -700,39 +440,78 @@
           },
           "blocks": [
             {
-              "id": "search_node_gr",
-              "type": "search-node",
+              "id": "if_pi_need_gr",
+              "type": "if",
               "data": {
-                "table_id": {
-                  "source": "Goods Receiving:Table:1901845517592285186",
-                  "rules": {
-                    "collectionId": "1901845517592285186",
-                    "list": [
-                      {
-                        "id": 1772617963175,
-                        "parentId": 1772617963174,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:code_pi_fillback.data.entry.gr_id}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "主键ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "limit": 100,
-                "title": "Fetch GR Data",
+                "title": "Completed with goods receivings?",
                 "isValidator": true,
-                "nodeName": "Fetch GR Data",
-                "name": "Fetch GR Data"
+                "nodeName": "Completed with goods receivings?",
+                "name": "Completed with goods receivings?",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1799300000007,
+                      "parentId": 1799300000008,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_pi_prep.data.needGr}}' == '1'"
+                }
               },
-              "blocks": []
+              "blocks": [
+                {
+                  "id": "ifBlock_Tpi_need_gr",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "sql_node_pi_gr",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "Goods receiving lines (columns the check reads)",
+                        "isValidator": true,
+                        "nodeName": "Goods receiving lines (columns the check reads)",
+                        "name": "Goods receiving lines (columns the check reads)",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT JSON_OBJECT('doc', CAST(g.id AS CHAR), 'id', CAST(l.id AS CHAR), 'parent_id', CAST(l.parent_id AS CHAR),\n       'item_id', CAST(l.item_id AS CHAR), 'item_bundle_id', CAST(l.item_bundle_id AS CHAR), 'received_qty', l.received_qty,\n       'invoice_qty', l.invoice_qty, 'pi_status', l.pi_status, 'parent_or_child', l.parent_or_child,\n       'po_line_item_id', CAST(l.po_line_item_id AS CHAR), 'line_index', l.line_index) AS j\n  FROM goods_receiving g\n  LEFT JOIN goods_receiving_eg6l4ywi_sub l ON l.goods_receiving_id = g.id AND l.is_deleted = 0\n WHERE g.tenant_id = '{{node:code_pi_prep.data.tenantId}}' AND g.is_deleted = 0 AND g.id IN ({{node:code_pi_prep.data.grIdsSql}})\n ORDER BY g.id, l.id"
+                        },
+                        "response_json": [
+                          {
+                            "key": "9jw8066q",
+                            "name": "j",
+                            "title": "j",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_Fpi_need_gr",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
             }
           ]
         },
@@ -785,36 +564,31 @@
                   "data": { "title": "true" },
                   "blocks": [
                     {
-                      "id": "get_node_pi_stored",
-                      "type": "get-node",
+                      "id": "sql_node_pi_stored",
+                      "type": "sql-node",
                       "data": {
-                        "table_id": {
-                          "source": "Purchase Invoice:Table:1902777443710779394",
-                          "rules": {
-                            "collectionId": "1902777443710779394",
-                            "list": [
-                              {
-                                "id": 1792300000106,
-                                "parentId": 1792300000105,
-                                "isTop": true,
-                                "prop": "id",
-                                "operator": "in",
-                                "valueType": "field",
-                                "value": "{{node:code_pi_fillback.data.entry.id}}",
-                                "type": "leaf",
-                                "level": 1,
-                                "propLabel": "主键ID",
-                                "valueLabel": "",
-                                "operatorLabel": "In"
-                              }
-                            ]
-                          }
-                        },
-                        "condition": {},
-                        "title": "Fetch Stored PI",
+                        "title": "Stored PI status and number",
                         "isValidator": true,
-                        "nodeName": "Fetch Stored PI",
-                        "name": "Fetch Stored PI"
+                        "nodeName": "Stored PI status and number",
+                        "name": "Stored PI status and number",
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT JSON_OBJECT('id', CAST(p.id AS CHAR), 'pi_status', p.pi_status, 'purchase_invoice_no', p.purchase_invoice_no) AS j\n  FROM purchase_invoice p\n WHERE p.tenant_id = '{{node:code_pi_prep.data.tenantId}}' AND p.is_deleted = 0 AND p.id = {{node:code_pi_prep.data.piIdSql}}"
+                        },
+                        "response_json": [
+                          {
+                            "key": "6re4u2z5",
+                            "name": "j",
+                            "title": "j",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
                       },
                       "blocks": []
                     }
@@ -845,7 +619,7 @@
         "name": "Stored PI Still Draft?",
         "script": {
           "type": "javascript",
-          "code": "const entry = {{node:code_pi_fillback.data.entry}};\nconst stored = {{node:get_node_pi_stored.data.data}};\n\nconst record = (Array.isArray(stored) ? stored : [stored]).find((row) => row && String(row.id) === String(entry.id));\nconst storedStatus = record ? String(record.pi_status || \"\") : \"\";\nconst blocked = storedStatus !== \"\" && storedStatus !== \"Draft\";\n\nreturn {\n  blocked: blocked ? 1 : 0,\n  message: blocked\n    ? `Purchase Invoice ${record.purchase_invoice_no || \"\"} is already ${storedStatus}, so it was not saved again. Close and reopen it to see its current state.`\n    : \"\",\n};"
+          "code": "// PI_SAVE v20 \"Stored PI Still Draft?\": v19's guard, reading the stored invoice's status and number from a sql-node\nconst piGuard = function piGuard(piId, storedRows) {\n  const parseJ = (t) => {\n    if (t && typeof t === \"object\") return t;\n    try {\n      return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n    } catch (e) {\n      return null;\n    }\n  };\n  const stored = (Array.isArray(storedRows) ? storedRows : []).map((r) => parseJ(r && r.j !== undefined ? r.j : r));\n  const record = stored.find((row) => row && String(row.id) === String(piId));\n  const storedStatus = record ? String(record.pi_status || \"\") : \"\";\n  const blocked = storedStatus !== \"\" && storedStatus !== \"Draft\";\n  return {\n    blocked: blocked ? 1 : 0,\n    message: blocked\n      ? `Purchase Invoice ${record.purchase_invoice_no || \"\"} is already ${storedStatus}, so it was not saved again. Close and reopen it to see its current state.`\n      : \"\",\n  };\n};\n\nreturn piGuard([{{node:code_pi_prep.data.piId}}][0], [{{node:sql_node_pi_stored.data}}][0]);"
         },
         "response_json": [
           {
@@ -931,7 +705,7 @@
         "condition_type": "Expression",
         "expression": {
           "type": "javascript",
-          "code": "'{{node:code_pi_fillback.data.entry.pi_status}}' == 'Completed'"
+          "code": "'{{node:code_pi_prep.data.isCompleted}}' == '1'"
         }
       },
       "blocks": [
@@ -941,21 +715,30 @@
           "data": { "title": "true" },
           "blocks": [
             {
-              "id": "code_pi_validate",
+              "id": "code_pi_check",
               "type": "code-node",
               "data": {
                 "language": "javascript",
                 "code": "",
                 "timeout": 30000,
-                "title": "Map Updated PO & GR (validate)",
+                "title": "Over-invoice check + PO / GR roll-up",
                 "isValidator": true,
-                "nodeName": "Map Updated PO & GR (validate)",
-                "name": "Map Updated PO & GR (validate)",
+                "nodeName": "Over-invoice check + PO / GR roll-up",
+                "name": "Over-invoice check + PO / GR roll-up",
                 "script": {
                   "type": "javascript",
-                  "code": "const poList = {{node:search_node_po.data.data}} || [];\nconst grList = {{node:search_node_gr.data.data}} || [];\nconst data = {{node:code_pi_fillback.data.entry}};\nlet allErrors = [];\n\n// table_pi, table_po and table_gr are all trees: an item bundle is one line\n// with its items under `children`. A bundle's items are lines in their own\n// right — each has its own PO line and its own invoiced quantity — so the\n// checks below walk a flattened view of all three.\nconst flattenRows = (rows) => {\n  const flat = [];\n\n  for (const row of rows || []) {\n    flat.push(row);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    for (const child of children) {\n      flat.push(child);\n    }\n  }\n\n  return flat;\n};\n\n\nconst round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\nconst validateInvoiceQuantities = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey, excludeGRLines) => {\n  const filteredPI = tablePi.filter((item) => item[docIdKey] === docId && (!excludeGRLines || !item.line_gr_id || item.line_gr_id === \"\"));\n  const errors = [];\n  filteredPI.forEach((piItem) => {\n    const originalItem = items.find((item) => item.id === piItem[piLineIdKey]);\n    if (originalItem) {\n      const availableQty = round8(originalItem[qtyKey]);\n      const currentInvoicedQty = round8(originalItem.invoice_qty);\n      const newInvoiceQty = round8(piItem.invoice_qty);\n      const totalInvoicedQty = round8(currentInvoicedQty + newInvoiceQty);\n      if (totalInvoicedQty > availableQty) {\n        errors.push({\n          itemName: originalItem.material_id || originalItem.material_name || `Item ${originalItem.id}`,\n        });\n      }\n    }\n  });\n  // Combined split-parent lines (gr_line_id empty): validate against the\n  // group total remaining, since they do not match a single GR row by id.\n  if (!excludeGRLines) {\n    filteredPI.forEach((piItem) => {\n      if ((piItem.gr_line_id && piItem.gr_line_id !== \"\") || !piItem.po_line_id) return;\n      const groupRows = items.filter((item) => item.parent_or_child === \"Split-Parent\" && item.po_line_item_id === piItem.po_line_id);\n      if (groupRows.length === 0) return;\n      const totalRemaining = round8(groupRows.reduce((sum, item) => sum + ((parseFloat(item.received_qty) || 0) - (parseFloat(item.invoice_qty) || 0)), 0));\n      if (round8(piItem.invoice_qty) > totalRemaining) {\n        errors.push({ itemName: piItem.material_id || piItem.material_name || `Item ${piItem.po_line_id}` });\n      }\n    });\n  }\n  return errors;\n};\n\nconst poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\nfor (const poID of poIds) {\n  const poData = poList.find((po) => po.id === poID);\n  if (!poData) continue;\n  const poItems = flattenRows(poData.table_po || []);\n  allErrors = [...allErrors, ...validateInvoiceQuantities(poItems, flattenRows(data.table_pi), poData.id, \"line_po_id\", \"po_line_id\", \"quantity\", true)];\n}\n\nif (data.gr_id && data.gr_id.length > 0) {\n  const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n  for (const grID of grIds) {\n    const grData = grList.find((gr) => gr.id === grID);\n    if (!grData) continue;\n    const grItems = flattenRows(grData.table_gr || []);\n    allErrors = [...allErrors, ...validateInvoiceQuantities(grItems, flattenRows(data.table_pi), grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\")];\n  }\n}\n\nreturn {\n  status: allErrors.length > 0 ? 'Failed' : 'Success',\n  allErrors\n};"
+                  "code": "// PI_SAVE v20 \"Check and roll up\": v19's over-invoice check (code_pi_validate) and PO / GR roll-up (code_pi_apply) in one node,\n// run before the invoice is written. The orders and receipts come from sql-nodes that read only the columns these two use; they\n// are put back into the shape the old search nodes gave (null and \"\" keys left off, a bundle's items under `children`).\nconst piParseJ = function piParseJ(t) {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst piShape = function piShape(rows, lineKey) {\n  const docs = [];\n  const byDoc = new Map();\n  for (const r of Array.isArray(rows) ? rows : []) {\n    const o = piParseJ(r && r.j !== undefined ? r.j : r);\n    if (!o || !o.doc) continue;\n    if (!byDoc.has(o.doc)) {\n      const doc = { id: o.doc, lines: [] };\n      byDoc.set(o.doc, doc);\n      docs.push(doc);\n    }\n    if (o.id === undefined || o.id === null || o.id === \"\") continue;\n    const line = {};\n    for (const k of Object.keys(o)) if (k !== \"doc\" && o[k] !== null && o[k] !== undefined && o[k] !== \"\") line[k] = o[k];\n    byDoc.get(o.doc).lines.push(line);\n  }\n  return docs.map((doc) => {\n    const ids = new Set(doc.lines.map((l) => String(l.id)));\n    const kids = new Map();\n    for (const l of doc.lines) {\n      if (l.parent_id === undefined || !ids.has(String(l.parent_id))) continue;\n      if (!kids.has(String(l.parent_id))) kids.set(String(l.parent_id), []);\n      kids.get(String(l.parent_id)).push(l);\n    }\n    const top = doc.lines.filter((l) => l.parent_id === undefined || !ids.has(String(l.parent_id)));\n    const tree = top.map((l) => (kids.has(String(l.id)) ? Object.assign({}, l, { children: kids.get(String(l.id)) }) : l));\n    return { id: doc.id, [lineKey]: tree };\n  });\n};\nconst piCheck = function piCheck(data, poRows, grRows) {\n  const poList = piShape(poRows, \"table_po\");\n  const grList = piShape(grRows, \"table_gr\");\n\n  // ---- code_pi_validate (v19) ----\n  let allErrors = [];\n  const flattenRows = (rows) => {\n    const flat = [];\n    for (const row of rows || []) {\n      flat.push(row);\n      const children = Array.isArray(row.children) ? row.children : [];\n      for (const child of children) flat.push(child);\n    }\n    return flat;\n  };\n  const round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n  const validateInvoiceQuantities = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey, excludeGRLines) => {\n    const filteredPI = tablePi.filter((item) => item[docIdKey] === docId && (!excludeGRLines || !item.line_gr_id || item.line_gr_id === \"\"));\n    const errors = [];\n    const byId = new Map();\n    for (const item of items) if (!byId.has(item.id)) byId.set(item.id, item);\n    filteredPI.forEach((piItem) => {\n      const originalItem = byId.get(piItem[piLineIdKey]);\n      if (originalItem) {\n        const availableQty = round8(originalItem[qtyKey]);\n        const currentInvoicedQty = round8(originalItem.invoice_qty);\n        const newInvoiceQty = round8(piItem.invoice_qty);\n        const totalInvoicedQty = round8(currentInvoicedQty + newInvoiceQty);\n        if (totalInvoicedQty > availableQty) {\n          errors.push({ itemName: originalItem.material_id || originalItem.material_name || `Item ${originalItem.id}` });\n        }\n      }\n    });\n    if (!excludeGRLines) {\n      filteredPI.forEach((piItem) => {\n        if ((piItem.gr_line_id && piItem.gr_line_id !== \"\") || !piItem.po_line_id) return;\n        const groupRows = items.filter((item) => item.parent_or_child === \"Split-Parent\" && item.po_line_item_id === piItem.po_line_id);\n        if (groupRows.length === 0) return;\n        const totalRemaining = round8(groupRows.reduce((sum, item) => sum + ((parseFloat(item.received_qty) || 0) - (parseFloat(item.invoice_qty) || 0)), 0));\n        if (round8(piItem.invoice_qty) > totalRemaining) {\n          errors.push({ itemName: piItem.material_id || piItem.material_name || `Item ${piItem.po_line_id}` });\n        }\n      });\n    }\n    return errors;\n  };\n  const poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\n  for (const poID of poIds) {\n    const poData = poList.find((po) => po.id === poID);\n    if (!poData) continue;\n    const poItems = flattenRows(poData.table_po || []);\n    allErrors = [...allErrors, ...validateInvoiceQuantities(poItems, flattenRows(data.table_pi), poData.id, \"line_po_id\", \"po_line_id\", \"quantity\", true)];\n  }\n  if (data.gr_id && data.gr_id.length > 0) {\n    const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n    for (const grID of grIds) {\n      const grData = grList.find((gr) => gr.id === grID);\n      if (!grData) continue;\n      const grItems = flattenRows(grData.table_gr || []);\n      allErrors = [...allErrors, ...validateInvoiceQuantities(grItems, flattenRows(data.table_pi), grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\")];\n    }\n  }\n  if (allErrors.length > 0) return { status: \"Failed\", allErrors: allErrors };\n\n  // ---- code_pi_apply (v19) ----\n  const absRound8 = (value) => {\n    let positiveValue = Math.abs(value);\n    return Math.round((parseFloat(positiveValue) || 0) * 100000000) / 100000000;\n  };\n  const qtyStr = (value) => absRound8(value).toFixed(8);\n  const bundleKey = (row) => {\n    const bundle = row.item_bundle_id;\n    if (bundle && typeof bundle === \"object\") return String(bundle.id || bundle.ib_no || \"\");\n    return String(bundle || \"\");\n  };\n  const flattenWithParent = (rows, itemKey) => {\n    const flat = [];\n    const positionOf = new Map();\n    const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];\n    const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);\n    let openBundle = -1;\n    for (const [index, row] of (rows || []).entries()) {\n      const position = flat.length;\n      positionOf.set(index, position);\n      const children = Array.isArray(row.children) ? row.children : [];\n      if (children.length > 0) {\n        openBundle = -1;\n        flat.push({ row, parent: -1, nested: false });\n        for (const child of children) flat.push({ row: child, parent: position, nested: true });\n        continue;\n      }\n      if (isBundleRow(row)) {\n        openBundle = position;\n        flat.push({ row, parent: -1, nested: false });\n        continue;\n      }\n      if (!isBundleItem(row)) {\n        openBundle = -1;\n        flat.push({ row, parent: -1, nested: false });\n        continue;\n      }\n      let parent = -1;\n      for (let candidate = index - 1; candidate >= 0; candidate--) {\n        const candidateRow = rows[candidate];\n        if (!isBundleRow(candidateRow)) continue;\n        const byId = row.parent_id != null && candidateRow.id != null && String(row.parent_id) === String(candidateRow.id);\n        const byKey = row.parent_fm_key != null && candidateRow.fm_key != null && String(row.parent_fm_key) === String(candidateRow.fm_key);\n        if (byId || byKey) {\n          parent = positionOf.get(candidate);\n          break;\n        }\n      }\n      if (parent === -1 && openBundle !== -1 && bundleKey(flat[openBundle].row) === bundleKey(row)) parent = openBundle;\n      flat.push({ row, parent, nested: false });\n    }\n    return flat;\n  };\n  const flattenRowsP = (rows, itemKey) => flattenWithParent(rows, itemKey).map((item) => item.row);\n  const processItems = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey) => {\n    const filteredPI = flattenRowsP(tablePi, \"material_id\").filter((item) => item[docIdKey] === docId);\n    const isGR = piLineIdKey === \"gr_line_id\";\n    const distributedByRowId = {};\n    if (isGR) {\n      const combinedPIs = filteredPI.filter((pi) => (!pi.gr_line_id || pi.gr_line_id === \"\") && pi.po_line_id);\n      for (const cpi of combinedPIs) {\n        const groupRows = items.filter((r) => r.parent_or_child === \"Split-Parent\" && r.po_line_item_id === cpi.po_line_id)\n          .sort((a, b) => String(a.line_index).localeCompare(String(b.line_index), undefined, { numeric: true }));\n        let remainingToAllocate = absRound8(cpi.invoice_qty);\n        for (const r of groupRows) {\n          if (remainingToAllocate <= 0) break;\n          const already = distributedByRowId[r.id] || 0;\n          const capacity = absRound8((parseFloat(r.received_qty) || 0) - (parseFloat(r.invoice_qty) || 0) - already);\n          if (capacity <= 0) continue;\n          const alloc = Math.min(remainingToAllocate, capacity);\n          distributedByRowId[r.id] = absRound8(already + alloc);\n          remainingToAllocate = absRound8(remainingToAllocate - alloc);\n        }\n      }\n    }\n    // the invoice lines matched to each order / receipt line, grouped once (v19 filtered every line per line)\n    const matchedBy = new Map();\n    for (const pi of filteredPI) {\n      const k = pi[piLineIdKey];\n      if (!matchedBy.has(k)) matchedBy.set(k, []);\n      matchedBy.get(k).push(pi);\n    }\n    const source = flattenWithParent(items, \"item_id\");\n    const updated = source.map(({ row, parent }) => {\n      const matchedPIs = matchedBy.get(row.id) || [];\n      const directQty = matchedPIs.length > 0 ? absRound8(matchedPIs.reduce((s, pi) => s + (parseFloat(pi.invoice_qty) || 0), 0)) : 0;\n      const distributedQty = distributedByRowId[row.id] || 0;\n      const piInvoicedQty = absRound8(directQty + distributedQty);\n      if (piInvoicedQty !== 0) {\n        const currentInvoicedQty = absRound8(row.invoice_qty);\n        const totalInvoicedQty = absRound8(currentInvoicedQty + piInvoicedQty);\n        return { row: { ...row, invoice_qty: totalInvoicedQty }, parent };\n      }\n      return { row: { ...row }, parent };\n    });\n    let totalItems = 0;\n    let partiallyInvoicedItems = 0;\n    let fullyInvoicedItems = 0;\n    for (const entry of updated) {\n      if (entry.parent !== -1) continue;\n      if (entry.row.parent_or_child === \"Child\") continue;\n      totalItems++;\n      if (absRound8(entry.row.invoice_qty) > 0) {\n        partiallyInvoicedItems++;\n        entry.row.pi_status = \"Partially Invoiced\";\n        if (absRound8(entry.row.invoice_qty) >= absRound8(entry.row[qtyKey] || 0)) {\n          fullyInvoicedItems++;\n          entry.row.pi_status = \"Fully Invoiced\";\n        }\n      }\n    }\n    for (const entry of updated) {\n      if (entry.parent === -1) continue;\n      entry.row.pi_status = updated[entry.parent].row.pi_status;\n    }\n    const lineUpdates = [];\n    for (const [index, entry] of updated.entries()) {\n      const before = source[index].row;\n      if (absRound8(entry.row.invoice_qty) === absRound8(before.invoice_qty) && String(entry.row.pi_status || \"\") === String(before.pi_status || \"\")) continue;\n      lineUpdates.push({ id: entry.row.id, invoice_qty: qtyStr(entry.row.invoice_qty), pi_status: entry.row.pi_status || \"\" });\n    }\n    const allItemsComplete = fullyInvoicedItems === totalItems;\n    const anyItemProcessing = partiallyInvoicedItems > 0;\n    const newPIStatus = anyItemProcessing ? (allItemsComplete ? \"Fully Invoiced\" : \"Partially Invoiced\") : \"\";\n    return { lineUpdates, newPIStatus };\n  };\n  const poHeaders = [];\n  const poLines = [];\n  for (const poID of poIds) {\n    const poData = poList.find((po) => po.id === poID);\n    if (!poData) continue;\n    const { lineUpdates, newPIStatus } = processItems(poData.table_po || [], data.table_pi, poData.id, \"line_po_id\", \"po_line_id\", \"quantity\");\n    poHeaders.push({ id: poData.id, pi_status: newPIStatus });\n    poLines.push(...lineUpdates);\n  }\n  const grHeaders = [];\n  const grLines = [];\n  if (data.gr_id && data.gr_id.length > 0) {\n    const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n    for (const grID of grIds) {\n      const grData = grList.find((gr) => gr.id === grID);\n      if (!grData) continue;\n      const { lineUpdates, newPIStatus } = processItems(grData.table_gr || [], data.table_pi, grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\");\n      grHeaders.push({ id: grData.id, pi_status: newPIStatus });\n      grLines.push(...lineUpdates);\n    }\n  }\n  const flag = (rows) => (rows.length > 0 ? 1 : 0);\n  return {\n    status: \"Success\",\n    allErrors: [],\n    poHeaders,\n    hasPoHeaders: flag(poHeaders),\n    poLines,\n    hasPoLines: flag(poLines),\n    grHeaders,\n    hasGrHeaders: flag(grHeaders),\n    grLines,\n    hasGrLines: flag(grLines),\n  };\n};\n\nreturn piCheck({{node:code_pi_prep.data.check}}, [{{node:sql_node_pi_po.data}}][0], [{{node:sql_node_pi_gr.data}}][0]);"
                 },
                 "response_json": [
+                  {
+                    "key": "ydwed2bd",
+                    "name": "status",
+                    "title": "status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
                   {
                     "key": "jyrxr5fp",
                     "name": "allErrors",
@@ -986,12 +769,120 @@
                     ]
                   },
                   {
-                    "key": "beqiqzdl",
-                    "name": "status",
-                    "title": "",
+                    "key": "n8ep3rdi",
+                    "name": "poHeaders",
+                    "title": "poHeaders",
                     "description": "",
-                    "bsonType": "string",
-                    "isExpand": false
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "csq8r8s9",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "ip0rwo28",
+                    "name": "hasPoHeaders",
+                    "title": "hasPoHeaders",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kznb8nhy",
+                    "name": "poLines",
+                    "title": "poLines",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "vo4acvw5",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "a9ssee6i",
+                    "name": "hasPoLines",
+                    "title": "hasPoLines",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "w1zjtrad",
+                    "name": "grHeaders",
+                    "title": "grHeaders",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "3qh99g08",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "ta7n37ig",
+                    "name": "hasGrHeaders",
+                    "title": "hasGrHeaders",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "0pvq0ke3",
+                    "name": "grLines",
+                    "title": "grLines",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "jrtbs0pu",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "gtzrbjlk",
+                    "name": "hasGrLines",
+                    "title": "hasGrLines",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
                   }
                 ]
               },
@@ -1008,7 +899,7 @@
                 "condition_type": "Expression",
                 "expression": {
                   "type": "javascript",
-                  "code": "'{{node:code_pi_validate.data.status}}' == 'Failed'"
+                  "code": "'{{node:code_pi_check.data.status}}' == 'Failed'"
                 }
               },
               "blocks": [
@@ -1030,7 +921,7 @@
                         "name": "410 Error Msg",
                         "script": {
                           "type": "javascript",
-                          "code": "const errMsg = {{node:code_pi_validate.data.allErrors}}.map((err) => err.itemName).join(', ')\n\nreturn {\n message: `${errMsg} invoice quantity exceed available invoice quantity.`\n}"
+                          "code": "const errMsg = {{node:code_pi_check.data.allErrors}}.map((err) => err.itemName).join(', ')\n\nreturn {\n message: `${errMsg} invoice quantity exceed available invoice quantity.`\n}"
                         },
                         "response_json": [
                           {
@@ -1139,7 +1030,7 @@
                     {
                       "prop": "pi_status",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_status}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_status}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "PI Status"
@@ -1147,7 +1038,7 @@
                     {
                       "prop": "posted_status",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.posted_status}}",
+                      "value": "{{node:code_pi_prep.data.entry.posted_status}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Posted Status"
@@ -1155,7 +1046,7 @@
                     {
                       "prop": "pi_ref_doc",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_ref_doc}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_ref_doc}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Reference Documents"
@@ -1163,7 +1054,7 @@
                     {
                       "prop": "purchase_invoice_no",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no}}",
+                      "value": "{{node:code_pi_prep.data.entry.purchase_invoice_no}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Purchase Invoice Number"
@@ -1171,7 +1062,7 @@
                     {
                       "prop": "purchase_invoice_no_type",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no_type}}",
+                      "value": "{{node:code_pi_prep.data.entry.purchase_invoice_no_type}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "规则"
@@ -1179,7 +1070,7 @@
                     {
                       "prop": "invoice_date",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_date}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_date}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Invoice Date"
@@ -1187,7 +1078,7 @@
                     {
                       "prop": "pi_description",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_description}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_description}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Description"
@@ -1195,7 +1086,7 @@
                     {
                       "prop": "created_source",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.created_source}}",
+                      "value": "{{node:code_pi_prep.data.entry.created_source}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Created Source"
@@ -1203,7 +1094,7 @@
                     {
                       "prop": "wa_number",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.wa_number}}",
+                      "value": "{{node:code_pi_prep.data.entry.wa_number}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Whatsapp No"
@@ -1211,7 +1102,7 @@
                     {
                       "prop": "wa_group",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.wa_group}}",
+                      "value": "{{node:code_pi_prep.data.entry.wa_group}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Whatsapp Group"
@@ -1219,7 +1110,7 @@
                     {
                       "prop": "remarks",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks"
@@ -1227,7 +1118,7 @@
                     {
                       "prop": "remarks2",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks2}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks2}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks 2"
@@ -1235,7 +1126,7 @@
                     {
                       "prop": "remarks3",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks3}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks3}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks 3"
@@ -1243,7 +1134,7 @@
                     {
                       "prop": "remarks4",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks4}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks4}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks 4"
@@ -1251,7 +1142,7 @@
                     {
                       "prop": "remarks5",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks5}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks5}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks 5"
@@ -1259,7 +1150,7 @@
                     {
                       "prop": "plant_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.plant_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.plant_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Plant"
@@ -1267,7 +1158,7 @@
                     {
                       "prop": "supplier_name",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.supplier_name}}",
+                      "value": "{{node:code_pi_prep.data.entry.supplier_name}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Supplier"
@@ -1275,7 +1166,7 @@
                     {
                       "prop": "po_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.po_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.po_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "PO ID"
@@ -1283,7 +1174,7 @@
                     {
                       "prop": "gr_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.gr_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.gr_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "GR ID"
@@ -1291,7 +1182,7 @@
                     {
                       "prop": "po_no_display",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.po_no_display}}",
+                      "value": "{{node:code_pi_prep.data.entry.po_no_display}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "PO Number"
@@ -1299,7 +1190,7 @@
                     {
                       "prop": "gr_no_display",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.gr_no_display}}",
+                      "value": "{{node:code_pi_prep.data.entry.gr_no_display}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "GR Number"
@@ -1307,7 +1198,7 @@
                     {
                       "prop": "organization_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.organization_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.organization_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Organization"
@@ -1315,7 +1206,7 @@
                     {
                       "prop": "acc_integration_type",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.acc_integration_type}}",
+                      "value": "{{node:code_pi_prep.data.entry.acc_integration_type}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Accounting Integration Type"
@@ -1323,7 +1214,7 @@
                     {
                       "prop": "project_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.project_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.project_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Project"
@@ -1331,7 +1222,7 @@
                     {
                       "prop": "invoice_payment_term_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_payment_term_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_payment_term_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Payment Term"
@@ -1339,7 +1230,7 @@
                     {
                       "prop": "currency_code",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.currency_code}}",
+                      "value": "{{node:code_pi_prep.data.entry.currency_code}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Currency"
@@ -1347,7 +1238,7 @@
                     {
                       "prop": "exchange_rate",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate}}",
+                      "value": "{{node:code_pi_prep.data.entry.exchange_rate}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Exchange Rate"
@@ -1355,7 +1246,7 @@
                     {
                       "prop": "exchange_rate_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.exchange_rate_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Exchange Rate Currency"
@@ -1363,7 +1254,7 @@
                     {
                       "prop": "exchange_rate_myr",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate_myr}}",
+                      "value": "{{node:code_pi_prep.data.entry.exchange_rate_myr}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Exchange Rate MYR"
@@ -1371,7 +1262,7 @@
                     {
                       "prop": "inv_tax_rate_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.inv_tax_rate_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.inv_tax_rate_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Tax Rate"
@@ -1379,7 +1270,7 @@
                     {
                       "prop": "inv_taxes_rate_percent",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.inv_taxes_rate_percent}}",
+                      "value": "{{node:code_pi_prep.data.entry.inv_taxes_rate_percent}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Tax Rate Percent"
@@ -1387,7 +1278,7 @@
                     {
                       "prop": "pi_billing_address",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_billing_address}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_billing_address}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Billing Address"
@@ -1395,7 +1286,7 @@
                     {
                       "prop": "pi_shipping_address",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_shipping_address}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_shipping_address}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Shipping Address"
@@ -1403,7 +1294,7 @@
                     {
                       "prop": "billing_address_name",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_name}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_name}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Address Name"
@@ -1411,7 +1302,7 @@
                     {
                       "prop": "billing_address_phone",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_phone}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
@@ -1419,7 +1310,7 @@
                     {
                       "prop": "billing_address_line_1",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_1}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Address"
@@ -1427,7 +1318,7 @@
                     {
                       "prop": "billing_address_line_2",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_2}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "billing_address_line_2"
@@ -1435,7 +1326,7 @@
                     {
                       "prop": "billing_address_line_3",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_3}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "billing_address_line_3"
@@ -1443,7 +1334,7 @@
                     {
                       "prop": "billing_address_line_4",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_4}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "billing_address_line_4"
@@ -1451,7 +1342,7 @@
                     {
                       "prop": "billing_address_city",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_city}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_city}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "City"
@@ -1459,7 +1350,7 @@
                     {
                       "prop": "billing_postal_code",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_postal_code}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Postal Code"
@@ -1467,7 +1358,7 @@
                     {
                       "prop": "billing_address_state",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_state}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_state}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "State"
@@ -1475,7 +1366,7 @@
                     {
                       "prop": "billing_address_country",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_country}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_country}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Country"
@@ -1483,7 +1374,7 @@
                     {
                       "prop": "billing_attention",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_attention}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_attention}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Attention"
@@ -1491,7 +1382,7 @@
                     {
                       "prop": "billing_address_fax",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_fax}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Fax"
@@ -1499,7 +1390,7 @@
                     {
                       "prop": "shipping_address_fax",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_fax}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Fax"
@@ -1507,7 +1398,7 @@
                     {
                       "prop": "shipping_address_name",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_name}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_name}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Address Name"
@@ -1515,7 +1406,7 @@
                     {
                       "prop": "shipping_address_phone",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_phone}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
@@ -1523,7 +1414,7 @@
                     {
                       "prop": "shipping_address_line_1",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_1}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Address"
@@ -1531,7 +1422,7 @@
                     {
                       "prop": "shipping_address_line_2",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_2}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "shipping_address_line_2"
@@ -1539,7 +1430,7 @@
                     {
                       "prop": "shipping_address_line_3",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_3}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "shipping_address_line_3"
@@ -1547,7 +1438,7 @@
                     {
                       "prop": "shipping_address_line_4",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_4}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "shipping_address_line_4"
@@ -1555,7 +1446,7 @@
                     {
                       "prop": "shipping_address_city",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_city}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_city}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "City"
@@ -1563,7 +1454,7 @@
                     {
                       "prop": "shipping_postal_code",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_postal_code}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Postal Code"
@@ -1571,7 +1462,7 @@
                     {
                       "prop": "shipping_address_state",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_state}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_state}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "State"
@@ -1579,7 +1470,7 @@
                     {
                       "prop": "shipping_address_country",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_country}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_country}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Country"
@@ -1587,7 +1478,7 @@
                     {
                       "prop": "shipping_attention",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_attention}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_attention}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Attention"
@@ -1595,7 +1486,7 @@
                     {
                       "prop": "invoice_subtotal",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_subtotal}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_subtotal}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Sub Total"
@@ -1603,7 +1494,7 @@
                     {
                       "prop": "invoice_total_discount",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_total_discount}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_total_discount}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Discount"
@@ -1611,7 +1502,7 @@
                     {
                       "prop": "invoice_taxes_amount",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_taxes_amount}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_taxes_amount}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Tax Amount"
@@ -1619,7 +1510,7 @@
                     {
                       "prop": "invoice_total",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_total}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_total}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total"
@@ -1627,7 +1518,7 @@
                     {
                       "prop": "total_gross_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_gross_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_gross_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Gross"
@@ -1635,7 +1526,7 @@
                     {
                       "prop": "total_discount_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_discount_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_discount_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Discount"
@@ -1643,7 +1534,7 @@
                     {
                       "prop": "total_tax_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_tax_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_tax_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Tax Fee"
@@ -1651,7 +1542,7 @@
                     {
                       "prop": "total_amount_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_amount_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_amount_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Amount"
@@ -1659,7 +1550,7 @@
                     {
                       "prop": "myr_total_amount",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.myr_total_amount}}",
+                      "value": "{{node:code_pi_prep.data.entry.myr_total_amount}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Amount MYR"
@@ -1667,7 +1558,7 @@
                     {
                       "prop": "total_amount_myr",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_amount_myr}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_amount_myr}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Amount MYR Label"
@@ -1675,7 +1566,7 @@
                     {
                       "prop": "agent_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.agent_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.agent_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Agent"
@@ -1683,7 +1574,7 @@
                     {
                       "prop": "table_pi",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.table_pi}}",
+                      "value": "{{node:code_pi_prep.data.entry.table_pi}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "PI Item"
@@ -1691,7 +1582,7 @@
                     {
                       "prop": "custom_fields_d10wd6ob",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.custom_fields_d10wd6ob}}",
+                      "value": "{{node:code_pi_prep.data.entry.custom_fields_d10wd6ob}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "custom_fields_d10wd6ob"
@@ -1721,7 +1612,7 @@
                 "timeout": 30000,
                 "script": {
                   "type": "javascript",
-                  "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_pi_fillback.data.entry.custom_fields_d10wd6ob}}][0];\nconst lines = [{{node:code_pi_fillback.data.entry.table_pi}}][0];\nconst rawId = [{{node:code_pi_fillback.data.entry.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_y78jfz24\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
+                  "code": "// Custom fields this edit would blank: the payload left the header object, or a line's, out\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_pi_prep.data.entry.custom_fields_d10wd6ob}}][0];\nconst lines = [{{node:code_pi_prep.data.entry.table_pi}}][0];\nconst rawId = [{{node:code_pi_prep.data.entry.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst lineKeys = [\"custom_fields_y78jfz24\"];\nconst lineMiss = flat(lines).some((r) => lineKeys.some((k) => missing(r[k])));\nreturn { need: /^[0-9]{1,20}$/.test(id) && (missing(cf) || lineMiss) ? \"YES\" : \"NO\", id: id };"
                 },
                 "response_json": [
                   {
@@ -1824,7 +1715,7 @@
                         "timeout": 30000,
                         "script": {
                           "type": "javascript",
-                          "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_pi_fillback.data.entry.custom_fields_d10wd6ob}}][0];\nconst lines = [{{node:code_pi_fillback.data.entry.table_pi}}][0];\nconst got = [{{node:get_node_CfStored1.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = null;\nconst storedRows = flat(stored[\"table_pi\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_d10wd6ob\"]) ? null : stored[\"custom_fields_d10wd6ob\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
+                          "code": "// The stored custom fields for what this edit left out: the header as stored; each line by its id\nconst missing = (v) => v === undefined || v === null;\nconst flat = (rows) => {\n  const out = [];\n  for (const r of Array.isArray(rows) ? rows : []) {\n    if (!r || typeof r !== \"object\") continue;\n    out.push(r);\n    for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") out.push(c);\n  }\n  return out;\n};\nconst cf = [{{node:code_pi_prep.data.entry.custom_fields_d10wd6ob}}][0];\nconst lines = [{{node:code_pi_prep.data.entry.table_pi}}][0];\nconst got = [{{node:get_node_CfStored1.data.data}}][0];\nconst stored = (Array.isArray(got) ? got[0] : got) || {};\nconst natKey = null;\nconst storedRows = flat(stored[\"table_pi\"]);\nconst sentIds = new Set(flat(lines).map((r) => (missing(r.id) ? \"\" : String(r.id))).filter((x) => x));\nconst byId = new Map(storedRows.filter((r) => !missing(r.id) && r.id !== \"\").map((r) => [String(r.id), r]));\nconst byKey = new Map();\nif (natKey) {\n  for (const r of storedRows) {\n    if (sentIds.has(String(r.id))) continue;\n    const k = missing(r[natKey]) ? \"\" : String(r[natKey]);\n    if (!k) continue;\n    if (!byKey.has(k)) byKey.set(k, []);\n    byKey.get(k).push(r);\n  }\n}\nconst fill = (row) => {\n  if (!row || typeof row !== \"object\") return row;\n  let src = !missing(row.id) && row.id !== \"\" ? byId.get(String(row.id)) : undefined;\n  if (!src && natKey) {\n    const queue = byKey.get(missing(row[natKey]) ? \"\" : String(row[natKey]));\n    if (queue && queue.length) src = queue.shift();\n  }\n  const add = {};\n  if (src) for (const k of Object.keys(src)) if (k.indexOf(\"custom_fields\") === 0 && missing(row[k]) && !missing(src[k])) add[k] = src[k];\n  let next = Object.keys(add).length ? Object.assign({}, row, add) : row;\n  if (Array.isArray(row.children)) next = Object.assign({}, next, { children: row.children.map(fill) });\n  return next;\n};\nreturn { ok: \"YES\", cf: missing(cf) ? (missing(stored[\"custom_fields_d10wd6ob\"]) ? null : stored[\"custom_fields_d10wd6ob\"]) : cf, lines: Array.isArray(lines) ? lines.map(fill) : lines };"
                         },
                         "response_json": [
                           {
@@ -1892,7 +1783,7 @@
                 "timeout": 30000,
                 "script": {
                   "type": "javascript",
-                  "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill1.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_pi_fillback.data.entry.custom_fields_d10wd6ob}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_pi_fillback.data.entry.table_pi}}][0] };"
+                  "code": "// What the update writes: the payload's custom fields, or the stored ones where this edit left them out\nconst filled = [{{node:code_node_CfFill1.data}}][0];\nif (filled && filled.ok === \"YES\") return { cf: filled.cf, lines: filled.lines };\nconst cf = [{{node:code_pi_prep.data.entry.custom_fields_d10wd6ob}}][0];\nreturn { cf: cf === undefined ? null : cf, lines: [{{node:code_pi_prep.data.entry.table_pi}}][0] };"
                 },
                 "response_json": [
                   {
@@ -1948,7 +1839,7 @@
                         "prop": "id",
                         "operator": "in",
                         "valueType": "field",
-                        "value": "{{node:code_pi_fillback.data.entry.id}}",
+                        "value": "{{node:code_pi_prep.data.entry.id}}",
                         "type": "leaf",
                         "level": 1,
                         "propLabel": "主键ID",
@@ -1970,7 +1861,7 @@
                     {
                       "prop": "id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.id}}",
+                      "value": "{{node:code_pi_prep.data.entry.id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "主键ID"
@@ -1978,7 +1869,7 @@
                     {
                       "prop": "pi_status",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_status}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_status}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "PI Status"
@@ -1986,7 +1877,7 @@
                     {
                       "prop": "posted_status",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.posted_status}}",
+                      "value": "{{node:code_pi_prep.data.entry.posted_status}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Posted Status"
@@ -1994,7 +1885,7 @@
                     {
                       "prop": "pi_ref_doc",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_ref_doc}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_ref_doc}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Reference Documents"
@@ -2002,7 +1893,7 @@
                     {
                       "prop": "purchase_invoice_no",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no}}",
+                      "value": "{{node:code_pi_prep.data.entry.purchase_invoice_no}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Purchase Invoice Number"
@@ -2010,7 +1901,7 @@
                     {
                       "prop": "purchase_invoice_no_type",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.purchase_invoice_no_type}}",
+                      "value": "{{node:code_pi_prep.data.entry.purchase_invoice_no_type}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "规则"
@@ -2018,7 +1909,7 @@
                     {
                       "prop": "invoice_date",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_date}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_date}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Invoice Date"
@@ -2026,7 +1917,7 @@
                     {
                       "prop": "pi_description",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_description}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_description}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Description"
@@ -2034,7 +1925,7 @@
                     {
                       "prop": "created_source",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.created_source}}",
+                      "value": "{{node:code_pi_prep.data.entry.created_source}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Created Source"
@@ -2042,7 +1933,7 @@
                     {
                       "prop": "wa_number",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.wa_number}}",
+                      "value": "{{node:code_pi_prep.data.entry.wa_number}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Whatsapp No"
@@ -2050,7 +1941,7 @@
                     {
                       "prop": "wa_group",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.wa_group}}",
+                      "value": "{{node:code_pi_prep.data.entry.wa_group}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Whatsapp Group"
@@ -2058,7 +1949,7 @@
                     {
                       "prop": "remarks",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks"
@@ -2066,7 +1957,7 @@
                     {
                       "prop": "remarks2",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks2}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks2}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks 2"
@@ -2074,7 +1965,7 @@
                     {
                       "prop": "remarks3",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks3}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks3}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks 3"
@@ -2082,7 +1973,7 @@
                     {
                       "prop": "remarks4",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks4}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks4}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks 4"
@@ -2090,7 +1981,7 @@
                     {
                       "prop": "remarks5",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.remarks5}}",
+                      "value": "{{node:code_pi_prep.data.entry.remarks5}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Remarks 5"
@@ -2098,7 +1989,7 @@
                     {
                       "prop": "plant_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.plant_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.plant_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Plant"
@@ -2106,7 +1997,7 @@
                     {
                       "prop": "supplier_name",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.supplier_name}}",
+                      "value": "{{node:code_pi_prep.data.entry.supplier_name}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Supplier"
@@ -2114,7 +2005,7 @@
                     {
                       "prop": "po_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.po_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.po_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "PO ID"
@@ -2122,7 +2013,7 @@
                     {
                       "prop": "gr_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.gr_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.gr_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "GR ID"
@@ -2130,7 +2021,7 @@
                     {
                       "prop": "po_no_display",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.po_no_display}}",
+                      "value": "{{node:code_pi_prep.data.entry.po_no_display}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "PO Number"
@@ -2138,7 +2029,7 @@
                     {
                       "prop": "gr_no_display",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.gr_no_display}}",
+                      "value": "{{node:code_pi_prep.data.entry.gr_no_display}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "GR Number"
@@ -2146,7 +2037,7 @@
                     {
                       "prop": "organization_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.organization_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.organization_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Organization"
@@ -2154,7 +2045,7 @@
                     {
                       "prop": "acc_integration_type",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.acc_integration_type}}",
+                      "value": "{{node:code_pi_prep.data.entry.acc_integration_type}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Accounting Integration Type"
@@ -2162,7 +2053,7 @@
                     {
                       "prop": "project_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.project_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.project_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Project"
@@ -2170,7 +2061,7 @@
                     {
                       "prop": "invoice_payment_term_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_payment_term_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_payment_term_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Payment Term"
@@ -2178,7 +2069,7 @@
                     {
                       "prop": "currency_code",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.currency_code}}",
+                      "value": "{{node:code_pi_prep.data.entry.currency_code}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Currency"
@@ -2186,7 +2077,7 @@
                     {
                       "prop": "exchange_rate",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate}}",
+                      "value": "{{node:code_pi_prep.data.entry.exchange_rate}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Exchange Rate"
@@ -2194,7 +2085,7 @@
                     {
                       "prop": "exchange_rate_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.exchange_rate_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Exchange Rate Currency"
@@ -2202,7 +2093,7 @@
                     {
                       "prop": "exchange_rate_myr",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.exchange_rate_myr}}",
+                      "value": "{{node:code_pi_prep.data.entry.exchange_rate_myr}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Exchange Rate MYR"
@@ -2210,7 +2101,7 @@
                     {
                       "prop": "inv_tax_rate_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.inv_tax_rate_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.inv_tax_rate_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Tax Rate"
@@ -2218,7 +2109,7 @@
                     {
                       "prop": "inv_taxes_rate_percent",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.inv_taxes_rate_percent}}",
+                      "value": "{{node:code_pi_prep.data.entry.inv_taxes_rate_percent}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Tax Rate Percent"
@@ -2226,7 +2117,7 @@
                     {
                       "prop": "pi_billing_address",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_billing_address}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_billing_address}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Billing Address"
@@ -2234,7 +2125,7 @@
                     {
                       "prop": "pi_shipping_address",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.pi_shipping_address}}",
+                      "value": "{{node:code_pi_prep.data.entry.pi_shipping_address}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Shipping Address"
@@ -2242,7 +2133,7 @@
                     {
                       "prop": "billing_address_name",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_name}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_name}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Address Name"
@@ -2250,7 +2141,7 @@
                     {
                       "prop": "billing_address_phone",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_phone}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
@@ -2258,7 +2149,7 @@
                     {
                       "prop": "billing_address_line_1",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_1}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Address"
@@ -2266,7 +2157,7 @@
                     {
                       "prop": "billing_address_line_2",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_2}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "billing_address_line_2"
@@ -2274,7 +2165,7 @@
                     {
                       "prop": "billing_address_line_3",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_3}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "billing_address_line_3"
@@ -2282,7 +2173,7 @@
                     {
                       "prop": "billing_address_line_4",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_line_4}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "billing_address_line_4"
@@ -2290,7 +2181,7 @@
                     {
                       "prop": "billing_address_city",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_city}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_city}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "City"
@@ -2298,7 +2189,7 @@
                     {
                       "prop": "billing_postal_code",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_postal_code}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Postal Code"
@@ -2306,7 +2197,7 @@
                     {
                       "prop": "billing_address_state",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_state}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_state}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "State"
@@ -2314,7 +2205,7 @@
                     {
                       "prop": "billing_address_country",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_country}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_country}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Country"
@@ -2322,7 +2213,7 @@
                     {
                       "prop": "billing_attention",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_attention}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_attention}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Attention"
@@ -2330,7 +2221,7 @@
                     {
                       "prop": "billing_address_fax",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.billing_address_fax}}",
+                      "value": "{{node:code_pi_prep.data.entry.billing_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Fax"
@@ -2338,7 +2229,7 @@
                     {
                       "prop": "shipping_address_fax",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_fax}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Fax"
@@ -2346,7 +2237,7 @@
                     {
                       "prop": "shipping_address_name",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_name}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_name}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Address Name"
@@ -2354,7 +2245,7 @@
                     {
                       "prop": "shipping_address_phone",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_phone}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Contact Number"
@@ -2362,7 +2253,7 @@
                     {
                       "prop": "shipping_address_line_1",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_1}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Address"
@@ -2370,7 +2261,7 @@
                     {
                       "prop": "shipping_address_line_2",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_2}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "shipping_address_line_2"
@@ -2378,7 +2269,7 @@
                     {
                       "prop": "shipping_address_line_3",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_3}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "shipping_address_line_3"
@@ -2386,7 +2277,7 @@
                     {
                       "prop": "shipping_address_line_4",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_line_4}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "shipping_address_line_4"
@@ -2394,7 +2285,7 @@
                     {
                       "prop": "shipping_address_city",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_city}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_city}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "City"
@@ -2402,7 +2293,7 @@
                     {
                       "prop": "shipping_postal_code",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_postal_code}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Postal Code"
@@ -2410,7 +2301,7 @@
                     {
                       "prop": "shipping_address_state",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_state}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_state}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "State"
@@ -2418,7 +2309,7 @@
                     {
                       "prop": "shipping_address_country",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_address_country}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_address_country}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Country"
@@ -2426,7 +2317,7 @@
                     {
                       "prop": "shipping_attention",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.shipping_attention}}",
+                      "value": "{{node:code_pi_prep.data.entry.shipping_attention}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Attention"
@@ -2434,7 +2325,7 @@
                     {
                       "prop": "invoice_subtotal",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_subtotal}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_subtotal}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Sub Total"
@@ -2442,7 +2333,7 @@
                     {
                       "prop": "invoice_total_discount",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_total_discount}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_total_discount}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Discount"
@@ -2450,7 +2341,7 @@
                     {
                       "prop": "invoice_taxes_amount",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_taxes_amount}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_taxes_amount}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Tax Amount"
@@ -2458,7 +2349,7 @@
                     {
                       "prop": "invoice_total",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.invoice_total}}",
+                      "value": "{{node:code_pi_prep.data.entry.invoice_total}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total"
@@ -2466,7 +2357,7 @@
                     {
                       "prop": "total_gross_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_gross_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_gross_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Gross"
@@ -2474,7 +2365,7 @@
                     {
                       "prop": "total_discount_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_discount_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_discount_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Discount"
@@ -2482,7 +2373,7 @@
                     {
                       "prop": "total_tax_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_tax_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_tax_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Tax Fee"
@@ -2490,7 +2381,7 @@
                     {
                       "prop": "total_amount_currency",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_amount_currency}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_amount_currency}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Amount"
@@ -2498,7 +2389,7 @@
                     {
                       "prop": "myr_total_amount",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.myr_total_amount}}",
+                      "value": "{{node:code_pi_prep.data.entry.myr_total_amount}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Amount MYR"
@@ -2506,7 +2397,7 @@
                     {
                       "prop": "total_amount_myr",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.total_amount_myr}}",
+                      "value": "{{node:code_pi_prep.data.entry.total_amount_myr}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Total Amount MYR Label"
@@ -2514,7 +2405,7 @@
                     {
                       "prop": "agent_id",
                       "valueType": "field",
-                      "value": "{{node:code_pi_fillback.data.entry.agent_id}}",
+                      "value": "{{node:code_pi_prep.data.entry.agent_id}}",
                       "operator": "",
                       "valueLabel": "",
                       "propLabel": "Agent"
@@ -2539,44 +2430,68 @@
                 }
               },
               "blocks": []
-            },
-            {
-              "id": "get_node_pi",
-              "type": "get-node",
-              "data": {
-                "table_id": {
-                  "source": "Purchase Invoice:Table:1902777443710779394",
-                  "rules": {
-                    "collectionId": "1902777443710779394",
-                    "list": [
-                      {
-                        "id": 1777279551551,
-                        "parentId": 1777279551550,
-                        "isTop": true,
-                        "prop": "id",
-                        "operator": "in",
-                        "valueType": "field",
-                        "value": "{{node:code_pi_fillback.data.entry.id}}",
-                        "type": "leaf",
-                        "level": 1,
-                        "propLabel": "主键ID",
-                        "valueLabel": "",
-                        "operatorLabel": "In"
-                      }
-                    ]
-                  }
-                },
-                "condition": {},
-                "title": "Fetch PI",
-                "isValidator": true,
-                "nodeName": "Fetch PI",
-                "name": "Fetch PI"
-              },
-              "blocks": []
             }
           ]
         }
       ]
+    },
+    {
+      "id": "code_pi_saved",
+      "type": "code-node",
+      "data": {
+        "title": "Saved PI id",
+        "isValidator": true,
+        "nodeName": "Saved PI id",
+        "name": "Saved PI id",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// PI_SAVE v20 \"Saved PI\": the id this save wrote - the row Add Data inserted (Add / Convert) or the invoice this Edit updated\nconst piSaved = function piSaved(pageStatus, added, piId) {\n  const addedId = Array.isArray(added) ? added[0] : added;\n  const raw = pageStatus === \"Add\" || pageStatus === \"Convert\" ? addedId : piId;\n  const id = raw === undefined || raw === null ? \"\" : String(raw).trim();\n  return { idSql: /^[0-9]{1,20}$/.test(id) ? id : \"0\" };\n};\n\nreturn piSaved({{workflowparams:data.page_status}}, [{{node:add_node_pi.data.id}}][0], [{{node:code_pi_prep.data.piId}}][0]);"
+        },
+        "response_json": [
+          {
+            "key": "lxkmmbox",
+            "name": "idSql",
+            "title": "idSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_pi_after",
+      "type": "sql-node",
+      "data": {
+        "isValidator": true,
+        "title": "Saved PI id and number",
+        "nodeName": "Saved PI id and number",
+        "name": "Saved PI id and number",
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "script": {
+          "type": "sql",
+          "code": "SELECT JSON_OBJECT('id', CAST(p.id AS CHAR), 'purchase_invoice_no', p.purchase_invoice_no) AS j\n  FROM purchase_invoice p\n WHERE p.tenant_id = '{{node:code_pi_prep.data.tenantId}}' AND p.is_deleted = 0 AND p.id = {{node:code_pi_saved.data.idSql}}"
+        },
+        "response_json": [
+          {
+            "key": "t2nkbbqn",
+            "name": "j",
+            "title": "j",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
     },
     {
       "id": "code_pi_maplatest",
@@ -2591,7 +2506,7 @@
         "name": "Map Latest PI",
         "script": {
           "type": "javascript",
-          "code": "const piData = ({{workflowparams:data.page_status}} === 'Add' || {{workflowparams:data.page_status}} === 'Convert') ? {{node:add_node_pi.data}}[0] : {{node:get_node_pi.data.data}};\n\nreturn { piData }"
+          "code": "// PI_SAVE v20 \"Map Latest PI\": the saved invoice's id and number, read back after the write (v19 re-read the whole invoice)\nconst piLatest = function piLatest(rows) {\n  const parseJ = (t) => {\n    if (t && typeof t === \"object\") return t;\n    try {\n      return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n    } catch (e) {\n      return null;\n    }\n  };\n  const row = (Array.isArray(rows) ? rows : []).map((r) => parseJ(r && r.j !== undefined ? r.j : r)).find((o) => o && o.id) || {};\n  const piData = {};\n  if (row.id) piData.id = row.id;\n  if (row.purchase_invoice_no !== undefined && row.purchase_invoice_no !== null && row.purchase_invoice_no !== \"\") piData.purchase_invoice_no = row.purchase_invoice_no;\n  return { piData };\n};\n\nreturn piLatest([{{node:sql_node_pi_after.data}}][0]);"
         },
         "response_json": [
           {
@@ -2618,7 +2533,7 @@
         "condition_type": "Expression",
         "expression": {
           "type": "javascript",
-          "code": "'{{node:code_pi_fillback.data.entry.pi_status}}' == 'Completed'"
+          "code": "'{{node:code_pi_prep.data.isCompleted}}' == '1'"
         }
       },
       "blocks": [
@@ -2627,98 +2542,6 @@
           "type": "ifBlock",
           "data": { "title": "true" },
           "blocks": [
-            {
-              "id": "code_pi_apply",
-              "type": "code-node",
-              "data": {
-                "language": "javascript",
-                "code": "",
-                "timeout": 30000,
-                "title": "Map Updated PO & GR (apply)",
-                "isValidator": true,
-                "nodeName": "Map Updated PO & GR (apply)",
-                "name": "Map Updated PO & GR (apply)",
-                "script": {
-                  "type": "javascript",
-                  "code": "const poList = {{node:search_node_po.data.data}} || [];\nconst grList = {{node:search_node_gr.data.data}} || [];\nconst data = {{node:code_pi_fillback.data.entry}};\n\nconst absRound8 = (value) => {\n  let positiveValue = Math.abs(value);\n  return Math.round((parseFloat(positiveValue) || 0) * 100000000) / 100000000;\n};\nconst qtyStr = (value) => absRound8(value).toFixed(8);\n\n// A bundle line has no item of its own; the items under it carry both the\n// bundle and an item. All three tables reach this node in one of two shapes --\n// nested under `children`, which is what the form hands over, or flat with a\n// bundle's items following their bundle line, which is what table_po / table_gr\n// read back from the database look like -- so both are read here.\n//\n// Both levels carry an invoiced quantity, so both are walked, and each row\n// remembers the position of its bundle line (-1 when it is not in a bundle) and\n// whether it was nested to begin with. Status flows down that link.\nconst bundleKey = (row) => {\n  const bundle = row.item_bundle_id;\n\n  if (bundle && typeof bundle === \"object\") {\n    return String(bundle.id || bundle.ib_no || \"\");\n  }\n\n  return String(bundle || \"\");\n};\n\nconst flattenWithParent = (rows, itemKey) => {\n  const flat = [];\n  const positionOf = new Map();\n\n  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];\n  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);\n\n  let openBundle = -1; // bundle line the flat rows below it belong to\n\n  for (const [index, row] of (rows || []).entries()) {\n    const position = flat.length;\n    positionOf.set(index, position);\n\n    const children = Array.isArray(row.children) ? row.children : [];\n\n    // Already a tree: nothing to reattach, and a bundle spelled out this way\n    // ends whatever run was open above it.\n    if (children.length > 0) {\n      openBundle = -1;\n      flat.push({ row, parent: -1, nested: false });\n\n      for (const child of children) {\n        flat.push({ row: child, parent: position, nested: true });\n      }\n\n      continue;\n    }\n\n    if (isBundleRow(row)) {\n      openBundle = position;\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    if (!isBundleItem(row)) {\n      openBundle = -1; // a plain line closes the bundle above it\n      flat.push({ row, parent: -1, nested: false });\n      continue;\n    }\n\n    // A flat item: linked to its bundle line by id, or else belonging to the\n    // bundle line it follows, as long as that is the same bundle.\n    let parent = -1;\n\n    for (let candidate = index - 1; candidate >= 0; candidate--) {\n      const candidateRow = rows[candidate];\n\n      if (!isBundleRow(candidateRow)) continue;\n\n      const byId =\n        row.parent_id != null &&\n        candidateRow.id != null &&\n        String(row.parent_id) === String(candidateRow.id);\n      const byKey =\n        row.parent_fm_key != null &&\n        candidateRow.fm_key != null &&\n        String(row.parent_fm_key) === String(candidateRow.fm_key);\n\n      if (byId || byKey) {\n        parent = positionOf.get(candidate);\n        break;\n      }\n    }\n\n    if (\n      parent === -1 &&\n      openBundle !== -1 &&\n      bundleKey(flat[openBundle].row) === bundleKey(row)\n    ) {\n      parent = openBundle;\n    }\n\n    flat.push({ row, parent, nested: false });\n  }\n\n  return flat;\n};\n\nconst flattenRows = (rows, itemKey) =>\n  flattenWithParent(rows, itemKey).map((item) => item.row);\n\nconst processItems = (items, tablePi, docId, docIdKey, piLineIdKey, qtyKey) => {\n  const filteredPI = flattenRows(tablePi, \"material_id\").filter((item) => item[docIdKey] === docId);\n\n  // Distribute combined split-parent PI lines (gr_line_id empty) across their\n  // constituent Split-Parent GR rows, fill-order by remaining capacity.\n  const isGR = piLineIdKey === \"gr_line_id\";\n  const distributedByRowId = {};\n  if (isGR) {\n    const combinedPIs = filteredPI.filter((pi) => (!pi.gr_line_id || pi.gr_line_id === \"\") && pi.po_line_id);\n    for (const cpi of combinedPIs) {\n      const groupRows = items.filter((r) => r.parent_or_child === \"Split-Parent\" && r.po_line_item_id === cpi.po_line_id).sort((a, b) => String(a.line_index).localeCompare(String(b.line_index), undefined, { numeric: true }));\n      let remainingToAllocate = absRound8(cpi.invoice_qty);\n      for (const r of groupRows) {\n        if (remainingToAllocate <= 0) break;\n        const already = distributedByRowId[r.id] || 0;\n        const capacity = absRound8((parseFloat(r.received_qty) || 0) - (parseFloat(r.invoice_qty) || 0) - already);\n        if (capacity <= 0) continue;\n        const alloc = Math.min(remainingToAllocate, capacity);\n        distributedByRowId[r.id] = absRound8(already + alloc);\n        remainingToAllocate = absRound8(remainingToAllocate - alloc);\n      }\n    }\n  }\n\n  // Invoiced quantity is set on every line, a bundle's items included.\n  const source = flattenWithParent(items, \"item_id\");\n  const updated = source.map(({ row, parent }) => {\n    const matchedPIs = filteredPI.filter((pi) => pi[piLineIdKey] === row.id);\n    const directQty = matchedPIs.length > 0 ? absRound8(matchedPIs.reduce((s, pi) => s + (parseFloat(pi.invoice_qty) || 0), 0)) : 0;\n    const distributedQty = distributedByRowId[row.id] || 0;\n    const piInvoicedQty = absRound8(directQty + distributedQty);\n    if (piInvoicedQty !== 0) {\n      const currentInvoicedQty = absRound8(row.invoice_qty);\n      const totalInvoicedQty = absRound8(currentInvoicedQty + piInvoicedQty);\n      return { row: { ...row, invoice_qty: totalInvoicedQty }, parent };\n    }\n    return { row: { ...row }, parent };\n  });\n\n  // Only a bundle line's own quantity decides its status — its items cannot be\n  // invoiced independently of it — so status is worked out on the top-level\n  // lines and then handed down. Split children are skipped here as before.\n  let totalItems = 0;\n  let partiallyInvoicedItems = 0;\n  let fullyInvoicedItems = 0;\n\n  for (const entry of updated) {\n    if (entry.parent !== -1) continue;\n    if (entry.row.parent_or_child === \"Child\") continue;\n\n    totalItems++;\n\n    if (absRound8(entry.row.invoice_qty) > 0) {\n      partiallyInvoicedItems++;\n      entry.row.pi_status = \"Partially Invoiced\";\n      if (absRound8(entry.row.invoice_qty) >= absRound8(entry.row[qtyKey] || 0)) {\n        fullyInvoicedItems++;\n        entry.row.pi_status = \"Fully Invoiced\";\n      }\n    }\n  }\n\n  // A bundle's items carry the bundle's status, whatever it came out as.\n  for (const entry of updated) {\n    if (entry.parent === -1) continue;\n\n    entry.row.pi_status = updated[entry.parent].row.pi_status;\n  }\n\n  // Only the counters of changed lines go back: a whole-row write re-validates every other column.\n  const lineUpdates = [];\n\n  for (const [index, entry] of updated.entries()) {\n    const before = source[index].row;\n\n    if (\n      absRound8(entry.row.invoice_qty) === absRound8(before.invoice_qty) &&\n      String(entry.row.pi_status || \"\") === String(before.pi_status || \"\")\n    ) {\n      continue;\n    }\n\n    lineUpdates.push({\n      id: entry.row.id,\n      invoice_qty: qtyStr(entry.row.invoice_qty),\n      pi_status: entry.row.pi_status || \"\",\n    });\n  }\n\n  const allItemsComplete = fullyInvoicedItems === totalItems;\n  const anyItemProcessing = partiallyInvoicedItems > 0;\n  let newPIStatus = anyItemProcessing\n    ? allItemsComplete\n      ? \"Fully Invoiced\"\n      : \"Partially Invoiced\"\n    : \"\";\n\n  return { lineUpdates, newPIStatus };\n};\n\nconst poIds = Array.isArray(data.po_id) ? data.po_id : [data.po_id];\nconst poHeaders = [];\nconst poLines = [];\nfor (const poID of poIds) {\n  const poData = poList.find((po) => po.id === poID);\n  if (!poData) continue;\n  const poItems = poData.table_po || [];\n  const { lineUpdates, newPIStatus } = processItems(poItems, data.table_pi, poData.id, \"line_po_id\", \"po_line_id\", \"quantity\");\n  poHeaders.push({ id: poData.id, pi_status: newPIStatus });\n  poLines.push(...lineUpdates);\n}\n\nconst grHeaders = [];\nconst grLines = [];\nif (data.gr_id && data.gr_id.length > 0) {\n  const grIds = Array.isArray(data.gr_id) ? data.gr_id : [data.gr_id];\n  for (const grID of grIds) {\n    const grData = grList.find((gr) => gr.id === grID);\n    if (!grData) continue;\n    const grItems = grData.table_gr || [];\n    const { lineUpdates, newPIStatus } = processItems(grItems, data.table_pi, grData.id, \"line_gr_id\", \"gr_line_id\", \"received_qty\");\n    grHeaders.push({ id: grData.id, pi_status: newPIStatus });\n    grLines.push(...lineUpdates);\n  }\n}\n\nconst flag = (rows) => (rows.length > 0 ? 1 : 0);\n\nreturn {\n  poHeaders,\n  hasPoHeaders: flag(poHeaders),\n  poLines,\n  hasPoLines: flag(poLines),\n  grHeaders,\n  hasGrHeaders: flag(grHeaders),\n  grLines,\n  hasGrLines: flag(grLines),\n};"
-                },
-                "response_json": [
-                  {
-                    "key": "pohdrs01",
-                    "name": "poHeaders",
-                    "title": "poHeaders",
-                    "description": "",
-                    "bsonType": "array",
-                    "isExpand": false,
-                    "children": []
-                  },
-                  {
-                    "key": "haspohd1",
-                    "name": "hasPoHeaders",
-                    "title": "hasPoHeaders",
-                    "description": "",
-                    "bsonType": "int",
-                    "isExpand": false,
-                    "children": []
-                  },
-                  {
-                    "key": "polines1",
-                    "name": "poLines",
-                    "title": "poLines",
-                    "description": "",
-                    "bsonType": "array",
-                    "isExpand": false,
-                    "children": []
-                  },
-                  {
-                    "key": "haspoln1",
-                    "name": "hasPoLines",
-                    "title": "hasPoLines",
-                    "description": "",
-                    "bsonType": "int",
-                    "isExpand": false,
-                    "children": []
-                  },
-                  {
-                    "key": "grhdrs01",
-                    "name": "grHeaders",
-                    "title": "grHeaders",
-                    "description": "",
-                    "bsonType": "array",
-                    "isExpand": false,
-                    "children": []
-                  },
-                  {
-                    "key": "hasgrhd1",
-                    "name": "hasGrHeaders",
-                    "title": "hasGrHeaders",
-                    "description": "",
-                    "bsonType": "int",
-                    "isExpand": false,
-                    "children": []
-                  },
-                  {
-                    "key": "grlines1",
-                    "name": "grLines",
-                    "title": "grLines",
-                    "description": "",
-                    "bsonType": "array",
-                    "isExpand": false,
-                    "children": []
-                  },
-                  {
-                    "key": "hasgrln1",
-                    "name": "hasGrLines",
-                    "title": "hasGrLines",
-                    "description": "",
-                    "bsonType": "int",
-                    "isExpand": false,
-                    "children": []
-                  }
-                ]
-              },
-              "blocks": []
-            },
             {
               "id": "condition_all_pi_update",
               "type": "condition-all-node",
@@ -2768,7 +2591,7 @@
                         "condition_type": "Expression",
                         "expression": {
                           "type": "javascript",
-                          "code": "'{{node:code_pi_apply.data.hasPoLines}}' == '1'"
+                          "code": "'{{node:code_pi_check.data.hasPoLines}}' == '1'"
                         }
                       },
                       "blocks": [
@@ -2793,7 +2616,7 @@
                                         "prop": "id",
                                         "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{node:code_pi_apply.data.poLines.id}}",
+                                        "value": "{{node:code_pi_check.data.poLines.id}}",
                                         "type": "leaf",
                                         "level": 1,
                                         "propLabel": "主键ID",
@@ -2815,7 +2638,7 @@
                                     {
                                       "prop": "id",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.poLines.id}}",
+                                      "value": "{{node:code_pi_check.data.poLines.id}}",
                                       "operator": "",
                                       "valueLabel": "",
                                       "propLabel": "主键ID"
@@ -2823,7 +2646,7 @@
                                     {
                                       "prop": "invoice_qty",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.poLines.invoice_qty}}",
+                                      "value": "{{node:code_pi_check.data.poLines.invoice_qty}}",
                                       "operator": "",
                                       "valueLabel": "",
                                       "propLabel": "Invoice Qty"
@@ -2831,7 +2654,7 @@
                                     {
                                       "prop": "pi_status",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.poLines.pi_status}}",
+                                      "value": "{{node:code_pi_check.data.poLines.pi_status}}",
                                       "operator": "",
                                       "valueLabel": "",
                                       "propLabel": "Line PI Status"
@@ -2862,7 +2685,7 @@
                         "condition_type": "Expression",
                         "expression": {
                           "type": "javascript",
-                          "code": "'{{node:code_pi_apply.data.hasPoHeaders}}' == '1'"
+                          "code": "'{{node:code_pi_check.data.hasPoHeaders}}' == '1'"
                         }
                       },
                       "blocks": [
@@ -2887,7 +2710,7 @@
                                         "prop": "id",
                                         "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{node:code_pi_apply.data.poHeaders.id}}",
+                                        "value": "{{node:code_pi_check.data.poHeaders.id}}",
                                         "type": "leaf",
                                         "level": 1,
                                         "propLabel": "主键ID",
@@ -2909,7 +2732,7 @@
                                     {
                                       "prop": "id",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.poHeaders.id}}",
+                                      "value": "{{node:code_pi_check.data.poHeaders.id}}",
                                       "operator": "",
                                       "valueLabel": "",
                                       "propLabel": "主键ID"
@@ -2918,7 +2741,7 @@
                                       "prop": "pi_status",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.poHeaders.pi_status}}",
+                                      "value": "{{node:code_pi_check.data.poHeaders.pi_status}}",
                                       "valueLabel": "",
                                       "propLabel": "PI Status"
                                     }
@@ -2978,7 +2801,7 @@
                         "condition_type": "Expression",
                         "expression": {
                           "type": "javascript",
-                          "code": "'{{node:code_pi_apply.data.hasGrLines}}' == '1'"
+                          "code": "'{{node:code_pi_check.data.hasGrLines}}' == '1'"
                         }
                       },
                       "blocks": [
@@ -3003,7 +2826,7 @@
                                         "prop": "id",
                                         "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{node:code_pi_apply.data.grLines.id}}",
+                                        "value": "{{node:code_pi_check.data.grLines.id}}",
                                         "type": "leaf",
                                         "level": 1,
                                         "propLabel": "主键ID",
@@ -3025,7 +2848,7 @@
                                     {
                                       "prop": "id",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.grLines.id}}",
+                                      "value": "{{node:code_pi_check.data.grLines.id}}",
                                       "operator": "",
                                       "valueLabel": "",
                                       "propLabel": "主键ID"
@@ -3033,7 +2856,7 @@
                                     {
                                       "prop": "invoice_qty",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.grLines.invoice_qty}}",
+                                      "value": "{{node:code_pi_check.data.grLines.invoice_qty}}",
                                       "operator": "",
                                       "valueLabel": "",
                                       "propLabel": "Invoice Qty"
@@ -3041,7 +2864,7 @@
                                     {
                                       "prop": "pi_status",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.grLines.pi_status}}",
+                                      "value": "{{node:code_pi_check.data.grLines.pi_status}}",
                                       "operator": "",
                                       "valueLabel": "",
                                       "propLabel": "Line PI Status"
@@ -3072,7 +2895,7 @@
                         "condition_type": "Expression",
                         "expression": {
                           "type": "javascript",
-                          "code": "'{{node:code_pi_apply.data.hasGrHeaders}}' == '1'"
+                          "code": "'{{node:code_pi_check.data.hasGrHeaders}}' == '1'"
                         }
                       },
                       "blocks": [
@@ -3097,7 +2920,7 @@
                                         "prop": "id",
                                         "operator": "in",
                                         "valueType": "field",
-                                        "value": "{{node:code_pi_apply.data.grHeaders.id}}",
+                                        "value": "{{node:code_pi_check.data.grHeaders.id}}",
                                         "type": "leaf",
                                         "level": 1,
                                         "propLabel": "主键ID",
@@ -3119,7 +2942,7 @@
                                     {
                                       "prop": "id",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.grHeaders.id}}",
+                                      "value": "{{node:code_pi_check.data.grHeaders.id}}",
                                       "operator": "",
                                       "valueLabel": "",
                                       "propLabel": "主键ID"
@@ -3128,7 +2951,7 @@
                                       "prop": "pi_status",
                                       "operator": "",
                                       "valueType": "field",
-                                      "value": "{{node:code_pi_apply.data.grHeaders.pi_status}}",
+                                      "value": "{{node:code_pi_check.data.grHeaders.pi_status}}",
                                       "valueLabel": "",
                                       "propLabel": "PI Status"
                                     }

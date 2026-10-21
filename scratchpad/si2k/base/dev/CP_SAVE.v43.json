@@ -1,0 +1,2362 @@
+{
+ "request_json": [
+  {
+   "key": "kl5qipl4",
+   "name": "allData",
+   "title": "All Data",
+   "description": "",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "r5uv1ona",
+   "name": "saveAs",
+   "title": "Save As",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "umyvg52a",
+   "name": "pageStatus",
+   "title": "Page Status",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "response_json": [
+  {
+   "key": "ifuohgj2",
+   "name": "",
+   "title": "",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_871uY_f4",
+   "type": "if",
+   "data": {
+    "title": "save Draft?",
+    "isValidator": true,
+    "nodeName": "save Draft?",
+    "name": "save Draft?",
+    "condition_type": "Expression",
+    "expression": {
+     "type": "javascript",
+     "code": "'{{workflowparams:saveAs}}' == 'Draft'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_block_KlT7jj4S",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_4qcVMnQw",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Draft Format Data",
+        "isValidator": true,
+        "nodeName": "Draft Format Data",
+        "name": "Draft Format Data",
+        "script": {
+         "type": "javascript",
+         "code": "const formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.00000000\";\n  return parseFloat(value).toFixed(8);\n};\n\nlet table = {{workflowparams:allData}};\n\nif(table.cp_no_type !== -9999 && (\n  !table.cp_no|| table.cp_no === null || table.cp_no === ''\n)) {\n  table.cp_no = 'draft'\n}\n\nfor (const [index, lineItem] of table.table_cp.entries()) {\n  lineItem.invoice_total = formatNumber(lineItem.invoice_total);\n  lineItem.paid_amount = formatNumber(lineItem.paid_amount);\n  lineItem.outstanding_amount = formatNumber(lineItem.outstanding_amount);\n  lineItem.line_status = 'Draft'\n}\n\ntable.total_payment_amount = formatNumber(table.total_payment_amount);\ntable.myr_total_payment_amount = formatNumber(table.myr_total_payment_amount);\ntable.unallocated_amount = formatNumber(table.unallocated_amount);\ntable.myr_unallocated_amount = formatNumber(table.myr_unallocated_amount);\ntable.exchange_rate = formatNumber(table.exchange_rate);\n\nreturn { table };"
+        },
+        "response_json": [
+         {
+          "key": "idwlt401",
+          "name": "table",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "code_node_57Er3I2n",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Draft Required Fields",
+        "isValidator": true,
+        "nodeName": "Draft Required Fields",
+        "name": "Draft Required Fields",
+        "script": {
+         "type": "javascript",
+         "code": "return {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant\" },\n  { name: \"cp_no\", label: \"Payment Number \" },\n  { name: \"customer_id\", label: \"Customer\"},\n  { name: \"payment_currency\", label: \"Payment Currency\"},\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_node_4qcVMnQw.data.table.plant_id}},\n    cp_no: {{node:code_node_4qcVMnQw.data.table.cp_no}},\n    customer_id: {{node:code_node_4qcVMnQw.data.table.customer_id}},\n    payment_currency: {{node:code_node_4qcVMnQw.data.table.payment_currency}},\n  })\n}"
+        },
+        "response_json": [
+         {
+          "key": "iomd4yaj",
+          "name": "required_fields",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         },
+         {
+          "key": "z59j2g2u",
+          "name": "data",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "workflow_node_zlr6LVDB",
+       "type": "workflow-node",
+       "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Draft Run Check Required Workflow",
+        "isValidator": true,
+        "nodeName": "Draft Run Check Required Workflow",
+        "name": "Draft Run Check Required Workflow",
+        "workflow": {
+         "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+         "rules": {
+          "collectionId": "1988831880511062018",
+          "list": [
+           {
+            "id": 1763010683443,
+            "parentId": 1763010683442,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+         "list": [
+          {
+           "prop": "entry",
+           "propLabel": "entry",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_57Er3I2n.data.data}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "required_fields",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_57Er3I2n.data.required_fields}}",
+           "valueLabel": "",
+           "propLabel": "required_fields"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_jACWk4s6",
+       "type": "if",
+       "data": {
+        "title": "Validation Failed?",
+        "isValidator": true,
+        "nodeName": "Validation Failed?",
+        "name": "Validation Failed?",
+        "condition_type": "Expression",
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:workflow_node_zlr6LVDB.data.data.status}}' == 'Failed'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_block_22e9-wOr",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "end_-Ctgcvvx",
+           "type": "end-node",
+           "data": {
+            "title": "结束节点",
+            "outputs": {
+             "type": "object",
+             "properties": {
+              "result": {
+               "type": "string"
+              }
+             }
+            },
+            "isValidator": true,
+            "nodeName": "结束节点",
+            "name": "结束节点",
+            "back_data_type": "Default",
+            "code": 401,
+            "msg": {
+             "type": "javascript",
+             "code": "{{node:workflow_node_zlr6LVDB.data.data.message}}"
+            }
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_block_xJC1Yziw",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": [
+          {
+           "id": "if_wr05dQ4L",
+           "type": "if",
+           "data": {
+            "title": "IF add?",
+            "isValidator": true,
+            "nodeName": "IF add?",
+            "name": "IF add?",
+            "condition_type": "Expression",
+            "expression": {
+             "type": "javascript",
+             "code": "'{{workflowparams:pageStatus}}' == 'Add'"
+            }
+           },
+           "blocks": [
+            {
+             "id": "ifBlock_bsSywX2A",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "add_node_Kap5sQsW",
+               "type": "add-node",
+               "data": {
+                "table_id": {
+                 "source": "Customer Payment:Table:2037028668311273473",
+                 "rules": {
+                  "collectionId": "2037028668311273473",
+                  "list": [
+                   {
+                    "id": 1774585555862,
+                    "parentId": 1774585555861,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                   }
+                  ]
+                 }
+                },
+                "fields": [],
+                "title": "Add Data",
+                "isValidator": true,
+                "nodeName": "Add Data",
+                "name": "Add Data",
+                "props": {
+                 "modelName": "",
+                 "list": [
+                  {
+                   "prop": "cp_status",
+                   "valueType": "field",
+                   "value": "{{workflowparams:saveAs}}",
+                   "operator": "",
+                   "valueLabel": "",
+                   "propLabel": "CP Status"
+                  },
+                  {
+                   "prop": "organization_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.organization_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Organization ID"
+                  },
+                  {
+                   "prop": "acc_integration_type",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.acc_integration_type}}",
+                   "valueLabel": "",
+                   "propLabel": "Accounting Integration"
+                  },
+                  {
+                   "prop": "plant_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.plant_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Plant"
+                  },
+                  {
+                   "prop": "customer_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.customer_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Customer"
+                  },
+                  {
+                   "prop": "customer_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.customer_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Customer Currency"
+                  },
+                  {
+                   "prop": "exchange_rate_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.exchange_rate_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Exchange Rate"
+                  },
+                  {
+                   "prop": "exchange_rate",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.exchange_rate}}",
+                   "valueLabel": "",
+                   "propLabel": "Exchange Rate"
+                  },
+                  {
+                   "prop": "exchange_rate_myr",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.exchange_rate_myr}}",
+                   "valueLabel": "",
+                   "propLabel": "Exchange Rate MYR"
+                  },
+                  {
+                   "prop": "agent_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.agent_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Agent"
+                  },
+                  {
+                   "prop": "area_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.area_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Area"
+                  },
+                  {
+                   "prop": "irbm_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.irbm_id}}",
+                   "valueLabel": "",
+                   "propLabel": "IRBM"
+                  },
+                  {
+                   "prop": "cp_no",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.cp_no}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Number"
+                  },
+                  {
+                   "prop": "cp_no_type",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.cp_no_type}}",
+                   "valueLabel": "",
+                   "propLabel": "规则"
+                  },
+                  {
+                   "prop": "payment_date",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.payment_date}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Date"
+                  },
+                  {
+                   "prop": "payment_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.payment_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Currency"
+                  },
+                  {
+                   "prop": "cust_payment_method",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.cust_payment_method}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Method"
+                  },
+                  {
+                   "prop": "reference_number",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.reference_number}}",
+                   "valueLabel": "",
+                   "propLabel": "Reference Number"
+                  },
+                  {
+                   "prop": "payment_description",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.payment_description}}",
+                   "valueLabel": "",
+                   "propLabel": "Description"
+                  },
+                  {
+                   "prop": "total_payment_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.total_payment_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment"
+                  },
+                  {
+                   "prop": "total_payment_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.total_payment_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment Amount"
+                  },
+                  {
+                   "prop": "myr_total_payment_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.myr_total_payment_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment Amount (MYR)"
+                  },
+                  {
+                   "prop": "unallocated_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.unallocated_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount"
+                  },
+                  {
+                   "prop": "unallocated_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.unallocated_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount"
+                  },
+                  {
+                   "prop": "myr_unallocated_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.myr_unallocated_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount (MYR)"
+                  },
+                  {
+                   "prop": "table_cp",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.table_cp}}",
+                   "valueLabel": "",
+                   "propLabel": "Allocation Payment"
+                  }
+                 ]
+                }
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "ifBlock_imdU8mku",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": [
+              {
+               "id": "update_node_AHxAnUlo",
+               "type": "update-node",
+               "data": {
+                "table_id": {
+                 "source": "Customer Payment:Table:2037028668311273473",
+                 "rules": {
+                  "collectionId": "2037028668311273473",
+                  "list": [
+                   {
+                    "id": 1774586457127,
+                    "parentId": 1774586457126,
+                    "isTop": true,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{workflowparams:allData.id}}",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                   }
+                  ]
+                 }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update Data",
+                "isValidator": true,
+                "nodeName": "Update Data",
+                "name": "Update Data",
+                "props": {
+                 "modelName": "",
+                 "list": [
+                  {
+                   "prop": "id",
+                   "valueType": "field",
+                   "value": "{{workflowparams:allData.id}}",
+                   "operator": "",
+                   "valueLabel": "",
+                   "propLabel": "主键ID"
+                  },
+                  {
+                   "prop": "cp_status",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{workflowparams:saveAs}}",
+                   "valueLabel": "",
+                   "propLabel": "CP Status"
+                  },
+                  {
+                   "prop": "organization_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.organization_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Organization ID"
+                  },
+                  {
+                   "prop": "acc_integration_type",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.acc_integration_type}}",
+                   "valueLabel": "",
+                   "propLabel": "Accounting Integration"
+                  },
+                  {
+                   "prop": "plant_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.plant_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Plant"
+                  },
+                  {
+                   "prop": "customer_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.customer_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Customer"
+                  },
+                  {
+                   "prop": "customer_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.customer_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Customer Currency"
+                  },
+                  {
+                   "prop": "exchange_rate_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.exchange_rate_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Exchange Rate"
+                  },
+                  {
+                   "prop": "exchange_rate",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.exchange_rate}}",
+                   "valueLabel": "",
+                   "propLabel": "Exchange Rate"
+                  },
+                  {
+                   "prop": "agent_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.agent_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Agent"
+                  },
+                  {
+                   "prop": "area_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.area_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Area"
+                  },
+                  {
+                   "prop": "irbm_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.irbm_id}}",
+                   "valueLabel": "",
+                   "propLabel": "IRBM"
+                  },
+                  {
+                   "prop": "cp_no",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.cp_no}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Number"
+                  },
+                  {
+                   "prop": "cp_no_type",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.cp_no_type}}",
+                   "valueLabel": "",
+                   "propLabel": "规则"
+                  },
+                  {
+                   "prop": "payment_date",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.payment_date}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Date"
+                  },
+                  {
+                   "prop": "payment_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.payment_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Currency"
+                  },
+                  {
+                   "prop": "cust_payment_method",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.cust_payment_method}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Method"
+                  },
+                  {
+                   "prop": "reference_number",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.reference_number}}",
+                   "valueLabel": "",
+                   "propLabel": "Reference Number"
+                  },
+                  {
+                   "prop": "payment_description",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.payment_description}}",
+                   "valueLabel": "",
+                   "propLabel": "Description"
+                  },
+                  {
+                   "prop": "total_payment_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.total_payment_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment"
+                  },
+                  {
+                   "prop": "total_payment_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.total_payment_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment Amount"
+                  },
+                  {
+                   "prop": "myr_total_payment_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.myr_total_payment_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment Amount (MYR)"
+                  },
+                  {
+                   "prop": "unallocated_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.unallocated_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount"
+                  },
+                  {
+                   "prop": "unallocated_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.unallocated_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount"
+                  },
+                  {
+                   "prop": "myr_unallocated_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.myr_unallocated_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount (MYR)"
+                  },
+                  {
+                   "prop": "table_cp",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_4qcVMnQw.data.table.table_cp}}",
+                   "valueLabel": "",
+                   "propLabel": "Allocation Payment"
+                  }
+                 ]
+                }
+               },
+               "blocks": []
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "if_block_EqKqO6Q7",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [
+      {
+       "id": "code_node_XjIiID3L",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Format Data",
+        "isValidator": true,
+        "nodeName": "Format Data",
+        "name": "Format Data",
+        "script": {
+         "type": "javascript",
+         "code": "const formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.00000000\";\n  return parseFloat(value).toFixed(8);\n};\n\nlet table = {{workflowparams:allData}}\n\nif (\n  table.cp_no_type !== -9999 &&\n  (!table.cp_no ||\n    table.cp_no === null ||\n    table.cp_no === \"\" ||\n    table.previous_status == \"Draft\")\n) {\n  table.cp_no = 'issued'\n}\n\nfor (const [index, lineItem] of table.table_cp.entries()) {\n  lineItem.invoice_total = formatNumber(lineItem.invoice_total);\n  lineItem.paid_amount = formatNumber(lineItem.paid_amount);\n  lineItem.outstanding_amount = formatNumber(lineItem.outstanding_amount);\n  lineItem.line_status = lineItem.line_status !== 'Reversed' ? {{workflowparams:saveAs}} : lineItem.line_status\n}\n\ntable.total_payment_amount = formatNumber(table.total_payment_amount);\ntable.myr_total_payment_amount = formatNumber(table.myr_total_payment_amount);\ntable.unallocated_amount = formatNumber(table.unallocated_amount);\ntable.myr_unallocated_amount = formatNumber(table.myr_unallocated_amount);\ntable.exchange_rate = formatNumber(table.exchange_rate);\n\nreturn { table };"
+        },
+        "response_json": [
+         {
+          "key": "idwlt401",
+          "name": "table",
+          "title": "",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "code_node_AshXhuZe",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Required Fields",
+        "isValidator": true,
+        "nodeName": "Required Fields",
+        "name": "Required Fields",
+        "script": {
+         "type": "javascript",
+         "code": "return {\n  required_fields: JSON.stringify([\n  { name: \"plant_id\", label: \"Plant\" },\n  { name: \"cp_no\", label: \"Payment Number \" },\n  { name: \"payment_date\", label: \"Payment Date\" },\n  { name: \"payment_description\", label: \"Payment Description\" },\n  { name: \"customer_id\", label: \"Customer\"},\n  { name: \"payment_currency\", label: \"Payment Currency\"},\n  { name: \"total_payment_amount\", label: \"Total Payment Amount\"},\n  { name: 'cust_payment_method', label: 'Payment Method'}\n]),\n  data: JSON.stringify({\n    plant_id: {{node:code_node_XjIiID3L.data.table.plant_id}},\n    cp_no: {{node:code_node_XjIiID3L.data.table.cp_no}},\n    payment_date: {{node:code_node_XjIiID3L.data.table.payment_date}},\n    payment_description: {{node:code_node_XjIiID3L.data.table.payment_description}},\n    customer_id: {{node:code_node_XjIiID3L.data.table.customer_id}},\n    payment_currency: {{node:code_node_XjIiID3L.data.table.payment_currency}},\n    total_payment_amount: {{node:code_node_XjIiID3L.data.table.total_payment_amount}},\n    cust_payment_method: {{node:code_node_XjIiID3L.data.table.cust_payment_method}}\n\n  })\n}"
+        },
+        "response_json": [
+         {
+          "key": "iomd4yaj",
+          "name": "required_fields",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         },
+         {
+          "key": "z59j2g2u",
+          "name": "data",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "workflow_node_jJ5okqQv",
+       "type": "workflow-node",
+       "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "Check Required Workflow",
+        "isValidator": true,
+        "nodeName": "Check Required Workflow",
+        "name": "Check Required Workflow",
+        "workflow": {
+         "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+         "rules": {
+          "collectionId": "1988831880511062018",
+          "list": [
+           {
+            "id": 1763010683443,
+            "parentId": 1763010683442,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+         "list": [
+          {
+           "prop": "entry",
+           "propLabel": "entry",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_AshXhuZe.data.data}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "required_fields",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_AshXhuZe.data.required_fields}}",
+           "valueLabel": "",
+           "propLabel": "required_fields"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_KfwCyrbH",
+       "type": "if",
+       "data": {
+        "title": "Validation Failed?",
+        "isValidator": true,
+        "nodeName": "Validation Failed?",
+        "name": "Validation Failed?",
+        "condition_type": "Expression",
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:workflow_node_jJ5okqQv.data.data.status}}' == 'Failed'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_block_9679RReJ",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "end_nxLTliJ2",
+           "type": "end-node",
+           "data": {
+            "title": "结束节点",
+            "outputs": {
+             "type": "object",
+             "properties": {
+              "result": {
+               "type": "string"
+              }
+             }
+            },
+            "isValidator": true,
+            "nodeName": "结束节点",
+            "name": "结束节点",
+            "back_data_type": "Default",
+            "code": 401,
+            "msg": {
+             "type": "javascript",
+             "code": "{{node:workflow_node_jJ5okqQv.data.data.message}}"
+            }
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_block_b_upqDQu",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": [
+          {
+           "id": "code_node_v3HO7AgW",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Check Unallocated quantity",
+            "isValidator": true,
+            "nodeName": "Check Unallocated quantity",
+            "name": "Check Unallocated quantity",
+            "script": {
+             "type": "javascript",
+             "code": "const allData = {{node:code_node_XjIiID3L.data.table}};\nlet status = \"Success\";\nlet msg = \"\";\n\nif (parseFloat(allData.total_payment_amount) <= 0) {\n  return {\n    status: \"Failed\",\n    msg: \"Total payment amount cannot be negative or zero\",\n  };\n}\n\nif (parseFloat(allData.unallocated_amount) < 0) {\n  return {\n    status: \"Failed\",\n    msg: \"Total allocated amount cannot exceed total payment amount\",\n  };\n}\n\nreturn {\n  status,\n  msg,\n};\n"
+            },
+            "response_json": [
+             {
+              "key": "knslhvik",
+              "name": "status",
+              "title": "Status",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+             },
+             {
+              "key": "hv5cy8j4",
+              "name": "msg",
+              "title": "Msg",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_uDh2lZks",
+           "type": "if",
+           "data": {
+            "title": "validation Failed?",
+            "isValidator": true,
+            "nodeName": "validation Failed?",
+            "name": "validation Failed?",
+            "condition_type": "Expression",
+            "expression": {
+             "type": "javascript",
+             "code": "'{{node:code_node_v3HO7AgW.data.status}}' == 'Failed'"
+            }
+           },
+           "blocks": [
+            {
+             "id": "if_block_BHCPkpwj",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "end_cLWy8-QZ",
+               "type": "end-node",
+               "data": {
+                "title": "结束节点",
+                "outputs": {
+                 "type": "object",
+                 "properties": {
+                  "result": {
+                   "type": "string"
+                  }
+                 }
+                },
+                "isValidator": true,
+                "nodeName": "结束节点",
+                "name": "结束节点",
+                "back_data_type": "Default",
+                "code": 401,
+                "msg": {
+                 "type": "javascript",
+                 "code": "{{node:code_node_v3HO7AgW.data.msg}}"
+                }
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_block_4CqdeDoq",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "if_6vxhEyeU",
+           "type": "if",
+           "data": {
+            "title": "add?",
+            "isValidator": true,
+            "nodeName": "add?",
+            "name": "add?",
+            "condition_type": "Expression",
+            "expression": {
+             "type": "javascript",
+             "code": "'{{workflowparams:pageStatus}}' == 'Add'"
+            }
+           },
+           "blocks": [
+            {
+             "id": "if_block_n2mQNlYp",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "add_node_VQgxkWZB",
+               "type": "add-node",
+               "data": {
+                "table_id": {
+                 "source": "Customer Payment:Table:2037028668311273473",
+                 "rules": {
+                  "collectionId": "2037028668311273473",
+                  "list": [
+                   {
+                    "id": 1774585555862,
+                    "parentId": 1774585555861,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                   }
+                  ]
+                 }
+                },
+                "fields": [],
+                "title": "Add Data",
+                "isValidator": true,
+                "nodeName": "Add Data",
+                "name": "Add Data",
+                "props": {
+                 "modelName": "",
+                 "list": [
+                  {
+                   "prop": "cp_status",
+                   "valueType": "field",
+                   "value": "{{workflowparams:saveAs}}",
+                   "operator": "",
+                   "valueLabel": "",
+                   "propLabel": "CP Status"
+                  },
+                  {
+                   "prop": "organization_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.organization_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Organization ID"
+                  },
+                  {
+                   "prop": "acc_integration_type",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.acc_integration_type}}",
+                   "valueLabel": "",
+                   "propLabel": "Accounting Integration"
+                  },
+                  {
+                   "prop": "plant_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.plant_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Plant"
+                  },
+                  {
+                   "prop": "customer_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.customer_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Customer"
+                  },
+                  {
+                   "prop": "customer_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.customer_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Customer Currency"
+                  },
+                  {
+                   "prop": "exchange_rate_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.exchange_rate_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Exchange Rate"
+                  },
+                  {
+                   "prop": "exchange_rate",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.exchange_rate}}",
+                   "valueLabel": "",
+                   "propLabel": "Exchange Rate"
+                  },
+                  {
+                   "prop": "exchange_rate_myr",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.exchange_rate_myr}}",
+                   "valueLabel": "",
+                   "propLabel": "Exchange Rate MYR"
+                  },
+                  {
+                   "prop": "agent_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.agent_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Agent"
+                  },
+                  {
+                   "prop": "area_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.area_id}}",
+                   "valueLabel": "",
+                   "propLabel": "Area"
+                  },
+                  {
+                   "prop": "irbm_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.irbm_id}}",
+                   "valueLabel": "",
+                   "propLabel": "IRBM"
+                  },
+                  {
+                   "prop": "cp_no",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.cp_no}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Number"
+                  },
+                  {
+                   "prop": "cp_no_type",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.cp_no_type}}",
+                   "valueLabel": "",
+                   "propLabel": "规则"
+                  },
+                  {
+                   "prop": "payment_date",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.payment_date}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Date"
+                  },
+                  {
+                   "prop": "payment_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.payment_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Currency"
+                  },
+                  {
+                   "prop": "cust_payment_method",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.cust_payment_method}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Method"
+                  },
+                  {
+                   "prop": "reference_number",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.reference_number}}",
+                   "valueLabel": "",
+                   "propLabel": "Reference Number"
+                  },
+                  {
+                   "prop": "payment_description",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.payment_description}}",
+                   "valueLabel": "",
+                   "propLabel": "Description"
+                  },
+                  {
+                   "prop": "total_payment_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.total_payment_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment"
+                  },
+                  {
+                   "prop": "total_payment_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.total_payment_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment Amount"
+                  },
+                  {
+                   "prop": "myr_total_payment_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.myr_total_payment_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Total Payment Amount (MYR)"
+                  },
+                  {
+                   "prop": "unallocated_currency",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.unallocated_currency}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount"
+                  },
+                  {
+                   "prop": "unallocated_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.unallocated_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount"
+                  },
+                  {
+                   "prop": "myr_unallocated_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.myr_unallocated_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Unallocated Amount (MYR)"
+                  },
+                  {
+                   "prop": "table_cp",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_XjIiID3L.data.table.table_cp}}",
+                   "valueLabel": "",
+                   "propLabel": "Allocation Payment"
+                  }
+                 ]
+                }
+               },
+               "blocks": []
+              },
+              {
+               "id": "code_node_xCk2T8bN",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Update SI Outstanding",
+                "isValidator": true,
+                "nodeName": "Update SI Outstanding",
+                "name": "Update SI Outstanding",
+                "script": {
+                 "type": "javascript",
+                 "code": "const formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.00000000\";\n  return parseFloat(value).toFixed(8);\n};\n\nconst round8 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n};\n\n\nconst tableCP = {{workflowparams:allData.table_cp}};\nconst tablesiList = {{workflowparams:allData.table_silist}} || [];\n\n// Get latest allocated SI\nconst latestAllocatedSI = tableCP.map((item) => {\n  return {\n    si_id: item.invoice_id,\n    outstanding_amount: formatNumber(item.outstanding_amount),\n    payment_status: round8(item.outstanding_amount) <= 0 ? 'Paid' : round8(item.outstanding_amount) !== round8(item.invoice_total) ? 'Partial' : 'Unpaid'\n  }\n})\n\n// Get latest remove allocated SI\nconst latestUnpaidSI = tablesiList.map((item) => {\n  if(round8(item.si_paid_amount) > 0) {\n    const matchedSI = tableCP.find(si => si.invoice_id === item.si_invoice_id);\n\n    if(!matchedSI) {\n      const latestOutstandingAmount = round8(item.si_outstanding_amount) + round8(item.si_paid_amount);\n      return {\n        si_id: item.si_invoice_id,\n        outstanding_amount: formatNumber(latestOutstandingAmount),\n        payment_status: latestOutstandingAmount < round8(item.si_invoice_total) ? 'Partial' : 'Unpaid'\n      }\n    }\n  }\n})\n\n\nreturn {\n  updatedSI: [...latestAllocatedSI, ...latestUnpaidSI]\n}"
+                },
+                "response_json": [
+                 {
+                  "key": "1ixrlyle",
+                  "name": "updatedSI",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "any",
+                  "isExpand": false,
+                  "children": []
+                 }
+                ]
+               },
+               "blocks": []
+              },
+              {
+               "id": "update_node_IE1hHlGg",
+               "type": "update-node",
+               "data": {
+                "table_id": {
+                 "source": "AR Invoice:Table:2072512608001388545",
+                 "rules": {
+                  "collectionId": "2072512608001388545",
+                  "list": [
+                   {
+                    "id": 1783064331875,
+                    "parentId": 1783064331874,
+                    "isTop": true,
+                    "prop": "id",
+                    "operator": "in",
+                    "valueType": "field",
+                    "value": "{{node:code_node_xCk2T8bN.data.updatedSI.si_id}}",
+                    "type": "leaf",
+                    "level": 1,
+                    "propLabel": "主键ID",
+                    "valueLabel": "",
+                    "operatorLabel": "In"
+                   }
+                  ]
+                 }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Update AR",
+                "isValidator": true,
+                "nodeName": "Update AR",
+                "name": "Update AR",
+                "props": {
+                 "modelName": "",
+                 "list": [
+                  {
+                   "prop": "id",
+                   "valueType": "field",
+                   "value": "{{node:code_node_xCk2T8bN.data.updatedSI.si_id}}",
+                   "operator": "",
+                   "valueLabel": "",
+                   "propLabel": "主键ID"
+                  },
+                  {
+                   "prop": "outstanding_amount",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_xCk2T8bN.data.updatedSI.outstanding_amount}}",
+                   "valueLabel": "",
+                   "propLabel": "Outstanding (Amount)"
+                  },
+                  {
+                   "prop": "payment_status",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_xCk2T8bN.data.updatedSI.payment_status}}",
+                   "valueLabel": "",
+                   "propLabel": "Payment Status"
+                  }
+                 ]
+                }
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_block_suq22Evf",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": [
+              {
+               "id": "code_node_cxTNKZYL",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Define reversed line or reversed CP",
+                "isValidator": true,
+                "nodeName": "Define reversed line or reversed CP",
+                "name": "Define reversed line or reversed CP",
+                "script": {
+                 "type": "javascript",
+                 "code": "const allData = {{workflowparams:allData}};\nconst previousTotal = parseFloat(allData.previous_total);\nconst totalPayment = parseFloat(allData.total_payment_amount);\nconst saveAs = {{workflowparams:saveAs}};\n\nif(previousTotal !== totalPayment && saveAs == 'Completed') {\n  return {\n    reversed: 'Reversed CP'\n  }\n} else {\n  return {\n    reversed: 'Reversed Line'\n  }\n}"
+                },
+                "response_json": [
+                 {
+                  "key": "0e4ry8ij",
+                  "name": "reversed",
+                  "title": "Reversed",
+                  "description": "Reversed CP/Reversed Line",
+                  "bsonType": "string",
+                  "isExpand": false
+                 }
+                ]
+               },
+               "blocks": []
+              },
+              {
+               "id": "if_NmgBPKSS",
+               "type": "if",
+               "data": {
+                "title": "reversed CP?",
+                "isValidator": true,
+                "nodeName": "reversed CP?",
+                "name": "reversed CP?",
+                "condition_type": "Expression",
+                "expression": {
+                 "type": "javascript",
+                 "code": "'{{node:code_node_cxTNKZYL.data.reversed}}' == 'Reversed CP'"
+                }
+               },
+               "blocks": [
+                {
+                 "id": "if_block_seosK3Yw",
+                 "type": "ifBlock",
+                 "data": {
+                  "title": "true"
+                 },
+                 "blocks": [
+                  {
+                   "id": "get_node_k8wOItGL",
+                   "type": "get-node",
+                   "data": {
+                    "table_id": {
+                     "source": "Customer Payment:Table:2037028668311273473",
+                     "rules": {
+                      "collectionId": "2037028668311273473",
+                      "list": [
+                       {
+                        "id": 1774862955633,
+                        "parentId": 1774862955632,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:allData.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       }
+                      ]
+                     }
+                    },
+                    "condition": {},
+                    "title": "Get Old CP",
+                    "isValidator": true,
+                    "nodeName": "Get Old CP",
+                    "name": "Get Old CP"
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "code_node_Tc7N3js8",
+                   "type": "code-node",
+                   "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Map Latest CP Line",
+                    "isValidator": true,
+                    "nodeName": "Map Latest CP Line",
+                    "name": "Map Latest CP Line",
+                    "script": {
+                     "type": "javascript",
+                     "code": "const formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.00000000\";\n  return parseFloat(value).toFixed(8);\n};\n\nconst round8 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n};\n\nconst existingCPLine = {{node:get_node_k8wOItGL.data.data.table_cp}};\nconst currentCPLine = {{node:code_node_XjIiID3L.data.table.table_cp}};\n\nlet updatedSI = [];\n\n// Update latest SI outstanding based on existing CP line and current CP line\nconst latestExistingCPLine = existingCPLine.map((lineItem) => {\n  const matchedCurrentCPLine = currentCPLine.find(\n    (item) => item.invoice_id === lineItem.invoice_id,\n  );\n\n  // If there is a matched line in current CP line\n  if (matchedCurrentCPLine) {\n    // If paid amount is changed, recalculate outstanding and set status to 'Reversed'\n    if (\n      round8(matchedCurrentCPLine.paid_amount) !==\n      round8(lineItem.paid_amount)\n    ) {\n      const latestOutstandingAmount = round8(\n        lineItem.outstanding_amount +\n          lineItem.paid_amount -\n          matchedCurrentCPLine.paid_amount,\n      );\n\n      updatedSI.push({\n        si_id: lineItem.invoice_id,\n        outstanding_amount: formatNumber(latestOutstandingAmount),\n        payment_status:\n          latestOutstandingAmount === round8(lineItem.invoice_total)\n            ? \"UnPaid\"\n            : latestOutstandingAmount == 0\n              ? \"Paid\"\n              : \"Partial\",\n      });\n\n      return {\n        ...lineItem,\n        line_status: \"Reversed\",\n      };\n    } else {\n      // Paid amount unchanged - reversed the line\n      return {\n        ...lineItem,\n        line_status: \"Reversed\",\n      };\n    }\n  } else {\n    // No matched line in current CP - invoice removed, reverse it\n    const latestOutstandingAmount = round8(\n      lineItem.outstanding_amount + lineItem.paid_amount,\n    );\n\n    updatedSI.push({\n      si_id: lineItem.invoice_id,\n      outstanding_amount: formatNumber(latestOutstandingAmount),\n      payment_status:\n        latestOutstandingAmount === round8(lineItem.invoice_total)\n          ? \"UnPaid\"\n          : latestOutstandingAmount == 0\n            ? \"Paid\"\n            : \"Partial\",\n    });\n\n    return {\n      ...lineItem,\n      line_status: \"Reversed\",\n    };\n  }\n});\n\nreturn {\n  updatedSI,\n  latestExistingCPLine,\n  currentCPLine: currentCPLine.filter((item) => item.line_status !== \"Reversed\"),\n};"
+                    },
+                    "response_json": [
+                     {
+                      "key": "98niku6b",
+                      "name": "updatedSI",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                     },
+                     {
+                      "key": "aalqhhlo",
+                      "name": "latestExistingCPLine",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                     },
+                     {
+                      "key": "4pxzdezh",
+                      "name": "currentCPLine",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                     }
+                    ]
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "update_node_LOwMrcpC",
+                   "type": "update-node",
+                   "data": {
+                    "table_id": {
+                     "source": "Customer Payment:Table:2037028668311273473",
+                     "rules": {
+                      "collectionId": "2037028668311273473",
+                      "list": [
+                       {
+                        "id": 1774845538912,
+                        "parentId": 1774845538911,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:allData.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       }
+                      ]
+                     }
+                    },
+                    "fields": [],
+                    "condition": {},
+                    "title": "Update old CP",
+                    "isValidator": true,
+                    "nodeName": "Update old CP",
+                    "name": "Update old CP",
+                    "props": {
+                     "modelName": "",
+                     "list": [
+                      {
+                       "prop": "id",
+                       "valueType": "field",
+                       "value": "{{workflowparams:allData.id}}",
+                       "operator": "",
+                       "valueLabel": "",
+                       "propLabel": "主键ID"
+                      },
+                      {
+                       "prop": "cp_status",
+                       "operator": "",
+                       "valueType": "value",
+                       "value": "Reversed",
+                       "valueLabel": "",
+                       "propLabel": "CP Status"
+                      },
+                      {
+                       "prop": "table_cp",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_Tc7N3js8.data.latestExistingCPLine}}",
+                       "valueLabel": "",
+                       "propLabel": "Allocated Payment"
+                      }
+                     ]
+                    }
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "add_node_oT1ncbgA",
+                   "type": "add-node",
+                   "data": {
+                    "table_id": {
+                     "source": "Customer Payment:Table:2037028668311273473",
+                     "rules": {
+                      "collectionId": "2037028668311273473",
+                      "list": [
+                       {
+                        "id": 1774585555862,
+                        "parentId": 1774585555861,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                       }
+                      ]
+                     }
+                    },
+                    "fields": [],
+                    "title": "Add Data",
+                    "isValidator": true,
+                    "nodeName": "Add Data",
+                    "name": "Add Data",
+                    "props": {
+                     "modelName": "",
+                     "list": [
+                      {
+                       "prop": "cp_status",
+                       "valueType": "field",
+                       "value": "{{workflowparams:saveAs}}",
+                       "operator": "",
+                       "valueLabel": "",
+                       "propLabel": "CP Status"
+                      },
+                      {
+                       "prop": "organization_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.organization_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Organization ID"
+                      },
+                      {
+                       "prop": "acc_integration_type",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.acc_integration_type}}",
+                       "valueLabel": "",
+                       "propLabel": "Accounting Integration"
+                      },
+                      {
+                       "prop": "plant_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.plant_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Plant"
+                      },
+                      {
+                       "prop": "customer_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.customer_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Customer"
+                      },
+                      {
+                       "prop": "customer_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.customer_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Customer Currency"
+                      },
+                      {
+                       "prop": "exchange_rate_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.exchange_rate_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Exchange Rate"
+                      },
+                      {
+                       "prop": "exchange_rate",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.exchange_rate}}",
+                       "valueLabel": "",
+                       "propLabel": "Exchange Rate"
+                      },
+                      {
+                       "prop": "exchange_rate_myr",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.exchange_rate_myr}}",
+                       "valueLabel": "",
+                       "propLabel": "Exchange Rate MYR"
+                      },
+                      {
+                       "prop": "agent_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.agent_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Agent"
+                      },
+                      {
+                       "prop": "area_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.area_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Area"
+                      },
+                      {
+                       "prop": "irbm_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.irbm_id}}",
+                       "valueLabel": "",
+                       "propLabel": "IRBM"
+                      },
+                      {
+                       "prop": "cp_no",
+                       "operator": "",
+                       "valueType": "value",
+                       "value": "issued",
+                       "valueLabel": "",
+                       "propLabel": "Payment Number"
+                      },
+                      {
+                       "prop": "cp_no_type",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.cp_no_type}}",
+                       "valueLabel": "",
+                       "propLabel": "规则"
+                      },
+                      {
+                       "prop": "payment_date",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.payment_date}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Date"
+                      },
+                      {
+                       "prop": "payment_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.payment_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Currency"
+                      },
+                      {
+                       "prop": "cust_payment_method",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.cust_payment_method}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Method"
+                      },
+                      {
+                       "prop": "reference_number",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.reference_number}}",
+                       "valueLabel": "",
+                       "propLabel": "Reference Number"
+                      },
+                      {
+                       "prop": "payment_description",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.payment_description}}",
+                       "valueLabel": "",
+                       "propLabel": "Description"
+                      },
+                      {
+                       "prop": "total_payment_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.total_payment_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Total Payment"
+                      },
+                      {
+                       "prop": "total_payment_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.total_payment_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Total Payment Amount"
+                      },
+                      {
+                       "prop": "myr_total_payment_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.myr_total_payment_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Total Payment Amount (MYR)"
+                      },
+                      {
+                       "prop": "unallocated_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.unallocated_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Unallocated Amount"
+                      },
+                      {
+                       "prop": "unallocated_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.unallocated_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Unallocated Amount"
+                      },
+                      {
+                       "prop": "myr_unallocated_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.myr_unallocated_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Unallocated Amount (MYR)"
+                      },
+                      {
+                       "prop": "table_cp",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_Tc7N3js8.data.currentCPLine}}",
+                       "valueLabel": "",
+                       "propLabel": "Allocation Payment"
+                      },
+                      {
+                       "prop": "reference_payment_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{workflowparams:allData.id}}",
+                       "valueLabel": "",
+                       "propLabel": "Reference Payment"
+                      }
+                     ]
+                    }
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "update_node_Jdas0mcq",
+                   "type": "update-node",
+                   "data": {
+                    "table_id": {
+                     "source": "AR Invoice:Table:2072512608001388545",
+                     "rules": {
+                      "collectionId": "2072512608001388545",
+                      "list": [
+                       {
+                        "id": 1783064331875,
+                        "parentId": 1783064331874,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_Tc7N3js8.data.updatedSI.si_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       }
+                      ]
+                     }
+                    },
+                    "fields": [],
+                    "condition": {},
+                    "title": "Update AR",
+                    "isValidator": true,
+                    "nodeName": "Update AR",
+                    "name": "Update AR",
+                    "props": {
+                     "modelName": "",
+                     "list": [
+                      {
+                       "prop": "id",
+                       "valueType": "field",
+                       "value": "{{node:code_node_Tc7N3js8.data.updatedSI.si_id}}",
+                       "operator": "",
+                       "valueLabel": "",
+                       "propLabel": "主键ID"
+                      },
+                      {
+                       "prop": "outstanding_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_Tc7N3js8.data.updatedSI.outstanding_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Outstanding (Amount)"
+                      },
+                      {
+                       "prop": "payment_status",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_Tc7N3js8.data.updatedSI.payment_status}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Status"
+                      }
+                     ]
+                    }
+                   },
+                   "blocks": []
+                  }
+                 ]
+                },
+                {
+                 "id": "if_block_EC8yutFR",
+                 "type": "ifBlock",
+                 "data": {
+                  "title": "false"
+                 },
+                 "blocks": [
+                  {
+                   "id": "get_node_ICF1dk1N",
+                   "type": "get-node",
+                   "data": {
+                    "table_id": {
+                     "source": "Customer Payment:Table:2037028668311273473",
+                     "rules": {
+                      "collectionId": "2037028668311273473",
+                      "list": [
+                       {
+                        "id": 1774847196245,
+                        "parentId": 1774847196244,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:allData.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       }
+                      ]
+                     }
+                    },
+                    "condition": {},
+                    "title": "Get Data",
+                    "isValidator": true,
+                    "nodeName": "Get Data",
+                    "name": "Get Data"
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "code_node_MXVGHuBv",
+                   "type": "code-node",
+                   "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Map Latest CP Line",
+                    "isValidator": true,
+                    "nodeName": "Map Latest CP Line",
+                    "name": "Map Latest CP Line",
+                    "script": {
+                     "type": "javascript",
+                     "code": "const formatNumber = (value) => {\n  if (value === null || value === undefined || value === \"\") return \"0.00000000\";\n  return parseFloat(value).toFixed(8);\n};\n\nconst round8 = (value) => {\n  return Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n};\n\n\nlet existingCPLine = {{node:get_node_ICF1dk1N.data.data.table_cp}};\nlet currentCPLine = {{node:code_node_XjIiID3L.data.table.table_cp}}.filter((item) => item.line_status !== \"Reversed\");\n\nlet updatedSI = [];\n\n// Update latest exisiting CP line based on existing CP line and current CP line\nconst latestExistingCPLine = existingCPLine.map((lineItem) => {\n  if (lineItem.line_status !== \"Reversed\") {\n    const matchedCurrentCPLine = currentCPLine.find(\n      (item) => item.invoice_id === lineItem.invoice_id,\n    );\n\n    // If there is a matched line in current CP line,\n    // if the paid amount is changed, we will recalculate the outstanding amount and set the line_status as 'Reversed'\n    if (matchedCurrentCPLine) {\n      if (\n        round8(matchedCurrentCPLine.paid_amount) !==\n        round8(lineItem.paid_amount)\n      ) {\n        const latestOutstandingAmount = round8(\n          lineItem.outstanding_amount +\n            lineItem.paid_amount -\n            matchedCurrentCPLine.paid_amount,\n        );\n\n        updatedSI.push({\n          si_id: lineItem.invoice_id,\n          outstanding_amount: formatNumber(latestOutstandingAmount),\n          payment_status:\n            latestOutstandingAmount === round8(lineItem.invoice_total)\n              ? \"UnPaid\"\n              : latestOutstandingAmount == 0\n                ? \"Paid\"\n                : \"Partial\",\n        });\n\n        return {\n          ...lineItem,\n          line_status: \"Reversed\",\n        };\n      } else {\n        return lineItem;\n      }\n    }\n\n    // If there is no matched line in current CP line, it means the invoice is removed in current CP, then set the line_status as 'Reversed' and outstanding amount will be increased by paid amount\n    else {\n      const latestOutstandingAmount = round8(\n        lineItem.outstanding_amount + lineItem.paid_amount,\n      );\n\n      updatedSI.push({\n        si_id: lineItem.invoice_id,\n        outstanding_amount: formatNumber(latestOutstandingAmount),\n        payment_status:\n          latestOutstandingAmount === round8(lineItem.invoice_total)\n            ? \"UnPaid\"\n            : latestOutstandingAmount == 0\n              ? \"Paid\"\n              : \"Partial\",\n      });\n\n      return {\n        ...lineItem,\n        line_status: \"Reversed\",\n      };\n    }\n  } else {\n    return lineItem;\n  }\n});\n\n// For the line in current CP line, \n// if there is no matched line in existing CP line, it means it's a new invoice added in current CP, then we will add this line to latest CP line and outstanding amount will be decreased by paid amount\ncurrentCPLine.forEach((lineItem) => {\n  const matchedExistingCPLine = existingCPLine.find(\n    (item) => item.invoice_id === lineItem.invoice_id && item.line_status !== \"Reversed\",\n  );\n\n  if (!matchedExistingCPLine) {\n    const latestOutstandingAmount = round8(\n      lineItem.outstanding_amount - lineItem.paid_amount,\n    );\n\n    updatedSI.push({\n      si_id: lineItem.invoice_id,\n      outstanding_amount: formatNumber(latestOutstandingAmount),\n      payment_status:\n        latestOutstandingAmount === round8(lineItem.invoice_total)\n          ? \"UnPaid\"\n          : latestOutstandingAmount == 0\n            ? \"Paid\"\n            : \"Partial\",\n    });\n  }\n\n  // if there is a matched line in existing CP line, check the paid amount,\n  // if the paid amount is unchanged, then remove the line from current CP line to avoid duplicated line in latest CP line\n  // if the paid amount is changed, then remove the id from current CP line\n  else {\n    if (\n      round8(lineItem.paid_amount) ===\n        round8(matchedExistingCPLine.paid_amount)\n    ) {\n      const index = currentCPLine.findIndex(\n        (item) => item.invoice_id === lineItem.invoice_id,\n      );\n      if (index > -1) {\n        currentCPLine.splice(index, 1);\n      }\n    } else {\n      lineItem.id = \"\";\n    }\n  }\n});\n\n// The latest CP line will be the combination of the updated existing CP line and the new line in current CP line\nconst latestCPLine = [...latestExistingCPLine, ...currentCPLine];\n\nreturn {\n  latestCPLine,\n  updatedSI,\n};\n"
+                    },
+                    "response_json": [
+                     {
+                      "key": "fto84wxd",
+                      "name": "latestCPLine",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                     },
+                     {
+                      "key": "qoc1q6cy",
+                      "name": "updatedSI",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                     }
+                    ]
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "update_node_ehd7EqDE",
+                   "type": "update-node",
+                   "data": {
+                    "table_id": {
+                     "source": "Customer Payment:Table:2037028668311273473",
+                     "rules": {
+                      "collectionId": "2037028668311273473",
+                      "list": [
+                       {
+                        "id": 1774586457127,
+                        "parentId": 1774586457126,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{workflowparams:allData.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       }
+                      ]
+                     }
+                    },
+                    "fields": [],
+                    "condition": {},
+                    "title": "Update Data",
+                    "isValidator": true,
+                    "nodeName": "Update Data",
+                    "name": "Update Data",
+                    "props": {
+                     "modelName": "",
+                     "list": [
+                      {
+                       "prop": "id",
+                       "valueType": "field",
+                       "value": "{{workflowparams:allData.id}}",
+                       "operator": "",
+                       "valueLabel": "",
+                       "propLabel": "主键ID"
+                      },
+                      {
+                       "prop": "cp_status",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{workflowparams:saveAs}}",
+                       "valueLabel": "",
+                       "propLabel": "CP Status"
+                      },
+                      {
+                       "prop": "organization_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.organization_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Organization ID"
+                      },
+                      {
+                       "prop": "acc_integration_type",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.acc_integration_type}}",
+                       "valueLabel": "",
+                       "propLabel": "Accounting Integration"
+                      },
+                      {
+                       "prop": "plant_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.plant_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Plant"
+                      },
+                      {
+                       "prop": "customer_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.customer_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Customer"
+                      },
+                      {
+                       "prop": "customer_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.customer_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Customer Currency"
+                      },
+                      {
+                       "prop": "exchange_rate_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.exchange_rate_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Exchange Rate"
+                      },
+                      {
+                       "prop": "exchange_rate",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.exchange_rate}}",
+                       "valueLabel": "",
+                       "propLabel": "Exchange Rate"
+                      },
+                      {
+                       "prop": "agent_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.agent_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Agent"
+                      },
+                      {
+                       "prop": "area_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.area_id}}",
+                       "valueLabel": "",
+                       "propLabel": "Area"
+                      },
+                      {
+                       "prop": "irbm_id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.irbm_id}}",
+                       "valueLabel": "",
+                       "propLabel": "IRBM"
+                      },
+                      {
+                       "prop": "cp_no",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.cp_no}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Number"
+                      },
+                      {
+                       "prop": "cp_no_type",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.cp_no_type}}",
+                       "valueLabel": "",
+                       "propLabel": "规则"
+                      },
+                      {
+                       "prop": "payment_date",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.payment_date}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Date"
+                      },
+                      {
+                       "prop": "payment_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.payment_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Currency"
+                      },
+                      {
+                       "prop": "cust_payment_method",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.cust_payment_method}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Method"
+                      },
+                      {
+                       "prop": "reference_number",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.reference_number}}",
+                       "valueLabel": "",
+                       "propLabel": "Reference Number"
+                      },
+                      {
+                       "prop": "payment_description",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.payment_description}}",
+                       "valueLabel": "",
+                       "propLabel": "Description"
+                      },
+                      {
+                       "prop": "total_payment_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.total_payment_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Total Payment"
+                      },
+                      {
+                       "prop": "total_payment_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.total_payment_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Total Payment Amount"
+                      },
+                      {
+                       "prop": "myr_total_payment_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.myr_total_payment_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Total Payment Amount (MYR)"
+                      },
+                      {
+                       "prop": "unallocated_currency",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.unallocated_currency}}",
+                       "valueLabel": "",
+                       "propLabel": "Unallocated Amount"
+                      },
+                      {
+                       "prop": "unallocated_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.unallocated_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Unallocated Amount"
+                      },
+                      {
+                       "prop": "myr_unallocated_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_XjIiID3L.data.table.myr_unallocated_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Unallocated Amount (MYR)"
+                      },
+                      {
+                       "prop": "table_cp",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_MXVGHuBv.data.latestCPLine}}",
+                       "valueLabel": "",
+                       "propLabel": "Allocation Payment"
+                      }
+                     ]
+                    }
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "update_node_nDzuOxmb",
+                   "type": "update-node",
+                   "data": {
+                    "table_id": {
+                     "source": "AR Invoice:Table:2072512608001388545",
+                     "rules": {
+                      "collectionId": "2072512608001388545",
+                      "list": [
+                       {
+                        "id": 1783064331875,
+                        "parentId": 1783064331874,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_MXVGHuBv.data.updatedSI.si_id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       }
+                      ]
+                     }
+                    },
+                    "fields": [],
+                    "condition": {},
+                    "title": "Update AR",
+                    "isValidator": true,
+                    "nodeName": "Update AR",
+                    "name": "Update AR",
+                    "props": {
+                     "modelName": "",
+                     "list": [
+                      {
+                       "prop": "id",
+                       "valueType": "field",
+                       "value": "{{node:code_node_MXVGHuBv.data.updatedSI.si_id}}",
+                       "operator": "",
+                       "valueLabel": "",
+                       "propLabel": "主键ID"
+                      },
+                      {
+                       "prop": "outstanding_amount",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_MXVGHuBv.data.updatedSI.outstanding_amount}}",
+                       "valueLabel": "",
+                       "propLabel": "Outstanding (Amount)"
+                      },
+                      {
+                       "prop": "payment_status",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_MXVGHuBv.data.updatedSI.payment_status}}",
+                       "valueLabel": "",
+                       "propLabel": "Payment Status"
+                      }
+                     ]
+                    }
+                   },
+                   "blocks": []
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

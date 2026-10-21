@@ -68,8 +68,9 @@ function engine(db, gdeOpts) {
     if (name !== "PICKING_ASYNC_SUBMIT") return doc;
     const walk = (l) => { for (const n of l || []) { if (n.id === "code_node_PSdecide") return n; const r = walk(n.blocks); if (r) return r; } return null; };
     const n = walk(doc.nodes);
-    if (n.data.script.code.indexOf("FORCE_COMPLETE: false") < 0) throw new Error("STAGE.FORCE_COMPLETE is not where the sim expects it");
-    n.data.script.code = n.data.script.code.replace("FORCE_COMPLETE: false", "FORCE_COMPLETE: true");
+    if (n.data.script.code.indexOf("FORCE_COMPLETE: true }") >= 0) return doc;
+    if (n.data.script.code.indexOf("FORCE_COMPLETE: false }") < 0) throw new Error("STAGE.FORCE_COMPLETE is not where the sim expects it");
+    n.data.script.code = n.data.script.code.replace("FORCE_COMPLETE: false }", "FORCE_COMPLETE: true }");
     return doc;
   };
   e.gde = miniGde(db, gdeOpts);

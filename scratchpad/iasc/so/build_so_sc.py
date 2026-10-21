@@ -45,14 +45,17 @@ PAGE_PARAMS = [("so_id", "SO ID"), ("so_line_id", "SO Line ID"), ("item_id", "It
 # SUMMARY_ROWS = the creation order (the rows of the live v3 first, so they keep their keys); SUMMARY_LAYOUT = the line left, the
 # production right, the warnings full width; the key rows bold, the warnings (no label) in the app's error style
 SUMMARY_ROWS = [("sli_summary_so", "Sales Order"), ("sli_summary_ordered", "Ordered"), ("sli_summary_planned", "Planned"), ("sli_summary_produced", "Produced"),
-                ("sli_summary_open", "In Progress"), ("sli_summary_suggest", "Suggested Qty"), ("sli_summary_warn", "Warnings"),
+                ("sli_summary_open", "In Progress"), ("sli_summary_suggest", "Remaining to Plan"), ("sli_summary_warn", "Warnings"),
                 ("sli_summary_customer", "Customer"), ("sli_summary_item", "Item"), ("sli_summary_delivered", "Delivered")]
 SUMMARY_LAYOUT = [(12, ["sli_summary_so", "sli_summary_customer", "sli_summary_item", "sli_summary_ordered", "sli_summary_delivered"]),
                   (12, ["sli_summary_planned", "sli_summary_produced", "sli_summary_open", "sli_summary_suggest"]), (24, ["sli_summary_warn"])]
 SUMMARY_CLASS = {"sli_summary_so": "font-bold", "sli_summary_suggest": "font-bold", "sli_summary_warn": "error-msg"}
 TEXT_TPL = os.path.join(IASC, "client", "tpl", "text_so_delivery_method.json")
-PAGE_COLS = [("ia_no", "Item Assembly", "in"), ("status", "Status", "in"), ("mode", "BOM Mode", "in"), ("planned", "Planned", "num"), ("actual", "Actual", "num"),
-             ("uom", "UOM", "in"), ("counted", "Counted As", "in"), ("ia_id", "IA ID", "hid"), ("open", "Open", "link")]
+# UI-01 (BA handoff): the IA form's words; Output to Receive (an open IA's quantity) draws its key from rkeys, after every earlier
+# draw, so the other columns keep theirs
+PAGE_COLS = [("ia_no", "Item Assembly", "in"), ("status", "Status", "in"), ("mode", "BOM Mode", "in"), ("planned", "Planned Output", "num"),
+             ("to_receive", "Output to Receive", "num-r"), ("actual", "Actual Received", "num"), ("uom", "UOM", "in"), ("counted", "Counted As", "in"),
+             ("ia_id", "IA ID", "hid"), ("open", "Open", "link")]
 
 
 def read(path):
@@ -168,8 +171,8 @@ def build_page(c):
     def table(model, name):
         cols = []
         for m, label, kind in PAGE_COLS:
-            if kind == "num":
-                cols.append(w(col["item_quantity"], m, label))
+            if kind in ("num", "num-r"):
+                cols.append(w(col["item_quantity"], m, label, gen=rkeys if kind == "num-r" else None))
             elif kind == "link":
                 cols.append(w(link, m, label, linkName="Open"))
             else:

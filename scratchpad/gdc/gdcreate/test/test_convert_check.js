@@ -28,7 +28,7 @@ assert.deepStrictEqual([r.code, r.busy_json, String(r.busy_count)], ["200", "[]"
 console.log("ok comma text, none busy -> 200, []");
 const cancelJob = { job_id: "7", job_status: "COMPLETED", gd_no: "GD/1", error_code: "", error_message: "", command: "CANCEL_GD", progress_message: "Goods Delivery GD/1-Cancelled cancelled; unpacked: HU/1" };
 r = run({ job_ids: ["7"] }, [], [cancelJob]);
-assert.ok(r.jsql.includes("j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD')") && r.jsql.includes(`JSON_TABLE('["7"]'`), r.jsql);
+assert.ok(r.jsql.includes("j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD', 'REVERT_GD')") && r.jsql.includes(`JSON_TABLE('["7"]'`), r.jsql);
 assert.deepStrictEqual(JSON.parse(r.jobs_json), [cancelJob]);
 console.log("ok v5: a GD Cancel V2 job is read back with its command and progress message");
 console.log("5 passed");

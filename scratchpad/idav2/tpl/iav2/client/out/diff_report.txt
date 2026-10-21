@@ -1,0 +1,56 @@
+== OFF build (switches {'ASYNC_IA_ENABLED': 'false', 'IA_V2_COMPLETE': 'true', 'IA_V2_COMPLETE_POST': 'true', 'ASYNC_IA_REVERT_ENABLED': 'false'}, ids {'IA_V2_SUBMIT': '2112141238600376321', 'IA_V2_WORKER': '2112141277456408577', 'IA_REVERT_V2_SUBMIT': '2112141384234999809', 'IA_REVERT_V2_WORKER': '2112141417890095105'})
+-- IAform.json vs base ia_form_v34
+    /config/eventScript/[key=e9ib2r8i]/func
+    /config/eventScript/[key=evhzkk8e]/rules/[key=mr8f903u]/options/func
+    /config/eventScript/[key=iabcnf01]/func
+    /config/eventScript/[key=iacqty01]/func
+    /config/eventScript/[key=iaitem01]/func
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=uefyqo2f] (added at 37: onRowRemove_item)
+    /config/eventScript/[key=uhn48srb] (added at 35: iaV2_onClick_completed)
+    /config/eventScript/[key=wia8s2r9] (added at 36: iaV2_onClick_completed_post)
+    /config/eventScript/[key=wv07g9xe]/func
+    /list/[key=1hr9mvse]/tabs/[key=7knd5tcj]/list/[key=tlm8ve69]/events/onRowRemove
+    /list/[key=2det1nd2]/list/[key=lzvb9vrl] (added at 5: processing_status)
+    /list/[key=4cjp73ay]/options/datasource/rules/list/0/children/1/children (length 4 -> 5)
+    /list/[key=gxcyawu5] (added at 6: ia_v2_job_id)
+    /list/[key=r8tuqgi5] (added at 7: ia_idem_key)
+    /list/[key=t6y2yh5r]/list/[key=dxpzlyqp]/events/onClick
+    /list/[key=t6y2yh5r]/list/[key=lnfr8gna]/events/onClick
+-- IAlistPage.json vs base ia_list_v20
+    /config/eventScript/[key=8r9xuzc4]/func
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=mounted]/type (added)
+    /config/eventScript/[key=oh26x9gl]/func
+    /config/eventScript/[key=z4qy8mae]/func
+    /list/[key=s6wz5vvo]/options/customProps/rowActions/1/hidden
+-- NOT_RECORD: 19 keys; none read by IA_SAVE v11; every recorded payload key is a column or stripped; stripped columns (display-only badges, never written by the classic): ['completed_status', 'draft_status', 'fullyposted_status', 'ia_idem_key', 'ia_v2_job_id', 'issued_status']
+-- new keys: events [('uhn48srb', 'iaV2_onClick_completed', 'button_completed'), ('wia8s2r9', 'iaV2_onClick_completed_post', 'comp_post_button'), ('uefyqo2f', 'onRowRemove_item', 'stock_movement')], badge ('lzvb9vrl', 'processing_status'), fields [('gxcyawu5', 'ia_v2_job_id', 'V2 Job ID'), ('r8tuqgi5', 'ia_idem_key', 'Idempotency Key')]
+== ON build (switches {'ASYNC_IA_ENABLED': 'true', 'IA_V2_COMPLETE': 'true', 'IA_V2_COMPLETE_POST': 'true', 'ASYNC_IA_REVERT_ENABLED': 'true'}, ids {'IA_V2_SUBMIT': '2112141238600376321', 'IA_V2_WORKER': '2112141277456408577', 'IA_REVERT_V2_SUBMIT': '2112141384234999809', 'IA_REVERT_V2_WORKER': '2112141417890095105'})
+-- IAform.json vs base ia_form_v34
+    /config/eventScript/[key=e9ib2r8i]/func
+    /config/eventScript/[key=evhzkk8e]/rules/[key=mr8f903u]/options/func
+    /config/eventScript/[key=iabcnf01]/func
+    /config/eventScript/[key=iacqty01]/func
+    /config/eventScript/[key=iaitem01]/func
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=uefyqo2f] (added at 37: onRowRemove_item)
+    /config/eventScript/[key=uhn48srb] (added at 35: iaV2_onClick_completed)
+    /config/eventScript/[key=wia8s2r9] (added at 36: iaV2_onClick_completed_post)
+    /config/eventScript/[key=wv07g9xe]/func
+    /list/[key=1hr9mvse]/tabs/[key=7knd5tcj]/list/[key=tlm8ve69]/events/onRowRemove
+    /list/[key=2det1nd2]/list/[key=lzvb9vrl] (added at 5: processing_status)
+    /list/[key=4cjp73ay]/options/datasource/rules/list/0/children/1/children (length 4 -> 5)
+    /list/[key=gxcyawu5] (added at 6: ia_v2_job_id)
+    /list/[key=r8tuqgi5] (added at 7: ia_idem_key)
+    /list/[key=t6y2yh5r]/list/[key=dxpzlyqp]/events/onClick
+    /list/[key=t6y2yh5r]/list/[key=lnfr8gna]/events/onClick
+-- IAlistPage.json vs base ia_list_v20
+    /config/eventScript/[key=8r9xuzc4]/func
+    /config/eventScript/[key=mounted]/func
+    /config/eventScript/[key=mounted]/type (added)
+    /config/eventScript/[key=oh26x9gl]/func
+    /config/eventScript/[key=z4qy8mae]/func
+    /list/[key=s6wz5vvo]/options/customProps/rowActions/1/hidden
+-- NOT_RECORD: 19 keys; none read by IA_SAVE v11; every recorded payload key is a column or stripped; stripped columns (display-only badges, never written by the classic): ['completed_status', 'draft_status', 'fullyposted_status', 'ia_idem_key', 'ia_v2_job_id', 'issued_status']
+-- new keys: events [('uhn48srb', 'iaV2_onClick_completed', 'button_completed'), ('wia8s2r9', 'iaV2_onClick_completed_post', 'comp_post_button'), ('uefyqo2f', 'onRowRemove_item', 'stock_movement')], badge ('lzvb9vrl', 'processing_status'), fields [('gxcyawu5', 'ia_v2_job_id', 'V2 Job ID'), ('r8tuqgi5', 'ia_idem_key', 'Idempotency Key')]

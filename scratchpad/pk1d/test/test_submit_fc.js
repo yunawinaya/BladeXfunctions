@@ -13,7 +13,8 @@ const mod = (file, extra) => {
   vm.runInContext(cut >= 0 ? t.slice(0, cut) : t, ctx);
   return ctx;
 };
-const G = mod("submit_guard.js"), D = mod("submit_decide.js"), DON = mod("submit_decide.js", { "FORCE_COMPLETE: false": "FORCE_COMPLETE: true" });
+// DON = submit_decide.js as shipped (STAGE.FORCE_COMPLETE on, user 10-21); D = the stage switch turned off
+const G = mod("submit_guard.js"), DON = mod("submit_decide.js"), D = mod("submit_decide.js", { "FORCE_COMPLETE: true };": "FORCE_COMPLETE: false };" });
 const call = (ctx, fn, ...args) => { ctx.__A = JSON.parse(JSON.stringify(args)); return JSON.parse(JSON.stringify(vm.runInContext(fn + "(...__A)", ctx))); };
 const KEY = "pk1d-fc-0000000000000001";
 const gin = (o) => Object.assign({ systemTenantId: "496474", pickingId: "2112000000000000088", organizationId: "1901545950162329602", operation: "FORCE_COMPLETE", idempotencyKey: KEY, payload: "{}", confirmedBy: "admin" }, o || {});

@@ -1,6 +1,6 @@
 // Small Cycle client, the Sales Order link: Select SO Line -> the dialog -> a line picked (an IA with lines keeps them and their
-// picks, keys stamped, the snapshot saved; an IA at quantity 0 takes the suggestion through QTY), Unlink (STANDARD goes legacy,
-// FLAT stays), Use Suggested Qty (other open IAs, a fully covered line, a CTN line, a failed read), the SO-line entry, mounted
+// picks, keys stamped, the snapshot saved; an IA at quantity 0 takes the suggestion through QTY), Unlink (only the link goes,
+// Standard and Flat keep their prepared BOM), Use Suggested Qty (other open IAs, a fully covered line, a CTN line, a failed read), the SO-line entry, mounted
 // per page (Edit Draft rehydrates only, View / Completed read-only, a removed line offers Re-link), Clone, Re-link.
 //   node scratchpad/iasc/client/test/test_sc_link.js
 const H = require("./harness");
@@ -58,7 +58,7 @@ const linkNew = async (values, o) => {
       sum[0][2].proposal_uom_id === F.EA, sum.map((t) => t[2]));
     check("L1: the section: the line, its figures, the suggestion with its sum, what is left after this IA, the BOM; no message", same(s.panel().split("\n"), [
       "Sales Order: SO-A · line 1", "Customer: ACME", "Ordered: 100 EA", "Delivered: 0 EA", "Produced: 0 EA", "In Progress: 0 EA in other open IAs",
-      "Suggested Qty: 100 EA = 100 ordered − 0 produced − 0 in progress", "After This IA: 90 EA still needed", "BOM: Standard · V1 · prepared " + snapOf(v).preparedAt.slice(0, 10)]),
+      "Remaining to Plan: 100 EA = 100 ordered − 0 produced − 0 in progress", "After This IA: 90 EA still needed", "BOM: Standard · V1 · prepared " + snapOf(v).preparedAt.slice(0, 10)]),
       s.panel());
     check("L1: the section shown", shown(s, m).indexOf("sc_section") >= 0 || shown(s).indexOf("sc_section") >= 0, shown(s));
     check("L1: the linked controls shown", ["planned_output_qty", "sc_info", "sc_btn_unlink", "sc_btn_suggest", "sc_btn_refresh", "sc_btn_bom"].every((x) => shown(s, m).indexOf(x) >= 0), shown(s, m));
@@ -142,10 +142,21 @@ const linkNew = async (values, o) => {
     await s.fire("sc_onClick_unlink");
     const v = s.v();
     check("L4: Unlink asks first", s.calls("$confirm", m).length === 1 && s.calls("$confirm", m)[0][1] === "Unlink");
-    check("L4: STANDARD unlinked = legacy: ids, snapshot, root BOM, planned and line keys cleared; the context kept", v.source_so_id === "" && v.source_so_line_id === "" && v.bom_snapshot_json === "" &&
-      v.source_bom_id === "" && v.planned_output_qty === null && keys(v).every((k) => k === "") && v.source_so_context_json === linked.source_so_context_json && v.bom_consumption_mode === "STANDARD");
+    // BA handoff FIX-02: unlink clears only the link; the prepared BOM, plan and line keys stay, so the IA keeps its saved basis
+    check("L4: STANDARD unlinked: only the link cleared; snapshot, root BOM, plan, line keys, mode and context kept", v.source_so_id === "" && v.source_so_line_id === "" &&
+      v.bom_snapshot_json === linked.bom_snapshot_json && v.source_bom_id === linked.source_bom_id && v.planned_output_qty === linked.planned_output_qty &&
+      same(keys(v), keys(linked)) && v.source_so_context_json === linked.source_so_context_json && v.bom_consumption_mode === "STANDARD",
+      [v.bom_snapshot_json === linked.bom_snapshot_json, v.source_bom_id, v.planned_output_qty, keys(v)]);
+    check("L4: the section shows not linked + the BOM", same(s.panel().split("\n"), ["Sales Order: not linked", "BOM: Standard · V1 · prepared " + snapOf(linked).preparedAt.slice(0, 10)]), s.panel());
     check("L4: the lines and picks untouched", same((v.stock_movement || []).map((l) => [l.total_quantity, l.temp_qty_data, l.requested_qty]), linked.stock_movement.map((l) => [l.total_quantity, l.temp_qty_data, l.requested_qty])));
-    check("L4: the linked controls hidden again", ["planned_output_qty", "sc_info", "sc_btn_unlink", "sc_btn_suggest"].every((x) => hidden(s, m).indexOf(x) >= 0), hidden(s, m));
+    check("L4: the linked controls hidden, the plan and the section kept", ["sc_btn_unlink", "sc_btn_suggest", "sc_btn_refresh"].every((x) => hidden(s, m).indexOf(x) >= 0) &&
+      ["planned_output_qty", "sc_info"].every((x) => hidden(s, m).indexOf(x) < 0), hidden(s, m));
+    // and a later quantity change still works from the saved BOM (no BOM read)
+    await s.self.setData({ item_qty: 20 });
+    const m2 = s.mark();
+    await s.fire("onChange_itemQty", { value: 20 });
+    check("L4: after unlink, a quantity change recomputes the references from the snapshot", s.reads("bill_of_materials", m2).length === 0 &&
+      (s.v().stock_movement[0] || {}).requested_qty === 40, [(s.v().stock_movement || []).map((l) => l.requested_qty), s.reads("bill_of_materials", m2).length]);
     const c = session(linked, { confirms: { Unlink: "cancel" } });
     await c.fire("sc_onClick_unlink");
     const panelOnly = (k) => /^sc_info_/.test(k);
@@ -170,17 +181,20 @@ const linkNew = async (values, o) => {
       s.calls("$confirm", m).length === 1 && s.calls("$confirm", m)[0][1] === "Quantity Changed" && ((v.stock_movement || [])[0] || {}).requested_qty === 200 && ((v.stock_movement || [])[0] || {}).total_quantity === 150 &&
       ((v.stock_movement || [])[1] || {}).total_quantity === 400, [s.calls("$confirm", m).map((t) => t[1]), (v.stock_movement || []).map((l) => l.total_quantity)]);
     check("L6" + (fire ? " (onChange echoes)" : "") + ": no BOM read", s.reads("bill_of_materials", m).length === 0);
+    check("L6" + (fire ? " (onChange echoes)" : "") + ": told both quantities changed (UI-01), once", s.calls("$message.success", m).filter((t) =>
+      t[1] === "Use Suggestion: Planned Output and Output to Receive set to 100.").length === 1, s.calls("$message.success", m));
   }
   {
     const s = session(linked, { so: { ias: [{ id: "4100", no: "IA-1", status: "Draft", item_id: "P1", item_qty: "60", item_uom: F.EA, planned_output_qty: "60", mode: "STANDARD", is_deleted: 0, source_so_line_id: "8001" }] } });
     await s.fire("sc_onClick_suggest");
     check("L6: another open Draft of 60 -> suggestion 40", s.v().planned_output_qty === 40 && s.v().item_qty === 40 &&
-      /^In Progress: 60 EA in other open IAs$/m.test(s.panel()) && /^Suggested Qty: 40 EA = 100 ordered − 0 produced − 60 in progress$/m.test(s.panel()), s.panel());
+      /^In Progress: 60 EA in other open IAs$/m.test(s.panel()) && /^Remaining to Plan: 40 EA = 100 ordered − 0 produced − 60 in progress$/m.test(s.panel()), s.panel());
   }
   {
     const s = session(linked, { so: { lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "100" })] } });
     await s.fire("sc_onClick_suggest");
-    check("L6: a fully delivered line -> 'nothing left', nothing changed", s.v().item_qty === 10 && s.v().planned_output_qty === 10 && s.calls("$alert").some((t) => /suggested 0/.test(t[1])));
+    check("L6: a fully delivered line -> 'nothing left', nothing changed", s.v().item_qty === 10 && s.v().planned_output_qty === 10 && s.calls("$alert").some((t) => /suggested 0/.test(t[1]) &&
+      t[2] === "Use Suggestion") && s.calls("$message.success").length === 0, s.calls("$alert"));
   }
   {
     const s = session(linked, { projectionDown: true });
@@ -192,7 +206,7 @@ const linkNew = async (values, o) => {
     const ctnLine = Object.assign({}, F.so().lines[0], { so_quantity: "10", so_item_uom: F.CTN });
     const s = session(linked, { so: { lines: [ctnLine] } });
     await s.fire("sc_onClick_suggest");
-    check("L6: a line of 10 CTN -> 120 EA on the IA", s.v().planned_output_qty === 120 && s.v().item_qty === 120 && /^Suggested Qty: 10 CTN = 10 ordered − 0 produced − 0 in progress$/m.test(s.panel()) &&
+    check("L6: a line of 10 CTN -> 120 EA on the IA", s.v().planned_output_qty === 120 && s.v().item_qty === 120 && /^Remaining to Plan: 10 CTN = 10 ordered − 0 produced − 0 in progress$/m.test(s.panel()) &&
       /^After This IA: fully covered$/m.test(s.panel()), [s.v().item_qty, s.panel()]);
   }
   // ---- L7: the SO-line entry
@@ -231,6 +245,14 @@ const linkNew = async (values, o) => {
     await s.fire("mounted");
     check("L7b: an entry on a line of 10 CTN: planned = item_qty = 120 EA", s.v().planned_output_qty === 120 && s.v().item_qty === 120 && s.v().item_uom === F.EA, [s.v().planned_output_qty, s.v().item_qty]);
   }
+  {
+    const s = session(entryValues, { this: { isAdd: true }, params: { sc_entry: "1" }, so: { lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "40" })],
+      ias: [{ id: "4100", no: "IA-1", status: "Completed", item_id: "P1", item_qty: "30", item_uom: F.EA, planned_output_qty: "30", mode: "STANDARD", is_deleted: 0, source_so_line_id: "8001" }] } });
+    await s.fire("mounted");
+    check("L7c: an entry whose remaining quantity is unavailable: told why, quantity and plan left for the planner", (s.v().item_qty === 0 || s.v().item_qty === "") &&
+      (s.v().planned_output_qty === null || s.v().planned_output_qty === "") && s.calls("$message.warning").some((x) => /can.t be worked out/.test(String(x[1]))),
+      [s.v().item_qty, s.v().planned_output_qty, s.calls("$message.warning")]);
+  }
   // ---- L8: Edit of an enhanced Draft rehydrates only
   {
     const saved = Object.assign({}, linked, { id: "4001", page_status: "Edit", item_assembly_status: "Draft" });
@@ -250,7 +272,7 @@ const linkNew = async (values, o) => {
     const s = session(saved, { this: { isView: true } });
     await s.fire("mounted");
     check("L9: View: no proposal (the IA is in the totals already), no coverage line, 'Open in Item Assemblies' (this one included)",
-      s.wf(PROJ).some((t) => t[2].operation === "SUMMARY" && t[2].proposal_qty === "") && !/^(After This IA|Suggested Qty): /m.test(s.panel()) &&
+      s.wf(PROJ).some((t) => t[2].operation === "SUMMARY" && t[2].proposal_qty === "") && !/^(After This IA|Remaining to Plan): /m.test(s.panel()) &&
       /^In Progress: 0 EA in open IAs$/m.test(s.panel()), s.panel());
     check("L9: View: SUMMARY without exclusion, the widgets read-only, no edit button", s.wf(PROJ).some((t) => t[2].operation === "SUMMARY" && t[2].exclude_ia_id === "") &&
       s.calls("disabled").some((t) => same(t[1], ["bom_consumption_mode", "planned_output_qty"]) && t[2] === true) && ["sc_btn_line", "sc_btn_unlink", "sc_btn_suggest", "sc_btn_bom"].every((x) => hidden(s).indexOf(x) >= 0));
@@ -272,7 +294,9 @@ const linkNew = async (values, o) => {
     const m = s.mark();
     await s.fire("sc_onClick_pickLine", { rowIndex: 0, row: rows[0] });
     const call = s.wf(RELINK, m);
-    check("L9: IA_SC_RELINK called with the IA, the new line, the item and the org; the field and the list follow", call.length === 1 && same(call[0][2], { ia_id: "4001", so_line_id: "8002", item_id: "P1", organization_id: F.ORG }) &&
+    // FIX-06: the link and status the IA was opened with, so a changed IA is refused instead of overwritten
+    check("L9: IA_SC_RELINK called with the IA, the new line, the item, the org and the link + status as opened; the field and the list follow", call.length === 1 &&
+      same(call[0][2], { ia_id: "4001", so_line_id: "8002", item_id: "P1", organization_id: F.ORG, expected_line_id: "8001", expected_status: "Completed" }) &&
       s.v().source_so_line_id === "8002" && s.since(m).some((t) => t[0] === "list.refresh"), call.map((t) => t[2]));
     const bad = session(completed, { this: { isEdit: true }, so: removed });
     bad.w.relinkAnswer = { data: { code: "400", message: "This Item Assembly is being processed in the background." } };

@@ -49,7 +49,7 @@ The form and SUBMIT send a case to the **old save** (`NOT_ELIGIBLE`) when it is:
 | A new Picking (Add), a Draft, mobile / split data | not a stored confirmation | — |
 | Picking Setup: picks after **Sales Order** (Picking Plan) | not ported yet | 1f |
 | **Auto Complete GD** | the GD completion must be async too | 1e |
-| List **Force Complete** | V2 built (stage 1d, below): `STAGE.FORCE_COMPLETE` is off until its live twins | 1d |
+| List **Force Complete** | V2 (stage 1d, below): both switches ON on dev since 2026-10-21, after the live twins | 1d |
 | A move (1c) with: Full Picking on, a handling unit on the moved line, a serial-numbered item or select picking on the moved GD, internal-trading linkage | not ported | — |
 
 Since 1c, a line picked into another bin or batch (both sides set and different, classic's test)
@@ -293,8 +293,9 @@ complete has ended is cancelled by the next GD_EDIT_WORKER run. Opening the Pick
 both workers again.
 
 **Switches:** `STAGE.FORCE_COMPLETE` in SUBMIT's `code_node_PSdecide` and `ASYNC_FORCE_COMPLETE_ENABLED` in the list
-handler, both off; they go on together (the list's dialog describes the background force complete). With the list's
-switch on, a Picking SUBMIT sends back (NOT_ELIGIBLE, classic_ok 1) runs classic and its result says so.
+handler, both ON on dev since 2026-10-21 (SUBMIT v11, list page v222; the user's yes after the live twins); they go
+on and off together (the list's dialog describes the background force complete). A Picking SUBMIT sends back
+(NOT_ELIGIBLE, classic_ok 1) runs classic and its result says so.
 
 Built from `scratchpad/pk1d/` (`patch_pk1d.py` from the deployed SUBMIT v9 / WORKER v3 / PREPARE v10 / COMMIT v10 /
 PICKING_LOOP v88; `build_drive.py`; `sync_clients.py` for the list page / form), with GD Edit V2's `scratchpad/gde`.
@@ -381,6 +382,9 @@ Client files:
    `patch_pk1d.py --rebase --write` (the WORKER's call takes the id), `build_drive.py --write`; publish DRIVE with
    SUBMIT / PREPARE / WORKER / COMMIT, `STAGE.FORCE_COMPLETE` false.
 3. The Picking list page and the Picking form (`sync_clients.py` output). Then the live twins, then the switch.
+4. Done on dev 2026-10-21: live twins passed (PREPARE v12 fixed plan_view_stock's trailing newline), then both
+   switches on (SUBMIT v11, list page v222 = `scratchpad/pk1d/deploy/PickingListPage.fcon.json`, mirrored by
+   `sync_clients.py --published-page --write`).
 
 **Prod:** next week's full deployment promotes dev as it stands, with these switches on. Switching
 them off (SUBMIT only) sends moves and Loading Bay back to the classic save.

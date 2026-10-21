@@ -1,7 +1,7 @@
 // LOT_V2_COMMIT - L1 INVENTORY: INVENTORY_BULK_APPLY APPLY (all-or-nothing; SMLT|<job> replays on a re-run).
 // 200 (also REPLAYED) or no movement -> DONE + the hand-over: SPLIT (the worker calls phase B in this tick) or, above 1,000
 // lines, PARK (due now, no lease: the next tick resumes); attempt_count back to 0 either way (lock waits are not failures).
-// 409 -> intent rows ? retry -> review : 8 waits (15 s x 2^n, max 5 min) then FAILED + unlock; 400 -> FAILED + unlock with the
+// 409 -> 8 waits (15 s x 2^n, max 5 min), then intent rows ? review : FAILED + unlock; 400 -> FAILED + unlock with the
 // LABELS-mapped message; anything else -> REQUIRES_REVIEW
 const commitL1 = function commitL1(entry, guard, input, ans, ops, labelRows) {
   if (s(input.ok) !== "YES") return failNoWrite(entry, "LOT_INVALID_DATA", MSG.invalid, s(input.why) + ": no stock was moved");
@@ -19,7 +19,8 @@ const commitL1 = function commitL1(entry, guard, input, ans, ops, labelRows) {
   const why = "INVENTORY_BULK_APPLY answered " + (code || "nothing") + " " + s(ans.result_code) + (s(ans.message) ? ": " + s(ans.message) : "");
   if (code === "200") return handOver(stepOk(entry, "L1_INVENTORY", s(ans.result_code) + " " + s(ans.message), "inventory " + s(ans.result_code)));
   if (code === "409") {
-    if (num((ops || {}).intents) > 0) return stepEnd(entry, "L1_INVENTORY", why, false);
+    // this operation may have written (engine v12 answers 409 while its earlier run is alive or < 20 min dead): wait, never fail clean
+    if (num((ops || {}).intents) > 0) return entry.attempts >= LOCK_WAIT_TRIES ? stepEnd(entry, "L1_INVENTORY", why, true) : lockWait(entry, why);
     if (entry.attempts >= LOCK_WAIT_TRIES) return failNoWrite(entry, "LOT_INVENTORY_LOCK_BUSY", MSG.lockBusy, why.slice(0, 300) + ": nothing was moved");
     return lockWait(entry, why);
   }

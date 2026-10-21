@@ -1,5 +1,15 @@
 const REVERT_WORKFLOW_ID = "2058819647368241153";
 
+// GD Revert V2 (2026-10-21): each Completed delivery goes to GD_REVERT_SUBMIT, a background job that puts its stock back, restores
+// its reservations and sales orders and makes it Created again; one it does not handle (NOT_ELIGIBLE: a Picking Plan delivery,
+// serial numbers, stock from a handling unit) is reverted the classic way below. false = every delivery the classic way, as before.
+const REVERT_V2_ENABLED = true;
+const GD_REVERT_SUBMIT_ID = "2112758069166473217";
+const GD_REVERT_WORKER_ID = "2112758130420088833";
+const GD_JOB_CHECK_ID = "2112084100104495105"; // GD_SO_CONVERT_CHECK: job_ids -> jobs_json
+const FOLLOW_MS = 120000;
+const FOLLOW_EVERY_MS = 3000;
+
 const runRevertWorkflow = async (data) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
@@ -95,6 +105,122 @@ const handleWorkflowResult = (workflowResult, gdItem) => {
   };
 };
 
+// The classic revert of one delivery: GD_REVERT_COMPLETED on the record as stored
+const classicRevert = async (gdItem) => {
+  const data = await db.collection("goods_delivery").doc(gdItem.id).get();
+
+  if (!data.data || data.data.length === 0) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: false,
+      error: "Goods Delivery record not found",
+    };
+  }
+
+  try {
+    const gdData = data.data[0];
+
+    // The selected row can be stale if the goods delivery was invoiced
+    // elsewhere after the list was loaded. The record is already fetched,
+    // so re-checking here costs nothing.
+    if (isInvoiced(gdData)) {
+      return {
+        delivery_no: gdItem.delivery_no,
+        success: false,
+        error: invoicedError(gdData.si_status),
+      };
+    }
+
+    const workflowResult = await runRevertWorkflow(gdData);
+    return handleWorkflowResult(workflowResult, gdItem);
+  } catch (error) {
+    return {
+      delivery_no: gdItem.delivery_no,
+      success: false,
+      error: error.message || "Failed to revert",
+    };
+  }
+};
+
+// GD Revert V2: one call, an answer that always settles (null when the call failed)
+const callWorkflow = (workflowId, params) =>
+  new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        workflowId,
+        params,
+        (res) => resolve(res && res.data ? res.data : null),
+        (err) => {
+          console.error("Workflow " + workflowId + " failed:", err);
+          resolve(null);
+        },
+      );
+    } catch (error) {
+      console.error("Workflow " + workflowId + " could not run:", error);
+      resolve(null);
+    }
+  });
+
+const kickWorker = (jobId) => {
+  try {
+    this.runWorkflow(
+      GD_REVERT_WORKER_ID,
+      { job_id: jobId },
+      () => {},
+      (err) => console.error("GD revert worker for job " + jobId + ":", err),
+    );
+  } catch (error) {
+    console.error("GD revert worker could not be started:", error);
+  }
+};
+
+// Starts the worker for each queued revert, then reports each one as its job ends; a job the background revert refused as
+// not eligible (the delivery is back to Completed) is reverted the classic way. Returns the reverts still running.
+const followReverts = async (queued, results) => {
+  let pending = queued.slice();
+  pending.forEach((item) => kickWorker(item.job_id));
+  const started = Date.now();
+  let round = 0;
+  while (pending.length > 0 && Date.now() - started < FOLLOW_MS) {
+    this.hideLoading();
+    this.showLoading(`Reverting in the background: ${queued.length - pending.length} of ${queued.length} done...`);
+    await new Promise((resolve) => setTimeout(resolve, FOLLOW_EVERY_MS));
+    const answer = await callWorkflow(GD_JOB_CHECK_ID, { job_ids: pending.map((item) => item.job_id) });
+    let jobs = null;
+    try {
+      jobs = JSON.parse((answer && answer.jobs_json) || "null");
+    } catch (error) {
+      jobs = null;
+    }
+    if (!Array.isArray(jobs)) continue;
+    const byId = {};
+    jobs.forEach((job) => {
+      byId[String(job.job_id)] = job;
+    });
+    const still = [];
+    for (const item of pending) {
+      const job = byId[String(item.job_id)];
+      const status = job ? job.job_status : "";
+      if (status === "COMPLETED") {
+        results.push({ delivery_no: item.delivery_no, success: true });
+      } else if (status === "FAILED" && job.error_code === "GDR_NOT_ELIGIBLE") {
+        results.push(await classicRevert(item.gd));
+      } else if (status === "FAILED" || status === "CANCELLED") {
+        results.push({ delivery_no: item.delivery_no, success: false, error: job.error_message || "The goods delivery could not be reverted." });
+      } else if (status === "REQUIRES_REVIEW") {
+        results.push({ delivery_no: item.delivery_no, success: false,
+          error: `Held for review by an administrator${job.error_message ? ": " + job.error_message : "."} Do not revert it again.` });
+      } else {
+        still.push(item);
+      }
+    }
+    pending = still;
+    // a worker run that ended before its job did (stock locks held by another save) is started again
+    if (++round % 5 === 0) pending.forEach((item) => kickWorker(item.job_id));
+  }
+  return pending;
+};
+
 (async () => {
   try {
     this.showLoading();
@@ -178,61 +304,35 @@ const handleWorkflowResult = (workflowResult, gdItem) => {
       error: invoicedError(item.si_status),
     }));
 
+    const queued = [];
+
     for (const gdItem of goodsDeliveryData) {
-      const id = gdItem.id;
-
-      const data = await db.collection("goods_delivery").doc(id).get();
-
-      if (!data.data || data.data.length === 0) {
-        results.push({
-          delivery_no: gdItem.delivery_no,
-          success: false,
-          error: "Goods Delivery record not found",
-        });
+      if (!REVERT_V2_ENABLED) {
+        results.push(await classicRevert(gdItem));
         continue;
       }
-
-      try {
-        const gdData = data.data[0];
-
-        // The selected row can be stale if the goods delivery was invoiced
-        // elsewhere after the list was loaded. The record is already fetched,
-        // so re-checking here costs nothing.
-        if (isInvoiced(gdData)) {
-          results.push({
-            delivery_no: gdItem.delivery_no,
-            success: false,
-            error: invoicedError(gdData.si_status),
-          });
-          continue;
-        }
-
-        const workflowResult = await runRevertWorkflow(gdData);
-        const result = handleWorkflowResult(workflowResult, gdItem);
-        results.push(result);
-      } catch (error) {
-        results.push({
-          delivery_no: gdItem.delivery_no,
-          success: false,
-          error: error.message || "Failed to revert",
-        });
+      const answer = await callWorkflow(GD_REVERT_SUBMIT_ID, { operation: "SUBMIT", gd_id: String(gdItem.id), source: "LIST" });
+      if (answer && answer.route === "QUEUED") {
+        queued.push({ delivery_no: gdItem.delivery_no, job_id: answer.job_id, gd: gdItem });
+      } else if (answer && answer.route === "NOT_ELIGIBLE") {
+        results.push(await classicRevert(gdItem));
+      } else {
+        results.push({ delivery_no: gdItem.delivery_no, success: false, error: (answer && answer.message) || "The revert could not be started. Try again." });
       }
     }
+    const background = queued.length ? await followReverts(queued, results) : [];
 
     // Show summary
     const successCount = results.filter((r) => r.success).length;
     const failCount = results.filter((r) => !r.success).length;
 
-    if (failCount > 0) {
-      const failedItems = results
-        .filter((r) => !r.success)
-        .map((r) => `${r.delivery_no}: ${r.error}`)
-        .join("<br>");
-      this.$message({
-        type: "error",
-        message: `${successCount} reverted, ${failCount} failed:<br>${failedItems}`,
-        dangerouslyUseHTMLString: true,
-      });
+    if (failCount > 0 || background.length > 0) {
+      const sections = [];
+      if (successCount) sections.push(`<strong>Reverted to Created (${successCount}):</strong><br>` + results.filter((r) => r.success).map((r) => r.delivery_no).join(", "));
+      if (failCount) sections.push(`<strong>Not reverted (${failCount}):</strong><br>` + results.filter((r) => !r.success).map((r) => `${r.delivery_no}: ${r.error}`).join("<br>"));
+      if (background.length) sections.push(`<strong>Being reverted in the background (${background.length}):</strong><br>` + background.map((r) => r.delivery_no).join(", ") + "<br>They will show as Created in the list shortly.");
+      this.hideLoading();
+      await this.$alert(sections.join("<br><br>"), "Revert Goods Delivery to Created", { dangerouslyUseHTMLString: true, confirmButtonText: "OK" }).catch(() => {});
     } else {
       this.$message.success(
         `All ${successCount} Goods Delivery reverted to Created successfully`,

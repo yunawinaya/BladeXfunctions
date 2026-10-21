@@ -1,0 +1,42 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_PROCESS_REVERT",
+   "dataId": "2058820005398224897",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertCompletedGD/GDrevertInventoryProcessWorkflow.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_PROCESS_REVERT.live_v13.json"
+  },
+  {
+   "name": "GD_REVERT_PREPARE",
+   "dataId": "2112758189069041665",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_PREPARE.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_REVERT_PREPARE.live_v3.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "GDR_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "GD_REVERT_COMMIT",
+   "dataId": "2112758315749605378",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_REVERT_COMMIT.live_v3.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "path",
+     "equals": "NO_WRITE"
+    }
+   }
+  }
+ ]
+}

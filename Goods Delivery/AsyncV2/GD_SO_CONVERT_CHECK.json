@@ -13,7 +13,7 @@
       "key": "nof6tvwh",
       "name": "job_ids",
       "title": "job_ids",
-      "description": "GD Created V2 (CREATE_GD_FROM_FORM) or GD Cancel V2 (CANCEL_GD) jobs to report on (a list of digits, or comma-separated)",
+      "description": "GD Created V2 (CREATE_GD_FROM_FORM), GD Cancel V2 (CANCEL_GD) or GD Revert V2 (REVERT_GD) jobs to report on (a list of digits, or comma-separated)",
       "bsonType": "any",
       "isExpand": false,
       "children": []
@@ -373,13 +373,13 @@
                 "database_id": "",
                 "sql": "",
                 "params": {},
-                "title": "The asked GD Created V2 / GD Cancel V2 jobs (tenant-scoped): status, delivery number, error, progress",
+                "title": "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress",
                 "isValidator": true,
-                "nodeName": "The asked GD Created V2 / GD Cancel V2 jobs (tenant-scoped): status, delivery number, error, progress",
-                "name": "The asked GD Created V2 / GD Cancel V2 jobs (tenant-scoped): status, delivery number, error, progress",
+                "nodeName": "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress",
+                "name": "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress",
                 "script": {
                   "type": "sql",
-                  "code": "SELECT CAST(j.id AS CHAR) AS job_id,\n       j.job_status,\n       IFNULL(j.gd_no, '') AS gd_no,\n       IFNULL(j.error_code, '') AS error_code,\n       LEFT(IFNULL(j.error_message, ''), 500) AS error_message,\n       j.command,\n       LEFT(IFNULL(j.progress_message, ''), 250) AS progress_message\n  FROM JSON_TABLE('{{node:code_node_SCguard.data.jobIdsJson}}', '$[*]' COLUMNS (jid VARCHAR(20) PATH '$')) t\n  JOIN gd_async_job j\n    ON j.id = CAST(t.jid AS UNSIGNED)\n   AND j.tenant_id = '{{system:tenantId}}'\n   AND j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD')\n   AND j.is_deleted = 0\n LIMIT 200"
+                  "code": "SELECT CAST(j.id AS CHAR) AS job_id,\n       j.job_status,\n       IFNULL(j.gd_no, '') AS gd_no,\n       IFNULL(j.error_code, '') AS error_code,\n       LEFT(IFNULL(j.error_message, ''), 500) AS error_message,\n       j.command,\n       LEFT(IFNULL(j.progress_message, ''), 250) AS progress_message\n  FROM JSON_TABLE('{{node:code_node_SCguard.data.jobIdsJson}}', '$[*]' COLUMNS (jid VARCHAR(20) PATH '$')) t\n  JOIN gd_async_job j\n    ON j.id = CAST(t.jid AS UNSIGNED)\n   AND j.tenant_id = '{{system:tenantId}}'\n   AND j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD', 'REVERT_GD')\n   AND j.is_deleted = 0\n LIMIT 200"
                 },
                 "response_json": [
                   {

@@ -57,6 +57,10 @@ What the user sees:
 
 - Stock is all or nothing. The classic writes the receipt Completed before its per-line loop and does not roll back.
 - Batch numbers are taken only after every check has passed, so a refused save does not use one up.
+- Generated batch numbers are checked twice: before the insert, and again after it (since dev GR_COMPLETE_COMMIT v9,
+  2026-10-21). If another document took the number in between, for example a classic GENERATE_BATCH reading the
+  same unlocked counter, the job fails with GRC_BATCH_DUPLICATE: our batch rows are removed, the receipt goes back to
+  its status before the submit, and no stock moves. Live: GR/202610210023 (auto Batch-00630) completed normally.
 - Two receipts of the same PO are serialised by the `GRPO|<po>` lock. Each PO slice is written from a fresh read and
   an intent row (before / after).
 - On-order quantities are exact to 8 dp. The classic truncated them to whole numbers until GOODS_RECEIVING v101 on dev.

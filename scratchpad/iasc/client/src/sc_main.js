@@ -8,6 +8,7 @@ const SC_EPS = 0.0000001;
 const SC_ECHO_MS = 3000;
 const SC_ITEM_FIELDS = "material_name,material_desc,based_uom,serial_number_management,item_batch_management,batch_number_genaration,table_uom_conversion,table_default_bin,stock_control";
 const SC_EDIT_WIDGETS = ["bom_consumption_mode", "planned_output_qty"];
+const SC_EXPAND_NOTE = "Tick a sub-assembly to make it from its own components in this Item Assembly. A tick applies to every place the item is used (see Used).";
 const SC_BUTTONS = ["sc_btn_line", "sc_btn_unlink", "sc_btn_relink", "sc_btn_suggest", "sc_btn_bom", "sc_btn_refresh"];
 
 // the resolver and the projection (code/shared, verbatim)
@@ -70,12 +71,17 @@ const scRun = (id, params) =>
     const p = this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));
     if (p && typeof p.then === "function") p.then((res) => resolve(res), (err) => reject(err));
   });
-// SO_IA_PROJECTION: its result_json, or null (a failed call is never shown as zero)
+// SO_IA_PROJECTION: its result_json, or null (a failed call is never shown as zero); a refusal (400, e.g. the user is not
+// assigned to the organisation: FIX-03) keeps its reason for the panel and the alerts
 const scProjection = async (params) => {
+  scStore({ sc_refused: "" });
   try {
     const res = await scRun(SC_WF_PROJECTION, params);
     const d = (res && res.data) || {};
-    if (scS(d.code) !== "200") return null;
+    if (scS(d.code) !== "200") {
+      if (scS(d.code) === "400") scStore({ sc_refused: scS(d.message) });
+      return null;
+    }
     const r = scParseJ(d.result_json);
     return r && typeof r === "object" ? r : null;
   } catch (e) {
@@ -83,6 +89,7 @@ const scProjection = async (params) => {
     return null;
   }
 };
+const scWhyNot = (fallback) => scS(scState().sc_refused) || fallback;
 // an Add / Clone (unsaved) or an Edit of a Draft (excluded from the totals): its own quantity is proposed once
 const scEditable = (v) => {
   const page = scS(v.page_status);
@@ -238,7 +245,7 @@ const scKeep = (sum, factor) => {
   const l = sum.line || {};
   scStore({ sc_sum: { soNo: scS(h.so_no), soId: scS(h.id), customer: scS(h.customer_name), lineIndex: scS(l.line_index), lineId: scS(l.id), uomId: scS(sum.uomId),
     ordered: t.ordered, delivered: t.delivered, undelivered: t.undelivered, produced: t.produced, openOthers: t.openOthers, planned: t.planned,
-    suggestion: t.suggestion === undefined ? null : t.suggestion, complete: t.complete !== false, active: scActive(sum), factor: factor,
+    suggestion: t.suggestion === undefined ? null : t.suggestion, unavailable: scS(t.unavailable), complete: t.complete !== false, active: scActive(sum), factor: factor,
     warnings: (sum.warnings || []).map((w) => ({ code: scS(w.code), text: scS(w.text) })),
     relink: (sum.candidates || []).map((c) => ({ id: scS(c.id), lineIndex: scS(c.line_index), ordered: c.so_quantity, delivered: c.delivered_qty, uomId: scS(c.so_item_uom) })) } });
 };
@@ -264,7 +271,7 @@ const scRender = async (v) => {
   const editable = scEditable(v);
   const row = {};
   if (!scLinked(v)) row.sc_info_so = "not linked";
-  else if (!sum) row.sc_info_so = "figures unavailable right now: press Refresh Figures to try again";
+  else if (!sum) row.sc_info_so = scWhyNot("figures unavailable right now: press Refresh Figures to try again");
   else {
     row.sc_info_so = (sum.soNo || "?") + (sum.lineIndex ? " · line " + sum.lineIndex : "");
     row.sc_info_customer = sum.customer;
@@ -274,7 +281,8 @@ const scRender = async (v) => {
     // read-only: this IA is inside the totals already, so nothing of its own is added
     row.sc_info_open = lineQty(sum.openOthers) + " in " + (editable ? "other " : "") + "open IAs";
     if (editable) {
-      if (sum.suggestion === null || !sum.complete) row.sc_info_suggest = "unavailable: a unit conversion is missing";
+      if (sum.unavailable === "OVERLAP") row.sc_info_suggest = "Unavailable: " + scOverlapText(sum, lineQty) + ", so enter the quantity yourself";
+      else if (sum.suggestion === null || !sum.complete) row.sc_info_suggest = "Unavailable: a unit conversion is missing";
       else if (!sum.active) row.sc_info_suggest = lineQty(0) + ": the line has no remaining demand";
       else {
         // the suggestion takes off the larger of delivered and produced
@@ -282,11 +290,14 @@ const scRender = async (v) => {
         row.sc_info_suggest = lineQty(sum.suggestion) + " = " + scNumText(sum.ordered) + " ordered \u2212 " + done + " \u2212 " + scNumText(sum.openOthers) + " in progress";
       }
       if (sum.active && sum.complete && sum.factor !== null && sum.factor !== undefined) {
+        // with both delivered and produced above 0 they may overlap: this is the least the line can be covered
+        const overlap = Math.min(scNum(sum.delivered), scNum(sum.produced)) > 0;
         const covered = scQ8(Math.max(scNum(sum.delivered), scNum(sum.produced)) + scNum(sum.openOthers) + scQ8(v.item_qty) * scNum(sum.factor));
         const left = scQ8(scNum(sum.ordered) - covered);
-        if (left > 0) row.sc_info_cover = lineQty(left) + " still needed";
+        if (left < 0) row.sc_info_over = "\u26a0 This Item Assembly makes " + (overlap ? "at least " : "") + lineQty(-left) + " more than ordered. You can still save.";
         else if (left === 0) row.sc_info_cover = "fully covered";
-        else row.sc_info_over = "\u26a0 This Item Assembly makes " + lineQty(-left) + " more than ordered. You can still save.";
+        else if (overlap) row.sc_info_cover = "Unavailable: the delivered and produced quantities may overlap";
+        else row.sc_info_cover = lineQty(left) + " still needed";
       }
     }
   }
@@ -306,7 +317,11 @@ const scRender = async (v) => {
   const off = SC_PANEL.filter((m) => !row[m]);
   if (on.length) this.display(on);
   if (off.length) this.hide(off);
+  // Use Suggestion only on a figure that can be worked out
+  if (editable && scLinked(v)) this.disabled(["sc_btn_suggest"], !(sum && sum.suggestion !== null));
 };
+// why the remaining quantity is unknown: a delivery may have come from the linked production
+const scOverlapText = (sum, lineQty) => "nothing records whether the " + lineQty(sum.delivered) + " delivered came from the " + lineQty(sum.produced) + " produced";
 // the panel from the facts kept by the last SUMMARY; a linked IA whose figures were never read here reads them first
 const scRenderOrRead = async (v) => (scLinked(v) && scState().sc_sum === undefined ? scRefresh(v) : scRender(v));
 const scRefresh = async (v) => {
@@ -330,7 +345,7 @@ const scDisplay = (v, page, status) => {
   const put = (on, list) => list.forEach((m) => (on ? show : hide).push(m));
   if (editable) {
     put(true, ["sc_section", "bom_consumption_mode", "sc_actions", "sc_btn_line"]);
-    put(smallCycle, ["planned_output_qty", "sc_info", "sc_btn_bom"]);
+    put(smallCycle, ["planned_output_qty", "sc_info", "sc_btn_bom", "sc_prod_actions"]);
     put(linked, ["sc_btn_unlink", "sc_btn_suggest", "sc_btn_refresh"]);
     put(false, ["sc_btn_relink"]);
   } else {
@@ -339,8 +354,10 @@ const scDisplay = (v, page, status) => {
     put(smallCycle, ["sc_section", "bom_consumption_mode", "planned_output_qty", "sc_info", "sc_actions"]);
     put(linked && smallCycle, ["sc_btn_refresh"]);
     put(linked && orphan && (status === "Completed" || status === "Fully Posted"), ["sc_btn_relink"]);
-    put(false, ["sc_btn_line", "sc_btn_unlink", "sc_btn_suggest", "sc_btn_bom"]);
+    put(false, ["sc_btn_line", "sc_btn_unlink", "sc_btn_suggest", "sc_btn_bom", "sc_prod_actions"]);
   }
+  // the BOM row sits in Production (outside sc_info): scRender shows it with a fact, an ordinary IA never
+  if (!smallCycle) hide.push("sc_info_bom");
   if (show.length) this.display(show);
   if (hide.length) this.hide(hide);
   this.disabled(SC_EDIT_WIDGETS, !editable);
@@ -415,13 +432,15 @@ const scPrepare = async (req) => {
       r.tree.forEach((t) => {
         if (!t.expandable || seen[t.itemId]) return;
         seen[t.itemId] = 1;
-        rows.push({ component: "— ".repeat(Math.max(0, t.depth - 1)) + t.name, level: t.depth, bom: scS(t.version),
-          under: scS(io.items[t.parentItemId] && io.items[t.parentItemId].material_name) || scS(t.parentItemId), item_id: t.itemId, expand: saved[t.itemId] ? 1 : 0 });
+        // a tick applies to every BOM line using the item: how many, under which parents, through which BOM versions
+        rows.push({ component: "— ".repeat(Math.max(0, t.depth - 1)) + t.name, level: t.depth, bom: (t.versions || []).join(", ") || scS(t.version), uses: t.uses || 1,
+          under: (t.parents || []).join(", ") || scS(io.items[t.parentItemId] && io.items[t.parentItemId].material_name) || scS(t.parentItemId), item_id: t.itemId,
+          expand: saved[t.itemId] ? 1 : 0 });
       });
       this.hideLoading();
       if (rows.length) {
         scStore({ sc_pending: { mode: "FLAT", itemId: scS(req.itemId), newItem: !!req.newItem, prev: req.prev || null, diff: !!req.diffFrom } });
-        await this.setData({ "sc_expand_dialog.sc_expand_table": rows });
+        await this.setData({ "sc_expand_dialog.sc_expand_table": rows, "sc_expand_dialog.sc_expand_note": SC_EXPAND_NOTE });
         await this.openDialog("sc_expand_dialog");
         return;
       }
@@ -781,10 +800,16 @@ const scOpSuggest = async () => {
   if (!scLinked(v)) return;
   const sum = await scRefresh(v);
   const keep = scState().sc_sum;
-  if (!sum || !keep) return scAlert("The Sales Order figures could not be read. Nothing was changed; please try again.", "Use Suggested Qty", "error");
+  if (!sum || !keep) return scAlert(scHtml(scWhyNot("The Sales Order figures could not be read. Nothing was changed; please try again.")), "Use Suggestion", "error");
+  if (keep.unavailable === "OVERLAP") {
+    const u = await scUomNames([keep.uomId]);
+    const lineQty = (n) => scNumText(n) + (u[scS(keep.uomId)] ? " " + u[scS(keep.uomId)] : "");
+    return scAlert("The remaining quantity can't be worked out: " + scHtml(scOverlapText(keep, lineQty)) + ". Nothing was changed; enter the quantity yourself.",
+      "Use Suggestion", "warning");
+  }
   const qty = await scIaQtyFromLine(v, keep.suggestion, keep.uomId);
-  if (qty === null) return scAlert("No suggestion can be given: the item has no unit conversion between the Sales Order line and this Item Assembly.", "Use Suggested Qty", "warning");
-  if (!(qty > 0)) return scAlert("Nothing is left to plan for this Sales Order line (suggested 0). Nothing was changed.", "Use Suggested Qty", "info");
+  if (qty === null) return scAlert("No suggestion can be given: the item has no unit conversion between the Sales Order line and this Item Assembly.", "Use Suggestion", "warning");
+  if (!(qty > 0)) return scAlert("Nothing is left to plan for this Sales Order line (suggested 0). Nothing was changed.", "Use Suggestion", "info");
   await this.setData({ planned_output_qty: qty });
   v = this.getValues();
   if (Math.abs(scQ8(v.item_qty) - qty) > SC_EPS) {
@@ -792,6 +817,8 @@ const scOpSuggest = async () => {
     scArgs.scSelf = true;
     await scOpQty();
   } else await scRender(v);
+  // it sets both quantities (UI-01): said once the materials follow
+  this.$message.success("Use Suggestion: Planned Output and Output to Receive set to " + scNumText(qty) + ".");
 };
 const scOpSelectLine = async () => {
   const v = this.getValues();
@@ -800,7 +827,7 @@ const scOpSelectLine = async () => {
   const r = await scProjection({ operation: "CANDIDATES", so_id: "", so_line_id: "", item_id: scS(v.item_id), exclude_ia_id: "", organization_id: scOrg(v),
     proposal_qty: "", proposal_uom_id: "", baseline: "" });
   this.hideLoading();
-  if (!r) return scAlert("The Sales Order lines could not be read. Nothing was changed; please try again.", "Select SO Line", "error");
+  if (!r) return scAlert(scHtml(scWhyNot("The Sales Order lines could not be read. Nothing was changed; please try again.")), "Select SO Line", "error");
   const cands = (r.candidates || []).filter((c) => scS(c.lineId) !== scS(v.source_so_line_id));
   if (!cands.length) return this.$message.info("No open Sales Order line (Issued or Processing) is waiting for this item.");
   const names = await scUomNames(cands.map((c) => c.uomId));
@@ -867,7 +894,9 @@ const scRelink = async (row) => {
   if (!ok) return;
   let d = {};
   try {
-    const res = await scRun(SC_WF_RELINK, { ia_id: scS(v.id), so_line_id: scS(row.line_id), item_id: scS(v.item_id), organization_id: scOrg(v) });
+    // FIX-06: the link and status as opened, so an IA changed in the meantime is refused, never overwritten
+    const res = await scRun(SC_WF_RELINK, { ia_id: scS(v.id), so_line_id: scS(row.line_id), item_id: scS(v.item_id), organization_id: scOrg(v),
+      expected_line_id: scS(v.source_so_line_id), expected_status: scS(v.item_assembly_status) });
     d = (res && res.data) || {};
   } catch (e) {
     d = { code: "500", message: scS(e && (e.message || e.msg)) };
@@ -899,15 +928,9 @@ const scOpUnlink = async () => {
   const ok = await scAsk("Remove the link to line " + scHtml(sum.lineIndex || "") + " of Sales Order " + scHtml(sum.soNo || "") + "? The components stay as they are.",
     "Unlink", "Unlink", "Cancel");
   if (!ok) return;
-  // the context stays: the save adds the UNLINK to its history
-  const updates = { source_so_id: "", source_so_line_id: "" };
-  if (scModeOf(v) !== "FLAT") {
-    Object.assign(updates, { bom_snapshot_json: "", source_bom_id: "", planned_output_qty: null });
-    (v.stock_movement || []).forEach((l, i) => {
-      if (scS(l.sc_ref_key)) updates[`stock_movement.${i}.sc_ref_key`] = "";
-    });
-  }
-  await this.setData(updates);
+  // only the link goes: the prepared BOM, the plan and the line keys stay (the IA keeps its saved basis); the context stays too, the
+  // save adds the UNLINK to its history
+  await this.setData({ source_so_id: "", source_so_line_id: "" });
   scKeep(null);
   const after = this.getValues();
   scRedisplay(after);
@@ -1007,8 +1030,101 @@ const scEntry = async (v) => {
       await this.setData({ planned_output_qty: qty });
       await scSetQty(qty);
     } else if (qty === 0) this.$message.info("Nothing is left to plan for this Sales Order line (suggested 0): enter the quantity yourself.");
+  } else if (sum && sum.totals && sum.totals.unavailable === "OVERLAP") {
+    this.$message.warning("The remaining quantity of this Sales Order line can't be worked out (its deliveries may have come from its Item Assemblies): enter the quantity yourself.");
   } else this.$message.warning("The Sales Order figures are unavailable, so no quantity was suggested.");
   await scPrepare({ mode: "STANDARD", itemId: v.item_id, newItem: false, expand: [], prev: null });
+};
+// --- RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): the Materials row,
+// each Draft line's Required / Reserved / Short, and IA_HOLD started again while a Draft is still Reserving or a completed IA still holds
+const RES_WF_HOLD = "__IA_HOLD__"; // IA_HOLD
+// the switch makes holds (a reservation started on open); what an IA holds is shown and closed whatever it says (review I4)
+const RES_ENABLED = __RES_ENABLED__;
+const RES_LABEL = { RESERVING: "Reserving...", FULL: "Fully reserved", PARTIAL: "Partially reserved", SHORT: "Shortage: nothing could be reserved", NONE: "Nothing to reserve",
+  REVIEW: "Needs review: the last reservation did not finish. Save the Item Assembly again to retry.", CLOSED: "Closed at completion" };
+const RES_LINE_COLS = ["stock_movement.required_qty", "stock_movement.res_reserved", "stock_movement.res_short"];
+const RES_CLOSING = ["RESERVING", "FULL", "PARTIAL", "SHORT", "REVIEW"];
+const resHoldId = () => /^[1-9][0-9]{0,19}$/.test(RES_WF_HOLD);
+const resOn = () => RES_ENABLED === true && resHoldId();
+const resRow = async (status, at, draft) => {
+  // a completed IA cannot be saved again: its review says to open it again (review M10)
+  const label = status === "REVIEW" && !draft ? "Needs review: the last close did not finish. Open this Item Assembly again to retry." : RES_LABEL[status] || status;
+  await this.setData({ res_summary: "Raw material reservation: " + label + (at ? " · checked " + at : "") +
+    (draft ? " · Reservations update when this Item Assembly is saved." : "") });
+  this.display(["res_summary"]);
+};
+// required: the line's own, else its reference, else its quantity; reserved: its own Allocated holds; a failed read shows nothing
+const resLines = async (v) => {
+  const lines = Array.isArray(v.stock_movement) ? v.stock_movement : [];
+  const ids = scUniq(lines.map((l) => scS(l.item_selection)).filter((x) => x));
+  let held = null;
+  let items = null;
+  try {
+    // explicit limits, chunked (an 830-line IA must not lose rows to the server's default read size; review M5)
+    const [rows, itemRows] = await Promise.all([
+      scReadMany("on_reserved_gd", "doc_id", [scS(v.id)], [{ prop: "doc_type", operator: "equal", value: "Item Assembly" }, { prop: "status", operator: "equal", value: "Allocated" },
+        { prop: "is_deleted", operator: "equal", value: 0 }]),
+      ids.length ? scReadIds("item", ids, "stock_control,serial_number_management") : Promise.resolve([]),
+    ]);
+    held = {};
+    rows.forEach((r) => (held[scS(r.doc_line_id)] = scQ8((held[scS(r.doc_line_id)] || 0) + scNum(r.open_qty))));
+    items = {};
+    itemRows.forEach((i) => (items[scS(i.id)] = i));
+  } catch (e) {
+    console.error("RES-01: the reservation figures could not be read", e);
+    return;
+  }
+  const updates = {};
+  lines.forEach((l, i) => {
+    const item = items[scS(l.item_selection)];
+    const nonStock = !item || iaIsNonStock(item);
+    const hu = scParseJ(l.temp_hu_data);
+    const notHeld = !nonStock && (Number(item.serial_number_management) === 1 || (Array.isArray(hu) && hu.length > 0));
+    const required = scS(l.required_qty) !== "" ? scNum(l.required_qty) : scNum(l.requested_qty) > 0 ? scNum(l.requested_qty) : scNum(l.total_quantity);
+    const reserved = held[scS(l.id)] || 0;
+    updates[`stock_movement.${i}.res_reserved`] = nonStock ? "" : notHeld ? "not reserved" : scNumText(reserved);
+    updates[`stock_movement.${i}.res_short`] = nonStock || notHeld ? "" : scNumText(Math.max(0, scQ8(required - reserved)));
+  });
+  if (Object.keys(updates).length) await this.setData(updates);
+};
+// in the background: the form stays usable; the row and the header fields follow the answer
+const resKick = (v, operation, draft) => {
+  (async () => {
+    let d = null;
+    try {
+      const res = await scRun(RES_WF_HOLD, { ia_id: scS(v.id), organization_id: scS(v.organization_id), operation: operation, source: "FORM" });
+      d = (res && res.data) || null;
+    } catch (e) {
+      console.error("RES-01: the background reservation failed", e);
+    }
+    const r = d && scS(d.code) === "200" ? scParseJ(d.result_json) : null;
+    if (!r || !scS(r.status)) return;
+    await this.setData({ material_hold_status: scS(r.status), material_hold_at: scS(r.checkedAt) });
+    await resRow(scS(r.status), scS(r.checkedAt), draft);
+    if (draft) await resLines(this.getValues());
+  })();
+};
+const resMount = async (v, page, status) => {
+  if (!resHoldId()) return;
+  if (page === "Clone") {
+    // the clone is a new IA: unreserved until its first save
+    const clear = {};
+    if (scS(v.material_hold_status) || scS(v.material_hold_at)) Object.assign(clear, { material_hold_status: "", material_hold_at: "" });
+    (Array.isArray(v.stock_movement) ? v.stock_movement : []).forEach((l, i) => {
+      if (scS(l.res_reserved) || scS(l.res_short)) Object.assign(clear, { [`stock_movement.${i}.res_reserved`]: "", [`stock_movement.${i}.res_short`]: "" });
+    });
+    if (Object.keys(clear).length) await this.setData(clear);
+    return;
+  }
+  const hold = scS(v.material_hold_status);
+  if (page === "Add" || !hold || !/^[0-9]{1,20}$/.test(scS(v.id))) return;
+  const draft = status === "Draft";
+  await resRow(hold, scS(v.material_hold_at), draft);
+  if (draft) {
+    this.display(RES_LINE_COLS);
+    await resLines(v);
+    if (hold === "RESERVING" && resOn()) resKick(v, "RECONCILE", true);
+  } else if ((status === "Completed" || status === "Fully Posted") && RES_CLOSING.indexOf(hold) >= 0) resKick(v, "CLOSE", false);
 };
 const scOpMount = async () => {
   await scSleep(0);
@@ -1017,6 +1133,7 @@ const scOpMount = async () => {
   const v = this.getValues();
   const snap = scSnapOf(v.bom_snapshot_json);
   scStore({ sc_page: page, sc_status: status, sc_mode: scModeOf(v), sc_item: scS(v.item_id), sc_sum: undefined, sc_pending: null });
+  await resMount(v, page, status);
   if (page === "Clone" && (scLinked(v) || scModeOf(v) === "FLAT" || scEnhanced(v))) {
     await scClone(v);
     const after = this.getValues();
@@ -1024,6 +1141,12 @@ const scOpMount = async () => {
     return scRender(after);
   }
   if (page === "Clone") scStore({ sc_cloned: 1 });
+  // UI-01: a completed IA shows what was received, a read-only Actual Received row, in place of the Output to Receive field
+  if ((page === "Edit" || page === "View") && (status === "Completed" || status === "Fully Posted")) {
+    await this.setData({ sc_actual: scNumText(v.item_qty) });
+    this.display(["sc_actual"]);
+    this.hide(["item_qty"]);
+  }
   const entry = page === "Add" && scS(this.getParamsVariables("sc_entry")) === "1" && scLinked(v) && scS(v.item_id) !== "";
   scDisplay(v, page, status);
   if (entry) return scEntry(v);

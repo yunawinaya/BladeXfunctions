@@ -1,0 +1,16 @@
+Mock-harness measurements (scratchpad/idav2/client/test/test_explode.js; ms = the mock's JS time, not the platform's)
+- explode 5 components (base): {"ms":3,"reads":10,"setData":4,"setOptionData":5,"disabledCalls":13,"disabledPaths":19}
+- explode 5 components (built): {"ms":3,"reads":10,"setData":4,"setOptionData":5,"disabledCalls":13,"disabledPaths":19}
+- explode 830 components (base): {"ms":18,"reads":10,"setData":4,"setOptionData":829,"disabledCalls":1661,"disabledPaths":2491}
+- explode 830 components (built): {"ms":21,"reads":11,"setData":4,"setOptionData":829,"disabledCalls":1661,"disabledPaths":2491}
+- explode 830 components, 100-row clamp (base): lines that lost item data: {"lost":732}
+- explode 2000 components (base): {"ms":50,"reads":10,"setData":4,"setOptionData":1999,"disabledCalls":4001,"disabledPaths":6001}
+- explode 2000 components (built): {"ms":53,"reads":13,"setData":4,"setOptionData":1999,"disabledCalls":4001,"disabledPaths":6001}
+- explode 2000 components, 100-row clamp (base): lines that lost item data: {"lost":1902}
+- explode 2,000 components, 100-row clamp (built): {"ms":111,"reads":30,"setData":4,"setOptionData":1999,"disabledCalls":4001,"disabledPaths":6001}
+- Batch Add 2,000 items (iabcnf01, unchanged): {"ms":18,"reads":4,"setData":1,"setOptionData":4000,"disabledCalls":6000,"disabledPaths":12000,"readCollections":["storage_location","bin_location","unit_of_measurement","bin_location"]}
+- Batch Add 2,000 items, 100-row default limit (if the platform had one): lines whose UOM options lost an entry: {"lost":663}
+- item picker, one pick at 2,000 lines (iaitem01, unchanged): {"ms":14,"reads":4,"setData":1,"setOptionData":2,"disabledCalls":3,"disabledPaths":6}
+- item picker, re-render without fieldModel at 2,000 lines: {"ms":12,"reads":0,"setData":0,"setOptionData":1999,"disabledCalls":0,"disabledPaths":0}
+- form mounted, Edit of a 2,000-line Draft (per-row loops unchanged): {"ms":12,"reads":0,"setData":2,"setOptionData":1999,"disabledCalls":4000,"disabledPaths":5999}
+- form mounted, Edit of a 2,000-line Completed: {"ms":9,"reads":0,"setData":2,"setOptionData":1999,"disabledCalls":4,"disabledPaths":25}

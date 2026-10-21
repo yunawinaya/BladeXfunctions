@@ -1,0 +1,531 @@
+====================================================================================================
+start [start-node] Start Node
+====================================================================================================
+get_node_FPExdl9O [get-node] Get SI Data
+{
+ "table_id": {
+  "source": "Sales Invoice:Table:1902525285396496385",
+  "rules": {
+   "collectionId": "1902525285396496385",
+   "list": [
+    {
+     "id": 1778512930876,
+     "parentId": 1778512930875,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{workflowparams:si_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "Primary Key ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Get SI Data",
+ "isValidator": true,
+ "nodeName": "Get SI Data",
+ "name": "Get SI Data"
+}
+====================================================================================================
+code_node_LBv1T4sZ [code-node] Map SO/GD Line IDs
+response_json: ["gdLineIDs", "soLineIDs"]
+const siData = {{node:get_node_FPExdl9O.data.data}};
+const soLineIDs = siData.table_si.map(siItem => siItem.so_line_id);
+const gdLineIDs = siData.table_si.map(siItem => siItem.gd_line_id);
+
+return { soLineIDs, gdLineIDs };
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Map SO/GD Line IDs", "name": "Map SO/GD Line IDs"}
+====================================================================================================
+search_node_V3rnGDPj [search-node] Get SO List
+{
+ "table_id": {
+  "source": "Sales Order:Table:1902773735979597826",
+  "rules": {
+   "collectionId": "1902773735979597826",
+   "list": [
+    {
+     "id": 1778513047209,
+     "parentId": 1778513047208,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:get_node_FPExdl9O.data.data.so_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "Get SO List",
+ "isValidator": true,
+ "nodeName": "Get SO List",
+ "name": "Get SO List"
+}
+====================================================================================================
+search_node_Gvy1Uni8 [search-node] Get GD List
+{
+ "table_id": {
+  "source": "Goods Delivery:Table:1902054888473481218",
+  "rules": {
+   "collectionId": "1902054888473481218",
+   "list": [
+    {
+     "id": 1778513073424,
+     "parentId": 1778513073423,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:get_node_FPExdl9O.data.data.gd_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "Get GD List",
+ "isValidator": true,
+ "nodeName": "Get GD List",
+ "name": "Get GD List"
+}
+====================================================================================================
+search_node_CuUfIpII [search-node] Get AR List
+{
+ "table_id": {
+  "source": "AR Invoice:Table:2072512608001388545",
+  "rules": {
+   "collectionId": "2072512608001388545",
+   "list": [
+    {
+     "id": 1783048320792,
+     "parentId": 1783048320791,
+     "isTop": true,
+     "prop": "si_id.id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{workflowparams:si_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "Get AR List",
+ "isValidator": true,
+ "nodeName": "Get AR List",
+ "name": "Get AR List"
+}
+====================================================================================================
+code_node_CtfkSP3q [code-node] Map Latest SO/GD list
+response_json: ["updatedGD", "updatedSO", "updatedSI", "updatedAR"]
+const data = {{node:get_node_FPExdl9O.data.data}};
+const soList = {{node:search_node_V3rnGDPj.data.data}} || [];
+const gdList = {{node:search_node_Gvy1Uni8.data.data}} || [];
+const arList = {{node:search_node_CuUfIpII.data.data}} || [];
+
+const roundTo3 = (value) => {
+  return Math.round((parseFloat(value) || 0) * 1000) / 1000;
+};
+
+const formatNumber = (value) => {
+  if (value === null || value === undefined || value === "") return "0.0000";
+  return parseFloat(value).toFixed(3);
+};
+
+
+const updateGoodsDelivery = (gdIds, tableSi, data) => {
+  let gdUpdatedList = [];
+  for(const gdID of gdIds) {
+    const gdData = gdList.find(gd => gd.id === gdID) || [];
+    const gdItems = gdData?.table_gd || [];
+
+    // Process GR items
+    const { updatedItems, newSIStatus } = processItems(
+      gdItems,
+      tableSi,
+      gdData.id,
+      "line_gd_id",
+      "gd_line_id",
+      "gd_qty",
+      data.si_status
+    );
+
+    gdUpdatedList.push({
+      gd_id: gdData.id,
+      si_status: newSIStatus,
+      table_gd: updatedItems
+    })
+  }
+
+  return gdUpdatedList;
+};
+
+const updateSalesOrder = (soIds, tableSi, data) => {
+  let soUpdatedList = [];
+  for(const soID of soIds) {
+    const soData = soList.find(so => so.id === soID)
+    const soItems = soData.table_so || [];
+
+    const { updatedItems, newSIStatus } = processItems(
+      soItems,
+      tableSi,
+      soData.id,
+      "line_so_id",
+      "so_line_id",
+      "so_quantity",
+      data.si_status
+    );
+
+    soUpdatedList.push({
+      so_id: soData.id,
+      si_status: newSIStatus,
+      table_so: updatedItems
+    })
+  }
+
+  return soUpdatedList;
+};
+
+const processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey, siStatus) => {
+  // Filter SI items for the current document
+  const filteredSI = tableSi.filter((item) => item[docIdKey] === docId);
+
+  // Initialize tracking
+  let totalItems = items.length;
+  
+  // Update items using find() with id matching
+  const updatedItems = items.map((item) => {
+    const matchedSI = filteredSI.find(si => si[siLineIdKey] === item.id);
+    
+    if (matchedSI) {
+      const siInvoicedQty = roundTo3(matchedSI.invoice_qty);
+      const currentInvoicedQty = roundTo3(item.invoice_qty);
+      const totalInvoicedQty = roundTo3(currentInvoicedQty - siInvoicedQty);
+
+      // Initialize updatedItem with the base updates
+      let updatedItem = {
+        ...item,
+        invoice_qty: totalInvoicedQty,
+      };
+      
+      // Only calculate posted_qty if siStatus is 'Posted'
+      if (siStatus === 'Posted') {
+        const currentPostedQty = roundTo3(item.posted_qty || 0);
+        const totalPostedQty = roundTo3(currentPostedQty - siInvoicedQty);
+        updatedItem.posted_qty = totalPostedQty;
+      }
+      
+      // Determine SI status based on invoice_qty
+      if (roundTo3(updatedItem.invoice_qty) > 0) {
+        updatedItem.si_status = "Partially Invoiced";
+        if (roundTo3(updatedItem.invoice_qty) >= roundTo3(item[qtyKey] || 0)) {
+          updatedItem.si_status = "Fully Invoiced";
+        }
+      } else {
+        updatedItem.si_status = null;
+      }
+      
+      return updatedItem;
+    }
+    
+    return { ...item };
+  });
+
+  // Determine new SI status
+  let partiallyInvoicedItems = updatedItems.filter(item => item.si_status === "Partially Invoiced").length;
+  let fullyInvoicedItems = updatedItems.filter(item => item.si_status === "Fully Invoiced").length;
+  const allItemsComplete = fullyInvoicedItems === totalItems;
+  const anyItemProcessing = partiallyInvoicedItems > 0 || fullyInvoicedItems > 0;
+  let newSIStatus = anyItemProcessing
+    ? allItemsComplete
+      ? "Fully Invoiced"
+      : "Partially Invoiced"
+    : "";
+
+  return { updatedItems, newSIStatus };
+};
+
+const soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];
+let updatedGD = [];
+if (data.gd_id && data.gd_id.length > 0) {
+  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];
+  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si, data);
+  updatedGD = updatedGDData
+}
+
+const updatedSO = updateSalesOrder(soIds, data.table_si, data);
+const updatedAR = arList.map(ar => ({ id: ar.id, ar_invoice_no: ar.ar_invoice_no + "-Cancelled" }));
+return {
+  updatedGD, 
+  updatedSO,
+  updatedSI: {
+    id: data.id,
+    si_status: "Cancelled",
+    sales_invoice_no: data.sales_invoice_no + "-Cancelled",
+  },
+  updatedAR
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Map Latest SO/GD list", "name": "Map Latest SO/GD list"}
+====================================================================================================
+update_node_qrMaG8y2 [update-node] Update SO
+{
+ "table_id": {
+  "source": "Sales Order:Table:1902773735979597826",
+  "rules": {
+   "collectionId": "1902773735979597826",
+   "list": [
+    {
+     "id": 1778592077290,
+     "parentId": 1778592077289,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_CtfkSP3q.data.updatedSO.so_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update SO",
+ "isValidator": true,
+ "nodeName": "Update SO",
+ "name": "Update SO",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "id",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedSO.so_id}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "主键ID"
+   },
+   {
+    "prop": "si_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedSO.si_status}}",
+    "valueLabel": "",
+    "propLabel": "SI Completed Status"
+   },
+   {
+    "prop": "table_so",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedSO.table_so}}",
+    "valueLabel": "",
+    "propLabel": "Sales Order Table"
+   }
+  ]
+ }
+}
+====================================================================================================
+update_node_3zWZ9YIP [update-node] Update GD
+{
+ "table_id": {
+  "source": "Goods Delivery:Table:1902054888473481218",
+  "rules": {
+   "collectionId": "1902054888473481218",
+   "list": [
+    {
+     "id": 1778592235890,
+     "parentId": 1778592235889,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_CtfkSP3q.data.updatedGD.gd_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update GD",
+ "isValidator": true,
+ "nodeName": "Update GD",
+ "name": "Update GD",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "id",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedGD.gd_id}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "主键ID"
+   },
+   {
+    "prop": "si_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedGD.si_status}}",
+    "valueLabel": "",
+    "propLabel": "SI Status"
+   },
+   {
+    "prop": "table_gd",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedGD.table_gd}}",
+    "valueLabel": "",
+    "propLabel": "table_gd"
+   }
+  ]
+ }
+}
+====================================================================================================
+update_node_EdPzs1en [update-node] Update AR
+{
+ "table_id": {
+  "source": "AR Invoice:Table:2072512608001388545",
+  "rules": {
+   "collectionId": "2072512608001388545",
+   "list": [
+    {
+     "id": 1783048500774,
+     "parentId": 1783048500773,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_CtfkSP3q.data.updatedAR.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update AR",
+ "isValidator": true,
+ "nodeName": "Update AR",
+ "name": "Update AR",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "id",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedAR.id}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "主键ID"
+   },
+   {
+    "prop": "ar_invoice_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedAR.ar_invoice_no}}",
+    "valueLabel": "",
+    "propLabel": "Invoice No"
+   }
+  ]
+ }
+}
+====================================================================================================
+update_node_iH3XNTHq [update-node] Update SI
+{
+ "table_id": {
+  "source": "Sales Invoice:Table:1902525285396496385",
+  "rules": {
+   "collectionId": "1902525285396496385",
+   "list": [
+    {
+     "id": 1778592311542,
+     "parentId": 1778592311541,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_CtfkSP3q.data.updatedSI.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update SI",
+ "isValidator": true,
+ "nodeName": "Update SI",
+ "name": "Update SI",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "id",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedSI.id}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "主键ID"
+   },
+   {
+    "prop": "si_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedSI.si_status}}",
+    "valueLabel": "",
+    "propLabel": "SI Status"
+   },
+   {
+    "prop": "sales_invoice_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_CtfkSP3q.data.updatedSI.sales_invoice_no}}",
+    "valueLabel": "",
+    "propLabel": "Sales Invoice Number"
+   }
+  ]
+ }
+}
+====================================================================================================
+end [end-node] End Node
+{
+ "isValidator": true,
+ "title": "End Node"
+}

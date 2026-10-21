@@ -16,8 +16,8 @@
     })
   }
 
-// GD Created / Completion / Edit / Cancel V2: there is no scheduled worker - a save, a completion, an edit, a cancel or a Picking still
-// waiting (a retry, a closed browser, an expired hold) moves on when the list opens (at most every 2 minutes per browser)
+// GD Created / Completion / Edit / Cancel / Revert V2: there is no scheduled worker - a save, a completion, an edit, a cancel, a revert
+// or a Picking still waiting (a retry, a closed browser, an expired hold) moves on when the list opens (at most every 2 minutes per browser)
 (() => {
   const KEY = "gdc_worker_kick_at";
   let last = 0;
@@ -50,6 +50,7 @@
   tick("2110618789356687361", 1, processed); // GD_EDIT_WORKER
   tick("2104840667119411201", 1, processed); // GD_ASYNC_WORKER (GD Created)
   tick("2112455700319932418", 1, processed); // GD_CANCEL_WORKER
+  tick("2112758130420088833", 1, processed); // GD_REVERT_WORKER
   // GD_PICKING_OUTBOX_CONSUMER, poll mode: the tenant's earliest due Picking of a created delivery; DONE / DONE_NONE = one handled
   tick("2105134245397041153", 1, (d) => /^DONE/.test(String(d.consumer_route || "")));
 })();

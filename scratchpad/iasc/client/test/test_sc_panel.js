@@ -36,20 +36,25 @@ const MINUS = " − ";
     return s;
   };
 
-  // ---- PN1: delivered 40 > produced 30: the suggestion takes the delivered off
+  // ---- PN1: delivered 40 and produced 30 may overlap (nothing records which delivery came from which IA): no figure (FIX-01)
   {
     const s = await refreshed({ lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "40" })], ias: [completedIa("4101", 30), draftIa("4102", 20)] });
     check("PN1: the line, then the production figures, one per row", same(rows(s).slice(0, 6), ["Sales Order: SO-A · line 1", "Customer: ACME", "Ordered: 100 EA", "Delivered: 40 EA",
       "Produced: 30 EA", "In Progress: 20 EA in other open IAs"]), s.panel());
-    check("PN1: Suggested Qty = 100 ordered - 40 delivered - 20 in progress", row(s, "Suggested Qty") === "Suggested Qty: 40 EA = 100 ordered" + MINUS + "40 delivered" + MINUS + "20 in progress",
-      s.panel());
-    check("PN1: After This IA: 40 + 20 + this 10 of 100 -> 30 still needed", row(s, "After This IA") === "After This IA: 30 EA still needed", s.panel());
+    check("PN1: Remaining to Plan unavailable, with why, and the quantity left to the planner", row(s, "Remaining to Plan") ===
+      "Remaining to Plan: Unavailable: nothing records whether the 40 EA delivered came from the 30 EA produced, so enter the quantity yourself", s.panel());
+    check("PN1: After This IA unavailable too", row(s, "After This IA") === "After This IA: Unavailable: the delivered and produced quantities may overlap", s.panel());
+    check("PN1: Use Suggested Qty disabled", s.calls("disabled").some((x) => same(x[1], ["sc_btn_suggest"]) && x[2] === true), s.calls("disabled"));
   }
-  // ---- PN2: produced 30 > delivered 10: the produced is taken off
+  // ---- PN2: exact when only one of delivered / produced is above 0
   {
-    const s = await refreshed({ lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "10" })], ias: [completedIa("4101", 30)] });
-    check("PN2: Suggested Qty = 100 ordered - 30 produced - 0 in progress", row(s, "Suggested Qty") === "Suggested Qty: 70 EA = 100 ordered" + MINUS + "30 produced" + MINUS + "0 in progress",
-      s.panel());
+    const p1 = await refreshed({ ias: [completedIa("4101", 30)] });
+    check("PN2: produced 30, nothing delivered: 70 EA = 100 ordered - 30 produced - 0 in progress", row(p1, "Remaining to Plan") === "Remaining to Plan: 70 EA = 100 ordered" + MINUS + "30 produced" +
+      MINUS + "0 in progress", p1.panel());
+    check("PN2: Use Suggested Qty enabled", p1.calls("disabled").some((x) => same(x[1], ["sc_btn_suggest"]) && x[2] === false), p1.calls("disabled"));
+    const p2 = await refreshed({ lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "40" })] });
+    check("PN2: delivered 40, nothing produced: 60 EA = 100 ordered - 40 delivered - 0 in progress", row(p2, "Remaining to Plan") === "Remaining to Plan: 60 EA = 100 ordered" + MINUS + "40 delivered" +
+      MINUS + "0 in progress", p2.panel());
   }
   // ---- PN3: over the order: one message instead of After This IA; the server's EXCESS warning not repeated
   {
@@ -58,10 +63,24 @@ const MINUS = " − ";
     check("PN3: the over-the-order message, alone", same(messages(s), ["⚠ This Item Assembly makes 5 EA more than ordered. You can still save."]), s.panel());
     check("PN3: no After This IA row", row(s, "After This IA") === null, s.panel());
   }
+  // ---- PN15: over the order whatever the overlap: "at least", and the exact 0 left
+  {
+    const s = await refreshed({ lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "100" })], ias: [completedIa("4101", 30)] });
+    check("PN15: Remaining to Plan 0 EA (both bounds 0)", row(s, "Remaining to Plan") === "Remaining to Plan: 0 EA = 100 ordered" + MINUS + "100 delivered" + MINUS + "0 in progress", s.panel());
+    check("PN15: at least 10 EA more than ordered", same(messages(s), ["\u26a0 This Item Assembly makes at least 10 EA more than ordered. You can still save."]), s.panel());
+  }
+  // ---- PN16: Use Suggested Qty on an unavailable figure: told why, nothing changed
+  {
+    const s = await refreshed({ lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "40" })], ias: [completedIa("4101", 30)] });
+    const m = s.mark();
+    await s.fire("sc_onClick_suggest");
+    check("PN16: told why, quantity and plan unchanged", s.calls("$alert", m).some((x) => /can.t be worked out/.test(String(x[1]))) && s.v().item_qty === 10 &&
+      s.v().planned_output_qty === 10, [s.calls("$alert", m).map((x) => x[1]), s.v().item_qty, s.v().planned_output_qty]);
+  }
   // ---- PN4: a cancelled SO: suggestion 0, nothing after, the warning
   {
     const s = await refreshed({ header: Object.assign({}, F.so().header, { so_status: "Cancelled" }) });
-    check("PN4: Suggested Qty 0, the line has no remaining demand", row(s, "Suggested Qty") === "Suggested Qty: 0 EA: the line has no remaining demand", s.panel());
+    check("PN4: Remaining to Plan 0, the line has no remaining demand", row(s, "Remaining to Plan") === "Remaining to Plan: 0 EA: the line has no remaining demand", s.panel());
     check("PN4: no After This IA row", row(s, "After This IA") === null, s.panel());
     check("PN4: the warning", same(messages(s), ["⚠ SO-A is cancelled: it has no remaining demand."]), s.panel());
   }
@@ -115,7 +134,7 @@ const MINUS = " − ";
     const s = session(linked, { so: { ias: [Object.assign(draftIa("4103", 5), { item_uom: LONG })] }, tables: F.tables({ extra: { unit_of_measurement: uoms } }) });
     await s.fire("sc_onClick_refresh");
     check("PN11: the other IA's unit named (PLT), never its id", messages(s).some((x) => /is in PLT, which cannot be converted to EA/.test(x)) && s.panel().indexOf(LONG) < 0, s.panel());
-    check("PN11: Suggested Qty unavailable", row(s, "Suggested Qty") === "Suggested Qty: unavailable: a unit conversion is missing", s.panel());
+    check("PN11: Remaining to Plan unavailable", row(s, "Remaining to Plan") === "Remaining to Plan: Unavailable: a unit conversion is missing", s.panel());
   }
   // ---- PN12-14: the Sales Order Link section: on every editable page (its Select SO Line), on a read-only page only for a Small
   // Cycle IA (an ordinary IA's view stays as before)
@@ -138,6 +157,79 @@ const MINUS = " − ";
     const linkedView = session(Object.assign({}, linked, { id: "4001", page_status: "View" }), { this: { isView: true } });
     await linkedView.fire("mounted");
     check("PN14: View of a linked IA: the section and its figures shown", lastShown(linkedView, "sc_section") === true && lastShown(linkedView, "sc_info") === true);
+  }
+  // ---- PN17-PN20: UI-01 (BA handoff): Quantity is "Output to Receive" until the IA is completed, then a read-only "Actual Received"
+  // row takes its place; Use Suggestion and Prepare BOM sit in Production, shown with their buttons; the BOM row only on a Small Cycle IA
+  {
+    const lastShown = (s, m) => {
+      let on;
+      s.w.trace.forEach((t) => {
+        const k = String(t[0]).replace(/^sc:/, "");
+        if ((k === "display" || k === "hide") && [].concat(t[1]).indexOf(m) >= 0) on = k === "display";
+      });
+      return on;
+    };
+    for (const [what, flags, status] of [["Edit, Completed", { isEdit: true }, "Completed"], ["View, Fully Posted", { isView: true }, "Fully Posted"], ["View, Completed", { isView: true }, "Completed"]]) {
+      for (const [kind, base] of [["an ordinary IA", F.header()], ["a linked IA", linked]]) {
+        const s = session(Object.assign({}, base, { id: "4300", page_status: flags.isEdit ? "Edit" : "View", item_assembly_status: status, stock_movement_no: "IA-0300", item_qty: 12.5 }),
+          { this: flags });
+        await s.fire("mounted");
+        check("PN17: " + what + ", " + kind + ": Actual Received 12.5 in place of Output to Receive (the quantity itself unchanged)", s.v().sc_actual === "12.5" &&
+          lastShown(s, "sc_actual") === true && lastShown(s, "item_qty") === false && s.v().item_qty === 12.5, [s.v().sc_actual, lastShown(s, "sc_actual"), lastShown(s, "item_qty")]);
+      }
+    }
+    for (const [what, flags, values] of [["Add", { isAdd: true }, F.header()], ["Edit, Draft", { isEdit: true }, Object.assign({}, linked, { id: "4300", page_status: "Edit" })],
+      ["Edit, Processing", { isEdit: true }, F.header({ id: "4300", page_status: "Edit", item_assembly_status: "Processing", ia_v2_job_id: "7001" })],
+      ["Clone of a Completed IA", { isCopy: true }, F.header({ id: "4300", item_assembly_status: "Completed" })]]) {
+      const s = session(values, { this: flags });
+      await s.fire("mounted");
+      check("PN18: " + what + ": the quantity stays Output to Receive", lastShown(s, "sc_actual") !== true && lastShown(s, "item_qty") !== false && !("sc_actual" in s.v()),
+        [lastShown(s, "sc_actual"), lastShown(s, "item_qty"), s.v().sc_actual]);
+    }
+    const draft = session(Object.assign({}, linked, { id: "4300", page_status: "Edit" }), { this: { isEdit: true } });
+    await draft.fire("mounted");
+    check("PN19: a linked Draft: Use Suggestion and Prepare BOM shown in Production", lastShown(draft, "sc_prod_actions") === true && lastShown(draft, "sc_btn_suggest") === true &&
+      lastShown(draft, "sc_btn_bom") === true);
+    const flat = session(F.header({ bom_consumption_mode: "FLAT" }), { this: { isAdd: true } });
+    await flat.fire("mounted");
+    check("PN19: an unlinked Flat Add: Prepare BOM shown, Use Suggestion not", lastShown(flat, "sc_prod_actions") === true && lastShown(flat, "sc_btn_bom") === true &&
+      lastShown(flat, "sc_btn_suggest") !== true);
+    const plain = session(F.header(), { this: { isAdd: true } });
+    await plain.fire("mounted");
+    check("PN20: an ordinary Add: no Production buttons, no BOM row", lastShown(plain, "sc_prod_actions") !== true && lastShown(plain, "sc_info_bom") !== true);
+    const linkedView = session(Object.assign({}, linked, { id: "4001", page_status: "View", item_assembly_status: "Completed" }), { this: { isView: true } });
+    await linkedView.fire("mounted");
+    check("PN20: a linked Completed view: the BOM row shown, no Production buttons", lastShown(linkedView, "sc_info_bom") === true && lastShown(linkedView, "sc_prod_actions") !== true &&
+      /^BOM: Standard · V1 · prepared /m.test(linkedView.panel()), linkedView.panel());
+    // PN21: Change Item on a linked Standard IA makes it an ordinary IA without a re-render: the BOM row (no longer inside the
+    // Sales Order card, which hides with it) must go too
+    const tables = F.tables();
+    tables.bill_of_materials.push(F.bom("B8", "P8", 1, [F.row("C2", 3)]));
+    tables.item.push(F.item("P8", "OTHER"));
+    const ls = await linkNew(F.header(), { tables: tables });
+    const shownBefore = lastShown(ls, "sc_info_bom");
+    await ls.self.setData({ item_id: "P8" });
+    await ls.fire("onChange_assembledItem", { value: "P8" });
+    check("PN21: Change Item on a linked Standard IA: unlinked, and the BOM row hidden", shownBefore === true && ls.v().source_so_line_id === "" && ls.v().bom_snapshot_json === "" &&
+      lastShown(ls, "sc_info_bom") === false, [shownBefore, ls.v().source_so_line_id, lastShown(ls, "sc_info_bom")]);
+  }
+  // ---- PN22: FIX-03: a refusal (the user is not assigned to the organisation) says so, instead of "unavailable, try again"
+  {
+    const NO = "Your user is not assigned to this organisation, so its Sales Order figures cannot be shown.";
+    const s = session(Object.assign({}, linked, { id: "4300", page_status: "Edit" }), { this: { isEdit: true } });
+    s.w.projectionRefuse = NO;
+    await s.fire("mounted");
+    check("PN22: a refused SUMMARY: the server's reason in the section, no figure", same(rows(s), ["Sales Order: " + NO]) || same(rows(s).filter((x) => !/^BOM: /.test(x)), ["Sales Order: " + NO]),
+      s.panel());
+    const m = s.mark();
+    await s.fire("sc_onClick_line");
+    check("PN22: a refused Select SO Line: the server's reason", s.calls("$alert", m).some((t) => t[1] === NO), s.calls("$alert", m));
+    s.w.projectionRefuse = "";
+    await s.fire("sc_onClick_refresh");
+    check("PN22: the next good read shows the figures again", /^Ordered: 100 EA$/m.test(s.panel()) && s.panel().indexOf(NO) < 0, s.panel());
+    s.w.projectionDown = true;
+    await s.fire("sc_onClick_refresh");
+    check("PN22: a later failed read says unavailable, not the old refusal", /^Sales Order: figures unavailable right now/m.test(s.panel()) && s.panel().indexOf(NO) < 0, s.panel());
   }
   // ---- PN9: the rows never carry the old one-box wording
   {

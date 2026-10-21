@@ -9,7 +9,7 @@
   IA_REVERT_V2_WORKER   lib/v2build.build_worker on REVERT_IA (JS: tpl/sav2/code/worker made the revert's, code/revert/worker)
   IA_REVERT_V2_SUBMIT   the list's Revert: STATUS / BUSY / STALE / the lifted prep's refusals / min_picks / eligibility, then
                         LOCK|n+1 -> job -> header Processing -> read back -> due
-  IA_REVERT             base/IA_REVERT.v4.json + the 250-live-row guard (revert/classic_v5.py)
+  IA_REVERT             base/IA_REVERT.v4.json + the 250-live-row guard (revert/classic_v5.py) + RES-01 R5 (revert/classic_v6.py)
 
 usage: python3 scratchpad/iav2/build_revert.py [--write] [NAME ...]   (or scratchpad/iav2/build_ia.py, which imports BUILDERS)
 Shell ids come from ids.json ("0" until the user creates the shells). Writes <repo>/Item Assembly & BOM/AsyncV2/<NAME>.json.
@@ -36,7 +36,10 @@ def _load(path, name):
 
 
 RSQL = _load(os.path.join(HERE, "revert", "sql.py"), "iarv_revert_sql")
-CLASSIC = _load(os.path.join(HERE, "revert", "classic_v5.py"), "iarv_classic_v5")
+CLASSIC = _load(os.path.join(HERE, "revert", "classic_v6.py"), "iarv_classic_v6")
+# RES-01 R5 (scratchpad/iasc/res01): its holds read (RES_OWN_HOLD) and the shared core resRevertAdds
+IASC_SQL = _load(os.path.join(HERE, "..", "iasc", "code", "shared", "sql.py"), "iasc_sql_for_revert")
+RES_CODE = os.environ.get("HD_CODE") or os.path.join(HERE, "..", "iasc", "res01", "code")
 SH = RSQL.SH
 IDS = json.load(open(os.path.join(HERE, "ids.json")))
 REPO = os.path.abspath(os.path.join(HERE, "..", ".."))
@@ -179,6 +182,8 @@ def build_prepare():
         ("cai_IVPhdr", "Header", [K.sql("sql_node_IVPhdr", "The IA header (FP_HEADER: what code_node_iaRvPrep reads)", sub(SH.FP_HEADER, T=T, IA=IA), ["j"])]),
         ("cai_IVPmoves", "Movements", [K.sql("sql_node_IVPmoves", "Its stock movement rows (RV_MOVES = sql_node_iaRvMovs, tenant-scoped)", sub(SH.RV_MOVES, T=T, IA=IA), SH.RV_MOVES_COLS)]),
         ("cai_IVPbatch", "Batches", [K.sql("sql_node_IVPbatch", "Its Batch rows (search_node_iaRvBatch: transaction_no + organization)", sub(RSQL.BATCH_ROWS, T=T, IA=IA), ["j"])]),
+        ("cai_IVPres", "Holds", [K.sql("sql_node_IVPres", "RES-01: its hold status, open and Delivered holds, running hold tickets (RES_REVERT_OWN_HOLD)",
+                                       sub(IASC_SQL.RES_REVERT_OWN_HOLD, T=T, IA=IA, IAQ=IA, ORG=N(PE, "data.organizationId")), ["j"])]),
     ]
     round2 = [
         ("cai_IVPfifo", "FIFO", [K.sql("sql_node_IVPfifo", "FIFO layers of the assembled item (sql_node_iaRvFifo + tenant)",
@@ -246,7 +251,8 @@ def build_prepare():
               ready_tail("P", "[%s][0]" % N(PP, "data"), "{}")),
         K.parallel("condition_all_IVPread2", "Round 2 reads in parallel (no row limits): costing rows, balances, items, bins", round2),
         code(PL, "Plan: code_node_iaRvBuild (lifted): conflicts -> FAILED with the classic's list; else the manifest (ENGINE, COST, BATCH, HDR, LABELS) and its parts",
-             lifted("code/revert/prepare/adapter.js", "code/revert/prepare/prep.js", "code/revert/prepare/plan.js", "code/revert/prepare/plan_tail.js"), plan_fields,
+             lifted("code/revert/prepare/adapter.js", "code/revert/prepare/prep.js", "code/revert/prepare/plan.js", "code/revert/prepare/plan_tail.js")
+             .replace("// IA_REVERT_V2_PREPARE - Plan:", V.include_js(RES_CODE, "shared/revert.js") + "\n// IA_REVERT_V2_PREPARE - Plan:", 1), plan_fields,
              arrays=("partRows", "movements", "keys"), objects=("lineCount", "movementCount", "unlockOk", "labels")),
         K.if_(ids, "if_IVPengine", "IF planned with movements: INVENTORY_BULK_APPLY in PLAN mode (writes nothing)", is_(PL, "needPlan", "YES"), [
             call(ids, "workflow_node_IVPengine", "INVENTORY_BULK_APPLY PLAN of IAV|<job>: every reverse movement checked as one operation", ENGINE, [
@@ -462,12 +468,15 @@ def build_commit():
         # ---------------------------------------------------------------- V4
         K.if_(ids, "if_IVCv4", "IF V4 FINISH is due (the header back to Draft, the number kept)", is_(CE, "needV4", "YES"), [
             br("v4read", [("HDR part", part("sql_node_IVCv4part", "V4: the HDR part", "HDR")), ("Item Assembly", sq("sql_node_IVCv4now", "V4: the Item Assembly now", S["ianow"], RSQL.C_IA_NOW_COLS))]),
-            code(V4P, "V4 plan: Draft -> done; Processing under this job -> the HDR part's write; else review", ccode("v4_plan.js"), ["route", "headerRows", "needHeader", "after"] + plan_end,
-                 arrays=("headerRows", "jobRows"), objects=("after",)),
+            code(V4P, "V4 plan: Draft -> done; Processing under this job -> the HDR part's write; else review", ccode("v4_plan.js"),
+                 ["route", "headerRows", "needHeader", "after", "markRows", "needMark"] + plan_end, arrays=("headerRows", "jobRows", "markRows"), objects=("after",)),
             end_b(ids, "v4pl", V4P, "IF the Item Assembly cannot be written"),
             gate(ids, "cor_IVCv4head", "Item Assembly to write?", V4P, "needHeader", [
                 K.update(ids, "update_node_IVCv4head", "V4 WRITE: item_assembly_status Draft, posted_status blank (update_node_iaRvIa's write) - the Processing lock ends", IA_TABLE,
                          ("id", "in", N(V4P, "data.headerRows.id")), [(p, N(V4P, "data.headerRows." + p)) for p in ["id", "item_assembly_status", "posted_status"]], labels=IA_LABELS)]),
+            gate(ids, "cor_IVCv4mark", "RES-01: an IA that reserves to mark RESERVING?", V4P, "needMark", [
+                K.update(ids, "update_node_IVCv4mark", "RES-01 WRITE: material_hold_status RESERVING (the next open or save reserves again)", IA_TABLE,
+                         ("id", "in", N(V4P, "data.markRows.id")), [(p, N(V4P, "data.markRows." + p)) for p in ["id", "material_hold_status"]], labels=IA_LABELS)]),
             sq("sql_node_IVCv4back", "V4 read-back: the Item Assembly", S["ianow"], RSQL.C_IA_NOW_COLS),
             code(V4C, "V4 check: Draft (posted_status blank) -> DONE", ccode("v4_check.js"), chk, arrays=chk_arr),
             end_b(ids, "v4", V4C, "IF V4 did not complete"),

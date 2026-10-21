@@ -1,0 +1,49 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IDA_V2_COMMIT",
+   "dataId": "2112749139006717954",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDA_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/.superpowers/sdd/there-s-this-item-dissasembly-binary-sonnet/prefix-snap/AsyncV2/IDA_V2_COMMIT.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IDA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IDA_V2_SUBMIT",
+   "dataId": "2112748971830149121",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/.superpowers/sdd/there-s-this-item-dissasembly-binary-sonnet/prefix-snap/AsyncV2/IDA_V2_SUBMIT.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "",
+     "ida_id": "2110985744909729793",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  },
+  {
+   "name": "IDA form (ON, escaped)",
+   "kind": "form",
+   "dataId": "2106937624568991746",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/idav2/deploy/base_on37/IDAform.json"
+  }
+ ]
+}

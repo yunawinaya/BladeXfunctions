@@ -1,0 +1,1945 @@
+{
+ "columns": {
+  "sm_item_disassembly": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "draft_status",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "issued_status",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "completed_status",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "fullyposted_status",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_disassembly_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "posted_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "page_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "issuing_operation_faci",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_movement_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_movement_no_type",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_disassembly_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "issued_by",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_code",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_desc",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_uom",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_summary",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "temp_qty_data",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "temp_hu_data",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "project_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "remarks",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "remarks_2",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "remarks_3",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "reference_documents",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_movement",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "table_hu",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "table_item_balance",
+    "type": "json",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "stock_movement_no_sn",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "sid_uuid",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_name",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "ida_idem_key",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "ida_v2_job_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   }
+  ],
+  "sm_item_disassembly_tlm8ve69_sub": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "sm_item_disassembly_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_selection",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_name",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_desc",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "requested_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "total_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "quantity_uom",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "storage_location_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "location_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "manufacturing_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "expired_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_number",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_remark",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_remark_2",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_remark_3",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "project_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "line_index",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "uom_options",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "issuing_plant",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "bom_ratio",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   }
+  ],
+  "batch": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "batch_number",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "initial_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "goods_receiving_id_d_7k53x",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "goods_receiving_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "transaction_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "parent_transaction_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "remark2",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "remark",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "remark3",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "expired_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "manufacturing_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   }
+  ],
+  "inventory_movement": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "transaction_type",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "trx_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "inventory_category",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "parent_trx_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "movement",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "unit_price",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "total_price",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "base_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "uom_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "base_uom_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "bin_location_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_number_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "costing_method_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "doc_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "manufacturing_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "expired_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "actual_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "actual_base_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "handling_unit_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "operation_effect_key",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   }
+  ],
+  "item_balance": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "material_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "location_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "block_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "reserved_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "unrestricted_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "qualityinsp_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "balance_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "intransit_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_uom",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "bin_location_combine_d_n4h1t",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "item_batch_balance": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "material_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "location_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "block_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "reserved_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "unrestricted_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "qualityinsp_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "balance_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "intransit_qty",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_uom",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "doc_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "expired_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "manufacturing_date",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "remark3",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "remark2",
+    "type": "mediumtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "remark",
+    "type": "mediumtext",
+    "nullable": "YES"
+   }
+  ],
+  "fifo_costing_history": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "fifo_cost_price",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "fifo_initial_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "fifo_available_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "fifo_sequence",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "wa_costing_method": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "wa_quantity",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "material_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "updated_at",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "created_at",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "wa_cost_price",
+    "type": "decimal(65,8)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "gd_async_job": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "plant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "command",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "idempotency_key",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "payload_hash",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "confirmation_token",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "confirmation_hash",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "correlation_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "causation_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "submitted_dept_ids",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "submitted_role_ids",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "source_so_ids",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "source_so_no",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "line_count",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "job_status",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "progress_percent",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "progress_message",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "attempt_count",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "next_attempt_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "lease_owner",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "lease_expires_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "cancel_requested",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "row_version",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_code",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_message",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_details",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "request_payload",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "prepared_payload",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "gd_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "gd_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "picking_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "picking_no",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "queued_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "started_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "gd_committed_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "picking_ready_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "finished_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   }
+  ],
+  "gd_publish_step": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "job_id",
+    "type": "varchar(32)",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(32)",
+    "nullable": "YES"
+   },
+   {
+    "name": "step_name",
+    "type": "varchar(32)",
+    "nullable": "YES"
+   },
+   {
+    "name": "step_status",
+    "type": "varchar(16)",
+    "nullable": "YES"
+   },
+   {
+    "name": "attempt_count",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "started_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "finished_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "inventory_operation_id",
+    "type": "varchar(64)",
+    "nullable": "YES"
+   },
+   {
+    "name": "result_ref",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_code",
+    "type": "varchar(64)",
+    "nullable": "YES"
+   },
+   {
+    "name": "error_message",
+    "type": "longtext",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   }
+  ],
+  "inventory_balance_lock": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(32)",
+    "nullable": "YES"
+   },
+   {
+    "name": "lock_key",
+    "type": "varchar(128)",
+    "nullable": "YES"
+   },
+   {
+    "name": "balance_type",
+    "type": "varchar(16)",
+    "nullable": "YES"
+   },
+   {
+    "name": "owner_operation_id",
+    "type": "varchar(64)",
+    "nullable": "YES"
+   },
+   {
+    "name": "claimed_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "lock_version",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "last_released_at",
+    "type": "timestamp",
+    "nullable": "YES"
+   },
+   {
+    "name": "last_owner_operation_id",
+    "type": "varchar(64)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "free_token",
+    "type": "int",
+    "nullable": "YES"
+   }
+  ],
+  "batch_number_config": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "batch_level_selection",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_category_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "batch_format",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "running_number",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "reset_frequency",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "initial_value",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "format_preview",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "organization_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "last_reset_date",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "date_format",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_group_id",
+    "type": "bigint",
+    "nullable": "YES"
+   }
+  ],
+  "item_mji552rc_sub": [
+   {
+    "name": "id",
+    "type": "bigint",
+    "nullable": "NO"
+   },
+   {
+    "name": "Item_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "alt_qty",
+    "type": "decimal(65,6)",
+    "nullable": "YES"
+   },
+   {
+    "name": "alt_uom_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "text_b4j8h211",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "base_qty",
+    "type": "decimal(65,6)",
+    "nullable": "YES"
+   },
+   {
+    "name": "base_uom_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_dept",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "create_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_user",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "update_time",
+    "type": "datetime(3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "is_deleted",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "tenant_id",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sub_tenant_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "purchase_unit_price",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "mat_purchase_tax_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "purchase_max_price",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "over_delivery_tolerance",
+    "type": "decimal(65,2)",
+    "nullable": "YES"
+   },
+   {
+    "name": "purchase_default_uom",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "over_receive_tolerance",
+    "type": "decimal(65,2)",
+    "nullable": "YES"
+   },
+   {
+    "name": "purchase_tax_percent",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_tax_percent",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_min_price",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "purchase_min_price",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "mat_sales_tax_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_unit_price",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_max_price",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "min_purchase_qty",
+    "type": "decimal(65,3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_default_uom",
+    "type": "int",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_price_1",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_price_6",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_price_2",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_price_5",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_price_4",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_price_3",
+    "type": "decimal(65,4)",
+    "nullable": "YES"
+   },
+   {
+    "name": "sales_tariff_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "purchase_tariff_id",
+    "type": "bigint",
+    "nullable": "YES"
+   },
+   {
+    "name": "max_purchase_qty",
+    "type": "decimal(65,3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "max_sales_qty",
+    "type": "decimal(65,3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "min_sales_qty",
+    "type": "decimal(65,3)",
+    "nullable": "YES"
+   },
+   {
+    "name": "item_barcode",
+    "type": "varchar(255)",
+    "nullable": "YES"
+   }
+  ]
+ },
+ "indexes": {
+  "sm_item_disassembly": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "sm_item_disassembly_tlm8ve69_sub": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "batch": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "inventory_movement": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "item_balance": {
+   "idx_item_balance_mat_org_del": [
+    "material_id",
+    "organization_id",
+    "is_deleted",
+    "unrestricted_qty"
+   ],
+   "idx_mp_balance_scope": [
+    "tenant_id",
+    "organization_id",
+    "is_deleted"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "item_batch_balance": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "fifo_costing_history": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "wa_costing_method": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "gd_async_job": {
+   "GD Lookup": [
+    "organization_id",
+    "gd_id"
+   ],
+   "UNIQUE Idempotency Key": [
+    "tenant_id",
+    "organization_id",
+    "idempotency_key"
+   ],
+   "Lease Recovery": [
+    "job_status",
+    "lease_expires_at"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ],
+   "Worker Poll": [
+    "job_status",
+    "next_attempt_at"
+   ]
+  },
+  "gd_publish_step": {
+   "UNIQUE Job Step": [
+    "tenant_id",
+    "job_id",
+    "step_name"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ],
+   "Step Review": [
+    "step_status",
+    "started_at"
+   ]
+  },
+  "inventory_balance_lock": {
+   "UNIQUE Lock Key": [
+    "tenant_id",
+    "organization_id",
+    "lock_key"
+   ],
+   "Lock Owner": [
+    "owner_operation_id"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ],
+   "Stale Lock": [
+    "claimed_at"
+   ],
+   "Taken Token": [
+    "balance_type",
+    "free_token",
+    "update_time"
+   ]
+  },
+  "batch_number_config": {
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  },
+  "item_mji552rc_sub": {
+   "idx_alt_uom_tenant": [
+    "alt_uom_id",
+    "tenant_id",
+    "is_deleted"
+   ],
+   "idx_item_mji552rc_sub_item_tenant_del": [
+    "Item_id",
+    "tenant_id",
+    "is_deleted"
+   ],
+   "idx_item_uom_alt_tenant_del": [
+    "alt_uom_id",
+    "tenant_id",
+    "is_deleted"
+   ],
+   "idx_tenant_altuom_del": [
+    "tenant_id",
+    "alt_uom_id",
+    "is_deleted"
+   ],
+   "PAWSQL_IDX1849436291": [
+    "alt_uom_id",
+    "tenant_id",
+    "is_deleted"
+   ],
+   "UNIQUE PRIMARY": [
+    "id"
+   ]
+  }
+ }
+}

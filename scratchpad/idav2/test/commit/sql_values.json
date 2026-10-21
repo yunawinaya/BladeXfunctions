@@ -1,0 +1,16 @@
+{
+ "*": {
+  "tenantId": "000000",
+  "jobId": "2107733123665952769",
+  "jobIdsSql": "2112155725336322050",
+  "idaId": "2107733123665952770",
+  "organizationId": "1123598813738675201",
+  "partPrefix": "P|abcd1234|",
+  "hexSql": "[\"42617463682D3030363330\",\"62617463682D303036323920\",\"4C4F542D37\"]"
+ },
+ "missing_cols": {
+  "h.ida_v2_job_id": "NULL",
+  "g.ida_v2_job_id": "NULL",
+  "h.ida_idem_key": "NULL"
+ }
+}

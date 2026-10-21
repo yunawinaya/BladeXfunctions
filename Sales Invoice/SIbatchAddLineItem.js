@@ -31,15 +31,69 @@ const checkExistingSOinSI = async (gdArray) => {
   return Array.from(gdNumbersWithSI);
 };
 
+// One read per 500 order lines rather than one per line; answered in the order asked.
 const fetchSOLineItemData = async (soLineItemIDs) => {
-  const resSOLineItem = await Promise.all(
-    soLineItemIDs.map((lineId) =>
-      db.collection("sales_order_axszx8cj_sub").doc(lineId).get(),
-    ),
+  const ids = [...new Set(soLineItemIDs.filter((id) => id !== undefined && id !== null && id !== "").map(String))];
+  const byId = new Map();
+  const chunks = [];
+  for (let i = 0; i < ids.length; i += 500) chunks.push(ids.slice(i, i + 500));
+
+  await Promise.all(
+    chunks.map(async (chunk) => {
+      const res = await db
+        .collection("sales_order_axszx8cj_sub")
+        .filter([{ type: "branch", operator: "all", children: [{ prop: "id", operator: "in", value: chunk }] }])
+        .limit(chunk.length)
+        .get();
+      for (const row of res?.data || []) byId.set(String(row.id), row);
+    }),
   );
 
-  const soLineItemData = resSOLineItem.map((response) => response.data[0]);
-  return soLineItemData;
+  return soLineItemIDs.map((lineId) => byId.get(String(lineId)));
+};
+
+// A cash sale is billed the moment its order is issued -- the order raises its
+// own receivable -- so invoicing it here bills the customer a second time. The
+// order pickers already hide cash orders, but a delivery made against one is
+// still listed, so the selection is checked against the orders behind it.
+const fetchCashSOIds = async (soIds) => {
+  const ids = [...new Set((soIds || []).filter(Boolean).map(String))];
+  if (ids.length === 0) return new Set();
+
+  const res = await db
+    .collection("sales_order")
+    .filter([
+      {
+        type: "branch",
+        operator: "all",
+        children: [
+          { prop: "id", operator: "in", value: ids },
+          { prop: "so_type", operator: "equal", value: "Cash" },
+        ],
+      },
+    ])
+    .get();
+
+  return new Set((res?.data || []).map((so) => String(so.id)));
+};
+
+// A reference arrives as a bare id or as the expanded record, and a delivery's
+// order list as an array or as the JSON string it is stored as.
+const refId = (ref) => (ref && typeof ref === "object" ? ref.id : ref);
+
+const refIdList = (refs) => {
+  let list = refs;
+  if (typeof list === "string") {
+    try {
+      list = JSON.parse(list);
+    } catch (error) {
+      list = [list];
+    }
+  }
+  return (Array.isArray(list) ? list : [list])
+    .map(refId)
+    .filter(Boolean)
+    .map(String);
 };
 
 // How a sales return is billed is a per-plant setting. The default, and what
@@ -192,17 +246,24 @@ const groupBundleRows = (rows, getItemId) => {
   return { childrenOf, claimed };
 };
 
+const documentReads = new Map(); // collection:docId -> the read, shared by every bundle line on it
+
 // The item pickers hand over one line at a time, and a bundle's items are not
 // on that row. They are read back from the source document instead — the same
 // place the Document - SO / Document - GD paths take them from. Both tree
 // shapes are covered, since groupBundleRows reattaches flat rows as well as
-// returning nested ones untouched.
+// returning nested ones untouched. A document is read once however many of
+// its bundle lines were picked.
 const fetchBundleChildren = async (collection, docId, tableField, lineId, getItemId) => {
   if (!docId || !lineId) {
     return [];
   }
 
-  const res = await db.collection(collection).doc(docId).get();
+  const readKey = `${collection}:${docId}`;
+  if (!documentReads.has(readKey)) {
+    documentReads.set(readKey, db.collection(collection).doc(docId).get());
+  }
+  const res = await documentReads.get(readKey);
   const rows = res?.data?.[0]?.[tableField] || [];
 
   const lineIndex = rows.findIndex((row) => String(row.id) === String(lineId));
@@ -231,10 +292,19 @@ const processData = async (referenceType, latesttableSI) => {
     this.hide("gd_no_display");
   }
 
+  // One call per state rather than one per line
+  const enable = [];
+  const disable = [];
+
   for (const [index, si] of latesttableSI.entries()) {
     const result = si.tax_percent && si.tax_percent >= 0;
-    this.disabled([`table_si.${index}.tax_percent`], !result);
+    (result ? enable : disable).push(`table_si.${index}.tax_percent`);
+  }
 
+  if (enable.length > 0) this.disabled(enable, false);
+  if (disable.length > 0) this.disabled(disable, true);
+
+  if (latesttableSI.length > 0) {
     if (referenceType.endsWith("GD")) {
       this.display(`table_si.line_gd_no`);
     } else {
@@ -246,7 +316,7 @@ const processData = async (referenceType, latesttableSI) => {
 (async () => {
   try {
     const previousReferenceType = this.getValue("reference_type");
-    const currentItemArray = arguments[0].itemArray;
+    let currentItemArray = arguments[0].itemArray;
     let existingSI = this.getValue("table_si");
     const referenceType = arguments[0].referenceType;
 
@@ -271,6 +341,116 @@ const processData = async (referenceType, latesttableSI) => {
 
       console.log("User clicked Cancel or closed the dialog");
       return;
+    }
+
+    // Validation: cash sales cannot be invoiced. Lines that belong to a cash
+    // order are dropped; a document left with nothing is named to the user.
+    {
+      const isGD = referenceType.endsWith("GD");
+
+      // The order(s) a selected delivery was made against, from its header.
+      const gdSOIds = (entry) => refIdList(entry.sales_order_id);
+
+      const selectedSOIds = currentItemArray.flatMap((entry) => {
+        switch (referenceType) {
+          case "Document - SO":
+            return [refId(entry.sales_order_id)];
+          case "Item - SO":
+            return [refId(entry.sales_order)];
+          case "Document - GD":
+            return [
+              ...gdSOIds(entry),
+              ...(entry.table_gd || []).map((row) => refId(row.line_so_id)),
+            ];
+          default:
+            return [...gdSOIds(entry), refId(entry.line_so_id)];
+        }
+      });
+
+      const cashSOIds = await fetchCashSOIds(selectedSOIds);
+      console.log("cash sales order ids in selection:", [...cashSOIds]);
+
+      if (cashSOIds.size > 0) {
+        const isCashSO = (ref) => cashSOIds.has(String(refId(ref)));
+
+        // A delivery line names its order; one that does not is cash only when
+        // every order on its delivery is.
+        const isCashGDLine = (row, entry) => {
+          if (refId(row.line_so_id)) return isCashSO(row.line_so_id);
+          const headerIds = gdSOIds(entry);
+          return headerIds.length > 0 && headerIds.every(isCashSO);
+        };
+
+        const docNo = (entry) =>
+          referenceType === "Document - SO"
+            ? entry.sales_order_number
+            : referenceType === "Item - SO"
+              ? entry.sales_order?.so_no
+              : entry.goods_delivery_number;
+
+        const touchedDocs = new Set();
+        const remaining = [];
+
+        for (const entry of currentItemArray) {
+          if (referenceType === "Document - GD") {
+            const rows = entry.table_gd || [];
+            const keptRows = rows.filter((row) => !isCashGDLine(row, entry));
+
+            if (keptRows.length === rows.length) {
+              remaining.push(entry);
+            } else {
+              touchedDocs.add(docNo(entry));
+              if (keptRows.length > 0) {
+                remaining.push({ ...entry, table_gd: keptRows });
+              }
+            }
+            continue;
+          }
+
+          const isCash =
+            referenceType === "Item - GD"
+              ? isCashGDLine(entry, entry)
+              : isCashSO(
+                  referenceType === "Document - SO"
+                    ? entry.sales_order_id
+                    : entry.sales_order,
+                );
+
+          if (isCash) {
+            touchedDocs.add(docNo(entry));
+          } else {
+            remaining.push(entry);
+          }
+        }
+
+        // Only documents with nothing left to invoice are reported; one that
+        // still has credit lines just loses its cash lines.
+        const remainingDocs = new Set(remaining.map(docNo));
+        const cashOnlyDocs = [...touchedDocs].filter(
+          (no) => !remainingDocs.has(no),
+        );
+        console.log("cash sales documents blocked:", cashOnlyDocs);
+
+        currentItemArray = remaining;
+
+        if (cashOnlyDocs.length > 0) {
+          await this.$alert(
+            `${isGD ? "Goods Delivery" : "Sales Order"} ${cashOnlyDocs.join(
+              ", ",
+            )} is cash sales. Cash sales cannot create Sales Invoice.`,
+            "Cash Sales Detected",
+            {
+              confirmButtonText: "OK",
+              type: "error",
+            },
+          );
+        }
+
+        if (currentItemArray.length === 0) {
+          console.log("Selection holds cash sales only");
+          return;
+        }
+      }
     }
 
     // Validation: If reference type changed, pop up confirmation dialog to confirm with user, if confirmed, reset existing SI line items
@@ -951,12 +1131,10 @@ const processData = async (referenceType, latesttableSI) => {
       await processData(referenceType, latesttableSI);
     }, 50);
 
-    for (const [index, item] of latesttableSI.entries()) {
-      let Row = {};
-      Row.row = item;
-      Row.rowIndex = index;
-
-      this.triggerEvent("SIcalculation", Row);
+    // One recalculation for what was a full one per line, each line priced as
+    // the current row in turn (SIcalculation's { rows } payload).
+    if (latesttableSI.length > 0) {
+      this.triggerEvent("SIcalculation", { rows: latesttableSI });
     }
     this.hideLoading();
   } catch (error) {

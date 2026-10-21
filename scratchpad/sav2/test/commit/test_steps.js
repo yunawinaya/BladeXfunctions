@@ -269,7 +269,11 @@ function entryOf(c, patch) {
   r = commitA2(entryOf(c, { attempts: 8 }), g, inp, { code: "409" }, { intents: 0 }, []);
   ok(r.route === "END" && r.job_status === "FAILED" && r.result_code === "SA_INVENTORY_LOCK_BUSY" && J(r.unlockRows) === J([{ id: SAID, stock_adjustment_status: "Draft" }]), "A2 409 after 8 waits -> FAILED + Draft", r);
   r = commitA2(e, g, inp, { code: "409" }, { intents: "2" }, []);
-  ok(r.route === "END" && r.result_code === "SA_STEP_RETRY" && r.needUnlock === "NO", "A2 409 with intent rows -> retry, no unlock", r);
+  ok(r.route === "END" && r.result_code === "SA_LOCK_WAIT" && r.needUnlock === "NO" && r.job_status === "COMMITTING_SA", "A2 409 with intent rows (engine v12: the operation still runs) -> a lock wait, no unlock", r);
+  r = commitA2(entryOf(c, { attempts: 8 }), g, inp, { code: "409" }, { intents: "2" }, []);
+  ok(r.route === "END" && r.job_status === "REQUIRES_REVIEW" && r.needUnlock === "NO", "A2 409 with intent rows after 8 waits -> REQUIRES_REVIEW, never FAILED / unlocked", r);
+  r = commitA2(e, g, inp, {}, { intents: "2" }, []);
+  ok(r.route === "END" && r.result_code === "SA_STEP_RETRY" && r.needUnlock === "NO", "A2 no answer with intent rows -> retry, no unlock", r);
   r = commitA2(e, g, inp, { code: "400", result_code: "INSUFFICIENT_QTY", message: "Insufficient quantity (movement M3)" }, null, rowsOf(c, "LABELS"));
   const l3 = c.labels.M3;
   ok(r.route === "END" && r.job_status === "FAILED" && r.result_code === "SA_INVENTORY_INSUFFICIENT_QTY" && r.jobRows[0].error_message === "Insufficient quantity - line " + l3.line_index + " (" + l3.item_code + "), bin " + l3.bin + " (Unrestricted)"

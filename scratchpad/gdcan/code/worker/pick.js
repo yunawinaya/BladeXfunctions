@@ -37,7 +37,7 @@ const workerItem = function workerItem(row) {
   const claimed = s(row.claim_id) !== "";
   return { jobId: s(row.id), organizationId: s(row.organization_id), gdId: s(row.gd_id), jobStatus: s(row.job_status), progressPercent: Number(row.progress_percent) || 0, progressMessage: s(row.progress_message), attempts: Number(row.attempt_count) || 0, nextAttemptAt: row.next_attempt_at || null, leaseOwner: row.lease_owner || null, leaseExpiresAt: row.lease_expires_at || null, deadLease: dead ? "YES" : "NO", deadOwner: dead ? s(row.lease_owner) : "", deadClaim: claimed && String(row.claim_live) !== "1" ? "YES" : "NO", claimOwner: claimed ? s(row.claim_owner) : "", rowVersion: Number(row.row_version) || 0, errorCode: row.error_code || null, errorMessage: row.error_message || null, errorDetails: row.error_details || null, leaseLive: String(row.lease_live) === "1" ? "YES" : "NO", dueNow: String(row.due_now) === "1" ? "YES" : "NO", gateClosed: String(row.claim_live) === "1" ? "a live worker claim row W0_CLAIM_" + s(row.row_version) + " of " + s(row.claim_owner) : "" };
 };
-const guard = [{{node:code_node_XWguard.data}}][0];
+const guard = [{{node:code_node_XWguard2.data}}][0];
 const plan = [{{node:code_node_XWplan.data}}][0];
 const res = workerPick(guard, plan, [{{node:sql_node_XWtick.data}}][0], {{node:get_cache_XWidx.data}});
 console.log("worker pick", JSON.stringify({ route: res.route, index: res.index, job: res.jobId, elapsed: res.elapsed, claim: res.claimName, rvUpd: res.needRvUpd, message: res.result_message }));

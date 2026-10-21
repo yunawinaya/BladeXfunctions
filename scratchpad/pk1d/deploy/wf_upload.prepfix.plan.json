@@ -1,0 +1,12 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PICKING_BULK_PREPARE",
+   "dataId": "2109531157594619905",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_BULK_PREPARE.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/.superpowers/sdd/picking-v2-1d/live/PREPARE.v11.deployed.json"
+  }
+ ]
+}

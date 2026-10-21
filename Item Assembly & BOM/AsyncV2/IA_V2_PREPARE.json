@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "7xpwqjge",
+   "key": "oy1akocz",
    "name": "job_id",
    "title": "job_id",
    "description": "gd_async_job.id (digits) of a VALIDATING COMPLETE_IA job the worker holds",
@@ -12,7 +12,7 @@
  ],
  "response_json": [
   {
-   "key": "oy1akocz",
+   "key": "87be9ka2",
    "name": "job_id",
    "title": "job_id",
    "description": "",
@@ -20,7 +20,7 @@
    "isExpand": false
   },
   {
-   "key": "87be9ka2",
+   "key": "a0k81u42",
    "name": "job_status",
    "title": "job_status",
    "description": "",
@@ -28,7 +28,7 @@
    "isExpand": false
   },
   {
-   "key": "a0k81u42",
+   "key": "ca9zw2yg",
    "name": "result_code",
    "title": "result_code",
    "description": "",
@@ -36,7 +36,7 @@
    "isExpand": false
   },
   {
-   "key": "ca9zw2yg",
+   "key": "m0162vv4",
    "name": "result_message",
    "title": "result_message",
    "description": "",
@@ -44,7 +44,7 @@
    "isExpand": false
   },
   {
-   "key": "m0162vv4",
+   "key": "bqpxlp7f",
    "name": "evidence",
    "title": "evidence",
    "description": "",
@@ -78,7 +78,7 @@
     },
     "response_json": [
      {
-      "key": "o1b3aohd",
+      "key": "kbim0l5a",
       "name": "route",
       "title": "route",
       "description": "",
@@ -87,7 +87,7 @@
       "children": []
      },
      {
-      "key": "kbim0l5a",
+      "key": "m9tlo71q",
       "name": "jobId",
       "title": "jobId",
       "description": "",
@@ -96,7 +96,7 @@
       "children": []
      },
      {
-      "key": "m9tlo71q",
+      "key": "x2j9vagm",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -105,7 +105,7 @@
       "children": []
      },
      {
-      "key": "x2j9vagm",
+      "key": "bn182ku0",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -114,7 +114,7 @@
       "children": []
      },
      {
-      "key": "bn182ku0",
+      "key": "32uzcvig",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -180,7 +180,7 @@
         },
         "response_json": [
          {
-          "key": "32uzcvig",
+          "key": "1ko3bh6z",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -189,7 +189,7 @@
           "children": []
          },
          {
-          "key": "1ko3bh6z",
+          "key": "fzmgfpak",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -198,7 +198,7 @@
           "children": []
          },
          {
-          "key": "fzmgfpak",
+          "key": "ei3w5c6x",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -207,7 +207,7 @@
           "children": []
          },
          {
-          "key": "ei3w5c6x",
+          "key": "nax09br6",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -216,7 +216,7 @@
           "children": []
          },
          {
-          "key": "nax09br6",
+          "key": "2dv8kvi9",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -329,7 +329,7 @@
     },
     "response_json": [
      {
-      "key": "2dv8kvi9",
+      "key": "7hpbxks1",
       "name": "db_now",
       "title": "db_now",
       "description": "",
@@ -338,7 +338,7 @@
       "children": []
      },
      {
-      "key": "7hpbxks1",
+      "key": "nof6tvwh",
       "name": "id",
       "title": "id",
       "description": "",
@@ -347,7 +347,7 @@
       "children": []
      },
      {
-      "key": "nof6tvwh",
+      "key": "qrhkehh2",
       "name": "organization_id",
       "title": "organization_id",
       "description": "",
@@ -356,7 +356,7 @@
       "children": []
      },
      {
-      "key": "qrhkehh2",
+      "key": "9jw8066q",
       "name": "command",
       "title": "command",
       "description": "",
@@ -365,7 +365,7 @@
       "children": []
      },
      {
-      "key": "9jw8066q",
+      "key": "6re4u2z5",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -374,7 +374,7 @@
       "children": []
      },
      {
-      "key": "6re4u2z5",
+      "key": "it0u33ll",
       "name": "lease_owner",
       "title": "lease_owner",
       "description": "",
@@ -383,7 +383,7 @@
       "children": []
      },
      {
-      "key": "it0u33ll",
+      "key": "492zsuj7",
       "name": "lease_live",
       "title": "lease_live",
       "description": "",
@@ -392,7 +392,7 @@
       "children": []
      },
      {
-      "key": "492zsuj7",
+      "key": "9k4ohgxp",
       "name": "row_version",
       "title": "row_version",
       "description": "",
@@ -401,7 +401,7 @@
       "children": []
      },
      {
-      "key": "9k4ohgxp",
+      "key": "zgdvvjxf",
       "name": "attempt_count",
       "title": "attempt_count",
       "description": "",
@@ -410,7 +410,7 @@
       "children": []
      },
      {
-      "key": "zgdvvjxf",
+      "key": "7iar4nfs",
       "name": "idempotency_key",
       "title": "idempotency_key",
       "description": "",
@@ -419,7 +419,7 @@
       "children": []
      },
      {
-      "key": "7iar4nfs",
+      "key": "8269fkwi",
       "name": "correlation_id",
       "title": "correlation_id",
       "description": "",
@@ -428,7 +428,7 @@
       "children": []
      },
      {
-      "key": "8269fkwi",
+      "key": "h2yf8cpx",
       "name": "request_payload",
       "title": "request_payload",
       "description": "",
@@ -437,7 +437,7 @@
       "children": []
      },
      {
-      "key": "h2yf8cpx",
+      "key": "6ina97ak",
       "name": "is_deleted",
       "title": "is_deleted",
       "description": "",
@@ -446,7 +446,7 @@
       "children": []
      },
      {
-      "key": "6ina97ak",
+      "key": "18k269dt",
       "name": "linked_ia",
       "title": "linked_ia",
       "description": "",
@@ -455,7 +455,7 @@
       "children": []
      },
      {
-      "key": "18k269dt",
+      "key": "lngdnabr",
       "name": "linked_ia_no",
       "title": "linked_ia_no",
       "description": "",
@@ -464,7 +464,7 @@
       "children": []
      },
      {
-      "key": "lngdnabr",
+      "key": "6kgd7kvo",
       "name": "linked_ia_no_type",
       "title": "linked_ia_no_type",
       "description": "",
@@ -489,7 +489,7 @@
     },
     "response_json": [
      {
-      "key": "6kgd7kvo",
+      "key": "ocem3qof",
       "name": "route",
       "title": "route",
       "description": "",
@@ -498,7 +498,7 @@
       "children": []
      },
      {
-      "key": "ocem3qof",
+      "key": "emz84h0a",
       "name": "jobId",
       "title": "jobId",
       "description": "",
@@ -507,7 +507,7 @@
       "children": []
      },
      {
-      "key": "emz84h0a",
+      "key": "9t7cqxdk",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -516,7 +516,7 @@
       "children": []
      },
      {
-      "key": "9t7cqxdk",
+      "key": "fxgevexh",
       "name": "organizationId",
       "title": "organizationId",
       "description": "",
@@ -525,7 +525,7 @@
       "children": []
      },
      {
-      "key": "fxgevexh",
+      "key": "ydwed2bd",
       "name": "iaId",
       "title": "iaId",
       "description": "",
@@ -534,7 +534,7 @@
       "children": []
      },
      {
-      "key": "ydwed2bd",
+      "key": "oki2rvv8",
       "name": "idempotencyKey",
       "title": "idempotencyKey",
       "description": "",
@@ -543,7 +543,7 @@
       "children": []
      },
      {
-      "key": "oki2rvv8",
+      "key": "qja58pmr",
       "name": "rowVersion",
       "title": "rowVersion",
       "description": "",
@@ -552,7 +552,7 @@
       "children": []
      },
      {
-      "key": "qja58pmr",
+      "key": "n8ep3rdi",
       "name": "attempts",
       "title": "attempts",
       "description": "",
@@ -561,7 +561,7 @@
       "children": []
      },
      {
-      "key": "n8ep3rdi",
+      "key": "csq8r8s9",
       "name": "dbNow",
       "title": "dbNow",
       "description": "",
@@ -570,7 +570,7 @@
       "children": []
      },
      {
-      "key": "csq8r8s9",
+      "key": "ip0rwo28",
       "name": "jsAt",
       "title": "jsAt",
       "description": "",
@@ -579,7 +579,7 @@
       "children": []
      },
      {
-      "key": "ip0rwo28",
+      "key": "kznb8nhy",
       "name": "nonce",
       "title": "nonce",
       "description": "",
@@ -588,7 +588,7 @@
       "children": []
      },
      {
-      "key": "kznb8nhy",
+      "key": "vo4acvw5",
       "name": "request",
       "title": "request",
       "description": "",
@@ -597,7 +597,7 @@
       "children": []
      },
      {
-      "key": "vo4acvw5",
+      "key": "xzb6if0t",
       "name": "action",
       "title": "action",
       "description": "",
@@ -606,7 +606,7 @@
       "children": []
      },
      {
-      "key": "xzb6if0t",
+      "key": "111ux8k4",
       "name": "prevStatus",
       "title": "prevStatus",
       "description": "",
@@ -615,7 +615,7 @@
       "children": []
      },
      {
-      "key": "111ux8k4",
+      "key": "qajicigi",
       "name": "saveAs",
       "title": "saveAs",
       "description": "",
@@ -624,7 +624,7 @@
       "children": []
      },
      {
-      "key": "qajicigi",
+      "key": "r79lsjza",
       "name": "needRead",
       "title": "needRead",
       "description": "",
@@ -633,7 +633,7 @@
       "children": []
      },
      {
-      "key": "r79lsjza",
+      "key": "czq9fqm9",
       "name": "unlockRows",
       "title": "unlockRows",
       "description": "",
@@ -641,7 +641,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "czq9fqm9",
+        "key": "h4xy59hn",
         "name": "items",
         "title": "",
         "description": "",
@@ -653,7 +653,7 @@
       ]
      },
      {
-      "key": "h4xy59hn",
+      "key": "y5oqdy2x",
       "name": "link",
       "title": "link",
       "description": "",
@@ -662,7 +662,7 @@
       "children": []
      },
      {
-      "key": "y5oqdy2x",
+      "key": "xy4dlsp0",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -671,7 +671,7 @@
       "children": []
      },
      {
-      "key": "xy4dlsp0",
+      "key": "78ky2yjp",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -737,7 +737,7 @@
         },
         "response_json": [
          {
-          "key": "78ky2yjp",
+          "key": "a9ssee6i",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -746,7 +746,7 @@
           "children": []
          },
          {
-          "key": "a9ssee6i",
+          "key": "w1zjtrad",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -755,7 +755,7 @@
           "children": []
          },
          {
-          "key": "w1zjtrad",
+          "key": "3qh99g08",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -764,7 +764,7 @@
           "children": []
          },
          {
-          "key": "3qh99g08",
+          "key": "ta7n37ig",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -773,7 +773,7 @@
           "children": []
          },
          {
-          "key": "ta7n37ig",
+          "key": "0pvq0ke3",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -1233,6 +1233,56 @@
            "blocks": []
           }
          ]
+        },
+        {
+         "id": "cai_IPres",
+         "type": "condition-all-node-item",
+         "data": {
+          "title": "RES-01: the IA's own holds, its running hold tickets, its hold status (scratchpad/iasc res01)",
+          "filter": {
+           "list": []
+          },
+          "expression": {
+           "code": "",
+           "type": "javascript"
+          },
+          "displayContent": "sdk.form.setCondition",
+          "isValidator": true,
+          "nodeName": "RES-01: the IA's own holds, its running hold tickets, its hold status (scratchpad/iasc res01)",
+          "name": "RES-01: the IA's own holds, its running hold tickets, its hold status (scratchpad/iasc res01)",
+          "condition_type": "ConditionRule"
+         },
+         "blocks": [
+          {
+           "id": "sql_node_IPres",
+           "type": "sql-node",
+           "data": {
+            "database_id": "",
+            "sql": "",
+            "params": {},
+            "title": "RES-01: the IA's own holds, its running hold tickets, its hold status (scratchpad/iasc res01)",
+            "isValidator": true,
+            "nodeName": "RES-01: the IA's own holds, its running hold tickets, its hold status (scratchpad/iasc res01)",
+            "name": "RES-01: the IA's own holds, its running hold tickets, its hold status (scratchpad/iasc res01)",
+            "script": {
+             "type": "sql",
+             "code": "SELECT CASE WHEN (SELECT h.material_hold_status FROM sm_item_assembly h WHERE h.tenant_id = '{{node:code_node_IPentry.data.tenantId}}' AND h.id = {{node:code_node_IPentry.data.iaId}}) <> '' THEN JSON_OBJECT(\n       'hold', (SELECT h.material_hold_status FROM sm_item_assembly h WHERE h.tenant_id = '{{node:code_node_IPentry.data.tenantId}}' AND h.id = {{node:code_node_IPentry.data.iaId}}),\n       'rows', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(r.id AS CHAR), 'status', r.status, 'doc_line_id', r.doc_line_id, 'material_id', CAST(r.material_id AS CHAR),\n                'bin_location', CAST(r.bin_location AS CHAR), 'batch_id', CAST(r.batch_id AS CHAR), 'from_category', r.from_category, 'open_qty', CAST(r.open_qty AS CHAR),\n                'item_uom', CAST(r.item_uom AS CHAR)))\n                FROM on_reserved_gd r WHERE r.tenant_id = '{{node:code_node_IPentry.data.tenantId}}' AND r.organization_id = '{{node:code_node_IPentry.data.organizationId}}' AND r.is_deleted = 0 AND r.doc_type = 'Item Assembly'\n                 AND r.doc_id = '{{node:code_node_IPentry.data.iaId}}' AND r.status IN ('Allocated', 'Processing', 'Releasing')),\n       'live', (SELECT COUNT(*) FROM gd_publish_step p WHERE p.tenant_id = '{{node:code_node_IPentry.data.tenantId}}' AND p.job_id = 'IAH|{{node:code_node_IPentry.data.iaId}}' AND p.step_name LIKE 'TICKET|%' AND p.step_status = 'HELD'\n                 AND p.is_deleted = 0 AND p.started_at > CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00') - INTERVAL 10 MINUTE)) ELSE JSON_OBJECT('hold', '', 'rows',\n\t\tNULL, 'live', 0) END AS j"
+            },
+            "response_json": [
+             {
+              "key": "o1b3aohd",
+              "name": "j",
+              "title": "j",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          }
+         ]
         }
        ]
       }
@@ -1265,11 +1315,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// IA V2 shared helpers (CONTRACT.md section 6): every name ia / IA_-prefixed so it concatenates with a step's own helpers\nconst iaS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst iaQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// a decimal column as the fixed-scale STRING the multipleOf check accepts\nconst iaQtyStr = (v) => Math.max(0, iaQ8(v)).toFixed(8);\nconst iaDigits = (v) => /^[0-9]{1,20}$/.test(iaS(v));\nconst iaIdStr = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"\";\n  const t = iaS(v);\n  return /^[0-9]{1,20}$/.test(t) ? t : \"\";\n};\n// 16+ digit integer tokens stay strings (never a float's fraction digits)\nconst iaParseJ = (t) => {\n  if (t === undefined || t === null) return null;\n  if (typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst iaList = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r !== undefined && r !== null);\nconst iaJsonList = (v) => {\n  if (Array.isArray(v)) return v;\n  const t = iaS(v);\n  if (!t) return [];\n  const p = iaParseJ(t);\n  return Array.isArray(p) ? p : [];\n};\nconst iaRows = (rows) => iaList(rows).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? iaParseJ(r.j) : r)).filter((r) => r && typeof r === \"object\");\nconst iaIdsSql = (vals) => [\"0\"].concat((Array.isArray(vals) ? vals : Object.keys(vals || {})).map(iaIdStr).filter((x) => x)).filter((x, i, a) => a.indexOf(x) === i).join(\",\");\n// code_issue_pick: pick.category || 'Unrestricted'\nconst iaCategory = (c) => iaS(c) || \"Unrestricted\";\n// code_issue_line's filter: sm_quantity > 0, array order; unparseable = none\nconst iaPicks = (line) => iaJsonList(line && line.temp_qty_data).filter((p) => p && typeof p === \"object\" && (parseFloat(p.sm_quantity) || 0) > 0);\nconst iaPickCount = (lines) => iaList(lines).reduce((n, l) => n + iaPicks(l).length, 0);\nconst iaLineHasHu = (line) => iaJsonList(line && line.temp_qty_data).some((p) => p && typeof p === \"object\" && iaS(p.handling_unit_id) !== \"\")\n  || iaJsonList(line && line.temp_hu_data).length > 0;\nconst iaDbAddSeconds = function iaDbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst iaDbSeconds = function iaDbSeconds(a, b) {\n  const t = (x) => {\n    const m = String(x || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) : NaN;\n  };\n  return (t(b) - t(a)) / 1000;\n};\nconst IA_PREV_STATUSES = [\"Draft\"];\nconst iaPrevStatusOk = (v) => IA_PREV_STATUSES.indexOf(iaS(v)) >= 0;\nconst IA_V2_MIN_PICKS = 50;\n// the user's cap (2026-10-19): classic IA_SAVE Completed picks and classic IA_REVERT live rows\nconst IA_CLASSIC_MAX_PICKS = 250;\nconst IA_MAX_PICKS = 5000;\nconst IA_PARK_PICKS = 1000;\nconst IA_LOCK_WAIT_TRIES = 8;\nconst IA_RECEIPT_WAIT_S = 1800;\nconst IA_RECEIPT_RETRY_S = 10;\nconst IA_OK_CATEGORIES = [\"Unrestricted\", \"Blocked\"];\n// one open job per IA, completion or revert (shared IA|<id> correlation and IAC|<id> lock)\nconst IA_COMMANDS = [\"COMPLETE_IA\", \"REVERT_IA\"];\nconst IA_OPEN_JOB = [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_IA\", \"COMMITTING_REVERT\", \"REQUIRES_REVIEW\"];\nconst IA_RUNNING_JOB = [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_IA\", \"COMMITTING_REVERT\"];\nconst IA_TERMINAL_JOB = [\"COMPLETED\", \"FAILED\", \"REQUIRES_REVIEW\", \"CANCELLED\", \"NONE\"];\nconst IA_FINAL = [\"Completed\", \"Fully Posted\"];\nconst IA_KEY_RE = /^[A-Za-z0-9|:_.-]{8,128}$/;\nconst iaLockJob = (iaId) => \"IAC|\" + iaS(iaId);\nconst iaCorrelation = (iaId) => \"IA|\" + iaS(iaId);\nconst iaOpKey = (jobId, side) => \"IAC|\" + iaS(jobId) + \"|\" + (side === \"R\" ? \"R\" : \"I\");\nconst IA_RV_PREV_STATUSES = [\"Completed\"];\nconst iaRvPrevStatusOk = (v) => IA_RV_PREV_STATUSES.indexOf(iaS(v)) >= 0;\nconst IA_RV_MIN_ROWS = 50;\nconst iaRvOpKey = (jobId) => \"IAV|\" + iaS(jobId);\nconst iaRvCostOwner = (jobId) => \"IAV|\" + iaS(jobId) + \"|C\";\nconst IA_CHUNK = 400000;\nconst iaPartRows = function iaPartRows(jobId, organizationId, prefix, value, status) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += IA_CHUNK, n++) {\n    out.push({ job_id: iaS(jobId), organization_id: iaS(organizationId), step_name: prefix + String(n).padStart(3, \"0\"), step_status: status || \"PAYLOAD\", attempt_count: 0,\n      result_ref: text.slice(at, at + IA_CHUNK) });\n  }\n  return out;\n};\n// null = no row, undefined = the joined text does not parse\nconst iaJoinChunks = function iaJoinChunks(rows, prefix) {\n  const mine = iaList(rows).filter((r) => iaS(r.step_name).indexOf(prefix) === 0).sort((a, b) => (iaS(a.step_name) < iaS(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  const p = iaParseJ(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  return p === null ? undefined : p;\n};\n// tpl/smv2 commit/_cmp.js sameVal / sameStored, bound to iaQ8\nconst iaSameVal = function iaSameVal(a, b) {\n  const ea = a === undefined || a === null || a === \"\";\n  const eb = b === undefined || b === null || b === \"\";\n  if (ea || eb) return ea && eb;\n  if (typeof a === \"object\" || typeof b === \"object\") return JSON.stringify(a) === JSON.stringify(b);\n  const t = (v) => (/^-?[0-9]+\\.[0-9]+$/.test(String(v)) ? String(v).replace(/0+$/, \"\").replace(/\\.$/, \"\") : String(v));\n  const ta = t(a);\n  const tb = t(b);\n  if (ta === tb) return true;\n  const na = typeof a === \"number\" || /^-?[0-9]+(\\.[0-9]+)?$/.test(ta);\n  const nb = typeof b === \"number\" || /^-?[0-9]+(\\.[0-9]+)?$/.test(tb);\n  if (na && nb && !/^-?[0-9]{16,}$/.test(ta) && !/^-?[0-9]{16,}$/.test(tb)) return Math.abs(iaQ8(a) - iaQ8(b)) < 1e-8;\n  return false;\n};\nconst iaSameStored = function iaSameStored(computed, stored) {\n  if (iaSameVal(computed, stored)) return true;\n  if (typeof computed === \"object\" || computed === \"\" || computed === null || computed === undefined || stored === \"\" || stored === null || stored === undefined) return false;\n  const a = Number(computed);\n  const b = Number(stored);\n  if (!isFinite(a) || !isFinite(b)) return false;\n  for (let d = 0; d < 8; d++) {\n    const f = Math.pow(10, d);\n    const x = Number((a * f).toFixed(6));\n    for (const c of [Math.sign(x) * Math.round(Math.abs(x)), Math.trunc(x), Math.sign(x) * Math.ceil(Math.abs(x))]) if (Math.abs(c / f - b) < 1e-9) return true;\n  }\n  return false;\n};\nconst IA_TEXT = {\n  busy: \"This Item Assembly is being processed in the background - please wait for it to finish.\",\n  underReview: \"Its last completion stopped half-way and is under review: please contact support.\",\n  stale: (status) => \"This Item Assembly was changed by someone else (it is now \" + (iaS(status) || \"without a status\") + \"). Please close it and open it again.\",\n  alreadyFinal: (status) => \"This Item Assembly is already \" + iaS(status) + \".\",\n  classicFinal: (status) => \"This Item Assembly is already \" + iaS(status) + \" and cannot be saved again.\",\n  classicTooBig: (n, cap) => \"This Item Assembly has \" + n + \" stock picks; this save can process at most \" + cap + \" at once. Split it into smaller assemblies, or complete it from the web form if background completion is switched on.\",\n  tooBig: (n, reason, cap) => \"This Item Assembly has \" + n + \" stock picks and cannot be completed in the background (\" + iaS(reason) + \"); the classic save handles at most \" + cap + \" picks.\",\n  splitRequired: (n) => \"This Item Assembly has \" + n + \" stock picks. At most 5,000 can be issued at once - please split the assembly.\",\n  queueFailed: \"The completion could not be queued: please try again.\",\n  notLocked: \"The Item Assembly is no longer locked by this completion: nothing was moved.\",\n  linesChanged: \"The Item Assembly's lines changed while it was waiting: nothing was moved, please complete it again.\",\n  lockBusy: \"The stock of its components stayed locked by another operation: nothing was moved, please try again later.\",\n  review: \"Under review: the completion stopped half-way. Please contact support.\",\n  prevUnknown: \"Under review: the status to restore is unknown. Please contact support.\",\n  batchDuplicate: \"Duplicate Batch Format found.\",\n  postLater: \"Still completing in the background; post it from the list once it shows Completed.\",\n  rvConflicts: \"Revert blocked: the assembled item has been used or its stock has moved on.\",\n  rvDone: \"Item Assembly reverted to Draft successfully.\",\n  rvClassicTooBig: (n, cap) => \"This Item Assembly has \" + n + \" stock rows; this revert can process at most \" + cap + \" at once. Revert it from the Item Assembly list if background revert is switched on, or contact support.\",\n  rvTooBig: (n, reason, cap) => \"This Item Assembly has \" + n + \" stock movements to take back and cannot be reverted in the background (\" + iaS(reason) + \"); the classic revert handles at most \" + cap + \".\",\n  rvSplitRequired: (n) => \"This Item Assembly has \" + n + \" stock movements to take back. At most 5,000 can be reverted at once.\",\n  // the revert's own wording of the completion texts above (CONTRACT ruling 9)\n  rvNotLocked: \"The Item Assembly is no longer locked by this revert: nothing was reverted.\",\n  rvReview: \"Under review: the revert stopped half-way. Please contact support.\",\n  rvUnderReview: \"Its last revert stopped half-way and is under review: please contact support.\",\n  rvQueueFailed: \"The revert could not be queued: please try again.\",\n  rvNotReverted: \"Temporary failures persisted; not reverted.\",\n  rvNoJob: \"no background revert\",\n};\n// IF1: one fingerprint of an Item Assembly's stored component lines + the header fields that change the stock or the price (CONTRACT.md section 6)\nconst iaFpParse = function iaFpParse(t) {\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return undefined;\n  }\n};\nconst iaFpRows = function iaFpRows(lines) {\n  return (Array.isArray(lines) ? lines : lines ? [lines] : []).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? iaFpParse(r.j) : r))\n    .filter((r) => r && typeof r === \"object\");\n};\nconst iaFpS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// an id that went through a JS number past 2^53 is marked, never silently equal\nconst iaFpId = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"?\" + String(v);\n  const t = iaFpS(v);\n  return /^[0-9]{1,20}$/.test(t) || t === \"\" ? t : \"?\" + t;\n};\nconst iaFpQ8 = (v) => (v === undefined || v === null || iaFpS(v) === \"\" ? \"\" : Number((parseFloat(v) || 0).toFixed(8)).toFixed(8));\nconst iaFpHash = function iaFpHash(text) {\n  let h1 = 2166136261;\n  let h2 = 5381;\n  for (let i = 0; i < text.length; i++) {\n    const c = text.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;\n    h2 = (Math.imul(h2, 33) + c) >>> 0;\n  }\n  const hex = (x) => (\"00000000\" + x.toString(16)).slice(-8);\n  return hex(h1) + hex(h2);\n};\nconst iaFpEntries = function iaFpEntries(v) {\n  if (Array.isArray(v)) return v;\n  const t = iaFpS(v);\n  if (!t) return [];\n  const p = iaFpParse(t);\n  return Array.isArray(p) ? p : \"RAW:\" + t;\n};\nconst iaFpCanonRows = function iaFpCanonRows(lines) {\n  const canon = iaFpRows(lines).map((l) => {\n    const e = iaFpEntries(l.temp_qty_data);\n    return [iaFpId(l.id), iaFpS(l.line_index), iaFpS(l.item_selection), iaFpId(l.quantity_uom), iaFpQ8(l.total_quantity),\n      typeof e === \"string\" ? e : e.map((x) => (x && typeof x === \"object\" ? [iaFpId(x.balance_id), iaFpId(x.location_id), iaFpId(x.batch_id), iaFpS(x.category) || \"Unrestricted\",\n        iaFpQ8(x.sm_quantity)] : [\"?\", iaFpS(x)]))];\n  });\n  const key = (a) => (a[0] ? \"1\" + String(a[0].length).padStart(2, \"0\") + a[0] : \"0\" + a[1].padStart(12, \"0\"));\n  canon.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));\n  return canon;\n};\nconst iaFpCanonHeader = function iaFpCanonHeader(header) {\n  const h = iaFpRows(header)[0] || {};\n  return [iaFpS(h.item_id), iaFpQ8(h.item_qty), iaFpId(h.item_uom), iaFpId(h.location_id), iaFpS(h.inventory_category) || \"Unrestricted\", iaFpS(h.batch_no),\n    iaFpId(h.issuing_operation_faci)];\n};\nconst iaLineFingerprint = function iaLineFingerprint(lines, header) {\n  const rows = iaFpCanonRows(lines);\n  return \"IF1:\" + rows.length + \":\" + iaFpHash(JSON.stringify([iaFpCanonHeader(header), rows]));\n};\n// IM1: every movement row of one IA as the classic revert reads them (Revert V2 V0: the live-row set unchanged)\nconst iaMovesFingerprint = function iaMovesFingerprint(rows) {\n  const canon = iaFpRows(rows).map((r) => [iaFpId(r.id), iaFpS(r.transaction_type), iaFpS(r.movement).toUpperCase(), iaFpId(r.item_id), iaFpId(r.batch_number_id),\n    iaFpId(r.bin_location_id), iaFpS(r.inventory_category), iaFpId(r.handling_unit_id), iaFpQ8(r.base_qty)]);\n  const key = (a) => String(a[0].length).padStart(2, \"0\") + a[0];\n  canon.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));\n  return \"IM1:\" + canon.length + \":\" + iaFpHash(JSON.stringify(canon));\n};\n// the receipt price (CONTRACT.md section 5 \"Receipt price\") and the engine's uomOf; self-contained\nconst iaPrS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst iaPrQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// exact text only: ids 27 apart (prod UOMs ...758 / ...785) are one JS double, so replays must parse rows with iaParseJ\nconst iaPrIdEq = (a, b) => {\n  const x = iaPrS(a);\n  return x !== \"\" && x === iaPrS(b);\n};\nconst iaUomConversions = function iaUomConversions(item) {\n  const it = item || {};\n  let conv = it.table_uom_conversion;\n  if (!Array.isArray(conv)) {\n    conv = it.uom_conversion_json;\n    if (typeof conv === \"string\") {\n      try {\n        conv = JSON.parse(conv.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n      } catch (e) {\n        conv = [];\n      }\n    }\n  }\n  return (Array.isArray(conv) ? conv : []).filter((c) => c && typeof c === \"object\");\n};\n// INVENTORY_BULK_APPLY core uomOf: q8 qty, the line UOM (else the base UOM), one conversion row of that alt UOM, else 1:1\nconst iaUomOf = function iaUomOf(item, quantity, uom) {\n  const it = item || {};\n  const altQty = iaPrQ8(parseFloat(quantity));\n  let baseQty = altQty;\n  const altUOM = uom || it.based_uom;\n  const conv = iaUomConversions(it).find((c) => iaPrIdEq(c.alt_uom_id, altUOM));\n  if (conv) baseQty = iaPrQ8(altQty * Number(conv.base_qty));\n  return { altQty: altQty, baseQty: baseQty, altUOM: altUOM, baseUOM: it.based_uom };\n};\nconst iaItemOf = (items, id) => (Array.isArray(items) ? items : items ? [items] : []).find((it) => it && typeof it === \"object\" && iaPrIdEq(it.id, id)) || null;\n// per BASE unit of the receipt (the engine prices ADD per base unit); non-stock lines add nothing (user decision 2026-10-19)\nconst receiptUnitPrice = function receiptUnitPrice(input) {\n  const p = input || {};\n  const base = parseFloat(p.receiptBaseQty) || 0;\n  if (!(base > 0)) return 0;\n  const out = (Array.isArray(p.outTotals) ? p.outTotals : [p.outTotals]).reduce((n, t) => n + (parseFloat(t) || 0), 0);\n  return iaPrQ8(out / base + (parseFloat(p.assemblyCost) || 0));\n};\n// In-process copy of the platform's code-node contract, for bodies lifted by lift/lift.py (copy of scratchpad/grv2/lift).\n// A token is replaced by its value (null when it has none); a node keeps only its declared keys; an object declared\n// `string` arrives as its JSON text; a number declared `int` is truncated toward zero (prod on_order_purchase_order rows\n// show D9IbUV8t's onOrderQty 10.92 / 30.68 / 0.5 arriving as 10 / 30 / 0), a boolean declared `int` arrives as 1 / 0\n// (PUTAWAY qfSZO0bi's hasAnyQuantity, recorded runs); null-valued keys are dropped at every depth.\n// Every __v() is a fresh copy, as every substituted literal is.\nconst __QUIET = { log() {}, error() {}, warn() {}, info() {}, debug() {} };\nconst __N = {};\nlet __CTX = {};\n\nfunction __clone(v) {\n  return v === undefined ? null : JSON.parse(JSON.stringify(v));\n}\n\nfunction __resolve(key) {\n  const dot = key.indexOf(\".\", key.indexOf(\":\") + 1);\n  let v = __CTX[dot < 0 ? key : key.slice(0, dot)];\n  if (dot >= 0) {\n    for (const p of key.slice(dot + 1).split(\".\")) {\n      if (v === null || v === undefined) return null;\n      v = v[p];\n    }\n  }\n  return v === undefined ? null : v;\n}\n\nfunction __v(key) {\n  const v = __resolve(key);\n  return v === null ? null : __clone(v);\n}\n\nfunction __strip(v) {\n  if (Array.isArray(v)) return v.map(__strip);\n  if (v && typeof v === \"object\") {\n    const o = {};\n    for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== undefined) o[k] = __strip(v[k]);\n    return o;\n  }\n  return v;\n}\n\nfunction __platformOut(raw, decl) {\n  if (raw === null || raw === undefined || typeof raw !== \"object\") return {};\n  const r = JSON.parse(JSON.stringify(raw));\n  const o = {};\n  for (const [name, type] of decl) {\n    const v = r[name];\n    if (v === null || v === undefined) continue;\n    if (type === \"string\" && typeof v === \"object\") o[name] = JSON.stringify(v);\n    else if (type === \"int\" && typeof v === \"number\") o[name] = Math.trunc(v);\n    else if (type === \"int\" && typeof v === \"boolean\") o[name] = v ? 1 : 0;\n    else o[name] = v;\n  }\n  return __strip(o);\n}\n\nfunction __run(id) {\n  const n = __N[id];\n  if (!n) throw new Error(\"not lifted: \" + id);\n  const out = __platformOut(n.fn(), n.decl);\n  __CTX[\"node:\" + id] = { data: out };\n  return out;\n}\n\nfunction __set(key, value) {\n  __CTX[key] = value;\n}\n\nfunction __withContext(ctx, fn) {\n  const saved = __CTX;\n  __CTX = ctx;\n  try {\n    return fn();\n  } finally {\n    __CTX = saved;\n  }\n}\n// GENERATED by scratchpad/iav2/lib/lift/lift.py from lift/lift.json (IA_V2_PREPARE, CONTRACT.md section 9). Do not edit: re-run\n// python3 scratchpad/iav2/lib/lift/lift.py scratchpad/iav2/lift/lift.json   (--check: still what base/IA_SAVE.v11.json gives)\n// base/IA_SAVE.v11.json :: code_fillback\n__N[\"code_fillback\"] = { decl: [[\"allData\", \"any\"], [\"storedStatus\", \"string\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nlet allData = __v(\"workflowparams:allData\");\nconst saveAs = __v(\"workflowparams:saveAs\");\nconst pageStatus = __v(\"workflowparams:pageStatus\");\n\n// Every decimal column is coerced to a fixed-scale STRING: a raw float is\n// serialized at full precision and the DB's BigDecimal multipleOf check then\n// rejects the whole save. This list is an ALLOW-LIST -- a decimal column missing\n// from it will crash a save.\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === '') return 0;\n  return parseFloat(value).toFixed(8);\n};\n\nconst lines = [];\nfor (const [index, line] of (allData.stock_movement || []).entries()) {\n  line.requested_qty = q8(line.requested_qty);\n  line.total_quantity = q8(line.total_quantity);\n  line.organization_id = allData.organization_id;\n  line.issuing_plant = allData.issuing_operation_faci || null;\n  line.line_index = index + 1;\n  lines.push(line);\n}\nallData.stock_movement = lines;\n\n// item_qty is decimal(65,3) on the header -- MSI/MSR only format lines because\n// their header carries no quantity; this one does.\nallData.item_qty = q8(allData.item_qty);\n\n// Blank on assemblies saved before the field existed, and on mobile payloads.\nallData.inventory_category = allData.inventory_category || 'Unrestricted';\n\nconst storedStatus = pageStatus === 'Add' ? 'Draft' : (allData.item_assembly_status || 'Draft');\nallData.item_assembly_status = saveAs;\n\n// The platform replaces these sentinels with a real number on insert. -9999 is\n// Manual Input, where the user's typed number stands.\nif (saveAs === 'Draft') {\n  if (allData.stock_movement_no_type !== -9999 &&\n      (!allData.stock_movement_no || allData.stock_movement_no === '')) {\n    allData.stock_movement_no = 'draft';\n  }\n} else {\n  if (allData.stock_movement_no_type !== -9999 &&\n      (!allData.stock_movement_no || allData.stock_movement_no === '' ||\n       storedStatus !== 'Completed')) {\n    allData.stock_movement_no = 'issued';\n  }\n  // There is no acc_integration_type column on this table; posting is a later phase.\n  allData.posted_status = 'Unposted';\n}\n\nreturn { allData: allData, storedStatus: storedStatus };\n} };\n// base/IA_SAVE.v11.json :: code_batch_decide\n__N[\"code_batch_decide\"] = { decl: [[\"needsGen\", \"int\"], [\"manualBatch\", \"string\"], [\"isBatch\", \"string\"], [\"item_id\", \"string\"], [\"document_date\", \"string\"], [\"manufacturing_date\", \"string\"], [\"expired_date\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst entry = __v(\"node:code_fillback.data.allData\");\nconst items = __v(\"node:search_items.data.data\") || [];\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nconst isBatch = assembled.item_batch_management === 1;\nconst auto = assembled.batch_number_genaration === 'According To System Settings';\n\nreturn {\n  needsGen: isBatch && auto ? 1 : 0,\n  manualBatch: isBatch && !auto ? String(entry.batch_no || '') : '',\n  isBatch: isBatch ? 'Y' : 'N',\n  item_id: String(entry.item_id || ''),\n  document_date: entry.item_assembly_date || null,\n  manufacturing_date: entry.manufacturing_date || null,\n  expired_date: entry.expired_date || null\n};\n} };\n// base/IA_SAVE.v11.json :: code_issue_line\n__N[\"code_issue_line\"] = { decl: [[\"plant_id\", \"string\"], [\"organization_id\", \"string\"], [\"stock_movement_no\", \"string\"], [\"doc_date\", \"string\"], [\"material_id\", \"string\"], [\"material_uom\", \"string\"], [\"remark\", \"string\"], [\"remark2\", \"string\"], [\"remark3\", \"string\"], [\"itemData\", \"any\"], [\"balancesToProcess\", \"any\"]], fn: function () {\nconst console = __QUIET;\nconst line = __v(\"node:loop_issue_lines\");\nconst entry = __v(\"node:code_fillback.data.allData\");\nconst persisted = __v(\"node:code_persisted.data\");\nconst items = __v(\"node:search_items.data.data\") || [];\n\nlet picks = [];\ntry {\n  picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n} catch (e) {\n  picks = [];\n}\n\nconst itemData = items.find(function (it) {\n  return String(it.id) === String(line.item_selection);\n}) || null;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  stock_movement_no: persisted.stock_movement_no,\n  doc_date: entry.item_assembly_date,\n  material_id: line.item_selection,\n  material_uom: line.quantity_uom,\n  remark: line.item_remark || '',\n  remark2: line.item_remark_2 || '',\n  remark3: line.item_remark_3 || '',\n  itemData: itemData,\n  balancesToProcess: picks.filter(function (p) {\n    return (parseFloat(p.sm_quantity) || 0) > 0;\n  })\n};\n} };\n// base/IA_SAVE.v11.json :: code_issue_pick\n__N[\"code_issue_pick\"] = { decl: [[\"location_id\", \"string\"], [\"batch_id\", \"string\"], [\"quantity\", \"decimal\"], [\"inventory_category\", \"string\"], [\"manufacturing_date\", \"string\"], [\"expired_date\", \"string\"], [\"handling_unit_id\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst pick = __v(\"node:loop_issue_picks\");\n\n// Every nullable param is null, never '': SUBTRACT_INVENTORY's own Batch ID node\n// does `const batchId = ...; if (batchId === \"\") batchId = null`, which throws\n// TypeError: Assignment to constant. MSI passes null for the same reason.\nreturn {\n  location_id: pick.location_id || null,\n  batch_id: pick.batch_id || null,\n  quantity: parseFloat(pick.sm_quantity) || 0,\n  inventory_category: pick.category || 'Unrestricted',\n  manufacturing_date: pick.manufacturing_date || null,\n  expired_date: pick.expired_date || null,\n  handling_unit_id: pick.handling_unit_id || null\n};\n} };\n// base/IA_SAVE.v11.json :: code_receipt_prep\n__N[\"code_receipt_prep\"] = { decl: [[\"plant_id\", \"string\"], [\"organization_id\", \"string\"], [\"material_id\", \"string\"], [\"material_uom\", \"string\"], [\"quantity\", \"decimal\"], [\"unit_price\", \"decimal\"], [\"location_id\", \"string\"], [\"batch_number\", \"string\"], [\"trx_no\", \"string\"], [\"doc_date\", \"string\"], [\"manufacturing_date\", \"string\"], [\"expired_date\", \"string\"], [\"remark\", \"string\"], [\"remark2\", \"string\"], [\"remark3\", \"string\"], [\"itemData\", \"any\"], [\"inventory_category\", \"string\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst entry = __v(\"node:code_fillback.data.allData\");\nconst items = __v(\"node:search_items.data.data\") || [];\nconst movements = __v(\"node:search_movements.data.data\") || [];\nconst persisted = __v(\"node:code_persisted.data\");\nconst batchNumber = __v(\"node:code_batch_number.data.batchNumber\");\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\n// Read the cost back off the movements the issue leg just wrote. SUBTRACT has a\n// success path that returns only `code` and no unit_price, so its response can\n// never be relied on; the movement rows always carry the real figure, and FIFO\n// splitting one pick across layers is summed correctly here for free.\nconst consumedValue = movements.reduce(function (sum, m) {\n  return sum + (parseFloat(m.total_price) || 0);\n}, 0);\n\nconst itemQty = parseFloat(entry.item_qty) || 0;\nconst materialUnitCost = itemQty > 0 ? consumedValue / itemQty : 0;\nconst assemblyCost = parseFloat(assembled.assembly_cost) || 0;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  material_id: entry.item_id,\n  material_uom: entry.item_uom,\n  quantity: q8(itemQty),\n  unit_price: q8(materialUnitCost + assemblyCost),\n  location_id: entry.location_id,\n  inventory_category: entry.inventory_category,\n  batch_number: batchNumber,\n  trx_no: persisted.stock_movement_no,\n  doc_date: entry.item_assembly_date || null,\n  manufacturing_date: entry.manufacturing_date || null,\n  expired_date: entry.expired_date || null,\n  remark: entry.remarks || '',\n  remark2: entry.remarks_2 || '',\n  remark3: entry.remarks_3 || '',\n  itemData: assembled\n};\n} };\n// base/IA_SAVE.v11.json :: code_item_txn\n__N[\"code_item_txn\"] = { decl: [[\"updates\", \"any\"]], fn: function () {\nconst console = __QUIET;\nconst entry = __v(\"node:code_fillback.data.allData\");\n\nconst ids = [];\nif (entry.item_id) ids.push(String(entry.item_id));\n(entry.stock_movement || []).forEach(function (line) {\n  if (line.item_selection) ids.push(String(line.item_selection));\n});\n\nconst stamp = new Date().toISOString();\n\nconst updates = [];\nids.filter(function (v, i, a) { return a.indexOf(v) === i; }).forEach(function (id) {\n  updates.push({ id: id, last_transaction_date: stamp });\n});\n\nreturn { updates: updates };\n} };\n// IA_V2_PREPARE - SQL rows -> the shapes the lifted bodies read (status = prevStatus; temp_qty_data stays the stored TEXT)\nconst iaAdaptDrop = (o) => {\n  const r = {};\n  for (const k of Object.keys(o || {})) {\n    const v = o[k];\n    if (v === null || v === undefined || v === \"\") continue;\n    r[k] = v;\n  }\n  return r;\n};\nconst iaAdaptHeader = function iaAdaptHeader(row, prevStatus) {\n  const h = iaAdaptDrop(row);\n  delete h.ia_v2_job_id;\n  h.item_assembly_status = prevStatus;\n  if (h.item_qty !== undefined) h.item_qty = Number(h.item_qty);\n  // code_fillback compares the Manual Input rule with !== -9999\n  if (iaS(h.stock_movement_no_type) === \"-9999\") h.stock_movement_no_type = -9999;\n  return h;\n};\nconst iaAdaptIdKey = (v) => String(iaS(v).length).padStart(2, \"0\") + iaS(v);\nconst iaAdaptLines = function iaAdaptLines(rows) {\n  const at = (v) => (/^[0-9]{1,15}$/.test(iaS(v)) ? Number(iaS(v)) : Infinity);\n  const lines = iaRows(rows).map((r) => {\n    const o = iaAdaptDrop(r);\n    if (o.total_quantity !== undefined) o.total_quantity = Number(o.total_quantity);\n    return o;\n  });\n  return lines.sort((a, b) => {\n    const x = at(a.line_index);\n    const y = at(b.line_index);\n    if (x !== y) return x < y ? -1 : 1;\n    const p = iaAdaptIdKey(a.id);\n    const q = iaAdaptIdKey(b.id);\n    return p < q ? -1 : p > q ? 1 : 0;\n  });\n};\nconst iaAdaptItems = (rows) => iaRows(rows).map((r) => {\n  const o = iaAdaptDrop(r);\n  for (const k of [\"assembly_cost\", \"purchase_unit_price\"]) if (o[k] !== undefined) o[k] = Number(o[k]);\n  o.table_uom_conversion = iaList(o.table_uom_conversion).filter((c) => c && typeof c === \"object\").map((c) => ({ alt_uom_id: iaS(c.alt_uom_id), base_qty: Number(c.base_qty) }));\n  return o;\n});\n// IA_V2_PREPARE - Plan: the classic IA_SAVE v11 issue / receipt bodies (lifted) on the stored rows -> parts, manifest, PLAN requests\nconst IA_PLAN_BATCH_AUTO = \"According To System Settings\";\nconst IA_PLAN_NOT_FOUND = \"Item Assembly not found - it may have been deleted.\";\nconst IA_PLAN_PARTS = [\"ENGINE_I\", \"ENGINE_R\", \"BATCH\", \"LABELS\", \"ITEMS\"];\nconst iaPlanWhy = (why) => \"The completion could not be prepared: \" + why;\nconst iaPlanText = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst iaPlanContext = function iaPlanContext(allData, items, persisted) {\n  return { \"workflowparams:allData\": allData, \"workflowparams:saveAs\": \"Completed\", \"workflowparams:pageStatus\": \"Edit\",\n    \"node:search_items\": { data: { total: items.length, count: items.length, data: items } }, \"node:code_persisted\": { data: persisted },\n    \"node:search_movements\": { data: { total: 0, count: 0, data: [] } } };\n};\n// slim: each issue iteration gets only what code_issue_line reads (same outputs; a full copy per line is quadratic)\nconst iaPlanRun = function iaPlanRun(ctx, storedBatchNo, slim) {\n  return __withContext(ctx, () => {\n    const fill = __run(\"code_fillback\");\n    const decide = __run(\"code_batch_decide\");\n    // code_batch_number: the generated number is the one SUBMIT wrote into batch_no\n    ctx[\"node:code_batch_number\"] = { data: { batchNumber: decide.isBatch === \"Y\" ? storedBatchNo : \"\" } };\n    const fullFill = ctx[\"node:code_fillback\"];\n    const fullItems = ctx[\"node:search_items\"];\n    const fullPersisted = ctx[\"node:code_persisted\"];\n    const byId = {};\n    for (const it of iaList(fullItems.data.data)) if (!(String(it.id) in byId)) byId[String(it.id)] = it;\n    if (slim) {\n      const head = Object.assign({}, fill.allData);\n      delete head.stock_movement;\n      ctx[\"node:code_fillback\"] = { data: { allData: head, storedStatus: fill.storedStatus } };\n      ctx[\"node:code_persisted\"] = { data: { docId: fullPersisted.data.docId, stock_movement_no: fullPersisted.data.stock_movement_no } };\n    }\n    const issues = [];\n    for (const line of iaList(fill.allData && fill.allData.stock_movement)) {\n      ctx[\"node:loop_issue_lines\"] = line;\n      if (slim) {\n        const it = byId[String(line.item_selection)];\n        ctx[\"node:search_items\"] = { data: { total: it ? 1 : 0, count: it ? 1 : 0, data: it ? [it] : [] } };\n      }\n      const q = __run(\"code_issue_line\");\n      for (const pick of iaList(q.balancesToProcess)) {\n        ctx[\"node:loop_issue_picks\"] = pick;\n        issues.push({ line: line, q: q, g: __run(\"code_issue_pick\") });\n      }\n    }\n    ctx[\"node:code_fillback\"] = fullFill;\n    ctx[\"node:search_items\"] = fullItems;\n    ctx[\"node:code_persisted\"] = fullPersisted;\n    return { fill: fill, decide: decide, issues: issues, receipt: __run(\"code_receipt_prep\"), txn: __run(\"code_item_txn\") };\n  });\n};\n// the classic wf_subtract params minus itemData, + movement_key, direction, parent_trx_no, isMovingInv (CONTRACT.md section 5)\nconst iaPlanIssue = function iaPlanIssue(key, q, g) {\n  return { movement_key: key, direction: \"SUBTRACT\", plant_id: iaS(q.plant_id), organization_id: iaS(q.organization_id), material_id: iaS(q.material_id),\n    quantity: iaQ8(g.quantity), material_uom: iaS(q.material_uom), transaction_type: \"IA\", trx_no: iaPlanText(q.stock_movement_no), parent_trx_no: \"\",\n    inventory_category: iaS(g.inventory_category), location_id: iaS(g.location_id), batch_id: iaS(g.batch_id) || null, manufacturing_date: g.manufacturing_date || null,\n    expired_date: g.expired_date || null, doc_date: q.doc_date || null, isMovingInv: 0, handling_unit_id: null };\n};\n// the classic wf_add params minus itemData / batch_number; unit_price and batch_id are filled by COMMIT (I3 / I1)\nconst iaPlanReceipt = function iaPlanReceipt(r) {\n  return { movement_key: \"R1\", direction: \"ADD\", plant_id: iaS(r.plant_id), organization_id: iaS(r.organization_id), material_id: iaS(r.material_id),\n    quantity: iaQ8(r.quantity), material_uom: iaS(r.material_uom), transaction_type: \"IA\", trx_no: iaPlanText(r.trx_no), parent_trx_no: \"\",\n    inventory_category: iaS(r.inventory_category), location_id: iaS(r.location_id), batch_id: null, unit_price: 0, doc_date: r.doc_date || null,\n    manufacturing_date: r.manufacturing_date || null, expired_date: r.expired_date || null, remark: iaPlanText(r.remark), remark2: iaPlanText(r.remark2),\n    remark3: iaPlanText(r.remark3), isMovingInv: 0, handling_unit_id: null };\n};\n\nconst iaPrepPlan = function iaPrepPlan(entry, S, own) {\n  const s = iaS;\n  const jobId = s(entry.jobId);\n  const base = { route: \"FAIL\", code: \"\", message: \"\", payload: \"\", partRows: [], lineCount: 0, pickCount: 0, movementCount: 0, unlockOk: 0, organizationId: \"\",\n    opKeyI: \"\", opKeyR: \"\", movementsI: [], movementsR: [], labels: {} };\n  const fail = (code, message) => Object.assign(base, { code: code, message: message });\n  const failed = (why) => fail(\"IA_PLAN_FAILED\", iaPlanWhy(why));\n  const broken = (why) => fail(\"IA_PLAN_BROKEN\", iaPlanWhy(why));\n  if (s(entry.route) !== \"GO\") return fail(s(entry.result_code), s(entry.result_message));\n  const req = entry.request && typeof entry.request === \"object\" ? entry.request : {};\n  const iaId = s(entry.iaId);\n  const owner = iaList(S.owner)[0] || {};\n  const hdr = iaRows(S.hdr)[0] || null;\n  if (!hdr || s(hdr.id) !== iaId || s(owner.ia_id) !== iaId) return fail(\"IA_NOT_FOUND\", IA_PLAN_NOT_FOUND);\n  // only after the lock check may a failure unlock\n  const key = s(entry.idempotencyKey);\n  const mine = (r) => s(r.item_assembly_status) === \"Processing\" && s(r.ia_v2_job_id) === jobId;\n  if (!mine(owner) || !mine(hdr) || !key || s(owner.lock_ref) !== key) return fail(\"IA_NOT_LOCKED\", IA_TEXT.notLocked);\n  base.unlockOk = 1;\n  if (own) own.locked = 1;\n  if (s(req.action) !== \"DIRECT\" || s(req.saveAs) !== \"Completed\" || !iaPrevStatusOk(entry.prevStatus)) {\n    return fail(\"IA_INVALID_REQUEST\", iaPlanWhy(\"the job's request names no valid action (\" + s(req.action) + \" / \" + s(req.saveAs) + \" / \" + s(entry.prevStatus) + \").\"));\n  }\n  if (s(req.iaId) && s(req.iaId) !== iaId) return broken(\"the job's request names another Item Assembly (\" + s(req.iaId) + \").\");\n  const orgId = s(hdr.organization_id);\n  const plantId = s(hdr.issuing_operation_faci);\n  if (!iaDigits(orgId) || !iaDigits(plantId)) return broken(\"the Item Assembly has no organization or plant.\");\n  if (s(entry.organizationId) !== orgId) return broken(\"the job's organization is not the Item Assembly's.\");\n  const trxNo = iaPlanText(hdr.stock_movement_no);\n  if (!s(trxNo) || s(trxNo) === \"issued\" || s(trxNo) === \"draft\") return broken(\"the Item Assembly has no issued number (\" + (s(trxNo) || \"empty\") + \").\");\n  if (s(req.iaNo) !== s(trxNo)) return broken(\"its number \" + s(trxNo) + \" is not the request's (\" + (s(req.iaNo) || \"none\") + \").\");\n  if (s(req.lineFingerprint).indexOf(\"IF1:\") !== 0) return broken(\"the job's request has no line fingerprint.\");\n  if (iaLineFingerprint(S.lines, S.hdr) !== s(req.lineFingerprint)) return fail(\"IA_LINES_CHANGED\", IA_TEXT.linesChanged);\n\n  const header = iaAdaptHeader(hdr, s(entry.prevStatus));\n  const stored = iaAdaptLines(S.lines);\n  header.stock_movement = stored;\n  const items = iaAdaptItems(S.items);\n  const itemOf = (id) => iaItemOf(items, id);\n  const parent = itemOf(hdr.item_id);\n  if (!parent) return failed(\"item \" + s(hdr.item_id) + \" not found.\");\n  for (const l of stored) if (!itemOf(l.item_selection)) return failed(\"item \" + s(l.item_selection) + \" (line \" + s(l.line_index) + \") not found.\");\n  if (s(parent.stock_control) === \"0\") return failed(\"the assembled item is not stock controlled.\");\n  const serial = [parent].concat(stored.map((l) => itemOf(l.item_selection))).filter((it) => s(it.serial_number_management) === \"1\")[0];\n  if (serial) return failed(\"item \" + (s(serial.material_code) || s(serial.id)) + \" is serial-numbered.\");\n  if (iaJsonList(hdr.table_hu).length || stored.some(iaLineHasHu)) return failed(\"it picks from handling units.\");\n\n  let run;\n  try {\n    const persisted = { docId: iaId, stock_movement_no: trxNo, stock_movement: JSON.stringify(stored) };\n    run = iaPlanRun(iaPlanContext(header, items, persisted), iaPlanText(hdr.batch_no), 1);\n  } catch (e) {\n    return broken(\"the classic parameter code failed (\" + String((e && e.message) || e).slice(0, 160) + \").\");\n  }\n  const decide = run.decide || {};\n  const isBatch = s(decide.isBatch) === \"Y\";\n  if (isBatch && Number(decide.needsGen) !== 1) return failed(\"the assembled item's batch number is entered manually.\");\n  if (isBatch && !s(hdr.batch_no)) return failed(\"the assembled item is batch managed but has no batch number.\");\n  if (isBatch !== (s(parent.batch_number_genaration) === IA_PLAN_BATCH_AUTO && s(parent.item_batch_management) === \"1\")) {\n    return broken(\"the batch decision does not match the item.\");\n  }\n  const lines = iaList(run.fill.allData && run.fill.allData.stock_movement);\n  const bins = {};\n  for (const b of iaRows(S.bins)) bins[s(b.id)] = s(b.bin);\n\n  const movements = [];\n  const labels = {};\n  let nonStock = 0;\n  for (const l of lines) if (s((itemOf(l.item_selection) || {}).stock_control) === \"0\") nonStock++;\n  for (const x of run.issues) {\n    const it = itemOf(x.line.item_selection) || {};\n    if (s(it.stock_control) === \"0\") continue;\n    const mk = \"M\" + (movements.length + 1);\n    const mv = iaPlanIssue(mk, x.q, x.g);\n    if (!iaDigits(mv.material_id) || !iaDigits(mv.plant_id) || !iaDigits(mv.location_id) || (mv.batch_id !== null && !iaDigits(mv.batch_id)) || !(mv.quantity > 0) ||\n      mv.organization_id !== orgId || mv.plant_id !== plantId || mv.trx_no !== trxNo || (mv.material_uom !== \"\" && !iaDigits(mv.material_uom))) {\n      return broken(\"movement \" + mk + \" (line \" + s(x.line.line_index) + \") has no valid item, plant, bin, batch, quantity or number.\");\n    }\n    if (IA_OK_CATEGORIES.indexOf(mv.inventory_category) < 0) return failed(\"line \" + s(x.line.line_index) + \" picks \" + mv.inventory_category + \" stock.\");\n    labels[mk] = { line_index: s(x.line.line_index), line_id: s(x.line.id), item_code: s(it.material_code), item_name: s(x.line.item_name) || s(it.material_name),\n      bin: bins[mv.location_id] || mv.location_id, bin_id: mv.location_id, category: mv.inventory_category, side: \"out\" };\n    movements.push(mv);\n  }\n  if (!movements.length) return failed(\"no stock to issue.\");\n  if (movements.length > IA_MAX_PICKS) return fail(\"IA_SPLIT_REQUIRED\", IA_TEXT.splitRequired(movements.length));\n\n  const r1 = iaPlanReceipt(run.receipt || {});\n  if (!iaDigits(r1.material_id) || r1.material_id !== s(hdr.item_id) || !iaDigits(r1.location_id) || !(r1.quantity > 0) || r1.organization_id !== orgId ||\n    r1.plant_id !== plantId || r1.trx_no !== trxNo || (r1.material_uom !== \"\" && !iaDigits(r1.material_uom))) {\n    return broken(\"the receipt has no valid item, plant, bin, quantity or number.\");\n  }\n  if (IA_OK_CATEGORIES.indexOf(r1.inventory_category) < 0) return failed(\"the assembled item is received as \" + r1.inventory_category + \" stock.\");\n  const receiptBaseQty = iaUomOf(parent, r1.quantity, r1.material_uom).baseQty;\n  if (!(receiptBaseQty > 0)) return broken(\"the receipt's base quantity is \" + receiptBaseQty + \".\");\n  labels.R1 = { line_index: \"\", line_id: \"\", item_code: s(parent.material_code), item_name: s(parent.material_name), bin: bins[r1.location_id] || r1.location_id,\n    bin_id: r1.location_id, category: r1.inventory_category, side: \"in\" };\n  const opI = iaOpKey(jobId, \"I\");\n  const opR = iaOpKey(jobId, \"R\");\n  const itemDates = [];\n  for (const u of iaList(run.txn && run.txn.updates)) if (iaDigits(u.id) && !itemDates.some((d) => d.id === s(u.id))) itemDates.push({ id: s(u.id) });\n  if (!itemDates.length || itemDates[0].id !== s(hdr.item_id)) return broken(\"the item list does not start with the assembled item.\");\n\n  const parts = {\n    ENGINE_I: { operation_key: opI, mode: \"APPLY\", organization_id: orgId, movements: movements },\n    ENGINE_R: { operation_key: opR, mode: \"APPLY\", organization_id: orgId, receiptBaseQty: receiptBaseQty, assemblyCost: iaQ8(parent.assembly_cost), movements: [r1] },\n    LABELS: labels,\n    ITEMS: { itemDates: itemDates },\n  };\n  if (isBatch) {\n    parts.BATCH = { mode: \"insert\", row: { batch_number: iaPlanText(hdr.batch_no), material_id: r1.material_id, initial_quantity: iaQtyStr(receiptBaseQty), transaction_no: trxNo,\n      plant_id: plantId, organization_id: orgId, remark: r1.remark, remark2: r1.remark2, remark3: r1.remark3, manufacturing_date: r1.manufacturing_date,\n      expired_date: r1.expired_date } };\n  }\n  const nonce = (s(entry.nonce).replace(/[^0-9A-Za-z]/g, \"\") + \"00000000\").slice(0, 8);\n  const partRows = [];\n  const manifestParts = {};\n  for (const name of IA_PLAN_PARTS) {\n    if (!parts[name]) continue;\n    const rows = iaPartRows(jobId, orgId, \"P|\" + nonce + \"|\" + name + \"|\", parts[name], \"PAYLOAD\");\n    manifestParts[name] = rows.map((r) => r.step_name);\n    for (const r of rows) partRows.push(r);\n  }\n  const manifest = {\n    v: 1, prepared_by: \"IA_V2_PREPARE\", job_id: jobId, ia_id: iaId, ia_no: trxNo, action: \"DIRECT\", prevStatus: s(entry.prevStatus), saveAs: \"Completed\",\n    organization_id: orgId, plant_id: plantId, nonce: nonce, lineFingerprint: s(req.lineFingerprint), batchMode: isBatch ? \"insert\" : \"none\", parts: manifestParts,\n    counts: { lines: lines.length, picks: run.issues.length, movementsI: movements.length, nonStockLines: nonStock, items: itemDates.length },\n  };\n  return Object.assign(base, {\n    route: \"PLAN\", code: \"200\", message: movements.length + \" component picks from \" + lines.length + \" lines, 1 receipt\" + (isBatch ? \" (batch \" + s(hdr.batch_no) + \")\" : \"\"),\n    payload: JSON.stringify(manifest), partRows: partRows, lineCount: lines.length, pickCount: run.issues.length, movementCount: movements.length, organizationId: orgId,\n    opKeyI: opI, opKeyR: opR, movementsI: movements, movementsR: [r1], labels: labels,\n  });\n};\nconst entry = [{{node:code_node_IPentry.data}}][0];\nconst S = { owner: [{{node:sql_node_IPowner.data}}][0], hdr: [{{node:sql_node_IPhdr.data}}][0], lines: [{{node:sql_node_IPlines.data}}][0], items: [{{node:sql_node_IPitems.data}}][0], bins: [{{node:sql_node_IPbins.data}}][0] };\nconst own = { locked: 0 };\nlet res;\ntry {\n  res = iaPrepPlan(entry, S, own);\n} catch (e) {\n  // unlock only when the throw came after the lock check passed\n  res = { route: \"FAIL\", code: \"IA_PLAN_BROKEN\", message: \"The completion could not be prepared: \" + String((e && e.message) || e).slice(0, 200), payload: \"\",\n    partRows: [], lineCount: 0, pickCount: 0, movementCount: 0, unlockOk: own.locked === 1 ? 1 : 0, organizationId: \"\", opKeyI: \"\", opKeyR: \"\", movementsI: [],\n    movementsR: [], labels: {} };\n}\nconsole.log(\"prepare plan\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lines: res.lineCount, picks: res.pickCount,\n  movements: res.movementCount, parts: res.partRows.length, unlock: res.unlockOk }));\nreturn { route: res.route, code: res.code, message: res.message, payload: res.payload, partRows: res.partRows, lineCount: res.lineCount, pickCount: res.pickCount,\n  movementCount: res.movementCount, unlockOk: res.unlockOk, organizationId: res.organizationId, opKeyI: res.opKeyI, opKeyR: res.opKeyR, movementsI: res.movementsI,\n  movementsR: res.movementsR, labels: res.labels };"
+     "code": "// IA V2 shared helpers (CONTRACT.md section 6): every name ia / IA_-prefixed so it concatenates with a step's own helpers\nconst iaS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst iaQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// a decimal column as the fixed-scale STRING the multipleOf check accepts\nconst iaQtyStr = (v) => Math.max(0, iaQ8(v)).toFixed(8);\nconst iaDigits = (v) => /^[0-9]{1,20}$/.test(iaS(v));\nconst iaIdStr = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"\";\n  const t = iaS(v);\n  return /^[0-9]{1,20}$/.test(t) ? t : \"\";\n};\n// 16+ digit integer tokens stay strings (never a float's fraction digits)\nconst iaParseJ = (t) => {\n  if (t === undefined || t === null) return null;\n  if (typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst iaList = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r !== undefined && r !== null);\nconst iaJsonList = (v) => {\n  if (Array.isArray(v)) return v;\n  const t = iaS(v);\n  if (!t) return [];\n  const p = iaParseJ(t);\n  return Array.isArray(p) ? p : [];\n};\nconst iaRows = (rows) => iaList(rows).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? iaParseJ(r.j) : r)).filter((r) => r && typeof r === \"object\");\nconst iaIdsSql = (vals) => [\"0\"].concat((Array.isArray(vals) ? vals : Object.keys(vals || {})).map(iaIdStr).filter((x) => x)).filter((x, i, a) => a.indexOf(x) === i).join(\",\");\n// code_issue_pick: pick.category || 'Unrestricted'\nconst iaCategory = (c) => iaS(c) || \"Unrestricted\";\n// code_issue_line's filter: sm_quantity > 0, array order; unparseable = none\nconst iaPicks = (line) => iaJsonList(line && line.temp_qty_data).filter((p) => p && typeof p === \"object\" && (parseFloat(p.sm_quantity) || 0) > 0);\nconst iaPickCount = (lines) => iaList(lines).reduce((n, l) => n + iaPicks(l).length, 0);\nconst iaLineHasHu = (line) => iaJsonList(line && line.temp_qty_data).some((p) => p && typeof p === \"object\" && iaS(p.handling_unit_id) !== \"\")\n  || iaJsonList(line && line.temp_hu_data).length > 0;\nconst iaDbAddSeconds = function iaDbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst iaDbSeconds = function iaDbSeconds(a, b) {\n  const t = (x) => {\n    const m = String(x || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) : NaN;\n  };\n  return (t(b) - t(a)) / 1000;\n};\nconst IA_PREV_STATUSES = [\"Draft\"];\nconst iaPrevStatusOk = (v) => IA_PREV_STATUSES.indexOf(iaS(v)) >= 0;\nconst IA_V2_MIN_PICKS = 50;\n// the user's cap (2026-10-19): classic IA_SAVE Completed picks and classic IA_REVERT live rows\nconst IA_CLASSIC_MAX_PICKS = 250;\nconst IA_MAX_PICKS = 5000;\nconst IA_PARK_PICKS = 1000;\nconst IA_LOCK_WAIT_TRIES = 8;\nconst IA_RECEIPT_WAIT_S = 1800;\nconst IA_RECEIPT_RETRY_S = 10;\nconst IA_OK_CATEGORIES = [\"Unrestricted\", \"Blocked\"];\n// one open job per IA, completion or revert (shared IA|<id> correlation and IAC|<id> lock)\nconst IA_COMMANDS = [\"COMPLETE_IA\", \"REVERT_IA\"];\nconst IA_OPEN_JOB = [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_IA\", \"COMMITTING_REVERT\", \"REQUIRES_REVIEW\"];\nconst IA_RUNNING_JOB = [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_IA\", \"COMMITTING_REVERT\"];\nconst IA_TERMINAL_JOB = [\"COMPLETED\", \"FAILED\", \"REQUIRES_REVIEW\", \"CANCELLED\", \"NONE\"];\nconst IA_FINAL = [\"Completed\", \"Fully Posted\"];\nconst IA_KEY_RE = /^[A-Za-z0-9|:_.-]{8,128}$/;\nconst iaLockJob = (iaId) => \"IAC|\" + iaS(iaId);\nconst iaCorrelation = (iaId) => \"IA|\" + iaS(iaId);\nconst iaOpKey = (jobId, side) => \"IAC|\" + iaS(jobId) + \"|\" + (side === \"R\" ? \"R\" : \"I\");\nconst IA_RV_PREV_STATUSES = [\"Completed\"];\nconst iaRvPrevStatusOk = (v) => IA_RV_PREV_STATUSES.indexOf(iaS(v)) >= 0;\nconst IA_RV_MIN_ROWS = 50;\nconst iaRvOpKey = (jobId) => \"IAV|\" + iaS(jobId);\nconst iaRvCostOwner = (jobId) => \"IAV|\" + iaS(jobId) + \"|C\";\nconst IA_CHUNK = 400000;\nconst iaPartRows = function iaPartRows(jobId, organizationId, prefix, value, status) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += IA_CHUNK, n++) {\n    out.push({ job_id: iaS(jobId), organization_id: iaS(organizationId), step_name: prefix + String(n).padStart(3, \"0\"), step_status: status || \"PAYLOAD\", attempt_count: 0,\n      result_ref: text.slice(at, at + IA_CHUNK) });\n  }\n  return out;\n};\n// null = no row, undefined = the joined text does not parse\nconst iaJoinChunks = function iaJoinChunks(rows, prefix) {\n  const mine = iaList(rows).filter((r) => iaS(r.step_name).indexOf(prefix) === 0).sort((a, b) => (iaS(a.step_name) < iaS(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  const p = iaParseJ(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  return p === null ? undefined : p;\n};\n// tpl/smv2 commit/_cmp.js sameVal / sameStored, bound to iaQ8\nconst iaSameVal = function iaSameVal(a, b) {\n  const ea = a === undefined || a === null || a === \"\";\n  const eb = b === undefined || b === null || b === \"\";\n  if (ea || eb) return ea && eb;\n  if (typeof a === \"object\" || typeof b === \"object\") return JSON.stringify(a) === JSON.stringify(b);\n  const t = (v) => (/^-?[0-9]+\\.[0-9]+$/.test(String(v)) ? String(v).replace(/0+$/, \"\").replace(/\\.$/, \"\") : String(v));\n  const ta = t(a);\n  const tb = t(b);\n  if (ta === tb) return true;\n  const na = typeof a === \"number\" || /^-?[0-9]+(\\.[0-9]+)?$/.test(ta);\n  const nb = typeof b === \"number\" || /^-?[0-9]+(\\.[0-9]+)?$/.test(tb);\n  if (na && nb && !/^-?[0-9]{16,}$/.test(ta) && !/^-?[0-9]{16,}$/.test(tb)) return Math.abs(iaQ8(a) - iaQ8(b)) < 1e-8;\n  return false;\n};\nconst iaSameStored = function iaSameStored(computed, stored) {\n  if (iaSameVal(computed, stored)) return true;\n  if (typeof computed === \"object\" || computed === \"\" || computed === null || computed === undefined || stored === \"\" || stored === null || stored === undefined) return false;\n  const a = Number(computed);\n  const b = Number(stored);\n  if (!isFinite(a) || !isFinite(b)) return false;\n  for (let d = 0; d < 8; d++) {\n    const f = Math.pow(10, d);\n    const x = Number((a * f).toFixed(6));\n    for (const c of [Math.sign(x) * Math.round(Math.abs(x)), Math.trunc(x), Math.sign(x) * Math.ceil(Math.abs(x))]) if (Math.abs(c / f - b) < 1e-9) return true;\n  }\n  return false;\n};\nconst IA_TEXT = {\n  busy: \"This Item Assembly is being processed in the background - please wait for it to finish.\",\n  underReview: \"Its last completion stopped half-way and is under review: please contact support.\",\n  stale: (status) => \"This Item Assembly was changed by someone else (it is now \" + (iaS(status) || \"without a status\") + \"). Please close it and open it again.\",\n  alreadyFinal: (status) => \"This Item Assembly is already \" + iaS(status) + \".\",\n  classicFinal: (status) => \"This Item Assembly is already \" + iaS(status) + \" and cannot be saved again.\",\n  classicTooBig: (n, cap) => \"This Item Assembly has \" + n + \" stock picks; this save can process at most \" + cap + \" at once. Split it into smaller assemblies, or complete it from the web form if background completion is switched on.\",\n  tooBig: (n, reason, cap) => \"This Item Assembly has \" + n + \" stock picks and cannot be completed in the background (\" + iaS(reason) + \"); the classic save handles at most \" + cap + \" picks.\",\n  splitRequired: (n) => \"This Item Assembly has \" + n + \" stock picks. At most 5,000 can be issued at once - please split the assembly.\",\n  queueFailed: \"The completion could not be queued: please try again.\",\n  notLocked: \"The Item Assembly is no longer locked by this completion: nothing was moved.\",\n  linesChanged: \"The Item Assembly's lines changed while it was waiting: nothing was moved, please complete it again.\",\n  lockBusy: \"The stock of its components stayed locked by another operation: nothing was moved, please try again later.\",\n  review: \"Under review: the completion stopped half-way. Please contact support.\",\n  prevUnknown: \"Under review: the status to restore is unknown. Please contact support.\",\n  batchDuplicate: \"Duplicate Batch Format found.\",\n  postLater: \"Still completing in the background; post it from the list once it shows Completed.\",\n  rvConflicts: \"Revert blocked: the assembled item has been used or its stock has moved on.\",\n  rvDone: \"Item Assembly reverted to Draft successfully.\",\n  rvClassicTooBig: (n, cap) => \"This Item Assembly has \" + n + \" stock rows; this revert can process at most \" + cap + \" at once. Revert it from the Item Assembly list if background revert is switched on, or contact support.\",\n  rvTooBig: (n, reason, cap) => \"This Item Assembly has \" + n + \" stock movements to take back and cannot be reverted in the background (\" + iaS(reason) + \"); the classic revert handles at most \" + cap + \".\",\n  rvSplitRequired: (n) => \"This Item Assembly has \" + n + \" stock movements to take back. At most 5,000 can be reverted at once.\",\n  // the revert's own wording of the completion texts above (CONTRACT ruling 9)\n  rvNotLocked: \"The Item Assembly is no longer locked by this revert: nothing was reverted.\",\n  rvReview: \"Under review: the revert stopped half-way. Please contact support.\",\n  rvUnderReview: \"Its last revert stopped half-way and is under review: please contact support.\",\n  rvQueueFailed: \"The revert could not be queued: please try again.\",\n  rvNotReverted: \"Temporary failures persisted; not reverted.\",\n  rvNoJob: \"no background revert\",\n};\n// IF1: one fingerprint of an Item Assembly's stored component lines + the header fields that change the stock or the price (CONTRACT.md section 6)\nconst iaFpParse = function iaFpParse(t) {\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return undefined;\n  }\n};\nconst iaFpRows = function iaFpRows(lines) {\n  return (Array.isArray(lines) ? lines : lines ? [lines] : []).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? iaFpParse(r.j) : r))\n    .filter((r) => r && typeof r === \"object\");\n};\nconst iaFpS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// an id that went through a JS number past 2^53 is marked, never silently equal\nconst iaFpId = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"?\" + String(v);\n  const t = iaFpS(v);\n  return /^[0-9]{1,20}$/.test(t) || t === \"\" ? t : \"?\" + t;\n};\nconst iaFpQ8 = (v) => (v === undefined || v === null || iaFpS(v) === \"\" ? \"\" : Number((parseFloat(v) || 0).toFixed(8)).toFixed(8));\nconst iaFpHash = function iaFpHash(text) {\n  let h1 = 2166136261;\n  let h2 = 5381;\n  for (let i = 0; i < text.length; i++) {\n    const c = text.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;\n    h2 = (Math.imul(h2, 33) + c) >>> 0;\n  }\n  const hex = (x) => (\"00000000\" + x.toString(16)).slice(-8);\n  return hex(h1) + hex(h2);\n};\nconst iaFpEntries = function iaFpEntries(v) {\n  if (Array.isArray(v)) return v;\n  const t = iaFpS(v);\n  if (!t) return [];\n  const p = iaFpParse(t);\n  return Array.isArray(p) ? p : \"RAW:\" + t;\n};\nconst iaFpCanonRows = function iaFpCanonRows(lines) {\n  const canon = iaFpRows(lines).map((l) => {\n    const e = iaFpEntries(l.temp_qty_data);\n    return [iaFpId(l.id), iaFpS(l.line_index), iaFpS(l.item_selection), iaFpId(l.quantity_uom), iaFpQ8(l.total_quantity),\n      typeof e === \"string\" ? e : e.map((x) => (x && typeof x === \"object\" ? [iaFpId(x.balance_id), iaFpId(x.location_id), iaFpId(x.batch_id), iaFpS(x.category) || \"Unrestricted\",\n        iaFpQ8(x.sm_quantity)] : [\"?\", iaFpS(x)]))];\n  });\n  const key = (a) => (a[0] ? \"1\" + String(a[0].length).padStart(2, \"0\") + a[0] : \"0\" + a[1].padStart(12, \"0\"));\n  canon.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));\n  return canon;\n};\nconst iaFpCanonHeader = function iaFpCanonHeader(header) {\n  const h = iaFpRows(header)[0] || {};\n  return [iaFpS(h.item_id), iaFpQ8(h.item_qty), iaFpId(h.item_uom), iaFpId(h.location_id), iaFpS(h.inventory_category) || \"Unrestricted\", iaFpS(h.batch_no),\n    iaFpId(h.issuing_operation_faci)];\n};\nconst iaLineFingerprint = function iaLineFingerprint(lines, header) {\n  const rows = iaFpCanonRows(lines);\n  return \"IF1:\" + rows.length + \":\" + iaFpHash(JSON.stringify([iaFpCanonHeader(header), rows]));\n};\n// IM1: every movement row of one IA as the classic revert reads them (Revert V2 V0: the live-row set unchanged)\nconst iaMovesFingerprint = function iaMovesFingerprint(rows) {\n  const canon = iaFpRows(rows).map((r) => [iaFpId(r.id), iaFpS(r.transaction_type), iaFpS(r.movement).toUpperCase(), iaFpId(r.item_id), iaFpId(r.batch_number_id),\n    iaFpId(r.bin_location_id), iaFpS(r.inventory_category), iaFpId(r.handling_unit_id), iaFpQ8(r.base_qty)]);\n  const key = (a) => String(a[0].length).padStart(2, \"0\") + a[0];\n  canon.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));\n  return \"IM1:\" + canon.length + \":\" + iaFpHash(JSON.stringify(canon));\n};\n// the receipt price (CONTRACT.md section 5 \"Receipt price\") and the engine's uomOf; self-contained\nconst iaPrS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst iaPrQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// exact text only: ids 27 apart (prod UOMs ...758 / ...785) are one JS double, so replays must parse rows with iaParseJ\nconst iaPrIdEq = (a, b) => {\n  const x = iaPrS(a);\n  return x !== \"\" && x === iaPrS(b);\n};\nconst iaUomConversions = function iaUomConversions(item) {\n  const it = item || {};\n  let conv = it.table_uom_conversion;\n  if (!Array.isArray(conv)) {\n    conv = it.uom_conversion_json;\n    if (typeof conv === \"string\") {\n      try {\n        conv = JSON.parse(conv.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n      } catch (e) {\n        conv = [];\n      }\n    }\n  }\n  return (Array.isArray(conv) ? conv : []).filter((c) => c && typeof c === \"object\");\n};\n// INVENTORY_BULK_APPLY core uomOf: q8 qty, the line UOM (else the base UOM), one conversion row of that alt UOM, else 1:1\nconst iaUomOf = function iaUomOf(item, quantity, uom) {\n  const it = item || {};\n  const altQty = iaPrQ8(parseFloat(quantity));\n  let baseQty = altQty;\n  const altUOM = uom || it.based_uom;\n  const conv = iaUomConversions(it).find((c) => iaPrIdEq(c.alt_uom_id, altUOM));\n  if (conv) baseQty = iaPrQ8(altQty * Number(conv.base_qty));\n  return { altQty: altQty, baseQty: baseQty, altUOM: altUOM, baseUOM: it.based_uom };\n};\nconst iaItemOf = (items, id) => (Array.isArray(items) ? items : items ? [items] : []).find((it) => it && typeof it === \"object\" && iaPrIdEq(it.id, id)) || null;\n// per BASE unit of the receipt (the engine prices ADD per base unit); non-stock lines add nothing (user decision 2026-10-19)\nconst receiptUnitPrice = function receiptUnitPrice(input) {\n  const p = input || {};\n  const base = parseFloat(p.receiptBaseQty) || 0;\n  if (!(base > 0)) return 0;\n  const out = (Array.isArray(p.outTotals) ? p.outTotals : [p.outTotals]).reduce((n, t) => n + (parseFloat(t) || 0), 0);\n  return iaPrQ8(out / base + (parseFloat(p.assemblyCost) || 0));\n};\n// In-process copy of the platform's code-node contract, for bodies lifted by lift/lift.py (copy of scratchpad/grv2/lift).\n// A token is replaced by its value (null when it has none); a node keeps only its declared keys; an object declared\n// `string` arrives as its JSON text; a number declared `int` is truncated toward zero (prod on_order_purchase_order rows\n// show D9IbUV8t's onOrderQty 10.92 / 30.68 / 0.5 arriving as 10 / 30 / 0), a boolean declared `int` arrives as 1 / 0\n// (PUTAWAY qfSZO0bi's hasAnyQuantity, recorded runs); null-valued keys are dropped at every depth.\n// Every __v() is a fresh copy, as every substituted literal is.\nconst __QUIET = { log() {}, error() {}, warn() {}, info() {}, debug() {} };\nconst __N = {};\nlet __CTX = {};\n\nfunction __clone(v) {\n  return v === undefined ? null : JSON.parse(JSON.stringify(v));\n}\n\nfunction __resolve(key) {\n  const dot = key.indexOf(\".\", key.indexOf(\":\") + 1);\n  let v = __CTX[dot < 0 ? key : key.slice(0, dot)];\n  if (dot >= 0) {\n    for (const p of key.slice(dot + 1).split(\".\")) {\n      if (v === null || v === undefined) return null;\n      v = v[p];\n    }\n  }\n  return v === undefined ? null : v;\n}\n\nfunction __v(key) {\n  const v = __resolve(key);\n  return v === null ? null : __clone(v);\n}\n\nfunction __strip(v) {\n  if (Array.isArray(v)) return v.map(__strip);\n  if (v && typeof v === \"object\") {\n    const o = {};\n    for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== undefined) o[k] = __strip(v[k]);\n    return o;\n  }\n  return v;\n}\n\nfunction __platformOut(raw, decl) {\n  if (raw === null || raw === undefined || typeof raw !== \"object\") return {};\n  const r = JSON.parse(JSON.stringify(raw));\n  const o = {};\n  for (const [name, type] of decl) {\n    const v = r[name];\n    if (v === null || v === undefined) continue;\n    if (type === \"string\" && typeof v === \"object\") o[name] = JSON.stringify(v);\n    else if (type === \"int\" && typeof v === \"number\") o[name] = Math.trunc(v);\n    else if (type === \"int\" && typeof v === \"boolean\") o[name] = v ? 1 : 0;\n    else o[name] = v;\n  }\n  return __strip(o);\n}\n\nfunction __run(id) {\n  const n = __N[id];\n  if (!n) throw new Error(\"not lifted: \" + id);\n  const out = __platformOut(n.fn(), n.decl);\n  __CTX[\"node:\" + id] = { data: out };\n  return out;\n}\n\nfunction __set(key, value) {\n  __CTX[key] = value;\n}\n\nfunction __withContext(ctx, fn) {\n  const saved = __CTX;\n  __CTX = ctx;\n  try {\n    return fn();\n  } finally {\n    __CTX = saved;\n  }\n}\n// GENERATED by scratchpad/iav2/lib/lift/lift.py from lift/lift.json (IA_V2_PREPARE, CONTRACT.md section 9). Do not edit: re-run\n// python3 scratchpad/iav2/lib/lift/lift.py scratchpad/iav2/lift/lift.json   (--check: still what base/IA_SAVE.v11.json gives)\n// base/IA_SAVE.v11.json :: code_fillback\n__N[\"code_fillback\"] = { decl: [[\"allData\", \"any\"], [\"storedStatus\", \"string\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nlet allData = __v(\"workflowparams:allData\");\nconst saveAs = __v(\"workflowparams:saveAs\");\nconst pageStatus = __v(\"workflowparams:pageStatus\");\n\n// Every decimal column is coerced to a fixed-scale STRING: a raw float is\n// serialized at full precision and the DB's BigDecimal multipleOf check then\n// rejects the whole save. This list is an ALLOW-LIST -- a decimal column missing\n// from it will crash a save.\nconst formatNumber = (value) => {\n  if (value === null || value === undefined || value === '') return 0;\n  return parseFloat(value).toFixed(8);\n};\n\nconst lines = [];\nfor (const [index, line] of (allData.stock_movement || []).entries()) {\n  line.requested_qty = q8(line.requested_qty);\n  line.total_quantity = q8(line.total_quantity);\n  line.organization_id = allData.organization_id;\n  line.issuing_plant = allData.issuing_operation_faci || null;\n  line.line_index = index + 1;\n  lines.push(line);\n}\nallData.stock_movement = lines;\n\n// item_qty is decimal(65,3) on the header -- MSI/MSR only format lines because\n// their header carries no quantity; this one does.\nallData.item_qty = q8(allData.item_qty);\n\n// Blank on assemblies saved before the field existed, and on mobile payloads.\nallData.inventory_category = allData.inventory_category || 'Unrestricted';\n\nconst storedStatus = pageStatus === 'Add' ? 'Draft' : (allData.item_assembly_status || 'Draft');\nallData.item_assembly_status = saveAs;\n\n// The platform replaces these sentinels with a real number on insert. -9999 is\n// Manual Input, where the user's typed number stands.\nif (saveAs === 'Draft') {\n  if (allData.stock_movement_no_type !== -9999 &&\n      (!allData.stock_movement_no || allData.stock_movement_no === '')) {\n    allData.stock_movement_no = 'draft';\n  }\n} else {\n  if (allData.stock_movement_no_type !== -9999 &&\n      (!allData.stock_movement_no || allData.stock_movement_no === '' ||\n       storedStatus !== 'Completed')) {\n    allData.stock_movement_no = 'issued';\n  }\n  // There is no acc_integration_type column on this table; posting is a later phase.\n  allData.posted_status = 'Unposted';\n}\n\nreturn { allData: allData, storedStatus: storedStatus };\n} };\n// base/IA_SAVE.v11.json :: code_batch_decide\n__N[\"code_batch_decide\"] = { decl: [[\"needsGen\", \"int\"], [\"manualBatch\", \"string\"], [\"isBatch\", \"string\"], [\"item_id\", \"string\"], [\"document_date\", \"string\"], [\"manufacturing_date\", \"string\"], [\"expired_date\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst entry = __v(\"node:code_fillback.data.allData\");\nconst items = __v(\"node:search_items.data.data\") || [];\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\nconst isBatch = assembled.item_batch_management === 1;\nconst auto = assembled.batch_number_genaration === 'According To System Settings';\n\nreturn {\n  needsGen: isBatch && auto ? 1 : 0,\n  manualBatch: isBatch && !auto ? String(entry.batch_no || '') : '',\n  isBatch: isBatch ? 'Y' : 'N',\n  item_id: String(entry.item_id || ''),\n  document_date: entry.item_assembly_date || null,\n  manufacturing_date: entry.manufacturing_date || null,\n  expired_date: entry.expired_date || null\n};\n} };\n// base/IA_SAVE.v11.json :: code_issue_line\n__N[\"code_issue_line\"] = { decl: [[\"plant_id\", \"string\"], [\"organization_id\", \"string\"], [\"stock_movement_no\", \"string\"], [\"doc_date\", \"string\"], [\"material_id\", \"string\"], [\"material_uom\", \"string\"], [\"remark\", \"string\"], [\"remark2\", \"string\"], [\"remark3\", \"string\"], [\"itemData\", \"any\"], [\"balancesToProcess\", \"any\"]], fn: function () {\nconst console = __QUIET;\nconst line = __v(\"node:loop_issue_lines\");\nconst entry = __v(\"node:code_fillback.data.allData\");\nconst persisted = __v(\"node:code_persisted.data\");\nconst items = __v(\"node:search_items.data.data\") || [];\n\nlet picks = [];\ntry {\n  picks = line.temp_qty_data ? JSON.parse(line.temp_qty_data) : [];\n} catch (e) {\n  picks = [];\n}\n\nconst itemData = items.find(function (it) {\n  return String(it.id) === String(line.item_selection);\n}) || null;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  stock_movement_no: persisted.stock_movement_no,\n  doc_date: entry.item_assembly_date,\n  material_id: line.item_selection,\n  material_uom: line.quantity_uom,\n  remark: line.item_remark || '',\n  remark2: line.item_remark_2 || '',\n  remark3: line.item_remark_3 || '',\n  itemData: itemData,\n  balancesToProcess: picks.filter(function (p) {\n    return (parseFloat(p.sm_quantity) || 0) > 0;\n  })\n};\n} };\n// base/IA_SAVE.v11.json :: code_issue_pick\n__N[\"code_issue_pick\"] = { decl: [[\"location_id\", \"string\"], [\"batch_id\", \"string\"], [\"quantity\", \"decimal\"], [\"inventory_category\", \"string\"], [\"manufacturing_date\", \"string\"], [\"expired_date\", \"string\"], [\"handling_unit_id\", \"string\"]], fn: function () {\nconst console = __QUIET;\nconst pick = __v(\"node:loop_issue_picks\");\n\n// Every nullable param is null, never '': SUBTRACT_INVENTORY's own Batch ID node\n// does `const batchId = ...; if (batchId === \"\") batchId = null`, which throws\n// TypeError: Assignment to constant. MSI passes null for the same reason.\nreturn {\n  location_id: pick.location_id || null,\n  batch_id: pick.batch_id || null,\n  quantity: parseFloat(pick.sm_quantity) || 0,\n  inventory_category: pick.category || 'Unrestricted',\n  manufacturing_date: pick.manufacturing_date || null,\n  expired_date: pick.expired_date || null,\n  handling_unit_id: pick.handling_unit_id || null\n};\n} };\n// base/IA_SAVE.v11.json :: code_receipt_prep\n__N[\"code_receipt_prep\"] = { decl: [[\"plant_id\", \"string\"], [\"organization_id\", \"string\"], [\"material_id\", \"string\"], [\"material_uom\", \"string\"], [\"quantity\", \"decimal\"], [\"unit_price\", \"decimal\"], [\"location_id\", \"string\"], [\"batch_number\", \"string\"], [\"trx_no\", \"string\"], [\"doc_date\", \"string\"], [\"manufacturing_date\", \"string\"], [\"expired_date\", \"string\"], [\"remark\", \"string\"], [\"remark2\", \"string\"], [\"remark3\", \"string\"], [\"itemData\", \"any\"], [\"inventory_category\", \"string\"]], fn: function () {\nconst console = __QUIET;\n// 8dp is the maximum configurable column precision: rounding COMPUTED values there keeps\n// every client-configured scale intact while killing float residue.\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst entry = __v(\"node:code_fillback.data.allData\");\nconst items = __v(\"node:search_items.data.data\") || [];\nconst movements = __v(\"node:search_movements.data.data\") || [];\nconst persisted = __v(\"node:code_persisted.data\");\nconst batchNumber = __v(\"node:code_batch_number.data.batchNumber\");\n\nconst assembled = items.find(function (it) {\n  return String(it.id) === String(entry.item_id);\n}) || {};\n\n// Read the cost back off the movements the issue leg just wrote. SUBTRACT has a\n// success path that returns only `code` and no unit_price, so its response can\n// never be relied on; the movement rows always carry the real figure, and FIFO\n// splitting one pick across layers is summed correctly here for free.\nconst consumedValue = movements.reduce(function (sum, m) {\n  return sum + (parseFloat(m.total_price) || 0);\n}, 0);\n\nconst itemQty = parseFloat(entry.item_qty) || 0;\nconst materialUnitCost = itemQty > 0 ? consumedValue / itemQty : 0;\nconst assemblyCost = parseFloat(assembled.assembly_cost) || 0;\n\nreturn {\n  plant_id: entry.issuing_operation_faci,\n  organization_id: entry.organization_id,\n  material_id: entry.item_id,\n  material_uom: entry.item_uom,\n  quantity: q8(itemQty),\n  unit_price: q8(materialUnitCost + assemblyCost),\n  location_id: entry.location_id,\n  inventory_category: entry.inventory_category,\n  batch_number: batchNumber,\n  trx_no: persisted.stock_movement_no,\n  doc_date: entry.item_assembly_date || null,\n  manufacturing_date: entry.manufacturing_date || null,\n  expired_date: entry.expired_date || null,\n  remark: entry.remarks || '',\n  remark2: entry.remarks_2 || '',\n  remark3: entry.remarks_3 || '',\n  itemData: assembled\n};\n} };\n// base/IA_SAVE.v11.json :: code_item_txn\n__N[\"code_item_txn\"] = { decl: [[\"updates\", \"any\"]], fn: function () {\nconst console = __QUIET;\nconst entry = __v(\"node:code_fillback.data.allData\");\n\nconst ids = [];\nif (entry.item_id) ids.push(String(entry.item_id));\n(entry.stock_movement || []).forEach(function (line) {\n  if (line.item_selection) ids.push(String(line.item_selection));\n});\n\nconst stamp = new Date().toISOString();\n\nconst updates = [];\nids.filter(function (v, i, a) { return a.indexOf(v) === i; }).forEach(function (id) {\n  updates.push({ id: id, last_transaction_date: stamp });\n});\n\nreturn { updates: updates };\n} };\n// IA_V2_PREPARE - SQL rows -> the shapes the lifted bodies read (status = prevStatus; temp_qty_data stays the stored TEXT)\nconst iaAdaptDrop = (o) => {\n  const r = {};\n  for (const k of Object.keys(o || {})) {\n    const v = o[k];\n    if (v === null || v === undefined || v === \"\") continue;\n    r[k] = v;\n  }\n  return r;\n};\nconst iaAdaptHeader = function iaAdaptHeader(row, prevStatus) {\n  const h = iaAdaptDrop(row);\n  delete h.ia_v2_job_id;\n  h.item_assembly_status = prevStatus;\n  if (h.item_qty !== undefined) h.item_qty = Number(h.item_qty);\n  // code_fillback compares the Manual Input rule with !== -9999\n  if (iaS(h.stock_movement_no_type) === \"-9999\") h.stock_movement_no_type = -9999;\n  return h;\n};\nconst iaAdaptIdKey = (v) => String(iaS(v).length).padStart(2, \"0\") + iaS(v);\nconst iaAdaptLines = function iaAdaptLines(rows) {\n  const at = (v) => (/^[0-9]{1,15}$/.test(iaS(v)) ? Number(iaS(v)) : Infinity);\n  const lines = iaRows(rows).map((r) => {\n    const o = iaAdaptDrop(r);\n    if (o.total_quantity !== undefined) o.total_quantity = Number(o.total_quantity);\n    return o;\n  });\n  return lines.sort((a, b) => {\n    const x = at(a.line_index);\n    const y = at(b.line_index);\n    if (x !== y) return x < y ? -1 : 1;\n    const p = iaAdaptIdKey(a.id);\n    const q = iaAdaptIdKey(b.id);\n    return p < q ? -1 : p > q ? 1 : 0;\n  });\n};\nconst iaAdaptItems = (rows) => iaRows(rows).map((r) => {\n  const o = iaAdaptDrop(r);\n  for (const k of [\"assembly_cost\", \"purchase_unit_price\"]) if (o[k] !== undefined) o[k] = Number(o[k]);\n  o.table_uom_conversion = iaList(o.table_uom_conversion).filter((c) => c && typeof c === \"object\").map((c) => ({ alt_uom_id: iaS(c.alt_uom_id), base_qty: Number(c.base_qty) }));\n  return o;\n});\n// RES-01 R4 (scratchpad/iasc/res01/RES01_PLAN.md): an IA that reserves completes from its holds. Each pick is split by the IA's own\n// Allocated holds of its line + material + bin + batch + category, in pick order: the held part from Reserved, the rest as picked.\n// A reservation still running (a live hold ticket, a row Processing / Releasing), or holds that could not be read -> busy.\n// `used`: what it took from Reserved, base units per line|material|bin|batch|category (IA_HOLD's CLOSE delivers the holds by it).\n// Pure, ES2015: IA_SAVE's code_node_RESsplit, IA_V2_PREPARE's plan and IA_HOLD's delta inline it\nconst resSplitLines = (lines, st, items) => {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v));\n  const num = (v) => (isFinite(parseFloat(v)) ? parseFloat(v) : 0);\n  const q8 = (v) => Number(num(v).toFixed(8));\n  const busy = { busy: true, lines: [], used: {} };\n  if (!st || typeof st !== \"object\") return busy;\n  const rows = Array.isArray(st.rows) ? st.rows : [];\n  if (num(st.live) > 0 || rows.some((r) => s(r.status) === \"Processing\" || s(r.status) === \"Releasing\")) return busy;\n  const itemOf = {};\n  (Array.isArray(items) ? items : []).forEach((i) => (itemOf[s(i && i.id)] = i));\n  // base units per one unit (the line's, or a hold's); unknown -> 1\n  const factor = (item, uom) => {\n    if (!item || !s(uom) || s(uom) === s(item.based_uom)) return 1;\n    const c = (Array.isArray(item.table_uom_conversion) ? item.table_uom_conversion : []).find((x) => x && s(x.alt_uom_id) === s(uom));\n    return c && num(c.base_qty) > 0 ? num(c.base_qty) : 1;\n  };\n  const left = {};\n  rows.filter((r) => s(r.status) === \"Allocated\").forEach((r) => {\n    const key = [s(r.doc_line_id), s(r.material_id), s(r.bin_location), s(r.batch_id), s(r.from_category) || \"Unrestricted\"].join(\"|\");\n    left[key] = q8((left[key] || 0) + num(r.open_qty) * factor(itemOf[s(r.material_id)], r.item_uom));\n  });\n  const parse = (t) => {\n    try {\n      const x = typeof t === \"string\" ? JSON.parse(t || \"[]\") : t;\n      return Array.isArray(x) ? x : [];\n    } catch (e) {\n      return [];\n    }\n  };\n  const used = {};\n  const out = (Array.isArray(lines) ? lines : []).map((l) => {\n    const picks = parse(l && l.temp_qty_data);\n    if (!picks.length) return l;\n    const f = factor(itemOf[s(l.item_selection)], l.quantity_uom);\n    const next = [];\n    picks.forEach((p) => {\n      const qty = q8(p && p.sm_quantity);\n      const cat = s(p && p.category) || \"Unrestricted\";\n      if (!(qty > 0) || s(p.handling_unit_id)) return void next.push(p);\n      const key = [s(l.id), s(l.item_selection), s(p.location_id), s(p.batch_id), cat].join(\"|\");\n      const held = q8(Math.min(qty, Math.floor(((left[key] || 0) / f) * 1e8 + 1e-7) / 1e8));\n      if (held > 0.0000001) {\n        next.push(Object.assign({}, p, { sm_quantity: held, category: \"Reserved\" }));\n        left[key] = q8((left[key] || 0) - held * f);\n        used[key] = q8((used[key] || 0) + held * f);\n      }\n      if (qty - held > 0.0000001) next.push(Object.assign({}, p, { sm_quantity: q8(qty - held) }));\n    });\n    return Object.assign({}, l, { temp_qty_data: JSON.stringify(next) });\n  });\n  const split = { busy: false, lines: out, used: used };\n  return split;\n};\n// IA_V2_PREPARE - Plan: the classic IA_SAVE v11 issue / receipt bodies (lifted) on the stored rows -> parts, manifest, PLAN requests\n// RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): an IA that reserves (its stored hold status) completes from its holds,\n// whatever the switch (the switch only makes holds; review I4)\nconst IA_PLAN_BATCH_AUTO = \"According To System Settings\";\nconst IA_PLAN_NOT_FOUND = \"Item Assembly not found - it may have been deleted.\";\nconst IA_PLAN_PARTS = [\"ENGINE_I\", \"ENGINE_R\", \"BATCH\", \"LABELS\", \"ITEMS\"];\nconst iaPlanWhy = (why) => \"The completion could not be prepared: \" + why;\nconst iaPlanText = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst iaPlanContext = function iaPlanContext(allData, items, persisted) {\n  return { \"workflowparams:allData\": allData, \"workflowparams:saveAs\": \"Completed\", \"workflowparams:pageStatus\": \"Edit\",\n    \"node:search_items\": { data: { total: items.length, count: items.length, data: items } }, \"node:code_persisted\": { data: persisted },\n    \"node:search_movements\": { data: { total: 0, count: 0, data: [] } } };\n};\n// slim: each issue iteration gets only what code_issue_line reads (same outputs; a full copy per line is quadratic)\nconst iaPlanRun = function iaPlanRun(ctx, storedBatchNo, slim) {\n  return __withContext(ctx, () => {\n    const fill = __run(\"code_fillback\");\n    const decide = __run(\"code_batch_decide\");\n    // code_batch_number: the generated number is the one SUBMIT wrote into batch_no\n    ctx[\"node:code_batch_number\"] = { data: { batchNumber: decide.isBatch === \"Y\" ? storedBatchNo : \"\" } };\n    const fullFill = ctx[\"node:code_fillback\"];\n    const fullItems = ctx[\"node:search_items\"];\n    const fullPersisted = ctx[\"node:code_persisted\"];\n    const byId = {};\n    for (const it of iaList(fullItems.data.data)) if (!(String(it.id) in byId)) byId[String(it.id)] = it;\n    if (slim) {\n      const head = Object.assign({}, fill.allData);\n      delete head.stock_movement;\n      ctx[\"node:code_fillback\"] = { data: { allData: head, storedStatus: fill.storedStatus } };\n      ctx[\"node:code_persisted\"] = { data: { docId: fullPersisted.data.docId, stock_movement_no: fullPersisted.data.stock_movement_no } };\n    }\n    const issues = [];\n    for (const line of iaList(fill.allData && fill.allData.stock_movement)) {\n      ctx[\"node:loop_issue_lines\"] = line;\n      if (slim) {\n        const it = byId[String(line.item_selection)];\n        ctx[\"node:search_items\"] = { data: { total: it ? 1 : 0, count: it ? 1 : 0, data: it ? [it] : [] } };\n      }\n      const q = __run(\"code_issue_line\");\n      for (const pick of iaList(q.balancesToProcess)) {\n        ctx[\"node:loop_issue_picks\"] = pick;\n        issues.push({ line: line, q: q, g: __run(\"code_issue_pick\") });\n      }\n    }\n    ctx[\"node:code_fillback\"] = fullFill;\n    ctx[\"node:search_items\"] = fullItems;\n    ctx[\"node:code_persisted\"] = fullPersisted;\n    return { fill: fill, decide: decide, issues: issues, receipt: __run(\"code_receipt_prep\"), txn: __run(\"code_item_txn\") };\n  });\n};\n// the classic wf_subtract params minus itemData, + movement_key, direction, parent_trx_no, isMovingInv (CONTRACT.md section 5)\nconst iaPlanIssue = function iaPlanIssue(key, q, g) {\n  return { movement_key: key, direction: \"SUBTRACT\", plant_id: iaS(q.plant_id), organization_id: iaS(q.organization_id), material_id: iaS(q.material_id),\n    quantity: iaQ8(g.quantity), material_uom: iaS(q.material_uom), transaction_type: \"IA\", trx_no: iaPlanText(q.stock_movement_no), parent_trx_no: \"\",\n    inventory_category: iaS(g.inventory_category), location_id: iaS(g.location_id), batch_id: iaS(g.batch_id) || null, manufacturing_date: g.manufacturing_date || null,\n    expired_date: g.expired_date || null, doc_date: q.doc_date || null, isMovingInv: 0, handling_unit_id: null };\n};\n// the classic wf_add params minus itemData / batch_number; unit_price and batch_id are filled by COMMIT (I3 / I1)\nconst iaPlanReceipt = function iaPlanReceipt(r) {\n  return { movement_key: \"R1\", direction: \"ADD\", plant_id: iaS(r.plant_id), organization_id: iaS(r.organization_id), material_id: iaS(r.material_id),\n    quantity: iaQ8(r.quantity), material_uom: iaS(r.material_uom), transaction_type: \"IA\", trx_no: iaPlanText(r.trx_no), parent_trx_no: \"\",\n    inventory_category: iaS(r.inventory_category), location_id: iaS(r.location_id), batch_id: null, unit_price: 0, doc_date: r.doc_date || null,\n    manufacturing_date: r.manufacturing_date || null, expired_date: r.expired_date || null, remark: iaPlanText(r.remark), remark2: iaPlanText(r.remark2),\n    remark3: iaPlanText(r.remark3), isMovingInv: 0, handling_unit_id: null };\n};\n\nconst iaPrepPlan = function iaPrepPlan(entry, S, own) {\n  const s = iaS;\n  const jobId = s(entry.jobId);\n  const base = { route: \"FAIL\", code: \"\", message: \"\", payload: \"\", partRows: [], lineCount: 0, pickCount: 0, movementCount: 0, unlockOk: 0, organizationId: \"\",\n    opKeyI: \"\", opKeyR: \"\", movementsI: [], movementsR: [], labels: {} };\n  const fail = (code, message) => Object.assign(base, { code: code, message: message });\n  const failed = (why) => fail(\"IA_PLAN_FAILED\", iaPlanWhy(why));\n  const broken = (why) => fail(\"IA_PLAN_BROKEN\", iaPlanWhy(why));\n  if (s(entry.route) !== \"GO\") return fail(s(entry.result_code), s(entry.result_message));\n  const req = entry.request && typeof entry.request === \"object\" ? entry.request : {};\n  const iaId = s(entry.iaId);\n  const owner = iaList(S.owner)[0] || {};\n  const hdr = iaRows(S.hdr)[0] || null;\n  if (!hdr || s(hdr.id) !== iaId || s(owner.ia_id) !== iaId) return fail(\"IA_NOT_FOUND\", IA_PLAN_NOT_FOUND);\n  // only after the lock check may a failure unlock\n  const key = s(entry.idempotencyKey);\n  const mine = (r) => s(r.item_assembly_status) === \"Processing\" && s(r.ia_v2_job_id) === jobId;\n  if (!mine(owner) || !mine(hdr) || !key || s(owner.lock_ref) !== key) return fail(\"IA_NOT_LOCKED\", IA_TEXT.notLocked);\n  base.unlockOk = 1;\n  if (own) own.locked = 1;\n  if (s(req.action) !== \"DIRECT\" || s(req.saveAs) !== \"Completed\" || !iaPrevStatusOk(entry.prevStatus)) {\n    return fail(\"IA_INVALID_REQUEST\", iaPlanWhy(\"the job's request names no valid action (\" + s(req.action) + \" / \" + s(req.saveAs) + \" / \" + s(entry.prevStatus) + \").\"));\n  }\n  if (s(req.iaId) && s(req.iaId) !== iaId) return broken(\"the job's request names another Item Assembly (\" + s(req.iaId) + \").\");\n  const orgId = s(hdr.organization_id);\n  const plantId = s(hdr.issuing_operation_faci);\n  if (!iaDigits(orgId) || !iaDigits(plantId)) return broken(\"the Item Assembly has no organization or plant.\");\n  if (s(entry.organizationId) !== orgId) return broken(\"the job's organization is not the Item Assembly's.\");\n  const trxNo = iaPlanText(hdr.stock_movement_no);\n  if (!s(trxNo) || s(trxNo) === \"issued\" || s(trxNo) === \"draft\") return broken(\"the Item Assembly has no issued number (\" + (s(trxNo) || \"empty\") + \").\");\n  if (s(req.iaNo) !== s(trxNo)) return broken(\"its number \" + s(trxNo) + \" is not the request's (\" + (s(req.iaNo) || \"none\") + \").\");\n  if (s(req.lineFingerprint).indexOf(\"IF1:\") !== 0) return broken(\"the job's request has no line fingerprint.\");\n  if (iaLineFingerprint(S.lines, S.hdr) !== s(req.lineFingerprint)) return fail(\"IA_LINES_CHANGED\", IA_TEXT.linesChanged);\n\n  const header = iaAdaptHeader(hdr, s(entry.prevStatus));\n  const stored = iaAdaptLines(S.lines);\n  header.stock_movement = stored;\n  // RES-01 R4: each pick split by the IA's own holds (the held part from Reserved: resSplitLines); a reservation running -> FAILED\n  const resRead = iaRows(S.res)[0] || null;\n  const reserves = !!resRead && s(resRead.hold) !== \"\";\n  if (reserves) {\n    // only the split makes a Reserved issue: a stored pick of any other category than Unrestricted / Blocked is refused (review M8)\n    const odd = stored.map((l) => [l, iaPicks(l).find((p) => IA_OK_CATEGORIES.indexOf(iaCategory(p.category)) < 0)]).find((x) => x[1]);\n    if (odd) return failed(\"line \" + s(odd[0].line_index) + \" picks \" + iaCategory(odd[1].category) + \" stock.\");\n    const split = resSplitLines(stored, resRead, iaRows(S.items));\n    if (split.busy) return fail(\"IA_RESERVING\", iaPlanWhy(\"the materials of this Item Assembly are being reserved right now: try again in a moment.\"));\n    header.stock_movement = split.lines;\n  }\n  const okIssue = reserves ? IA_OK_CATEGORIES.concat([\"Reserved\"]) : IA_OK_CATEGORIES;\n  const items = iaAdaptItems(S.items);\n  const itemOf = (id) => iaItemOf(items, id);\n  const parent = itemOf(hdr.item_id);\n  if (!parent) return failed(\"item \" + s(hdr.item_id) + \" not found.\");\n  for (const l of stored) if (!itemOf(l.item_selection)) return failed(\"item \" + s(l.item_selection) + \" (line \" + s(l.line_index) + \") not found.\");\n  if (s(parent.stock_control) === \"0\") return failed(\"the assembled item is not stock controlled.\");\n  const serial = [parent].concat(stored.map((l) => itemOf(l.item_selection))).filter((it) => s(it.serial_number_management) === \"1\")[0];\n  if (serial) return failed(\"item \" + (s(serial.material_code) || s(serial.id)) + \" is serial-numbered.\");\n  if (iaJsonList(hdr.table_hu).length || stored.some(iaLineHasHu)) return failed(\"it picks from handling units.\");\n\n  let run;\n  try {\n    const persisted = { docId: iaId, stock_movement_no: trxNo, stock_movement: JSON.stringify(stored) };\n    run = iaPlanRun(iaPlanContext(header, items, persisted), iaPlanText(hdr.batch_no), 1);\n  } catch (e) {\n    return broken(\"the classic parameter code failed (\" + String((e && e.message) || e).slice(0, 160) + \").\");\n  }\n  const decide = run.decide || {};\n  const isBatch = s(decide.isBatch) === \"Y\";\n  if (isBatch && Number(decide.needsGen) !== 1) return failed(\"the assembled item's batch number is entered manually.\");\n  if (isBatch && !s(hdr.batch_no)) return failed(\"the assembled item is batch managed but has no batch number.\");\n  if (isBatch !== (s(parent.batch_number_genaration) === IA_PLAN_BATCH_AUTO && s(parent.item_batch_management) === \"1\")) {\n    return broken(\"the batch decision does not match the item.\");\n  }\n  const lines = iaList(run.fill.allData && run.fill.allData.stock_movement);\n  const bins = {};\n  for (const b of iaRows(S.bins)) bins[s(b.id)] = s(b.bin);\n\n  const movements = [];\n  const labels = {};\n  let nonStock = 0;\n  for (const l of lines) if (s((itemOf(l.item_selection) || {}).stock_control) === \"0\") nonStock++;\n  for (const x of run.issues) {\n    const it = itemOf(x.line.item_selection) || {};\n    if (s(it.stock_control) === \"0\") continue;\n    const mk = \"M\" + (movements.length + 1);\n    const mv = iaPlanIssue(mk, x.q, x.g);\n    if (!iaDigits(mv.material_id) || !iaDigits(mv.plant_id) || !iaDigits(mv.location_id) || (mv.batch_id !== null && !iaDigits(mv.batch_id)) || !(mv.quantity > 0) ||\n      mv.organization_id !== orgId || mv.plant_id !== plantId || mv.trx_no !== trxNo || (mv.material_uom !== \"\" && !iaDigits(mv.material_uom))) {\n      return broken(\"movement \" + mk + \" (line \" + s(x.line.line_index) + \") has no valid item, plant, bin, batch, quantity or number.\");\n    }\n    if (okIssue.indexOf(mv.inventory_category) < 0) return failed(\"line \" + s(x.line.line_index) + \" picks \" + mv.inventory_category + \" stock.\");\n    labels[mk] = { line_index: s(x.line.line_index), line_id: s(x.line.id), item_code: s(it.material_code), item_name: s(x.line.item_name) || s(it.material_name),\n      bin: bins[mv.location_id] || mv.location_id, bin_id: mv.location_id, category: mv.inventory_category, side: \"out\" };\n    movements.push(mv);\n  }\n  if (!movements.length) return failed(\"no stock to issue.\");\n  if (movements.length > IA_MAX_PICKS) return fail(\"IA_SPLIT_REQUIRED\", IA_TEXT.splitRequired(movements.length));\n\n  const r1 = iaPlanReceipt(run.receipt || {});\n  if (!iaDigits(r1.material_id) || r1.material_id !== s(hdr.item_id) || !iaDigits(r1.location_id) || !(r1.quantity > 0) || r1.organization_id !== orgId ||\n    r1.plant_id !== plantId || r1.trx_no !== trxNo || (r1.material_uom !== \"\" && !iaDigits(r1.material_uom))) {\n    return broken(\"the receipt has no valid item, plant, bin, quantity or number.\");\n  }\n  if (IA_OK_CATEGORIES.indexOf(r1.inventory_category) < 0) return failed(\"the assembled item is received as \" + r1.inventory_category + \" stock.\");\n  const receiptBaseQty = iaUomOf(parent, r1.quantity, r1.material_uom).baseQty;\n  if (!(receiptBaseQty > 0)) return broken(\"the receipt's base quantity is \" + receiptBaseQty + \".\");\n  labels.R1 = { line_index: \"\", line_id: \"\", item_code: s(parent.material_code), item_name: s(parent.material_name), bin: bins[r1.location_id] || r1.location_id,\n    bin_id: r1.location_id, category: r1.inventory_category, side: \"in\" };\n  const opI = iaOpKey(jobId, \"I\");\n  const opR = iaOpKey(jobId, \"R\");\n  const itemDates = [];\n  for (const u of iaList(run.txn && run.txn.updates)) if (iaDigits(u.id) && !itemDates.some((d) => d.id === s(u.id))) itemDates.push({ id: s(u.id) });\n  if (!itemDates.length || itemDates[0].id !== s(hdr.item_id)) return broken(\"the item list does not start with the assembled item.\");\n\n  const parts = {\n    ENGINE_I: { operation_key: opI, mode: \"APPLY\", organization_id: orgId, movements: movements },\n    ENGINE_R: { operation_key: opR, mode: \"APPLY\", organization_id: orgId, receiptBaseQty: receiptBaseQty, assemblyCost: iaQ8(parent.assembly_cost), movements: [r1] },\n    LABELS: labels,\n    ITEMS: { itemDates: itemDates },\n  };\n  if (isBatch) {\n    parts.BATCH = { mode: \"insert\", row: { batch_number: iaPlanText(hdr.batch_no), material_id: r1.material_id, initial_quantity: iaQtyStr(receiptBaseQty), transaction_no: trxNo,\n      plant_id: plantId, organization_id: orgId, remark: r1.remark, remark2: r1.remark2, remark3: r1.remark3, manufacturing_date: r1.manufacturing_date,\n      expired_date: r1.expired_date } };\n  }\n  const nonce = (s(entry.nonce).replace(/[^0-9A-Za-z]/g, \"\") + \"00000000\").slice(0, 8);\n  const partRows = [];\n  const manifestParts = {};\n  for (const name of IA_PLAN_PARTS) {\n    if (!parts[name]) continue;\n    const rows = iaPartRows(jobId, orgId, \"P|\" + nonce + \"|\" + name + \"|\", parts[name], \"PAYLOAD\");\n    manifestParts[name] = rows.map((r) => r.step_name);\n    for (const r of rows) partRows.push(r);\n  }\n  const manifest = {\n    v: 1, prepared_by: \"IA_V2_PREPARE\", job_id: jobId, ia_id: iaId, ia_no: trxNo, action: \"DIRECT\", prevStatus: s(entry.prevStatus), saveAs: \"Completed\",\n    organization_id: orgId, plant_id: plantId, nonce: nonce, lineFingerprint: s(req.lineFingerprint), batchMode: isBatch ? \"insert\" : \"none\", parts: manifestParts,\n    counts: { lines: lines.length, picks: run.issues.length, movementsI: movements.length, nonStockLines: nonStock, items: itemDates.length },\n  };\n  return Object.assign(base, {\n    route: \"PLAN\", code: \"200\", message: movements.length + \" component picks from \" + lines.length + \" lines, 1 receipt\" + (isBatch ? \" (batch \" + s(hdr.batch_no) + \")\" : \"\"),\n    payload: JSON.stringify(manifest), partRows: partRows, lineCount: lines.length, pickCount: run.issues.length, movementCount: movements.length, organizationId: orgId,\n    opKeyI: opI, opKeyR: opR, movementsI: movements, movementsR: [r1], labels: labels,\n  });\n};\nconst entry = [{{node:code_node_IPentry.data}}][0];\nconst S = { owner: [{{node:sql_node_IPowner.data}}][0], hdr: [{{node:sql_node_IPhdr.data}}][0], lines: [{{node:sql_node_IPlines.data}}][0], items: [{{node:sql_node_IPitems.data}}][0], bins: [{{node:sql_node_IPbins.data}}][0], res: [{{node:sql_node_IPres.data}}][0] };\nconst own = { locked: 0 };\nlet res;\ntry {\n  res = iaPrepPlan(entry, S, own);\n} catch (e) {\n  // unlock only when the throw came after the lock check passed\n  res = { route: \"FAIL\", code: \"IA_PLAN_BROKEN\", message: \"The completion could not be prepared: \" + String((e && e.message) || e).slice(0, 200), payload: \"\",\n    partRows: [], lineCount: 0, pickCount: 0, movementCount: 0, unlockOk: own.locked === 1 ? 1 : 0, organizationId: \"\", opKeyI: \"\", opKeyR: \"\", movementsI: [],\n    movementsR: [], labels: {} };\n}\nconsole.log(\"prepare plan\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lines: res.lineCount, picks: res.pickCount,\n  movements: res.movementCount, parts: res.partRows.length, unlock: res.unlockOk }));\nreturn { route: res.route, code: res.code, message: res.message, payload: res.payload, partRows: res.partRows, lineCount: res.lineCount, pickCount: res.pickCount,\n  movementCount: res.movementCount, unlockOk: res.unlockOk, organizationId: res.organizationId, opKeyI: res.opKeyI, opKeyR: res.opKeyR, movementsI: res.movementsI,\n  movementsR: res.movementsR, labels: res.labels };"
     },
     "response_json": [
      {
-      "key": "0pvq0ke3",
+      "key": "jrtbs0pu",
       "name": "route",
       "title": "route",
       "description": "",
@@ -1278,7 +1328,7 @@
       "children": []
      },
      {
-      "key": "jrtbs0pu",
+      "key": "gtzrbjlk",
       "name": "code",
       "title": "code",
       "description": "",
@@ -1287,7 +1337,7 @@
       "children": []
      },
      {
-      "key": "gtzrbjlk",
+      "key": "yppm3hgc",
       "name": "message",
       "title": "message",
       "description": "",
@@ -1296,7 +1346,7 @@
       "children": []
      },
      {
-      "key": "yppm3hgc",
+      "key": "lxkmmbox",
       "name": "payload",
       "title": "payload",
       "description": "",
@@ -1305,7 +1355,7 @@
       "children": []
      },
      {
-      "key": "lxkmmbox",
+      "key": "t2nkbbqn",
       "name": "partRows",
       "title": "partRows",
       "description": "",
@@ -1313,7 +1363,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "t2nkbbqn",
+        "key": "e1err4su",
         "name": "items",
         "title": "",
         "description": "",
@@ -1325,7 +1375,7 @@
       ]
      },
      {
-      "key": "e1err4su",
+      "key": "djn19sw3",
       "name": "lineCount",
       "title": "lineCount",
       "description": "",
@@ -1334,7 +1384,7 @@
       "children": []
      },
      {
-      "key": "djn19sw3",
+      "key": "thv5dpgv",
       "name": "pickCount",
       "title": "pickCount",
       "description": "",
@@ -1343,7 +1393,7 @@
       "children": []
      },
      {
-      "key": "thv5dpgv",
+      "key": "apgeoz09",
       "name": "movementCount",
       "title": "movementCount",
       "description": "",
@@ -1352,7 +1402,7 @@
       "children": []
      },
      {
-      "key": "apgeoz09",
+      "key": "wt528whc",
       "name": "unlockOk",
       "title": "unlockOk",
       "description": "",
@@ -1361,7 +1411,7 @@
       "children": []
      },
      {
-      "key": "wt528whc",
+      "key": "a6fnzlmd",
       "name": "organizationId",
       "title": "organizationId",
       "description": "",
@@ -1370,7 +1420,7 @@
       "children": []
      },
      {
-      "key": "a6fnzlmd",
+      "key": "29du9i89",
       "name": "opKeyI",
       "title": "opKeyI",
       "description": "",
@@ -1379,7 +1429,7 @@
       "children": []
      },
      {
-      "key": "29du9i89",
+      "key": "al30f667",
       "name": "opKeyR",
       "title": "opKeyR",
       "description": "",
@@ -1388,7 +1438,7 @@
       "children": []
      },
      {
-      "key": "al30f667",
+      "key": "n62v8vds",
       "name": "movementsI",
       "title": "movementsI",
       "description": "",
@@ -1396,7 +1446,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "n62v8vds",
+        "key": "uu0evi3s",
         "name": "items",
         "title": "",
         "description": "",
@@ -1408,7 +1458,7 @@
       ]
      },
      {
-      "key": "uu0evi3s",
+      "key": "u66kmj3f",
       "name": "movementsR",
       "title": "movementsR",
       "description": "",
@@ -1416,7 +1466,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "u66kmj3f",
+        "key": "hoqs2hcx",
         "name": "items",
         "title": "",
         "description": "",
@@ -1428,7 +1478,7 @@
       ]
      },
      {
-      "key": "hoqs2hcx",
+      "key": "zowzjga9",
       "name": "labels",
       "title": "labels",
       "description": "",
@@ -1722,7 +1772,7 @@
     },
     "response_json": [
      {
-      "key": "zowzjga9",
+      "key": "ff24z5x7",
       "name": "route",
       "title": "route",
       "description": "",
@@ -1731,7 +1781,7 @@
       "children": []
      },
      {
-      "key": "ff24z5x7",
+      "key": "hcr32eo3",
       "name": "needParts",
       "title": "needParts",
       "description": "",
@@ -1740,7 +1790,7 @@
       "children": []
      },
      {
-      "key": "hcr32eo3",
+      "key": "cdrl101f",
       "name": "needReady",
       "title": "needReady",
       "description": "",
@@ -1749,7 +1799,7 @@
       "children": []
      },
      {
-      "key": "cdrl101f",
+      "key": "ryuz11ne",
       "name": "readyRows",
       "title": "readyRows",
       "description": "",
@@ -1757,7 +1807,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "ryuz11ne",
+        "key": "wukzgchr",
         "name": "items",
         "title": "",
         "description": "",
@@ -1769,7 +1819,7 @@
       ]
      },
      {
-      "key": "wukzgchr",
+      "key": "jxeqrd4s",
       "name": "needJobUpd",
       "title": "needJobUpd",
       "description": "",
@@ -1778,7 +1828,7 @@
       "children": []
      },
      {
-      "key": "jxeqrd4s",
+      "key": "m7lahij6",
       "name": "jobRows",
       "title": "jobRows",
       "description": "",
@@ -1786,7 +1836,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "m7lahij6",
+        "key": "sj43mist",
         "name": "items",
         "title": "",
         "description": "",
@@ -1798,7 +1848,7 @@
       ]
      },
      {
-      "key": "sj43mist",
+      "key": "j0a3j3ch",
       "name": "needLink",
       "title": "needLink",
       "description": "",
@@ -1807,7 +1857,7 @@
       "children": []
      },
      {
-      "key": "j0a3j3ch",
+      "key": "1rwvilxv",
       "name": "linkRows",
       "title": "linkRows",
       "description": "",
@@ -1815,7 +1865,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "1rwvilxv",
+        "key": "mzlw4mk5",
         "name": "items",
         "title": "",
         "description": "",
@@ -1827,7 +1877,7 @@
       ]
      },
      {
-      "key": "mzlw4mk5",
+      "key": "7xs5mhwe",
       "name": "needUnlock",
       "title": "needUnlock",
       "description": "",
@@ -1836,7 +1886,7 @@
       "children": []
      },
      {
-      "key": "7xs5mhwe",
+      "key": "yjlmbwa4",
       "name": "unlockRows",
       "title": "unlockRows",
       "description": "",
@@ -1844,7 +1894,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "yjlmbwa4",
+        "key": "ztsj1g51",
         "name": "items",
         "title": "",
         "description": "",
@@ -1856,7 +1906,7 @@
       ]
      },
      {
-      "key": "ztsj1g51",
+      "key": "qjjbvoeb",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -1865,7 +1915,7 @@
       "children": []
      },
      {
-      "key": "qjjbvoeb",
+      "key": "vqk4d0xo",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -1874,7 +1924,7 @@
       "children": []
      },
      {
-      "key": "vqk4d0xo",
+      "key": "ugfqpxx0",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2814,7 +2864,7 @@
     },
     "response_json": [
      {
-      "key": "ugfqpxx0",
+      "key": "7ao7bt5q",
       "name": "id",
       "title": "id",
       "description": "",
@@ -2823,7 +2873,7 @@
       "children": []
      },
      {
-      "key": "7ao7bt5q",
+      "key": "o2kjbu2g",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2832,7 +2882,7 @@
       "children": []
      },
      {
-      "key": "o2kjbu2g",
+      "key": "ppij9125",
       "name": "progress_message",
       "title": "progress_message",
       "description": "",
@@ -2841,7 +2891,7 @@
       "children": []
      },
      {
-      "key": "ppij9125",
+      "key": "1bhurln6",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -2850,7 +2900,7 @@
       "children": []
      },
      {
-      "key": "1bhurln6",
+      "key": "maei6j98",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -2875,7 +2925,7 @@
     },
     "response_json": [
      {
-      "key": "maei6j98",
+      "key": "7cxe1d0z",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -2884,7 +2934,7 @@
       "children": []
      },
      {
-      "key": "7cxe1d0z",
+      "key": "fe8svnv3",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -2893,7 +2943,7 @@
       "children": []
      },
      {
-      "key": "fe8svnv3",
+      "key": "28c6l9ro",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -2902,7 +2952,7 @@
       "children": []
      },
      {
-      "key": "28c6l9ro",
+      "key": "dv6iv4qi",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -2911,7 +2961,7 @@
       "children": []
      },
      {
-      "key": "dv6iv4qi",
+      "key": "7xpwqjge",
       "name": "evidence",
       "title": "evidence",
       "description": "",

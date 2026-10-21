@@ -1,3 +1,7 @@
+// RES-01 (scratchpad/iasc/res01/RES01_PLAN.md): a Draft that reserves materials (its stored hold status, whatever the switch: review I4)
+// gives them back (IA_HOLD RELEASE_ALL) before it is deleted
+const RES_HOLD = "__IA_HOLD__"; // IA_HOLD
+const resOn = /^[1-9][0-9]{0,19}$/.test(RES_HOLD);
 (async () => {
   try {
     const row = arguments[0]?.row;
@@ -49,7 +53,7 @@
     const storedRes = await db
       .collection("sm_item_assembly")
       .where({ id: row.id, is_deleted: 0 })
-      .field("item_assembly_status")
+      .field("item_assembly_status,material_hold_status,organization_id")
       .get();
     const stored = (storedRes && storedRes.data && storedRes.data[0]) || null;
     if (!stored || UNDELETABLE.includes(stored.item_assembly_status)) {
@@ -60,6 +64,38 @@
       );
       this.refresh();
       return;
+    }
+
+    // held stock is never left behind: deleted only once IA_HOLD answers that nothing is held
+    if (resOn && String(stored.material_hold_status || "") !== "") {
+      let answer = null;
+      try {
+        const res = await new Promise((resolve, reject) => {
+          const p = this.runWorkflow(
+            RES_HOLD,
+            { ia_id: String(row.id), organization_id: String(stored.organization_id || ""), operation: "RELEASE_ALL", source: "LIST" },
+            (r) => resolve(r),
+            (e) => reject(e)
+          );
+          if (p && typeof p.then === "function") p.then(resolve, reject);
+        });
+        answer = (res && res.data) || null;
+      } catch (e) {
+        console.error("RES-01: releasing the reserved materials failed", e);
+      }
+      let held = "";
+      try {
+        held = String(JSON.parse(answer.result_json).status || "");
+      } catch (e) {
+        held = "";
+      }
+      if (!answer || String(answer.code) !== "200" || held !== "NONE") {
+        this.$message.error(
+          `The materials reserved for Item Assembly ${label} could not be released, so it was not deleted.` + (answer && answer.message ? ` ${answer.message}` : "")
+        );
+        this.refresh();
+        return;
+      }
     }
 
     await db

@@ -61,7 +61,7 @@ class Engine {
     const m = ref.match(/^(node|workflowparams|system|global):(.+)$/);
     if (!m) throw new Error("bad ref " + ref);
     const [, kind, p] = m;
-    if (kind === "system") return p === "tenantId" ? this.db.tenantId : p === "uuid" ? ctx.uuid : undefined;
+    if (kind === "system") return p === "tenantId" ? this.db.tenantId : p === "uuid" ? ctx.uuid : p === "uid" ? this.db.uid : undefined;
     if (kind === "workflowparams") return getPath(ctx.params, p.split("."));
     if (kind === "global") return undefined;
     const parts = p.split(".");

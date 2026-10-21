@@ -92,7 +92,7 @@ const runSo = async (name, row, header) => {
   // read-only text per fact, each shown only when it has one; the key rows bold, the warnings in the app's error style
   const LAYOUT = [
     [["sli_summary_so", "Sales Order"], ["sli_summary_customer", "Customer"], ["sli_summary_item", "Item"], ["sli_summary_ordered", "Ordered"], ["sli_summary_delivered", "Delivered"]],
-    [["sli_summary_planned", "Planned"], ["sli_summary_produced", "Produced"], ["sli_summary_open", "In Progress"], ["sli_summary_suggest", "Suggested Qty"]],
+    [["sli_summary_planned", "Planned"], ["sli_summary_produced", "Produced"], ["sli_summary_open", "In Progress"], ["sli_summary_suggest", "Remaining to Plan"]],
     [["sli_summary_warn", "Warnings"]]];
   const ROW_CLASS = { sli_summary_so: "font-bold", sli_summary_suggest: "font-bold", sli_summary_warn: "error-msg" };
   const box = H.findModel(PG.list, "sli_summary");
@@ -106,8 +106,12 @@ const runSo = async (name, row, header) => {
     rowWidgets.map((x) => [x.model, x.options.hideLabel, x.options.customClass]));
   const PW = { sli_summary: "grid", sli_ias: "table", sli_orphans: "table", sli_btn_create: "button", sli_btn_refresh: "button", sli_btn_close: "button" };
   for (const [m, type] of Object.entries(PW)) check("page: widget " + m + " (" + type + ")", !!H.findModel(PG.list, m) && H.findModel(PG.list, m).type === type);
-  const COLS = ["ia_no", "status", "mode", "planned", "actual", "uom", "counted", "ia_id", "open"];
+  const COLS = ["ia_no", "status", "mode", "planned", "to_receive", "actual", "uom", "counted", "ia_id", "open"];
   check("page: the two tables' columns", ["sli_ias", "sli_orphans"].every((m) => same((H.findModel(PG.list, m).tableColumns || []).map((c) => c.model), COLS)));
+  // UI-01: the IA form's words; an open IA's quantity is not yet received (a Draft 10 is not produced 10)
+  check("page: the column names: Planned Output, Output to Receive, Actual Received", ["sli_ias", "sli_orphans"].every((m) => same(H.findModel(PG.list, m).tableColumns.map((c) => c.name),
+    ["Item Assembly", "Status", "BOM Mode", "Planned Output", "Output to Receive", "Actual Received", "UOM", "Counted As", "IA ID", "Open"])),
+    H.findModel(PG.list, "sli_ias").tableColumns.map((c) => c.name));
   check("page: params so_id, so_line_id, item_id, organization_id, sc_action", same(PG.config.params.map((p) => p.name), ["so_id", "so_line_id", "item_id", "organization_id", "sc_action"]));
   // the config is the page shell's own (dev 2112449353901772801, as the designer created it): only params and two scripts differ
   const SHELL = H.readJSON(path.join(H.IASC, "base/page_so_linked_ias_shell.json"));
@@ -166,6 +170,7 @@ const runSo = async (name, row, header) => {
     const w = H.world({ db: H.tableDb(F.tables()) });
     w.so = F.so(Object.assign({ ias: ias }, o.so || {}));
     if (o.down) w.projectionDown = true;
+    if (o.refuse) w.projectionRefuse = o.refuse;
     const answer = F.answer(w, H.SC_TEST_IDS);
     const self = H.makeThis(w, PG, { values: {}, stateful: true, params: Object.assign({ so_id: "9001", so_line_id: "8001", item_id: "P1", organization_id: F.ORG, sc_action: "" }, params),
       answer: (id, p) => {
@@ -192,9 +197,10 @@ const runSo = async (name, row, header) => {
       ["SUMMARY", "9001", "8001", "P1", "", F.ORG]), sum.map((t) => t[2]));
     check("page: the summary rows (the line, its figures, the production figures, the suggestion with its sum), no warning", same(panelOf(p).split("\n"), [
       "Sales Order: SO-A · line 1", "Customer: ACME", "Item: SC-BOX", "Ordered: 100 EA", "Delivered: 0 EA", "Planned: 100 EA in this line's IAs", "Produced: 30 EA",
-      "In Progress: 60 EA in open IAs", "Suggested Qty: 10 EA = 100 ordered \u2212 30 produced \u2212 60 in progress"]), panelOf(p));
-    check("page: the line's IAs (number, status, mode, planned, actual, UOM, counted as)", same((v.sli_ias || []).map((r) => [r.ia_no, r.status, r.mode, r.planned, r.actual, r.uom, r.counted, r.ia_id]),
-      [["IA-1", "Completed", "Standard", 40, 30, "EA", "Produced", "4100"], ["IA-2", "Draft", "Flat", 60, 60, "EA", "Open", "4101"]]), v.sli_ias);
+      "In Progress: 60 EA in open IAs", "Remaining to Plan: 10 EA = 100 ordered \u2212 30 produced \u2212 60 in progress"]), panelOf(p));
+    check("page: the line's IAs (number, status, mode, planned, to receive, received, UOM, counted as): the Draft's 60 to receive, the Completed IA's 30 received",
+      same((v.sli_ias || []).map((r) => [r.ia_no, r.status, r.mode, r.planned, r.to_receive, r.actual, r.uom, r.counted, r.ia_id]),
+      [["IA-1", "Completed", "Standard", 40, null, 30, "EA", "Produced", "4100"], ["IA-2", "Draft", "Flat", 60, 60, null, "EA", "Open", "4101"]]), v.sli_ias);
     check("page: no orphans -> an empty orphan table, hidden", same(v.sli_orphans || [], []) && p.trace().some((t) => /hide$/.test(t[0]) && JSON.stringify(t[1]).indexOf("sli_orphans") >= 0));
     check("page: Create shown (the line is eligible)", p.trace().some((t) => /display$/.test(t[0]) && JSON.stringify(t[1]).indexOf("sli_btn_create") >= 0));
     check("page: opening it creates nothing", !p.trace().some((t) => /toView$/.test(t[0])));
@@ -232,20 +238,28 @@ const runSo = async (name, row, header) => {
     const p = await page({ sc_action: "create" }, { so: { header: Object.assign({}, F.so().header, { so_status: "Cancelled" }) } });
     check("page: a cancelled SO: no IA form, the reason shown, Create hidden, the warnings listed", !p.trace().some((t) => /toView$/.test(t[0])) && p.trace().some((t) => /\$message\.warning$/.test(t[0]) && /no active demand/.test(t[1])) &&
       p.trace().some((t) => /hide$/.test(t[0]) && JSON.stringify(t[1]).indexOf("sli_btn_create") >= 0) && /^\u26a0 SO-A is cancelled: it has no remaining demand\.$/m.test(panelOf(p)) &&
-      /^Suggested Qty: 0 EA: the line has no remaining demand$/m.test(panelOf(p)), panelOf(p));
+      /^Remaining to Plan: 0 EA: the line has no remaining demand$/m.test(panelOf(p)), panelOf(p));
     await p.fire("sli_onClick_create");
     check("page: Create on an ineligible line refuses", !p.trace().some((t) => /toView$/.test(t[0])));
   }
   {
+    const NO = "Your user is not assigned to this organisation, so its Sales Order figures cannot be shown.";
+    const q = await page({}, { refuse: NO });
+    check("page: a refused read (FIX-03): the server's reason, tables empty, Create hidden", panelOf(q) === "Sales Order: " + NO && same(q.v().sli_ias || [], []) &&
+      q.trace().some((t) => /hide$/.test(t[0]) && JSON.stringify(t[1]).indexOf("sli_btn_create") >= 0), panelOf(q));
     const p = await page({}, { down: true });
     check("page: a failed read: 'unavailable' only, no figure shown as zero, tables empty, Create hidden",
       panelOf(p) === "Sales Order: figures unavailable right now: press Refresh to try again" && same(p.v().sli_ias || [], []) &&
       p.trace().some((t) => /hide$/.test(t[0]) && JSON.stringify(t[1]).indexOf("sli_btn_create") >= 0), panelOf(p));
   }
   {
-    const orphans = [{ id: "4200", no: "IA-9", status: "Completed", item_id: "P1", item_qty: "5", item_uom: F.EA, planned_output_qty: "5", mode: "STANDARD", is_deleted: 0, source_so_line_id: "7999" }];
+    const orphans = [{ id: "4200", no: "IA-9", status: "Completed", item_id: "P1", item_qty: "5", item_uom: F.EA, planned_output_qty: "5", mode: "STANDARD", is_deleted: 0, source_so_line_id: "7999" },
+      { id: "4201", no: "IA-10", status: "Draft", item_id: "P1", item_qty: "7", item_uom: F.EA, planned_output_qty: "8", mode: "STANDARD", is_deleted: 0, source_so_line_id: "7999" }];
     const p = await page({}, { orphans: orphans });
-    check("page: the SO's IAs whose line was removed are listed apart", same((p.v().sli_orphans || []).map((r) => [r.ia_no, r.status, r.counted, r.ia_id]), [["IA-9", "Completed", "Line removed", "4200"]]) &&
+    check("page: an orphan's quantity received when Completed, to receive when Draft", same((p.v().sli_orphans || []).map((r) => [r.ia_no, r.planned, r.to_receive, r.actual]),
+      [["IA-9", 5, null, 5], ["IA-10", 8, 7, null]]), p.v().sli_orphans);
+    check("page: the SO's IAs whose line was removed are listed apart", same((p.v().sli_orphans || []).map((r) => [r.ia_no, r.status, r.counted, r.ia_id]),
+      [["IA-9", "Completed", "Line removed", "4200"], ["IA-10", "Draft", "Line removed", "4201"]]) &&
       p.trace().some((t) => /display$/.test(t[0]) && JSON.stringify(t[1]).indexOf("sli_orphans") >= 0), p.v().sli_orphans);
     const m = p.trace().length;
     await p.fire("sli_onClick_openOrphan", { rowIndex: 0, row: (p.v().sli_orphans || [])[0] });
@@ -259,43 +273,24 @@ const runSo = async (name, row, header) => {
   }
   {
     const p = await page({}, { so: { lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "35" })] } });
-    check("page: delivered 35 > produced 30: the suggestion takes the delivered off", /^Suggested Qty: 5 EA = 100 ordered \u2212 35 delivered \u2212 60 in progress$/m.test(panelOf(p)), panelOf(p));
+    const q = await page({}, { so: { lines: [Object.assign({}, F.so().lines[0], { delivered_qty: "35" })], ias: [ias[1]] } });
+    check("page: delivered 35, nothing produced: exact, the delivered taken off", /^Remaining to Plan: 5 EA = 100 ordered \u2212 35 delivered \u2212 60 in progress$/m.test(panelOf(q)),
+      panelOf(q));
+    check("page: delivered 35 and produced 30 may overlap: Remaining to Plan unavailable, with why (FIX-01)",
+      /^Remaining to Plan: Unavailable: nothing records whether the 35 EA delivered came from the 30 EA produced$/m.test(panelOf(p)), panelOf(p));
   }
   {
     const p = await page({}, { so: { header: Object.assign({}, F.so().header, { so_status: "Cancelled" }), lines: [Object.assign({}, F.so().lines[0], { line_status: "Completed" })] } });
     check("page: two warnings, each marked", /^\u26a0 SO-A is cancelled: it has no remaining demand\.   \u26a0 SO-A line 1 is completed\.$/m.test(panelOf(p)), panelOf(p));
   }
-  // the page vs the live dev v3 (the publish base): every widget and event keeps its key; only the summary and sli_load differ
+  // the page vs the live dev v7 (base/page_so_linked_ias_v7.json, FIX-03 published 2026-10-21 11:29): the same page
   {
-    const V2 = H.readJSON(path.join(H.IASC, "base/page_so_linked_ias_v3.json"));
-    const strip = (doc) => {
-      const d = H.clone(doc);
-      const b = H.findModel(d.list, "sli_summary");
-      const key = b.key;
-      Object.keys(b).forEach((k) => delete b[k]);
-      Object.assign(b, { model: "sli_summary", key: key });
-      return JSON.stringify(d.list);
-    };
+    const V6 = H.readJSON(path.join(H.IASC, "base/page_so_linked_ias_v7.json"));
     const RAW = H.readJSON(path.join(OUT, "SOLinkedIAsPage.json"));
-    check("page vs v3: the widgets differ only inside the summary; sli_summary keeps its key", strip(RAW) === strip(V2));
-    const keyOf = (doc) => {
-      const out = {};
-      const walk = (n) => {
-        if (Array.isArray(n)) n.forEach(walk);
-        else if (n && typeof n === "object") {
-          if (n.model && n.key && n.type) out[n.model] = n.key;
-          Object.values(n).forEach(walk);
-        }
-      };
-      walk(doc.list);
-      return out;
-    };
-    const kRaw = keyOf(RAW);
-    const kV = keyOf(V2);
-    check("page vs v3: every v3 widget keeps its key", Object.keys(kV).every((m) => kRaw[m] === kV[m]), Object.keys(kV).filter((m) => kRaw[m] !== kV[m]));
-    const changed = RAW.config.eventScript.filter((e) => JSON.stringify(H.byKey(V2, e.key)) !== JSON.stringify(e)).map((e) => e.name);
-    check("page vs v3: the same events and config; only sli_load changed", same(RAW.config.eventScript.map((e) => e.key), V2.config.eventScript.map((e) => e.key)) &&
-      same(changed, ["sli_load"]) && JSON.stringify(Object.assign({}, RAW.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, V2.config, { eventScript: [] })), changed);
+    check("page vs v7: the widgets identical", JSON.stringify(RAW.list) === JSON.stringify(V6.list));
+    const changed = RAW.config.eventScript.filter((e) => JSON.stringify(H.byKey(V6, e.key)) !== JSON.stringify(e)).map((e) => e.name);
+    check("page vs v7: the same events and config, nothing changed", same(RAW.config.eventScript.map((e) => e.key), V6.config.eventScript.map((e) => e.key)) &&
+      same(changed, []) && JSON.stringify(Object.assign({}, RAW.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, V6.config, { eventScript: [] })), changed);
   }
   H.done("test_so");
 })();

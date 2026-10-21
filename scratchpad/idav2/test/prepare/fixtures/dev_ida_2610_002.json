@@ -1,0 +1,681 @@
+{
+ "name": "dev_ida_2610_002",
+ "env": "--dev",
+ "run": "2110936708288786433",
+ "note": "IDA-2610-002: 2 NONE lines, 1 pick, zero-cost source",
+ "tenant": "000000",
+ "ida_id": "2110936709140230145",
+ "trx_no": "IDA-2610-002",
+ "parent": {
+  "saveAs": "Completed",
+  "pageStatus": "Add",
+  "allData": {
+   "isTrusted": true,
+   "_vts": 1792121464959,
+   "flex_2det1nd2": "",
+   "organization_id": "1123598813738675201",
+   "sid_uuid": "",
+   "item_disassembly_status": "",
+   "posted_status": "",
+   "page_status": "Add",
+   "issuing_operation_faci": "1123598813738675202",
+   "stock_movement_no": "",
+   "stock_movement_no_type": "2107022471794724866",
+   "item_id": "2098252135296131074",
+   "item_disassembly_date": "2026-10-16",
+   "issued_by": "Zhen Xiang",
+   "item_code": "ITEM_TEST_JN",
+   "item_name": "ITEM_TEST_JN",
+   "item_desc": "",
+   "item_qty": 1,
+   "item_uom": "2018906563477008392",
+   "stock_summary": "Total: 1 UNIT\n\nDETAILS:\n1. A1-B1: 1 UNIT (UNR)",
+   "temp_qty_data": "[{\"material_id\":\"2098252135296131074\",\"location_id\":\"2018912822846582786\",\"storage_location_id\":null,\"batch_id\":null,\"serial_number\":\"\",\"balance_id\":\"2099346835229691906\",\"sm_quantity\":1,\"category\":\"Unrestricted\",\"plant_id\":\"1123598813738675202\",\"organization_id\":\"1123598813738675201\",\"is_deleted\":0,\"expired_date\":null,\"manufacturing_date\":null,\"unrestricted_qty\":4,\"balance_quantity\":4}]",
+   "temp_hu_data": "",
+   "project_id": "",
+   "remarks": "",
+   "remarks_2": "",
+   "remarks_3": "",
+   "reference_documents": "",
+   "item_display_table": [
+    {
+     "item_selection": "2098252135296131074",
+     "item_code": "ITEM_TEST_JN",
+     "item_name": "ITEM_TEST_JN",
+     "item_desc": "",
+     "item_qty": 1,
+     "item_uom": "2018906563477008392",
+     "stock_summary": "Total: 1 UNIT\n\nDETAILS:\n1. A1-B1: 1 UNIT (UNR)",
+     "fm_key": "200vcc2k"
+    }
+   ],
+   "stock_movement": [
+    {
+     "item_selection": "2094626841323700262",
+     "item_name": "Transfer Case with Magnesium Alloy",
+     "item_desc": "Transfer Case with Magnesium Alloy finish",
+     "requested_qty": 5,
+     "bom_ratio": 5,
+     "total_quantity": 5,
+     "quantity_uom": "2018906563477008392",
+     "storage_location_id": "2018912759311265793",
+     "location_id": "2018912822846582786",
+     "batch_number": "-",
+     "manufacturing_date": "",
+     "expired_date": "",
+     "item_remark": "",
+     "item_remark_2": "",
+     "item_remark_3": "",
+     "project_id": "",
+     "organization_id": "1123598813738675201",
+     "issuing_plant": "1123598813738675202",
+     "line_index": 1,
+     "uom_options": "[{\"create_time\":\"2026-02-04 12:36:48.861\",\"create_dept\":\"1123598813738675201\",\"id\":\"2018906563477008392\",\"create_user\":\"1123598821738675201\",\"organization_id\":\"1123598813738675201\",\"update_user\":\"1123598821738675201\",\"tenant_id\":\"000000\",\"update_time\":\"2026-02-04 12:36:48.861\",\"uom_type\":null,\"uom_name\":\"UNIT\",\"uom_desc\":null,\"sub_tenant_id\":\"1123598813738675201\",\"is_deleted\":0}]",
+     "fm_key": "m40i1auu"
+    },
+    {
+     "item_selection": "2094626841323700261",
+     "item_name": "Differential with POM Gear",
+     "item_desc": "Differential with POM Gear finish",
+     "requested_qty": 2,
+     "bom_ratio": 2,
+     "total_quantity": 2,
+     "quantity_uom": "2018906563477008392",
+     "storage_location_id": "2018912759311265793",
+     "location_id": "2018912822846582786",
+     "batch_number": "-",
+     "manufacturing_date": "",
+     "expired_date": "",
+     "item_remark": "",
+     "item_remark_2": "",
+     "item_remark_3": "",
+     "project_id": "",
+     "organization_id": "1123598813738675201",
+     "issuing_plant": "1123598813738675202",
+     "line_index": 2,
+     "uom_options": "[{\"create_time\":\"2026-02-04 12:36:48.861\",\"create_dept\":\"1123598813738675201\",\"id\":\"2018906563477008392\",\"create_user\":\"1123598821738675201\",\"organization_id\":\"1123598813738675201\",\"update_user\":\"1123598821738675201\",\"tenant_id\":\"000000\",\"update_time\":\"2026-02-04 12:36:48.861\",\"uom_type\":null,\"uom_name\":\"UNIT\",\"uom_desc\":null,\"sub_tenant_id\":\"1123598813738675201\",\"is_deleted\":0}]",
+     "fm_key": "1mkiexph"
+    }
+   ],
+   "button_draft": "",
+   "button_completed": "",
+   "flex_t6y2yh5r": "",
+   "$_v": 56,
+   "ida_source_stock_mode": "single",
+   "storage_location_id": "2018912759311265793",
+   "location_id": "2018912822846582786"
+  },
+  "nodes": {
+   "code_fillback": {
+    "response": {
+     "allData": {
+      "isTrusted": true,
+      "_vts": 1792121464959,
+      "flex_2det1nd2": "",
+      "organization_id": "1123598813738675201",
+      "sid_uuid": "",
+      "item_disassembly_status": "Completed",
+      "posted_status": "Unposted",
+      "page_status": "Add",
+      "issuing_operation_faci": "1123598813738675202",
+      "stock_movement_no": "issued",
+      "stock_movement_no_type": "2107022471794724866",
+      "item_id": "2098252135296131074",
+      "item_disassembly_date": "2026-10-16",
+      "issued_by": "Zhen Xiang",
+      "item_code": "ITEM_TEST_JN",
+      "item_name": "ITEM_TEST_JN",
+      "item_desc": "",
+      "item_qty": 1,
+      "item_uom": "2018906563477008392",
+      "stock_summary": "Total: 1 UNIT\n\nDETAILS:\n1. A1-B1: 1 UNIT (UNR)",
+      "temp_qty_data": "[{\"material_id\":\"2098252135296131074\",\"location_id\":\"2018912822846582786\",\"storage_location_id\":null,\"batch_id\":null,\"serial_number\":\"\",\"balance_id\":\"2099346835229691906\",\"sm_quantity\":1,\"category\":\"Unrestricted\",\"plant_id\":\"1123598813738675202\",\"organization_id\":\"1123598813738675201\",\"is_deleted\":0,\"expired_date\":null,\"manufacturing_date\":null,\"unrestricted_qty\":4,\"balance_quantity\":4}]",
+      "temp_hu_data": "",
+      "project_id": "",
+      "remarks": "",
+      "remarks_2": "",
+      "remarks_3": "",
+      "reference_documents": "",
+      "item_display_table": [
+       {
+        "item_selection": "2098252135296131074",
+        "item_code": "ITEM_TEST_JN",
+        "item_name": "ITEM_TEST_JN",
+        "item_desc": "",
+        "item_qty": 1,
+        "item_uom": "2018906563477008392",
+        "stock_summary": "Total: 1 UNIT\n\nDETAILS:\n1. A1-B1: 1 UNIT (UNR)",
+        "fm_key": "200vcc2k"
+       }
+      ],
+      "stock_movement": [
+       {
+        "item_selection": "2094626841323700262",
+        "item_name": "Transfer Case with Magnesium Alloy",
+        "item_desc": "Transfer Case with Magnesium Alloy finish",
+        "requested_qty": 5,
+        "bom_ratio": 5,
+        "total_quantity": 5,
+        "quantity_uom": "2018906563477008392",
+        "storage_location_id": "2018912759311265793",
+        "location_id": "2018912822846582786",
+        "batch_number": "-",
+        "manufacturing_date": "",
+        "expired_date": "",
+        "item_remark": "",
+        "item_remark_2": "",
+        "item_remark_3": "",
+        "project_id": "",
+        "uom_options": "[{\"create_time\":\"2026-02-04 12:36:48.861\",\"create_dept\":\"1123598813738675201\",\"id\":\"2018906563477008392\",\"create_user\":\"1123598821738675201\",\"organization_id\":\"1123598813738675201\",\"update_user\":\"1123598821738675201\",\"tenant_id\":\"000000\",\"update_time\":\"2026-02-04 12:36:48.861\",\"uom_type\":null,\"uom_name\":\"UNIT\",\"uom_desc\":null,\"sub_tenant_id\":\"1123598813738675201\",\"is_deleted\":0}]",
+        "organization_id": "1123598813738675201",
+        "issuing_plant": "1123598813738675202",
+        "line_index": 1
+       },
+       {
+        "item_selection": "2094626841323700261",
+        "item_name": "Differential with POM Gear",
+        "item_desc": "Differential with POM Gear finish",
+        "requested_qty": 2,
+        "bom_ratio": 2,
+        "total_quantity": 2,
+        "quantity_uom": "2018906563477008392",
+        "storage_location_id": "2018912759311265793",
+        "location_id": "2018912822846582786",
+        "batch_number": "-",
+        "manufacturing_date": "",
+        "expired_date": "",
+        "item_remark": "",
+        "item_remark_2": "",
+        "item_remark_3": "",
+        "project_id": "",
+        "uom_options": "[{\"create_time\":\"2026-02-04 12:36:48.861\",\"create_dept\":\"1123598813738675201\",\"id\":\"2018906563477008392\",\"create_user\":\"1123598821738675201\",\"organization_id\":\"1123598813738675201\",\"update_user\":\"1123598821738675201\",\"tenant_id\":\"000000\",\"update_time\":\"2026-02-04 12:36:48.861\",\"uom_type\":null,\"uom_name\":\"UNIT\",\"uom_desc\":null,\"sub_tenant_id\":\"1123598813738675201\",\"is_deleted\":0}]",
+        "organization_id": "1123598813738675201",
+        "issuing_plant": "1123598813738675202",
+        "line_index": 2
+       }
+      ],
+      "button_draft": "",
+      "button_completed": "",
+      "flex_t6y2yh5r": "",
+      "$_v": 56,
+      "ida_source_stock_mode": "single",
+      "storage_location_id": "2018912759311265793",
+      "location_id": "2018912822846582786"
+     },
+     "storedStatus": "Draft"
+    }
+   },
+   "search_items": {
+    "response": {
+     "total": 3,
+     "count": 3,
+     "data": [
+      {
+       "id": "2094626841323700261",
+       "material_code": "TES510",
+       "material_name": "Differential with POM Gear",
+       "stock_control": 1,
+       "serial_number_management": 0,
+       "item_batch_management": 0,
+       "batch_number_genaration": "According To System Settings",
+       "material_costing_method": "First In First Out",
+       "based_uom": "2018906563477008392",
+       "item_category": "2018905941675634689",
+       "table_uom_conversion": [
+        {
+         "alt_uom_id": "2018906563477008392",
+         "base_qty": 1.0
+        }
+       ]
+      },
+      {
+       "id": "2094626841323700262",
+       "material_code": "TES511",
+       "material_name": "Transfer Case with Magnesium Alloy",
+       "stock_control": 1,
+       "serial_number_management": 0,
+       "item_batch_management": 0,
+       "batch_number_genaration": "According To System Settings",
+       "material_costing_method": "First In First Out",
+       "based_uom": "2018906563477008392",
+       "item_category": "2018905941675634689",
+       "table_uom_conversion": [
+        {
+         "alt_uom_id": "2018906563477008392",
+         "base_qty": 1.0
+        }
+       ]
+      },
+      {
+       "id": "2098252135296131074",
+       "material_code": "ITEM_TEST_JN",
+       "material_name": "ITEM_TEST_JN",
+       "stock_control": 1,
+       "serial_number_management": 0,
+       "item_batch_management": 0,
+       "batch_number_genaration": "According To System Settings",
+       "based_uom": "2018906563477008392",
+       "item_category": "2018905941675634689",
+       "table_uom_conversion": [
+        {
+         "alt_uom_id": "2018906563477008392",
+         "base_qty": 1.0
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "code_batch_plan": {
+    "response": {
+     "genLines": [],
+     "genCount": 0,
+     "cacheKey": "2015606952982085634_1792121505390_ruknuu"
+    }
+   },
+   "code_apply_batches": {
+    "response": {
+     "stock_movement": [
+      {
+       "item_selection": "2094626841323700262",
+       "item_name": "Transfer Case with Magnesium Alloy",
+       "item_desc": "Transfer Case with Magnesium Alloy finish",
+       "requested_qty": 5,
+       "bom_ratio": 5,
+       "total_quantity": 5,
+       "quantity_uom": "2018906563477008392",
+       "storage_location_id": "2018912759311265793",
+       "location_id": "2018912822846582786",
+       "batch_number": "-",
+       "manufacturing_date": "",
+       "expired_date": "",
+       "item_remark": "",
+       "item_remark_2": "",
+       "item_remark_3": "",
+       "project_id": "",
+       "uom_options": "[{\"create_time\":\"2026-02-04 12:36:48.861\",\"create_dept\":\"1123598813738675201\",\"id\":\"2018906563477008392\",\"create_user\":\"1123598821738675201\",\"organization_id\":\"1123598813738675201\",\"update_user\":\"1123598821738675201\",\"tenant_id\":\"000000\",\"update_time\":\"2026-02-04 12:36:48.861\",\"uom_type\":null,\"uom_name\":\"UNIT\",\"uom_desc\":null,\"sub_tenant_id\":\"1123598813738675201\",\"is_deleted\":0}]",
+       "organization_id": "1123598813738675201",
+       "issuing_plant": "1123598813738675202",
+       "line_index": 1
+      },
+      {
+       "item_selection": "2094626841323700261",
+       "item_name": "Differential with POM Gear",
+       "item_desc": "Differential with POM Gear finish",
+       "requested_qty": 2,
+       "bom_ratio": 2,
+       "total_quantity": 2,
+       "quantity_uom": "2018906563477008392",
+       "storage_location_id": "2018912759311265793",
+       "location_id": "2018912822846582786",
+       "batch_number": "-",
+       "manufacturing_date": "",
+       "expired_date": "",
+       "item_remark": "",
+       "item_remark_2": "",
+       "item_remark_3": "",
+       "project_id": "",
+       "uom_options": "[{\"create_time\":\"2026-02-04 12:36:48.861\",\"create_dept\":\"1123598813738675201\",\"id\":\"2018906563477008392\",\"create_user\":\"1123598821738675201\",\"organization_id\":\"1123598813738675201\",\"update_user\":\"1123598821738675201\",\"tenant_id\":\"000000\",\"update_time\":\"2026-02-04 12:36:48.861\",\"uom_type\":null,\"uom_name\":\"UNIT\",\"uom_desc\":null,\"sub_tenant_id\":\"1123598813738675201\",\"is_deleted\":0}]",
+       "organization_id": "1123598813738675201",
+       "issuing_plant": "1123598813738675202",
+       "line_index": 2
+      }
+     ]
+    }
+   },
+   "code_persisted": {
+    "response": {
+     "docId": "2110936709140230145",
+     "stock_movement_no": "IDA-2610-002"
+    }
+   },
+   "code_issue_prep": {
+    "response": {
+     "plant_id": "1123598813738675202",
+     "organization_id": "1123598813738675201",
+     "stock_movement_no": "IDA-2610-002",
+     "doc_date": "2026-10-16",
+     "material_id": "2098252135296131074",
+     "material_uom": "2018906563477008392",
+     "balancesToProcess": [
+      {
+       "material_id": "2098252135296131074",
+       "location_id": "2018912822846582786",
+       "serial_number": "",
+       "balance_id": "2099346835229691906",
+       "sm_quantity": 1,
+       "category": "Unrestricted",
+       "plant_id": "1123598813738675202",
+       "organization_id": "1123598813738675201",
+       "is_deleted": 0,
+       "unrestricted_qty": 4,
+       "balance_quantity": 4
+      }
+     ]
+    }
+   },
+   "search_movements": {
+    "response": {
+     "total": 1,
+     "count": 1,
+     "data": [
+      {
+       "actual_qty": -1.0,
+       "quantity": 1.0,
+       "base_qty": 1.0,
+       "actual_base_qty": -1.0,
+       "inventory_category": "Unrestricted",
+       "trx_no": "IDA-2610-002",
+       "create_user": "2015606952982085634",
+       "create_dept": "1123598813738675201",
+       "unit_price": 0.0,
+       "item_id": "2098252135296131074",
+       "plant_id": "1123598813738675202",
+       "total_price": 0.0,
+       "create_time": "2026-10-16 11:31:45.554",
+       "id": "2110936709706461186",
+       "bin_location_id": "2018912822846582786",
+       "base_uom_id": "2018906563477008392",
+       "is_deleted": 0,
+       "uom_id": "2018906563477008392",
+       "doc_date": "2026-10-16 00:00:00",
+       "transaction_type": "IDA",
+       "update_time": "2026-10-16 11:31:45.554",
+       "tenant_id": "000000",
+       "update_user": "2015606952982085634",
+       "organization_id": "1123598813738675201",
+       "movement": "OUT"
+      }
+     ]
+    }
+   },
+   "code_cost_alloc": {
+    "response": {
+     "receipts": [
+      {
+       "plant_id": "1123598813738675202",
+       "organization_id": "1123598813738675201",
+       "material_id": "2094626841323700262",
+       "material_uom": "2018906563477008392",
+       "quantity": 5,
+       "unit_price": 0,
+       "location_id": "2018912822846582786",
+       "batch_number": "",
+       "trx_no": "IDA-2610-002",
+       "doc_date": "2026-10-16",
+       "remark": "",
+       "remark2": "",
+       "remark3": ""
+      },
+      {
+       "plant_id": "1123598813738675202",
+       "organization_id": "1123598813738675201",
+       "material_id": "2094626841323700261",
+       "material_uom": "2018906563477008392",
+       "quantity": 2,
+       "unit_price": 0,
+       "location_id": "2018912822846582786",
+       "batch_number": "",
+       "trx_no": "IDA-2610-002",
+       "doc_date": "2026-10-16",
+       "remark": "",
+       "remark2": "",
+       "remark3": ""
+      }
+     ],
+     "issuedValue": 0
+    }
+   },
+   "code_item_txn": {
+    "response": {
+     "updates": [
+      {
+       "id": "2098252135296131074",
+       "last_transaction_date": "2026-10-16T03:31:45.886Z"
+      },
+      {
+       "id": "2094626841323700262",
+       "last_transaction_date": "2026-10-16T03:31:45.886Z"
+      },
+      {
+       "id": "2094626841323700261",
+       "last_transaction_date": "2026-10-16T03:31:45.886Z"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "children": {
+  "subtract": [
+   {
+    "id": "2110936709412859906",
+    "status": "Complete",
+    "params": {
+     "plant_id": "1123598813738675202",
+     "organization_id": "1123598813738675201",
+     "material_id": "2098252135296131074",
+     "quantity": 1,
+     "material_uom": "2018906563477008392",
+     "transaction_type": "IDA",
+     "trx_no": "IDA-2610-002",
+     "inventory_category": "Unrestricted",
+     "location_id": "2018912822846582786",
+     "doc_date": "2026-10-16",
+     "isMovingInv": "0"
+    },
+    "response": {
+     "code": 200,
+     "data": {
+      "code": "200"
+     },
+     "msg": "操作成功",
+     "success": true
+    }
+   }
+  ],
+  "add": [
+   {
+    "id": "2110936710260109314",
+    "status": "Complete",
+    "params": {
+     "plant_id": "1123598813738675202",
+     "organization_id": "1123598813738675201",
+     "material_id": "2094626841323700262",
+     "quantity": 5,
+     "material_uom": "2018906563477008392",
+     "transaction_type": "IDA",
+     "trx_no": "IDA-2610-002",
+     "inventory_category": "Unrestricted",
+     "location_id": "2018912822846582786",
+     "batch_number": "",
+     "unit_price": 0,
+     "doc_date": "2026-10-16",
+     "remark": "",
+     "remark2": "",
+     "remark3": "",
+     "isMovingInv": "0"
+    },
+    "response": {
+     "code": 200,
+     "data": {
+      "code": "200",
+      "unitPrice": 0.0,
+      "totalPrice": 0.0,
+      "balanceId": "2091805385114464357",
+      "inventoryMovementId": "2110936710406909954"
+     },
+     "msg": "操作成功",
+     "success": true
+    }
+   },
+   {
+    "id": "2110936710738259969",
+    "status": "Complete",
+    "params": {
+     "plant_id": "1123598813738675202",
+     "organization_id": "1123598813738675201",
+     "material_id": "2094626841323700261",
+     "quantity": 2,
+     "material_uom": "2018906563477008392",
+     "transaction_type": "IDA",
+     "trx_no": "IDA-2610-002",
+     "inventory_category": "Unrestricted",
+     "location_id": "2018912822846582786",
+     "batch_number": "",
+     "unit_price": 0,
+     "doc_date": "2026-10-16",
+     "remark": "",
+     "remark2": "",
+     "remark3": "",
+     "isMovingInv": "0"
+    },
+    "response": {
+     "code": 200,
+     "data": {
+      "code": "200",
+      "unitPrice": 0.0,
+      "totalPrice": 0.0,
+      "balanceId": "2091805385114464356",
+      "inventoryMovementId": "2110936710855700481"
+     },
+     "msg": "操作成功",
+     "success": true
+    }
+   }
+  ]
+ },
+ "db": {
+  "hdr": [
+   {
+    "j": "{\"id\": \"2110936709140230145\", \"item_id\": \"2098252135296131074\", \"remarks\": \"\", \"item_qty\": 1.00000000, \"item_uom\": \"2018906563477008392\", \"table_hu\": [], \"item_code\": \"ITEM_TEST_JN\", \"item_name\": \"ITEM_TEST_JN\", \"remarks_2\": \"\", \"remarks_3\": \"\", \"temp_hu_data\": \"\", \"ida_v2_job_id\": null, \"posted_status\": \"Unposted\", \"temp_qty_data\": \"[{\\\"material_id\\\":\\\"2098252135296131074\\\",\\\"location_id\\\":\\\"2018912822846582786\\\",\\\"storage_location_id\\\":null,\\\"batch_id\\\":null,\\\"serial_number\\\":\\\"\\\",\\\"balance_id\\\":\\\"2099346835229691906\\\",\\\"sm_quantity\\\":1,\\\"category\\\":\\\"Unrestricted\\\",\\\"plant_id\\\":\\\"1123598813738675202\\\",\\\"organization_id\\\":\\\"1123598813738675201\\\",\\\"is_deleted\\\":0,\\\"expired_date\\\":null,\\\"manufacturing_date\\\":null,\\\"unrestricted_qty\\\":4,\\\"balance_quantity\\\":4}]\", \"organization_id\": \"1123598813738675201\", \"stock_movement_no\": \"IDA-2610-002\", \"item_disassembly_date\": \"2026-10-16 00:00:00\", \"issuing_operation_faci\": \"1123598813738675202\", \"stock_movement_no_type\": \"2107022471794724866\", \"item_disassembly_status\": \"Completed\"}"
+   }
+  ],
+  "lines": [
+   {
+    "j": "{\"id\": \"2110936709177978882\", \"item_name\": \"Transfer Case with Magnesium Alloy\", \"line_index\": \"1\", \"item_remark\": \"\", \"location_id\": \"2018912822846582786\", \"batch_number\": \"-\", \"expired_date\": null, \"quantity_uom\": \"2018906563477008392\", \"issuing_plant\": \"1123598813738675202\", \"item_remark_2\": \"\", \"item_remark_3\": \"\", \"item_selection\": \"2094626841323700262\", \"total_quantity\": 5.00000000, \"organization_id\": \"1123598813738675201\", \"manufacturing_date\": null}"
+   },
+   {
+    "j": "{\"id\": \"2110936709177978883\", \"item_name\": \"Differential with POM Gear\", \"line_index\": \"2\", \"item_remark\": \"\", \"location_id\": \"2018912822846582786\", \"batch_number\": \"-\", \"expired_date\": null, \"quantity_uom\": \"2018906563477008392\", \"issuing_plant\": \"1123598813738675202\", \"item_remark_2\": \"\", \"item_remark_3\": \"\", \"item_selection\": \"2094626841323700261\", \"total_quantity\": 2.00000000, \"organization_id\": \"1123598813738675201\", \"manufacturing_date\": null}"
+   }
+  ],
+  "items": [
+   {
+    "j": "{\"id\": \"2098252135296131074\", \"based_uom\": \"2018906563477008392\", \"item_category\": \"2018905941675634689\", \"item_group_id\": null, \"material_code\": \"ITEM_TEST_JN\", \"material_name\": \"ITEM_TEST_JN\", \"stock_control\": 1, \"purchase_unit_price\": null, \"table_uom_conversion\": [{\"base_qty\": 1.000000, \"alt_uom_id\": \"2018906563477008392\"}], \"item_batch_management\": 0, \"batch_number_genaration\": \"According To System Settings\", \"material_costing_method\": null, \"serial_number_management\": 0}"
+   },
+   {
+    "j": "{\"id\": \"2094626841323700262\", \"based_uom\": \"2018906563477008392\", \"item_category\": \"2018905941675634689\", \"item_group_id\": null, \"material_code\": \"TES511\", \"material_name\": \"Transfer Case with Magnesium Alloy\", \"stock_control\": 1, \"purchase_unit_price\": \"0.0000\", \"table_uom_conversion\": [{\"base_qty\": 1.000000, \"alt_uom_id\": \"2018906563477008392\"}], \"item_batch_management\": 0, \"batch_number_genaration\": \"According To System Settings\", \"material_costing_method\": \"First In First Out\", \"serial_number_management\": 0}"
+   },
+   {
+    "j": "{\"id\": \"2094626841323700261\", \"based_uom\": \"2018906563477008392\", \"item_category\": \"2018905941675634689\", \"item_group_id\": null, \"material_code\": \"TES510\", \"material_name\": \"Differential with POM Gear\", \"stock_control\": 1, \"purchase_unit_price\": \"0.0000\", \"table_uom_conversion\": [{\"base_qty\": 1.000000, \"alt_uom_id\": \"2018906563477008392\"}], \"item_batch_management\": 0, \"batch_number_genaration\": \"According To System Settings\", \"material_costing_method\": \"First In First Out\", \"serial_number_management\": 0}"
+   }
+  ],
+  "bins": [
+   {
+    "j": "{\"id\": \"2018912822846582786\", \"bin\": \"A1-B1\"}"
+   }
+  ],
+  "typed": [],
+  "storage": [
+   {
+    "j": "{\"id\": \"2110936709177978882\", \"storage_location_id\": \"2018912759311265793\"}"
+   },
+   {
+    "j": "{\"id\": \"2110936709177978883\", \"storage_location_id\": \"2018912759311265793\"}"
+   }
+  ],
+  "movements": [
+   {
+    "id": "2110936709706461186",
+    "movement": "OUT",
+    "item_id": "2098252135296131074",
+    "bin": "2018912822846582786",
+    "batch": null,
+    "inventory_category": "Unrestricted",
+    "quantity": "1.00000000",
+    "base_qty": "1.00000000",
+    "unit_price": "0E-8",
+    "total_price": "0E-8",
+    "doc_date": "2026-10-16 00:00:00",
+    "mfg": null,
+    "exp": null,
+    "parent_trx_no": "",
+    "uom_id": "2018906563477008392"
+   },
+   {
+    "id": "2110936710406909954",
+    "movement": "IN",
+    "item_id": "2094626841323700262",
+    "bin": "2018912822846582786",
+    "batch": null,
+    "inventory_category": "Unrestricted",
+    "quantity": "5.00000000",
+    "base_qty": "5.00000000",
+    "unit_price": "0E-8",
+    "total_price": "0E-8",
+    "doc_date": "2026-10-16 00:00:00",
+    "mfg": null,
+    "exp": null,
+    "parent_trx_no": "",
+    "uom_id": "2018906563477008392"
+   },
+   {
+    "id": "2110936710855700481",
+    "movement": "IN",
+    "item_id": "2094626841323700261",
+    "bin": "2018912822846582786",
+    "batch": null,
+    "inventory_category": "Unrestricted",
+    "quantity": "2.00000000",
+    "base_qty": "2.00000000",
+    "unit_price": "0E-8",
+    "total_price": "0E-8",
+    "doc_date": "2026-10-16 00:00:00",
+    "mfg": null,
+    "exp": null,
+    "parent_trx_no": "",
+    "uom_id": "2018906563477008392"
+   }
+  ],
+  "batches": [
+   {
+    "id": "2110936710369161217",
+    "batch_number": "",
+    "material_id": "2094626841323700262",
+    "initial_quantity": "5.00000000",
+    "transaction_no": "IDA-2610-002",
+    "plant_id": "1123598813738675202",
+    "organization_id": "1123598813738675201",
+    "remark": "",
+    "remark2": "",
+    "remark3": "",
+    "manufacturing_date": null,
+    "expired_date": null,
+    "parent_transaction_no": "",
+    "is_deleted": 0
+   },
+   {
+    "id": "2110936710830534658",
+    "batch_number": "",
+    "material_id": "2094626841323700261",
+    "initial_quantity": "2.00000000",
+    "transaction_no": "IDA-2610-002",
+    "plant_id": "1123598813738675202",
+    "organization_id": "1123598813738675201",
+    "remark": "",
+    "remark2": "",
+    "remark3": "",
+    "manufacturing_date": null,
+    "expired_date": null,
+    "parent_transaction_no": "",
+    "is_deleted": 0
+   }
+  ],
+  "state": [
+   {
+    "item_disassembly_status": "Completed",
+    "posted_status": "Unposted"
+   }
+  ]
+ }
+}

@@ -2,7 +2,7 @@
 // this key already made, NOT_ELIGIBLE (the form runs the old save instead) or REJECT (a message, nothing written).
 // Stage switches: a case whose stage is off goes back to the old save. 1c (LOADING_BAY, BIN_MOVES): sql_node_PSmove's rows.
 const ASYNC_PICKING_ENABLED = true;
-const STAGE = { FULL_PICKING: true, LOADING_BAY: true, BIN_MOVES: true, AUTO_COMPLETE_GD: false, PICKING_PLAN: false, FORCE_COMPLETE: false };
+const STAGE = { FULL_PICKING: true, LOADING_BAY: true, BIN_MOVES: true, AUTO_COMPLETE_GD: false, PICKING_PLAN: false, FORCE_COMPLETE: true };
 const LOCK_STALE_SEC = 900;
 const MAX_MOVED_GDS = 25;
 const MAX_MOVED_LINES = 500;

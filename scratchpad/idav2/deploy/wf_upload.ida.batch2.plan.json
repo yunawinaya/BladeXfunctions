@@ -1,0 +1,68 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IDA_V2_PREPARE",
+   "dataId": "2112749086439505922",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDA_V2_PREPARE.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IDA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IDA_V2_COMMIT",
+   "dataId": "2112749139006717954",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDA_V2_COMMIT.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IDA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IDA_V2_WORKER",
+   "dataId": "2112749010379997186",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDA_V2_WORKER.json",
+   "smoke": {
+    "request": {
+     "job_id": ""
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  },
+  {
+   "name": "IDA_V2_SUBMIT",
+   "dataId": "2112748971830149121",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDA_V2_SUBMIT.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "",
+     "ida_id": "2110985744909729793",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  }
+ ]
+}

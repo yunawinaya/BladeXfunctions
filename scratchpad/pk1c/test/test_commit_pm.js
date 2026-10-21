@@ -103,7 +103,16 @@ const pm1 = (eng, inp, entry) => runBody(PM1C, inj(PM1C, { code_node_PCentry: en
   eq("PM1: busy, 3 waits so far: wait 4 (120 s)", pm1({ code: "409" }, IN_OK, Object.assign({}, E, { pm1Waits: 3 })).jobRows[0].next_attempt_at, "2026-10-16 12:02:00");
   const gave = pm1({ code: "409" }, IN_OK, Object.assign({}, E, { pm1Waits: 4 }));
   eq("PM1: busy after 4 waits: FAILED + unlock", [gave.result_code, gave.needUnlock, gave.jobRows[0].job_status], ["PK_INVENTORY_LOCK_BUSY", "YES", "FAILED"]);
-  eq("PM1: busy with an intent: retry", [pm1({ code: "409" }, Object.assign({}, IN_OK, { intents: 2 })).result_code, pm1({ code: "409" }, Object.assign({}, IN_OK, { intents: 2 })).jobRows[0].attempt_count], ["PK_STEP_RETRY", 1]);
+  eq("PM1: busy with an intent (engine v12: our own APPLY still held): wait, not a counted retry", [pm1({ code: "409" }, Object.assign({}, IN_OK, { intents: 2 })).result_code, pm1({ code: "409" }, Object.assign({}, IN_OK, { intents: 2 })).jobRows[0].attempt_count], ["PK_LOCK_WAIT", 0]);
+  eq("PM1: busy with an intent after 8 waits: review, the Picking stays locked", [pm1({ code: "409" }, Object.assign({}, IN_OK, { intents: 2 }), Object.assign({}, E, { pm1Waits: 8 })).job_status, pm1({ code: "409" }, Object.assign({}, IN_OK, { intents: 2 }), Object.assign({}, E, { pm1Waits: 8 })).needUnlock], ["REQUIRES_REVIEW", "NO"]);
+  // engine v12: its OWN operation still running (a run that died mid-APPLY) answers 409 for up to 20 min - wait it out
+  const SAME = "the same operation is still running";
+  const same = pm1({ code: "409", result_code: "LOCK_BUSY", message: SAME }, Object.assign({}, IN_OK, { intents: 2 }));
+  eq("PM1: the same operation still running, with intents: wait 1, not a retry", [same.route, same.result_code, same.waitRows[0].step_name, same.jobRows[0].attempt_count, same.needUnlock],
+    ["END", "PK_LOCK_WAIT", "PM1_WAIT|1", 0, "NO"]);
+  eq("PM1: the same operation, 7 waits so far: wait 8 (300 s)", pm1({ code: "409", message: SAME }, Object.assign({}, IN_OK, { intents: 2 }), Object.assign({}, E, { pm1Waits: 7 })).jobRows[0].next_attempt_at, "2026-10-16 12:05:00");
+  const sameGave = pm1({ code: "409", message: SAME }, IN_OK, Object.assign({}, E, { pm1Waits: 8 }));
+  eq("PM1: the same operation after 8 waits: review, never FAILED 'nothing was saved'", [sameGave.job_status, sameGave.needUnlock], ["REQUIRES_REVIEW", "NO"]);
   eq("PM1: 400 -> FAILED + unlock", [pm1({ code: "400", result_code: "INSUFFICIENT" }).result_code, pm1({ code: "400", result_code: "INSUFFICIENT" }).needUnlock], ["PK_INVENTORY_INSUFFICIENT", "YES"]);
   eq("PM1: anything else -> review", pm1({ code: "500", result_code: "REQUIRES_REVIEW" }).job_status, "REQUIRES_REVIEW");
   eq("PM1: no answer -> review, the Picking stays locked", [pm1({}).job_status, pm1({}).needUnlock], ["REQUIRES_REVIEW", "NO"]);

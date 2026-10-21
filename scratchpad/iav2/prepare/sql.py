@@ -12,6 +12,10 @@ import v2build as V  # noqa: E402
 _spec = importlib.util.spec_from_file_location("ia_shared_sql", os.path.join(IAV2, "code", "shared", "sql.py"))
 SHARED = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(SHARED)
+# RES-01 (scratchpad/iasc/res01): the IA's own holds, its running hold tickets and its hold status
+_rspec = importlib.util.spec_from_file_location("iasc_shared_sql", os.path.join(IAV2, "..", "iasc", "code", "shared", "sql.py"))
+IASC = importlib.util.module_from_spec(_rspec)
+_rspec.loader.exec_module(IASC)
 
 GUARD = "code_node_IPguard"
 ENTRY = "code_node_IPentry"
@@ -20,6 +24,7 @@ T = "'{{node:%s.data.tenantId}}'" % GUARD
 JOB = "{{node:%s.data.jobId}}" % GUARD
 ET = "{{node:%s.data.tenantId}}" % ENTRY
 IA = "{{node:%s.data.iaId}}" % ENTRY
+EORG = "{{node:%s.data.organizationId}}" % ENTRY
 
 # linked_ia (+ its number and numbering rule, for the link): the IA an unlinked SUBMIT left Processing, unless a later lock names another key
 JOB_SQL = """SELECT DATE_FORMAT(n.t, '%%Y-%%m-%%d %%H:%%i:%%s') AS db_now,
@@ -77,6 +82,8 @@ READS = {
     "lines": (V.sub(SHARED.FP_LINES, T=ET, IA=IA), ["j"]),
     "items": (V.sub(SHARED.ITEMS, T=ET, ITEMS=ITEM_IDS), ["j"]),
     "bins": (BINS_SQL, ["j"]),
+    # RES-01 R4: read in the same fork-join (no extra round trip); the plan uses it only with its switch on
+    "res": (V.sub(IASC.RES_OWN_HOLD, T=ET, IA=IA, IAQ=IA, ORG=EORG), ["j"]),
 }
 for _k, (_sql, _cols) in READS.items():
     assert "@" not in _sql, _k

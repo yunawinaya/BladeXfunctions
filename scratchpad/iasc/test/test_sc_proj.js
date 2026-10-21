@@ -35,16 +35,34 @@ eq("SC04 saved Draft60 -> suggest 40", proj({ ias: [ia("1", "Draft", 60)] }).tot
 eq("step 2 Draft60 + Draft40 -> 0", proj({ ias: [ia("1", "Draft", 60), ia("2", "Draft", 40)] }).totals.suggestion, 0);
 let r = proj({ ias: [ia("1", "Completed", 50, { planned_output_qty: "60" }), ia("2", "Draft", 40)] });
 eq("step 3 completed 50 of plan 60, Draft40: 100/0/100 planned 100 produced 50 open 40 suggest 10", T(r), [100, 0, 100, 100, 50, 40, 10]);
+// BA handoff FIX-01: with both deliveries and linked production, nothing records which delivery came from which IA: the remaining
+// demand lies between ordered - delivered - produced - open and ordered - max(delivered, produced) - open; only equal bounds are exact
 r = proj({ line: soLine({ delivered_qty: "30" }), ias: [ia("1", "Completed", 50, { planned_output_qty: "60" }), ia("2", "Draft", 40)] });
-eq("step 5 delivered 30: undelivered 70, suggest still 10", T(r), [100, 30, 70, 100, 50, 40, 10]);
+eq("step 5 delivered 30 + produced 50: the overlap is unknown -> unavailable (0 to 10)", [T(r), r.totals.unavailable], [[100, 30, 70, 100, 50, 40, null], "OVERLAP"]);
 r = proj({ line: soLine({ delivered_qty: "30" }), ias: [ia("1", "Completed", 50, { planned_output_qty: "60" }), ia("2", "Completed", 40)] });
-eq("step 6 IA2 completed 40: produced 90, suggest 10", T(r), [100, 30, 70, 100, 90, 0, 10]);
+eq("step 6 delivered 30 + produced 90: unavailable (0 to 10)", [T(r), r.totals.unavailable], [[100, 30, 70, 100, 90, 0, null], "OVERLAP"]);
+r = proj({ line: soLine({ delivered_qty: "40" }), ias: [ia("1", "Completed", 30)] });
+eq("BA example: delivered 40 (maybe unrelated stock) + produced 30 unused -> unavailable (30 to 60)", [r.totals.suggestion, r.totals.unavailable], [null, "OVERLAP"]);
+r = proj({ line: soLine({ delivered_qty: "40" }) });
+eq("delivered 40, nothing produced: exact 60", [r.totals.suggestion, r.totals.unavailable], [60, ""]);
+r = proj({ ias: [ia("1", "Completed", 30), ia("2", "Draft", 20)] });
+eq("produced 30, nothing delivered: exact 50", [r.totals.suggestion, r.totals.unavailable], [50, ""]);
+r = proj({ line: soLine({ delivered_qty: "100" }), ias: [ia("1", "Completed", 30)] });
+eq("delivered 100 + produced 30: both bounds 0 -> exact 0", [r.totals.suggestion, r.totals.unavailable], [0, ""]);
+r = proj({ line: soLine({ delivered_qty: "100" }), ias: [ia("1", "Completed", 30)], proposal: { qty: 10, uomId: EA } });
+eq("over the order whatever the overlap: excess at least 10", [r.totals.excess, r.totals.excessExact], [10, false]);
+yes("EXCESS says 'at least' when the overlap is unknown", /by at least 10 /.test((r.warnings.find((w) => w.code === "EXCESS") || {}).text || ""));
+r = proj({ line: soLine({ delivered_qty: "40" }), ias: [ia("1", "Completed", 30)], proposal: { qty: 10, uomId: EA } });
+eq("unknown overlap, not certainly over: no excess", [r.totals.excess, (r.warnings.find((w) => w.code === "EXCESS") || null)], [0, null]);
+r = proj({ line: soLine({ line_status: "Cancelled", delivered_qty: "40" }), ias: [ia("1", "Completed", 30)] });
+eq("an inactive line: a genuine 0, not unavailable", [r.totals.suggestion, r.totals.unavailable], [0, ""]);
 r = proj({ ias: [ia("1", "Draft", 60), ia("2", "Completed", 30, { planned_output_qty: "40" })] });
 eq("SC13 Draft60 + 40/30 completed: planned 100 produced 30 open 60 suggest 10", T(r), [100, 0, 100, 100, 30, 60, 10]);
 
 // ---------------------------------------------------------------- excess and the current IA
 r = proj({ ias: [ia("1", "Draft", 60)], proposal: { qty: 50, uomId: EA } });
-eq("SC05 proposal 50 next to Draft60: suggest 40, excess 10", [r.totals.suggestion, r.totals.excess], [40, 10]);
+eq("SC05 proposal 50 next to Draft60: suggest 40, excess 10 (exact)", [r.totals.suggestion, r.totals.excess, r.totals.excessExact], [40, 10, true]);
+yes("SC05 EXCESS says 'by 10' (exact)", /by 10 /.test((r.warnings.find((w) => w.code === "EXCESS") || {}).text || ""));
 yes("SC05 excess warns", codes(r).indexOf("EXCESS") >= 0);
 r = proj({ ias: [ia("1", "Draft", 60), ia("2", "Draft", 30)], excludeIaId: "2", proposal: { qty: 50, uomId: EA } });
 eq("SC24 the current Draft counts once (its proposal, not its stored 30)", [r.totals.openOthers, r.totals.suggestion, r.totals.excess], [60, 40, 10]);
@@ -69,7 +87,7 @@ eq("an IA row carries its own UOM (the page shows planned / actual in it)", r.ia
 r = proj({ line: soLine({ so_item_uom: CTN, so_quantity: "10" }), ias: [ia("1", "Draft", 24)] });
 eq("line in CTN: 24 EA = 2 CTN", [r.uomId, r.totals.open, r.totals.suggestion], [CTN, 2, 8]);
 r = proj({ ias: [ia("1", "Draft", 2, { item_uom: BAG })] });
-eq("unconvertible IA: incomplete, no suggestion", [r.totals.complete, r.totals.suggestion], [false, null]);
+eq("unconvertible IA: incomplete, no suggestion", [r.totals.complete, r.totals.suggestion, r.totals.unavailable], [false, null, "UNCONVERTIBLE"]);
 yes("unconvertible warns", codes(r).indexOf("UNCONVERTIBLE") >= 0);
 eq("residue-free sums", proj({ ias: [ia("1", "Draft", 0.1), ia("2", "Draft", 0.2)] }).totals.open, 0.3);
 
@@ -125,6 +143,9 @@ const lines = [soLine({ id: "51" }), soLine({ id: "52", line_index: 2, so_quanti
 const c = P.scCandidates({ rows: lines.map((l) => ({ line: l, header: header() })), ias: [Object.assign(ia("1", "Draft", 4), { source_so_line_id: "52" })],
   fg: fg, iaItemId: FG, iaOrgId: "7" });
 eq("candidates: eligible lines with their suggestion", c.map((x) => [x.lineId, x.suggestion]), [["51", 100], ["52", 6]]);
+const c2 = P.scCandidates({ rows: [{ line: soLine({ id: "54", delivered_qty: "40" }), header: header() }], ias: [Object.assign(ia("1", "Completed", 30), { source_so_line_id: "54" })],
+  fg: fg, iaItemId: FG, iaOrgId: "7" });
+eq("candidates: the same rule (delivered 40 + produced 30 -> no suggestion)", c2.map((x) => [x.lineId, x.suggestion]), [["54", null]]);
 
 console.log((fails ? "FAILED " + fails : "ok") + " - " + n + " checks");
 process.exit(fails ? 1 : 0);

@@ -1,0 +1,270 @@
+{
+ "pulled_from": "dev (.dbtools/db --dev, SELECT only); prod compared by normalized JSON",
+ "files": {
+  "IDA_SAVE.v7.json": {
+   "id": "2107305535347552257",
+   "role": "base of the guarded classic v7; lifted bodies (code_fillback, code_required, code_item_ids, code_validate, code_batch_plan, code_cost_alloc)",
+   "history_id": "2112787024012713985",
+   "created": "2026-10-21 14:04:14.857000",
+   "md5": "b87e2ac8b06956eea14baa22804bde5c",
+   "designing": [],
+   "prod": "absent"
+  },
+  "CHECK_REQUIRED_FIELD.v8.json": {
+   "id": "1988831880511062018",
+   "role": "lifted in SUBMIT",
+   "history_id": "1996161689612054530",
+   "created": "2025-12-03 18:16:48.351000",
+   "md5": "c3c37c0e255bb39851347b527f7a8199",
+   "designing": [
+    {
+     "v": 9,
+     "same": true
+    }
+   ],
+   "prod_version": 8,
+   "prod_same_normalized": true,
+   "prod_md5": "c3c37c0e255bb39851347b527f7a8199"
+  },
+  "GLOBAL_INVENTORY_VALIDATION.v11.json": {
+   "id": "2056291728334573570",
+   "role": "classic 402 pre-check callee; message texts; WA screen",
+   "history_id": "2102249942294065154",
+   "created": "2026-09-22 12:13:38.815000",
+   "md5": "248c9eb105a5a69d3334fd0a997f2424",
+   "designing": [],
+   "prod_version": 11,
+   "prod_same_normalized": true,
+   "prod_md5": "248c9eb105a5a69d3334fd0a997f2424"
+  },
+  "GENERATE_BATCH.v20.json": {
+   "id": "2060178784435535873",
+   "role": "the numbering the in-memory batchnum.js reproduces (SUBMIT dry run, COMMIT D1)",
+   "history_id": "2102250079493943298",
+   "created": "2026-09-22 12:14:11.526000",
+   "md5": "d32086b10fb3ba385938be390b178c4a",
+   "designing": [],
+   "prod_version": 20,
+   "prod_same_normalized": true,
+   "prod_md5": "d32086b10fb3ba385938be390b178c4a"
+  },
+  "INVENTORY_BULK_APPLY.v10.json": {
+   "id": "2109916822821744641",
+   "role": "the engine, called unchanged by COMMIT D2 / D3 (two operations)",
+   "history_id": "2111082157633343490",
+   "created": "2026-10-16 21:09:43.046000",
+   "md5": "42e1a34ffc73bc7121019573075378ae",
+   "designing": [],
+   "prod": "absent"
+  },
+  "INVENTORY_LOCK_TOKENS.v5.json": {
+   "id": "2105936479113383937",
+   "role": "called by the engine",
+   "history_id": "2111074217052508161",
+   "created": "2026-10-16 20:38:09.864000",
+   "md5": "faf5ea95a2d2ee02000123d07b0dbb2e",
+   "designing": [],
+   "prod": "absent"
+  },
+  "INVENTORY_LOCK_SEED.v5.json": {
+   "id": "2111078356478234625",
+   "role": "called by the engine",
+   "history_id": "2111081505179996162",
+   "created": "2026-10-16 21:07:07.489000",
+   "md5": "c2a4d8f7c39785c429200df60324df44",
+   "designing": [],
+   "prod": "absent"
+  },
+  "ADD_INVENTORY.v65.json": {
+   "id": "2012005532688723970",
+   "role": "classic IN callee; Batch row columns (add_node_F9KqZLfd); parity reference",
+   "history_id": "2100854466608758786",
+   "created": "2026-09-18 15:48:31.484000",
+   "md5": "5fcf78a1a39eff466033c381513d5527",
+   "designing": [
+    {
+     "v": 59,
+     "same": false
+    },
+    {
+     "v": 60,
+     "same": false
+    },
+    {
+     "v": 61,
+     "same": false
+    },
+    {
+     "v": 62,
+     "same": false
+    },
+    {
+     "v": 63,
+     "same": false
+    }
+   ],
+   "prod_version": 65,
+   "prod_same_normalized": true,
+   "prod_md5": "5fcf78a1a39eff466033c381513d5527"
+  },
+  "SUBTRACT_INVENTORY.v59.json": {
+   "id": "2012096660219564034",
+   "role": "classic OUT callee; parity reference",
+   "history_id": "2106937625105862657",
+   "created": "2026-10-05 10:40:49.490000",
+   "md5": "a6b5a04125b9ebacd63596239f3ad3b7",
+   "designing": [
+    {
+     "v": 46,
+     "same": false
+    },
+    {
+     "v": 49,
+     "same": false
+    },
+    {
+     "v": 52,
+     "same": false
+    },
+    {
+     "v": 53,
+     "same": false
+    }
+   ],
+   "prod_version": 58,
+   "prod_same_normalized": false,
+   "prod_md5": "4ab79c01b5c04296f9f530b0ee773aad"
+  },
+  "HANDLING_UNIT.v38.json": {
+   "id": "2037062451509002241",
+   "role": "classic HU unload callee (HU IDAs stay classic)",
+   "history_id": "2108117647857668097",
+   "created": "2026-10-08 16:49:48.838000",
+   "md5": "0cc45236a253f3cca1333e1c256fb05f",
+   "designing": [],
+   "prod_version": 36,
+   "prod_same_normalized": true,
+   "prod_md5": "0cc45236a253f3cca1333e1c256fb05f"
+  },
+  "ACC_PRODUCER.v119.json": {
+   "id": "2013511169625042946",
+   "role": "the client's post call (post_item_disassembly)",
+   "history_id": "2103423917572407297",
+   "created": "2026-09-25 17:58:36.331000",
+   "md5": "29293f486626f50695412e165be3d2f9",
+   "designing": [
+    {
+     "v": 118,
+     "same": false
+    },
+    {
+     "v": 120,
+     "same": true
+    },
+    {
+     "v": 121,
+     "same": false
+    }
+   ],
+   "prod_version": 68,
+   "prod_same_normalized": false,
+   "prod_md5": "9960f2fdec29c6d58a3d9f1e6e892d24"
+  },
+  "SQL_FETCH_POST_DATA.v225.json": {
+   "id": "2018512118312943617",
+   "role": "posting fetch preconditions (POST ITEM DISASSEMBLY branch)",
+   "history_id": "2112382555948945410",
+   "created": "2026-10-20 11:17:02.154000",
+   "md5": "2b587f1399e6acdd7197798a83c2a42a",
+   "designing": [
+    {
+     "v": 160,
+     "same": false
+    },
+    {
+     "v": 161,
+     "same": false
+    },
+    {
+     "v": 166,
+     "same": false
+    },
+    {
+     "v": 182,
+     "same": false
+    },
+    {
+     "v": 184,
+     "same": false
+    },
+    {
+     "v": 186,
+     "same": false
+    },
+    {
+     "v": 202,
+     "same": false
+    }
+   ],
+   "prod_version": 180,
+   "prod_same_normalized": false,
+   "prod_md5": "20d54cea92a44cc72f5516984056d502"
+  },
+  "ATC_FETCH_POST_DATA.v146.json": {
+   "id": "2034900556032634882",
+   "role": "AutoCount posting fetch (IDA branch)",
+   "history_id": "2112116762261233666",
+   "created": "2026-10-19 17:40:52.002000",
+   "md5": "0c314558bb0e3458f535ad3b740e19cb",
+   "designing": [
+    {
+     "v": 97,
+     "same": false
+    },
+    {
+     "v": 117,
+     "same": false
+    },
+    {
+     "v": 134,
+     "same": false
+    },
+    {
+     "v": 147,
+     "same": true
+    }
+   ],
+   "prod_version": 122,
+   "prod_same_normalized": false,
+   "prod_md5": "4c2a2e805a8bc994a7512269bdc1e0bc"
+  },
+  "ida_form_v36.json": {
+   "table_id": "2106937624568991746",
+   "history_id": "2112787015636688898",
+   "created": "2026-10-21 14:04:13",
+   "md5": "eda781e9ccfd72d0fb6ebe665a45de32",
+   "working_copy_same": true,
+   "prod": "absent"
+  },
+  "schema_sm_item_disassembly.json": {
+   "table_id": "2106937624568991746",
+   "md5": "3595dfb003cfaf6b5f1fa7ea001dd34b"
+  },
+  "schema_sm_item_disassembly_tlm8ve69_sub.json": {
+   "table_id": "2107013922280640514",
+   "md5": "7f13040d2a55856f80cfc9d64756c299"
+  },
+  "schema_batch.json": {
+   "table_id": "1902719754154655746",
+   "md5": "530475b523fa418e1ed2c42f791c748f"
+  },
+  "ida_list_v17.json": {
+   "page_id": "2107013669846454273",
+   "history_id": "2110915005600935937",
+   "created": "2026-10-16 10:05:31",
+   "md5": "768a604bc10b23c70c660db7c506e2a4",
+   "designing": [],
+   "prod": "absent"
+  }
+ }
+}

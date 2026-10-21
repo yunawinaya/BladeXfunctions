@@ -98,7 +98,7 @@
    "blocks": []
   },
   {
-   "id": "code_node_XWguard",
+   "id": "code_node_XWguard2",
    "type": "code-node",
    "data": {
     "language": "javascript",
@@ -110,7 +110,7 @@
     },
     "response_json": [
      {
-      "key": "c2sycriq",
+      "key": "0adac97e",
       "name": "route",
       "title": "route",
       "description": "",
@@ -119,7 +119,7 @@
       "children": []
      },
      {
-      "key": "em8jn8y1",
+      "key": "ozdko99o",
       "name": "jobId",
       "title": "jobId",
       "description": "",
@@ -128,7 +128,7 @@
       "children": []
      },
      {
-      "key": "ukxa3j6e",
+      "key": "e8u1h8if",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -137,7 +137,7 @@
       "children": []
      },
      {
-      "key": "slmy5uhe",
+      "key": "vr2esgfz",
       "name": "nonce",
       "title": "nonce",
       "description": "",
@@ -146,7 +146,7 @@
       "children": []
      },
      {
-      "key": "qtyqg2u1",
+      "key": "39vescas",
       "name": "leaseOwner",
       "title": "leaseOwner",
       "description": "",
@@ -155,7 +155,7 @@
       "children": []
      },
      {
-      "key": "vubvowjw",
+      "key": "izu7j03e",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -164,7 +164,7 @@
       "children": []
      },
      {
-      "key": "61dquaqr",
+      "key": "s6cz7qfo",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -206,7 +206,7 @@
     },
     "expression": {
      "type": "javascript",
-     "code": "'{{node:code_node_XWguard.data.route}}' == 'REJECT'"
+     "code": "'{{node:code_node_XWguard2.data.route}}' == 'REJECT'"
     }
    },
    "blocks": [
@@ -226,11 +226,11 @@
         "timeout": 30000,
         "script": {
          "type": "javascript",
-         "code": "// GD_CANCEL_WORKER - Result (REJECTED_INPUT): the planned jobs as read back at the end of the tick\nconst workerResult = function workerResult(guard, plan, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id));\n  const byId = {};\n  for (const r of list) byId[s(r.id)] = r;\n  const jobs = ((plan && plan.items) || []).map((it) => {\n    const j = byId[it.jobId] || null;\n    return { job_id: it.jobId, before: it.jobStatus, job_status: j ? s(j.job_status) : \"\", error_code: j ? s(j.error_code) : \"\", gd_id: j ? s(j.gd_id) : \"\", attempt_count: j ? s(j.attempt_count) : \"\" };\n  });\n  const first = jobs[0] || null;\n  const firstRow = first ? byId[first.job_id] || null : null;\n  return { worker_route: guard.route === \"REJECT\" ? \"REJECTED\" : !plan || plan.route === \"IDLE\" ? \"IDLE\" : \"WORKED\", processed: String(jobs.length), jobs: JSON.stringify(jobs), job_id: first ? first.job_id : \"\", job_status: first ? first.job_status : \"\", result_code: firstRow && s(firstRow.error_code) ? s(firstRow.error_code) : s(guard.result_code), result_message: firstRow && s(firstRow.error_message) ? s(firstRow.error_message) : s(guard.result_message) || s(plan && plan.result_message), gd_id: first ? first.gd_id : \"\", evidence: JSON.stringify({ v: 1, workflow: \"GD_CANCEL_WORKER\", path: \"REJECTED_INPUT\" }) };\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst plan = null;\nconst res = workerResult(guard, plan, []);\nconsole.log(\"worker result\", JSON.stringify({ route: res.worker_route, processed: res.processed }));\nreturn res;"
+         "code": "// GD_CANCEL_WORKER - Result (REJECTED_INPUT): the planned jobs as read back at the end of the tick\nconst workerResult = function workerResult(guard, plan, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id));\n  const byId = {};\n  for (const r of list) byId[s(r.id)] = r;\n  const jobs = ((plan && plan.items) || []).map((it) => {\n    const j = byId[it.jobId] || null;\n    return { job_id: it.jobId, before: it.jobStatus, job_status: j ? s(j.job_status) : \"\", error_code: j ? s(j.error_code) : \"\", gd_id: j ? s(j.gd_id) : \"\", attempt_count: j ? s(j.attempt_count) : \"\" };\n  });\n  const first = jobs[0] || null;\n  const firstRow = first ? byId[first.job_id] || null : null;\n  return { worker_route: guard.route === \"REJECT\" ? \"REJECTED\" : !plan || plan.route === \"IDLE\" ? \"IDLE\" : \"WORKED\", processed: String(jobs.length), jobs: JSON.stringify(jobs), job_id: first ? first.job_id : \"\", job_status: first ? first.job_status : \"\", result_code: firstRow && s(firstRow.error_code) ? s(firstRow.error_code) : s(guard.result_code), result_message: firstRow && s(firstRow.error_message) ? s(firstRow.error_message) : s(guard.result_message) || s(plan && plan.result_message), gd_id: first ? first.gd_id : \"\", evidence: JSON.stringify({ v: 1, workflow: \"GD_CANCEL_WORKER\", path: \"REJECTED_INPUT\" }) };\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst plan = null;\nconst res = workerResult(guard, plan, []);\nconsole.log(\"worker result\", JSON.stringify({ route: res.worker_route, processed: res.processed }));\nreturn res;"
         },
         "response_json": [
          {
-          "key": "umdgx17c",
+          "key": "32uzcvig",
           "name": "worker_route",
           "title": "worker_route",
           "description": "",
@@ -239,7 +239,7 @@
           "children": []
          },
          {
-          "key": "4lv0k44m",
+          "key": "1ko3bh6z",
           "name": "processed",
           "title": "processed",
           "description": "",
@@ -248,7 +248,7 @@
           "children": []
          },
          {
-          "key": "fyf6fbuk",
+          "key": "fzmgfpak",
           "name": "jobs",
           "title": "jobs",
           "description": "",
@@ -257,7 +257,7 @@
           "children": []
          },
          {
-          "key": "ojq43qbj",
+          "key": "ei3w5c6x",
           "name": "job_id",
           "title": "job_id",
           "description": "",
@@ -266,7 +266,7 @@
           "children": []
          },
          {
-          "key": "o1b3aohd",
+          "key": "nax09br6",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -275,7 +275,7 @@
           "children": []
          },
          {
-          "key": "kbim0l5a",
+          "key": "2dv8kvi9",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -284,7 +284,7 @@
           "children": []
          },
          {
-          "key": "m9tlo71q",
+          "key": "7hpbxks1",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -293,7 +293,7 @@
           "children": []
          },
          {
-          "key": "x2j9vagm",
+          "key": "nof6tvwh",
           "name": "gd_id",
           "title": "gd_id",
           "description": "",
@@ -302,7 +302,7 @@
           "children": []
          },
          {
-          "key": "bn182ku0",
+          "key": "qrhkehh2",
           "name": "evidence",
           "title": "evidence",
           "description": "",
@@ -451,11 +451,11 @@
     "name": "Poll: the due CANCEL_GD jobs of the tenant (at most 5, oldest first; lease expired or never set; backoff over; no live claim row) + DB clock",
     "script": {
      "type": "sql",
-     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       x.id, x.organization_id, x.gd_id, x.job_status, x.progress_percent, x.progress_message, x.attempt_count, x.next_attempt_at, x.lease_owner,\n       x.lease_expires_at, x.dead_lease, x.row_version, x.error_code, x.error_message, x.error_details, x.claim_id, x.claim_started_at, x.claim_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN (SELECT CAST(j.id AS CHAR) AS id,\n                    j.organization_id,\n                    (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n                    j.job_status,\n                    j.progress_percent,\n                    j.progress_message,\n                    j.attempt_count,\n                    DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n                    j.lease_owner,\n                    DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n                    (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= NOW(3)) AS dead_lease,\n                    j.row_version,\n                    j.error_code,\n                    j.error_message,\n                    j.error_details,\n                    CAST(c.id AS CHAR) AS claim_id,\n                    DATE_FORMAT(c.started_at, '%Y-%m-%d %H:%i:%s') AS claim_started_at,\n                    c.result_ref AS claim_owner,\n                    j.create_time AS created\n               FROM gd_async_job j\n               LEFT JOIN gd_publish_step c\n                 ON c.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n                AND c.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n                AND c.step_name = (CONCAT('W0_CLAIM_', j.row_version) COLLATE utf8mb4_general_ci)\n                AND c.is_deleted = 0\n               LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)\n              WHERE j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n                AND j.is_deleted = 0\n                AND j.command = 'CANCEL_GD'\n                AND ({{node:code_node_XWguard.data.jobId}} = 0 OR j.id = {{node:code_node_XWguard.data.jobId}})\n                AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD')\n                AND (j.lease_expires_at IS NULL OR j.lease_expires_at <= NOW(3))\n                AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW(3))\n                AND (c.id IS NULL OR c.started_at <= NOW(3) - INTERVAL 10 MINUTE)\n              ORDER BY j.create_time, j.id\n              LIMIT 5) x\n    ON 1 = 1"
+     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       x.id, x.organization_id, x.gd_id, x.job_status, x.progress_percent, x.progress_message, x.attempt_count, x.next_attempt_at, x.lease_owner,\n       x.lease_expires_at, x.dead_lease, x.row_version, x.error_code, x.error_message, x.error_details, x.claim_id, x.claim_started_at, x.claim_owner\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN (SELECT CAST(j.id AS CHAR) AS id,\n                    j.organization_id,\n                    (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n                    j.job_status,\n                    j.progress_percent,\n                    j.progress_message,\n                    j.attempt_count,\n                    DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n                    j.lease_owner,\n                    DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n                    (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= NOW(3)) AS dead_lease,\n                    j.row_version,\n                    j.error_code,\n                    j.error_message,\n                    j.error_details,\n                    CAST(c.id AS CHAR) AS claim_id,\n                    DATE_FORMAT(c.started_at, '%Y-%m-%d %H:%i:%s') AS claim_started_at,\n                    c.result_ref AS claim_owner,\n                    j.create_time AS created\n               FROM gd_async_job j\n               LEFT JOIN gd_publish_step c\n                 ON c.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n                AND c.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n                AND c.step_name = (CONCAT('W0_CLAIM_', j.row_version) COLLATE utf8mb4_general_ci)\n                AND c.is_deleted = 0\n               LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)\n              WHERE j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n                AND j.is_deleted = 0\n                AND j.command = 'CANCEL_GD'\n                AND ({{node:code_node_XWguard2.data.jobId}} = 0 OR j.id = {{node:code_node_XWguard2.data.jobId}})\n                AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD')\n                AND (j.lease_expires_at IS NULL OR j.lease_expires_at <= NOW(3))\n                AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW(3))\n                AND (c.id IS NULL OR c.started_at <= NOW(3) - INTERVAL 10 MINUTE)\n              ORDER BY j.create_time, j.id\n              LIMIT 5) x\n    ON 1 = 1"
     },
     "response_json": [
      {
-      "key": "fhyd4qib",
+      "key": "9jw8066q",
       "name": "db_now",
       "title": "db_now",
       "description": "",
@@ -464,7 +464,7 @@
       "children": []
      },
      {
-      "key": "n8b2ogld",
+      "key": "6re4u2z5",
       "name": "id",
       "title": "id",
       "description": "",
@@ -473,7 +473,7 @@
       "children": []
      },
      {
-      "key": "4vggtkg0",
+      "key": "it0u33ll",
       "name": "organization_id",
       "title": "organization_id",
       "description": "",
@@ -482,7 +482,7 @@
       "children": []
      },
      {
-      "key": "6rn3ggk0",
+      "key": "492zsuj7",
       "name": "gd_id",
       "title": "gd_id",
       "description": "",
@@ -491,7 +491,7 @@
       "children": []
      },
      {
-      "key": "82y8g3mq",
+      "key": "9k4ohgxp",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -500,7 +500,7 @@
       "children": []
      },
      {
-      "key": "3pves0h7",
+      "key": "zgdvvjxf",
       "name": "progress_percent",
       "title": "progress_percent",
       "description": "",
@@ -509,7 +509,7 @@
       "children": []
      },
      {
-      "key": "j0ou8qk6",
+      "key": "7iar4nfs",
       "name": "progress_message",
       "title": "progress_message",
       "description": "",
@@ -518,7 +518,7 @@
       "children": []
      },
      {
-      "key": "j8usjoht",
+      "key": "8269fkwi",
       "name": "attempt_count",
       "title": "attempt_count",
       "description": "",
@@ -527,7 +527,7 @@
       "children": []
      },
      {
-      "key": "19mhudai",
+      "key": "h2yf8cpx",
       "name": "next_attempt_at",
       "title": "next_attempt_at",
       "description": "",
@@ -536,7 +536,7 @@
       "children": []
      },
      {
-      "key": "vvxdboj6",
+      "key": "6ina97ak",
       "name": "lease_owner",
       "title": "lease_owner",
       "description": "",
@@ -545,7 +545,7 @@
       "children": []
      },
      {
-      "key": "cxptt686",
+      "key": "qja58pmr",
       "name": "lease_expires_at",
       "title": "lease_expires_at",
       "description": "",
@@ -554,7 +554,7 @@
       "children": []
      },
      {
-      "key": "a7qkueg2",
+      "key": "n8ep3rdi",
       "name": "dead_lease",
       "title": "dead_lease",
       "description": "",
@@ -563,7 +563,7 @@
       "children": []
      },
      {
-      "key": "d992fo3e",
+      "key": "csq8r8s9",
       "name": "row_version",
       "title": "row_version",
       "description": "",
@@ -572,7 +572,7 @@
       "children": []
      },
      {
-      "key": "uu5tlwqx",
+      "key": "ip0rwo28",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -581,7 +581,7 @@
       "children": []
      },
      {
-      "key": "4xvdonoj",
+      "key": "kznb8nhy",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -590,7 +590,7 @@
       "children": []
      },
      {
-      "key": "7i7q1sqf",
+      "key": "vo4acvw5",
       "name": "error_details",
       "title": "error_details",
       "description": "",
@@ -599,7 +599,7 @@
       "children": []
      },
      {
-      "key": "oj9l3snb",
+      "key": "xzb6if0t",
       "name": "claim_id",
       "title": "claim_id",
       "description": "",
@@ -608,7 +608,7 @@
       "children": []
      },
      {
-      "key": "m1hzvx9x",
+      "key": "111ux8k4",
       "name": "claim_started_at",
       "title": "claim_started_at",
       "description": "",
@@ -617,7 +617,7 @@
       "children": []
      },
      {
-      "key": "trzhpyxt",
+      "key": "qajicigi",
       "name": "claim_owner",
       "title": "claim_owner",
       "description": "",
@@ -638,11 +638,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GD_CANCEL_WORKER - Plan: the due jobs (at most 5) -> the loop's items, the run start\nconst workerItem = function workerItem(row) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const dead = String(row.dead_lease) === \"1\";\n  const claimed = s(row.claim_id) !== \"\";\n  return { jobId: s(row.id), organizationId: s(row.organization_id), gdId: s(row.gd_id), jobStatus: s(row.job_status), progressPercent: Number(row.progress_percent) || 0, progressMessage: s(row.progress_message), attempts: Number(row.attempt_count) || 0, nextAttemptAt: row.next_attempt_at || null, leaseOwner: row.lease_owner || null, leaseExpiresAt: row.lease_expires_at || null, deadLease: dead ? \"YES\" : \"NO\", deadOwner: dead ? s(row.lease_owner) : \"\", deadClaim: claimed && String(row.claim_live) !== \"1\" ? \"YES\" : \"NO\", claimOwner: claimed ? s(row.claim_owner) : \"\", rowVersion: Number(row.row_version) || 0, errorCode: row.error_code || null, errorMessage: row.error_message || null, errorDetails: row.error_details || null, leaseLive: String(row.lease_live) === \"1\" ? \"YES\" : \"NO\", dueNow: String(row.due_now) === \"1\" ? \"YES\" : \"NO\", gateClosed: String(row.claim_live) === \"1\" ? \"a live worker claim row W0_CLAIM_\" + s(row.row_version) + \" of \" + s(row.claim_owner) : \"\" };\n};\nconst workerPlan = function workerPlan(guard, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) : \"\";\n  const items = list.filter((r) => s(r.id)).map(workerItem);\n  const ids = items.map((i) => i.jobId).filter((x) => /^[0-9]{1,20}$/.test(x));\n  return { route: items.length ? \"WORK\" : \"IDLE\", dbNow: dbNow, runStart: dbNow, items: items, count: items.length, jobIdsSql: ids.length ? ids.join(\",\") : \"0\", result_code: \"\", result_message: items.length ? items.length + \" due job(s)\" : \"no due job\" };\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst res = workerPlan(guard, [{{node:sql_node_XWpoll.data}}][0]);\nconsole.log(\"worker plan\", JSON.stringify({ route: res.route, count: res.count, jobs: res.items.map((i) => i.jobId + \":\" + i.jobStatus + (i.deadLease === \"YES\" ? \":deadLease\" : \"\") + (i.deadClaim === \"YES\" ? \":deadClaim\" : \"\")) }));\nreturn res;"
+     "code": "// GD_CANCEL_WORKER - Plan: the due jobs (at most 5) -> the loop's items, the run start\nconst workerItem = function workerItem(row) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const dead = String(row.dead_lease) === \"1\";\n  const claimed = s(row.claim_id) !== \"\";\n  return { jobId: s(row.id), organizationId: s(row.organization_id), gdId: s(row.gd_id), jobStatus: s(row.job_status), progressPercent: Number(row.progress_percent) || 0, progressMessage: s(row.progress_message), attempts: Number(row.attempt_count) || 0, nextAttemptAt: row.next_attempt_at || null, leaseOwner: row.lease_owner || null, leaseExpiresAt: row.lease_expires_at || null, deadLease: dead ? \"YES\" : \"NO\", deadOwner: dead ? s(row.lease_owner) : \"\", deadClaim: claimed && String(row.claim_live) !== \"1\" ? \"YES\" : \"NO\", claimOwner: claimed ? s(row.claim_owner) : \"\", rowVersion: Number(row.row_version) || 0, errorCode: row.error_code || null, errorMessage: row.error_message || null, errorDetails: row.error_details || null, leaseLive: String(row.lease_live) === \"1\" ? \"YES\" : \"NO\", dueNow: String(row.due_now) === \"1\" ? \"YES\" : \"NO\", gateClosed: String(row.claim_live) === \"1\" ? \"a live worker claim row W0_CLAIM_\" + s(row.row_version) + \" of \" + s(row.claim_owner) : \"\" };\n};\nconst workerPlan = function workerPlan(guard, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) : \"\";\n  const items = list.filter((r) => s(r.id)).map(workerItem);\n  const ids = items.map((i) => i.jobId).filter((x) => /^[0-9]{1,20}$/.test(x));\n  return { route: items.length ? \"WORK\" : \"IDLE\", dbNow: dbNow, runStart: dbNow, items: items, count: items.length, jobIdsSql: ids.length ? ids.join(\",\") : \"0\", result_code: \"\", result_message: items.length ? items.length + \" due job(s)\" : \"no due job\" };\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst res = workerPlan(guard, [{{node:sql_node_XWpoll.data}}][0]);\nconsole.log(\"worker plan\", JSON.stringify({ route: res.route, count: res.count, jobs: res.items.map((i) => i.jobId + \":\" + i.jobStatus + (i.deadLease === \"YES\" ? \":deadLease\" : \"\") + (i.deadClaim === \"YES\" ? \":deadClaim\" : \"\")) }));\nreturn res;"
     },
     "response_json": [
      {
-      "key": "18k269dt",
+      "key": "r79lsjza",
       "name": "route",
       "title": "route",
       "description": "",
@@ -651,7 +651,7 @@
       "children": []
      },
      {
-      "key": "lngdnabr",
+      "key": "czq9fqm9",
       "name": "dbNow",
       "title": "dbNow",
       "description": "",
@@ -660,7 +660,7 @@
       "children": []
      },
      {
-      "key": "6kgd7kvo",
+      "key": "h4xy59hn",
       "name": "runStart",
       "title": "runStart",
       "description": "",
@@ -669,7 +669,7 @@
       "children": []
      },
      {
-      "key": "ocem3qof",
+      "key": "y5oqdy2x",
       "name": "items",
       "title": "items",
       "description": "",
@@ -677,7 +677,7 @@
       "isExpand": true,
       "children": [
        {
-        "key": "emz84h0a",
+        "key": "xy4dlsp0",
         "name": "items",
         "title": "",
         "description": "",
@@ -689,7 +689,7 @@
       ]
      },
      {
-      "key": "9t7cqxdk",
+      "key": "78ky2yjp",
       "name": "count",
       "title": "count",
       "description": "",
@@ -698,7 +698,7 @@
       "children": []
      },
      {
-      "key": "fxgevexh",
+      "key": "a9ssee6i",
       "name": "jobIdsSql",
       "title": "jobIdsSql",
       "description": "",
@@ -707,7 +707,7 @@
       "children": []
      },
      {
-      "key": "ydwed2bd",
+      "key": "w1zjtrad",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -716,7 +716,7 @@
       "children": []
      },
      {
-      "key": "oki2rvv8",
+      "key": "3qh99g08",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -747,7 +747,7 @@
      "type": "javascript",
      "code": "0"
     },
-    "redis_key": "gdx_wrk_{{node:code_node_XWguard.data.nonce}}"
+    "redis_key": "gdx_wrk_{{node:code_node_XWguard2.data.nonce}}"
    },
    "blocks": []
   },
@@ -807,7 +807,7 @@
       "isValidator": true,
       "nodeName": "Loop index",
       "name": "Loop index",
-      "redis_key": "gdx_wrk_{{node:code_node_XWguard.data.nonce}}"
+      "redis_key": "gdx_wrk_{{node:code_node_XWguard2.data.nonce}}"
      },
      "blocks": []
     },
@@ -824,11 +824,11 @@
       "name": "Tick: the FRESH read of the planned jobs (state, lease, backoff, claim row) + the lease end of a claim made now",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.organization_id,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= n.t) AS dead_lease,\n       (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due_now,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       CAST(cw.id AS CHAR) AS claim_id,\n       DATE_FORMAT(cw.started_at, '%Y-%m-%d %H:%i:%s') AS claim_started_at,\n       cw.result_ref AS claim_owner,\n       (cw.id IS NOT NULL AND cw.started_at > n.t - INTERVAL 10 MINUTE) AS claim_live\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND j.is_deleted = 0\n   AND j.id IN ({{node:code_node_XWplan.data.jobIdsSql}})\n  LEFT JOIN gd_publish_step cw\n    ON cw.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND cw.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n   AND cw.step_name = (CONCAT('W0_CLAIM_', j.row_version) COLLATE utf8mb4_general_ci)\n   AND cw.is_deleted = 0\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,\n       CAST(j.id AS CHAR) AS id,\n       j.organization_id,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       (j.lease_owner IS NOT NULL AND j.lease_owner <> '' AND j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= n.t) AS dead_lease,\n       (j.next_attempt_at IS NULL OR j.next_attempt_at <= n.t) AS due_now,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       CAST(cw.id AS CHAR) AS claim_id,\n       DATE_FORMAT(cw.started_at, '%Y-%m-%d %H:%i:%s') AS claim_started_at,\n       cw.result_ref AS claim_owner,\n       (cw.id IS NOT NULL AND cw.started_at > n.t - INTERVAL 10 MINUTE) AS claim_live\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND j.is_deleted = 0\n   AND j.id IN ({{node:code_node_XWplan.data.jobIdsSql}})\n  LEFT JOIN gd_publish_step cw\n    ON cw.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND cw.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)\n   AND cw.step_name = (CONCAT('W0_CLAIM_', j.row_version) COLLATE utf8mb4_general_ci)\n   AND cw.is_deleted = 0\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
       },
       "response_json": [
        {
-        "key": "fk6uokld",
+        "key": "ta7n37ig",
         "name": "db_now",
         "title": "db_now",
         "description": "",
@@ -837,7 +837,7 @@
         "children": []
        },
        {
-        "key": "hknm5xm3",
+        "key": "0pvq0ke3",
         "name": "lease_until",
         "title": "lease_until",
         "description": "",
@@ -846,7 +846,7 @@
         "children": []
        },
        {
-        "key": "r6s73l96",
+        "key": "jrtbs0pu",
         "name": "id",
         "title": "id",
         "description": "",
@@ -855,7 +855,7 @@
         "children": []
        },
        {
-        "key": "019wyzhz",
+        "key": "gtzrbjlk",
         "name": "organization_id",
         "title": "organization_id",
         "description": "",
@@ -864,7 +864,7 @@
         "children": []
        },
        {
-        "key": "zmy7rh51",
+        "key": "yppm3hgc",
         "name": "gd_id",
         "title": "gd_id",
         "description": "",
@@ -873,7 +873,7 @@
         "children": []
        },
        {
-        "key": "7aw3b5vi",
+        "key": "fe8svnv3",
         "name": "job_status",
         "title": "job_status",
         "description": "",
@@ -882,7 +882,7 @@
         "children": []
        },
        {
-        "key": "7cg7d6a7",
+        "key": "28c6l9ro",
         "name": "progress_percent",
         "title": "progress_percent",
         "description": "",
@@ -891,7 +891,7 @@
         "children": []
        },
        {
-        "key": "j76asgrd",
+        "key": "dv6iv4qi",
         "name": "progress_message",
         "title": "progress_message",
         "description": "",
@@ -900,7 +900,7 @@
         "children": []
        },
        {
-        "key": "23lte0kp",
+        "key": "7xpwqjge",
         "name": "attempt_count",
         "title": "attempt_count",
         "description": "",
@@ -909,7 +909,7 @@
         "children": []
        },
        {
-        "key": "jy0revbk",
+        "key": "oy1akocz",
         "name": "next_attempt_at",
         "title": "next_attempt_at",
         "description": "",
@@ -918,7 +918,7 @@
         "children": []
        },
        {
-        "key": "8qgxt1iw",
+        "key": "87be9ka2",
         "name": "lease_owner",
         "title": "lease_owner",
         "description": "",
@@ -927,7 +927,7 @@
         "children": []
        },
        {
-        "key": "p0n3ddcv",
+        "key": "a0k81u42",
         "name": "lease_expires_at",
         "title": "lease_expires_at",
         "description": "",
@@ -936,7 +936,7 @@
         "children": []
        },
        {
-        "key": "3j81a422",
+        "key": "ca9zw2yg",
         "name": "lease_live",
         "title": "lease_live",
         "description": "",
@@ -945,7 +945,7 @@
         "children": []
        },
        {
-        "key": "z7657ub4",
+        "key": "m0162vv4",
         "name": "dead_lease",
         "title": "dead_lease",
         "description": "",
@@ -954,7 +954,7 @@
         "children": []
        },
        {
-        "key": "2ijtvw55",
+        "key": "bqpxlp7f",
         "name": "due_now",
         "title": "due_now",
         "description": "",
@@ -963,7 +963,7 @@
         "children": []
        },
        {
-        "key": "4ob4qdeb",
+        "key": "ngygssph",
         "name": "row_version",
         "title": "row_version",
         "description": "",
@@ -972,7 +972,7 @@
         "children": []
        },
        {
-        "key": "4zyhypb9",
+        "key": "rivj927p",
         "name": "error_code",
         "title": "error_code",
         "description": "",
@@ -981,7 +981,7 @@
         "children": []
        },
        {
-        "key": "rlukugec",
+        "key": "oar2839t",
         "name": "error_message",
         "title": "error_message",
         "description": "",
@@ -990,7 +990,7 @@
         "children": []
        },
        {
-        "key": "a5qgrjbl",
+        "key": "bmxupds1",
         "name": "error_details",
         "title": "error_details",
         "description": "",
@@ -999,7 +999,7 @@
         "children": []
        },
        {
-        "key": "na2357p6",
+        "key": "j4e3pqu8",
         "name": "claim_id",
         "title": "claim_id",
         "description": "",
@@ -1008,7 +1008,7 @@
         "children": []
        },
        {
-        "key": "65g1s1fh",
+        "key": "ymgun3yz",
         "name": "claim_started_at",
         "title": "claim_started_at",
         "description": "",
@@ -1017,7 +1017,7 @@
         "children": []
        },
        {
-        "key": "2az6pq1t",
+        "key": "ty7wpda3",
         "name": "claim_owner",
         "title": "claim_owner",
         "description": "",
@@ -1026,7 +1026,7 @@
         "children": []
        },
        {
-        "key": "kzgne71d",
+        "key": "w3bvgkuv",
         "name": "claim_live",
         "title": "claim_live",
         "description": "",
@@ -1047,11 +1047,11 @@
       "timeout": 30000,
       "script": {
        "type": "javascript",
-       "code": "// GD_CANCEL_WORKER - Pick: this iteration's job (the cache index) from the tick's FRESH read; SKIP after the budget,\n// when no longer due, under a live lease or a live claim row; else the claim gate rows (a dead claim: row_version + 1 first)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerPick = function workerPick(guard, plan, tickRows, indexRaw) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const rows = (Array.isArray(tickRows) ? tickRows : tickRows ? [tickRows] : []).filter((r) => r);\n  const tick = rows[0] || {};\n  const dbNow = s(tick.db_now) || s(plan.dbNow);\n  const index = indexRaw === undefined || indexRaw === null || indexRaw === \"\" ? 0 : parseInt(String(indexRaw), 10) || 0;\n  const planned = (plan.items || [])[index] || null;\n  const t = (x) => {\n    const m = String(x || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) : NaN;\n  };\n  const elapsed = isNaN(t(plan.runStart)) || isNaN(t(dbNow)) ? 0 : Math.max(0, Math.round((t(dbNow) - t(plan.runStart)) / 1000));\n  const base = { route: \"SKIP\", index: index, nextIndex: index + 1, dbNow: dbNow, leaseUntil: s(tick.lease_until), elapsed: elapsed, jobId: \"0\", organizationId: \"0\", gdId: \"0\", item: null, rvBase: 0, rvRows: [], needRvUpd: \"NO\", claimName: \"\", claimRows: [], needClaimAdd: \"NO\", result_message: \"\" };\n  if (!planned) return Object.assign(base, { result_message: \"no item at index \" + index });\n  const fresh = rows.filter((r) => s(r.id) === planned.jobId)[0] || null;\n  if (!fresh) return Object.assign(base, { jobId: planned.jobId, organizationId: planned.organizationId, result_message: \"job \" + planned.jobId + \" is gone from the fresh read: skipped\" });\n  const item = workerItem(fresh);\n  const out = Object.assign(base, { jobId: item.jobId, organizationId: item.organizationId, gdId: item.gdId, item: item });\n  if (index > 0 && elapsed > PKC.worker_budget_seconds) return Object.assign(out, { result_message: \"budget: \" + elapsed + \" s since the run start: job \" + item.jobId + \" is left for the next tick\" });\n  if (PKC.states.indexOf(item.jobStatus) < 0) return Object.assign(out, { result_message: \"job \" + item.jobId + \" is \" + item.jobStatus + \" now: skipped\" });\n  if (item.leaseLive === \"YES\") return Object.assign(out, { result_message: \"job \" + item.jobId + \" has a live lease of \" + s(item.leaseOwner) + \": skipped\" });\n  if (item.dueNow !== \"YES\") return Object.assign(out, { result_message: \"job \" + item.jobId + \" is not due before \" + s(item.nextAttemptAt) + \": skipped\" });\n  if (item.gateClosed) return Object.assign(out, { result_message: \"job \" + item.jobId + \": \" + item.gateClosed + \" - skipped\" });\n  const rv = item.rowVersion;\n  const dead = item.deadClaim === \"YES\";\n  const rvBase = dead ? rv + 1 : rv;\n  const name = \"W0_CLAIM_\" + rvBase;\n  const counted = dead ? Math.min(item.attempts + 1, PKC.retry.max_retries) : item.attempts;\n  return Object.assign(out, { route: \"CLAIM\", rvBase: rvBase, rvRows: dead ? [{ id: item.jobId, row_version: rvBase, attempt_count: counted }] : [], needRvUpd: dead ? \"YES\" : \"NO\", claimName: name, claimRows: [{ job_id: item.jobId, organization_id: item.organizationId, step_name: name, step_status: \"DONE\", attempt_count: 1, started_at: dbNow, inventory_operation_id: \"\", result_ref: guard.leaseOwner, error_code: null, error_message: null }], needClaimAdd: \"YES\", result_message: (dead ? \"dead claim of \" + item.claimOwner + \" moved past (retry \" + counted + \"); \" : \"\") + \"claim \" + name });\n};\nconst workerItem = function workerItem(row) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const dead = String(row.dead_lease) === \"1\";\n  const claimed = s(row.claim_id) !== \"\";\n  return { jobId: s(row.id), organizationId: s(row.organization_id), gdId: s(row.gd_id), jobStatus: s(row.job_status), progressPercent: Number(row.progress_percent) || 0, progressMessage: s(row.progress_message), attempts: Number(row.attempt_count) || 0, nextAttemptAt: row.next_attempt_at || null, leaseOwner: row.lease_owner || null, leaseExpiresAt: row.lease_expires_at || null, deadLease: dead ? \"YES\" : \"NO\", deadOwner: dead ? s(row.lease_owner) : \"\", deadClaim: claimed && String(row.claim_live) !== \"1\" ? \"YES\" : \"NO\", claimOwner: claimed ? s(row.claim_owner) : \"\", rowVersion: Number(row.row_version) || 0, errorCode: row.error_code || null, errorMessage: row.error_message || null, errorDetails: row.error_details || null, leaseLive: String(row.lease_live) === \"1\" ? \"YES\" : \"NO\", dueNow: String(row.due_now) === \"1\" ? \"YES\" : \"NO\", gateClosed: String(row.claim_live) === \"1\" ? \"a live worker claim row W0_CLAIM_\" + s(row.row_version) + \" of \" + s(row.claim_owner) : \"\" };\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst plan = [{{node:code_node_XWplan.data}}][0];\nconst res = workerPick(guard, plan, [{{node:sql_node_XWtick.data}}][0], {{node:get_cache_XWidx.data}});\nconsole.log(\"worker pick\", JSON.stringify({ route: res.route, index: res.index, job: res.jobId, elapsed: res.elapsed, claim: res.claimName, rvUpd: res.needRvUpd, message: res.result_message }));\nreturn res;"
+       "code": "// GD_CANCEL_WORKER - Pick: this iteration's job (the cache index) from the tick's FRESH read; SKIP after the budget,\n// when no longer due, under a live lease or a live claim row; else the claim gate rows (a dead claim: row_version + 1 first)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerPick = function workerPick(guard, plan, tickRows, indexRaw) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const rows = (Array.isArray(tickRows) ? tickRows : tickRows ? [tickRows] : []).filter((r) => r);\n  const tick = rows[0] || {};\n  const dbNow = s(tick.db_now) || s(plan.dbNow);\n  const index = indexRaw === undefined || indexRaw === null || indexRaw === \"\" ? 0 : parseInt(String(indexRaw), 10) || 0;\n  const planned = (plan.items || [])[index] || null;\n  const t = (x) => {\n    const m = String(x || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n    return m ? Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) : NaN;\n  };\n  const elapsed = isNaN(t(plan.runStart)) || isNaN(t(dbNow)) ? 0 : Math.max(0, Math.round((t(dbNow) - t(plan.runStart)) / 1000));\n  const base = { route: \"SKIP\", index: index, nextIndex: index + 1, dbNow: dbNow, leaseUntil: s(tick.lease_until), elapsed: elapsed, jobId: \"0\", organizationId: \"0\", gdId: \"0\", item: null, rvBase: 0, rvRows: [], needRvUpd: \"NO\", claimName: \"\", claimRows: [], needClaimAdd: \"NO\", result_message: \"\" };\n  if (!planned) return Object.assign(base, { result_message: \"no item at index \" + index });\n  const fresh = rows.filter((r) => s(r.id) === planned.jobId)[0] || null;\n  if (!fresh) return Object.assign(base, { jobId: planned.jobId, organizationId: planned.organizationId, result_message: \"job \" + planned.jobId + \" is gone from the fresh read: skipped\" });\n  const item = workerItem(fresh);\n  const out = Object.assign(base, { jobId: item.jobId, organizationId: item.organizationId, gdId: item.gdId, item: item });\n  if (index > 0 && elapsed > PKC.worker_budget_seconds) return Object.assign(out, { result_message: \"budget: \" + elapsed + \" s since the run start: job \" + item.jobId + \" is left for the next tick\" });\n  if (PKC.states.indexOf(item.jobStatus) < 0) return Object.assign(out, { result_message: \"job \" + item.jobId + \" is \" + item.jobStatus + \" now: skipped\" });\n  if (item.leaseLive === \"YES\") return Object.assign(out, { result_message: \"job \" + item.jobId + \" has a live lease of \" + s(item.leaseOwner) + \": skipped\" });\n  if (item.dueNow !== \"YES\") return Object.assign(out, { result_message: \"job \" + item.jobId + \" is not due before \" + s(item.nextAttemptAt) + \": skipped\" });\n  if (item.gateClosed) return Object.assign(out, { result_message: \"job \" + item.jobId + \": \" + item.gateClosed + \" - skipped\" });\n  const rv = item.rowVersion;\n  const dead = item.deadClaim === \"YES\";\n  const rvBase = dead ? rv + 1 : rv;\n  const name = \"W0_CLAIM_\" + rvBase;\n  const counted = dead ? Math.min(item.attempts + 1, PKC.retry.max_retries) : item.attempts;\n  return Object.assign(out, { route: \"CLAIM\", rvBase: rvBase, rvRows: dead ? [{ id: item.jobId, row_version: rvBase, attempt_count: counted }] : [], needRvUpd: dead ? \"YES\" : \"NO\", claimName: name, claimRows: [{ job_id: item.jobId, organization_id: item.organizationId, step_name: name, step_status: \"DONE\", attempt_count: 1, started_at: dbNow, inventory_operation_id: \"\", result_ref: guard.leaseOwner, error_code: null, error_message: null }], needClaimAdd: \"YES\", result_message: (dead ? \"dead claim of \" + item.claimOwner + \" moved past (retry \" + counted + \"); \" : \"\") + \"claim \" + name });\n};\nconst workerItem = function workerItem(row) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const dead = String(row.dead_lease) === \"1\";\n  const claimed = s(row.claim_id) !== \"\";\n  return { jobId: s(row.id), organizationId: s(row.organization_id), gdId: s(row.gd_id), jobStatus: s(row.job_status), progressPercent: Number(row.progress_percent) || 0, progressMessage: s(row.progress_message), attempts: Number(row.attempt_count) || 0, nextAttemptAt: row.next_attempt_at || null, leaseOwner: row.lease_owner || null, leaseExpiresAt: row.lease_expires_at || null, deadLease: dead ? \"YES\" : \"NO\", deadOwner: dead ? s(row.lease_owner) : \"\", deadClaim: claimed && String(row.claim_live) !== \"1\" ? \"YES\" : \"NO\", claimOwner: claimed ? s(row.claim_owner) : \"\", rowVersion: Number(row.row_version) || 0, errorCode: row.error_code || null, errorMessage: row.error_message || null, errorDetails: row.error_details || null, leaseLive: String(row.lease_live) === \"1\" ? \"YES\" : \"NO\", dueNow: String(row.due_now) === \"1\" ? \"YES\" : \"NO\", gateClosed: String(row.claim_live) === \"1\" ? \"a live worker claim row W0_CLAIM_\" + s(row.row_version) + \" of \" + s(row.claim_owner) : \"\" };\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst plan = [{{node:code_node_XWplan.data}}][0];\nconst res = workerPick(guard, plan, [{{node:sql_node_XWtick.data}}][0], {{node:get_cache_XWidx.data}});\nconsole.log(\"worker pick\", JSON.stringify({ route: res.route, index: res.index, job: res.jobId, elapsed: res.elapsed, claim: res.claimName, rvUpd: res.needRvUpd, message: res.result_message }));\nreturn res;"
       },
       "response_json": [
        {
-        "key": "lxkmmbox",
+        "key": "yu3xssm5",
         "name": "route",
         "title": "route",
         "description": "",
@@ -1060,7 +1060,7 @@
         "children": []
        },
        {
-        "key": "t2nkbbqn",
+        "key": "axk2hz9h",
         "name": "index",
         "title": "index",
         "description": "",
@@ -1069,7 +1069,7 @@
         "children": []
        },
        {
-        "key": "e1err4su",
+        "key": "c1aaiyq8",
         "name": "nextIndex",
         "title": "nextIndex",
         "description": "",
@@ -1078,7 +1078,7 @@
         "children": []
        },
        {
-        "key": "djn19sw3",
+        "key": "qlow4d0n",
         "name": "dbNow",
         "title": "dbNow",
         "description": "",
@@ -1087,7 +1087,7 @@
         "children": []
        },
        {
-        "key": "thv5dpgv",
+        "key": "jl9tjgvt",
         "name": "leaseUntil",
         "title": "leaseUntil",
         "description": "",
@@ -1096,7 +1096,7 @@
         "children": []
        },
        {
-        "key": "apgeoz09",
+        "key": "jupw4xuy",
         "name": "elapsed",
         "title": "elapsed",
         "description": "",
@@ -1105,7 +1105,7 @@
         "children": []
        },
        {
-        "key": "wt528whc",
+        "key": "ybpch2p8",
         "name": "jobId",
         "title": "jobId",
         "description": "",
@@ -1114,7 +1114,7 @@
         "children": []
        },
        {
-        "key": "a6fnzlmd",
+        "key": "ofq4rq4l",
         "name": "organizationId",
         "title": "organizationId",
         "description": "",
@@ -1123,7 +1123,7 @@
         "children": []
        },
        {
-        "key": "29du9i89",
+        "key": "peuvuuyc",
         "name": "gdId",
         "title": "gdId",
         "description": "",
@@ -1132,7 +1132,7 @@
         "children": []
        },
        {
-        "key": "al30f667",
+        "key": "gozc4imu",
         "name": "item",
         "title": "item",
         "description": "",
@@ -1141,7 +1141,7 @@
         "children": []
        },
        {
-        "key": "n62v8vds",
+        "key": "za0xpz8e",
         "name": "rvBase",
         "title": "rvBase",
         "description": "",
@@ -1150,7 +1150,7 @@
         "children": []
        },
        {
-        "key": "uu0evi3s",
+        "key": "uexbnrnu",
         "name": "rvRows",
         "title": "rvRows",
         "description": "",
@@ -1158,7 +1158,7 @@
         "isExpand": true,
         "children": [
          {
-          "key": "u66kmj3f",
+          "key": "gp6njb39",
           "name": "items",
           "title": "",
           "description": "",
@@ -1170,7 +1170,7 @@
         ]
        },
        {
-        "key": "hoqs2hcx",
+        "key": "0sbvq23b",
         "name": "needRvUpd",
         "title": "needRvUpd",
         "description": "",
@@ -1179,7 +1179,7 @@
         "children": []
        },
        {
-        "key": "zowzjga9",
+        "key": "ovljw6mb",
         "name": "claimName",
         "title": "claimName",
         "description": "",
@@ -1188,7 +1188,7 @@
         "children": []
        },
        {
-        "key": "ff24z5x7",
+        "key": "zhv2kg7t",
         "name": "claimRows",
         "title": "claimRows",
         "description": "",
@@ -1196,7 +1196,7 @@
         "isExpand": true,
         "children": [
          {
-          "key": "hcr32eo3",
+          "key": "6u92092r",
           "name": "items",
           "title": "",
           "description": "",
@@ -1208,7 +1208,7 @@
         ]
        },
        {
-        "key": "cdrl101f",
+        "key": "9j1rduir",
         "name": "needClaimAdd",
         "title": "needClaimAdd",
         "description": "",
@@ -1217,7 +1217,7 @@
         "children": []
        },
        {
-        "key": "ryuz11ne",
+        "key": "n48u320m",
         "name": "result_message",
         "title": "result_message",
         "description": "",
@@ -1564,11 +1564,11 @@
       "timeout": 30000,
       "script": {
        "type": "javascript",
-       "code": "// GD_CANCEL_WORKER - Claim: after the claim row is ours - the lease WRK|<nonce> (QUEUED -> VALIDATING), a dead lease or\n// dead claim counted as a retry; exhausted after max_retries (pre-commit -> FAILED + the Goods Delivery back to Created;\n// COMMITTING_GD -> REQUIRES_REVIEW)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerClaim = function workerClaim(guard, pick) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const item = pick.item;\n  const base = { route: \"SKIP\", dbNow: pick.dbNow, jobId: pick.jobId, jobStatus: item ? item.jobStatus : \"\", organizationId: pick.organizationId, gdId: pick.gdId, rowVersion: pick.rvBase, attempts: item ? item.attempts : 0, claimRows: [], needClaim: \"NO\", failRows: [], unlockRows: [], exhausted: \"NO\", result_code: \"\", result_message: pick.result_message, job_status: item ? item.jobStatus : \"\" };\n  if (pick.route !== \"CLAIM\" || !item) return base;\n  const status = item.jobStatus;\n  const dead = item.deadLease === \"YES\" || item.deadClaim === \"YES\";\n  const attempts = item.attempts;\n  const rv = pick.rvBase;\n  const exhausted = dead && attempts >= PKC.retry.max_retries;\n  const counted = dead && !exhausted ? attempts + 1 : attempts;\n  const row = { id: item.jobId, job_status: status, progress_percent: item.progressPercent, progress_message: item.progressMessage, attempt_count: counted, next_attempt_at: item.nextAttemptAt, lease_owner: item.leaseOwner, lease_expires_at: item.leaseExpiresAt, row_version: rv + 1, error_code: item.errorCode, error_message: item.errorMessage, error_details: item.errorDetails, finished_at: null };\n  const why = (dead ? \"dead \" + (item.deadLease === \"YES\" ? \"lease of \" + item.deadOwner : \"claim of \" + item.claimOwner) + \": \" : \"\") + (exhausted ? \"retries exhausted (\" + attempts + \" of \" + PKC.retry.max_retries + \")\" : dead ? \"retry \" + counted + \" of \" + PKC.retry.max_retries : \"\");\n  if (status === \"COMMITTING_GD\") {\n    const out = Object.assign(base, { attempts: counted, exhausted: exhausted ? \"YES\" : \"NO\", claimRows: dead && !exhausted ? [row] : [], needClaim: dead && !exhausted ? \"YES\" : \"NO\" });\n    if (exhausted) {\n      const reason = \"the run cancelling this delivery died \" + attempts + \" times after it started writing; nothing is retried, the Goods Delivery stays Processing\";\n      return Object.assign(out, { route: \"EXHAUST\", failRows: [Object.assign({}, row, { job_status: \"REQUIRES_REVIEW\", progress_percent: 0, progress_message: \"Under review: the cancel stopped half-way\", error_code: \"GDX_RECONCILIATION_MISMATCH\", error_message: reason, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: reason, dead_lease_owner: item.deadOwner, dead_claim_owner: item.claimOwner, attempts: attempts }), lease_owner: null, lease_expires_at: null, next_attempt_at: null, finished_at: pick.dbNow, row_version: rv + 2 })], result_code: \"GDX_RECONCILIATION_MISMATCH\", result_message: reason, job_status: \"REQUIRES_REVIEW\" });\n    }\n    return Object.assign(out, { route: \"RESUME\", result_message: (why ? why + \"; \" : \"\") + \"resume GD_CANCEL_COMMIT\" });\n  }\n  if ([\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\"].indexOf(status) < 0) return Object.assign(base, { result_message: \"job is \" + status + \": not a worker state\" });\n  const toValidating = status === \"QUEUED\";\n  const claim = Object.assign({}, row, { job_status: toValidating ? \"VALIDATING\" : status, progress_percent: toValidating ? Math.max(item.progressPercent, 10) : item.progressPercent, progress_message: toValidating ? \"Validating\" : item.progressMessage, lease_owner: guard.leaseOwner, lease_expires_at: pick.leaseUntil });\n  const claimed = Object.assign(base, { attempts: counted, claimRows: [claim], needClaim: \"YES\", exhausted: exhausted ? \"YES\" : \"NO\" });\n  if (exhausted) {\n    const reason = \"the run that owned the job died \" + attempts + \" times before the delivery was cancelled (max_retries \" + PKC.retry.max_retries + \"); nothing was written\";\n    return Object.assign(claimed, { route: \"EXHAUST\", failRows: [Object.assign({}, claim, { job_status: \"FAILED\", progress_message: \"Not cancelled: temporary failures persisted\", error_code: \"GDX_TRANSIENT_RETRIES_EXHAUSTED\", error_message: \"Temporary failures persisted; not saved: \" + reason, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: reason, attempts: attempts }), lease_owner: null, lease_expires_at: null, finished_at: pick.dbNow, row_version: rv + 2 })], unlockRows: /^[0-9]{1,20}$/.test(s(pick.gdId)) ? [{ id: s(pick.gdId), gd_status: \"Created\" }] : [], result_code: \"GDX_TRANSIENT_RETRIES_EXHAUSTED\", result_message: reason, job_status: \"FAILED\" });\n  }\n  return Object.assign(claimed, { route: status === \"READY_TO_COMMIT\" ? \"PUBLISH\" : \"PREPARE\", result_message: (why ? why + \"; \" : \"\") + \"claim \" + status + (toValidating ? \" -> VALIDATING\" : \"\") });\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst pick = [{{node:code_node_XWpick.data}}][0];\nconst res = workerClaim(guard, pick);\nconsole.log(\"worker claim\", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, attempts: res.attempts, write: res.needClaim, message: res.result_message }));\nreturn res;"
+       "code": "// GD_CANCEL_WORKER - Claim: after the claim row is ours - the lease WRK|<nonce> (QUEUED -> VALIDATING), a dead lease or\n// dead claim counted as a retry; exhausted after max_retries (pre-commit -> FAILED + the Goods Delivery back to Created;\n// COMMITTING_GD -> REQUIRES_REVIEW)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerClaim = function workerClaim(guard, pick) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const item = pick.item;\n  const base = { route: \"SKIP\", dbNow: pick.dbNow, jobId: pick.jobId, jobStatus: item ? item.jobStatus : \"\", organizationId: pick.organizationId, gdId: pick.gdId, rowVersion: pick.rvBase, attempts: item ? item.attempts : 0, claimRows: [], needClaim: \"NO\", failRows: [], unlockRows: [], exhausted: \"NO\", result_code: \"\", result_message: pick.result_message, job_status: item ? item.jobStatus : \"\" };\n  if (pick.route !== \"CLAIM\" || !item) return base;\n  const status = item.jobStatus;\n  const dead = item.deadLease === \"YES\" || item.deadClaim === \"YES\";\n  const attempts = item.attempts;\n  const rv = pick.rvBase;\n  const exhausted = dead && attempts >= PKC.retry.max_retries;\n  const counted = dead && !exhausted ? attempts + 1 : attempts;\n  const row = { id: item.jobId, job_status: status, progress_percent: item.progressPercent, progress_message: item.progressMessage, attempt_count: counted, next_attempt_at: item.nextAttemptAt, lease_owner: item.leaseOwner, lease_expires_at: item.leaseExpiresAt, row_version: rv + 1, error_code: item.errorCode, error_message: item.errorMessage, error_details: item.errorDetails, finished_at: null };\n  const why = (dead ? \"dead \" + (item.deadLease === \"YES\" ? \"lease of \" + item.deadOwner : \"claim of \" + item.claimOwner) + \": \" : \"\") + (exhausted ? \"retries exhausted (\" + attempts + \" of \" + PKC.retry.max_retries + \")\" : dead ? \"retry \" + counted + \" of \" + PKC.retry.max_retries : \"\");\n  if (status === \"COMMITTING_GD\") {\n    const out = Object.assign(base, { attempts: counted, exhausted: exhausted ? \"YES\" : \"NO\", claimRows: dead && !exhausted ? [row] : [], needClaim: dead && !exhausted ? \"YES\" : \"NO\" });\n    if (exhausted) {\n      const reason = \"the run cancelling this delivery died \" + attempts + \" times after it started writing; nothing is retried, the Goods Delivery stays Processing\";\n      return Object.assign(out, { route: \"EXHAUST\", failRows: [Object.assign({}, row, { job_status: \"REQUIRES_REVIEW\", progress_percent: 0, progress_message: \"Under review: the cancel stopped half-way\", error_code: \"GDX_RECONCILIATION_MISMATCH\", error_message: reason, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: reason, dead_lease_owner: item.deadOwner, dead_claim_owner: item.claimOwner, attempts: attempts }), lease_owner: null, lease_expires_at: null, next_attempt_at: null, finished_at: pick.dbNow, row_version: rv + 2 })], result_code: \"GDX_RECONCILIATION_MISMATCH\", result_message: reason, job_status: \"REQUIRES_REVIEW\" });\n    }\n    return Object.assign(out, { route: \"RESUME\", result_message: (why ? why + \"; \" : \"\") + \"resume GD_CANCEL_COMMIT\" });\n  }\n  if ([\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\"].indexOf(status) < 0) return Object.assign(base, { result_message: \"job is \" + status + \": not a worker state\" });\n  const toValidating = status === \"QUEUED\";\n  const claim = Object.assign({}, row, { job_status: toValidating ? \"VALIDATING\" : status, progress_percent: toValidating ? Math.max(item.progressPercent, 10) : item.progressPercent, progress_message: toValidating ? \"Validating\" : item.progressMessage, lease_owner: guard.leaseOwner, lease_expires_at: pick.leaseUntil });\n  const claimed = Object.assign(base, { attempts: counted, claimRows: [claim], needClaim: \"YES\", exhausted: exhausted ? \"YES\" : \"NO\" });\n  if (exhausted) {\n    const reason = \"the run that owned the job died \" + attempts + \" times before the delivery was cancelled (max_retries \" + PKC.retry.max_retries + \"); nothing was written\";\n    return Object.assign(claimed, { route: \"EXHAUST\", failRows: [Object.assign({}, claim, { job_status: \"FAILED\", progress_message: \"Not cancelled: temporary failures persisted\", error_code: \"GDX_TRANSIENT_RETRIES_EXHAUSTED\", error_message: \"Temporary failures persisted; not saved: \" + reason, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: reason, attempts: attempts }), lease_owner: null, lease_expires_at: null, finished_at: pick.dbNow, row_version: rv + 2 })], unlockRows: /^[0-9]{1,20}$/.test(s(pick.gdId)) ? [{ id: s(pick.gdId), gd_status: \"Created\" }] : [], result_code: \"GDX_TRANSIENT_RETRIES_EXHAUSTED\", result_message: reason, job_status: \"FAILED\" });\n  }\n  return Object.assign(claimed, { route: status === \"READY_TO_COMMIT\" ? \"PUBLISH\" : \"PREPARE\", result_message: (why ? why + \"; \" : \"\") + \"claim \" + status + (toValidating ? \" -> VALIDATING\" : \"\") });\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst pick = [{{node:code_node_XWpick.data}}][0];\nconst res = workerClaim(guard, pick);\nconsole.log(\"worker claim\", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, attempts: res.attempts, write: res.needClaim, message: res.result_message }));\nreturn res;"
       },
       "response_json": [
        {
-        "key": "wukzgchr",
+        "key": "ro077zia",
         "name": "route",
         "title": "route",
         "description": "",
@@ -1577,7 +1577,7 @@
         "children": []
        },
        {
-        "key": "jxeqrd4s",
+        "key": "ise308yr",
         "name": "dbNow",
         "title": "dbNow",
         "description": "",
@@ -1586,7 +1586,7 @@
         "children": []
        },
        {
-        "key": "m7lahij6",
+        "key": "nn2949vz",
         "name": "jobId",
         "title": "jobId",
         "description": "",
@@ -1595,7 +1595,7 @@
         "children": []
        },
        {
-        "key": "sj43mist",
+        "key": "w89aco9u",
         "name": "jobStatus",
         "title": "jobStatus",
         "description": "",
@@ -1604,7 +1604,7 @@
         "children": []
        },
        {
-        "key": "j0a3j3ch",
+        "key": "jc4k1l3t",
         "name": "organizationId",
         "title": "organizationId",
         "description": "",
@@ -1613,7 +1613,7 @@
         "children": []
        },
        {
-        "key": "1rwvilxv",
+        "key": "ztdz3j3e",
         "name": "gdId",
         "title": "gdId",
         "description": "",
@@ -1622,7 +1622,7 @@
         "children": []
        },
        {
-        "key": "mzlw4mk5",
+        "key": "sql3nbaw",
         "name": "rowVersion",
         "title": "rowVersion",
         "description": "",
@@ -1631,7 +1631,7 @@
         "children": []
        },
        {
-        "key": "7xs5mhwe",
+        "key": "53x7ghiy",
         "name": "attempts",
         "title": "attempts",
         "description": "",
@@ -1640,7 +1640,7 @@
         "children": []
        },
        {
-        "key": "yjlmbwa4",
+        "key": "2ysungoe",
         "name": "claimRows",
         "title": "claimRows",
         "description": "",
@@ -1648,7 +1648,7 @@
         "isExpand": true,
         "children": [
          {
-          "key": "ztsj1g51",
+          "key": "66mbwod4",
           "name": "items",
           "title": "",
           "description": "",
@@ -1660,7 +1660,7 @@
         ]
        },
        {
-        "key": "qjjbvoeb",
+        "key": "s96hsyw2",
         "name": "needClaim",
         "title": "needClaim",
         "description": "",
@@ -1669,7 +1669,7 @@
         "children": []
        },
        {
-        "key": "vqk4d0xo",
+        "key": "rxj62ue9",
         "name": "failRows",
         "title": "failRows",
         "description": "",
@@ -1677,7 +1677,7 @@
         "isExpand": true,
         "children": [
          {
-          "key": "ugfqpxx0",
+          "key": "69trkjdz",
           "name": "items",
           "title": "",
           "description": "",
@@ -1689,7 +1689,7 @@
         ]
        },
        {
-        "key": "7ao7bt5q",
+        "key": "d8jl3oom",
         "name": "unlockRows",
         "title": "unlockRows",
         "description": "",
@@ -1697,7 +1697,7 @@
         "isExpand": true,
         "children": [
          {
-          "key": "o2kjbu2g",
+          "key": "arg1wjk5",
           "name": "items",
           "title": "",
           "description": "",
@@ -1709,7 +1709,7 @@
         ]
        },
        {
-        "key": "ppij9125",
+        "key": "npal9ydp",
         "name": "exhausted",
         "title": "exhausted",
         "description": "",
@@ -1718,7 +1718,7 @@
         "children": []
        },
        {
-        "key": "1bhurln6",
+        "key": "46d23izw",
         "name": "result_code",
         "title": "result_code",
         "description": "",
@@ -1727,7 +1727,7 @@
         "children": []
        },
        {
-        "key": "maei6j98",
+        "key": "j1tep7vo",
         "name": "result_message",
         "title": "result_message",
         "description": "",
@@ -1736,7 +1736,7 @@
         "children": []
        },
        {
-        "key": "7cxe1d0z",
+        "key": "tf9espf0",
         "name": "job_status",
         "title": "job_status",
         "description": "",
@@ -1976,11 +1976,11 @@
       "name": "Read-back: the job after the lease write",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
       },
       "response_json": [
        {
-        "key": "ngt1ll7s",
+        "key": "lgdi28ke",
         "name": "db_now",
         "title": "db_now",
         "description": "",
@@ -1989,7 +1989,7 @@
         "children": []
        },
        {
-        "key": "2b57orez",
+        "key": "s72l86yy",
         "name": "id",
         "title": "id",
         "description": "",
@@ -1998,7 +1998,7 @@
         "children": []
        },
        {
-        "key": "cuvsy0hl",
+        "key": "41cgof5l",
         "name": "job_status",
         "title": "job_status",
         "description": "",
@@ -2007,7 +2007,7 @@
         "children": []
        },
        {
-        "key": "gktxzobq",
+        "key": "ecs2q29h",
         "name": "progress_percent",
         "title": "progress_percent",
         "description": "",
@@ -2016,7 +2016,7 @@
         "children": []
        },
        {
-        "key": "x19wn06y",
+        "key": "gfhyekj8",
         "name": "progress_message",
         "title": "progress_message",
         "description": "",
@@ -2025,7 +2025,7 @@
         "children": []
        },
        {
-        "key": "tvt343wt",
+        "key": "fe7j6hu2",
         "name": "attempt_count",
         "title": "attempt_count",
         "description": "",
@@ -2034,7 +2034,7 @@
         "children": []
        },
        {
-        "key": "l830xhih",
+        "key": "tuokzxhx",
         "name": "next_attempt_at",
         "title": "next_attempt_at",
         "description": "",
@@ -2043,7 +2043,7 @@
         "children": []
        },
        {
-        "key": "3by3q6jb",
+        "key": "lkjp8kof",
         "name": "lease_owner",
         "title": "lease_owner",
         "description": "",
@@ -2052,7 +2052,7 @@
         "children": []
        },
        {
-        "key": "zlyyqzae",
+        "key": "6jjj9qnj",
         "name": "lease_expires_at",
         "title": "lease_expires_at",
         "description": "",
@@ -2061,7 +2061,7 @@
         "children": []
        },
        {
-        "key": "c8csu07z",
+        "key": "crq7bag8",
         "name": "lease_live",
         "title": "lease_live",
         "description": "",
@@ -2070,7 +2070,7 @@
         "children": []
        },
        {
-        "key": "vk006kkp",
+        "key": "u4wpm15f",
         "name": "row_version",
         "title": "row_version",
         "description": "",
@@ -2079,7 +2079,7 @@
         "children": []
        },
        {
-        "key": "1rlv7heq",
+        "key": "eu7c0xpg",
         "name": "error_code",
         "title": "error_code",
         "description": "",
@@ -2088,7 +2088,7 @@
         "children": []
        },
        {
-        "key": "nlm95z28",
+        "key": "73m7wttg",
         "name": "error_message",
         "title": "error_message",
         "description": "",
@@ -2097,7 +2097,7 @@
         "children": []
        },
        {
-        "key": "65c5r621",
+        "key": "yot7q0nz",
         "name": "error_details",
         "title": "error_details",
         "description": "",
@@ -2106,7 +2106,7 @@
         "children": []
        },
        {
-        "key": "1qn8yu6c",
+        "key": "kmf4m2o3",
         "name": "gd_id",
         "title": "gd_id",
         "description": "",
@@ -2115,7 +2115,7 @@
         "children": []
        },
        {
-        "key": "j18f40n4",
+        "key": "mdfaapbz",
         "name": "finished_at",
         "title": "finished_at",
         "description": "",
@@ -2136,11 +2136,11 @@
       "timeout": 30000,
       "script": {
        "type": "javascript",
-       "code": "// GD_CANCEL_WORKER - Own: the job read back after the lease write - the state and lease must be this run's\nconst workerOwn = function workerOwn(guard, claim, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || claim.dbNow : claim.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: claim.route, dbNow: dbNow, jobId: claim.jobId, jobStatus: job ? s(job.job_status) : \"\", organizationId: claim.organizationId, gdId: claim.gdId, attempts: claim.attempts, failRows: claim.failRows, unlockRows: claim.unlockRows, rowVersion: job ? Number(job.row_version) || 0 : 0, result_code: \"\", result_message: claim.result_message, job_status: job ? s(job.job_status) : \"\" };\n  base.needFail = claim.route === \"EXHAUST\" && (claim.failRows || []).length ? \"YES\" : \"NO\";\n  base.needUnlock = claim.route === \"EXHAUST\" && (claim.unlockRows || []).length ? \"YES\" : \"NO\";\n  if (claim.route === \"SKIP\") return base;\n  if (!job) return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"GDX_INVALID_DATA\", result_message: \"job \" + claim.jobId + \" vanished after the claim\" });\n  const status = s(job.job_status);\n  const live = String(job.lease_live) === \"1\";\n  if (claim.route === \"RESUME\" || (claim.route === \"EXHAUST\" && claim.jobStatus === \"COMMITTING_GD\")) {\n    if (status !== \"COMMITTING_GD\") return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + status + \" after the claim: not resumed\" });\n    if (live) return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"job lease is live for \" + s(job.lease_owner) + \": not resumed\" });\n    return base;\n  }\n  if (s(job.lease_owner) !== guard.leaseOwner) return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the job's lease owner is \" + s(job.lease_owner) + \" after this run's lease write\" });\n  const expect = claim.claimRows.length ? s(claim.claimRows[0].job_status) : status;\n  if (status !== expect) return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + status + \" after the claim (expected \" + expect + \")\" });\n  return base;\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst claim = [{{node:code_node_XWclaim.data}}][0];\nconst res = workerOwn(guard, claim, [{{node:sql_node_XWown.data}}][0]);\nconsole.log(\"worker own\", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, result: res.result_code, message: res.result_message }));\nreturn res;"
+       "code": "// GD_CANCEL_WORKER - Own: the job read back after the lease write - the state and lease must be this run's\nconst workerOwn = function workerOwn(guard, claim, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || claim.dbNow : claim.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: claim.route, dbNow: dbNow, jobId: claim.jobId, jobStatus: job ? s(job.job_status) : \"\", organizationId: claim.organizationId, gdId: claim.gdId, attempts: claim.attempts, failRows: claim.failRows, unlockRows: claim.unlockRows, rowVersion: job ? Number(job.row_version) || 0 : 0, result_code: \"\", result_message: claim.result_message, job_status: job ? s(job.job_status) : \"\" };\n  base.needFail = claim.route === \"EXHAUST\" && (claim.failRows || []).length ? \"YES\" : \"NO\";\n  base.needUnlock = claim.route === \"EXHAUST\" && (claim.unlockRows || []).length ? \"YES\" : \"NO\";\n  if (claim.route === \"SKIP\") return base;\n  if (!job) return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"GDX_INVALID_DATA\", result_message: \"job \" + claim.jobId + \" vanished after the claim\" });\n  const status = s(job.job_status);\n  const live = String(job.lease_live) === \"1\";\n  if (claim.route === \"RESUME\" || (claim.route === \"EXHAUST\" && claim.jobStatus === \"COMMITTING_GD\")) {\n    if (status !== \"COMMITTING_GD\") return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + status + \" after the claim: not resumed\" });\n    if (live) return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"job lease is live for \" + s(job.lease_owner) + \": not resumed\" });\n    return base;\n  }\n  if (s(job.lease_owner) !== guard.leaseOwner) return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"the job's lease owner is \" + s(job.lease_owner) + \" after this run's lease write\" });\n  const expect = claim.claimRows.length ? s(claim.claimRows[0].job_status) : status;\n  if (status !== expect) return Object.assign(base, { route: \"LOST\", needFail: \"NO\", needUnlock: \"NO\", result_code: \"JOB_ILLEGAL_TRANSITION\", result_message: \"job is \" + status + \" after the claim (expected \" + expect + \")\" });\n  return base;\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst claim = [{{node:code_node_XWclaim.data}}][0];\nconst res = workerOwn(guard, claim, [{{node:sql_node_XWown.data}}][0]);\nconsole.log(\"worker own\", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, result: res.result_code, message: res.result_message }));\nreturn res;"
       },
       "response_json": [
        {
-        "key": "5ape61hb",
+        "key": "iw9pg7hx",
         "name": "route",
         "title": "route",
         "description": "",
@@ -2149,7 +2149,7 @@
         "children": []
        },
        {
-        "key": "5z2a3wkg",
+        "key": "lr54br2v",
         "name": "dbNow",
         "title": "dbNow",
         "description": "",
@@ -2158,7 +2158,7 @@
         "children": []
        },
        {
-        "key": "s5sqil28",
+        "key": "3bjgvyem",
         "name": "jobId",
         "title": "jobId",
         "description": "",
@@ -2167,7 +2167,7 @@
         "children": []
        },
        {
-        "key": "q0xwu7hh",
+        "key": "vgbt065e",
         "name": "jobStatus",
         "title": "jobStatus",
         "description": "",
@@ -2176,7 +2176,7 @@
         "children": []
        },
        {
-        "key": "i0o6lref",
+        "key": "tazl9ny1",
         "name": "organizationId",
         "title": "organizationId",
         "description": "",
@@ -2185,7 +2185,7 @@
         "children": []
        },
        {
-        "key": "k1u7r9d5",
+        "key": "7s6ztli3",
         "name": "gdId",
         "title": "gdId",
         "description": "",
@@ -2194,7 +2194,7 @@
         "children": []
        },
        {
-        "key": "advp7151",
+        "key": "9lswbx5n",
         "name": "attempts",
         "title": "attempts",
         "description": "",
@@ -2203,7 +2203,7 @@
         "children": []
        },
        {
-        "key": "ilj50saq",
+        "key": "i8l0f5lc",
         "name": "failRows",
         "title": "failRows",
         "description": "",
@@ -2211,7 +2211,7 @@
         "isExpand": true,
         "children": [
          {
-          "key": "z8qqkg20",
+          "key": "txc0w927",
           "name": "items",
           "title": "",
           "description": "",
@@ -2223,7 +2223,7 @@
         ]
        },
        {
-        "key": "rh7p7v07",
+        "key": "npyzrjdp",
         "name": "unlockRows",
         "title": "unlockRows",
         "description": "",
@@ -2231,7 +2231,7 @@
         "isExpand": true,
         "children": [
          {
-          "key": "v3oiw38n",
+          "key": "5mxyu9l4",
           "name": "items",
           "title": "",
           "description": "",
@@ -2243,7 +2243,7 @@
         ]
        },
        {
-        "key": "dpsrx44v",
+        "key": "x2f9isow",
         "name": "needFail",
         "title": "needFail",
         "description": "",
@@ -2252,7 +2252,7 @@
         "children": []
        },
        {
-        "key": "mnpuoio0",
+        "key": "ygp7kl0b",
         "name": "needUnlock",
         "title": "needUnlock",
         "description": "",
@@ -2261,7 +2261,7 @@
         "children": []
        },
        {
-        "key": "84iwwlnc",
+        "key": "ukpzq54g",
         "name": "rowVersion",
         "title": "rowVersion",
         "description": "",
@@ -2270,7 +2270,7 @@
         "children": []
        },
        {
-        "key": "bh4ukuhd",
+        "key": "jglrfo43",
         "name": "result_code",
         "title": "result_code",
         "description": "",
@@ -2279,7 +2279,7 @@
         "children": []
        },
        {
-        "key": "kc1f1h4h",
+        "key": "moj7hqef",
         "name": "result_message",
         "title": "result_message",
         "description": "",
@@ -2288,7 +2288,7 @@
         "children": []
        },
        {
-        "key": "xbfnnqit",
+        "key": "62v3eltk",
         "name": "job_status",
         "title": "job_status",
         "description": "",
@@ -2811,11 +2811,11 @@
           "name": "Read-back: the job after prepare (the truth)",
           "script": {
            "type": "sql",
-           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
+           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
           },
           "response_json": [
            {
-            "key": "3sgs6uh5",
+            "key": "4as2vedf",
             "name": "db_now",
             "title": "db_now",
             "description": "",
@@ -2824,7 +2824,7 @@
             "children": []
            },
            {
-            "key": "s4qykkhs",
+            "key": "iovl5302",
             "name": "id",
             "title": "id",
             "description": "",
@@ -2833,7 +2833,7 @@
             "children": []
            },
            {
-            "key": "h0sgxzt7",
+            "key": "o5vglt5n",
             "name": "job_status",
             "title": "job_status",
             "description": "",
@@ -2842,7 +2842,7 @@
             "children": []
            },
            {
-            "key": "gp06xdla",
+            "key": "wsx7eg9s",
             "name": "progress_percent",
             "title": "progress_percent",
             "description": "",
@@ -2851,7 +2851,7 @@
             "children": []
            },
            {
-            "key": "ouf73vx1",
+            "key": "typrka8q",
             "name": "progress_message",
             "title": "progress_message",
             "description": "",
@@ -2860,7 +2860,7 @@
             "children": []
            },
            {
-            "key": "thw7fwc9",
+            "key": "j46z3ygp",
             "name": "attempt_count",
             "title": "attempt_count",
             "description": "",
@@ -2869,7 +2869,7 @@
             "children": []
            },
            {
-            "key": "671oeick",
+            "key": "1y3rdnvc",
             "name": "next_attempt_at",
             "title": "next_attempt_at",
             "description": "",
@@ -2878,7 +2878,7 @@
             "children": []
            },
            {
-            "key": "9brvn5bu",
+            "key": "p3i77w8t",
             "name": "lease_owner",
             "title": "lease_owner",
             "description": "",
@@ -2887,7 +2887,7 @@
             "children": []
            },
            {
-            "key": "q91z1ans",
+            "key": "hxfiic51",
             "name": "lease_expires_at",
             "title": "lease_expires_at",
             "description": "",
@@ -2896,7 +2896,7 @@
             "children": []
            },
            {
-            "key": "miihmq3i",
+            "key": "45rwk9x4",
             "name": "lease_live",
             "title": "lease_live",
             "description": "",
@@ -2905,7 +2905,7 @@
             "children": []
            },
            {
-            "key": "emmvup3r",
+            "key": "cfk8n4qd",
             "name": "row_version",
             "title": "row_version",
             "description": "",
@@ -2914,7 +2914,7 @@
             "children": []
            },
            {
-            "key": "yqeh457x",
+            "key": "lus5mnbb",
             "name": "error_code",
             "title": "error_code",
             "description": "",
@@ -2923,7 +2923,7 @@
             "children": []
            },
            {
-            "key": "f2xliknj",
+            "key": "yyf2gese",
             "name": "error_message",
             "title": "error_message",
             "description": "",
@@ -2932,7 +2932,7 @@
             "children": []
            },
            {
-            "key": "yryjbcd3",
+            "key": "eqhu17ny",
             "name": "error_details",
             "title": "error_details",
             "description": "",
@@ -2941,7 +2941,7 @@
             "children": []
            },
            {
-            "key": "gtnndm61",
+            "key": "11eyvgf2",
             "name": "gd_id",
             "title": "gd_id",
             "description": "",
@@ -2950,7 +2950,7 @@
             "children": []
            },
            {
-            "key": "skrn0vvf",
+            "key": "p2utwzyz",
             "name": "finished_at",
             "title": "finished_at",
             "description": "",
@@ -2971,11 +2971,11 @@
           "timeout": 30000,
           "script": {
            "type": "javascript",
-           "code": "// GD_CANCEL_WORKER - After prepare: the job row decides - READY_TO_COMMIT -> publish; FAILED -> lease released (PREPARE\n// put the Goods Delivery back to Created); a job PREPARE left VALIDATING -> a hard code fails it (+ the lock released), else a counted retry\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPrepare = function workerAfterPrepare(guard, own, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || own.dbNow : own.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: own.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", prepareResult: s(r.result_code), prepareMessage: s(r.result_message), result_code: \"\", result_message: \"\", job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDX_INVALID_DATA\", result_message: \"job vanished during prepare\" });\n  const status = s(job.job_status);\n  const ours = s(job.lease_owner) === guard.leaseOwner;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  if (status === \"READY_TO_COMMIT\") return Object.assign(base, { route: \"PUBLISH\", result_message: \"prepared: \" + s(r.result_message) });\n  if (!ours) return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"job is \" + status + \" with lease owner \" + s(job.lease_owner) + \" after prepare: nothing written\" });\n  if (status === \"FAILED\" || status === \"CANCELLED\") return Object.assign(base, { jobRows: [Object.assign({}, row, { lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: s(job.error_code), result_message: status + \": \" + (s(job.error_message) || s(r.result_message)) });\n  const unlock = /^[0-9]{1,20}$/.test(s(own.gdId)) ? [{ id: s(own.gdId), gd_status: \"Created\" }] : [];\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"GDX_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"GD_CANCEL_PREPARE answered \" + hard + \" (\" + s(r.result_message) + \") and left the job \" + status : \"GD_CANCEL_PREPARE left the job \" + status + \" \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not cancelled: \" + (s(r.result_message) || \"the cancel could not be prepared\").slice(0, 200), error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"GDX_TRANSIENT\", result_message: \"GD_CANCEL_PREPARE left the job \" + status + \" without a code: retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst own = [{{node:code_node_XWown.data}}][0];\nconst res = workerAfterPrepare(guard, own, [{{node:code_node_XWprepResp.data}}][0], [{{node:sql_node_XWprepBack.data}}][0]);\nconsole.log(\"worker after prepare\", JSON.stringify({ route: res.route, status: res.jobStatus, prepare: res.prepareResult, write: res.needJobUpd, unlock: res.needUnlock, result: res.result_code }));\nreturn res;"
+           "code": "// GD_CANCEL_WORKER - After prepare: the job row decides - READY_TO_COMMIT -> publish; FAILED -> lease released (PREPARE\n// put the Goods Delivery back to Created); a job PREPARE left VALIDATING -> a hard code fails it (+ the lock released), else a counted retry\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPrepare = function workerAfterPrepare(guard, own, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || own.dbNow : own.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: own.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", prepareResult: s(r.result_code), prepareMessage: s(r.result_message), result_code: \"\", result_message: \"\", job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDX_INVALID_DATA\", result_message: \"job vanished during prepare\" });\n  const status = s(job.job_status);\n  const ours = s(job.lease_owner) === guard.leaseOwner;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  if (status === \"READY_TO_COMMIT\") return Object.assign(base, { route: \"PUBLISH\", result_message: \"prepared: \" + s(r.result_message) });\n  if (!ours) return Object.assign(base, { result_code: \"JOB_ROW_VERSION_CONFLICT\", result_message: \"job is \" + status + \" with lease owner \" + s(job.lease_owner) + \" after prepare: nothing written\" });\n  if (status === \"FAILED\" || status === \"CANCELLED\") return Object.assign(base, { jobRows: [Object.assign({}, row, { lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: s(job.error_code), result_message: status + \": \" + (s(job.error_message) || s(r.result_message)) });\n  const unlock = /^[0-9]{1,20}$/.test(s(own.gdId)) ? [{ id: s(own.gdId), gd_status: \"Created\" }] : [];\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"GDX_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"GD_CANCEL_PREPARE answered \" + hard + \" (\" + s(r.result_message) + \") and left the job \" + status : \"GD_CANCEL_PREPARE left the job \" + status + \" \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not cancelled: \" + (s(r.result_message) || \"the cancel could not be prepared\").slice(0, 200), error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"GDX_TRANSIENT\", result_message: \"GD_CANCEL_PREPARE left the job \" + status + \" without a code: retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst own = [{{node:code_node_XWown.data}}][0];\nconst res = workerAfterPrepare(guard, own, [{{node:code_node_XWprepResp.data}}][0], [{{node:sql_node_XWprepBack.data}}][0]);\nconsole.log(\"worker after prepare\", JSON.stringify({ route: res.route, status: res.jobStatus, prepare: res.prepareResult, write: res.needJobUpd, unlock: res.needUnlock, result: res.result_code }));\nreturn res;"
           },
           "response_json": [
            {
-            "key": "ks7gp2dt",
+            "key": "nunhqqqz",
             "name": "route",
             "title": "route",
             "description": "",
@@ -2984,7 +2984,7 @@
             "children": []
            },
            {
-            "key": "d80mcvn3",
+            "key": "ojwi4p0z",
             "name": "dbNow",
             "title": "dbNow",
             "description": "",
@@ -2993,7 +2993,7 @@
             "children": []
            },
            {
-            "key": "2cw6qo31",
+            "key": "flt97655",
             "name": "jobId",
             "title": "jobId",
             "description": "",
@@ -3002,7 +3002,7 @@
             "children": []
            },
            {
-            "key": "v0vg4zej",
+            "key": "af48b9x7",
             "name": "jobStatus",
             "title": "jobStatus",
             "description": "",
@@ -3011,7 +3011,7 @@
             "children": []
            },
            {
-            "key": "daqz7w8o",
+            "key": "wsuhoeyk",
             "name": "jobRows",
             "title": "jobRows",
             "description": "",
@@ -3019,7 +3019,7 @@
             "isExpand": true,
             "children": [
              {
-              "key": "5ww7aspo",
+              "key": "rcfuv4jf",
               "name": "items",
               "title": "",
               "description": "",
@@ -3031,7 +3031,7 @@
             ]
            },
            {
-            "key": "ip5i2sud",
+            "key": "56ey09tw",
             "name": "needJobUpd",
             "title": "needJobUpd",
             "description": "",
@@ -3040,7 +3040,7 @@
             "children": []
            },
            {
-            "key": "wez38yhw",
+            "key": "y8b2l2qn",
             "name": "unlockRows",
             "title": "unlockRows",
             "description": "",
@@ -3048,7 +3048,7 @@
             "isExpand": true,
             "children": [
              {
-              "key": "78jgfury",
+              "key": "trh14yvf",
               "name": "items",
               "title": "",
               "description": "",
@@ -3060,7 +3060,7 @@
             ]
            },
            {
-            "key": "kl7wuskf",
+            "key": "89ae5xr7",
             "name": "needUnlock",
             "title": "needUnlock",
             "description": "",
@@ -3069,7 +3069,7 @@
             "children": []
            },
            {
-            "key": "eurqw0m5",
+            "key": "w9zd14jr",
             "name": "prepareResult",
             "title": "prepareResult",
             "description": "",
@@ -3078,7 +3078,7 @@
             "children": []
            },
            {
-            "key": "xsxzeryl",
+            "key": "g1j136gw",
             "name": "prepareMessage",
             "title": "prepareMessage",
             "description": "",
@@ -3087,7 +3087,7 @@
             "children": []
            },
            {
-            "key": "5z6c8tcf",
+            "key": "8zfly259",
             "name": "result_code",
             "title": "result_code",
             "description": "",
@@ -3096,7 +3096,7 @@
             "children": []
            },
            {
-            "key": "nj2z9u8c",
+            "key": "7yqvcfnt",
             "name": "result_message",
             "title": "result_message",
             "description": "",
@@ -3105,7 +3105,7 @@
             "children": []
            },
            {
-            "key": "tp6julj3",
+            "key": "asa7o7rk",
             "name": "job_status",
             "title": "job_status",
             "description": "",
@@ -3480,11 +3480,11 @@
       "name": "The job before the publish decision",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
       },
       "response_json": [
        {
-        "key": "m94eldfs",
+        "key": "aocwf5h2",
         "name": "db_now",
         "title": "db_now",
         "description": "",
@@ -3493,7 +3493,7 @@
         "children": []
        },
        {
-        "key": "ckvxltdq",
+        "key": "pnj11o9g",
         "name": "id",
         "title": "id",
         "description": "",
@@ -3502,7 +3502,7 @@
         "children": []
        },
        {
-        "key": "60x1vzui",
+        "key": "nl57v8cm",
         "name": "job_status",
         "title": "job_status",
         "description": "",
@@ -3511,7 +3511,7 @@
         "children": []
        },
        {
-        "key": "z8omy7ul",
+        "key": "wpvynbt8",
         "name": "progress_percent",
         "title": "progress_percent",
         "description": "",
@@ -3520,7 +3520,7 @@
         "children": []
        },
        {
-        "key": "t2zx4joi",
+        "key": "sxhup68x",
         "name": "progress_message",
         "title": "progress_message",
         "description": "",
@@ -3529,7 +3529,7 @@
         "children": []
        },
        {
-        "key": "2p0kwjcz",
+        "key": "hc1i9rza",
         "name": "attempt_count",
         "title": "attempt_count",
         "description": "",
@@ -3538,7 +3538,7 @@
         "children": []
        },
        {
-        "key": "tt076zpq",
+        "key": "3b2fnted",
         "name": "next_attempt_at",
         "title": "next_attempt_at",
         "description": "",
@@ -3547,7 +3547,7 @@
         "children": []
        },
        {
-        "key": "qfjgiaid",
+        "key": "uut96dst",
         "name": "lease_owner",
         "title": "lease_owner",
         "description": "",
@@ -3556,7 +3556,7 @@
         "children": []
        },
        {
-        "key": "h7o2ji1r",
+        "key": "hemk5upf",
         "name": "lease_expires_at",
         "title": "lease_expires_at",
         "description": "",
@@ -3565,7 +3565,7 @@
         "children": []
        },
        {
-        "key": "nzlskvgc",
+        "key": "do0bbuy2",
         "name": "lease_live",
         "title": "lease_live",
         "description": "",
@@ -3574,7 +3574,7 @@
         "children": []
        },
        {
-        "key": "8act9aqt",
+        "key": "tnpgy0rs",
         "name": "row_version",
         "title": "row_version",
         "description": "",
@@ -3583,7 +3583,7 @@
         "children": []
        },
        {
-        "key": "6q8mvqv9",
+        "key": "w9odrx4j",
         "name": "error_code",
         "title": "error_code",
         "description": "",
@@ -3592,7 +3592,7 @@
         "children": []
        },
        {
-        "key": "orxbia0m",
+        "key": "awn44njb",
         "name": "error_message",
         "title": "error_message",
         "description": "",
@@ -3601,7 +3601,7 @@
         "children": []
        },
        {
-        "key": "b8nehk2t",
+        "key": "u3rxs2v9",
         "name": "error_details",
         "title": "error_details",
         "description": "",
@@ -3610,7 +3610,7 @@
         "children": []
        },
        {
-        "key": "03cdtt4v",
+        "key": "g7q8bm9h",
         "name": "gd_id",
         "title": "gd_id",
         "description": "",
@@ -3619,7 +3619,7 @@
         "children": []
        },
        {
-        "key": "zf8ywpax",
+        "key": "mfn6qyzt",
         "name": "finished_at",
         "title": "finished_at",
         "description": "",
@@ -3640,11 +3640,11 @@
       "timeout": 30000,
       "script": {
        "type": "javascript",
-       "code": "// GD_CANCEL_WORKER - Before publish: decided from the job row alone - READY_TO_COMMIT under this run's lease, or\n// COMMITTING_GD with no live lease (resume) -> the ONE GD_CANCEL_COMMIT call\nconst workerMid = function workerMid(guard, own, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || own.dbNow : own.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: own.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (!job || [\"PREPARE\", \"PUBLISH\", \"RESUME\"].indexOf(own.route) < 0) return base;\n  const status = s(job.job_status);\n  if (own.route === \"RESUME\") return status === \"COMMITTING_GD\" && String(job.lease_live) !== \"1\" ? Object.assign(base, { route: \"PUBLISH\", result_message: \"resume GD_CANCEL_COMMIT\" }) : Object.assign(base, { result_message: \"job is \" + status + (String(job.lease_live) === \"1\" ? \" with a live lease\" : \"\") + \": no publish call\" });\n  if (status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner) return Object.assign(base, { route: \"PUBLISH\", result_message: \"publish\" });\n  return Object.assign(base, { result_message: \"job is \" + status + \" (lease \" + s(job.lease_owner) + \"): no publish call\" });\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst own = [{{node:code_node_XWown.data}}][0];\nconst res = workerMid(guard, own, [{{node:sql_node_XWmid.data}}][0]);\nconsole.log(\"worker mid\", JSON.stringify(res));\nreturn res;"
+       "code": "// GD_CANCEL_WORKER - Before publish: decided from the job row alone - READY_TO_COMMIT under this run's lease, or\n// COMMITTING_GD with no live lease (resume) -> the ONE GD_CANCEL_COMMIT call\nconst workerMid = function workerMid(guard, own, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || own.dbNow : own.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: own.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (!job || [\"PREPARE\", \"PUBLISH\", \"RESUME\"].indexOf(own.route) < 0) return base;\n  const status = s(job.job_status);\n  if (own.route === \"RESUME\") return status === \"COMMITTING_GD\" && String(job.lease_live) !== \"1\" ? Object.assign(base, { route: \"PUBLISH\", result_message: \"resume GD_CANCEL_COMMIT\" }) : Object.assign(base, { result_message: \"job is \" + status + (String(job.lease_live) === \"1\" ? \" with a live lease\" : \"\") + \": no publish call\" });\n  if (status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner) return Object.assign(base, { route: \"PUBLISH\", result_message: \"publish\" });\n  return Object.assign(base, { result_message: \"job is \" + status + \" (lease \" + s(job.lease_owner) + \"): no publish call\" });\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst own = [{{node:code_node_XWown.data}}][0];\nconst res = workerMid(guard, own, [{{node:sql_node_XWmid.data}}][0]);\nconsole.log(\"worker mid\", JSON.stringify(res));\nreturn res;"
       },
       "response_json": [
        {
-        "key": "s1giokeq",
+        "key": "sxutegkq",
         "name": "route",
         "title": "route",
         "description": "",
@@ -3653,7 +3653,7 @@
         "children": []
        },
        {
-        "key": "tlw6yidt",
+        "key": "k3oglnme",
         "name": "dbNow",
         "title": "dbNow",
         "description": "",
@@ -3662,7 +3662,7 @@
         "children": []
        },
        {
-        "key": "tjsq24o5",
+        "key": "zl6s0y4f",
         "name": "jobId",
         "title": "jobId",
         "description": "",
@@ -3671,7 +3671,7 @@
         "children": []
        },
        {
-        "key": "sp9uejw0",
+        "key": "ngffk2f6",
         "name": "jobStatus",
         "title": "jobStatus",
         "description": "",
@@ -3680,7 +3680,7 @@
         "children": []
        },
        {
-        "key": "m7m0k9rq",
+        "key": "op3td0ac",
         "name": "result_message",
         "title": "result_message",
         "description": "",
@@ -3869,11 +3869,11 @@
           "name": "Read-back: the job after the publish (the truth)",
           "script": {
            "type": "sql",
-           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
+           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
           },
           "response_json": [
            {
-            "key": "udmtxkln",
+            "key": "1934u61m",
             "name": "db_now",
             "title": "db_now",
             "description": "",
@@ -3882,7 +3882,7 @@
             "children": []
            },
            {
-            "key": "4bj9akvw",
+            "key": "baw1jnes",
             "name": "id",
             "title": "id",
             "description": "",
@@ -3891,7 +3891,7 @@
             "children": []
            },
            {
-            "key": "qfss2aur",
+            "key": "h3v3lx43",
             "name": "job_status",
             "title": "job_status",
             "description": "",
@@ -3900,7 +3900,7 @@
             "children": []
            },
            {
-            "key": "19pjhbf4",
+            "key": "0dawkq3d",
             "name": "progress_percent",
             "title": "progress_percent",
             "description": "",
@@ -3909,7 +3909,7 @@
             "children": []
            },
            {
-            "key": "bec7z2bd",
+            "key": "wzlzh96b",
             "name": "progress_message",
             "title": "progress_message",
             "description": "",
@@ -3918,7 +3918,7 @@
             "children": []
            },
            {
-            "key": "tthlp09u",
+            "key": "zzaopjcs",
             "name": "attempt_count",
             "title": "attempt_count",
             "description": "",
@@ -3927,7 +3927,7 @@
             "children": []
            },
            {
-            "key": "gavjp5mb",
+            "key": "5geje1l2",
             "name": "next_attempt_at",
             "title": "next_attempt_at",
             "description": "",
@@ -3936,7 +3936,7 @@
             "children": []
            },
            {
-            "key": "iuvxpx1b",
+            "key": "rrdm7yzd",
             "name": "lease_owner",
             "title": "lease_owner",
             "description": "",
@@ -3945,7 +3945,7 @@
             "children": []
            },
            {
-            "key": "0oqfzlv3",
+            "key": "561mf47t",
             "name": "lease_expires_at",
             "title": "lease_expires_at",
             "description": "",
@@ -3954,7 +3954,7 @@
             "children": []
            },
            {
-            "key": "s0pq27n2",
+            "key": "s9y2j9gu",
             "name": "lease_live",
             "title": "lease_live",
             "description": "",
@@ -3963,7 +3963,7 @@
             "children": []
            },
            {
-            "key": "9u5dzz4s",
+            "key": "grhhb95d",
             "name": "row_version",
             "title": "row_version",
             "description": "",
@@ -3972,7 +3972,7 @@
             "children": []
            },
            {
-            "key": "2iu0upd7",
+            "key": "mydkjaai",
             "name": "error_code",
             "title": "error_code",
             "description": "",
@@ -3981,7 +3981,7 @@
             "children": []
            },
            {
-            "key": "bckfm5cj",
+            "key": "9tuwlqdi",
             "name": "error_message",
             "title": "error_message",
             "description": "",
@@ -3990,7 +3990,7 @@
             "children": []
            },
            {
-            "key": "kmufbhlt",
+            "key": "38fgpin8",
             "name": "error_details",
             "title": "error_details",
             "description": "",
@@ -3999,7 +3999,7 @@
             "children": []
            },
            {
-            "key": "ujl59rfb",
+            "key": "8uddy7kx",
             "name": "gd_id",
             "title": "gd_id",
             "description": "",
@@ -4008,7 +4008,7 @@
             "children": []
            },
            {
-            "key": "qpjnzmc3",
+            "key": "ap8qq48n",
             "name": "finished_at",
             "title": "finished_at",
             "description": "",
@@ -4029,11 +4029,11 @@
           "timeout": 30000,
           "script": {
            "type": "javascript",
-           "code": "// GD_CANCEL_WORKER - After publish: GD_CANCEL_COMMIT writes the job itself; the worker writes only when the call\n// answered without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any\n// write, so nothing was saved: a hard code -> FAILED + the Goods Delivery back to Created; no code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", publishRoute: s(r.path), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDX_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"GDX_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"GD_CANCEL_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"GD_CANCEL_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.gdId)) ? [{ id: s(own.gdId), gd_status: \"Created\" }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not cancelled: the cancel could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"GDX_TRANSIENT\", result_message: \"GD_CANCEL_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst own = [{{node:code_node_XWown.data}}][0];\nconst mid = [{{node:code_node_XWmid.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_XWpubResp.data}}][0], [{{node:sql_node_XWpubBack.data}}][0]);\nconsole.log(\"worker after publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
+           "code": "// GD_CANCEL_WORKER - After publish: GD_CANCEL_COMMIT writes the job itself; the worker writes only when the call\n// answered without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any\n// write, so nothing was saved: a hard code -> FAILED + the Goods Delivery back to Created; no code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", publishRoute: s(r.path), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDX_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"GDX_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"GD_CANCEL_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"GD_CANCEL_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.gdId)) ? [{ id: s(own.gdId), gd_status: \"Created\" }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not cancelled: the cancel could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"GDX_TRANSIENT\", result_message: \"GD_CANCEL_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst own = [{{node:code_node_XWown.data}}][0];\nconst mid = [{{node:code_node_XWmid.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_XWpubResp.data}}][0], [{{node:sql_node_XWpubBack.data}}][0]);\nconsole.log(\"worker after publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
           },
           "response_json": [
            {
-            "key": "grldq5lx",
+            "key": "uv36re6d",
             "name": "route",
             "title": "route",
             "description": "",
@@ -4042,7 +4042,7 @@
             "children": []
            },
            {
-            "key": "4b7pje5h",
+            "key": "8u248h3y",
             "name": "dbNow",
             "title": "dbNow",
             "description": "",
@@ -4051,7 +4051,7 @@
             "children": []
            },
            {
-            "key": "59hu6570",
+            "key": "jyqq921z",
             "name": "jobId",
             "title": "jobId",
             "description": "",
@@ -4060,7 +4060,7 @@
             "children": []
            },
            {
-            "key": "ulyxz4fq",
+            "key": "i7j279pj",
             "name": "jobStatus",
             "title": "jobStatus",
             "description": "",
@@ -4069,7 +4069,7 @@
             "children": []
            },
            {
-            "key": "od1263bs",
+            "key": "pvrrmegn",
             "name": "jobRows",
             "title": "jobRows",
             "description": "",
@@ -4077,7 +4077,7 @@
             "isExpand": true,
             "children": [
              {
-              "key": "ti87wc9p",
+              "key": "5zhy1np9",
               "name": "items",
               "title": "",
               "description": "",
@@ -4089,7 +4089,7 @@
             ]
            },
            {
-            "key": "dl7voyoh",
+            "key": "9ahnx3hp",
             "name": "needJobUpd",
             "title": "needJobUpd",
             "description": "",
@@ -4098,7 +4098,7 @@
             "children": []
            },
            {
-            "key": "x2em30te",
+            "key": "ubcj2u1x",
             "name": "unlockRows",
             "title": "unlockRows",
             "description": "",
@@ -4106,7 +4106,7 @@
             "isExpand": true,
             "children": [
              {
-              "key": "jobbg3gg",
+              "key": "7nqrblum",
               "name": "items",
               "title": "",
               "description": "",
@@ -4118,7 +4118,7 @@
             ]
            },
            {
-            "key": "n3vr2y1l",
+            "key": "stfsfr8d",
             "name": "needUnlock",
             "title": "needUnlock",
             "description": "",
@@ -4127,7 +4127,7 @@
             "children": []
            },
            {
-            "key": "njbmhqrc",
+            "key": "88yadrkd",
             "name": "publishRoute",
             "title": "publishRoute",
             "description": "",
@@ -4136,7 +4136,7 @@
             "children": []
            },
            {
-            "key": "q6e9bipn",
+            "key": "fjyyusus",
             "name": "result_code",
             "title": "result_code",
             "description": "",
@@ -4145,7 +4145,7 @@
             "children": []
            },
            {
-            "key": "4wk7nmu0",
+            "key": "c54fdcsh",
             "name": "result_message",
             "title": "result_message",
             "description": "",
@@ -4154,7 +4154,7 @@
             "children": []
            },
            {
-            "key": "bk8k2t2e",
+            "key": "j61phgzw",
             "name": "job_status",
             "title": "job_status",
             "description": "",
@@ -4529,11 +4529,11 @@
       "name": "The job after the publish call (the split decision)",
       "script": {
        "type": "sql",
-       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
+       "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
       },
       "response_json": [
        {
-        "key": "d92mmi46",
+        "key": "tsaqbi8u",
         "name": "db_now",
         "title": "db_now",
         "description": "",
@@ -4542,7 +4542,7 @@
         "children": []
        },
        {
-        "key": "v2ghdmwh",
+        "key": "rhsfv4ef",
         "name": "id",
         "title": "id",
         "description": "",
@@ -4551,7 +4551,7 @@
         "children": []
        },
        {
-        "key": "3s5lsup7",
+        "key": "9kp54bze",
         "name": "job_status",
         "title": "job_status",
         "description": "",
@@ -4560,7 +4560,7 @@
         "children": []
        },
        {
-        "key": "uldxq5mk",
+        "key": "kba2bbzw",
         "name": "progress_percent",
         "title": "progress_percent",
         "description": "",
@@ -4569,7 +4569,7 @@
         "children": []
        },
        {
-        "key": "00esmby3",
+        "key": "95s27byn",
         "name": "progress_message",
         "title": "progress_message",
         "description": "",
@@ -4578,7 +4578,7 @@
         "children": []
        },
        {
-        "key": "hv2y7xi9",
+        "key": "f55xr4ub",
         "name": "attempt_count",
         "title": "attempt_count",
         "description": "",
@@ -4587,7 +4587,7 @@
         "children": []
        },
        {
-        "key": "dggdt808",
+        "key": "e7lrd632",
         "name": "next_attempt_at",
         "title": "next_attempt_at",
         "description": "",
@@ -4596,7 +4596,7 @@
         "children": []
        },
        {
-        "key": "upnkalh2",
+        "key": "8o1bp58z",
         "name": "lease_owner",
         "title": "lease_owner",
         "description": "",
@@ -4605,7 +4605,7 @@
         "children": []
        },
        {
-        "key": "ce52ghac",
+        "key": "e0xzjuht",
         "name": "lease_expires_at",
         "title": "lease_expires_at",
         "description": "",
@@ -4614,7 +4614,7 @@
         "children": []
        },
        {
-        "key": "a9j41bqg",
+        "key": "3d5wdqbe",
         "name": "lease_live",
         "title": "lease_live",
         "description": "",
@@ -4623,7 +4623,7 @@
         "children": []
        },
        {
-        "key": "qwu1y6nr",
+        "key": "7dvfiase",
         "name": "row_version",
         "title": "row_version",
         "description": "",
@@ -4632,7 +4632,7 @@
         "children": []
        },
        {
-        "key": "a95r3rqw",
+        "key": "ca51w8sm",
         "name": "error_code",
         "title": "error_code",
         "description": "",
@@ -4641,7 +4641,7 @@
         "children": []
        },
        {
-        "key": "zv38d3nc",
+        "key": "dvfxk720",
         "name": "error_message",
         "title": "error_message",
         "description": "",
@@ -4650,7 +4650,7 @@
         "children": []
        },
        {
-        "key": "s8rcndmw",
+        "key": "gs2x1d7o",
         "name": "error_details",
         "title": "error_details",
         "description": "",
@@ -4659,7 +4659,7 @@
         "children": []
        },
        {
-        "key": "qvm9fu7l",
+        "key": "ne9sl3e7",
         "name": "gd_id",
         "title": "gd_id",
         "description": "",
@@ -4668,7 +4668,7 @@
         "children": []
        },
        {
-        "key": "cek3x1ha",
+        "key": "pxwa2gs1",
         "name": "finished_at",
         "title": "finished_at",
         "description": "",
@@ -4689,11 +4689,11 @@
       "timeout": 30000,
       "script": {
        "type": "javascript",
-       "code": "// GD_CANCEL_WORKER - Second publish: GD_CANCEL_COMMIT ended SPLIT (COMMITTING_GD under a SPLIT| hand-over lease,\n// no next attempt) -> call it again in this tick for the Packing and the finish; decided from the job row alone\nconst workerSplitResume = function workerSplitResume(guard, mid, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (s(mid.route) !== \"PUBLISH\" || !job) return Object.assign(base, { result_message: \"no publish call in this iteration\" });\n  const split = s(job.job_status) === \"COMMITTING_GD\" && s(job.lease_owner).indexOf(\"SPLIT|\") === 0 && !s(job.next_attempt_at);\n  if (!split) return Object.assign(base, { result_message: \"job is \" + s(job.job_status) + (s(job.lease_owner) ? \" (lease \" + s(job.lease_owner) + \")\" : \"\") + \": no second publish call\" });\n  return Object.assign(base, { route: \"PUBLISH\", result_message: \"split after the stock moved: the second GD_CANCEL_COMMIT call of this tick\" });\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst mid = [{{node:code_node_XWmid.data}}][0];\nconst res = workerSplitResume(guard, mid, [{{node:sql_node_XWsplit.data}}][0]);\nconsole.log(\"worker split\", JSON.stringify(res));\nreturn res;"
+       "code": "// GD_CANCEL_WORKER - Second publish: GD_CANCEL_COMMIT ended SPLIT (COMMITTING_GD under a SPLIT| hand-over lease,\n// no next attempt) -> call it again in this tick for the Packing and the finish; decided from the job row alone\nconst workerSplitResume = function workerSplitResume(guard, mid, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (s(mid.route) !== \"PUBLISH\" || !job) return Object.assign(base, { result_message: \"no publish call in this iteration\" });\n  const split = s(job.job_status) === \"COMMITTING_GD\" && s(job.lease_owner).indexOf(\"SPLIT|\") === 0 && !s(job.next_attempt_at);\n  if (!split) return Object.assign(base, { result_message: \"job is \" + s(job.job_status) + (s(job.lease_owner) ? \" (lease \" + s(job.lease_owner) + \")\" : \"\") + \": no second publish call\" });\n  return Object.assign(base, { route: \"PUBLISH\", result_message: \"split after the stock moved: the second GD_CANCEL_COMMIT call of this tick\" });\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst mid = [{{node:code_node_XWmid.data}}][0];\nconst res = workerSplitResume(guard, mid, [{{node:sql_node_XWsplit.data}}][0]);\nconsole.log(\"worker split\", JSON.stringify(res));\nreturn res;"
       },
       "response_json": [
        {
-        "key": "a1vlsurn",
+        "key": "jh57q01h",
         "name": "route",
         "title": "route",
         "description": "",
@@ -4702,7 +4702,7 @@
         "children": []
        },
        {
-        "key": "ue28tglb",
+        "key": "cs2cb4z1",
         "name": "dbNow",
         "title": "dbNow",
         "description": "",
@@ -4711,7 +4711,7 @@
         "children": []
        },
        {
-        "key": "q2hbvznj",
+        "key": "b0eft4fg",
         "name": "jobId",
         "title": "jobId",
         "description": "",
@@ -4720,7 +4720,7 @@
         "children": []
        },
        {
-        "key": "e694mnq0",
+        "key": "k7x4o01n",
         "name": "jobStatus",
         "title": "jobStatus",
         "description": "",
@@ -4729,7 +4729,7 @@
         "children": []
        },
        {
-        "key": "m9nrykfa",
+        "key": "k16dpoqg",
         "name": "result_message",
         "title": "result_message",
         "description": "",
@@ -4918,11 +4918,11 @@
           "name": "Read-back: the job after the second publish (the truth)",
           "script": {
            "type": "sql",
-           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
+           "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_percent,\n       j.progress_message,\n       j.attempt_count,\n       DATE_FORMAT(j.next_attempt_at, '%Y-%m-%d %H:%i:%s') AS next_attempt_at,\n       j.lease_owner,\n       DATE_FORMAT(j.lease_expires_at, '%Y-%m-%d %H:%i:%s') AS lease_expires_at,\n       (j.lease_expires_at > n.t) AS lease_live,\n       j.row_version,\n       j.error_code,\n       j.error_message,\n       j.error_details,\n       (CASE WHEN g.gd_status = 'Processing' AND lk.result_ref = j.idempotency_key THEN CAST(g.id AS CHAR) ELSE '0' END) AS gd_id,\n       DATE_FORMAT(j.finished_at, '%Y-%m-%d %H:%i:%s') AS finished_at\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND j.id = {{node:code_node_XWpick.data.jobId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = j.tenant_id\n   AND j.correlation_id REGEXP '^GD\\\\|[0-9]{1,20}$'\n   AND g.id = CAST(SUBSTRING(j.correlation_id, 4) AS UNSIGNED)\n  LEFT JOIN gd_publish_step lk\n    ON lk.id = (SELECT MAX(p.id) FROM gd_publish_step p\n                 WHERE p.tenant_id = j.tenant_id AND p.job_id = CONCAT('GDC|', SUBSTRING(j.correlation_id, 4)) AND p.step_name LIKE 'LOCK|%%' AND p.is_deleted = 0)"
           },
           "response_json": [
            {
-            "key": "azgnf63u",
+            "key": "7tfc1x6t",
             "name": "db_now",
             "title": "db_now",
             "description": "",
@@ -4931,7 +4931,7 @@
             "children": []
            },
            {
-            "key": "lse04uqn",
+            "key": "1b3ovok4",
             "name": "id",
             "title": "id",
             "description": "",
@@ -4940,7 +4940,7 @@
             "children": []
            },
            {
-            "key": "48xjomod",
+            "key": "wci4wqd2",
             "name": "job_status",
             "title": "job_status",
             "description": "",
@@ -4949,7 +4949,7 @@
             "children": []
            },
            {
-            "key": "2071ks8c",
+            "key": "8voqoxii",
             "name": "progress_percent",
             "title": "progress_percent",
             "description": "",
@@ -4958,7 +4958,7 @@
             "children": []
            },
            {
-            "key": "rdzmtd98",
+            "key": "fwlk3lkx",
             "name": "progress_message",
             "title": "progress_message",
             "description": "",
@@ -4967,7 +4967,7 @@
             "children": []
            },
            {
-            "key": "x59ifcuo",
+            "key": "85qjmbty",
             "name": "attempt_count",
             "title": "attempt_count",
             "description": "",
@@ -4976,7 +4976,7 @@
             "children": []
            },
            {
-            "key": "put73tcq",
+            "key": "qvyfcvry",
             "name": "next_attempt_at",
             "title": "next_attempt_at",
             "description": "",
@@ -4985,7 +4985,7 @@
             "children": []
            },
            {
-            "key": "h8txyswi",
+            "key": "58rzgq5w",
             "name": "lease_owner",
             "title": "lease_owner",
             "description": "",
@@ -4994,7 +4994,7 @@
             "children": []
            },
            {
-            "key": "5gfvyxlj",
+            "key": "hj85j0jy",
             "name": "lease_expires_at",
             "title": "lease_expires_at",
             "description": "",
@@ -5003,7 +5003,7 @@
             "children": []
            },
            {
-            "key": "40tyhhbj",
+            "key": "1ukq34v9",
             "name": "lease_live",
             "title": "lease_live",
             "description": "",
@@ -5012,7 +5012,7 @@
             "children": []
            },
            {
-            "key": "2wextrgc",
+            "key": "x9m2b27p",
             "name": "row_version",
             "title": "row_version",
             "description": "",
@@ -5021,7 +5021,7 @@
             "children": []
            },
            {
-            "key": "cq56uznj",
+            "key": "m44v3664",
             "name": "error_code",
             "title": "error_code",
             "description": "",
@@ -5030,7 +5030,7 @@
             "children": []
            },
            {
-            "key": "gnf17kby",
+            "key": "qwnz5gnm",
             "name": "error_message",
             "title": "error_message",
             "description": "",
@@ -5039,7 +5039,7 @@
             "children": []
            },
            {
-            "key": "uukaska4",
+            "key": "4d6cyxc1",
             "name": "error_details",
             "title": "error_details",
             "description": "",
@@ -5048,7 +5048,7 @@
             "children": []
            },
            {
-            "key": "f0kc6sua",
+            "key": "bnenzxk7",
             "name": "gd_id",
             "title": "gd_id",
             "description": "",
@@ -5057,7 +5057,7 @@
             "children": []
            },
            {
-            "key": "jlpkcrc6",
+            "key": "aq2t0wf1",
             "name": "finished_at",
             "title": "finished_at",
             "description": "",
@@ -5078,11 +5078,11 @@
           "timeout": 30000,
           "script": {
            "type": "javascript",
-           "code": "// GD_CANCEL_WORKER - After second publish: GD_CANCEL_COMMIT writes the job itself; the worker writes only when the call\n// answered without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any\n// write, so nothing was saved: a hard code -> FAILED + the Goods Delivery back to Created; no code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", publishRoute: s(r.path), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDX_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"GDX_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"GD_CANCEL_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"GD_CANCEL_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.gdId)) ? [{ id: s(own.gdId), gd_status: \"Created\" }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not cancelled: the cancel could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"GDX_TRANSIENT\", result_message: \"GD_CANCEL_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst own = [{{node:code_node_XWown.data}}][0];\nconst mid = [{{node:code_node_XWsplit.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_XWpub2Resp.data}}][0], [{{node:sql_node_XWpub2Back.data}}][0]);\nconsole.log(\"worker after second publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
+           "code": "// GD_CANCEL_WORKER - After second publish: GD_CANCEL_COMMIT writes the job itself; the worker writes only when the call\n// answered without writing and the job is still READY_TO_COMMIT under this run's lease (COMMIT claims the job before any\n// write, so nothing was saved: a hard code -> FAILED + the Goods Delivery back to Created; no code -> counted retry)\nconst PKC = {\n  retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },\n  worker_budget_seconds: 20,\n  states: [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_GD\"],\n  hard: [\"GDX_INVALID_REQUEST\", \"GDX_INVALID_DATA\", \"GDX_GD_NOT_FOUND\", \"GDX_NOT_LOCKED\", \"GDX_NOT_ELIGIBLE\", \"GDX_NOT_YET_SUPPORTED\", \"GDX_400\", \"GDX_401\", \"GDX_412\", \"GDX_UNEXPECTED_PATCH\", \"GDX_RES_BLANK\", \"GDX_LINES_CHANGED\", \"GDX_STALE\", \"GDX_BUSY\", \"GDX_TOO_LARGE\", \"GDX_RES_CONFLICT\", \"JOB_ILLEGAL_TRANSITION\"],\n};\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\nconst workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const r = resp || {};\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", publishRoute: s(r.path), result_code: s(r.result_code), result_message: s(r.result_message), job_status: job ? s(job.job_status) : \"\" };\n  if (!job) return Object.assign(base, { result_code: \"GDX_INVALID_DATA\", result_message: \"job vanished during publish\" });\n  const status = s(job.job_status);\n  if (!(status === \"READY_TO_COMMIT\" && s(job.lease_owner) === guard.leaseOwner)) return base;\n  const row = { id: s(job.id), job_status: status, progress_percent: Number(job.progress_percent) || 0, progress_message: s(job.progress_message), attempt_count: Number(job.attempt_count) || 0, next_attempt_at: job.next_attempt_at || null, lease_owner: job.lease_owner || null, lease_expires_at: job.lease_expires_at || null, row_version: (Number(job.row_version) || 0) + 1, error_code: job.error_code || null, error_message: job.error_message || null, error_details: job.error_details || null, finished_at: job.finished_at || null };\n  const hard = PKC.hard.indexOf(s(r.result_code)) >= 0 ? s(r.result_code) : \"\";\n  const n = Number(job.attempt_count) || 0;\n  if (hard || n >= PKC.retry.max_retries) {\n    const code = hard || \"GDX_TRANSIENT_RETRIES_EXHAUSTED\";\n    const why = hard ? \"GD_CANCEL_COMMIT answered \" + hard + \" (\" + s(r.result_message) + \") without saving\" : \"GD_CANCEL_COMMIT answered without saving \" + n + \" times (max_retries \" + PKC.retry.max_retries + \")\";\n    const unlock = /^[0-9]{1,20}$/.test(s(own.gdId)) ? [{ id: s(own.gdId), gd_status: \"Created\" }] : [];\n    return Object.assign(base, { jobRows: [Object.assign({}, row, { job_status: \"FAILED\", progress_message: \"Not cancelled: the cancel could not be saved\", error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_CANCEL_WORKER\", why: why, attempts: n }), lease_owner: null, lease_expires_at: null, finished_at: dbNow })], needJobUpd: \"YES\", unlockRows: unlock, needUnlock: unlock.length ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" });\n  }\n  const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));\n  return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: \"YES\", result_code: \"GDX_TRANSIENT\", result_message: \"GD_CANCEL_COMMIT answered without saving (\" + s(r.result_message) + \"): retry \" + (n + 1) + \" of \" + PKC.retry.max_retries + \" after \" + delayMs + \" ms\" });\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst own = [{{node:code_node_XWown.data}}][0];\nconst mid = [{{node:code_node_XWsplit.data}}][0];\nconst res = workerAfterPublish(guard, own, mid, [{{node:code_node_XWpub2Resp.data}}][0], [{{node:sql_node_XWpub2Back.data}}][0]);\nconsole.log(\"worker after second publish\", JSON.stringify({ route: res.route, status: res.jobStatus, publish: res.publishRoute, write: res.needJobUpd, result: res.result_code }));\nreturn res;"
           },
           "response_json": [
            {
-            "key": "flcha593",
+            "key": "s4wd7qhv",
             "name": "route",
             "title": "route",
             "description": "",
@@ -5091,7 +5091,7 @@
             "children": []
            },
            {
-            "key": "spr8lze1",
+            "key": "pefhgzdo",
             "name": "dbNow",
             "title": "dbNow",
             "description": "",
@@ -5100,7 +5100,7 @@
             "children": []
            },
            {
-            "key": "50vbu2wa",
+            "key": "xg98fje4",
             "name": "jobId",
             "title": "jobId",
             "description": "",
@@ -5109,7 +5109,7 @@
             "children": []
            },
            {
-            "key": "p808dh3q",
+            "key": "q7p7hgns",
             "name": "jobStatus",
             "title": "jobStatus",
             "description": "",
@@ -5118,7 +5118,7 @@
             "children": []
            },
            {
-            "key": "qocnxhd3",
+            "key": "rz9y1z5l",
             "name": "jobRows",
             "title": "jobRows",
             "description": "",
@@ -5126,7 +5126,7 @@
             "isExpand": true,
             "children": [
              {
-              "key": "0uesnzjx",
+              "key": "i911v8e8",
               "name": "items",
               "title": "",
               "description": "",
@@ -5138,7 +5138,7 @@
             ]
            },
            {
-            "key": "2loneflo",
+            "key": "mf01vea9",
             "name": "needJobUpd",
             "title": "needJobUpd",
             "description": "",
@@ -5147,7 +5147,7 @@
             "children": []
            },
            {
-            "key": "k9cwrfet",
+            "key": "dsbkc1u2",
             "name": "unlockRows",
             "title": "unlockRows",
             "description": "",
@@ -5155,7 +5155,7 @@
             "isExpand": true,
             "children": [
              {
-              "key": "tlj65zd8",
+              "key": "almeybdl",
               "name": "items",
               "title": "",
               "description": "",
@@ -5167,7 +5167,7 @@
             ]
            },
            {
-            "key": "8l2j0bqr",
+            "key": "1ajsual1",
             "name": "needUnlock",
             "title": "needUnlock",
             "description": "",
@@ -5176,7 +5176,7 @@
             "children": []
            },
            {
-            "key": "qn4envz0",
+            "key": "ckwpojwc",
             "name": "publishRoute",
             "title": "publishRoute",
             "description": "",
@@ -5185,7 +5185,7 @@
             "children": []
            },
            {
-            "key": "2x4emf7u",
+            "key": "7m93ec30",
             "name": "result_code",
             "title": "result_code",
             "description": "",
@@ -5194,7 +5194,7 @@
             "children": []
            },
            {
-            "key": "4d3kk7l3",
+            "key": "4vgot4sh",
             "name": "result_message",
             "title": "result_message",
             "description": "",
@@ -5203,7 +5203,7 @@
             "children": []
            },
            {
-            "key": "gvfyqei4",
+            "key": "9vg6slmf",
             "name": "job_status",
             "title": "job_status",
             "description": "",
@@ -5580,7 +5580,7 @@
        "type": "javascript",
        "code": "{{node:code_node_XWpick.data.nextIndex}}"
       },
-      "redis_key": "gdx_wrk_{{node:code_node_XWguard.data.nonce}}"
+      "redis_key": "gdx_wrk_{{node:code_node_XWguard2.data.nonce}}"
      },
      "blocks": []
     }
@@ -5599,11 +5599,11 @@
     "name": "Read-back: the planned jobs (final)",
     "script": {
      "type": "sql",
-     "code": "SELECT CAST(j.id AS CHAR) AS id, j.job_status, j.attempt_count, j.lease_owner, j.error_code, j.error_message, SUBSTRING(j.correlation_id, 4) AS gd_id\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_XWguard.data.tenantId}}'\n   AND j.id IN ({{node:code_node_XWplan.data.jobIdsSql}})"
+     "code": "SELECT CAST(j.id AS CHAR) AS id, j.job_status, j.attempt_count, j.lease_owner, j.error_code, j.error_message, SUBSTRING(j.correlation_id, 4) AS gd_id\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_XWguard2.data.tenantId}}'\n   AND j.id IN ({{node:code_node_XWplan.data.jobIdsSql}})"
     },
     "response_json": [
      {
-      "key": "vnepydaa",
+      "key": "pn50m0do",
       "name": "id",
       "title": "id",
       "description": "",
@@ -5612,7 +5612,7 @@
       "children": []
      },
      {
-      "key": "o663mbh4",
+      "key": "urmnqhah",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -5621,7 +5621,7 @@
       "children": []
      },
      {
-      "key": "dp2rpn06",
+      "key": "in55e8xm",
       "name": "attempt_count",
       "title": "attempt_count",
       "description": "",
@@ -5630,7 +5630,7 @@
       "children": []
      },
      {
-      "key": "l7o7l4qw",
+      "key": "ld75j2ly",
       "name": "lease_owner",
       "title": "lease_owner",
       "description": "",
@@ -5639,7 +5639,7 @@
       "children": []
      },
      {
-      "key": "smdk5xxl",
+      "key": "xl1e7lda",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -5648,7 +5648,7 @@
       "children": []
      },
      {
-      "key": "uxpdyvm9",
+      "key": "knb0z1c5",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -5657,7 +5657,7 @@
       "children": []
      },
      {
-      "key": "1h7tsxsf",
+      "key": "9xfvcml9",
       "name": "gd_id",
       "title": "gd_id",
       "description": "",
@@ -5678,11 +5678,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GD_CANCEL_WORKER - Result (DONE): the planned jobs as read back at the end of the tick\nconst workerResult = function workerResult(guard, plan, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id));\n  const byId = {};\n  for (const r of list) byId[s(r.id)] = r;\n  const jobs = ((plan && plan.items) || []).map((it) => {\n    const j = byId[it.jobId] || null;\n    return { job_id: it.jobId, before: it.jobStatus, job_status: j ? s(j.job_status) : \"\", error_code: j ? s(j.error_code) : \"\", gd_id: j ? s(j.gd_id) : \"\", attempt_count: j ? s(j.attempt_count) : \"\" };\n  });\n  const first = jobs[0] || null;\n  const firstRow = first ? byId[first.job_id] || null : null;\n  return { worker_route: guard.route === \"REJECT\" ? \"REJECTED\" : !plan || plan.route === \"IDLE\" ? \"IDLE\" : \"WORKED\", processed: String(jobs.length), jobs: JSON.stringify(jobs), job_id: first ? first.job_id : \"\", job_status: first ? first.job_status : \"\", result_code: firstRow && s(firstRow.error_code) ? s(firstRow.error_code) : s(guard.result_code), result_message: firstRow && s(firstRow.error_message) ? s(firstRow.error_message) : s(guard.result_message) || s(plan && plan.result_message), gd_id: first ? first.gd_id : \"\", evidence: JSON.stringify({ v: 1, workflow: \"GD_CANCEL_WORKER\", path: \"DONE\" }) };\n};\nconst guard = [{{node:code_node_XWguard.data}}][0];\nconst plan = [{{node:code_node_XWplan.data}}][0];\nconst res = workerResult(guard, plan, [{{node:sql_node_XWfinal.data}}][0]);\nconsole.log(\"worker result\", JSON.stringify({ route: res.worker_route, processed: res.processed }));\nreturn res;"
+     "code": "// GD_CANCEL_WORKER - Result (DONE): the planned jobs as read back at the end of the tick\nconst workerResult = function workerResult(guard, plan, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id));\n  const byId = {};\n  for (const r of list) byId[s(r.id)] = r;\n  const jobs = ((plan && plan.items) || []).map((it) => {\n    const j = byId[it.jobId] || null;\n    return { job_id: it.jobId, before: it.jobStatus, job_status: j ? s(j.job_status) : \"\", error_code: j ? s(j.error_code) : \"\", gd_id: j ? s(j.gd_id) : \"\", attempt_count: j ? s(j.attempt_count) : \"\" };\n  });\n  const first = jobs[0] || null;\n  const firstRow = first ? byId[first.job_id] || null : null;\n  return { worker_route: guard.route === \"REJECT\" ? \"REJECTED\" : !plan || plan.route === \"IDLE\" ? \"IDLE\" : \"WORKED\", processed: String(jobs.length), jobs: JSON.stringify(jobs), job_id: first ? first.job_id : \"\", job_status: first ? first.job_status : \"\", result_code: firstRow && s(firstRow.error_code) ? s(firstRow.error_code) : s(guard.result_code), result_message: firstRow && s(firstRow.error_message) ? s(firstRow.error_message) : s(guard.result_message) || s(plan && plan.result_message), gd_id: first ? first.gd_id : \"\", evidence: JSON.stringify({ v: 1, workflow: \"GD_CANCEL_WORKER\", path: \"DONE\" }) };\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst plan = [{{node:code_node_XWplan.data}}][0];\nconst res = workerResult(guard, plan, [{{node:sql_node_XWfinal.data}}][0]);\nconsole.log(\"worker result\", JSON.stringify({ route: res.worker_route, processed: res.processed }));\nreturn res;"
     },
     "response_json": [
      {
-      "key": "04ejueoh",
+      "key": "xk6y1ngp",
       "name": "worker_route",
       "title": "worker_route",
       "description": "",
@@ -5691,7 +5691,7 @@
       "children": []
      },
      {
-      "key": "im1hbozk",
+      "key": "dlt86ui4",
       "name": "processed",
       "title": "processed",
       "description": "",
@@ -5700,7 +5700,7 @@
       "children": []
      },
      {
-      "key": "7rubhgbo",
+      "key": "o51x60am",
       "name": "jobs",
       "title": "jobs",
       "description": "",
@@ -5709,7 +5709,7 @@
       "children": []
      },
      {
-      "key": "2u91fn5u",
+      "key": "h1rm7hd3",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -5718,7 +5718,7 @@
       "children": []
      },
      {
-      "key": "9jjbx2tm",
+      "key": "v1h43lku",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -5727,7 +5727,7 @@
       "children": []
      },
      {
-      "key": "ug7k9czx",
+      "key": "dkqcn4ye",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -5736,7 +5736,7 @@
       "children": []
      },
      {
-      "key": "eilwe4j3",
+      "key": "cirx01nq",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -5745,7 +5745,7 @@
       "children": []
      },
      {
-      "key": "fhptly6v",
+      "key": "szppzv78",
       "name": "gd_id",
       "title": "gd_id",
       "description": "",
@@ -5754,7 +5754,7 @@
       "children": []
      },
      {
-      "key": "vjao9l8f",
+      "key": "dzbk18u3",
       "name": "evidence",
       "title": "evidence",
       "description": "",

@@ -661,17 +661,17 @@
     "database_id": "",
     "sql": "",
     "params": {},
-    "title": "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock",
+    "title": "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, a GD Created V2 job still making its Picking, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock",
     "isValidator": true,
-    "nodeName": "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock",
-    "name": "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock",
+    "nodeName": "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, a GD Created V2 job still making its Picking, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock",
+    "name": "Facts: the GD, its line count, its latest completion lock, open COMPLETE_GD / COMPLETE_PACKING / EDIT_GD jobs, a GD Created V2 job still making its Picking, open Picking V2 confirms of its Pickings, the latest COMPLETE_GD job, DB clock",
     "script": {
      "type": "sql",
-     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(g.id AS CHAR) AS gd_id,\n       g.delivery_no,\n       g.gd_status,\n       g.organization_id,\n       CAST(g.plant_id AS CHAR) AS plant_id,\n       (SELECT COUNT(*) FROM goods_delivery_fwii8mvb_sub l WHERE l.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND l.goods_delivery_id = {{node:code_node_GSguard.data.gdId}} AND l.is_deleted = 0) AS line_count,\n       (SELECT p.step_name FROM gd_publish_step p\n         WHERE p.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND p.job_id = 'GDC|{{node:code_node_GSguard.data.gdId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1) AS last_lock,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(o.id AS CHAR), 'command', o.command, 'job_status', o.job_status, 'progress_percent', o.progress_percent,\n                                             'progress_message', o.progress_message, 'error_code', o.error_code, 'error_message', o.error_message)) AS CHAR)\n          FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND o.is_deleted = 0 AND o.correlation_id = 'GD|{{node:code_node_GSguard.data.gdId}}'\n           AND ((o.command = 'COMPLETE_GD' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'REQUIRES_REVIEW'))\n                 OR (o.command = 'COMPLETE_PACKING' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PACKING', 'REQUIRES_REVIEW'))\n                 OR (o.command = 'EDIT_GD' AND o.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')))) AS open_jobs,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(pj.id AS CHAR), 'command', pj.command, 'job_status', pj.job_status)) AS CHAR)\n          FROM gd_async_job pj\n         WHERE pj.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND pj.is_deleted = 0 AND pj.command = 'CONFIRM_PICKING'\n           AND pj.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n           AND EXISTS (SELECT 1 FROM transfer_order_jz8m9w3h_sub ti\n                        WHERE ti.transfer_order_id = CAST(pj.picking_id AS UNSIGNED) AND ti.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND ti.is_deleted = 0\n                          AND ti.gd_id = {{node:code_node_GSguard.data.gdId}} AND IFNULL(ti.line_status, '') <> 'Cancelled')) AS picking_jobs,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('picking_id', CAST(t.id AS CHAR), 'picking_no', t.to_id, 'is_processing', COALESCE(t.is_processing, 0),\n                                             'lock_age_sec', TIMESTAMPDIFF(SECOND, t.update_time, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')))) AS CHAR)\n          FROM (SELECT DISTINCT x.transfer_order_id FROM transfer_order_jz8m9w3h_sub x\n                 WHERE x.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND x.gd_id = {{node:code_node_GSguard.data.gdId}} AND x.is_deleted = 0 AND COALESCE(x.line_status,\n\t\t'') NOT IN ('Completed', 'Cancelled')) lo\n          STRAIGHT_JOIN transfer_order t ON t.id = lo.transfer_order_id AND t.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND t.is_deleted = 0\n           AND COALESCE(t.to_status, '') NOT IN ('Completed', 'Cancelled', 'Draft')\n         WHERE '{{node:code_node_GSguard.data.force}}' = 'Yes') AS picking_locks,\n       (SELECT CAST(JSON_OBJECT('id', CAST(x.id AS CHAR), 'job_status', x.job_status, 'progress_percent', x.progress_percent, 'progress_message', x.progress_message,\n                                'error_code', x.error_code, 'error_message', x.error_message) AS CHAR)\n          FROM gd_async_job x\n         WHERE x.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND x.is_deleted = 0 AND x.command = 'COMPLETE_GD' AND x.correlation_id = 'GD|{{node:code_node_GSguard.data.gdId}}'\n         ORDER BY x.id DESC LIMIT 1) AS last_job\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = '{{node:code_node_GSguard.data.tenantId}}'\n   AND g.id = {{node:code_node_GSguard.data.gdId}}\n   AND g.is_deleted = 0"
+     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(g.id AS CHAR) AS gd_id,\n       g.delivery_no,\n       g.gd_status,\n       g.organization_id,\n       CAST(g.plant_id AS CHAR) AS plant_id,\n       (SELECT COUNT(*) FROM goods_delivery_fwii8mvb_sub l WHERE l.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND l.goods_delivery_id = {{node:code_node_GSguard.data.gdId}} AND l.is_deleted = 0) AS line_count,\n       (SELECT p.step_name FROM gd_publish_step p\n         WHERE p.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND p.job_id = 'GDC|{{node:code_node_GSguard.data.gdId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1) AS last_lock,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(o.id AS CHAR), 'command', o.command, 'job_status', o.job_status, 'progress_percent', o.progress_percent,\n                                             'progress_message', o.progress_message, 'error_code', o.error_code, 'error_message', o.error_message)) AS CHAR)\n          FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND o.is_deleted = 0\n           AND ((o.correlation_id = 'GD|{{node:code_node_GSguard.data.gdId}}' AND ((o.command = 'COMPLETE_GD' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT',\n\t\t'COMMITTING_GD', 'REQUIRES_REVIEW'))\n                 OR (o.command = 'COMPLETE_PACKING' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PACKING', 'REQUIRES_REVIEW'))\n                 OR (o.command = 'EDIT_GD' AND o.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED'))))\n                OR (o.command = 'CREATE_GD_FROM_FORM' AND o.gd_id = '{{node:code_node_GSguard.data.gdId}}'\n                    AND o.job_status IN ('RECONCILING_GD', 'GD_COMMITTED', 'CREATING_PICKING', 'PICKING_RETRYING', 'PICKING_READY', 'REQUIRES_REVIEW')))) AS open_jobs,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(pj.id AS CHAR), 'command', pj.command, 'job_status', pj.job_status)) AS CHAR)\n          FROM gd_async_job pj\n         WHERE pj.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND pj.is_deleted = 0 AND pj.command = 'CONFIRM_PICKING'\n           AND pj.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n           AND EXISTS (SELECT 1 FROM transfer_order_jz8m9w3h_sub ti\n                        WHERE ti.transfer_order_id = CAST(pj.picking_id AS UNSIGNED) AND ti.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND ti.is_deleted = 0\n                          AND ti.gd_id = {{node:code_node_GSguard.data.gdId}} AND IFNULL(ti.line_status, '') <> 'Cancelled')) AS picking_jobs,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('picking_id', CAST(t.id AS CHAR), 'picking_no', t.to_id, 'is_processing', COALESCE(t.is_processing, 0),\n                                             'lock_age_sec', TIMESTAMPDIFF(SECOND, t.update_time, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')))) AS CHAR)\n          FROM (SELECT DISTINCT x.transfer_order_id FROM transfer_order_jz8m9w3h_sub x\n                 WHERE x.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND x.gd_id = {{node:code_node_GSguard.data.gdId}} AND x.is_deleted = 0 AND COALESCE(x.line_status,\n\t\t'') NOT IN ('Completed', 'Cancelled')) lo\n          STRAIGHT_JOIN transfer_order t ON t.id = lo.transfer_order_id AND t.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND t.is_deleted = 0\n           AND COALESCE(t.to_status, '') NOT IN ('Completed', 'Cancelled', 'Draft')\n         WHERE '{{node:code_node_GSguard.data.force}}' = 'Yes') AS picking_locks,\n       (SELECT CAST(JSON_OBJECT('id', CAST(x.id AS CHAR), 'job_status', x.job_status, 'progress_percent', x.progress_percent, 'progress_message', x.progress_message,\n                                'error_code', x.error_code, 'error_message', x.error_message) AS CHAR)\n          FROM gd_async_job x\n         WHERE x.tenant_id = '{{node:code_node_GSguard.data.tenantId}}' AND x.is_deleted = 0 AND x.command = 'COMPLETE_GD' AND x.correlation_id = 'GD|{{node:code_node_GSguard.data.gdId}}'\n         ORDER BY x.id DESC LIMIT 1) AS last_job\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = '{{node:code_node_GSguard.data.tenantId}}'\n   AND g.id = {{node:code_node_GSguard.data.gdId}}\n   AND g.is_deleted = 0"
     },
     "response_json": [
      {
-      "key": "35xew1v4",
+      "key": "8269fkwi",
       "name": "db_now",
       "title": "db_now",
       "description": "",
@@ -680,7 +680,7 @@
       "children": []
      },
      {
-      "key": "369ioc6w",
+      "key": "h2yf8cpx",
       "name": "gd_id",
       "title": "gd_id",
       "description": "",
@@ -689,7 +689,7 @@
       "children": []
      },
      {
-      "key": "h9b67n25",
+      "key": "6ina97ak",
       "name": "delivery_no",
       "title": "delivery_no",
       "description": "",
@@ -698,7 +698,7 @@
       "children": []
      },
      {
-      "key": "q0psw25p",
+      "key": "18k269dt",
       "name": "gd_status",
       "title": "gd_status",
       "description": "",
@@ -707,7 +707,7 @@
       "children": []
      },
      {
-      "key": "ubz33k4g",
+      "key": "lngdnabr",
       "name": "organization_id",
       "title": "organization_id",
       "description": "",
@@ -716,7 +716,7 @@
       "children": []
      },
      {
-      "key": "3vkdt0wl",
+      "key": "6kgd7kvo",
       "name": "plant_id",
       "title": "plant_id",
       "description": "",
@@ -725,7 +725,7 @@
       "children": []
      },
      {
-      "key": "6109zjoa",
+      "key": "ocem3qof",
       "name": "line_count",
       "title": "line_count",
       "description": "",
@@ -734,7 +734,7 @@
       "children": []
      },
      {
-      "key": "ozimuzc9",
+      "key": "emz84h0a",
       "name": "last_lock",
       "title": "last_lock",
       "description": "",
@@ -743,7 +743,7 @@
       "children": []
      },
      {
-      "key": "79781ndc",
+      "key": "9t7cqxdk",
       "name": "open_jobs",
       "title": "open_jobs",
       "description": "",
@@ -752,7 +752,7 @@
       "children": []
      },
      {
-      "key": "nkgsl8hb",
+      "key": "fxgevexh",
       "name": "picking_jobs",
       "title": "picking_jobs",
       "description": "",
@@ -761,7 +761,7 @@
       "children": []
      },
      {
-      "key": "aj6qsj7y",
+      "key": "ydwed2bd",
       "name": "last_job",
       "title": "last_job",
       "description": "",
@@ -770,7 +770,7 @@
       "children": []
      },
      {
-      "key": "mej3wc3w",
+      "key": "oki2rvv8",
       "name": "picking_locks",
       "title": "picking_locks",
       "description": "",
@@ -791,11 +791,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// GD_COMPLETE_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic Save as Completed is refused above this size: at 2,000 lines it took dev down\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background completion does not handle goes to the classic save, unless the delivery is too big for it\nconst notEligible = (reason, lineCount, unsaved) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", unsaved\n        ? \"This delivery has \" + lineCount + \" lines and \" + reason.replace(/^it has /, \"\") + \". Save it as Created first, then complete it.\"\n        : \"This delivery has \" + lineCount + \" lines and cannot be completed in the background (\" + reason + \"); the classic completion handles at most \" + MAX_OLD_PATH_LINES + \" lines.\",\n      { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_COMPLETE_SUBMIT - Entry: STATUS answers from the GD's latest COMPLETE_GD job; SUBMIT goes on only for a Created GD with\n// no open completion, Packing V2, GD Edit V2 or Picking V2 job (REQUIRES_REVIEW counts as open: stock may be half-moved)\nconst submitEntry = function submitEntry(guard, factRows) {\n  const f = list(factRows)[0] || {};\n  const parse = (t) => {\n    try {\n      return t ? JSON.parse(t) : null;\n    } catch (e) {\n      return null;\n    }\n  };\n  const last = parse(f.last_job);\n  const open = list(parse(f.open_jobs)).filter((r) => s(r.id));\n  const n = num(f.line_count);\n  const base = { tenantId: guard.tenantId, gdId: guard.gdId, gdNo: s(f.delivery_no), organizationId: s(f.organization_id), plantId: s(f.plant_id), lineCount: n,\n    dbNow: s(f.db_now), lockN: 1, reason: \"\", jobId: \"\", jobStatus: \"\", progressPercent: 0, progressMessage: \"\", errorCode: \"\", errorMessage: \"\" };\n  const job = (j) => (j ? { jobId: s(j.id), jobStatus: s(j.job_status), progressPercent: num(j.progress_percent), progressMessage: s(j.progress_message), errorCode: s(j.error_code), errorMessage: s(j.error_message) } : {});\n  if (guard.operation === \"STATUS\") return Object.assign(base, job(last), answer(\"STATUS\", \"200\", last ? s(last.progress_message) : \"no completion job\"));\n  if (!s(f.gd_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery not found\"));\n  const picking = list(parse(f.picking_jobs)).filter((r) => s(r.id));\n  if (picking.length) {\n    const review = picking.some((r) => s(r.job_status) === \"REQUIRES_REVIEW\");\n    return Object.assign(base, answer(\"BUSY\", \"409\", review\n      ? \"A Picking confirmation of this delivery stopped half-way and is under review: please contact support.\"\n      : \"Its Picking is being confirmed in the background - please wait for it to finish.\"));\n  }\n  const blocking = open[0];\n  if (blocking) {\n    const cmd = s(blocking.command);\n    const what = cmd === \"COMPLETE_PACKING\" ? \"Its Packing\" : cmd === \"EDIT_GD\" ? \"Its edit\" : \"Its completion\";\n    const message = s(blocking.job_status) === \"REQUIRES_REVIEW\"\n      ? what + \" stopped half-way and is under review: please contact support.\"\n      : (cmd === \"COMPLETE_PACKING\" ? \"Its Packing is being completed\" : cmd === \"EDIT_GD\" ? \"Its edit is being saved\" : \"This delivery is already being completed\") + \" - please wait for it to finish.\";\n    return Object.assign(base, job(blocking), answer(\"BUSY\", \"409\", message));\n  }\n  const status = s(f.gd_status);\n  if (status === \"Processing\") return Object.assign(base, answer(\"BUSY\", \"409\", \"This delivery is being processed - please wait for it to finish.\"));\n  if (status === \"Draft\") return Object.assign(base, notEligible(\"a Draft is completed by the classic save\", n));\n  if (status !== \"Created\") return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery is \" + (status || \"without a status\") + \": only a Created delivery can be completed\"));\n  if (!digits(f.organization_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery has no organization\"));\n  const m = s(f.last_lock).match(/^LOCK\\|([0-9]+)$/);\n  return Object.assign(base, answer(\"GO\", \"\", \"\"), { lockN: m ? Number(m[1]) + 1 : 1 });\n};\nconst res = submitEntry([{{node:code_node_GSguard.data}}][0], [{{node:sql_node_GSfacts.data}}][0]);\nconsole.log(\"submit entry\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lines: res.lineCount, lock: res.lockN }));\nreturn res;"
+     "code": "// GD_COMPLETE_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic Save as Completed is refused above this size: at 2,000 lines it took dev down\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background completion does not handle goes to the classic save, unless the delivery is too big for it\nconst notEligible = (reason, lineCount, unsaved) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", unsaved\n        ? \"This delivery has \" + lineCount + \" lines and \" + reason.replace(/^it has /, \"\") + \". Save it as Created first, then complete it.\"\n        : \"This delivery has \" + lineCount + \" lines and cannot be completed in the background (\" + reason + \"); the classic completion handles at most \" + MAX_OLD_PATH_LINES + \" lines.\",\n      { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_COMPLETE_SUBMIT - Entry: STATUS answers from the GD's latest COMPLETE_GD job; SUBMIT goes on only for a Created GD with\n// no open completion, Packing V2, GD Edit V2 or Picking V2 job (REQUIRES_REVIEW counts as open: stock may be half-moved) and no\n// GD Created V2 job still making its Picking (completed first, that job would never finish)\nconst submitEntry = function submitEntry(guard, factRows) {\n  const f = list(factRows)[0] || {};\n  const parse = (t) => {\n    try {\n      return t ? JSON.parse(t) : null;\n    } catch (e) {\n      return null;\n    }\n  };\n  const last = parse(f.last_job);\n  const open = list(parse(f.open_jobs)).filter((r) => s(r.id));\n  const n = num(f.line_count);\n  const base = { tenantId: guard.tenantId, gdId: guard.gdId, gdNo: s(f.delivery_no), organizationId: s(f.organization_id), plantId: s(f.plant_id), lineCount: n,\n    dbNow: s(f.db_now), lockN: 1, reason: \"\", jobId: \"\", jobStatus: \"\", progressPercent: 0, progressMessage: \"\", errorCode: \"\", errorMessage: \"\" };\n  const job = (j) => (j ? { jobId: s(j.id), jobStatus: s(j.job_status), progressPercent: num(j.progress_percent), progressMessage: s(j.progress_message), errorCode: s(j.error_code), errorMessage: s(j.error_message) } : {});\n  if (guard.operation === \"STATUS\") return Object.assign(base, job(last), answer(\"STATUS\", \"200\", last ? s(last.progress_message) : \"no completion job\"));\n  if (!s(f.gd_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery not found\"));\n  const picking = list(parse(f.picking_jobs)).filter((r) => s(r.id));\n  if (picking.length) {\n    const review = picking.some((r) => s(r.job_status) === \"REQUIRES_REVIEW\");\n    return Object.assign(base, answer(\"BUSY\", \"409\", review\n      ? \"A Picking confirmation of this delivery stopped half-way and is under review: please contact support.\"\n      : \"Its Picking is being confirmed in the background - please wait for it to finish.\"));\n  }\n  const blocking = open[0];\n  if (blocking) {\n    const cmd = s(blocking.command);\n    const what = cmd === \"COMPLETE_PACKING\" ? \"Its Packing\" : cmd === \"EDIT_GD\" ? \"Its edit\" : cmd === \"CREATE_GD_FROM_FORM\" ? \"Its creation\" : \"Its completion\";\n    const message = s(blocking.job_status) === \"REQUIRES_REVIEW\"\n      ? what + \" stopped half-way and is under review: please contact support.\"\n      : (cmd === \"COMPLETE_PACKING\" ? \"Its Packing is being completed\" : cmd === \"EDIT_GD\" ? \"Its edit is being saved\" : cmd === \"CREATE_GD_FROM_FORM\" ? \"Its Picking is still being created\"\n        : \"This delivery is already being completed\") + \" - please wait for it to finish.\";\n    return Object.assign(base, job(blocking), answer(\"BUSY\", \"409\", message));\n  }\n  const status = s(f.gd_status);\n  if (status === \"Processing\") return Object.assign(base, answer(\"BUSY\", \"409\", \"This delivery is being processed - please wait for it to finish.\"));\n  if (status === \"Draft\") return Object.assign(base, notEligible(\"a Draft is completed by the classic save\", n));\n  if (status !== \"Created\") return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery is \" + (status || \"without a status\") + \": only a Created delivery can be completed\"));\n  if (!digits(f.organization_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery has no organization\"));\n  const m = s(f.last_lock).match(/^LOCK\\|([0-9]+)$/);\n  return Object.assign(base, answer(\"GO\", \"\", \"\"), { lockN: m ? Number(m[1]) + 1 : 1 });\n};\nconst res = submitEntry([{{node:code_node_GSguard.data}}][0], [{{node:sql_node_GSfacts.data}}][0]);\nconsole.log(\"submit entry\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lines: res.lineCount, lock: res.lockN }));\nreturn res;"
     },
     "response_json": [
      {
-      "key": "kwa5hr4k",
+      "key": "qja58pmr",
       "name": "route",
       "title": "route",
       "description": "",
@@ -804,7 +804,7 @@
       "children": []
      },
      {
-      "key": "jkivaeuq",
+      "key": "n8ep3rdi",
       "name": "code",
       "title": "code",
       "description": "",
@@ -813,7 +813,7 @@
       "children": []
      },
      {
-      "key": "ef8l58k3",
+      "key": "csq8r8s9",
       "name": "message",
       "title": "message",
       "description": "",
@@ -822,7 +822,7 @@
       "children": []
      },
      {
-      "key": "0uwqep78",
+      "key": "ip0rwo28",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -831,7 +831,7 @@
       "children": []
      },
      {
-      "key": "21oudcu7",
+      "key": "kznb8nhy",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -840,7 +840,7 @@
       "children": []
      },
      {
-      "key": "kai90ba7",
+      "key": "vo4acvw5",
       "name": "gdId",
       "title": "gdId",
       "description": "",
@@ -849,7 +849,7 @@
       "children": []
      },
      {
-      "key": "i26q37c8",
+      "key": "xzb6if0t",
       "name": "gdNo",
       "title": "gdNo",
       "description": "",
@@ -858,7 +858,7 @@
       "children": []
      },
      {
-      "key": "4m7fmwlm",
+      "key": "111ux8k4",
       "name": "organizationId",
       "title": "organizationId",
       "description": "",
@@ -867,7 +867,7 @@
       "children": []
      },
      {
-      "key": "7akpam6z",
+      "key": "qajicigi",
       "name": "plantId",
       "title": "plantId",
       "description": "",
@@ -876,7 +876,7 @@
       "children": []
      },
      {
-      "key": "dpv6t6ss",
+      "key": "r79lsjza",
       "name": "lineCount",
       "title": "lineCount",
       "description": "",
@@ -885,7 +885,7 @@
       "children": []
      },
      {
-      "key": "sxilf3g2",
+      "key": "czq9fqm9",
       "name": "dbNow",
       "title": "dbNow",
       "description": "",
@@ -894,7 +894,7 @@
       "children": []
      },
      {
-      "key": "297aoz9m",
+      "key": "h4xy59hn",
       "name": "lockN",
       "title": "lockN",
       "description": "",
@@ -903,7 +903,7 @@
       "children": []
      },
      {
-      "key": "w0eimipf",
+      "key": "y5oqdy2x",
       "name": "jobId",
       "title": "jobId",
       "description": "",
@@ -912,7 +912,7 @@
       "children": []
      },
      {
-      "key": "c94dw75b",
+      "key": "xy4dlsp0",
       "name": "jobStatus",
       "title": "jobStatus",
       "description": "",
@@ -921,7 +921,7 @@
       "children": []
      },
      {
-      "key": "v0huvufb",
+      "key": "78ky2yjp",
       "name": "progressPercent",
       "title": "progressPercent",
       "description": "",
@@ -930,7 +930,7 @@
       "children": []
      },
      {
-      "key": "paovycg9",
+      "key": "a9ssee6i",
       "name": "progressMessage",
       "title": "progressMessage",
       "description": "",
@@ -939,7 +939,7 @@
       "children": []
      },
      {
-      "key": "au9p6gbj",
+      "key": "w1zjtrad",
       "name": "errorCode",
       "title": "errorCode",
       "description": "",
@@ -948,7 +948,7 @@
       "children": []
      },
      {
-      "key": "10ieopow",
+      "key": "3qh99g08",
       "name": "errorMessage",
       "title": "errorMessage",
       "description": "",

@@ -7,7 +7,8 @@
 const path = require("path");
 const { Engine } = require(path.join(__dirname, "..", "..", "lib", "sim", "engine.js"));
 const { core } = require("./_engine");
-const OUT = path.join(__dirname, "..", "..", "..", "..", "Item Assembly & BOM", "AsyncV2");
+// IARV_OUT: another folder of built workflows (the RES-01 R5 mutants)
+const OUT = process.env.IARV_OUT || path.join(__dirname, "..", "..", "..", "..", "Item Assembly & BOM", "AsyncV2");
 const ENGINE = core();
 const T = "000000";
 const STATES = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_REVERT"];
@@ -40,6 +41,8 @@ class World {
     this.wa = [];
     this.mv = [];
     this.batch = [];
+    // RES-01: the IA's own on_reserved_gd rows (doc_id, status, ...)
+    this.holds = [];
     this.locks = [];
     this.bins = {};
     this.writes = [];
@@ -190,6 +193,15 @@ class World {
         request_payload: j ? j.request_payload : null, is_deleted: j ? j.is_deleted : null }];
     }
     if (key === "own") return this.owner(iaId);
+    // RES-01 R5: the hold status, the open holds, the running hold tickets
+    if (key === "res") {
+      const h = this.ia(iaId);
+      if (!(h && h.material_hold_status)) return [J({ hold: "", rows: null, delivered: null, live: 0 })];
+      const rows = this.holds.filter((r) => !r.is_deleted && r.doc_id === iaId && ["Allocated", "Processing", "Releasing"].indexOf(r.status) >= 0);
+      const delivered = this.holds.filter((r) => !r.is_deleted && r.doc_id === iaId && r.status === "Delivered");
+      const live = this.steps.filter((x) => !x.is_deleted && x.job_id === "IAH|" + iaId && /^TICKET\|/.test(x.step_name) && x.step_status === "HELD" && this.now - x.started_at < 600000).length;
+      return [J({ hold: h.material_hold_status, rows: rows.length ? rows : null, delivered: delivered.length ? delivered : null, live: live })];
+    }
     if (key === "hdr") return this.header(iaId);
     if (key === "moves") return this.moves(iaId);
     if (key === "batch") return this.batchRows(iaId);
@@ -363,6 +375,14 @@ class World {
     }
     const fake = { code_node_IVPprep: { iaIdSql: p.iaIdSql, orgSql: p.orgSql, plantIdSql: p.plantIdSql, assembledIdsCsv: p.assembledIdsCsv, itemIdsCsv: p.itemIdsCsv } };
     const out = (id) => fake[id] || {};
+    // RES-01 R5: the IA's own open holds and its running hold tickets (RES_OWN: tenant, organisation, doc_id)
+    if (nid === "sql_node_RESrvOwn") {
+      const due = ctx.out.code_node_RESrvDue || {};
+      const rows = this.holds.filter((r) => !r.is_deleted && r.doc_id === s(due.ia) && ["Allocated", "Processing", "Releasing"].indexOf(r.status) >= 0);
+      const delivered = this.holds.filter((r) => !r.is_deleted && r.doc_id === s(due.ia) && r.status === "Delivered");
+      const live = this.steps.filter((x) => !x.is_deleted && x.job_id === "IAH|" + s(due.ia) && /^TICKET\|/.test(x.step_name) && x.step_status === "HELD" && this.now - x.started_at < 600000).length;
+      return [J({ rows: rows.length ? rows : null, delivered: delivered.length ? delivered : null, live: live })];
+    }
     if (nid === "sql_node_iaRvFifo") return this.prepareSql("fifo", out);
     if (nid === "sql_node_iaRvWa") return this.prepareSql("wa", out);
     if (nid === "sql_node_iaRvCostCounts") return this.prepareSql("costcounts", out);
@@ -378,7 +398,7 @@ class World {
       const h = this.ia(P.iaId);
       if (!h || h.organization_id !== s(P.organizationId)) return { count: 0, data: {} };
       return { count: 1, data: { id: h.id, item_id: h.item_id, item_assembly_status: h.item_assembly_status, posted_status: h.posted_status, issuing_operation_faci: h.issuing_operation_faci,
-        organization_id: h.organization_id, stock_movement_no: h.stock_movement_no } };
+        organization_id: h.organization_id, stock_movement_no: h.stock_movement_no, material_hold_status: h.material_hold_status === undefined ? null : h.material_hold_status } };
     }
     if (nid === "search_node_iaRvBatch") return search(this.batch.filter((b) => !b.is_deleted && b.transaction_no === s(P.iaNo) && b.organization_id === s(P.organizationId))
       .map((b) => ({ id: b.id, batch_number: b.batch_number, material_id: b.material_id, plant_id: b.plant_id, organization_id: b.organization_id, transaction_no: b.transaction_no })));

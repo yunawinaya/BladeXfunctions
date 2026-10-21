@@ -106,9 +106,80 @@ export default apiFlow(
         reviewReason: { type: 'string', title: 'reviewReason' },
       },
     });
-    /* @id if_IBreplay @title "IF this operation is DONE: return its stored answer, write nothing" */ if (
+    /* @id if_IBreplay @title "IF this operation is DONE: give back any key it still holds, return its stored answer" */ if (
       rule({ field: code_node_IBstate.route, op: 'equal', value: 'REPLAY' })
     ) {
+      const sql_node_IBrpRel = await sql('Replay: the lock rows of the keys (a run that died after IBA|DONE may still hold them)', { table: t.Inventory_Balance_Lock,
+        sql:
+          'SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id, lock_version,\n' +
+          "       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n" +
+          '  FROM inventory_balance_lock\n' +
+          ' WHERE tenant_id = ?\n' +
+          '   AND organization_id = ?\n' +
+          '   AND lock_key IN (SELECT jt.k FROM JSON_TABLE(?, \'$[*]\' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH \'$\')) jt)\n' +
+          '   AND is_deleted = 0',
+        params: [code_node_IBguard.tenantId, code_node_IBguard.organizationId, code_node_IBguard.lockKeysJson],
+        outputs: {
+          id: { type: 'string', title: 'id' },
+          lock_key: { type: 'string', title: 'lock_key' },
+          free_token: { type: 'int', title: 'free_token' },
+          owner_operation_id: { type: 'string', title: 'owner_operation_id' },
+          last_owner_operation_id: { type: 'string', title: 'last_owner_operation_id' },
+          lock_version: { type: 'int', title: 'lock_version' },
+          db_now: { type: 'string', title: 'db_now' },
+        },
+      });
+      const code_node_IBrpRelease = await code('Replay: release plan, this operation only', CODE('release.js', {'sql_node_IBrel': 'sql_node_IBrpRel'}), {
+        outputs: {
+          clearRows: { type: 'array', title: 'clearRows', items: 'any' },
+          batches: { type: 'array', title: 'batches', items: 'any' },
+          plusIds: { type: 'array', title: 'plusIds', items: 'any' },
+          needRelease: { type: 'string', title: 'needRelease' },
+        },
+      });
+      /* @id cor_IBrpRel2 */ switchFirst('Replay: anything still held?')
+        .case('YES', rule({ field: code_node_IBrpRelease.needRelease, op: 'equal', value: 'YES' }), async () => {
+          const set_cache_IBrpIdx0 = await setCache("Replay release slice index = 0 (per run: the key carries the run's nonce)", {
+            key: 'iba_rp_{{node:code_node_IBguard.data.nonce}}',
+            value: '0', ttl: 3600000,
+          });
+          /* @id loop_IBrpRel @title "Replay: clear the owner, in slices of <= 250" */ for (const _item of code_node_IBrpRelease.batches) {
+            const get_cache_IBrpIdx = await getCache('Replay release slice index', { key: 'iba_rp_{{node:code_node_IBguard.data.nonce}}' });
+            const code_node_IBrpSlice = await code('Replay release slice', CODE('slice.tpl.js', {'__LIST__': 'clearRows', '__SRC__': 'code_node_IBrpRelease', '__IDX__': 'get_cache_IBrpIdx'}), {
+              outputs: {
+                rows: { type: 'array', title: 'rows', items: 'any' },
+                count: { type: 'string', title: 'count' },
+                nextIndex: { type: 'string', title: 'nextIndex' },
+              },
+            });
+            const update_node_IBrpRel = await update('Replay release step 1: owner cleared, last owner = this operation', {
+              props: {
+                id: code_node_IBrpSlice.rows.id,
+                owner_operation_id: code_node_IBrpSlice.rows.owner_operation_id,
+                last_owner_operation_id: code_node_IBrpSlice.rows.last_owner_operation_id,
+                last_released_at: code_node_IBrpSlice.rows.last_released_at,
+                lock_version: code_node_IBrpSlice.rows.lock_version,
+              },
+              table: t.Inventory_Balance_Lock,
+              where: { field: 'id', op: 'in', value: code_node_IBrpSlice.rows.id, valueType: 'field' },
+            });
+            const set_cache_IBrpIdxN = await setCache('Next replay release slice index', {
+              key: 'iba_rp_{{node:code_node_IBguard.data.nonce}}',
+              value: code_node_IBrpSlice.nextIndex, ttl: 3600000,
+            });
+          }
+          const workflow_node_IBrpGive = await callWorkflow('Replay release step 2: INVENTORY_LOCK_TOKENS GIVE', {
+            inputs: {
+              mode: 'GIVE',
+              operation_id: code_node_IBguard.operationKey,
+              organization_id: code_node_IBguard.organizationId,
+              claimed_at: '',
+              ids: code_node_IBrpRelease.plusIds,
+            },
+            use: workflows.INVENTORY_LOCK_TOKENS,
+          });
+        })
+        .default('NO', async () => {});
       /* @id return_node_IBreplay */ return {
         status: 200,
         code: '200',
@@ -174,7 +245,7 @@ export default apiFlow(
         .default('NO', async () => {});
       const sql_node_IBlk2 = await sql('Lock claim: the lock rows before the take', { table: t.Inventory_Balance_Lock,
         sql:
-          'SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id,\n' +
+          'SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id,\n' +
           "       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n" +
           '  FROM inventory_balance_lock\n' +
           ' WHERE tenant_id = ?\n' +
@@ -188,6 +259,7 @@ export default apiFlow(
           lock_key: { type: 'string', title: 'lock_key' },
           free_token: { type: 'int', title: 'free_token' },
           owner_operation_id: { type: 'string', title: 'owner_operation_id' },
+          last_owner_operation_id: { type: 'string', title: 'last_owner_operation_id' },
           db_now: { type: 'string', title: 'db_now' },
         },
       });
@@ -226,7 +298,7 @@ export default apiFlow(
         .default('NO', async () => {});
       const sql_node_IBlk3 = await sql('Lock verify: the lock rows after the take', { table: t.Inventory_Balance_Lock,
         sql:
-          'SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id\n' +
+          'SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id\n' +
           '  FROM inventory_balance_lock\n' +
           ' WHERE tenant_id = ?\n' +
           '   AND organization_id = ?\n' +
@@ -238,6 +310,7 @@ export default apiFlow(
           lock_key: { type: 'string', title: 'lock_key' },
           free_token: { type: 'int', title: 'free_token' },
           owner_operation_id: { type: 'string', title: 'owner_operation_id' },
+          last_owner_operation_id: { type: 'string', title: 'last_owner_operation_id' },
         },
       });
       const code_node_IBlkv = await code('Lock verify: every key held by this operation, else LOST', CODE('lock_verify.js'), {
@@ -457,7 +530,7 @@ WRITE_LOOPS
       .case('YES', rule({ field: code_node_IBend.release, op: 'equal', value: 'YES' }), async () => {
         const sql_node_IBrel = await sql('Lock release: the lock rows of the keys', { table: t.Inventory_Balance_Lock,
           sql:
-            'SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, lock_version,\n' +
+            'SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id, lock_version,\n' +
             "       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n" +
             '  FROM inventory_balance_lock\n' +
             ' WHERE tenant_id = ?\n' +
@@ -470,6 +543,7 @@ WRITE_LOOPS
             lock_key: { type: 'string', title: 'lock_key' },
             free_token: { type: 'int', title: 'free_token' },
             owner_operation_id: { type: 'string', title: 'owner_operation_id' },
+            last_owner_operation_id: { type: 'string', title: 'last_owner_operation_id' },
             lock_version: { type: 'int', title: 'lock_version' },
             db_now: { type: 'string', title: 'db_now' },
           },

@@ -9,7 +9,9 @@ const scIn = function scIn(input) {
   const present = SC_KEYS.filter((k) => Object.prototype.hasOwnProperty.call(a, k));
   const line = scS(a.source_so_line_id);
   return { need: edit || present.length > 0 ? "YES" : "NO", edit: edit ? "YES" : "NO", tenantId: digits(input.tenantId) ? scS(input.tenantId) : "0",
-    iaId: edit ? scS(a.id) : "0", lineId: digits(line) ? line : "0", present: present.join(",") };
+    iaId: edit ? scS(a.id) : "0", lineId: digits(line) ? line : "0", present: present.join(","),
+    // FIX-03: the IA's organisation and the session user, for the membership read ("0" = none: matches nobody)
+    org: digits(a.organization_id) ? scS(a.organization_id) : "0", uid: digits(input.uid) ? scS(input.uid) : "0" };
 };
 const scClassicCheck = function scClassicCheck(input) {
   const a = input.allData || {};
@@ -46,6 +48,8 @@ const scClassicCheck = function scClassicCheck(input) {
     if (isNew) {
       // the line's organisation is compared with the IA's: an IA without one cannot be linked
       if (!digits(scS(a.organization_id))) return stop("This Item Assembly has no organization: reopen it and save again.");
+      // FIX-03: a link binds the Sales Order line's figures into the IA, so only a user assigned to its organisation makes one
+      if (!(Number(src.member) > 0)) return stop("Your user is not assigned to this organisation, so this Item Assembly cannot be linked to its Sales Order line.");
       const p = scProject({ line: line, header: header, fg: null, ias: [], iaItemId: scS(a.item_id), iaOrgId: scS(a.organization_id) });
       if (!line || scS(line.id) !== out.source_so_line_id || !p.eligibleNew) {
         return stop("This Sales Order line cannot be linked: " + (p.reason || "it no longer exists.") + " Select another line or save without a link.");

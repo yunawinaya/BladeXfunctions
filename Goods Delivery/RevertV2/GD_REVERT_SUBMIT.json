@@ -1,0 +1,2571 @@
+{
+ "request_json": [
+  {
+   "key": "skrn0vvf",
+   "name": "operation",
+   "title": "operation",
+   "description": "SUBMIT (default) or STATUS",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "uj9d7d0e",
+   "name": "gd_id",
+   "title": "gd_id",
+   "description": "goods_delivery.id (digits)",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "yqbzwmcs",
+   "name": "source",
+   "title": "source",
+   "description": "LIST (default) | MOBILE",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "l8mxyf20",
+   "name": "route",
+   "title": "route",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "bh6hlvlz",
+   "name": "code",
+   "title": "code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "2gfvbyl8",
+   "name": "message",
+   "title": "message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "2zabwis8",
+   "name": "reason",
+   "title": "reason",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "yqp8kcrd",
+   "name": "job_id",
+   "title": "job_id",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "a7rg2957",
+   "name": "job_status",
+   "title": "job_status",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "heyh4302",
+   "name": "gd_id",
+   "title": "gd_id",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "zrxtkb5y",
+   "name": "gd_no",
+   "title": "gd_no",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "vixdnxr2",
+   "name": "line_count",
+   "title": "line_count",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "l3ec62ik",
+   "name": "progress_percent",
+   "title": "progress_percent",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "ew6svcb9",
+   "name": "progress_message",
+   "title": "progress_message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "ldwz7gec",
+   "name": "error_code",
+   "title": "error_code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "8j1jkhuk",
+   "name": "error_message",
+   "title": "error_message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "m94eldfs",
+   "name": "evidence",
+   "title": "evidence",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "title": "Start Node",
+    "isValidator": true,
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_RSguard",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GD_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert makes one inventory child run per movement: above this size it refuses (GD_REVERT_COMPLETED v17)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background revert does not handle goes to the classic revert, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be reverted in the background (\" + reason + \"); the classic revert handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_REVERT_SUBMIT - Guard: operation (SUBMIT | STATUS), gd_id, source (LIST | MOBILE), session tenant + user\nconst revertGuard = function revertGuard(inp) {\n  const op = s(inp.operation).toUpperCase() || \"SUBMIT\";\n  const gdId = s(inp.gdId);\n  const source = s(inp.source).toUpperCase() || \"LIST\";\n  const tenantId = s(inp.tenantId);\n  const bad = (why) => answer(\"REJECT\", \"400\", why, { operation: op, gdId: \"0\", tenantId: \"0\", source: source, uid: \"\" });\n  if ([\"SUBMIT\", \"STATUS\"].indexOf(op) < 0) return bad(\"operation must be SUBMIT or STATUS\");\n  if (!digits(gdId)) return bad(\"gd_id: digits only\");\n  if ([\"LIST\", \"MOBILE\"].indexOf(source) < 0) return bad(\"source must be LIST or MOBILE\");\n  if (!digits(tenantId)) return bad(\"no session tenant\");\n  return answer(\"CONTINUE\", \"\", \"\", { operation: op, gdId: gdId, tenantId: tenantId, source: source, uid: s(inp.uid) });\n};\nconst res = revertGuard({ operation: [{{workflowparams:operation}}][0], gdId: [{{workflowparams:gd_id}}][0], source: [{{workflowparams:source}}][0],\n  tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] });\nconsole.log(\"revert guard\", JSON.stringify({ route: res.route, op: res.operation, gd: res.gdId, source: res.source, message: res.message }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "7aw3b5vi",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "7cg7d6a7",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "j76asgrd",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "23lte0kp",
+      "name": "operation",
+      "title": "operation",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "jy0revbk",
+      "name": "gdId",
+      "title": "gdId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "8qgxt1iw",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "p0n3ddcv",
+      "name": "source",
+      "title": "source",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "3j81a422",
+      "name": "uid",
+      "title": "uid",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Guard: operation, gd_id (digits), source, session tenant + user",
+    "isValidator": true,
+    "nodeName": "Guard: operation, gd_id (digits), source, session tenant + user",
+    "name": "Guard: operation, gd_id (digits), source, session tenant + user"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_RSreject",
+   "type": "if",
+   "data": {
+    "title": "IF the input is invalid: answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF the input is invalid: answer, write nothing",
+    "name": "IF the input is invalid: answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799800000001,
+       "parentId": 1799800000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_RSguard.data.route}}' == 'REJECT'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TRSreject",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_RSrejres",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// GD_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert makes one inventory child run per movement: above this size it refuses (GD_REVERT_COMPLETED v17)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background revert does not handle goes to the classic revert, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be reverted in the background (\" + reason + \"); the classic revert handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_REVERT_SUBMIT - Result: the answer of whichever node ended the run; after the queue writes, the read-back and the re-check decide\nconst revertResult = function revertResult(guard, entry, src, back, due) {\n  const e = entry || {};\n  const r = src || {};\n  const out = { route: s(r.route), code: s(r.code), message: s(r.message), reason: s(r.reason), job_id: s(e.jobId), job_status: s(e.jobStatus), gd_id: s(guard.gdId),\n    gd_no: s(e.gdNo), line_count: String(num(e.lineCount)), progress_percent: String(num(e.progressPercent)), progress_message: s(e.progressMessage),\n    error_code: s(e.errorCode), error_message: s(e.errorMessage), evidence: \"\" };\n  if (back) {\n    const b = list(back)[0] || {};\n    const d = due || {};\n    if (s(d.route) === \"DUE\") Object.assign(out, { route: \"QUEUED\", code: \"200\", message: \"Queued for reverting\", job_id: s(b.job_id), job_status: \"QUEUED\", progress_percent: \"0\", progress_message: \"Queued for reverting\" });\n    else if (s(d.route) === \"RACE\") Object.assign(out, { route: \"BUSY\", code: \"409\", message: \"A Packing or Picking of this delivery started just now - please wait for it to finish, then revert again.\", job_id: s(b.job_id), job_status: \"CANCELLED\" });\n    else Object.assign(out, { route: \"STOP\", code: \"500\", message: \"The revert could not be queued: please try again.\", job_id: s(b.job_id), job_status: s(b.job_status) });\n  }\n  out.evidence = JSON.stringify({ v: 1, workflow: \"GD_REVERT_SUBMIT\", operation: s(guard.operation), source: s(guard.source), route: out.route, code: out.code, reason: out.reason });\n  return out;\n};\nconst res = revertResult([{{node:code_node_RSguard.data}}][0], null, [{{node:code_node_RSguard.data}}][0], null, null);\nconsole.log(\"revert result\", JSON.stringify({ route: res.route, code: res.code, message: res.message, job: res.job_id }));\nreturn res;"
+        },
+        "response_json": [
+         {
+          "key": "z7657ub4",
+          "name": "route",
+          "title": "route",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "2ijtvw55",
+          "name": "code",
+          "title": "code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "4ob4qdeb",
+          "name": "message",
+          "title": "message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "4zyhypb9",
+          "name": "reason",
+          "title": "reason",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "rlukugec",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "a5qgrjbl",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "na2357p6",
+          "name": "gd_id",
+          "title": "gd_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "65g1s1fh",
+          "name": "gd_no",
+          "title": "gd_no",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "2az6pq1t",
+          "name": "line_count",
+          "title": "line_count",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "kzgne71d",
+          "name": "progress_percent",
+          "title": "progress_percent",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "a2d812zk",
+          "name": "progress_message",
+          "title": "progress_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "caq775gq",
+          "name": "error_code",
+          "title": "error_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "2o2w185n",
+          "name": "error_message",
+          "title": "error_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "cldspnbl",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Result (rejected input)",
+        "isValidator": true,
+        "nodeName": "Result (rejected input)",
+        "name": "Result (rejected input)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_RSrej",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (rejected input)",
+        "isValidator": true,
+        "nodeName": "Return (rejected input)",
+        "name": "Return (rejected input)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "route",
+           "propLabel": "route",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.route}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "reason",
+           "propLabel": "reason",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.reason}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gd_id",
+           "propLabel": "gd_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.gd_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gd_no",
+           "propLabel": "gd_no",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.gd_no}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "line_count",
+           "propLabel": "line_count",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.line_count}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_percent",
+           "propLabel": "progress_percent",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.progress_percent}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_message",
+           "propLabel": "progress_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.progress_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_code",
+           "propLabel": "error_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.error_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_message",
+           "propLabel": "error_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.error_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSrejres.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FRSreject",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "sql_node_RSfacts",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "Facts: the GD (status, invoice, Picking Plan), line count, active snapshot, serial items, handling-unit lines, its latest lock, open jobs on it, Picking V2 confirms, Pickings held on a device, Packings open on a phone, the latest REVERT_GD job, DB clock",
+    "isValidator": true,
+    "nodeName": "Facts: the GD (status, invoice, Picking Plan), line count, active snapshot, serial items, handling-unit lines, its latest lock, open jobs on it, Picking V2 confirms, Pickings held on a device, Packings open on a phone, the latest REVERT_GD job, DB clock",
+    "name": "Facts: the GD (status, invoice, Picking Plan), line count, active snapshot, serial items, handling-unit lines, its latest lock, open jobs on it, Picking V2 confirms, Pickings held on a device, Packings open on a phone, the latest REVERT_GD job, DB clock",
+    "script": {
+     "type": "sql",
+     "code": "SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,\n       CAST(g.id AS CHAR) AS gd_id,\n       g.delivery_no,\n       g.gd_status,\n       g.si_status,\n       COALESCE(g.is_select_picking, 0) AS is_select_picking,\n       g.organization_id,\n       CAST(g.plant_id AS CHAR) AS plant_id,\n       (SELECT COUNT(*) FROM goods_delivery_fwii8mvb_sub l WHERE l.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND l.goods_delivery_id = {{node:code_node_RSguard.data.gdId}} AND l.is_deleted = 0) AS line_count,\n       (SELECT COUNT(*) FROM gd_completion_snapshot s WHERE s.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND s.gd_id = '{{node:code_node_RSguard.data.gdId}}' AND s.snapshot_status = 'Active' AND s.is_deleted = 0) AS snapshots,\n       (SELECT COUNT(*) FROM item i\n         WHERE i.is_deleted = 0 AND i.serial_number_management = 1\n           AND i.id IN (SELECT CAST(l.material_id AS UNSIGNED) FROM goods_delivery_fwii8mvb_sub l WHERE l.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND l.goods_delivery_id = {{node:code_node_RSguard.data.gdId}} AND l.is_deleted = 0 AND l.material_id REGEXP '^[0-9]{1,20}$')) AS serial_items,\n       (SELECT COUNT(*) FROM goods_delivery_fwii8mvb_sub l WHERE l.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND l.goods_delivery_id = {{node:code_node_RSguard.data.gdId}} AND l.is_deleted = 0 AND l.temp_qty_data REGEXP '\"handling_unit_id\" *: *\"?[1-9]') AS hu_lines,\n       (SELECT p.step_name FROM gd_publish_step p\n         WHERE p.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND p.job_id = 'GDC|{{node:code_node_RSguard.data.gdId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1) AS last_lock,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(o.id AS CHAR), 'command', o.command, 'job_status', o.job_status, 'progress_percent', o.progress_percent,\n                                             'progress_message', o.progress_message, 'error_code', o.error_code, 'error_message', o.error_message)) AS CHAR)\n          FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND o.is_deleted = 0\n           AND ((o.correlation_id = 'GD|{{node:code_node_RSguard.data.gdId}}'\n                 AND ((o.command = 'EDIT_GD' AND o.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED'))\n                      OR (o.command IN ('COMPLETE_GD', 'CANCEL_GD', 'REVERT_GD') AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD',\n\t\t'REQUIRES_REVIEW'))\n                      OR (o.command = 'COMPLETE_PACKING' AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PACKING', 'REQUIRES_REVIEW'))))\n                OR (o.command = 'CREATE_GD_FROM_FORM' AND o.gd_id = '{{node:code_node_RSguard.data.gdId}}'\n                    AND o.job_status IN ('RECONCILING_GD', 'GD_COMMITTED', 'CREATING_PICKING', 'PICKING_RETRYING', 'PICKING_READY', 'REQUIRES_REVIEW')))) AS open_jobs,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('id', CAST(pj.id AS CHAR), 'command', pj.command, 'job_status', pj.job_status)) AS CHAR)\n          FROM gd_async_job pj\n         WHERE pj.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND pj.is_deleted = 0 AND pj.command = 'CONFIRM_PICKING'\n           AND pj.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n           AND EXISTS (SELECT 1 FROM transfer_order_jz8m9w3h_sub ti\n                        WHERE ti.transfer_order_id = CAST(pj.picking_id AS UNSIGNED) AND ti.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND ti.is_deleted = 0\n                          AND ti.gd_id = {{node:code_node_RSguard.data.gdId}} AND IFNULL(ti.line_status, '') <> 'Cancelled')) AS picking_jobs,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('picking_id', CAST(t.id AS CHAR), 'picking_no', t.to_id, 'is_processing', COALESCE(t.is_processing, 0),\n                                             'lock_age_sec', TIMESTAMPDIFF(SECOND, t.update_time, CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')))) AS CHAR)\n          FROM (SELECT DISTINCT x.transfer_order_id FROM transfer_order_jz8m9w3h_sub x\n                 WHERE x.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND x.gd_id = {{node:code_node_RSguard.data.gdId}} AND x.is_deleted = 0 AND COALESCE(x.line_status,\n\t\t'') NOT IN ('Completed', 'Cancelled')) lo\n          STRAIGHT_JOIN transfer_order t ON t.id = lo.transfer_order_id AND t.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND t.is_deleted = 0\n           AND COALESCE(t.to_status, '') NOT IN ('Completed', 'Cancelled', 'Draft')) AS picking_locks,\n       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('packing_no', p.packing_no, 'lock_user', p.packing_lock_user_name)) AS CHAR)\n          FROM packing p\n         WHERE p.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND p.is_deleted = 0 AND p.gd_id = '{{node:code_node_RSguard.data.gdId}}' AND COALESCE(p.packing_status,\n\t\t'') NOT IN ('Completed', 'Cancelled')\n           AND COALESCE(p.packing_lock_session_id, '') <> '' AND COALESCE(p.packing_lock_expires_at > CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'), 0) = 1) AS packing_leases,\n       (SELECT CAST(JSON_OBJECT('id', CAST(x.id AS CHAR), 'job_status', x.job_status, 'progress_percent', x.progress_percent, 'progress_message', x.progress_message,\n                                'error_code', x.error_code, 'error_message', x.error_message) AS CHAR)\n          FROM gd_async_job x\n         WHERE x.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND x.is_deleted = 0 AND x.command = 'REVERT_GD' AND x.correlation_id = 'GD|{{node:code_node_RSguard.data.gdId}}'\n         ORDER BY x.id DESC LIMIT 1) AS last_job\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = '{{node:code_node_RSguard.data.tenantId}}'\n   AND g.id = {{node:code_node_RSguard.data.gdId}}\n   AND g.is_deleted = 0"
+    },
+    "response_json": [
+     {
+      "key": "qhljcs5u",
+      "name": "db_now",
+      "title": "db_now",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "vt4kt2au",
+      "name": "gd_id",
+      "title": "gd_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "86g8z0ju",
+      "name": "delivery_no",
+      "title": "delivery_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "p7qghg49",
+      "name": "gd_status",
+      "title": "gd_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ong5247r",
+      "name": "si_status",
+      "title": "si_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "lyk1dneh",
+      "name": "is_select_picking",
+      "title": "is_select_picking",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "j6lxq1yv",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "wcg775v4",
+      "name": "plant_id",
+      "title": "plant_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "txf61280",
+      "name": "line_count",
+      "title": "line_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "v4fk5iav",
+      "name": "snapshots",
+      "title": "snapshots",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0g9azr85",
+      "name": "serial_items",
+      "title": "serial_items",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ilzjf62a",
+      "name": "hu_lines",
+      "title": "hu_lines",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "bggc8wxr",
+      "name": "last_lock",
+      "title": "last_lock",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "u74htih4",
+      "name": "open_jobs",
+      "title": "open_jobs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "an4xf99p",
+      "name": "picking_jobs",
+      "title": "picking_jobs",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "49b6t0ub",
+      "name": "picking_locks",
+      "title": "picking_locks",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "3arhdpet",
+      "name": "packing_leases",
+      "title": "packing_leases",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9gll2qn4",
+      "name": "last_job",
+      "title": "last_job",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_RSentry",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GD_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert makes one inventory child run per movement: above this size it refuses (GD_REVERT_COMPLETED v17)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background revert does not handle goes to the classic revert, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be reverted in the background (\" + reason + \"); the classic revert handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_REVERT_SUBMIT - Entry: STATUS answers from the GD's latest REVERT_GD job; SUBMIT goes on only for a Completed GD with no\n// open job on it (REQUIRES_REVIEW counts: stock may be half-moved), no open Picking V2 confirm of its Pickings, no Picking held on\n// a device, no Packing of it open on a phone, not invoiced and with its completion snapshot (the classic refusals). What the\n// background revert does not take - a Picking Plan delivery, serial numbers, stock from a handling unit - is NOT_ELIGIBLE: the\n// caller runs the classic revert (its 500-line cap applies).\n// Force Complete's Picking rules, verbatim from GOODS_DELIVERY v245 code_node_FcPlan (SUBMIT, C0 and C4P embed them): rows =\n// every row of each open Picking that still holds an open row of this GD (sql_node_FcPick). Busy = a device holds the\n// Picking (is_processing 1, the lock no older than 900 s; a missing age counts as held) or a Picking V2 confirm is open.\n// Close = this GD's open rows of the Pickings no one holds; a Picking header only when every row is this GD's or done.\nconst fcBusy = (r) => {\n  const age = Number(r.lock_age_sec);\n  return (Number(r.is_processing) === 1 && !(isFinite(age) && age > 900)) || Number(r.open_jobs) > 0;\n};\nconst fcPlan = function fcPlan(rows, gdId) {\n  const done = (r) => r.line_status === \"Completed\" || r.line_status === \"Cancelled\";\n  const byPicking = {};\n  for (const r of rows) (byPicking[r.picking_id] = byPicking[r.picking_id] || []).push(r);\n  const busyNos = [];\n  const lineIds = [];\n  const pickingIds = [];\n  for (const pickingId of Object.keys(byPicking)) {\n    const pickingRows = byPicking[pickingId];\n    if (fcBusy(pickingRows[0])) { busyNos.push(pickingRows[0].picking_no || pickingId); continue; }\n    for (const r of pickingRows) if (r.gd_id === gdId && !done(r)) lineIds.push(r.id);\n    if (pickingRows.every((r) => r.gd_id === gdId || done(r))) pickingIds.push(pickingId);\n  }\n  return { busyNos: busyNos, lineIds: lineIds, pickingIds: pickingIds,\n    busyMessage: \"Picking \" + busyNos.join(\", \") + \" is being processed on a device right now. Try again in a moment.\" };\n};\nconst revertEntry = function revertEntry(guard, factRows) {\n  const f = list(factRows)[0] || {};\n  const parse = (t) => {\n    try {\n      return t ? JSON.parse(t) : null;\n    } catch (e) {\n      return null;\n    }\n  };\n  const last = parse(f.last_job);\n  const open = list(parse(f.open_jobs)).filter((r) => s(r.id));\n  const n = num(f.line_count);\n  const base = { tenantId: guard.tenantId, gdId: guard.gdId, gdNo: s(f.delivery_no), organizationId: s(f.organization_id), plantId: s(f.plant_id), lineCount: n,\n    dbNow: s(f.db_now), lockN: 1, reason: \"\", jobId: \"\", jobStatus: \"\", progressPercent: 0, progressMessage: \"\", errorCode: \"\", errorMessage: \"\" };\n  const job = (j) => (j ? { jobId: s(j.id), jobStatus: s(j.job_status), progressPercent: num(j.progress_percent), progressMessage: s(j.progress_message), errorCode: s(j.error_code), errorMessage: s(j.error_message) } : {});\n  if (guard.operation === \"STATUS\") return Object.assign(base, job(last), answer(\"STATUS\", \"200\", last ? s(last.progress_message) : \"no revert job\"));\n  if (!s(f.gd_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery not found\"));\n  const status = s(f.gd_status);\n  const picking = list(parse(f.picking_jobs)).filter((r) => s(r.id));\n  if (picking.length) {\n    const review = picking.some((r) => s(r.job_status) === \"REQUIRES_REVIEW\");\n    return Object.assign(base, answer(\"BUSY\", \"409\", review\n      ? \"A Picking confirmation of this delivery stopped half-way and is under review: please contact support.\"\n      : \"Its Picking is being confirmed in the background - please wait for it to finish.\"));\n  }\n  const blocking = open[0];\n  if (blocking) {\n    const cmd = s(blocking.command);\n    const what = { COMPLETE_PACKING: \"Its Packing\", EDIT_GD: \"Its edit\", COMPLETE_GD: \"Its completion\", CANCEL_GD: \"Its cancel\", REVERT_GD: \"Its revert\", CREATE_GD_FROM_FORM: \"Its creation\" }[cmd] || \"A background job\";\n    const busy = { COMPLETE_PACKING: \"Its Packing is being completed\", EDIT_GD: \"Its edit is being saved\", COMPLETE_GD: \"It is being completed\", CANCEL_GD: \"It is being cancelled\",\n      REVERT_GD: \"It is already being reverted\", CREATE_GD_FROM_FORM: \"Its Picking is still being created\" }[cmd] || \"A background job holds it\";\n    return Object.assign(base, job(blocking), answer(\"BUSY\", \"409\", s(blocking.job_status) === \"REQUIRES_REVIEW\" ? what + \" stopped half-way and is under review: please contact support.\" : busy + \" - please wait for it to finish.\"));\n  }\n  const held = list(parse(f.picking_locks)).filter(fcBusy).map((r) => s(r.picking_no) || s(r.picking_id));\n  if (held.length) return Object.assign(base, answer(\"BUSY\", \"409\", \"Picking \" + held.join(\", \") + \" is being processed on a device right now. Try again in a moment.\"));\n  const leased = list(parse(f.packing_leases)).map((r) => s(r.packing_no) + (s(r.lock_user) ? \" (open on mobile by \" + s(r.lock_user) + \")\" : \"\"));\n  if (leased.length) return Object.assign(base, answer(\"BUSY\", \"409\", \"Packing \" + leased.join(\", \") + \" is open right now. Try again once it is closed.\"));\n  if (status === \"Processing\") return Object.assign(base, answer(\"BUSY\", \"409\", \"This delivery is being processed - please wait for it to finish.\"));\n  // GD_REVERT_COMPLETED's refusals, in its order; the invoice rule is the list's (RevertCompletedWorkflow.js)\n  if (status !== \"Completed\") return Object.assign(base, answer(\"STOP\", \"400\", \"Only Completed Goods Deliveries can be reverted\"));\n  const si = s(f.si_status);\n  if (si !== \"\" && si.toLowerCase() !== \"cancelled\") return Object.assign(base, answer(\"STOP\", \"400\", \"Already invoiced (\" + si + \"). Please cancel the sales invoice first.\"));\n  if (num(f.snapshots) < 1) return Object.assign(base, answer(\"STOP\", \"400\", \"No active snapshot found for this Goods Delivery; revert not possible (snapshot may have expired, been consumed by a previous revert, or this GD was completed before snapshots were enabled).\"));\n  if (!digits(f.organization_id)) return Object.assign(base, answer(\"STOP\", \"400\", \"Goods Delivery has no organization\"));\n  if (num(f.is_select_picking) === 1) return Object.assign(base, notEligible(\"a delivery made from a Picking Plan is reverted by the classic revert\", n));\n  if (num(f.serial_items) > 0) return Object.assign(base, notEligible(\"serial-numbered items are reverted by the classic revert\", n));\n  if (num(f.hu_lines) > 0) return Object.assign(base, notEligible(\"stock delivered from a handling unit is reverted by the classic revert\", n));\n  const m = s(f.last_lock).match(/^LOCK\\|([0-9]+)$/);\n  return Object.assign(base, answer(\"GO\", \"\", \"\"), { lockN: m ? Number(m[1]) + 1 : 1 });\n};\nconst res = revertEntry([{{node:code_node_RSguard.data}}][0], [{{node:sql_node_RSfacts.data}}][0]);\nconsole.log(\"revert entry\", JSON.stringify({ route: res.route, code: res.code, message: res.message, lines: res.lineCount, lock: res.lockN }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "qo5qglhx",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "dz5hmwro",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "v8byc93n",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "fug0fp8e",
+      "name": "reason",
+      "title": "reason",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2oji8yt4",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "5e1kwinj",
+      "name": "gdId",
+      "title": "gdId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "1wmtjw8q",
+      "name": "gdNo",
+      "title": "gdNo",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "63xsjazk",
+      "name": "organizationId",
+      "title": "organizationId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "frznzx5e",
+      "name": "plantId",
+      "title": "plantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "e3xadn9j",
+      "name": "lineCount",
+      "title": "lineCount",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "b76x128r",
+      "name": "dbNow",
+      "title": "dbNow",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "bs068bkj",
+      "name": "lockN",
+      "title": "lockN",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "5b6ih0kr",
+      "name": "jobId",
+      "title": "jobId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ks4jdh9l",
+      "name": "jobStatus",
+      "title": "jobStatus",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "eom4rj5h",
+      "name": "progressPercent",
+      "title": "progressPercent",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ckvg0tpw",
+      "name": "progressMessage",
+      "title": "progressMessage",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ngt1ll7s",
+      "name": "errorCode",
+      "title": "errorCode",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2b57orez",
+      "name": "errorMessage",
+      "title": "errorMessage",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Entry: STATUS; SUBMIT goes on for a Completed GD nothing else holds (BUSY / STOP / NOT_ELIGIBLE otherwise)",
+    "isValidator": true,
+    "nodeName": "Entry: STATUS; SUBMIT goes on for a Completed GD nothing else holds (BUSY / STOP / NOT_ELIGIBLE otherwise)",
+    "name": "Entry: STATUS; SUBMIT goes on for a Completed GD nothing else holds (BUSY / STOP / NOT_ELIGIBLE otherwise)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_RSanswer",
+   "type": "if",
+   "data": {
+    "title": "IF answered here (STATUS / BUSY / STOP / NOT_ELIGIBLE): answer, write nothing",
+    "isValidator": true,
+    "nodeName": "IF answered here (STATUS / BUSY / STOP / NOT_ELIGIBLE): answer, write nothing",
+    "name": "IF answered here (STATUS / BUSY / STOP / NOT_ELIGIBLE): answer, write nothing",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799800000003,
+       "parentId": 1799800000004,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_RSentry.data.route}}' != 'GO'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TRSanswer",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_RSansres",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// GD_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert makes one inventory child run per movement: above this size it refuses (GD_REVERT_COMPLETED v17)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background revert does not handle goes to the classic revert, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be reverted in the background (\" + reason + \"); the classic revert handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_REVERT_SUBMIT - Result: the answer of whichever node ended the run; after the queue writes, the read-back and the re-check decide\nconst revertResult = function revertResult(guard, entry, src, back, due) {\n  const e = entry || {};\n  const r = src || {};\n  const out = { route: s(r.route), code: s(r.code), message: s(r.message), reason: s(r.reason), job_id: s(e.jobId), job_status: s(e.jobStatus), gd_id: s(guard.gdId),\n    gd_no: s(e.gdNo), line_count: String(num(e.lineCount)), progress_percent: String(num(e.progressPercent)), progress_message: s(e.progressMessage),\n    error_code: s(e.errorCode), error_message: s(e.errorMessage), evidence: \"\" };\n  if (back) {\n    const b = list(back)[0] || {};\n    const d = due || {};\n    if (s(d.route) === \"DUE\") Object.assign(out, { route: \"QUEUED\", code: \"200\", message: \"Queued for reverting\", job_id: s(b.job_id), job_status: \"QUEUED\", progress_percent: \"0\", progress_message: \"Queued for reverting\" });\n    else if (s(d.route) === \"RACE\") Object.assign(out, { route: \"BUSY\", code: \"409\", message: \"A Packing or Picking of this delivery started just now - please wait for it to finish, then revert again.\", job_id: s(b.job_id), job_status: \"CANCELLED\" });\n    else Object.assign(out, { route: \"STOP\", code: \"500\", message: \"The revert could not be queued: please try again.\", job_id: s(b.job_id), job_status: s(b.job_status) });\n  }\n  out.evidence = JSON.stringify({ v: 1, workflow: \"GD_REVERT_SUBMIT\", operation: s(guard.operation), source: s(guard.source), route: out.route, code: out.code, reason: out.reason });\n  return out;\n};\nconst res = revertResult([{{node:code_node_RSguard.data}}][0], [{{node:code_node_RSentry.data}}][0], [{{node:code_node_RSentry.data}}][0], null, null);\nconsole.log(\"revert result\", JSON.stringify({ route: res.route, code: res.code, message: res.message, job: res.job_id }));\nreturn res;"
+        },
+        "response_json": [
+         {
+          "key": "cuvsy0hl",
+          "name": "route",
+          "title": "route",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "gktxzobq",
+          "name": "code",
+          "title": "code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "x19wn06y",
+          "name": "message",
+          "title": "message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "tvt343wt",
+          "name": "reason",
+          "title": "reason",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "l830xhih",
+          "name": "job_id",
+          "title": "job_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "3by3q6jb",
+          "name": "job_status",
+          "title": "job_status",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "zlyyqzae",
+          "name": "gd_id",
+          "title": "gd_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "c8csu07z",
+          "name": "gd_no",
+          "title": "gd_no",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "vk006kkp",
+          "name": "line_count",
+          "title": "line_count",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "1rlv7heq",
+          "name": "progress_percent",
+          "title": "progress_percent",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "nlm95z28",
+          "name": "progress_message",
+          "title": "progress_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "65c5r621",
+          "name": "error_code",
+          "title": "error_code",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "1qn8yu6c",
+          "name": "error_message",
+          "title": "error_message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "j18f40n4",
+          "name": "evidence",
+          "title": "evidence",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Result (entry)",
+        "isValidator": true,
+        "nodeName": "Result (entry)",
+        "name": "Result (entry)"
+       },
+       "blocks": []
+      },
+      {
+       "id": "return_node_RSans",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return (entry)",
+        "isValidator": true,
+        "nodeName": "Return (entry)",
+        "name": "Return (entry)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "route",
+           "propLabel": "route",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.route}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "reason",
+           "propLabel": "reason",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.reason}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.job_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "job_status",
+           "propLabel": "job_status",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.job_status}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gd_id",
+           "propLabel": "gd_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.gd_id}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "gd_no",
+           "propLabel": "gd_no",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.gd_no}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "line_count",
+           "propLabel": "line_count",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.line_count}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_percent",
+           "propLabel": "progress_percent",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.progress_percent}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "progress_message",
+           "propLabel": "progress_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.progress_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_code",
+           "propLabel": "error_code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.error_code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_message",
+           "propLabel": "error_message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.error_message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "evidence",
+           "propLabel": "evidence",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_RSansres.data.evidence}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FRSanswer",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_RSpost",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GD_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert makes one inventory child run per movement: above this size it refuses (GD_REVERT_COMPLETED v17)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background revert does not handle goes to the classic revert, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be reverted in the background (\" + reason + \"); the classic revert handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_REVERT_SUBMIT - Post: the queue rows: the GD's lock (gd_publish_step GDC|<gd> / LOCK|<n>, unique: a concurrent twin fails\n// its run; the same lock GD Completed V2 and every GD writer honour), the REVERT_GD job (QUEUED but not due for 2 minutes, so no\n// worker takes it before the GD is Processing; due.js makes it due after the re-check), the GD Processing\nconst revertPost = function revertPost(guard, entry) {\n  const key = \"GDC|\" + entry.gdId + \"|\" + entry.lockN;\n  const request = { v: 1, gd_id: entry.gdId, gd_no: entry.gdNo, source: guard.source, submitted_by: guard.uid };\n  return answer(\"QUEUE\", \"200\", \"queued\", {\n    idemKey: key,\n    lockRows: [{ job_id: \"GDC|\" + entry.gdId, organization_id: entry.organizationId, step_name: \"LOCK|\" + entry.lockN, step_status: \"LOCK\", attempt_count: 0, started_at: entry.dbNow, result_ref: key }],\n    jobRows: [{ organization_id: entry.organizationId, plant_id: entry.plantId, command: \"REVERT_GD\", idempotency_key: key, job_status: \"QUEUED\", progress_percent: 0,\n      progress_message: \"Queued for reverting\", attempt_count: 0, row_version: 0, cancel_requested: 0, next_attempt_at: dbAddSeconds(entry.dbNow, 120),\n      request_payload: JSON.stringify(request), causation_id: guard.source, correlation_id: \"GD|\" + entry.gdId, line_count: num(entry.lineCount), queued_at: entry.dbNow }],\n    gdRows: [{ id: entry.gdId, gd_status: \"Processing\" }],\n  });\n};\n// after the queue rows: a Packing V2 completion or a Picking V2 confirm that slipped in between the facts and the Processing\n// write (their SUBMITs passed on a Completed GD) wins - the GD goes back to Completed and this job is CANCELLED, nothing else was\n// written (bladexfunctions-79's ordering: Processing first, then the check). Else the job is due now.\nconst revertDue = function revertDue(entry, post, back) {\n  const b = list(back)[0] || {};\n  const mine = s(b.job_id) && s(b.gd_status) === \"Processing\" && s(b.lock_ref) === s(post.idemKey) && s(b.job_status) === \"QUEUED\";\n  const racers = num(b.racers);\n  if (mine && racers > 0) {\n    return { route: \"RACE\", dueRows: [], needDue: \"NO\", undoJobRows: [{ id: s(b.job_id), job_status: \"CANCELLED\", progress_message: \"Not reverted: a Packing or Picking of it started first\",\n      error_code: \"GDR_BUSY\", error_message: \"a Packing completion or Picking confirmation of the delivery started just before the revert\", finished_at: entry.dbNow }], needUndo: \"YES\",\n      unlockRows: [{ id: entry.gdId, gd_status: \"Completed\" }] };\n  }\n  return { route: mine ? \"DUE\" : \"LOST\", dueRows: mine ? [{ id: s(b.job_id), next_attempt_at: entry.dbNow }] : [], needDue: mine ? \"YES\" : \"NO\", undoJobRows: [], needUndo: \"NO\", unlockRows: [] };\n};\nconst res = revertPost([{{node:code_node_RSguard.data}}][0], [{{node:code_node_RSentry.data}}][0]);\nconsole.log(\"revert post\", JSON.stringify({ route: res.route, key: res.idemKey }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "8bra4vmx",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ckp24vf8",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "sjl9n4ac",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0oanv52o",
+      "name": "idemKey",
+      "title": "idemKey",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "20h2hjxd",
+      "name": "lockRows",
+      "title": "lockRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "e2bq3f6m",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "8ndra6ki",
+      "name": "jobRows",
+      "title": "jobRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "7us9m531",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "h6u1pkwz",
+      "name": "gdRows",
+      "title": "gdRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "up72mtwm",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     }
+    ],
+    "title": "Post: the lock, job and Processing rows",
+    "isValidator": true,
+    "nodeName": "Post: the lock, job and Processing rows",
+    "name": "Post: the lock, job and Processing rows"
+   },
+   "blocks": []
+  },
+  {
+   "id": "add_node_RSlock",
+   "type": "add-node",
+   "data": {
+    "table_id": {
+     "source": "GD Publish Step:Table:2105131615547461634",
+     "rules": {
+      "collectionId": "2105131615547461634",
+      "list": [
+       {
+        "id": 1799800000005,
+        "parentId": 1799800000006,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "fields": [],
+    "title": "LOCK: gd_publish_step GDC|<gd> / LOCK|<n> (unique tenant / job / step: a concurrent submit fails its run)",
+    "isValidator": true,
+    "nodeName": "LOCK: gd_publish_step GDC|<gd> / LOCK|<n> (unique tenant / job / step: a concurrent submit fails its run)",
+    "name": "LOCK: gd_publish_step GDC|<gd> / LOCK|<n> (unique tenant / job / step: a concurrent submit fails its run)",
+    "props": {
+     "modelName": "",
+     "list": [
+      {
+       "prop": "job_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.lockRows.job_id}}",
+       "valueLabel": "",
+       "propLabel": "job_id"
+      },
+      {
+       "prop": "organization_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.lockRows.organization_id}}",
+       "valueLabel": "",
+       "propLabel": "Organization"
+      },
+      {
+       "prop": "step_name",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.lockRows.step_name}}",
+       "valueLabel": "",
+       "propLabel": "step_name"
+      },
+      {
+       "prop": "step_status",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.lockRows.step_status}}",
+       "valueLabel": "",
+       "propLabel": "step_status"
+      },
+      {
+       "prop": "attempt_count",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.lockRows.attempt_count}}",
+       "valueLabel": "",
+       "propLabel": "attempt_count"
+      },
+      {
+       "prop": "started_at",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.lockRows.started_at}}",
+       "valueLabel": "",
+       "propLabel": "started_at"
+      },
+      {
+       "prop": "result_ref",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.lockRows.result_ref}}",
+       "valueLabel": "",
+       "propLabel": "result_ref"
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "add_node_RSjob",
+   "type": "add-node",
+   "data": {
+    "table_id": {
+     "source": "GD Async Job:Table:2104845286495150081",
+     "rules": {
+      "collectionId": "2104845286495150081",
+      "list": [
+       {
+        "id": 1799800000007,
+        "parentId": 1799800000008,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "fields": [],
+    "title": "Job insert: REVERT_GD QUEUED (idempotency_key GDC|<gd>|<n>, correlation_id GD|<gd>)",
+    "isValidator": true,
+    "nodeName": "Job insert: REVERT_GD QUEUED (idempotency_key GDC|<gd>|<n>, correlation_id GD|<gd>)",
+    "name": "Job insert: REVERT_GD QUEUED (idempotency_key GDC|<gd>|<n>, correlation_id GD|<gd>)",
+    "props": {
+     "modelName": "",
+     "list": [
+      {
+       "prop": "organization_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.organization_id}}",
+       "valueLabel": "",
+       "propLabel": "Organization"
+      },
+      {
+       "prop": "plant_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.plant_id}}",
+       "valueLabel": "",
+       "propLabel": "plant_id"
+      },
+      {
+       "prop": "command",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.command}}",
+       "valueLabel": "",
+       "propLabel": "command"
+      },
+      {
+       "prop": "idempotency_key",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.idempotency_key}}",
+       "valueLabel": "",
+       "propLabel": "idempotency_key"
+      },
+      {
+       "prop": "job_status",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.job_status}}",
+       "valueLabel": "",
+       "propLabel": "job_status"
+      },
+      {
+       "prop": "progress_percent",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.progress_percent}}",
+       "valueLabel": "",
+       "propLabel": "progress_percent"
+      },
+      {
+       "prop": "progress_message",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.progress_message}}",
+       "valueLabel": "",
+       "propLabel": "progress_message"
+      },
+      {
+       "prop": "attempt_count",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.attempt_count}}",
+       "valueLabel": "",
+       "propLabel": "attempt_count"
+      },
+      {
+       "prop": "row_version",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.row_version}}",
+       "valueLabel": "",
+       "propLabel": "row_version"
+      },
+      {
+       "prop": "cancel_requested",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.cancel_requested}}",
+       "valueLabel": "",
+       "propLabel": "cancel_requested"
+      },
+      {
+       "prop": "next_attempt_at",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.next_attempt_at}}",
+       "valueLabel": "",
+       "propLabel": "next_attempt_at"
+      },
+      {
+       "prop": "request_payload",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.request_payload}}",
+       "valueLabel": "",
+       "propLabel": "request_payload"
+      },
+      {
+       "prop": "causation_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.causation_id}}",
+       "valueLabel": "",
+       "propLabel": "causation_id"
+      },
+      {
+       "prop": "correlation_id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.correlation_id}}",
+       "valueLabel": "",
+       "propLabel": "correlation_id"
+      },
+      {
+       "prop": "line_count",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.line_count}}",
+       "valueLabel": "",
+       "propLabel": "line_count"
+      },
+      {
+       "prop": "queued_at",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.jobRows.queued_at}}",
+       "valueLabel": "",
+       "propLabel": "queued_at"
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "update_node_RSgd",
+   "type": "update-node",
+   "data": {
+    "table_id": {
+     "source": "Goods Delivery:Table:1902054888473481218",
+     "rules": {
+      "collectionId": "1902054888473481218",
+      "list": [
+       {
+        "id": 1799800000009,
+        "parentId": 1799800000010,
+        "isTop": true,
+        "prop": "id",
+        "operator": "in",
+        "valueType": "field",
+        "value": "{{node:code_node_RSpost.data.gdRows.id}}",
+        "type": "leaf",
+        "level": 1,
+        "propLabel": "主键ID",
+        "valueLabel": "",
+        "operatorLabel": "In"
+       }
+      ]
+     }
+    },
+    "fields": [],
+    "condition": {},
+    "title": "Goods Delivery Processing (the lock every writer honours)",
+    "isValidator": true,
+    "nodeName": "Goods Delivery Processing (the lock every writer honours)",
+    "name": "Goods Delivery Processing (the lock every writer honours)",
+    "props": {
+     "modelName": "",
+     "list": [
+      {
+       "prop": "id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.gdRows.id}}",
+       "valueLabel": "",
+       "propLabel": "主键ID"
+      },
+      {
+       "prop": "gd_status",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_RSpost.data.gdRows.gd_status}}",
+       "valueLabel": "",
+       "propLabel": "GD Status"
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "sql_node_RSback",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "Read-back: the job, the GD's status, its latest lock, any other open job of it (a racer)",
+    "isValidator": true,
+    "nodeName": "Read-back: the job, the GD's status, its latest lock, any other open job of it (a racer)",
+    "name": "Read-back: the job, the GD's status, its latest lock, any other open job of it (a racer)",
+    "script": {
+     "type": "sql",
+     "code": "SELECT CAST(j.id AS CHAR) AS job_id,\n       j.job_status,\n       g.gd_status,\n       (SELECT p.result_ref FROM gd_publish_step p\n         WHERE p.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND p.job_id = 'GDC|{{node:code_node_RSguard.data.gdId}}' AND p.step_name LIKE 'LOCK|%' AND p.is_deleted = 0 ORDER BY p.id DESC LIMIT 1) AS lock_ref,\n       (SELECT COUNT(*) FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND o.is_deleted = 0 AND o.id <> COALESCE(j.id, 0) AND o.job_status NOT IN ('COMPLETED', 'FAILED',\n\t\t'CANCELLED')\n           AND ((o.correlation_id = 'GD|{{node:code_node_RSguard.data.gdId}}' AND o.command IN ('EDIT_GD', 'COMPLETE_GD', 'CANCEL_GD', 'REVERT_GD', 'COMPLETE_PACKING'))\n                OR (o.command = 'CONFIRM_PICKING' AND EXISTS (SELECT 1 FROM transfer_order_jz8m9w3h_sub ti\n                      WHERE ti.transfer_order_id = CAST(o.picking_id AS UNSIGNED) AND ti.tenant_id = '{{node:code_node_RSguard.data.tenantId}}' AND ti.is_deleted = 0 AND ti.gd_id = {{node:code_node_RSguard.data.gdId}})))) AS racers\n  FROM (SELECT 1 AS one) x\n  LEFT JOIN gd_async_job j\n    ON j.tenant_id = '{{node:code_node_RSguard.data.tenantId}}'\n   AND j.organization_id = '{{node:code_node_RSentry.data.organizationId}}'\n   AND j.idempotency_key = '{{node:code_node_RSpost.data.idemKey}}'\n   AND j.is_deleted = 0\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = '{{node:code_node_RSguard.data.tenantId}}'\n   AND g.id = {{node:code_node_RSguard.data.gdId}}\n   AND g.is_deleted = 0"
+    },
+    "response_json": [
+     {
+      "key": "2kqxture",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "n50zzyzz",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "j7bz2vjp",
+      "name": "gd_status",
+      "title": "gd_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "70ecnafd",
+      "name": "lock_ref",
+      "title": "lock_ref",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "4r9xyvd5",
+      "name": "racers",
+      "title": "racers",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_RSdue",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GD_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert makes one inventory child run per movement: above this size it refuses (GD_REVERT_COMPLETED v17)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background revert does not handle goes to the classic revert, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be reverted in the background (\" + reason + \"); the classic revert handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_REVERT_SUBMIT - Post: the queue rows: the GD's lock (gd_publish_step GDC|<gd> / LOCK|<n>, unique: a concurrent twin fails\n// its run; the same lock GD Completed V2 and every GD writer honour), the REVERT_GD job (QUEUED but not due for 2 minutes, so no\n// worker takes it before the GD is Processing; due.js makes it due after the re-check), the GD Processing\nconst revertPost = function revertPost(guard, entry) {\n  const key = \"GDC|\" + entry.gdId + \"|\" + entry.lockN;\n  const request = { v: 1, gd_id: entry.gdId, gd_no: entry.gdNo, source: guard.source, submitted_by: guard.uid };\n  return answer(\"QUEUE\", \"200\", \"queued\", {\n    idemKey: key,\n    lockRows: [{ job_id: \"GDC|\" + entry.gdId, organization_id: entry.organizationId, step_name: \"LOCK|\" + entry.lockN, step_status: \"LOCK\", attempt_count: 0, started_at: entry.dbNow, result_ref: key }],\n    jobRows: [{ organization_id: entry.organizationId, plant_id: entry.plantId, command: \"REVERT_GD\", idempotency_key: key, job_status: \"QUEUED\", progress_percent: 0,\n      progress_message: \"Queued for reverting\", attempt_count: 0, row_version: 0, cancel_requested: 0, next_attempt_at: dbAddSeconds(entry.dbNow, 120),\n      request_payload: JSON.stringify(request), causation_id: guard.source, correlation_id: \"GD|\" + entry.gdId, line_count: num(entry.lineCount), queued_at: entry.dbNow }],\n    gdRows: [{ id: entry.gdId, gd_status: \"Processing\" }],\n  });\n};\n// after the queue rows: a Packing V2 completion or a Picking V2 confirm that slipped in between the facts and the Processing\n// write (their SUBMITs passed on a Completed GD) wins - the GD goes back to Completed and this job is CANCELLED, nothing else was\n// written (bladexfunctions-79's ordering: Processing first, then the check). Else the job is due now.\nconst revertDue = function revertDue(entry, post, back) {\n  const b = list(back)[0] || {};\n  const mine = s(b.job_id) && s(b.gd_status) === \"Processing\" && s(b.lock_ref) === s(post.idemKey) && s(b.job_status) === \"QUEUED\";\n  const racers = num(b.racers);\n  if (mine && racers > 0) {\n    return { route: \"RACE\", dueRows: [], needDue: \"NO\", undoJobRows: [{ id: s(b.job_id), job_status: \"CANCELLED\", progress_message: \"Not reverted: a Packing or Picking of it started first\",\n      error_code: \"GDR_BUSY\", error_message: \"a Packing completion or Picking confirmation of the delivery started just before the revert\", finished_at: entry.dbNow }], needUndo: \"YES\",\n      unlockRows: [{ id: entry.gdId, gd_status: \"Completed\" }] };\n  }\n  return { route: mine ? \"DUE\" : \"LOST\", dueRows: mine ? [{ id: s(b.job_id), next_attempt_at: entry.dbNow }] : [], needDue: mine ? \"YES\" : \"NO\", undoJobRows: [], needUndo: \"NO\", unlockRows: [] };\n};\nconst res = revertDue([{{node:code_node_RSentry.data}}][0], [{{node:code_node_RSpost.data}}][0], [{{node:sql_node_RSback.data}}][0]);\nconsole.log(\"revert due\", JSON.stringify({ route: res.route }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "bldh6roz",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "i7rs4x2b",
+      "name": "dueRows",
+      "title": "dueRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "zphzur3y",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "m5m6k2av",
+      "name": "needDue",
+      "title": "needDue",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "0uksa54e",
+      "name": "undoJobRows",
+      "title": "undoJobRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "ye7tfagx",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "3plmr4hw",
+      "name": "needUndo",
+      "title": "needUndo",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "yyubb2lb",
+      "name": "unlockRows",
+      "title": "unlockRows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "3sgs6uh5",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     }
+    ],
+    "title": "Due: Processing under this job's lock and no racer -> the job due now; a racer -> GD back to Completed, this job CANCELLED",
+    "isValidator": true,
+    "nodeName": "Due: Processing under this job's lock and no racer -> the job due now; a racer -> GD back to Completed, this job CANCELLED",
+    "name": "Due: Processing under this job's lock and no racer -> the job due now; a racer -> GD back to Completed, this job CANCELLED"
+   },
+   "blocks": []
+  },
+  {
+   "id": "cor_RSundo",
+   "type": "condition-or-node",
+   "data": {
+    "title": "A racer: undo?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YRSundo",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1799800000015,
+         "parentId": 1799800000016,
+         "isTop": true,
+         "prop": "node.code_node_RSdue.data.needUndo",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needUndo",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_RSundoJob",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Async Job:Table:2104845286495150081",
+         "rules": {
+          "collectionId": "2104845286495150081",
+          "list": [
+           {
+            "id": 1799800000011,
+            "parentId": 1799800000012,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_RSdue.data.undoJobRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Job CANCELLED (a Packing / Picking job of the GD started first)",
+        "isValidator": true,
+        "nodeName": "Job CANCELLED (a Packing / Picking job of the GD started first)",
+        "name": "Job CANCELLED (a Packing / Picking job of the GD started first)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.undoJobRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "job_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.undoJobRows.job_status}}",
+           "valueLabel": "",
+           "propLabel": "job_status"
+          },
+          {
+           "prop": "progress_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.undoJobRows.progress_message}}",
+           "valueLabel": "",
+           "propLabel": "progress_message"
+          },
+          {
+           "prop": "error_code",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.undoJobRows.error_code}}",
+           "valueLabel": "",
+           "propLabel": "error_code"
+          },
+          {
+           "prop": "error_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.undoJobRows.error_message}}",
+           "valueLabel": "",
+           "propLabel": "error_message"
+          },
+          {
+           "prop": "finished_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.undoJobRows.finished_at}}",
+           "valueLabel": "",
+           "propLabel": "finished_at"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "update_node_RSundoGd",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Goods Delivery:Table:1902054888473481218",
+         "rules": {
+          "collectionId": "1902054888473481218",
+          "list": [
+           {
+            "id": 1799800000013,
+            "parentId": 1799800000014,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_RSdue.data.unlockRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Goods Delivery back to Completed (the revert did not start)",
+        "isValidator": true,
+        "nodeName": "Goods Delivery back to Completed (the revert did not start)",
+        "name": "Goods Delivery back to Completed (the revert did not start)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.unlockRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "gd_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.unlockRows.gd_status}}",
+           "valueLabel": "",
+           "propLabel": "GD Status"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NRSundo",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "cor_RSdue",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Job to make due?",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "cori_YRSdue",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "YES",
+      "filter": {
+       "list": [
+        {
+         "id": 1799800000019,
+         "parentId": 1799800000020,
+         "isTop": true,
+         "prop": "node.code_node_RSdue.data.needDue",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "YES",
+         "type": "leaf",
+         "level": 1,
+         "propLabel": "needDue",
+         "valueLabel": "",
+         "operatorLabel": "Equal"
+        }
+       ]
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule"
+     },
+     "blocks": [
+      {
+       "id": "update_node_RSdue",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Async Job:Table:2104845286495150081",
+         "rules": {
+          "collectionId": "2104845286495150081",
+          "list": [
+           {
+            "id": 1799800000017,
+            "parentId": 1799800000018,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_RSdue.data.dueRows.id}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "主键ID",
+            "valueLabel": "",
+            "operatorLabel": "In"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "Job due now (it was inserted 2 minutes ahead)",
+        "isValidator": true,
+        "nodeName": "Job due now (it was inserted 2 minutes ahead)",
+        "name": "Job due now (it was inserted 2 minutes ahead)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.dueRows.id}}",
+           "valueLabel": "",
+           "propLabel": "主键ID"
+          },
+          {
+           "prop": "next_attempt_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RSdue.data.dueRows.next_attempt_at}}",
+           "valueLabel": "",
+           "propLabel": "next_attempt_at"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "cori_NRSdue",
+     "type": "condition-or-node-item",
+     "data": {
+      "title": "NO",
+      "isDefault": true,
+      "filter": {
+       "list": []
+      },
+      "expression": {
+       "code": ""
+      },
+      "displayContent": "sdk.form.otherCondition"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_RSdoneres",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// GD_REVERT_SUBMIT - shared helpers\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\n// the classic revert makes one inventory child run per movement: above this size it refuses (GD_REVERT_COMPLETED v17)\nconst MAX_OLD_PATH_LINES = 500;\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\n// what the background revert does not handle goes to the classic revert, unless the delivery is too big for it\nconst notEligible = (reason, lineCount) =>\n  lineCount > MAX_OLD_PATH_LINES\n    ? answer(\"STOP\", \"400\", \"This delivery has \" + lineCount + \" lines and cannot be reverted in the background (\" + reason + \"); the classic revert handles at most \" + MAX_OLD_PATH_LINES + \" lines.\", { reason: reason })\n    : answer(\"NOT_ELIGIBLE\", \"300\", reason, { reason: reason });\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// GD_REVERT_SUBMIT - Result: the answer of whichever node ended the run; after the queue writes, the read-back and the re-check decide\nconst revertResult = function revertResult(guard, entry, src, back, due) {\n  const e = entry || {};\n  const r = src || {};\n  const out = { route: s(r.route), code: s(r.code), message: s(r.message), reason: s(r.reason), job_id: s(e.jobId), job_status: s(e.jobStatus), gd_id: s(guard.gdId),\n    gd_no: s(e.gdNo), line_count: String(num(e.lineCount)), progress_percent: String(num(e.progressPercent)), progress_message: s(e.progressMessage),\n    error_code: s(e.errorCode), error_message: s(e.errorMessage), evidence: \"\" };\n  if (back) {\n    const b = list(back)[0] || {};\n    const d = due || {};\n    if (s(d.route) === \"DUE\") Object.assign(out, { route: \"QUEUED\", code: \"200\", message: \"Queued for reverting\", job_id: s(b.job_id), job_status: \"QUEUED\", progress_percent: \"0\", progress_message: \"Queued for reverting\" });\n    else if (s(d.route) === \"RACE\") Object.assign(out, { route: \"BUSY\", code: \"409\", message: \"A Packing or Picking of this delivery started just now - please wait for it to finish, then revert again.\", job_id: s(b.job_id), job_status: \"CANCELLED\" });\n    else Object.assign(out, { route: \"STOP\", code: \"500\", message: \"The revert could not be queued: please try again.\", job_id: s(b.job_id), job_status: s(b.job_status) });\n  }\n  out.evidence = JSON.stringify({ v: 1, workflow: \"GD_REVERT_SUBMIT\", operation: s(guard.operation), source: s(guard.source), route: out.route, code: out.code, reason: out.reason });\n  return out;\n};\nconst res = revertResult([{{node:code_node_RSguard.data}}][0], [{{node:code_node_RSentry.data}}][0], [{{node:code_node_RSpost.data}}][0], [{{node:sql_node_RSback.data}}][0], [{{node:code_node_RSdue.data}}][0]);\nconsole.log(\"revert result\", JSON.stringify({ route: res.route, code: res.code, message: res.message, job: res.job_id }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "s4qykkhs",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "h0sgxzt7",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "gp06xdla",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ouf73vx1",
+      "name": "reason",
+      "title": "reason",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "thw7fwc9",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "671oeick",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "9brvn5bu",
+      "name": "gd_id",
+      "title": "gd_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "q91z1ans",
+      "name": "gd_no",
+      "title": "gd_no",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "miihmq3i",
+      "name": "line_count",
+      "title": "line_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "emmvup3r",
+      "name": "progress_percent",
+      "title": "progress_percent",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "yqeh457x",
+      "name": "progress_message",
+      "title": "progress_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "f2xliknj",
+      "name": "error_code",
+      "title": "error_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "yryjbcd3",
+      "name": "error_message",
+      "title": "error_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "gtnndm61",
+      "name": "evidence",
+      "title": "evidence",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Result (queued)",
+    "isValidator": true,
+    "nodeName": "Result (queued)",
+    "name": "Result (queued)"
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_node_RSdone",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return (queued)",
+    "isValidator": true,
+    "nodeName": "Return (queued)",
+    "name": "Return (queued)",
+    "response_value": {
+     "list": [
+      {
+       "prop": "route",
+       "propLabel": "route",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.route}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "propLabel": "message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "reason",
+       "propLabel": "reason",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.reason}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "job_id",
+       "propLabel": "job_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.job_id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "job_status",
+       "propLabel": "job_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.job_status}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "gd_id",
+       "propLabel": "gd_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.gd_id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "gd_no",
+       "propLabel": "gd_no",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.gd_no}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "line_count",
+       "propLabel": "line_count",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.line_count}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "progress_percent",
+       "propLabel": "progress_percent",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.progress_percent}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "progress_message",
+       "propLabel": "progress_message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.progress_message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "error_code",
+       "propLabel": "error_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.error_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "error_message",
+       "propLabel": "error_message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.error_message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "evidence",
+       "propLabel": "evidence",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_RSdoneres.data.evidence}}",
+       "valueLabel": ""
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "title": "End Node",
+    "isValidator": true,
+    "nodeName": "End Node",
+    "name": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

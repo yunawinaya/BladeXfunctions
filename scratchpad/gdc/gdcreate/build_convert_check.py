@@ -50,7 +50,7 @@ SQL_JOBS = """SELECT CAST(j.id AS CHAR) AS job_id,
   JOIN gd_async_job j
     ON j.id = CAST(t.jid AS UNSIGNED)
    AND j.tenant_id = '{{system:tenantId}}'
-   AND j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD')
+   AND j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD', 'REVERT_GD')
    AND j.is_deleted = 0
  LIMIT 200"""
 
@@ -75,7 +75,7 @@ FIELDS = ["code", "message", "busy_json", "busy_count", "jobs_json", "jobs_count
 ids = K.Ids(1798400000000)
 doc = K.workflow(
     [("so_ids", "any", "the sales order ids to convert (a list of digits, or comma-separated)"),
-     ("job_ids", "any", "GD Created V2 (CREATE_GD_FROM_FORM) or GD Cancel V2 (CANCEL_GD) jobs to report on (a list of digits, or comma-separated)")],
+     ("job_ids", "any", "GD Created V2 (CREATE_GD_FROM_FORM), GD Cancel V2 (CANCEL_GD) or GD Revert V2 (REVERT_GD) jobs to report on (a list of digits, or comma-separated)")],
     FIELDS,
     [K.code("code_node_SCguard", "Guard: the sales order ids (at most 500) and job ids (at most 200), digits only", GUARD,
             ["route", "soIdsJson", "jobIdsJson", "count", "code", "message"]),
@@ -85,7 +85,7 @@ doc = K.workflow(
      K.parallel("condition_all_SCreads", "Reads in parallel: busy sales orders, asked jobs", [
          ("cai_SCbusy", "Busy sales orders", [K.sql("sql_node_SCbusy", "Unfinished background saves (CREATE_GD_FROM_FORM) delivering one of the sales orders", SQL,
                                                     ["so_id", "job_id", "job_status"])]),
-         ("cai_SCjobs", "Asked jobs", [K.sql("sql_node_SCjobs", "The asked GD Created V2 / GD Cancel V2 jobs (tenant-scoped): status, delivery number, error, progress", SQL_JOBS,
+         ("cai_SCjobs", "Asked jobs", [K.sql("sql_node_SCjobs", "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress", SQL_JOBS,
                                              ["job_id", "job_status", "gd_no", "error_code", "error_message", "command", "progress_message"])])]),
      K.code("code_node_SCresult", "Result: the busy sales orders and the asked jobs", RESULT, FIELDS),
      K.ret("return_node_SCdone", "Return", [(f, "{{node:code_node_SCresult.data.%s}}" % f) for f in FIELDS])])

@@ -21,8 +21,9 @@ const cancelX2 = function cancelX2(entry, guard, input, eng, ops) {
     return ok;
   }
   if (code === "409") {
-    if (num((ops || {}).intents) > 0) return stepEnd(entry, "X2_INVENTORY", why, false);
-    if (entry.attempts >= LOCK_WAIT_TRIES) return failNoWrite(entry, "GDX_INVENTORY_LOCK_BUSY", "the stock of its items stayed locked by another operation (" + why.slice(0, 300) + "): nothing was written, cancel it again later");
+    // with intent rows this operation holds all its keys: the 409 is engine v12's "the same operation is still running" -> wait, then review
+    const wrote = num((ops || {}).intents) > 0;
+    if (entry.attempts >= LOCK_WAIT_TRIES) return wrote ? stepEnd(entry, "X2_INVENTORY", why, true) : failNoWrite(entry, "GDX_INVENTORY_LOCK_BUSY", "the stock of its items stayed locked by another operation (" + why.slice(0, 300) + "): nothing was written, cancel it again later");
     return lockWait(entry, why);
   }
   if (code === "400") return failNoWrite(entry, "GDX_INVENTORY_" + (s(eng.result_code) || "FAILED"), why);

@@ -1,0 +1,51 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_COMPLETE_COMMIT",
+   "dataId": "2110182729927753730",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/CompleteV2/GD_COMPLETE_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base409/GD_COMPLETE_COMMIT.live_v9.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "path",
+     "equals": "NO_WRITE"
+    }
+   }
+  },
+  {
+   "name": "GD_CANCEL_COMMIT",
+   "dataId": "2112455779051212802",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/CancelV2/GD_CANCEL_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base409/GD_CANCEL_COMMIT.live_v3.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "path",
+     "equals": "NO_WRITE"
+    }
+   }
+  },
+  {
+   "name": "GD_REVERT_COMMIT",
+   "dataId": "2112758315749605378",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base409/GD_REVERT_COMMIT.live_v4.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "path",
+     "equals": "NO_WRITE"
+    }
+   }
+  }
+ ]
+}

@@ -108,7 +108,7 @@ const page = async (doc, handler, selected, o) => {
     const b = await page(BUILT, "delete", [ia("5", "Draft")], { db: stored("Draft") });
     const reread = b.trace.filter((x) => x[0] === "db.get" && x[1].collection === "sm_item_assembly");
     check("Delete of a Draft (stored Draft): one status re-read (field-limited) after the confirm, then the base's deletes", reread.length === 1 &&
-      same(reread[0][1], { collection: "sm_item_assembly", where: { id: "5", is_deleted: 0 }, field: "item_assembly_status" }) &&
+      same(reread[0][1], { collection: "sm_item_assembly", where: { id: "5", is_deleted: 0 }, field: "item_assembly_status,material_hold_status,organization_id" }) &&
       same(b.trace.filter((x) => !(x[0] === "db.get" && x[1].collection === "sm_item_assembly")), a.trace) && b.trace.filter((x) => x[0] === "db.update").length === 3 &&
       b.trace.findIndex((x) => x[0] === "$confirm") < b.trace.indexOf(reread[0]), { a: a.trace.map((x) => x[0]), b: b.trace.map((x) => x[0]) });
     for (const now of ["Processing", "Completed", "Fully Posted", null]) {
@@ -118,6 +118,42 @@ const page = async (doc, handler, selected, o) => {
     }
     const c = await page(BUILT, "delete", [ia("5", "Draft")], { db: stored("Draft"), confirm: () => "cancel" });
     check("Delete cancelled: nothing read or written", !c.trace.some((x) => x[0] === "db.get" || x[0] === "db.update"));
+  }
+  // ---- Delete, RES-01 R5: an IA that reserves (its stored hold status, whatever the switch: review I4) releases its holds first
+  // (IA_HOLD RELEASE_ALL); refused if they stay held
+  {
+    const HOLD = String(require("../../../iasc/ids.json").IA_HOLD);
+    const on = BUILT;
+    const del = H.byName(on, "delete");
+    check("Delete: no switch decides the release (the stored hold status does)", del.func.indexOf("RES_ENABLED") < 0);
+    const storedHold = (hold) => (name, q) => (name === "sm_item_assembly" && q.where && q.where.id === "5" ? { data: [{ id: "5", item_assembly_status: "Draft", material_hold_status: hold,
+      organization_id: "1996787068457861121" }] } : name === "sm_item_assembly_tlm8ve69_sub" ? { data: [{ id: "L1" }] } : { data: [] });
+    const run = async (hold, answer) => {
+      const w = H.world({ db: storedHold(hold) });
+      const self = H.makeThis(w, on, { components: { custom_7rq6zmn4: { $refs: { crud: { tableSelect: [ia("5", "Draft")], clearSelection: () => {} } } } },
+        answer: (id, params) => (id === HOLD ? answer(params) : { data: {} }) });
+      H.compile(w, del.func, false).call(self, { row: ia("5", "Draft") });
+      await H.drain(w);
+      return w;
+    };
+    const released = () => ({ data: { code: "200", message: "Released: this Item Assembly holds no material now.", result_json: JSON.stringify({ status: "NONE" }) } });
+    let w = await run("FULL", released);
+    const calls = wf(w.trace, HOLD);
+    const firstUpdate = w.trace.findIndex((x) => x[0] === "db.update");
+    check("Delete, an IA that reserves: RELEASE_ALL (source LIST) first, then the base's deletes", calls.length === 1 && same(calls[0][2], { ia_id: "5",
+      organization_id: "1996787068457861121", operation: "RELEASE_ALL", source: "LIST" }) && w.trace.indexOf(calls[0]) < firstUpdate && named(w.trace, "db.update").length === 2,
+      calls.map((x) => x[2]));
+    check("Delete: the stored read also reads the hold status and the organisation", w.trace.some((x) => x[0] === "db.get" && x[1].collection === "sm_item_assembly" &&
+      x[1].field === "item_assembly_status,material_hold_status,organization_id"));
+    for (const [label, answer] of [["left for review", () => ({ data: { code: "200", message: "Needs review: x.", result_json: JSON.stringify({ status: "REVIEW" }) } })],
+      ["busy", () => ({ data: { code: "409", message: "Another reservation of this Item Assembly is running: try again in a moment." } })], ["no answer", () => ({ reject: new Error("down") })],
+      ["not 200 (its result never trusted)", () => ({ data: { code: "500", message: "x", result_json: JSON.stringify({ status: "NONE" }) } })]]) {
+      w = await run("PARTIAL", answer);
+      check("Delete, the release " + label + ": the delete refused, nothing written", !w.trace.some((x) => x[0] === "db.update") &&
+        named(w.trace, "$message.error").some((x) => /could not be released/.test(x[1])), named(w.trace, "$message.error"));
+    }
+    w = await run("", released);
+    check("Delete, an IA that never reserved: no release, the base's deletes", wf(w.trace, HOLD).length === 0 && named(w.trace, "db.update").length === 2);
   }
 
   // ---- Revert Completed: OFF = the base click, call for call

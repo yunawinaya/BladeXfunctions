@@ -5,10 +5,37 @@ import os, shutil, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 IASC = os.path.dirname(HERE)
 MUTANTS = [
+    # RES-01 R4: a completion of an IA that reserves
+    ("R4: the stored hold status ignored (review I4)", "classic/res_due.js", '.test(id) && stored !== "" && /^', ".test(id) && /^"),
+    # (equivalent, kept out: res_due's page === "Edit" - for a Clone scIn already reads no stored row, iaId "0", so no hold status)
+    ("R4: an IA that never reserved read", "classic/res_due.js", ' && stored !== "" &&', " &&"),
+    # (the split itself: res01/code/shared/split.js, its mutants in res01/test/mutants_hold.py)
+    ("R4: a busy split not refused", "classic/res_split.js", "return split.busy ? { route: \"BUSY\"", "return false ? { route: \"BUSY\""),
+    ("R4: the split lines not used", "classic/res_split.js", '  : { route: "GO", message: "", lines: split.lines };', '  : { route: "GO", message: "", lines: lines };'),
+    ("the screen's Reserved / Short written", "classic/sc_check.js", "    delete out.res_reserved;\n    delete out.res_short;\n", ""),
+    # RES-01 R3: enrolment (holds on, a Draft, a new IA or one that reserves) and required_qty (kept for mobile, defaulted)
+    ("enrolled whatever the switch", "classic/res_enrol.js", 'const on = ([{{node:code_node_SCin.data}}][0] || {}).res === "YES";', "const on = true;"),
+    ("a completion enrolled", "classic/res_enrol.js", 'const enrol = on && saveAs === "Draft" &&', "const enrol = on &&"),
+    ("every Edit enrolled", "classic/res_enrol.js", '(isNew || stored !== "")', "true"),
+    ("required_qty not kept for a line sent without it", "classic/sc_check.js", 'let v = numOf(has(l, "required_qty") ? l.required_qty : storedReq[String(l.id)]);',
+     'let v = numOf(has(l, "required_qty") ? l.required_qty : undefined);'),
+    ("required_qty defaulted to the quantity only", "classic/sc_check.js", "const x = v !== null ? v : numOf(l.requested_qty) > 0 ? numOf(l.requested_qty) : numOf(l.total_quantity);",
+     "const x = v !== null ? v : numOf(l.total_quantity);"),
+    ("switch off reads every line's stored values", "classic/sc_in.js", '(RES_ENABLED || !has(l, "sc_ref_key"))', '(true || !has(l, "sc_ref_key"))'),
+    ("required_qty never follows the reference", "classic/sc_check.js",
+     "  if (v !== null && sr !== null && Math.abs(v - sr) < 1e-9 && sq !== null && sq > 0 && Math.abs(sr - sq) < 1e-9 && numOf(l.requested_qty) > 0) v = numOf(l.requested_qty);\n", ""),
+    ("a typed required_qty follows the reference", "classic/sc_check.js", "if (v !== null && sr !== null && Math.abs(v - sr) < 1e-9 && sq", "if (v !== null && sr !== null && sq"),
+    ("a required_qty set apart follows the reference", "classic/sc_check.js", "sq > 0 && Math.abs(sr - sq) < 1e-9 && numOf", "sq > 0 && numOf"),
+    ("switch off writes required_qty", "classic/sc_check.js", "return holdsOn ? Object.assign({}, out, { required_qty: reqOf(l) }) : out;", "return Object.assign({}, out, { required_qty: reqOf(l) });"),
     ("merge drops stored values", "shared/sc_check.js", "const pick = (k) => (has(k) ? a[k] : stored ? stored[k] : null);", "const pick = (k) => (has(k) ? a[k] : null);"),
     ("Clone treated as an Edit", "shared/sc_check.js", "const edit = page === \"Edit\" && digits(a.id);", "const edit = digits(a.id);"),
     ("present keys do not trigger a read", "shared/sc_check.js", "need: edit || present.length > 0 ? \"YES\" : \"NO\"", "need: edit ? \"YES\" : \"NO\""),
     ("new link eligibility skipped", "shared/sc_check.js", "if (!line || scS(line.id) !== out.source_so_line_id || !p.eligibleNew) {", "if (false) {"),
+    # FIX-03: only a user assigned to the IA's organisation makes a new link
+    ("a non-member makes a new link", "shared/sc_check.js", "if (!(Number(src.member) > 0)) return stop(", "if (false) return stop("),
+    ("scIn: the organisation not passed", "shared/sc_check.js", 'org: digits(a.organization_id) ? scS(a.organization_id) : "0"', 'org: "0"'),
+    ("scIn: the session user not passed", "shared/sc_check.js", 'uid: digits(input.uid) ? scS(input.uid) : "0"', 'uid: "0"'),
+    ("classic: no session user", "classic/sc_in.js", ", uid: [{{system:uid}}][0] });", " });"),
     ("SO of the line not checked", "shared/sc_check.js", "if (scS(line.sales_order_id) !== out.source_so_id) return stop(", "if (false) return stop("),
     ("half a link allowed", "shared/sc_check.js", "if ((out.source_so_id === \"\") !== (out.source_so_line_id === \"\") || ", "if (("),
     ("an IA-side item change under a link not refused", "shared/sc_check.js", "} else if (stored && scS(stored.item_id) && scS(stored.item_id) !== scS(a.item_id)) {", "} else if (false) {"),
@@ -31,7 +58,7 @@ MUTANTS = [
     ("unknown mode allowed", "shared/sc_check.js", "if (out.bom_consumption_mode && out.bom_consumption_mode !== \"STANDARD\" && out.bom_consumption_mode !== \"FLAT\") {", "if (false) {"),
     ("a new link from an IA without an organization allowed", "shared/sc_check.js", "if (!digits(scS(a.organization_id))) return stop(", "if (false) return stop("),
     ("restore: the stored keys never read", "classic/sc_in.js", 'res.lineIds = ids.length ? ids.join(",") : "0";', 'res.lineIds = "0";'),
-    ("restore: a line sent with its key read too", "classic/sc_in.js", '!Object.prototype.hasOwnProperty.call(l, "sc_ref_key") && /^[0-9]{1,20}$/', "/^[0-9]{1,20}$/"),
+    ("restore: a line sent with its key read too", "classic/sc_in.js", '(RES_ENABLED || !has(l, "sc_ref_key")) && /^[0-9]{1,20}$/', "/^[0-9]{1,20}$/"),
     ("restore: the checks see the lines as sent", "classic/sc_check.js", "allData: sent ? Object.assign({}, all, { stock_movement: lines }) : all,", "allData: all,"),
     ("restore: the writes take the lines as sent", "classic/sc_check.js", "scLines: { stock_movement: sent ? lines : all.stock_movement }", "scLines: { stock_movement: all.stock_movement }"),
 ]

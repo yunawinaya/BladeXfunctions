@@ -23,10 +23,11 @@ const showStatusHTML = (status) => {
 
 // A delivery saved in the background stays Processing (read-only) until its job ends; opening it re-kicks and follows the job.
 const GD_BG_WF = {
-  STATUS: "2110618741159940097", // GD_EDIT_SUBMIT (its STATUS covers edits, completions and cancels)
+  STATUS: "2110618741159940097", // GD_EDIT_SUBMIT (its STATUS covers edits, completions, cancels and reverts)
   EDIT_GD: "2110618789356687361", // GD_EDIT_WORKER
   COMPLETE_GD: "2110182645714518018", // GD_COMPLETE_WORKER
   CANCEL_GD: "2112455700319932418", // GD_CANCEL_WORKER
+  REVERT_GD: "2112758130420088833", // GD_REVERT_WORKER
 };
 const GD_BG_POLL_MS = 3000;
 const GD_BG_KICK_MS = 15000;
@@ -90,6 +91,7 @@ const followBackgroundSave = async (gdId, gdNo) => {
       const [done, act] = {
         COMPLETE_GD: ["completed", "completion"],
         CANCEL_GD: ["cancelled", "cancellation"],
+        REVERT_GD: ["reverted", "revert"],
       }[s.command] || ["saved", "save"];
       if (st === "COMPLETED") {
         this.$message.success(

@@ -215,6 +215,12 @@ class IntegrationWorld extends RV.World {
   }
 
   cPrepareSql(key, text, out) {
+    // RES-01: this world holds nothing (no on_reserved_gd): the IA's hold status as stored, no rows, no running ticket
+    if (key === "res") {
+      const iaId = must(text, /AND h\.id = ([0-9]+)\)/, "h.id")[1];
+      const h = this.ia(iaId);
+      return [J({ hold: h ? h.material_hold_status || "" : "", rows: null, live: 0 })];
+    }
     if (key === "job" || key === "back") {
       const id = must(text, /AND j\.id = ([0-9]+)\s*$/m, "j.id")[1];
       const j = this.job(id);

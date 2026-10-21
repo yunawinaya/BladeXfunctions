@@ -34,11 +34,12 @@ ts = lambda s: datetime.strptime(s, "%Y-%m-%d %H:%M:%S.%f")
 R = q("SELECT CAST(m.id AS CHAR) id, m.tenant_id t, m.trx_no gd, CAST(m.item_id AS CHAR) item, i.material_code code, i.material_costing_method cm, "
       "CAST(m.batch_number_id AS CHAR) b, CAST(m.bin_location_id AS CHAR) bin, CAST(m.handling_unit_id AS CHAR) hu, CAST(COALESCE(m.base_qty, m.quantity) AS CHAR) q, "
       "DATE_FORMAT(m.create_time, '%Y-%m-%d %H:%i:%s.%f') ct, m.organization_id org "
-      "FROM inventory_movement m LEFT JOIN item i ON i.id = m.item_id WHERE m.transaction_type = 'GDL-R' AND m.is_deleted = 0")
+      # rows a repair inserted (worker 1001 ids, e.g. 2026-10-21-gd-revert-direct-return) are not reverts to re-price
+      "FROM inventory_movement m LEFT JOIN item i ON i.id = m.item_id WHERE m.transaction_type = 'GDL-R' AND m.is_deleted = 0 AND ((m.id >> 12) & 1023) <> 1001")
 gds = sorted(set((r["org"], r["gd"]) for r in R))
 M = q("SELECT CAST(id AS CHAR) id, organization_id org, trx_no gd, transaction_type tt, movement mv, inventory_category cat, CAST(item_id AS CHAR) item, "
       "CAST(batch_number_id AS CHAR) b, CAST(bin_location_id AS CHAR) bin, CAST(handling_unit_id AS CHAR) hu, CAST(total_price AS CHAR) tp, "
-      "CAST(COALESCE(base_qty, quantity) AS CHAR) q FROM inventory_movement WHERE is_deleted = 0 AND transaction_type IN ('GDL', 'GDL-R') AND trx_no IN (%s)"
+      "CAST(COALESCE(base_qty, quantity) AS CHAR) q FROM inventory_movement WHERE is_deleted = 0 AND transaction_type IN ('GDL', 'GDL-R') AND ((id >> 12) & 1023) <> 1001 AND trx_no IN (%s)"
       % ",".join("'" + g.replace("'", "''") + "'" for g in sorted(set(g for _, g in gds))))
 by_gd = defaultdict(list)
 for m in M:

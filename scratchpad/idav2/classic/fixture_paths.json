@@ -1,0 +1,5 @@
+{
+ "_note": "The recorded dev IDA_SAVE runs test_v7.js replays (IDA is dev-only: no prod run exists). 2110985743831793666 = 10-16 14:46, enabled v6 (history md5 e79c2d2e); 2110936708288786433 = 10-16 11:31, enabled v4 (history c6d6a964, before v5 13:14 / v6 14:28): its recorded node outputs are inputs only. Both Add + Completed, every line in its item's base UOM. Re-pull read-only: python3 scratchpad/idav2/classic/fetch_fixtures.py",
+ "dev_runs": ["2110985743831793666", "2110936708288786433"],
+ "ran_v6": ["2110985743831793666"]
+}

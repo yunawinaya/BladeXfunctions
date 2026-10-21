@@ -1,0 +1,17 @@
+(async () => {
+  const taxCode = this.getValue(
+    `table_si.${arguments[0].rowIndex}.si_tax_rate_id`
+  );
+
+  const resTax = await db
+    .collection("tax_rate_percent")
+    .where({ tax_code: taxCode })
+    .get();
+
+  if (resTax.data.length > 0) {
+    await this.setOptionData(
+      "table_si." + arguments[0].rowIndex + ".tax_percent",
+      resTax.data
+    );
+  }
+})();

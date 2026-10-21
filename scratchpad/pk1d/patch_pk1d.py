@@ -407,7 +407,14 @@ def patch_commit(doc):
     p0 = find(nodes, "sql_node_PCp0facts")
     assert "'REC'" not in p0["data"]["script"]["code"]
     p0["data"]["script"]["code"] = p0["data"]["script"]["code"].rstrip("\n") + P0_REC
+    # engine v12 (2026-10-21): PM1's 409 rule, rebuilt from the 1c code files (the base node is common + the pre-v12 file)
+    pm1 = find(nodes, "code_node_PCpm1check")
+    common = open(R + "scratchpad/pk1c/code/commit_pm_common.js", encoding="utf-8").read()
+    assert pm1["data"]["script"]["code"].startswith(common + "\n")
+    assert pm1["data"]["script"]["code"].count('if (Number(i.intents) > 0) return pmEnd(entry, "PM1_STOCK", why, false);') == 1
+    pm1["data"]["script"]["code"] = common + "\n" + open(R + "scratchpad/pk1c/code/commit_pm1check.js", encoding="utf-8").read()
     return ["code_node_PCentry (FC without FC_GDS -> NO_WRITE; fc flag; claim wording)", "sql_node_PCp0facts (+ REC: the records' count / sum / max id)",
+            "code_node_PCpm1check (engine v12: a 409 with intent rows or 'the same operation is still running' waits up to 8 x 300 s, then review)",
             "code_node_PCp0 (FC: delivery status vs the snapshot, the records fingerprint; a change -> REQUIRES_REVIEW, no unlock)",
             "code_node_PCp1merge (FC: Completed when every line is closed, else REVIEW before any write)", "code_node_PCp1check (REVIEW at once; FC read-back must be Completed)",
             "code_node_PCp4plan / code_node_PCp5build (a completed delivery skipped like a cancelled one)"]

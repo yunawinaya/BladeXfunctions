@@ -1,3 +1,24 @@
+// Small Cycle (scratchpad/iasc): RES-01 - after a completion the form closes the IA's holds (IA_HOLD CLOSE: what the completion issued
+// from Reserved delivered, the rest released), in the background: IA_SAVE / IA V2 never run it (a crash inside would fail them after the
+// stock moved; user 10-21). Only an IA that reserves, whatever the switch (it only makes holds; review I4); opening a completed IA that still
+// holds stock starts it again.
+const RES_HOLD = "2112752274794217473"; // IA_HOLD
+const resCloseAfter = (saved, data) => {
+  const s = (v) => (v === undefined || v === null ? "" : String(v));
+  const raw = saved && saved.id;
+  const id = s(Array.isArray(raw) ? raw[0] : raw) || s(data && data.id);
+  if (!/^[1-9][0-9]{0,19}$/.test(RES_HOLD) || !/^[0-9]{1,20}$/.test(id) || !/^[0-9]{1,20}$/.test(s(data && data.organization_id))) return;
+  // a new IA completed at once never held anything
+  if (s(data.page_status) !== "Edit" || !s(data.material_hold_status)) return;
+  try {
+    const p = this.runWorkflow(RES_HOLD, { ia_id: id, organization_id: s(data.organization_id), operation: "CLOSE", source: "COMPLETE" }, () => {},
+      (e) => console.error("RES-01: closing the holds failed", e));
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  } catch (e) {
+    console.error("RES-01: closing the holds could not be started", e);
+  }
+};
+// -- end Small Cycle --
 // iaV2_onClick_completed_post - Item Assembly form, onClick of comp_post_button. One source for the Completed and the Complete & Post
 // buttons; each knows its classic handler as a constant (rollback = bind the button back to it).
 // IA V2: a completion of more than IA_V2_MIN_PICKS stock picks (temp_qty_data entries with sm_quantity > 0) without handling
@@ -32,7 +53,7 @@ const IA_TERMINAL = ["COMPLETED", "FAILED", "REQUIRES_REVIEW", "CANCELLED"];
 // not record fields: the job's own fields, the stock dialog, buttons, badges, layout widgets, platform keys
 const IA_NOT_RECORD = ["ia_v2_job_id", "ia_idem_key", "_data", "$_v", "_vts", "isTrusted", "sm_item_balance", "button_draft",
   "button_completed", "comp_post_button", "button_post", "draft_status", "issued_status", "completed_status", "fullyposted_status",
-  "processing_status", "flex_2det1nd2", "flex_t6y2yh5r", "item_assembly_tittle", "sc_section", "sc_collapse", "sc_info", "sc_info_so", "sc_info_ordered", "sc_info_produced", "sc_info_open", "sc_info_suggest", "sc_info_cover", "sc_info_bom", "sc_info_warn", "sc_info_customer", "sc_info_delivered", "sc_info_over", "sc_actions", "sc_btn_line", "sc_btn_unlink", "sc_btn_relink", "sc_btn_suggest", "sc_btn_bom", "sc_btn_refresh", "sc_line_dialog", "sc_expand_dialog"];
+  "processing_status", "flex_2det1nd2", "flex_t6y2yh5r", "item_assembly_tittle", "sc_section", "sc_collapse", "sc_info", "sc_info_so", "sc_info_ordered", "sc_info_produced", "sc_info_open", "sc_info_suggest", "sc_info_cover", "sc_info_bom", "sc_info_warn", "sc_info_customer", "sc_info_delivered", "sc_info_over", "sc_actions", "sc_btn_line", "sc_btn_unlink", "sc_btn_relink", "sc_btn_suggest", "sc_btn_bom", "sc_btn_refresh", "sc_line_dialog", "sc_expand_dialog", "sc_sec_production", "sc_prod_grid", "sc_sec_output", "sc_output_grid", "sc_sec_more", "sc_more_grid", "sc_actual", "sc_prod_actions"];
 
 // IA V2 shared helpers (CONTRACT.md section 6): every name ia / IA_-prefixed so it concatenates with a step's own helpers
 const iaS = (v) => (v === undefined || v === null ? "" : String(v)).trim();
@@ -115,6 +136,8 @@ const release = () => {
   store({ ia_submitting: 0 });
   this.hideLoading();
 };
+// a click that claimed the form but never showed the loading (the classic route, a Cancel at the BOM check)
+const unclaim = () => store({ ia_submitting: 0 });
 
 const closeDialog = () => {
   if (this.parentGenerateForm) {
@@ -152,6 +175,7 @@ const classic = async (why) => {
   handedOver = true;
   console.log("Item Assembly V2: classic handler -", why);
   if (touched) release();
+  else unclaim();
   try {
     await this.triggerEvent(IA_CLASSIC);
   } catch (e) {
@@ -615,10 +639,28 @@ const finish = (job, text, moving, name) => {
 };
 
 // Complete & Post on a COMPLETED job: the classic posting code, unchanged
+// a job is posted once (another tab following it never posts it again), and only while the stored assembly is Completed and
+// unposted (the form Post's rule)
+const iaPostOnce = async (job) => {
+  try {
+    if (localStorage.getItem("ia_v2_posted_" + s(job.jobId))) return false;
+    localStorage.setItem("ia_v2_posted_" + s(job.jobId), "1");
+  } catch (e) {}
+  const res = await db.collection("sm_item_assembly").where({ id: job.iaId, is_deleted: 0 }).field("item_assembly_status,posted_status").get();
+  const key = (v) => String((v && typeof v === "object" ? v.dict_key : v) || "").trim();
+  const row = (res && res.data && res.data[0]) || null;
+  return !!row && key(row.item_assembly_status) === "Completed" && ["Unposted", "Failed Post", ""].indexOf(key(row.posted_status)) >= 0;
+};
+
 const postCompleted = async (job) => {
   release();
   store({ ia_page_token: null, ia_gen: 1 });
   try {
+    if (!(await iaPostOnce(job))) {
+      this.$message.success("Item Assembly completed; it is already posted or being posted.");
+      closeDialog();
+      return;
+    }
     await iaClassicPost(job.iaId, postOrg());
   } catch (e) {
     console.error("Item Assembly V2: posting could not be started", e);
@@ -673,6 +715,7 @@ const follow = async (ctx, q) => {
       return;
     }
     if (js === "COMPLETED") {
+      resCloseAfter({ id: job.iaId }, ctx.record);
       if (ctx.mode === "POST") return postCompleted(job);
       return finish(job, completedText(ctx, name), false, name);
     }
@@ -817,6 +860,8 @@ const submit = async (ctx) => {
       this.$message.warning("Workflow is already in progress. Please wait.");
       return;
     }
+    // claimed before the first await: a second click while this one validates or reads the BOM would follow the same job
+    store({ ia_submitting: 1 });
     const values = this.getValues();
     const route = routeOf(values);
     if (route.why) return classic(route.why);
@@ -831,7 +876,7 @@ const submit = async (ctx) => {
     Object.keys(record).forEach((k) => {
       if (k.indexOf("dialog_") === 0) delete record[k];
     });
-    if (!(await confirmBomVariance(record))) return;
+    if (!(await confirmBomVariance(record))) return unclaim();
     const ctx = { mode: mode, isNew: route.isNew, page: route.page, record: record, org: orgOf(record), gen: Number(data_().ia_gen) || 1 };
     ctx.key = idemKey(ctx);
     touched = true;

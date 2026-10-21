@@ -494,6 +494,36 @@ section("R8: an Add that stopped before link: FAILED written together with the l
   truthy("R8: the GO path is unchanged", review.r.calls.length === 0 && L.runPrepare(okd.spec).returned.job_status === "READY_TO_COMMIT");
 }
 
+// ------------------------------------------------------------------------------------------------ RES-01 R4: an IA that reserves completes from its holds
+section("RES-01 R4: the held part of each pick issued from Reserved");
+{
+  const l0 = L.parseBig(okd.spec.lines[0].j);
+  const held = { hold: "FULL", live: 0, rows: [{ id: "7001", status: "Allocated", doc_line_id: String(l0.id), material_id: S.ITEM(1), bin_location: S.BIN(1), batch_id: null,
+    from_category: "Unrestricted", open_qty: "1.5", item_uom: String(l0.quantity_uom || "") }] };
+  const movesOf = (r) => ((r.parts.ENGINE_I || {}).movements || []).map((m) => [m.material_id === S.ITEM(1) ? "RM1" : "RM2", m.inventory_category, m.quantity]);
+  // review I4: the stored hold status decides (an IA that holds stock completes from it even with the switch off); no switch here
+  const on = L.runPrepare(Object.assign({}, okd.spec, { res: held }));
+  eq("an IA that reserves: line 1's pick of 2 = 1.5 from Reserved + 0.5 as picked; line 2 as picked; READY", [on.returned.job_status, movesOf(on)],
+    ["READY_TO_COMMIT", [["RM1", "Reserved", 1.5], ["RM1", "Unrestricted", 0.5], ["RM2", "Unrestricted", 1]]]);
+  truthy("the holds read for the IA's tenant, organisation and id", /r\.organization_id = '\d+'/.test(on.sql.sql_node_IPres || "") &&
+    (on.sql.sql_node_IPres || "").indexOf("r.doc_id = '" + okd.spec.iaId + "'") >= 0, on.sql.sql_node_IPres);
+  truthy("review M13: the holds read only for an IA with a stored hold status (CASE: prod's on_reserved_gd has only its primary key)",
+    (on.sql.sql_node_IPres || "").indexOf("SELECT CASE WHEN (SELECT h.material_hold_status FROM sm_item_assembly h WHERE h.tenant_id = '") === 0, on.sql.sql_node_IPres);
+  const busy = L.runPrepare(Object.assign({}, okd.spec, { res: Object.assign({}, held, { live: 1 }) }));
+  eq("a reservation running: FAILED IA_RESERVING, the IA back to Draft, nothing planned", [(busy.failed || {}).job_status, (busy.failed || {}).error_code, busy.unlocks, busy.calls.length],
+    ["FAILED", "IA_RESERVING", UNLOCK, 0]);
+  const notEnrolled = L.runPrepare(Object.assign({}, okd.spec, { res: Object.assign({}, held, { hold: "" }) }));
+  eq("an IA that never reserved: as picked", movesOf(notEnrolled), [["RM1", "Unrestricted", 2], ["RM2", "Unrestricted", 1]]);
+  // review M8: only the split makes a Reserved issue: an IA that reserves with a stored Reserved pick is refused, as any other IA
+  const sp = Object.assign({}, okd.spec, { res: held, lines: okd.spec.lines.slice() });
+  linesWith(0, (l) => (l.temp_qty_data = l.temp_qty_data.replace('"category":"Unrestricted"', '"category":"Reserved"')))(sp);
+  const rp = L.runPrepare(sp);
+  eq("an IA that reserves, a stored Reserved pick: refused (line 1 picks Reserved stock), nothing planned", [(rp.failed || {}).job_status, (rp.failed || {}).error_code,
+    /line 1 picks Reserved stock/.test(JSON.stringify(rp.failed || {})), rp.calls.length], ["FAILED", "IA_PLAN_FAILED", true, 0]);
+  const never = L.runPrepare(Object.assign({}, okd.spec, { res: { hold: "", rows: null, live: 1 } }));
+  eq("an IA that never reserved is never refused as reserving", [never.returned.job_status, movesOf(never)], ["READY_TO_COMMIT", [["RM1", "Unrestricted", 2], ["RM2", "Unrestricted", 1]]]);
+}
+
 // ------------------------------------------------------------------------------------------------ sizes
 section("size: node data and time of one PREPARE run (sim)");
 for (const n of [830, 2000]) {

@@ -56,6 +56,11 @@ const CASES = [
     assert.deepStrictEqual(JSON.parse(c.temp_qty_data), [{ material_id: "M1", location_id: "B1", batch_id: null, handling_unit_id: null, gd_quantity: 3, plant_id: "P1" }]);
     assert.strictEqual(c.view_stock, "Total: 3 PCS\n\nDETAILS:\n1. WH-A-01: 3 PCS");
   }],
+  ["2b plan_view_stock is the stored view_stock exactly, its trailing newline too (live twin 10-21: classic copies it)", (P) => {
+    const i = base(); i.gdLines[0].view_stock = "Total: 5 PCS\n\nDETAILS:\n1. WH-A-01: 5 PCS\n"; i.records[0].store_out_qty = "3.00000000";
+    const c = cellsOf(ok(P(i)), "G1", "L1");
+    assert.strictEqual(c.plan_view_stock, "Total: 5 PCS\n\nDETAILS:\n1. WH-A-01: 5 PCS\n");
+  }],
   ["3 alternate UOM: base_qty scales by the line's own ratio", (P) => {
     const i = base(); Object.assign(i.gdLines[0], { gd_qty: "2.00000000", base_qty: "20.00000000", gd_order_quantity: "2.00000000" }); i.records[0].store_out_qty = "1.00000000";
     assert.strictEqual(cellsOf(ok(P(i)), "G1", "L1").base_qty, "10.00000000");

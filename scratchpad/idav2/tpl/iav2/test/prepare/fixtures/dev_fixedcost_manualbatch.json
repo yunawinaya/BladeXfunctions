@@ -1,0 +1,793 @@
+{
+ "name": "dev_fixedcost_manualbatch",
+ "env": "--dev",
+ "run": "2110283306516287490",
+ "note": "Fixed Cost parent, Manual batch, Blocked receipt (Add, manual number)",
+ "tenant": "000000",
+ "ia_id": "2110283307078324226",
+ "trx_no": "IA-TEST-1014-C",
+ "parent": {
+  "saveAs": "Completed",
+  "pageStatus": "Add",
+  "allData": {
+   "organization_id": "1123598813738675201",
+   "issuing_operation_faci": "1123598813738675202",
+   "stock_movement_no": "IA-TEST-1014-C",
+   "stock_movement_no_type": -9999,
+   "item_assembly_status": "Draft",
+   "item_id": "2084165274322399234",
+   "item_name": "JN-MANUAL-02",
+   "item_desc": "",
+   "item_qty": 1,
+   "item_uom": "2018906563477008392",
+   "item_assembly_date": "2026-10-14",
+   "issued_by": "claude-test",
+   "project_id": "",
+   "batch_no": "IA-T1014-BLK",
+   "manufacturing_date": "2026-10-14",
+   "expired_date": "2027-10-14",
+   "storage_location_id": "2018912759311265793",
+   "location_id": "2018912822846582786",
+   "inventory_category": "Blocked",
+   "remarks": "IA batch/category test 2026-10-14",
+   "remarks_2": "",
+   "remarks_3": "",
+   "reference_documents": [],
+   "stock_movement": [
+    {
+     "item_selection": "2094626841323700252",
+     "item_name": "TES501",
+     "item_desc": "",
+     "requested_qty": 1,
+     "total_quantity": 1,
+     "quantity_uom": "2018906563477008392",
+     "uom_options": "[]",
+     "stock_summary": "Total: 1 UNIT",
+     "item_remark": "",
+     "item_remark_2": "",
+     "item_remark_3": "",
+     "project_id": "",
+     "balance_id": "",
+     "temp_qty_data": "[{\"material_id\": \"2094626841323700252\", \"location_id\": \"2018912822846582786\", \"storage_location_id\": null, \"batch_id\": null, \"balance_id\": \"2091805385114464347\", \"sm_quantity\": 1, \"category\": \"Unrestricted\", \"plant_id\": \"1123598813738675202\", \"organization_id\": \"1123598813738675201\", \"is_deleted\": 0, \"manufacturing_date\": null, \"expired_date\": null, \"unrestricted_qty\": 957, \"balance_quantity\": 969, \"location_name\": \"A1-B1\"}]",
+     "temp_hu_data": "[]"
+    }
+   ]
+  },
+  "nodes": {
+   "code_fillback": {
+    "response": {
+     "allData": {
+      "organization_id": "1123598813738675201",
+      "issuing_operation_faci": "1123598813738675202",
+      "stock_movement_no": "IA-TEST-1014-C",
+      "stock_movement_no_type": -9999,
+      "item_assembly_status": "Completed",
+      "item_id": "2084165274322399234",
+      "item_name": "JN-MANUAL-02",
+      "item_desc": "",
+      "item_qty": 1,
+      "item_uom": "2018906563477008392",
+      "item_assembly_date": "2026-10-14",
+      "issued_by": "claude-test",
+      "project_id": "",
+      "batch_no": "IA-T1014-BLK",
+      "manufacturing_date": "2026-10-14",
+      "expired_date": "2027-10-14",
+      "storage_location_id": "2018912759311265793",
+      "location_id": "2018912822846582786",
+      "inventory_category": "Blocked",
+      "remarks": "IA batch/category test 2026-10-14",
+      "remarks_2": "",
+      "remarks_3": "",
+      "reference_documents": [],
+      "stock_movement": [
+       {
+        "item_selection": "2094626841323700252",
+        "item_name": "TES501",
+        "item_desc": "",
+        "requested_qty": 1,
+        "total_quantity": 1,
+        "quantity_uom": "2018906563477008392",
+        "uom_options": "[]",
+        "stock_summary": "Total: 1 UNIT",
+        "item_remark": "",
+        "item_remark_2": "",
+        "item_remark_3": "",
+        "project_id": "",
+        "balance_id": "",
+        "temp_qty_data": "[{\"material_id\": \"2094626841323700252\", \"location_id\": \"2018912822846582786\", \"storage_location_id\": null, \"batch_id\": null, \"balance_id\": \"2091805385114464347\", \"sm_quantity\": 1, \"category\": \"Unrestricted\", \"plant_id\": \"1123598813738675202\", \"organization_id\": \"1123598813738675201\", \"is_deleted\": 0, \"manufacturing_date\": null, \"expired_date\": null, \"unrestricted_qty\": 957, \"balance_quantity\": 969, \"location_name\": \"A1-B1\"}]",
+        "temp_hu_data": "[]",
+        "organization_id": "1123598813738675201",
+        "issuing_plant": "1123598813738675202",
+        "line_index": 1
+       }
+      ],
+      "posted_status": "Unposted"
+     },
+     "storedStatus": "Draft"
+    }
+   },
+   "search_items": {
+    "response": {
+     "total": 2,
+     "count": 2,
+     "data": [
+      {
+       "assembly_cost": 0.0,
+       "table_sup_item_bind": [],
+       "id": "2084165274322399234",
+       "create_dept": "1123598813738675201",
+       "table_supplier_price": [],
+       "previous_based_uom": "2018906563477008392",
+       "batch_number_genaration": "Manual Input",
+       "serial_number_management": 0,
+       "under_delivery_tolerance": 0.0,
+       "custom_7u3don4k": "{}",
+       "business_scope": [
+        "1",
+        "2",
+        "3"
+       ],
+       "show_delivery": 0,
+       "show_receiving": 0,
+       "tenant_id": "000000",
+       "item_batch_management": 1,
+       "update_time": "2026-08-03 15:03:42.180",
+       "update_user": "1123598821738675201",
+       "table_cust_item_access": [],
+       "min_purchase_qty": 0.0,
+       "sales_unit_price": 0.0,
+       "is_active": 1,
+       "reorder_quantity": 0,
+       "table_sup_item_access": [],
+       "is_single_unit_serial": 0,
+       "min_sales_qty": 0.0,
+       "bom_id": "2084165274897018881",
+       "table_customer_price": [],
+       "table_reorder_supplier": [],
+       "table_default_bin": [],
+       "material_code": "JN-MANUAL-02",
+       "based_uom": "2018906563477008392",
+       "table_cust_item_bind": [],
+       "receiving_inspection": 0,
+       "table_uom_conversion": [
+        {
+         "sales_default_uom": 0,
+         "over_delivery_tolerance": 0.0,
+         "over_receive_tolerance": 0.0,
+         "id": "2084165274339176450",
+         "base_qty": 1.0,
+         "purchase_default_uom": 0,
+         "base_uom_id": "2018906563477008392",
+         "text_b4j8h211": "=",
+         "alt_qty": 1.0,
+         "alt_uom_id": "2018906563477008392"
+        }
+       ],
+       "over_delivery_tolerance": 0.0,
+       "net_weight": 0.0,
+       "item_category": "2018905941675634689",
+       "over_receive_tolerance": 0.0,
+       "gross_weight": 0.0,
+       "item_properties": "Default",
+       "create_time": "2026-08-03 14:31:37.972",
+       "custom_fields": {},
+       "production_time": 0,
+       "material_code_type": -9999,
+       "acc_integration_type": "SQL Accounting V2",
+       "bom_status": "Unready",
+       "organization_id": "1123598813738675201",
+       "bom_related": 0,
+       "create_user": "1123598821738675201",
+       "serial_no_generate_rule": "According To System Settings",
+       "is_deleted": 0,
+       "material_costing_method": "Fixed Cost",
+       "lead_time": 0,
+       "material_name": "JN-MANUAL-02",
+       "reorder_level": 0,
+       "table_packing_detail": [],
+       "under_receive_tolerance": 0.0,
+       "auto_bom": 1,
+       "stock_control": 1
+      },
+      {
+       "assembly_cost": 0.0,
+       "item_uuid": "794",
+       "table_sup_item_bind": [],
+       "id": "2094626841323700252",
+       "create_dept": "1123598813738675201",
+       "table_supplier_price": [],
+       "batch_number_genaration": "According To System Settings",
+       "serial_number_management": 0,
+       "under_delivery_tolerance": 0.0,
+       "last_transaction_date": "2026-10-13 00:00:00",
+       "custom_7u3don4k": "{}",
+       "business_scope": [
+        "1",
+        "2",
+        "3"
+       ],
+       "posted_date": "2026-09-01 00:00:00",
+       "tenant_id": "000000",
+       "item_batch_management": 0,
+       "update_time": "2026-10-13 12:12:51.442",
+       "update_user": "1123598821738675201",
+       "table_cust_item_access": [],
+       "min_purchase_qty": 0.0,
+       "sales_unit_price": 0.0,
+       "posted_status": "Posted",
+       "is_active": 1,
+       "reorder_quantity": 1,
+       "table_sup_item_access": [],
+       "min_sales_qty": 0.0,
+       "bom_id": "2100835354594316290",
+       "table_customer_price": [],
+       "table_reorder_supplier": [],
+       "table_default_bin": [],
+       "material_code": "TES501",
+       "based_uom": "2018906563477008392",
+       "table_cust_item_bind": [],
+       "receiving_inspection": 0,
+       "table_uom_conversion": [
+        {
+         "sales_default_uom": 1,
+         "over_delivery_tolerance": 0.0,
+         "over_receive_tolerance": 0.0,
+         "purchase_max_price": 0.0,
+         "id": "2094626841340477469",
+         "sales_unit_price": 0.0,
+         "base_qty": 1.0,
+         "purchase_default_uom": 1,
+         "purchase_unit_price": 0.0,
+         "purchase_min_price": 0.0,
+         "sales_max_price": 0.0,
+         "base_uom_id": "2018906563477008392",
+         "sales_price_1": 0.0,
+         "text_b4j8h211": "=",
+         "sales_min_price": 0.0,
+         "alt_qty": 1.0,
+         "alt_uom_id": "2018906563477008392"
+        }
+       ],
+       "over_delivery_tolerance": 0.0,
+       "irbm_id": "022",
+       "net_weight": 0.0,
+       "item_category": "2018905941675634689",
+       "over_receive_tolerance": 0.0,
+       "gross_weight": 0.0,
+       "item_properties": "Default",
+       "create_time": "2026-09-01 12:04:21",
+       "custom_fields": {},
+       "purchase_unit_price": 0.0,
+       "material_code_type": -9999,
+       "acc_integration_type": "SQL Accounting V2",
+       "bom_status": "Unready",
+       "organization_id": "1123598813738675201",
+       "bom_related": 0,
+       "create_user": "2033377157663899650",
+       "serial_no_generate_rule": "According To System Settings",
+       "material_type": "Goods",
+       "is_base": "True",
+       "material_desc": "Exhaust Manifold with Cast Iron finish",
+       "is_deleted": 0,
+       "material_costing_method": "First In First Out",
+       "material_name": "Exhaust Manifold with Cast Iron",
+       "table_packing_detail": [
+        {
+         "packing_uom_id": "2018906563477008392",
+         "uom_id": "2018906563477008392",
+         "packing_qty": 1.0,
+         "quantity": 1.0,
+         "id": "2094626841470500892",
+         "text_b4j8h211": "="
+        }
+       ],
+       "under_receive_tolerance": 0.0,
+       "auto_bom": 1,
+       "stock_control": 1
+      }
+     ]
+    }
+   },
+   "code_batch_decide": {
+    "response": {
+     "needsGen": 0,
+     "manualBatch": "IA-T1014-BLK",
+     "isBatch": "Y",
+     "item_id": "2084165274322399234",
+     "document_date": "2026-10-14",
+     "manufacturing_date": "2026-10-14",
+     "expired_date": "2027-10-14"
+    }
+   },
+   "code_batch_number": {
+    "response": {
+     "batchNumber": "IA-T1014-BLK"
+    }
+   },
+   "add_ia": {
+    "response": [
+     {
+      "item_assembly_status": "Completed",
+      "issuing_operation_faci": "1123598813738675202",
+      "item_id": "2084165274322399234",
+      "item_name": "JN-MANUAL-02",
+      "item_desc": "",
+      "item_qty": 1,
+      "item_uom": "2018906563477008392",
+      "issued_by": "claude-test",
+      "remarks": "IA batch/category test 2026-10-14",
+      "remarks_2": "",
+      "remarks_3": "",
+      "manufacturing_date": "2026-10-14 00:00:00",
+      "expired_date": "2027-10-14 00:00:00",
+      "storage_location_id": "2018912759311265793",
+      "location_id": "2018912822846582786",
+      "inventory_category": "Blocked",
+      "item_assembly_date": "2026-10-14 00:00:00",
+      "organization_id": "1123598813738675201",
+      "stock_movement": [
+       {
+        "item_selection": "2094626841323700252",
+        "item_name": "TES501",
+        "item_desc": "",
+        "requested_qty": 1,
+        "total_quantity": 1,
+        "quantity_uom": "2018906563477008392",
+        "uom_options": "[]",
+        "stock_summary": "Total: 1 UNIT",
+        "item_remark": "",
+        "item_remark_2": "",
+        "item_remark_3": "",
+        "balance_id": "",
+        "temp_qty_data": "[{\"material_id\": \"2094626841323700252\", \"location_id\": \"2018912822846582786\", \"storage_location_id\": null, \"batch_id\": null, \"balance_id\": \"2091805385114464347\", \"sm_quantity\": 1, \"category\": \"Unrestricted\", \"plant_id\": \"1123598813738675202\", \"organization_id\": \"1123598813738675201\", \"is_deleted\": 0, \"manufacturing_date\": null, \"expired_date\": null, \"unrestricted_qty\": 957, \"balance_quantity\": 969, \"location_name\": \"A1-B1\"}]",
+        "temp_hu_data": "[]",
+        "organization_id": "1123598813738675201",
+        "issuing_plant": "1123598813738675202",
+        "line_index": "1"
+       }
+      ],
+      "batch_no": "IA-T1014-BLK",
+      "stock_movement_no": "IA-TEST-1014-C",
+      "stock_movement_no_type": -9999,
+      "posted_status": "Unposted",
+      "sia_uuid": "",
+      "page_status": "",
+      "material_id": "",
+      "material_name": "",
+      "row_index": 0,
+      "table_item_balance_raw": "",
+      "table_hu": [],
+      "search_serial_number": "",
+      "table_item_balance": [],
+      "create_user": "2109866916722085890",
+      "create_dept": "1123598813738675201",
+      "create_time": "2026-10-14 16:15:22.231",
+      "update_user": "2109866916722085890",
+      "update_time": "2026-10-14 16:15:22.231",
+      "is_deleted": 0,
+      "tenant_id": "000000",
+      "id": "2110283307078324226"
+     }
+    ]
+   },
+   "code_persisted": {
+    "response": {
+     "docId": "2110283307078324226",
+     "stock_movement_no": "IA-TEST-1014-C",
+     "stock_movement": "[{\"item_selection\":\"2094626841323700252\",\"item_name\":\"TES501\",\"item_desc\":\"\",\"requested_qty\":1,\"total_quantity\":1,\"quantity_uom\":\"2018906563477008392\",\"uom_options\":\"[]\",\"stock_summary\":\"Total: 1 UNIT\",\"item_remark\":\"\",\"item_remark_2\":\"\",\"item_remark_3\":\"\",\"balance_id\":\"\",\"temp_qty_data\":\"[{\\\"material_id\\\": \\\"2094626841323700252\\\", \\\"location_id\\\": \\\"2018912822846582786\\\", \\\"storage_location_id\\\": null, \\\"batch_id\\\": null, \\\"balance_id\\\": \\\"2091805385114464347\\\", \\\"sm_quantity\\\": 1, \\\"category\\\": \\\"Unrestricted\\\", \\\"plant_id\\\": \\\"1123598813738675202\\\", \\\"organization_id\\\": \\\"1123598813738675201\\\", \\\"is_deleted\\\": 0, \\\"manufacturing_date\\\": null, \\\"expired_date\\\": null, \\\"unrestricted_qty\\\": 957, \\\"balance_quantity\\\": 969, \\\"location_name\\\": \\\"A1-B1\\\"}]\",\"temp_hu_data\":\"[]\",\"organization_id\":\"1123598813738675201\",\"issuing_plant\":\"1123598813738675202\",\"line_index\":\"1\"}]"
+    }
+   },
+   "search_movements": {
+    "response": {
+     "total": 1,
+     "count": 1,
+     "data": [
+      {
+       "actual_qty": -1.0,
+       "quantity": 1.0,
+       "costing_method_id": "First In First Out",
+       "base_qty": 1.0,
+       "actual_base_qty": -1.0,
+       "inventory_category": "Unrestricted",
+       "trx_no": "IA-TEST-1014-C",
+       "create_user": "2109866916722085890",
+       "create_dept": "1123598813738675201",
+       "unit_price": 1.0,
+       "item_id": "2094626841323700252",
+       "plant_id": "1123598813738675202",
+       "total_price": 1.0,
+       "create_time": "2026-10-14 16:15:22.356",
+       "id": "2110283307602612226",
+       "bin_location_id": "2018912822846582786",
+       "base_uom_id": "2018906563477008392",
+       "is_deleted": 0,
+       "uom_id": "2018906563477008392",
+       "doc_date": "2026-10-14 00:00:00",
+       "transaction_type": "IA",
+       "update_time": "2026-10-14 16:15:22.356",
+       "tenant_id": "000000",
+       "update_user": "2109866916722085890",
+       "organization_id": "1123598813738675201",
+       "movement": "OUT"
+      }
+     ]
+    }
+   },
+   "code_receipt_prep": {
+    "response": {
+     "plant_id": "1123598813738675202",
+     "organization_id": "1123598813738675201",
+     "material_id": "2084165274322399234",
+     "material_uom": "2018906563477008392",
+     "quantity": 1,
+     "unit_price": 1,
+     "location_id": "2018912822846582786",
+     "batch_number": "IA-T1014-BLK",
+     "trx_no": "IA-TEST-1014-C",
+     "doc_date": "2026-10-14",
+     "manufacturing_date": "2026-10-14",
+     "expired_date": "2027-10-14",
+     "remark": "IA batch/category test 2026-10-14",
+     "remark2": "",
+     "remark3": "",
+     "itemData": {
+      "assembly_cost": 0.0,
+      "table_sup_item_bind": [],
+      "id": "2084165274322399234",
+      "create_dept": "1123598813738675201",
+      "table_supplier_price": [],
+      "previous_based_uom": "2018906563477008392",
+      "batch_number_genaration": "Manual Input",
+      "serial_number_management": 0,
+      "under_delivery_tolerance": 0.0,
+      "custom_7u3don4k": "{}",
+      "business_scope": [
+       "1",
+       "2",
+       "3"
+      ],
+      "show_delivery": 0,
+      "show_receiving": 0,
+      "tenant_id": "000000",
+      "item_batch_management": 1,
+      "update_time": "2026-08-03 15:03:42.180",
+      "update_user": "1123598821738675201",
+      "table_cust_item_access": [],
+      "min_purchase_qty": 0.0,
+      "sales_unit_price": 0.0,
+      "is_active": 1,
+      "reorder_quantity": 0,
+      "table_sup_item_access": [],
+      "is_single_unit_serial": 0,
+      "min_sales_qty": 0.0,
+      "bom_id": "2084165274897018881",
+      "table_customer_price": [],
+      "table_reorder_supplier": [],
+      "table_default_bin": [],
+      "material_code": "JN-MANUAL-02",
+      "based_uom": "2018906563477008392",
+      "table_cust_item_bind": [],
+      "receiving_inspection": 0,
+      "table_uom_conversion": [
+       {
+        "sales_default_uom": 0,
+        "over_delivery_tolerance": 0.0,
+        "over_receive_tolerance": 0.0,
+        "id": "2084165274339176450",
+        "base_qty": 1.0,
+        "purchase_default_uom": 0,
+        "base_uom_id": "2018906563477008392",
+        "text_b4j8h211": "=",
+        "alt_qty": 1.0,
+        "alt_uom_id": "2018906563477008392"
+       }
+      ],
+      "over_delivery_tolerance": 0.0,
+      "net_weight": 0.0,
+      "item_category": "2018905941675634689",
+      "over_receive_tolerance": 0.0,
+      "gross_weight": 0.0,
+      "item_properties": "Default",
+      "create_time": "2026-08-03 14:31:37.972",
+      "custom_fields": {},
+      "production_time": 0,
+      "material_code_type": -9999,
+      "acc_integration_type": "SQL Accounting V2",
+      "bom_status": "Unready",
+      "organization_id": "1123598813738675201",
+      "bom_related": 0,
+      "create_user": "1123598821738675201",
+      "serial_no_generate_rule": "According To System Settings",
+      "is_deleted": 0,
+      "material_costing_method": "Fixed Cost",
+      "lead_time": 0,
+      "material_name": "JN-MANUAL-02",
+      "reorder_level": 0,
+      "table_packing_detail": [],
+      "under_receive_tolerance": 0.0,
+      "auto_bom": 1,
+      "stock_control": 1
+     },
+     "inventory_category": "Blocked"
+    }
+   },
+   "wf_add": {
+    "response": {
+     "code": "200",
+     "batchId": "2110283308227563521",
+     "unitPrice": 0.0,
+     "totalPrice": 0,
+     "balanceId": "2110283308315643905",
+     "inventoryMovementId": "2110283308256923650"
+    },
+    "request": {
+     "workflowId": "2012005532688723970",
+     "object": {
+      "plant_id": "1123598813738675202",
+      "organization_id": "1123598813738675201",
+      "material_id": "2084165274322399234",
+      "quantity": 1,
+      "material_uom": "2018906563477008392",
+      "transaction_type": "IA",
+      "trx_no": "IA-TEST-1014-C",
+      "inventory_category": "Blocked",
+      "location_id": "2018912822846582786",
+      "batch_number": "IA-T1014-BLK",
+      "unit_price": 1,
+      "doc_date": "2026-10-14",
+      "manufacturing_date": "2026-10-14",
+      "expired_date": "2027-10-14",
+      "remark": "IA batch/category test 2026-10-14",
+      "remark2": "",
+      "remark3": "",
+      "itemData": {
+       "assembly_cost": 0.0,
+       "table_sup_item_bind": [],
+       "id": "2084165274322399234",
+       "create_dept": "1123598813738675201",
+       "table_supplier_price": [],
+       "previous_based_uom": "2018906563477008392",
+       "batch_number_genaration": "Manual Input",
+       "serial_number_management": 0,
+       "under_delivery_tolerance": 0.0,
+       "custom_7u3don4k": "{}",
+       "business_scope": [
+        "1",
+        "2",
+        "3"
+       ],
+       "show_delivery": 0,
+       "show_receiving": 0,
+       "tenant_id": "000000",
+       "item_batch_management": 1,
+       "update_time": "2026-08-03 15:03:42.180",
+       "update_user": "1123598821738675201",
+       "table_cust_item_access": [],
+       "min_purchase_qty": 0.0,
+       "sales_unit_price": 0.0,
+       "is_active": 1,
+       "reorder_quantity": 0,
+       "table_sup_item_access": [],
+       "is_single_unit_serial": 0,
+       "min_sales_qty": 0.0,
+       "bom_id": "2084165274897018881",
+       "table_customer_price": [],
+       "table_reorder_supplier": [],
+       "table_default_bin": [],
+       "material_code": "JN-MANUAL-02",
+       "based_uom": "2018906563477008392",
+       "table_cust_item_bind": [],
+       "receiving_inspection": 0,
+       "table_uom_conversion": [
+        {
+         "sales_default_uom": 0,
+         "over_delivery_tolerance": 0.0,
+         "over_receive_tolerance": 0.0,
+         "id": "2084165274339176450",
+         "base_qty": 1.0,
+         "purchase_default_uom": 0,
+         "base_uom_id": "2018906563477008392",
+         "text_b4j8h211": "=",
+         "alt_qty": 1.0,
+         "alt_uom_id": "2018906563477008392"
+        }
+       ],
+       "over_delivery_tolerance": 0.0,
+       "net_weight": 0.0,
+       "item_category": "2018905941675634689",
+       "over_receive_tolerance": 0.0,
+       "gross_weight": 0.0,
+       "item_properties": "Default",
+       "create_time": "2026-08-03 14:31:37.972",
+       "custom_fields": {},
+       "production_time": 0,
+       "material_code_type": -9999,
+       "acc_integration_type": "SQL Accounting V2",
+       "bom_status": "Unready",
+       "organization_id": "1123598813738675201",
+       "bom_related": 0,
+       "create_user": "1123598821738675201",
+       "serial_no_generate_rule": "According To System Settings",
+       "is_deleted": 0,
+       "material_costing_method": "Fixed Cost",
+       "lead_time": 0,
+       "material_name": "JN-MANUAL-02",
+       "reorder_level": 0,
+       "table_packing_detail": [],
+       "under_receive_tolerance": 0.0,
+       "auto_bom": 1,
+       "stock_control": 1
+      },
+      "isMovingInv": "0"
+     }
+    }
+   },
+   "code_item_txn": {
+    "response": {
+     "updates": [
+      {
+       "id": "2084165274322399234",
+       "last_transaction_date": "2026-10-14T08:15:22.559Z"
+      },
+      {
+       "id": "2094626841323700252",
+       "last_transaction_date": "2026-10-14T08:15:22.559Z"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "children": {
+  "subtract": [
+   {
+    "id": "2110283307363536898",
+    "status": "Complete",
+    "params": {
+     "plant_id": "1123598813738675202",
+     "organization_id": "1123598813738675201",
+     "material_id": "2094626841323700252",
+     "quantity": 1,
+     "material_uom": "2018906563477008392",
+     "transaction_type": "IA",
+     "trx_no": "IA-TEST-1014-C",
+     "inventory_category": "Unrestricted",
+     "location_id": "2018912822846582786",
+     "doc_date": "2026-10-14"
+    },
+    "response": {
+     "code": 200,
+     "data": {
+      "code": "200"
+     },
+     "msg": "操作成功",
+     "success": true
+    }
+   }
+  ],
+  "add": [
+   {
+    "id": "2110283308093345794",
+    "status": "Complete",
+    "params": {
+     "plant_id": "1123598813738675202",
+     "organization_id": "1123598813738675201",
+     "material_id": "2084165274322399234",
+     "quantity": 1,
+     "material_uom": "2018906563477008392",
+     "transaction_type": "IA",
+     "trx_no": "IA-TEST-1014-C",
+     "inventory_category": "Blocked",
+     "location_id": "2018912822846582786",
+     "batch_number": "IA-T1014-BLK",
+     "unit_price": 1,
+     "doc_date": "2026-10-14",
+     "manufacturing_date": "2026-10-14",
+     "expired_date": "2027-10-14",
+     "remark": "IA batch/category test 2026-10-14",
+     "remark2": "",
+     "remark3": "",
+     "isMovingInv": "0"
+    },
+    "response": {
+     "code": 200,
+     "data": {
+      "code": "200",
+      "batchId": "2110283308227563521",
+      "unitPrice": 0.0,
+      "totalPrice": 0,
+      "balanceId": "2110283308315643905",
+      "inventoryMovementId": "2110283308256923650"
+     },
+     "msg": "操作成功",
+     "success": true
+    }
+   }
+  ]
+ },
+ "db": {
+  "hdr": [
+   {
+    "j": "{\"id\": \"2110283307078324226\", \"item_id\": \"2084165274322399234\", \"remarks\": \"IA batch/category test 2026-10-14\", \"batch_no\": \"IA-T1014-BLK\", \"item_qty\": 1.00000000, \"item_uom\": \"2018906563477008392\", \"table_hu\": [], \"remarks_2\": \"\", \"remarks_3\": \"\", \"location_id\": \"2018912822846582786\", \"expired_date\": \"2027-10-14 00:00:00\", \"ia_v2_job_id\": null, \"posted_status\": null, \"organization_id\": \"1123598813738675201\", \"stock_movement_no\": \"IA-TEST-1014-C\", \"inventory_category\": \"Blocked\", \"item_assembly_date\": \"2026-10-14 00:00:00\", \"manufacturing_date\": \"2026-10-14 00:00:00\", \"item_assembly_status\": \"Draft\", \"issuing_operation_faci\": \"1123598813738675202\", \"stock_movement_no_type\": \"-9999\"}"
+   }
+  ],
+  "lines": [
+   {
+    "j": "{\"id\": \"2110283307099295745\", \"item_name\": \"TES501\", \"line_index\": \"1\", \"quantity_uom\": \"2018906563477008392\", \"temp_hu_data\": \"[]\", \"temp_qty_data\": \"[{\\\"material_id\\\": \\\"2094626841323700252\\\", \\\"location_id\\\": \\\"2018912822846582786\\\", \\\"storage_location_id\\\": null, \\\"batch_id\\\": null, \\\"balance_id\\\": \\\"2091805385114464347\\\", \\\"sm_quantity\\\": 1, \\\"category\\\": \\\"Unrestricted\\\", \\\"plant_id\\\": \\\"1123598813738675202\\\", \\\"organization_id\\\": \\\"1123598813738675201\\\", \\\"is_deleted\\\": 0, \\\"manufacturing_date\\\": null, \\\"expired_date\\\": null, \\\"unrestricted_qty\\\": 957, \\\"balance_quantity\\\": 969, \\\"location_name\\\": \\\"A1-B1\\\"}]\", \"item_selection\": \"2094626841323700252\", \"total_quantity\": 1.00000000}"
+   }
+  ],
+  "items": [
+   {
+    "j": "{\"id\": \"2084165274322399234\", \"based_uom\": \"2018906563477008392\", \"assembly_cost\": \"0.00\", \"material_code\": \"JN-MANUAL-02\", \"material_name\": \"JN-MANUAL-02\", \"show_delivery\": 0, \"stock_control\": 1, \"purchase_unit_price\": null, \"table_uom_conversion\": [{\"base_qty\": 1.000000, \"alt_uom_id\": \"2018906563477008392\"}], \"item_batch_management\": 1, \"batch_number_genaration\": \"Manual Input\", \"material_costing_method\": \"Fixed Cost\", \"serial_number_management\": 0}"
+   },
+   {
+    "j": "{\"id\": \"2094626841323700252\", \"based_uom\": \"2018906563477008392\", \"assembly_cost\": \"0.00\", \"material_code\": \"TES501\", \"material_name\": \"Exhaust Manifold with Cast Iron\", \"show_delivery\": null, \"stock_control\": 1, \"purchase_unit_price\": \"0.0000\", \"table_uom_conversion\": [{\"base_qty\": 1.000000, \"alt_uom_id\": \"2018906563477008392\"}], \"item_batch_management\": 0, \"batch_number_genaration\": \"According To System Settings\", \"material_costing_method\": \"First In First Out\", \"serial_number_management\": 0}"
+   }
+  ],
+  "bins": [
+   {
+    "j": "{\"id\": \"2018912822846582786\", \"bin\": \"A1-B1\"}"
+   }
+  ],
+  "movements": [
+   {
+    "id": "2110283307602612226",
+    "movement": "OUT",
+    "item_id": "2094626841323700252",
+    "bin": "2018912822846582786",
+    "batch": null,
+    "inventory_category": "Unrestricted",
+    "quantity": "1.00000000",
+    "base_qty": "1.00000000",
+    "unit_price": "1.00000000",
+    "total_price": "1.00000000",
+    "doc_date": "2026-10-14 00:00:00",
+    "mfg": null,
+    "exp": null,
+    "parent_trx_no": ""
+   },
+   {
+    "id": "2110283308256923650",
+    "movement": "IN",
+    "item_id": "2084165274322399234",
+    "bin": "2018912822846582786",
+    "batch": "2110283308227563521",
+    "inventory_category": "Blocked",
+    "quantity": "1.00000000",
+    "base_qty": "1.00000000",
+    "unit_price": "0E-8",
+    "total_price": "0E-8",
+    "doc_date": "2026-10-14 00:00:00",
+    "mfg": "2026-10-14 00:00:00",
+    "exp": "2027-10-14 00:00:00",
+    "parent_trx_no": ""
+   }
+  ],
+  "state": [
+   {
+    "item_assembly_status": "Draft",
+    "posted_status": null,
+    "update_time": "2026-10-14 16:15:54"
+   }
+  ],
+  "batch": [
+   {
+    "id": "2110283308227563521",
+    "batch_number": "IA-T1014-BLK",
+    "material_id": "2084165274322399234",
+    "initial_quantity": "1.00000000",
+    "transaction_no": "IA-TEST-1014-C",
+    "plant_id": "1123598813738675202",
+    "organization_id": "1123598813738675201",
+    "remark": "IA batch/category test 2026-10-14",
+    "remark2": "",
+    "remark3": "",
+    "manufacturing_date": "2026-10-14 00:00:00",
+    "expired_date": "2027-10-14 00:00:00",
+    "parent_transaction_no": "",
+    "is_deleted": 1
+   }
+  ]
+ }
+}

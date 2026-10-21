@@ -21,10 +21,16 @@
 | 2026-10-20 16:55 | SA_V2_WORKER | 2111074368689180673 | v3 → **v4** | job→SA join skips soft-deleted SAs (`AND g.is_deleted = 0` in SA_LOCK_JOIN; raised by dd). Backup `.../SA_V2_WORKER/v3_20261020T085542.enabled.json` | commit/worker suite + SQL checks; smoke IDLE; IDENTICAL |
 | 2026-10-20 16:55 | SC form (stock_count) | 1970062686583369729 | v499 → **v500** | Phase C, 2,000-line counts: mounted Stock Count / Review modes batched (2,002 / 2,287 per-line calls → 3 / 4); Sync = chunked `material_id in` reads with .limit(5000) + one table write (was 2,000-branch OR reads without a limit + ~13,600 row-path writes); loading mask hidden on empty / error. Backup `.../SC_FORM/v499_20261020T085548.enabled.json` | test_sc_2k 31/31 (stateful 2,000-line equivalence) + 480 client checks; IDENTICAL |
 
+| 2026-10-21 10:22 | SA_V2_COMMIT | 2111074444748689410 | v5 → **v6** | job lease sized per job: min(90 min, 10 min + 0.6 s per entry) (GR / Putaway's rule; 2,000 entries → 30 min, 5,000 → 60) in `code/commit/entry.js`; the SQL 30 min stays as fallback. Backup `.../SA_V2_COMMIT/v5_20261021T022156.enabled.json` | commit_sim 1,145 (3 new lease checks) + SQL checks; smoke SA_INVALID_DATA; IDENTICAL |
+
+| 2026-10-21 17:17 | SA_V2_COMMIT | 2111074444748689410 | v6 → **v7** | A2: engine v12's 409 'the same operation is still running' with intent rows → lock waits (8, ~23 min > v12's 20-min heartbeat window), then REQUIRES_REVIEW (never FAILED / unlock); was 3 quick retries → review in ~15 s. Only code_node_SACa2 changed. Backup `.../SA_V2_COMMIT/v6_20261021T091725.enabled.json` | test_steps 146 + commit_sim 1,150 (v12 scenarios) + SQL; smoke SA_INVALID_DATA; IDENTICAL |
+
 **Ships ON to prod in the 10-20/21 full deployment** together with the engine COST-lock fix (INVENTORY_BULK_APPLY v10, TOKENS v5, SEED v5 — eb).
 Live V2 tests on dev 2026-10-16 21:47-21:58 (tenant 496474): twins T1 / T2 / T3 0 tables differ, F1 nothing moved, 2k SC Review
 RECONCILED (93 s worker time). Test data only (items SAV2T-*, STC/20261016/0011-0013, SA/20261016/0010-0017); no workflow / form change.
 Pending: the user's browser click-through.
 Told before publishing: Packing V2, Putaway V2 Mobile (STOCK_COUNT is the mobile save).
 Rollback (dev): paste the backup in the designer, or wf_upload the backup file.
-Prod post-deploy SELECT checks (after the cut): STOCK_ADJUSTMENT / STOCK_COUNT enabled script = these files.
+Prod post-deploy check (read-only, one command, after the promotion): `python3 scratchpad/sav2/deploy/prod_check.py` - 6 workflows +
+4 names + engine present, SA / SC forms + lists = repo with every switch ON, the 2 SA columns, the V2 tables' UNIQUE keys,
+operation_effect_key. Dev: ALL 25 PASSED (10-21); prod before the promotion: 21 fail (nothing deployed yet).

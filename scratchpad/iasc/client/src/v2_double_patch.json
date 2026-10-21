@@ -1,0 +1,29 @@
+{
+ "why": "IA V2 Complete & Post double click (bladexfunctions-8c, 2026-10-21): the click is claimed before its first await, a job is posted once while the stored assembly is Completed and unposted",
+ "handlers": [
+  "uhn48srb",
+  "wia8s2r9"
+ ],
+ "patch": [
+  {
+   "was": "const release = () => {\n  store({ ia_submitting: 0 });\n  this.hideLoading();\n};\n",
+   "now": "const release = () => {\n  store({ ia_submitting: 0 });\n  this.hideLoading();\n};\n// a click that claimed the form but never showed the loading (the classic route, a Cancel at the BOM check)\nconst unclaim = () => store({ ia_submitting: 0 });\n"
+  },
+  {
+   "was": "  if (touched) release();\n  try {\n    await this.triggerEvent(IA_CLASSIC);",
+   "now": "  if (touched) release();\n  else unclaim();\n  try {\n    await this.triggerEvent(IA_CLASSIC);"
+  },
+  {
+   "was": "      this.$message.warning(\"Workflow is already in progress. Please wait.\");\n      return;\n    }\n    const values = this.getValues();\n",
+   "now": "      this.$message.warning(\"Workflow is already in progress. Please wait.\");\n      return;\n    }\n    // claimed before the first await: a second click while this one validates or reads the BOM would follow the same job\n    store({ ia_submitting: 1 });\n    const values = this.getValues();\n"
+  },
+  {
+   "was": "if (!(await confirmBomVariance(record))) return;\n",
+   "now": "if (!(await confirmBomVariance(record))) return unclaim();\n"
+  },
+  {
+   "was": "const postCompleted = async (job) => {\n  release();\n  store({ ia_page_token: null, ia_gen: 1 });\n  try {\n    await iaClassicPost(job.iaId, postOrg());\n",
+   "now": "// a job is posted once (another tab following it never posts it again), and only while the stored assembly is Completed and\n// unposted (the form Post's rule)\nconst iaPostOnce = async (job) => {\n  try {\n    if (localStorage.getItem(\"ia_v2_posted_\" + s(job.jobId))) return false;\n    localStorage.setItem(\"ia_v2_posted_\" + s(job.jobId), \"1\");\n  } catch (e) {}\n  const res = await db.collection(\"sm_item_assembly\").where({ id: job.iaId, is_deleted: 0 }).field(\"item_assembly_status,posted_status\").get();\n  const key = (v) => String((v && typeof v === \"object\" ? v.dict_key : v) || \"\").trim();\n  const row = (res && res.data && res.data[0]) || null;\n  return !!row && key(row.item_assembly_status) === \"Completed\" && [\"Unposted\", \"Failed Post\", \"\"].indexOf(key(row.posted_status)) >= 0;\n};\n\nconst postCompleted = async (job) => {\n  release();\n  store({ ia_page_token: null, ia_gen: 1 });\n  try {\n    if (!(await iaPostOnce(job))) {\n      this.$message.success(\"Item Assembly completed; it is already posted or being posted.\");\n      closeDialog();\n      return;\n    }\n    await iaClassicPost(job.iaId, postOrg());\n"
+  }
+ ]
+}

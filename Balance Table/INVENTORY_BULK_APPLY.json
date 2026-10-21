@@ -273,7 +273,7 @@
    "data": {
     "script": {
      "type": "sql",
-     "code": "SELECT p.step_name, p.step_status, p.result_ref, p.error_message,\n       DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM (SELECT NOW() AS t) n\n  LEFT JOIN gd_publish_step p\n    ON p.tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND p.job_id = '{{node:code_node_IBguard.data.operationKey}}'\n   AND p.step_name LIKE 'IBA|%'\n   AND p.is_deleted = 0"
+     "code": "SELECT p.step_name, p.step_status, p.result_ref, p.error_message, CAST(p.id AS CHAR) AS id,\n       DATE_FORMAT(p.finished_at, '%Y-%m-%d %H:%i:%s') AS heartbeat,\n       DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM (SELECT NOW() AS t) n\n  LEFT JOIN gd_publish_step p\n    ON p.tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND p.job_id = '{{node:code_node_IBguard.data.operationKey}}'\n   AND p.step_name LIKE 'IBA|%'\n   AND p.is_deleted = 0"
     },
     "response_json": [
      {
@@ -320,6 +320,24 @@
       "bsonType": "string",
       "isExpand": false,
       "children": []
+     },
+     {
+      "key": "rid00000",
+      "name": "id",
+      "title": "id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rheartbe",
+      "name": "heartbeat",
+      "title": "heartbeat",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
      }
     ],
     "params": {},
@@ -347,7 +365,7 @@
     "isValidator": true,
     "script": {
      "type": "javascript",
-     "code": "// INVENTORY_BULK_APPLY state: DONE -> replay its stored answer; REVIEW -> stop; intent rows -> resume; else fresh\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst rows = [{{node:sql_node_IBops.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nconst mode = s([{{node:code_node_IBguard.data.mode}}][0]);\nlet done = null;\nlet review = null;\nconst intent = [];\nlet dbNow = \"\";\nfor (const r of list) {\n  if (!r) continue;\n  if (!dbNow && r.db_now) dbNow = s(r.db_now);\n  const name = s(r.step_name);\n  if (name === \"IBA|DONE\") done = r;\n  else if (name === \"IBA|REVIEW\") review = r;\n  else if (name.indexOf(\"IBA|I|\") === 0) intent.push(r);\n}\nintent.sort((a, b) => (s(a.step_name) < s(b.step_name) ? -1 : 1));\nlet route = \"FRESH\";\nif (mode === \"PLAN\") route = \"PLAN\";\nelse if (done) route = \"REPLAY\";\nelse if (review) route = \"REVIEW\";\nelse if (intent.length) route = \"RESUME\";\nlet stored = {};\nif (done) {\n  try {\n    stored = JSON.parse(s(done.result_ref) || \"{}\");\n  } catch (e) {\n    stored = {};\n  }\n}\nreturn {\n  route: route,\n  dbNow: dbNow,\n  intentText: intent.map((r) => s(r.result_ref)).join(\"\"),\n  intentParts: String(intent.length),\n  storedResults: stored.results || [],\n  storedSummary: stored.summary || {},\n  reviewReason: review ? s(review.error_message) : \"\",\n};\n"
+     "code": "// INVENTORY_BULK_APPLY state: DONE -> replay its stored answer; REVIEW -> stop; intent rows -> resume; else fresh. Run marker\n// IBA|RUN|nnn (heartbeat in finished_at): the latest generation RUNNING with a heartbeat under 20 min = another call of this operation\n// is alive -> BUSY; else this APPLY call takes the next generation (CLAIM); PLAN and REVIEW write nothing (SKIP)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst RUN_STALE_S = 1200;\nconst rows = [{{node:sql_node_IBops.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nconst mode = s([{{node:code_node_IBguard.data.mode}}][0]);\nlet done = null;\nlet review = null;\nlet mark = null;\nconst intent = [];\nlet dbNow = \"\";\nfor (const r of list) {\n  if (!r) continue;\n  if (!dbNow && r.db_now) dbNow = s(r.db_now);\n  const name = s(r.step_name);\n  if (name === \"IBA|DONE\") done = r;\n  else if (name === \"IBA|REVIEW\") review = r;\n  else if (name.indexOf(\"IBA|I|\") === 0) intent.push(r);\n  else if (name.indexOf(\"IBA|RUN|\") === 0) {\n    const g = parseInt(name.slice(8), 10) || 0;\n    if (!mark || g > mark.gen) mark = { gen: g, status: s(r.step_status), hb: s(r.heartbeat) };\n  }\n}\nintent.sort((a, b) => (s(a.step_name) < s(b.step_name) ? -1 : 1));\nlet route = \"FRESH\";\nif (mode === \"PLAN\") route = \"PLAN\";\nelse if (done) route = \"REPLAY\";\nelse if (review) route = \"REVIEW\";\nelse if (intent.length) route = \"RESUME\";\nlet stored = {};\nif (done) {\n  try {\n    stored = JSON.parse(s(done.result_ref) || \"{}\");\n  } catch (e) {\n    stored = {};\n  }\n}\nconst at = (v) => Date.parse(s(v).replace(\" \", \"T\"));\nconst age = mark && mark.hb && dbNow ? (at(dbNow) - at(mark.hb)) / 1000 : Infinity;\nconst live = !!mark && mark.status === \"RUNNING\" && age < RUN_STALE_S;\nconst runGate = mode !== \"APPLY\" || route === \"REVIEW\" ? \"SKIP\" : live ? \"BUSY\" : \"CLAIM\";\nconst gen = (mark ? mark.gen : 0) + 1;\nreturn {\n  route: route,\n  dbNow: dbNow,\n  intentText: intent.map((r) => s(r.result_ref)).join(\"\"),\n  intentParts: String(intent.length),\n  storedResults: stored.results || [],\n  storedSummary: stored.summary || {},\n  reviewReason: review ? s(review.error_message) : \"\",\n  runGate: runGate,\n  runGen: String(gen),\n  runStep: \"IBA|RUN|\" + String(gen).padStart(3, \"0\"),\n  runMessage: live ? \"the same operation is still running (run \" + mark.gen + \", last heartbeat \" + mark.hb + \"); try again later\" : \"\",\n};\n"
     },
     "response_json": [
      {
@@ -423,12 +441,485 @@
       "bsonType": "string",
       "isExpand": false,
       "children": []
+     },
+     {
+      "key": "rrungate",
+      "name": "runGate",
+      "title": "runGate",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rrungen0",
+      "name": "runGen",
+      "title": "runGen",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rrunstep",
+      "name": "runStep",
+      "title": "runStep",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rrunmess",
+      "name": "runMessage",
+      "title": "runMessage",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
      }
     ],
     "title": "State: replay a DONE answer, stop on REVIEW, resume a stored intent, or start",
     "nodeName": "State: replay a DONE answer, stop on REVIEW, resume a stored intent, or start",
     "name": "State: replay a DONE answer, stop on REVIEW, resume a stored intent, or start"
    }
+  },
+  {
+   "id": "if_IBrunBusy",
+   "type": "if",
+   "data": {
+    "condition_type": "ConditionRule",
+    "filter": {
+     "list": [
+      {
+       "id": 1,
+       "parentId": 0,
+       "isTop": true,
+       "type": "leaf",
+       "prop": "node.code_node_IBstate.data.runGate",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "BUSY",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": ""
+    },
+    "javaExpression": {
+     "type": "java",
+     "code": ""
+    },
+    "title": "IF another call of this operation is alive (run marker heartbeat < 20 min): answer 409, write nothing",
+    "nodeName": "IF another call of this operation is alive (run marker heartbeat < 20 min): answer 409, write nothing",
+    "name": "IF another call of this operation is alive (run marker heartbeat < 20 min): answer 409, write nothing"
+   },
+   "blocks": [
+    {
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "return_node_IBrunBusy",
+       "type": "return-node",
+       "data": {
+        "title": "返回数据",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "operator": "",
+           "valueType": "value",
+           "value": "409"
+          },
+          {
+           "prop": "result_code",
+           "operator": "",
+           "valueType": "value",
+           "value": "LOCK_BUSY"
+          },
+          {
+           "prop": "message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBstate.data.runMessage}}"
+          }
+         ]
+        },
+        "return_raw_data": 0,
+        "return_data": {},
+        "status_code": 200
+       }
+      }
+     ],
+     "id": "if_IBrunBusy_ifBlock_0"
+    },
+    {
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [],
+     "id": "if_IBrunBusy_ifBlock_1"
+    }
+   ]
+  },
+  {
+   "id": "if_IBrunClaim",
+   "type": "if",
+   "data": {
+    "condition_type": "ConditionRule",
+    "filter": {
+     "list": [
+      {
+       "id": 1,
+       "parentId": 0,
+       "isTop": true,
+       "type": "leaf",
+       "prop": "node.code_node_IBstate.data.runGate",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "CLAIM",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": ""
+    },
+    "javaExpression": {
+     "type": "java",
+     "code": ""
+    },
+    "title": "IF APPLY (not REVIEW): take the next run generation",
+    "nodeName": "IF APPLY (not REVIEW): take the next run generation",
+    "name": "IF APPLY (not REVIEW): take the next run generation"
+   },
+   "blocks": [
+    {
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_IBrunRow",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "isValidator": true,
+        "script": {
+         "type": "javascript",
+         "code": "// INVENTORY_BULK_APPLY run marker: this call's generation (unique job / step: a twin call inserting the same generation fails its run)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst st = [{{node:code_node_IBstate.data}}][0] || {};\nreturn { rows: [{ job_id: s([{{node:code_node_IBguard.data.operationKey}}][0]), organization_id: s([{{node:code_node_IBguard.data.organizationId}}][0]),\n  step_name: s(st.runStep), step_status: \"RUNNING\", attempt_count: 0, result_ref: s([{{node:code_node_IBguard.data.nonce}}][0]), started_at: s(st.dbNow),\n  finished_at: s(st.dbNow), error_code: \"\", error_message: \"\" }] };\n"
+        },
+        "response_json": [
+         {
+          "key": "01w8tp4z",
+          "name": "rows",
+          "title": "rows",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "01pibbj0",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": [],
+            "isArrayItem": true
+           }
+          ]
+         }
+        ],
+        "title": "Run marker: this call's generation IBA|RUN|nnn (RUNNING, heartbeat = now)",
+        "nodeName": "Run marker: this call's generation IBA|RUN|nnn (RUNNING, heartbeat = now)",
+        "name": "Run marker: this call's generation IBA|RUN|nnn (RUNNING, heartbeat = now)"
+       }
+      },
+      {
+       "id": "add_node_IBrun",
+       "type": "add-node",
+       "data": {
+        "table_id": {
+         "source": "GD Publish Step:Table:2105131615547461634",
+         "rules": {
+          "collectionId": "2105131615547461634",
+          "list": []
+         }
+        },
+        "props": {
+         "list": [
+          {
+           "prop": "job_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.job_id}}"
+          },
+          {
+           "prop": "organization_id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.organization_id}}"
+          },
+          {
+           "prop": "step_name",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.step_name}}"
+          },
+          {
+           "prop": "step_status",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.step_status}}"
+          },
+          {
+           "prop": "attempt_count",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.attempt_count}}"
+          },
+          {
+           "prop": "result_ref",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.result_ref}}"
+          },
+          {
+           "prop": "started_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.started_at}}"
+          },
+          {
+           "prop": "finished_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.finished_at}}"
+          },
+          {
+           "prop": "error_code",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.error_code}}"
+          },
+          {
+           "prop": "error_message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunRow.data.rows.error_message}}"
+          }
+         ]
+        },
+        "title": "Run marker insert (unique job / step: a twin call of the same generation fails here)",
+        "nodeName": "Run marker insert (unique job / step: a twin call of the same generation fails here)",
+        "name": "Run marker insert (unique job / step: a twin call of the same generation fails here)"
+       }
+      },
+      {
+       "id": "sql_node_IBrunMe",
+       "type": "sql-node",
+       "data": {
+        "script": {
+         "type": "sql",
+         "code": "SELECT CAST(id AS CHAR) AS id, result_ref, DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM gd_publish_step\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND job_id = '{{node:code_node_IBguard.data.operationKey}}'\n   AND step_name = '{{node:code_node_IBstate.data.runStep}}'\n   AND is_deleted = 0"
+        },
+        "response_json": [
+         {
+          "key": "rid00000",
+          "name": "id",
+          "title": "id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "rresultr",
+          "name": "result_ref",
+          "title": "result_ref",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "rdbnow00",
+          "name": "db_now",
+          "title": "db_now",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "params": {},
+        "result_mode": "many",
+        "title": "Run marker read-back: its id and nonce",
+        "nodeName": "Run marker read-back: its id and nonce",
+        "name": "Run marker read-back: its id and nonce",
+        "tableId": "2105131615547461634",
+        "table_id": {
+         "source": "GD Publish Step:Table:2105131615547461634",
+         "rules": {
+          "collectionId": "2105131615547461634",
+          "list": []
+         }
+        }
+       }
+      },
+      {
+       "id": "code_node_IBrunMe",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "isValidator": true,
+        "script": {
+         "type": "javascript",
+         "code": "// INVENTORY_BULK_APPLY run marker read back: the row id the heartbeats and the end update, and that it carries this run's nonce\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst rows = [{{node:sql_node_IBrunMe.data}}][0];\nconst r = (Array.isArray(rows) ? rows : rows ? [rows] : [])[0] || {};\nconst own = s(r.result_ref) !== \"\" && s(r.result_ref) === s([{{node:code_node_IBguard.data.nonce}}][0]) && /^[0-9]{1,20}$/.test(s(r.id));\nreturn { own: own ? \"YES\" : \"NO\", runId: own ? s(r.id) : \"\", dbNow: s(r.db_now) };\n"
+        },
+        "response_json": [
+         {
+          "key": "rown0000",
+          "name": "own",
+          "title": "own",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "rrunid00",
+          "name": "runId",
+          "title": "runId",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "rdbnow00",
+          "name": "dbNow",
+          "title": "dbNow",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Run marker: own it (nonce) -> the id the heartbeats update",
+        "nodeName": "Run marker: own it (nonce) -> the id the heartbeats update",
+        "name": "Run marker: own it (nonce) -> the id the heartbeats update"
+       }
+      },
+      {
+       "id": "if_IBrunLost",
+       "type": "if",
+       "data": {
+        "condition_type": "ConditionRule",
+        "filter": {
+         "list": [
+          {
+           "id": 1,
+           "parentId": 0,
+           "isTop": true,
+           "type": "leaf",
+           "prop": "node.code_node_IBrunMe.data.own",
+           "operator": "equal",
+           "valueType": "value",
+           "value": "NO",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": ""
+        },
+        "javaExpression": {
+         "type": "java",
+         "code": ""
+        },
+        "title": "IF the marker read back is not this run's: answer 409, write nothing",
+        "nodeName": "IF the marker read back is not this run's: answer 409, write nothing",
+        "name": "IF the marker read back is not this run's: answer 409, write nothing"
+       },
+       "blocks": [
+        {
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "return_node_IBrunLost",
+           "type": "return-node",
+           "data": {
+            "title": "返回数据",
+            "response_value": {
+             "list": [
+              {
+               "prop": "code",
+               "operator": "",
+               "valueType": "value",
+               "value": "409"
+              },
+              {
+               "prop": "result_code",
+               "operator": "",
+               "valueType": "value",
+               "value": "LOCK_BUSY"
+              },
+              {
+               "prop": "message",
+               "operator": "",
+               "valueType": "field",
+               "value": "another call of the same operation started at the same time; try again later"
+              }
+             ]
+            },
+            "return_raw_data": 0,
+            "return_data": {},
+            "status_code": 200
+           }
+          }
+         ],
+         "id": "if_IBrunLost_ifBlock_0"
+        },
+        {
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": [],
+         "id": "if_IBrunLost_ifBlock_1"
+        }
+       ]
+      }
+     ],
+     "id": "if_IBrunClaim_ifBlock_0"
+    },
+    {
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [],
+     "id": "if_IBrunClaim_ifBlock_1"
+    }
+   ]
   },
   {
    "id": "if_IBreplay",
@@ -458,9 +949,9 @@
      "type": "java",
      "code": ""
     },
-    "title": "IF this operation is DONE: return its stored answer, write nothing",
-    "nodeName": "IF this operation is DONE: return its stored answer, write nothing",
-    "name": "IF this operation is DONE: return its stored answer, write nothing"
+    "title": "IF this operation is DONE: give back any key it still holds, return its stored answer",
+    "nodeName": "IF this operation is DONE: give back any key it still holds, return its stored answer",
+    "name": "IF this operation is DONE: give back any key it still holds, return its stored answer"
    },
    "blocks": [
     {
@@ -469,6 +960,493 @@
       "title": "true"
      },
      "blocks": [
+      {
+       "id": "sql_node_IBrpRel",
+       "type": "sql-node",
+       "data": {
+        "script": {
+         "type": "sql",
+         "code": "SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id, lock_version,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND organization_id = '{{node:code_node_IBguard.data.organizationId}}'\n   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_IBguard.data.lockKeysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND is_deleted = 0"
+        },
+        "response_json": [
+         {
+          "key": "00911g17",
+          "name": "id",
+          "title": "id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "01v6wcg2",
+          "name": "lock_key",
+          "title": "lock_key",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "017zh39g",
+          "name": "free_token",
+          "title": "free_token",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "0192c6l4",
+          "name": "owner_operation_id",
+          "title": "owner_operation_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "01lstown",
+          "name": "last_owner_operation_id",
+          "title": "last_owner_operation_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "00e1tuym",
+          "name": "lock_version",
+          "title": "lock_version",
+          "description": "",
+          "bsonType": "int",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "00m7rgt4",
+          "name": "db_now",
+          "title": "db_now",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "params": {},
+        "result_mode": "many",
+        "title": "Replay: the lock rows of the keys (a run that died after IBA|DONE may still hold them)",
+        "nodeName": "Replay: the lock rows of the keys (a run that died after IBA|DONE may still hold them)",
+        "name": "Replay: the lock rows of the keys (a run that died after IBA|DONE may still hold them)",
+        "tableId": "2105132021358956546",
+        "table_id": {
+         "source": "Inventory Balance Lock:Table:2105132021358956546",
+         "rules": {
+          "collectionId": "2105132021358956546",
+          "list": []
+         }
+        }
+       }
+      },
+      {
+       "id": "code_node_IBrpRelease",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "isValidator": true,
+        "script": {
+         "type": "javascript",
+         "code": "// INVENTORY_BULK_APPLY lock release plan: this operation's rows only (owner cleared first, then GIVE adds the token back); a row its\n// own earlier release left between the two (owner empty, last owner = this operation) goes straight to GIVE\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst rows = [{{node:sql_node_IBrpRel.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nlet dbNow = \"\";\nfor (const r of list) if (r && !dbNow && r.db_now) dbNow = s(r.db_now);\nconst clearRows = [];\nconst plusIds = [];\nfor (const r of list) {\n  if (!r || !/^[0-9]{1,20}$/.test(s(r.id)) || Number(r.free_token) !== 0) continue;\n  if (s(r.owner_operation_id) === op) {\n    clearRows.push({ id: s(r.id), owner_operation_id: \"\", last_owner_operation_id: op, last_released_at: dbNow, lock_version: (Number(r.lock_version) || 0) + 1 });\n    plusIds.push(s(r.id));\n  } else if (s(r.owner_operation_id) === \"\" && s(r.last_owner_operation_id) === op) plusIds.push(s(r.id));\n}\nconst batches = [];\nfor (let i = 0; i < clearRows.length; i += 250) batches.push({ from: i });\nreturn { clearRows: clearRows, batches: batches, plusIds: plusIds, needRelease: plusIds.length ? \"YES\" : \"NO\" };"
+        },
+        "response_json": [
+         {
+          "key": "00tm1xpw",
+          "name": "clearRows",
+          "title": "clearRows",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "01pibbj0",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": [],
+            "isArrayItem": true
+           }
+          ]
+         },
+         {
+          "key": "00383q6j",
+          "name": "batches",
+          "title": "batches",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "01pibbj0",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": [],
+            "isArrayItem": true
+           }
+          ]
+         },
+         {
+          "key": "00t52bo4",
+          "name": "plusIds",
+          "title": "plusIds",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "01pibbj0",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": [],
+            "isArrayItem": true
+           }
+          ]
+         },
+         {
+          "key": "010joyv8",
+          "name": "needRelease",
+          "title": "needRelease",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Replay: release plan, this operation only",
+        "nodeName": "Replay: release plan, this operation only",
+        "name": "Replay: release plan, this operation only"
+       }
+      },
+      {
+       "id": "cor_IBrpRel2",
+       "type": "condition-or-node",
+       "data": {
+        "title": "Replay: anything still held?",
+        "nodeName": "Replay: anything still held?",
+        "name": "Replay: anything still held?"
+       },
+       "blocks": [
+        {
+         "type": "condition-or-node-item",
+         "key": "YES",
+         "data": {
+          "title": "YES",
+          "nodeName": "YES",
+          "name": "YES",
+          "condition_type": "ConditionRule",
+          "filter": {
+           "list": [
+            {
+             "id": 1,
+             "parentId": 0,
+             "isTop": true,
+             "type": "leaf",
+             "prop": "node.code_node_IBrpRelease.data.needRelease",
+             "operator": "equal",
+             "valueType": "value",
+             "value": "YES",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "blocks": [
+          {
+           "id": "set_cache_IBrpIdx0",
+           "type": "set-cache-node",
+           "data": {
+            "redis_key": "iba_rp_{{node:code_node_IBguard.data.nonce}}",
+            "custom_wkbocgni": {
+             "type": "javascript",
+             "code": "0"
+            },
+            "limit_time": 3600000,
+            "title": "Replay release slice index = 0 (per run: the key carries the run's nonce)",
+            "nodeName": "Replay release slice index = 0 (per run: the key carries the run's nonce)",
+            "name": "Replay release slice index = 0 (per run: the key carries the run's nonce)"
+           }
+          },
+          {
+           "id": "loop_IBrpRel",
+           "type": "loop",
+           "data": {
+            "title": "Replay: clear the owner, in slices of <= 250",
+            "nodeName": "Replay: clear the owner, in slices of <= 250",
+            "name": "Replay: clear the owner, in slices of <= 250",
+            "loopType": "Var",
+            "iterator": "_item",
+            "loopSeletVar": {
+             "type": "javascript",
+             "code": "{{node:code_node_IBrpRelease.data.batches}}"
+            }
+           },
+           "blocks": [
+            {
+             "id": "get_cache_IBrpIdx",
+             "type": "get-cache-node",
+             "data": {
+              "redis_key": "iba_rp_{{node:code_node_IBguard.data.nonce}}",
+              "title": "Replay release slice index",
+              "nodeName": "Replay release slice index",
+              "name": "Replay release slice index"
+             }
+            },
+            {
+             "id": "code_node_IBrpSlice",
+             "type": "code-node",
+             "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "isValidator": true,
+              "script": {
+               "type": "javascript",
+               "code": "// INVENTORY_BULK_APPLY slice of clearRows: rows [index * 250, + 250)\nconst all = [{{node:code_node_IBrpRelease.data.clearRows}}][0];\nconst list = Array.isArray(all) ? all : all ? [all] : [];\nconst raw = [{{node:get_cache_IBrpIdx.data}}][0];\nconst index = raw === undefined || raw === null || String(raw).trim() === \"\" ? 0 : parseInt(String(raw).replace(/\"/g, \"\"), 10) || 0;\nconst rows = list.slice(index * 250, index * 250 + 250);\nreturn { rows: rows, count: String(rows.length), nextIndex: String(index + 1) };\n"
+              },
+              "response_json": [
+               {
+                "key": "01w8tp4z",
+                "name": "rows",
+                "title": "rows",
+                "description": "",
+                "bsonType": "array",
+                "isExpand": true,
+                "children": [
+                 {
+                  "key": "01pibbj0",
+                  "name": "items",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "any",
+                  "isExpand": false,
+                  "children": [],
+                  "isArrayItem": true
+                 }
+                ]
+               },
+               {
+                "key": "01qsyv4c",
+                "name": "count",
+                "title": "count",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "01n6uzxx",
+                "name": "nextIndex",
+                "title": "nextIndex",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               }
+              ],
+              "title": "Replay release slice",
+              "nodeName": "Replay release slice",
+              "name": "Replay release slice"
+             }
+            },
+            {
+             "id": "update_node_IBrpRel",
+             "type": "update-node",
+             "data": {
+              "table_id": {
+               "source": "Inventory Balance Lock:Table:2105132021358956546",
+               "rules": {
+                "collectionId": "2105132021358956546",
+                "list": [
+                 {
+                  "id": 1,
+                  "parentId": 0,
+                  "isTop": true,
+                  "type": "leaf",
+                  "prop": "id",
+                  "operator": "in",
+                  "valueType": "field",
+                  "value": "{{node:code_node_IBrpSlice.data.rows.id}}",
+                  "level": 1
+                 }
+                ]
+               }
+              },
+              "props": {
+               "list": [
+                {
+                 "prop": "id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_IBrpSlice.data.rows.id}}"
+                },
+                {
+                 "prop": "owner_operation_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_IBrpSlice.data.rows.owner_operation_id}}"
+                },
+                {
+                 "prop": "last_owner_operation_id",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_IBrpSlice.data.rows.last_owner_operation_id}}"
+                },
+                {
+                 "prop": "last_released_at",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_IBrpSlice.data.rows.last_released_at}}"
+                },
+                {
+                 "prop": "lock_version",
+                 "operator": "",
+                 "valueType": "field",
+                 "value": "{{node:code_node_IBrpSlice.data.rows.lock_version}}"
+                }
+               ]
+              },
+              "title": "Replay release step 1: owner cleared, last owner = this operation",
+              "nodeName": "Replay release step 1: owner cleared, last owner = this operation",
+              "name": "Replay release step 1: owner cleared, last owner = this operation"
+             }
+            },
+            {
+             "id": "set_cache_IBrpIdxN",
+             "type": "set-cache-node",
+             "data": {
+              "redis_key": "iba_rp_{{node:code_node_IBguard.data.nonce}}",
+              "custom_wkbocgni": {
+               "type": "javascript",
+               "code": "{{node:code_node_IBrpSlice.data.nextIndex}}"
+              },
+              "limit_time": 3600000,
+              "title": "Next replay release slice index",
+              "nodeName": "Next replay release slice index",
+              "name": "Next replay release slice index"
+             }
+            }
+           ]
+          },
+          {
+           "id": "workflow_node_IBrpGive",
+           "type": "workflow-node",
+           "data": {
+            "workflow": {
+             "rules": {
+              "collectionId": "2105936479113383937",
+              "list": []
+             },
+             "source": "INVENTORY_LOCK_TOKENS:Workflow:2105936479113383937"
+            },
+            "body_params": {
+             "list": [
+              {
+               "prop": "mode",
+               "value": "GIVE"
+              },
+              {
+               "prop": "operation_id",
+               "value": "{{node:code_node_IBguard.data.operationKey}}"
+              },
+              {
+               "prop": "organization_id",
+               "value": "{{node:code_node_IBguard.data.organizationId}}"
+              },
+              {
+               "prop": "claimed_at",
+               "value": ""
+              },
+              {
+               "prop": "ids",
+               "value": "{{node:code_node_IBrpRelease.data.plusIds}}"
+              }
+             ]
+            },
+            "title": "Replay release step 2: INVENTORY_LOCK_TOKENS GIVE",
+            "nodeName": "Replay release step 2: INVENTORY_LOCK_TOKENS GIVE",
+            "name": "Replay release step 2: INVENTORY_LOCK_TOKENS GIVE"
+           }
+          }
+         ],
+         "id": "cor_IBrpRel2_condition-or-node-item_0"
+        },
+        {
+         "type": "condition-or-node-item",
+         "key": "default",
+         "data": {
+          "title": "NO",
+          "nodeName": "NO",
+          "name": "NO",
+          "isDefault": true
+         },
+         "blocks": [],
+         "id": "cor_IBrpRel2_condition-or-node-item_1"
+        }
+       ]
+      },
+      {
+       "id": "update_node_IBrunEndRp",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Publish Step:Table:2105131615547461634",
+         "rules": {
+          "collectionId": "2105131615547461634",
+          "list": [
+           {
+            "id": 1,
+            "parentId": 0,
+            "isTop": true,
+            "type": "leaf",
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_IBrunMe.data.runId}}",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "props": {
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunMe.data.runId}}"
+          },
+          {
+           "prop": "step_status",
+           "operator": "",
+           "valueType": "value",
+           "value": "ENDED"
+          }
+         ]
+        },
+        "title": "Run marker: ENDED (replay)",
+        "nodeName": "Run marker: ENDED (replay)",
+        "name": "Run marker: ENDED (replay)"
+       }
+      },
       {
        "id": "return_node_IBreplay",
        "type": "return-node",
@@ -973,7 +1951,7 @@
        "data": {
         "script": {
          "type": "sql",
-         "code": "SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND organization_id = '{{node:code_node_IBguard.data.organizationId}}'\n   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_IBguard.data.lockKeysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND is_deleted = 0\n ORDER BY lock_key"
+         "code": "SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND organization_id = '{{node:code_node_IBguard.data.organizationId}}'\n   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_IBguard.data.lockKeysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND is_deleted = 0\n ORDER BY lock_key"
         },
         "response_json": [
          {
@@ -1007,6 +1985,15 @@
           "key": "0192c6l4",
           "name": "owner_operation_id",
           "title": "owner_operation_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "01lstown",
+          "name": "last_owner_operation_id",
+          "title": "last_owner_operation_id",
           "description": "",
           "bsonType": "string",
           "isExpand": false,
@@ -1047,7 +2034,7 @@
         "isValidator": true,
         "script": {
          "type": "javascript",
-         "code": "// INVENTORY_BULK_APPLY lock claim: keys in lock order; a key another operation holds, or whose lock row the seed could not\n// create (another operation inserted it first) -> BUSY before any take; a key this operation already holds (a run that died) is kept\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst keys = [{{node:code_node_IBguard.data.lockKeys}}][0] || [];\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst rows = [{{node:sql_node_IBlk2.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nconst byKey = {};\nlet dbNow = \"\";\nfor (const r of list) {\n  if (!r || !r.lock_key) continue;\n  byKey[s(r.lock_key).toUpperCase()] = r;\n  if (!dbNow && r.db_now) dbNow = s(r.db_now);\n}\nconst take = [];\nconst busy = [];\nfor (const k of keys) {\n  const r = byKey[k.toUpperCase()];\n  if (!r || !/^[0-9]{1,20}$/.test(s(r.id))) {\n    busy.push(k + \" (lock row not created yet)\");\n    continue;\n  }\n  const t = Number(r.free_token);\n  if (t === 1) take.push(s(r.id));\n  else if (t === 0 && s(r.owner_operation_id) === op) continue;\n  else busy.push(k + (s(r.owner_operation_id) ? \" (\" + s(r.owner_operation_id) + \")\" : \"\"));\n}\nconst route = busy.length ? \"BUSY\" : take.length ? \"TAKE\" : \"HELD\";\nif (route === \"TAKE\" && !dbNow) throw new Error(\"IBA_LOCK_INPUT: the lock read returned no db_now\");\nreturn { route: route, ids: take, claimedAt: dbNow, busy: busy.slice(0, 20).join(\", \"), busyCount: String(busy.length) };"
+         "code": "// INVENTORY_BULK_APPLY lock claim: keys in lock order; a key another operation holds, or whose lock row the seed could not\n// create (another operation inserted it first) -> BUSY before any take; a key this operation already holds (a run that died) is kept\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst keys = [{{node:code_node_IBguard.data.lockKeys}}][0] || [];\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\n// held by it, or left by its own release between clearing the owner and GIVE (a run that died there)\nconst mine = (r) => s(r.owner_operation_id) === op || (s(r.owner_operation_id) === \"\" && s(r.last_owner_operation_id) === op);\nconst rows = [{{node:sql_node_IBlk2.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nconst byKey = {};\nlet dbNow = \"\";\nfor (const r of list) {\n  if (!r || !r.lock_key) continue;\n  byKey[s(r.lock_key).toUpperCase()] = r;\n  if (!dbNow && r.db_now) dbNow = s(r.db_now);\n}\nconst take = [];\nconst busy = [];\nfor (const k of keys) {\n  const r = byKey[k.toUpperCase()];\n  if (!r || !/^[0-9]{1,20}$/.test(s(r.id))) {\n    busy.push(k + \" (lock row not created yet)\");\n    continue;\n  }\n  const t = Number(r.free_token);\n  if (t === 1) take.push(s(r.id));\n  else if (t === 0 && mine(r)) continue;\n  else busy.push(k + (s(r.owner_operation_id) ? \" (\" + s(r.owner_operation_id) + \")\" : \"\"));\n}\nconst route = busy.length ? \"BUSY\" : take.length ? \"TAKE\" : \"HELD\";\nif (route === \"TAKE\" && !dbNow) throw new Error(\"IBA_LOCK_INPUT: the lock read returned no db_now\");\nreturn { route: route, ids: take, claimedAt: dbNow, busy: busy.slice(0, 20).join(\", \"), busyCount: String(busy.length) };"
         },
         "response_json": [
          {
@@ -1151,6 +2138,50 @@
           "title": "true"
          },
          "blocks": [
+          {
+           "id": "update_node_IBrunEndBusy",
+           "type": "update-node",
+           "data": {
+            "table_id": {
+             "source": "GD Publish Step:Table:2105131615547461634",
+             "rules": {
+              "collectionId": "2105131615547461634",
+              "list": [
+               {
+                "id": 1,
+                "parentId": 0,
+                "isTop": true,
+                "type": "leaf",
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_IBrunMe.data.runId}}",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "props": {
+             "list": [
+              {
+               "prop": "id",
+               "operator": "",
+               "valueType": "field",
+               "value": "{{node:code_node_IBrunMe.data.runId}}"
+              },
+              {
+               "prop": "step_status",
+               "operator": "",
+               "valueType": "value",
+               "value": "ENDED"
+              }
+             ]
+            },
+            "title": "Run marker: ENDED (busy)",
+            "nodeName": "Run marker: ENDED (busy)",
+            "name": "Run marker: ENDED (busy)"
+           }
+          },
           {
            "id": "return_node_IBbusy",
            "type": "return-node",
@@ -1293,7 +2324,7 @@
        "data": {
         "script": {
          "type": "sql",
-         "code": "SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND organization_id = '{{node:code_node_IBguard.data.organizationId}}'\n   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_IBguard.data.lockKeysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND is_deleted = 0"
+         "code": "SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND organization_id = '{{node:code_node_IBguard.data.organizationId}}'\n   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_IBguard.data.lockKeysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND is_deleted = 0"
         },
         "response_json": [
          {
@@ -1331,6 +2362,24 @@
           "bsonType": "string",
           "isExpand": false,
           "children": []
+         },
+         {
+          "key": "01lstown",
+          "name": "last_owner_operation_id",
+          "title": "last_owner_operation_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "rdbnow00",
+          "name": "db_now",
+          "title": "db_now",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
          }
         ],
         "params": {},
@@ -1358,7 +2407,7 @@
         "isValidator": true,
         "script": {
          "type": "javascript",
-         "code": "// INVENTORY_BULK_APPLY lock verify: every key reads token 0 with this operation as owner, else LOST\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst keys = [{{node:code_node_IBguard.data.lockKeys}}][0] || [];\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst rows = [{{node:sql_node_IBlk3.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nconst byKey = {};\nfor (const r of list) if (r && r.lock_key) byKey[s(r.lock_key).toUpperCase()] = r;\nconst lost = [];\nfor (const k of keys) {\n  const r = byKey[k.toUpperCase()];\n  if (!r || Number(r.free_token) !== 0 || s(r.owner_operation_id) !== op) lost.push(k);\n}\nreturn { route: lost.length ? \"LOST\" : \"HELD\", lost: lost.slice(0, 20).join(\",\"), lostCount: String(lost.length) };\n"
+         "code": "// INVENTORY_BULK_APPLY lock verify: every key reads token 0 held by this operation (as claimed), else LOST\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst keys = [{{node:code_node_IBguard.data.lockKeys}}][0] || [];\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst mine = (r) => s(r.owner_operation_id) === op || (s(r.owner_operation_id) === \"\" && s(r.last_owner_operation_id) === op);\nconst rows = [{{node:sql_node_IBlk3.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nconst byKey = {};\nfor (const r of list) if (r && r.lock_key) byKey[s(r.lock_key).toUpperCase()] = r;\nconst lost = [];\nfor (const k of keys) {\n  const r = byKey[k.toUpperCase()];\n  if (!r || Number(r.free_token) !== 0 || !mine(r)) lost.push(k);\n}\nconst first = list.find((r) => r && r.db_now) || {};\nreturn { route: lost.length ? \"LOST\" : \"HELD\", lost: lost.slice(0, 20).join(\",\"), lostCount: String(lost.length), dbNow: s(first.db_now) };\n"
         },
         "response_json": [
          {
@@ -1387,11 +2436,64 @@
           "bsonType": "string",
           "isExpand": false,
           "children": []
+         },
+         {
+          "key": "rdbnow00",
+          "name": "dbNow",
+          "title": "dbNow",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
          }
         ],
         "title": "Lock verify: every key held by this operation, else LOST",
         "nodeName": "Lock verify: every key held by this operation, else LOST",
         "name": "Lock verify: every key held by this operation, else LOST"
+       }
+      },
+      {
+       "id": "update_node_IBrunHb1",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Publish Step:Table:2105131615547461634",
+         "rules": {
+          "collectionId": "2105131615547461634",
+          "list": [
+           {
+            "id": 1,
+            "parentId": 0,
+            "isTop": true,
+            "type": "leaf",
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_IBrunMe.data.runId}}",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "props": {
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunMe.data.runId}}"
+          },
+          {
+           "prop": "finished_at",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBlkv.data.dbNow}}"
+          }
+         ]
+        },
+        "title": "Run marker heartbeat: the keys are held",
+        "nodeName": "Run marker heartbeat: the keys are held",
+        "name": "Run marker heartbeat: the keys are held"
        }
       }
      ],
@@ -2938,6 +4040,788 @@
      "id": "if_IBplanOk_ifBlock_1"
     }
    ]
+  },
+  {
+   "id": "sql_node_IBfence",
+   "type": "sql-node",
+   "data": {
+    "script": {
+     "type": "sql",
+     "code": "SELECT CAST(MAX(CASE WHEN p.step_name LIKE 'IBA|RUN|%' THEN CAST(SUBSTRING(p.step_name, 9) AS UNSIGNED) END) AS CHAR) AS latest_gen,\n       SUBSTRING_INDEX(GROUP_CONCAT(CASE WHEN p.step_name LIKE 'IBA|RUN|%' THEN p.step_status END ORDER BY p.step_name DESC SEPARATOR ','), ',', 1) AS latest_status,\n       CAST(SUM(p.step_name = 'IBA|DONE') AS CHAR) AS done,\n       DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM (SELECT NOW(3) AS t) n\n  LEFT JOIN gd_publish_step p\n    ON p.tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND p.job_id = '{{node:code_node_IBguard.data.operationKey}}'\n   AND p.step_name LIKE 'IBA|%'\n   AND p.is_deleted = 0\n GROUP BY n.t"
+    },
+    "response_json": [
+     {
+      "key": "rlatestg",
+      "name": "latest_gen",
+      "title": "latest_gen",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rlatests",
+      "name": "latest_status",
+      "title": "latest_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rdone000",
+      "name": "done",
+      "title": "done",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rdbnow00",
+      "name": "db_now",
+      "title": "db_now",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "params": {},
+    "result_mode": "many",
+    "title": "Fence: the latest run generation of this operation, its status, DONE, the clock",
+    "nodeName": "Fence: the latest run generation of this operation, its status, DONE, the clock",
+    "name": "Fence: the latest run generation of this operation, its status, DONE, the clock",
+    "tableId": "2105131615547461634",
+    "table_id": {
+     "source": "GD Publish Step:Table:2105131615547461634",
+     "rules": {
+      "collectionId": "2105131615547461634",
+      "list": []
+     }
+    }
+   }
+  },
+  {
+   "id": "code_node_IBfence",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "isValidator": true,
+    "script": {
+     "type": "javascript",
+     "code": "// INVENTORY_BULK_APPLY fence before the first write: this run's generation must still be the latest; a later call that found its\n// heartbeat stale took over -> write nothing. If that later run already ENDED with the operation DONE, every key this operation\n// still holds was taken by this run after that run gave its keys back -> this run gives them back; else they are the later run's\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst rows = [{{node:sql_node_IBfence.data}}][0];\nconst r = (Array.isArray(rows) ? rows : rows ? [rows] : [])[0] || {};\nconst mine = s([{{node:code_node_IBstate.data.runGen}}][0]);\nconst latest = s(r.latest_gen);\nconst superseded = latest !== mine;\nreturn { route: superseded ? \"SUPERSEDED\" : \"OK\", dbNow: s(r.db_now),\n  release: superseded && s(r.latest_status) === \"ENDED\" && Number(r.done) > 0 ? \"YES\" : \"NO\",\n  message: \"superseded by a later call of the same operation (run \" + latest + \" after this run \" + mine + \"): nothing written\" };\n"
+    },
+    "response_json": [
+     {
+      "key": "rroute00",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rdbnow00",
+      "name": "dbNow",
+      "title": "dbNow",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rrelease",
+      "name": "release",
+      "title": "release",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rmessage",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Fence: still the latest generation -> OK, else SUPERSEDED (release YES when the later run ENDED with DONE)",
+    "nodeName": "Fence: still the latest generation -> OK, else SUPERSEDED (release YES when the later run ENDED with DONE)",
+    "name": "Fence: still the latest generation -> OK, else SUPERSEDED (release YES when the later run ENDED with DONE)"
+   }
+  },
+  {
+   "id": "if_IBfenced",
+   "type": "if",
+   "data": {
+    "condition_type": "ConditionRule",
+    "filter": {
+     "list": [
+      {
+       "id": 1,
+       "parentId": 0,
+       "isTop": true,
+       "type": "leaf",
+       "prop": "node.code_node_IBfence.data.route",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "SUPERSEDED",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": ""
+    },
+    "javaExpression": {
+     "type": "java",
+     "code": ""
+    },
+    "title": "IF a later call took this operation over: answer 409, write nothing",
+    "nodeName": "IF a later call took this operation over: answer 409, write nothing",
+    "name": "IF a later call took this operation over: answer 409, write nothing"
+   },
+   "blocks": [
+    {
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "cor_IBfzRelease",
+       "type": "condition-or-node",
+       "data": {
+        "title": "Superseded: keys this run took after the later run's release to give back?",
+        "nodeName": "Superseded: keys this run took after the later run's release to give back?",
+        "name": "Superseded: keys this run took after the later run's release to give back?"
+       },
+       "blocks": [
+        {
+         "type": "condition-or-node-item",
+         "key": "YES",
+         "data": {
+          "title": "YES",
+          "nodeName": "YES",
+          "name": "YES",
+          "condition_type": "ConditionRule",
+          "filter": {
+           "list": [
+            {
+             "id": 1,
+             "parentId": 0,
+             "isTop": true,
+             "type": "leaf",
+             "prop": "node.code_node_IBfence.data.release",
+             "operator": "equal",
+             "valueType": "value",
+             "value": "YES",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "blocks": [
+          {
+           "id": "sql_node_IBfzRel",
+           "type": "sql-node",
+           "data": {
+            "script": {
+             "type": "sql",
+             "code": "SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id, lock_version,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND organization_id = '{{node:code_node_IBguard.data.organizationId}}'\n   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_IBguard.data.lockKeysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND is_deleted = 0"
+            },
+            "response_json": [
+             {
+              "key": "00911g17",
+              "name": "id",
+              "title": "id",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "01v6wcg2",
+              "name": "lock_key",
+              "title": "lock_key",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "017zh39g",
+              "name": "free_token",
+              "title": "free_token",
+              "description": "",
+              "bsonType": "int",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "0192c6l4",
+              "name": "owner_operation_id",
+              "title": "owner_operation_id",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "01lstown",
+              "name": "last_owner_operation_id",
+              "title": "last_owner_operation_id",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "00e1tuym",
+              "name": "lock_version",
+              "title": "lock_version",
+              "description": "",
+              "bsonType": "int",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "00m7rgt4",
+              "name": "db_now",
+              "title": "db_now",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ],
+            "params": {},
+            "result_mode": "many",
+            "title": "Superseded: Lock release: the lock rows of the keys",
+            "nodeName": "Superseded: Lock release: the lock rows of the keys",
+            "name": "Superseded: Lock release: the lock rows of the keys",
+            "tableId": "2105132021358956546",
+            "table_id": {
+             "source": "Inventory Balance Lock:Table:2105132021358956546",
+             "rules": {
+              "collectionId": "2105132021358956546",
+              "list": []
+             }
+            }
+           }
+          },
+          {
+           "id": "code_node_IBfzRelease",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "isValidator": true,
+            "script": {
+             "type": "javascript",
+             "code": "// INVENTORY_BULK_APPLY lock release plan: this operation's rows only (owner cleared first, then GIVE adds the token back); a row its\n// own earlier release left between the two (owner empty, last owner = this operation) goes straight to GIVE\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst rows = [{{node:sql_node_IBfzRel.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nlet dbNow = \"\";\nfor (const r of list) if (r && !dbNow && r.db_now) dbNow = s(r.db_now);\nconst clearRows = [];\nconst plusIds = [];\nfor (const r of list) {\n  if (!r || !/^[0-9]{1,20}$/.test(s(r.id)) || Number(r.free_token) !== 0) continue;\n  if (s(r.owner_operation_id) === op) {\n    clearRows.push({ id: s(r.id), owner_operation_id: \"\", last_owner_operation_id: op, last_released_at: dbNow, lock_version: (Number(r.lock_version) || 0) + 1 });\n    plusIds.push(s(r.id));\n  } else if (s(r.owner_operation_id) === \"\" && s(r.last_owner_operation_id) === op) plusIds.push(s(r.id));\n}\nconst batches = [];\nfor (let i = 0; i < clearRows.length; i += 250) batches.push({ from: i });\nreturn { clearRows: clearRows, batches: batches, plusIds: plusIds, needRelease: plusIds.length ? \"YES\" : \"NO\" };"
+            },
+            "response_json": [
+             {
+              "key": "00tm1xpw",
+              "name": "clearRows",
+              "title": "clearRows",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+               {
+                "key": "01pibbj0",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "children": [],
+                "isArrayItem": true
+               }
+              ]
+             },
+             {
+              "key": "00383q6j",
+              "name": "batches",
+              "title": "batches",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+               {
+                "key": "01pibbj0",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "children": [],
+                "isArrayItem": true
+               }
+              ]
+             },
+             {
+              "key": "00t52bo4",
+              "name": "plusIds",
+              "title": "plusIds",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+               {
+                "key": "01pibbj0",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "children": [],
+                "isArrayItem": true
+               }
+              ]
+             },
+             {
+              "key": "010joyv8",
+              "name": "needRelease",
+              "title": "needRelease",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ],
+            "title": "Superseded: Lock release plan: this operation only",
+            "nodeName": "Superseded: Lock release plan: this operation only",
+            "name": "Superseded: Lock release plan: this operation only"
+           }
+          },
+          {
+           "id": "cor_IBfzRel2",
+           "type": "condition-or-node",
+           "data": {
+            "title": "Superseded: Anything held?",
+            "nodeName": "Superseded: Anything held?",
+            "name": "Superseded: Anything held?"
+           },
+           "blocks": [
+            {
+             "type": "condition-or-node-item",
+             "key": "YES",
+             "data": {
+              "title": "YES",
+              "nodeName": "YES",
+              "name": "YES",
+              "condition_type": "ConditionRule",
+              "filter": {
+               "list": [
+                {
+                 "id": 1,
+                 "parentId": 0,
+                 "isTop": true,
+                 "type": "leaf",
+                 "prop": "node.code_node_IBfzRelease.data.needRelease",
+                 "operator": "equal",
+                 "valueType": "value",
+                 "value": "YES",
+                 "level": 1
+                }
+               ]
+              }
+             },
+             "blocks": [
+              {
+               "id": "set_cache_IBfzIdx0",
+               "type": "set-cache-node",
+               "data": {
+                "redis_key": "iba_fz_{{node:code_node_IBguard.data.nonce}}",
+                "custom_wkbocgni": {
+                 "type": "javascript",
+                 "code": "0"
+                },
+                "limit_time": 3600000,
+                "title": "Release slice index = 0 (per run: the key carries the run's nonce)",
+                "nodeName": "Release slice index = 0 (per run: the key carries the run's nonce)",
+                "name": "Release slice index = 0 (per run: the key carries the run's nonce)"
+               }
+              },
+              {
+               "id": "loop_IBfzRel",
+               "type": "loop",
+               "data": {
+                "title": "Clear the owner, in slices of <= 250",
+                "nodeName": "Clear the owner, in slices of <= 250",
+                "name": "Clear the owner, in slices of <= 250",
+                "loopType": "Var",
+                "iterator": "_item",
+                "loopSeletVar": {
+                 "type": "javascript",
+                 "code": "{{node:code_node_IBfzRelease.data.batches}}"
+                }
+               },
+               "blocks": [
+                {
+                 "id": "get_cache_IBfzIdx",
+                 "type": "get-cache-node",
+                 "data": {
+                  "redis_key": "iba_fz_{{node:code_node_IBguard.data.nonce}}",
+                  "title": "Release slice index",
+                  "nodeName": "Release slice index",
+                  "name": "Release slice index"
+                 }
+                },
+                {
+                 "id": "code_node_IBfzSlice",
+                 "type": "code-node",
+                 "data": {
+                  "language": "javascript",
+                  "code": "",
+                  "timeout": 30000,
+                  "isValidator": true,
+                  "script": {
+                   "type": "javascript",
+                   "code": "// INVENTORY_BULK_APPLY slice of clearRows: rows [index * 250, + 250)\nconst all = [{{node:code_node_IBfzRelease.data.clearRows}}][0];\nconst list = Array.isArray(all) ? all : all ? [all] : [];\nconst raw = [{{node:get_cache_IBfzIdx.data}}][0];\nconst index = raw === undefined || raw === null || String(raw).trim() === \"\" ? 0 : parseInt(String(raw).replace(/\"/g, \"\"), 10) || 0;\nconst rows = list.slice(index * 250, index * 250 + 250);\nreturn { rows: rows, count: String(rows.length), nextIndex: String(index + 1) };\n"
+                  },
+                  "response_json": [
+                   {
+                    "key": "01w8tp4z",
+                    "name": "rows",
+                    "title": "rows",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                     {
+                      "key": "01pibbj0",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": [],
+                      "isArrayItem": true
+                     }
+                    ]
+                   },
+                   {
+                    "key": "01qsyv4c",
+                    "name": "count",
+                    "title": "count",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                   },
+                   {
+                    "key": "01n6uzxx",
+                    "name": "nextIndex",
+                    "title": "nextIndex",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                   }
+                  ],
+                  "title": "Release slice",
+                  "nodeName": "Release slice",
+                  "name": "Release slice"
+                 }
+                },
+                {
+                 "id": "update_node_IBfzRel",
+                 "type": "update-node",
+                 "data": {
+                  "table_id": {
+                   "source": "Inventory Balance Lock:Table:2105132021358956546",
+                   "rules": {
+                    "collectionId": "2105132021358956546",
+                    "list": [
+                     {
+                      "id": 1,
+                      "parentId": 0,
+                      "isTop": true,
+                      "type": "leaf",
+                      "prop": "id",
+                      "operator": "in",
+                      "valueType": "field",
+                      "value": "{{node:code_node_IBfzSlice.data.rows.id}}",
+                      "level": 1
+                     }
+                    ]
+                   }
+                  },
+                  "props": {
+                   "list": [
+                    {
+                     "prop": "id",
+                     "operator": "",
+                     "valueType": "field",
+                     "value": "{{node:code_node_IBfzSlice.data.rows.id}}"
+                    },
+                    {
+                     "prop": "owner_operation_id",
+                     "operator": "",
+                     "valueType": "field",
+                     "value": "{{node:code_node_IBfzSlice.data.rows.owner_operation_id}}"
+                    },
+                    {
+                     "prop": "last_owner_operation_id",
+                     "operator": "",
+                     "valueType": "field",
+                     "value": "{{node:code_node_IBfzSlice.data.rows.last_owner_operation_id}}"
+                    },
+                    {
+                     "prop": "last_released_at",
+                     "operator": "",
+                     "valueType": "field",
+                     "value": "{{node:code_node_IBfzSlice.data.rows.last_released_at}}"
+                    },
+                    {
+                     "prop": "lock_version",
+                     "operator": "",
+                     "valueType": "field",
+                     "value": "{{node:code_node_IBfzSlice.data.rows.lock_version}}"
+                    }
+                   ]
+                  },
+                  "title": "Lock release step 1: owner cleared, last owner = this operation",
+                  "nodeName": "Lock release step 1: owner cleared, last owner = this operation",
+                  "name": "Lock release step 1: owner cleared, last owner = this operation"
+                 }
+                },
+                {
+                 "id": "set_cache_IBfzIdxN",
+                 "type": "set-cache-node",
+                 "data": {
+                  "redis_key": "iba_fz_{{node:code_node_IBguard.data.nonce}}",
+                  "custom_wkbocgni": {
+                   "type": "javascript",
+                   "code": "{{node:code_node_IBfzSlice.data.nextIndex}}"
+                  },
+                  "limit_time": 3600000,
+                  "title": "Next release slice index",
+                  "nodeName": "Next release slice index",
+                  "name": "Next release slice index"
+                 }
+                }
+               ]
+              },
+              {
+               "id": "workflow_node_IBfzGive",
+               "type": "workflow-node",
+               "data": {
+                "workflow": {
+                 "rules": {
+                  "collectionId": "2105936479113383937",
+                  "list": []
+                 },
+                 "source": "INVENTORY_LOCK_TOKENS:Workflow:2105936479113383937"
+                },
+                "body_params": {
+                 "list": [
+                  {
+                   "prop": "mode",
+                   "value": "GIVE"
+                  },
+                  {
+                   "prop": "operation_id",
+                   "value": "{{node:code_node_IBguard.data.operationKey}}"
+                  },
+                  {
+                   "prop": "organization_id",
+                   "value": "{{node:code_node_IBguard.data.organizationId}}"
+                  },
+                  {
+                   "prop": "claimed_at",
+                   "value": ""
+                  },
+                  {
+                   "prop": "ids",
+                   "value": "{{node:code_node_IBfzRelease.data.plusIds}}"
+                  }
+                 ]
+                },
+                "title": "Lock release step 2: INVENTORY_LOCK_TOKENS GIVE",
+                "nodeName": "Lock release step 2: INVENTORY_LOCK_TOKENS GIVE",
+                "name": "Lock release step 2: INVENTORY_LOCK_TOKENS GIVE"
+               }
+              }
+             ],
+             "id": "cor_IBfzRel2_condition-or-node-item_0"
+            },
+            {
+             "type": "condition-or-node-item",
+             "key": "default",
+             "data": {
+              "title": "NO",
+              "nodeName": "NO",
+              "name": "NO",
+              "isDefault": true
+             },
+             "blocks": [],
+             "id": "cor_IBfzRel2_condition-or-node-item_1"
+            }
+           ]
+          }
+         ],
+         "id": "cor_IBfzRelease_condition-or-node-item_0"
+        },
+        {
+         "type": "condition-or-node-item",
+         "key": "default",
+         "data": {
+          "title": "NO",
+          "nodeName": "NO",
+          "name": "NO",
+          "isDefault": true
+         },
+         "blocks": [],
+         "id": "cor_IBfzRelease_condition-or-node-item_1"
+        }
+       ]
+      },
+      {
+       "id": "update_node_IBrunEndFence",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Publish Step:Table:2105131615547461634",
+         "rules": {
+          "collectionId": "2105131615547461634",
+          "list": [
+           {
+            "id": 1,
+            "parentId": 0,
+            "isTop": true,
+            "type": "leaf",
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_IBrunMe.data.runId}}",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "props": {
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunMe.data.runId}}"
+          },
+          {
+           "prop": "step_status",
+           "operator": "",
+           "valueType": "value",
+           "value": "ENDED"
+          }
+         ]
+        },
+        "title": "Run marker: ENDED (superseded)",
+        "nodeName": "Run marker: ENDED (superseded)",
+        "name": "Run marker: ENDED (superseded)"
+       }
+      },
+      {
+       "id": "return_node_IBfenced",
+       "type": "return-node",
+       "data": {
+        "title": "返回数据",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "operator": "",
+           "valueType": "value",
+           "value": "409"
+          },
+          {
+           "prop": "result_code",
+           "operator": "",
+           "valueType": "value",
+           "value": "LOCK_BUSY"
+          },
+          {
+           "prop": "message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBfence.data.message}}"
+          }
+         ]
+        },
+        "return_raw_data": 0,
+        "return_data": {},
+        "status_code": 200
+       }
+      }
+     ],
+     "id": "if_IBfenced_ifBlock_0"
+    },
+    {
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [],
+     "id": "if_IBfenced_ifBlock_1"
+    }
+   ]
+  },
+  {
+   "id": "update_node_IBrunHb2",
+   "type": "update-node",
+   "data": {
+    "table_id": {
+     "source": "GD Publish Step:Table:2105131615547461634",
+     "rules": {
+      "collectionId": "2105131615547461634",
+      "list": [
+       {
+        "id": 1,
+        "parentId": 0,
+        "isTop": true,
+        "type": "leaf",
+        "prop": "id",
+        "operator": "in",
+        "valueType": "field",
+        "value": "{{node:code_node_IBrunMe.data.runId}}",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "props": {
+     "list": [
+      {
+       "prop": "id",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_IBrunMe.data.runId}}"
+      },
+      {
+       "prop": "finished_at",
+       "operator": "",
+       "valueType": "field",
+       "value": "{{node:code_node_IBfence.data.dbNow}}"
+      }
+     ]
+    },
+    "title": "Run marker heartbeat: before the writes",
+    "nodeName": "Run marker heartbeat: before the writes",
+    "name": "Run marker heartbeat: before the writes"
+   }
   },
   {
    "id": "cor_IBwrite",
@@ -6057,7 +7941,7 @@
        "data": {
         "script": {
          "type": "sql",
-         "code": "SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, lock_version,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND organization_id = '{{node:code_node_IBguard.data.organizationId}}'\n   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_IBguard.data.lockKeysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND is_deleted = 0"
+         "code": "SELECT CAST(id AS CHAR) AS id, lock_key, free_token, owner_operation_id, last_owner_operation_id, lock_version,\n       DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now\n  FROM inventory_balance_lock\n WHERE tenant_id = '{{node:code_node_IBguard.data.tenantId}}'\n   AND organization_id = '{{node:code_node_IBguard.data.organizationId}}'\n   AND lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_IBguard.data.lockKeysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND is_deleted = 0"
         },
         "response_json": [
          {
@@ -6091,6 +7975,15 @@
           "key": "0192c6l4",
           "name": "owner_operation_id",
           "title": "owner_operation_id",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "01lstown",
+          "name": "last_owner_operation_id",
+          "title": "last_owner_operation_id",
           "description": "",
           "bsonType": "string",
           "isExpand": false,
@@ -6140,7 +8033,7 @@
         "isValidator": true,
         "script": {
          "type": "javascript",
-         "code": "// INVENTORY_BULK_APPLY lock release plan: this operation's rows only (owner cleared first, then GIVE adds the token back)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst rows = [{{node:sql_node_IBrel.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nlet dbNow = \"\";\nfor (const r of list) if (r && !dbNow && r.db_now) dbNow = s(r.db_now);\nconst clearRows = [];\nfor (const r of list) {\n  if (!r || s(r.owner_operation_id) !== op || !/^[0-9]{1,20}$/.test(s(r.id))) continue;\n  if (Number(r.free_token) !== 0) continue;\n  clearRows.push({ id: s(r.id), owner_operation_id: \"\", last_owner_operation_id: op, last_released_at: dbNow, lock_version: (Number(r.lock_version) || 0) + 1 });\n}\nconst batches = [];\nfor (let i = 0; i < clearRows.length; i += 250) batches.push({ from: i });\nreturn { clearRows: clearRows, batches: batches, plusIds: clearRows.map((r) => r.id), needRelease: clearRows.length ? \"YES\" : \"NO\" };\n"
+         "code": "// INVENTORY_BULK_APPLY lock release plan: this operation's rows only (owner cleared first, then GIVE adds the token back); a row its\n// own earlier release left between the two (owner empty, last owner = this operation) goes straight to GIVE\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v));\nconst op = s([{{node:code_node_IBguard.data.operationKey}}][0]);\nconst rows = [{{node:sql_node_IBrel.data}}][0];\nconst list = Array.isArray(rows) ? rows : rows ? [rows] : [];\nlet dbNow = \"\";\nfor (const r of list) if (r && !dbNow && r.db_now) dbNow = s(r.db_now);\nconst clearRows = [];\nconst plusIds = [];\nfor (const r of list) {\n  if (!r || !/^[0-9]{1,20}$/.test(s(r.id)) || Number(r.free_token) !== 0) continue;\n  if (s(r.owner_operation_id) === op) {\n    clearRows.push({ id: s(r.id), owner_operation_id: \"\", last_owner_operation_id: op, last_released_at: dbNow, lock_version: (Number(r.lock_version) || 0) + 1 });\n    plusIds.push(s(r.id));\n  } else if (s(r.owner_operation_id) === \"\" && s(r.last_owner_operation_id) === op) plusIds.push(s(r.id));\n}\nconst batches = [];\nfor (let i = 0; i < clearRows.length; i += 250) batches.push({ from: i });\nreturn { clearRows: clearRows, batches: batches, plusIds: plusIds, needRelease: plusIds.length ? \"YES\" : \"NO\", dbNow: dbNow };"
         },
         "response_json": [
          {
@@ -6211,6 +8104,15 @@
           "bsonType": "string",
           "isExpand": false,
           "children": []
+         },
+         {
+          "key": "rdbnow00",
+          "name": "dbNow",
+          "title": "dbNow",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
          }
         ],
         "title": "Lock release plan: this operation only",
@@ -6252,6 +8154,50 @@
           }
          },
          "blocks": [
+          {
+           "id": "update_node_IBrunHb3",
+           "type": "update-node",
+           "data": {
+            "table_id": {
+             "source": "GD Publish Step:Table:2105131615547461634",
+             "rules": {
+              "collectionId": "2105131615547461634",
+              "list": [
+               {
+                "id": 1,
+                "parentId": 0,
+                "isTop": true,
+                "type": "leaf",
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_IBrunMe.data.runId}}",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "props": {
+             "list": [
+              {
+               "prop": "id",
+               "operator": "",
+               "valueType": "field",
+               "value": "{{node:code_node_IBrunMe.data.runId}}"
+              },
+              {
+               "prop": "finished_at",
+               "operator": "",
+               "valueType": "field",
+               "value": "{{node:code_node_IBrelease.data.dbNow}}"
+              }
+             ]
+            },
+            "title": "Run marker heartbeat: before the GIVE",
+            "nodeName": "Run marker heartbeat: before the GIVE",
+            "name": "Run marker heartbeat: before the GIVE"
+           }
+          },
           {
            "id": "set_cache_IBrlIdx0",
            "type": "set-cache-node",
@@ -6499,6 +8445,101 @@
      },
      "blocks": [],
      "id": "cor_IBrelease_condition-or-node-item_1"
+    }
+   ]
+  },
+  {
+   "id": "cor_IBrunEnd",
+   "type": "condition-or-node",
+   "data": {
+    "title": "Run marker to end?",
+    "nodeName": "Run marker to end?",
+    "name": "Run marker to end?"
+   },
+   "blocks": [
+    {
+     "type": "condition-or-node-item",
+     "key": "YES",
+     "data": {
+      "title": "YES",
+      "nodeName": "YES",
+      "name": "YES",
+      "condition_type": "ConditionRule",
+      "filter": {
+       "list": [
+        {
+         "id": 1,
+         "parentId": 0,
+         "isTop": true,
+         "type": "leaf",
+         "prop": "node.code_node_IBstate.data.runGate",
+         "operator": "equal",
+         "valueType": "value",
+         "value": "CLAIM",
+         "level": 1
+        }
+       ]
+      }
+     },
+     "blocks": [
+      {
+       "id": "update_node_IBrunEnd",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "GD Publish Step:Table:2105131615547461634",
+         "rules": {
+          "collectionId": "2105131615547461634",
+          "list": [
+           {
+            "id": 1,
+            "parentId": 0,
+            "isTop": true,
+            "type": "leaf",
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_IBrunMe.data.runId}}",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "props": {
+         "list": [
+          {
+           "prop": "id",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_IBrunMe.data.runId}}"
+          },
+          {
+           "prop": "step_status",
+           "operator": "",
+           "valueType": "value",
+           "value": "ENDED"
+          }
+         ]
+        },
+        "title": "Run marker: ENDED",
+        "nodeName": "Run marker: ENDED",
+        "name": "Run marker: ENDED"
+       }
+      }
+     ],
+     "id": "cor_IBrunEnd_condition-or-node-item_0"
+    },
+    {
+     "type": "condition-or-node-item",
+     "key": "default",
+     "data": {
+      "title": "NO",
+      "nodeName": "NO",
+      "name": "NO",
+      "isDefault": true
+     },
+     "blocks": [],
+     "id": "cor_IBrunEnd_condition-or-node-item_1"
     }
    ]
   },

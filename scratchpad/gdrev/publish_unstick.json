@@ -1,0 +1,66 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_COMPLETE_WORKER",
+   "dataId": "2110182645714518018",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/CompleteV2/GD_COMPLETE_WORKER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_COMPLETE_WORKER.live_v3.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  },
+  {
+   "name": "GD_CANCEL_WORKER",
+   "dataId": "2112455700319932418",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/CancelV2/GD_CANCEL_WORKER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_CANCEL_WORKER.live_v3.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  },
+  {
+   "name": "GD_REVERT_WORKER",
+   "dataId": "2112758130420088833",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_WORKER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_REVERT_WORKER.live_v3.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  },
+  {
+   "name": "GD_PICKING_OUTBOX_CONSUMER",
+   "dataId": "2105134245397041153",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_PICKING_OUTBOX_CONSUMER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_PICKING_OUTBOX_CONSUMER.live_v10.json",
+   "smoke": {
+    "request": {
+     "event_id": "GD_COMMITTED|1|1"
+    },
+    "expect": {
+     "key": "consumer_route",
+     "equals": "IDLE"
+    }
+   }
+  }
+ ]
+}

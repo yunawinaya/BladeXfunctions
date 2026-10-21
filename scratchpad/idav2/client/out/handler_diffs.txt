@@ -1,0 +1,478 @@
+--- base/mounted.js
++++ built/mounted.js
+@@ -18,4 +18,5 @@
+     Completed: "completed_status",
+     "Fully Posted": "fullyposted_status",
++    Processing: "processing_status",
+   };
+   if (statusMap[status]) {
+@@ -157,4 +158,160 @@
+ };
+ 
++// IDA V2: a Processing Item Disassembly is read-only until its background job ends; opening it follows the job (STATUS, a worker
++// kick every 15 s) and a failed job is shown once per browser. Switch off or an id not set: no workflow call, no browser storage.
++const IDA_BG_WF = {
++  SUBMIT: "2112748971830149121", // IDA_V2_SUBMIT
++  WORKER: "2112749010379997186", // IDA_V2_WORKER
++};
++const IDA_BG_ENABLED = true;
++const IDA_BG_POLL_MS = 3000;
++const IDA_BG_KICK_MS = 15000;
++const IDA_BG_WAIT_MS = 420000;
++
++const idaBgId = (v) => /^[1-9][0-9]{0,19}$/.test(String(v || "").trim());
++const idaBgOn = () => IDA_BG_ENABLED === true && idaBgId(IDA_BG_WF.SUBMIT) && idaBgId(IDA_BG_WF.WORKER);
++const idaBgText = (v) => String(v === undefined || v === null ? "" : v).trim();
++
++const idaBgRun = (id, params) =>
++  new Promise((resolve, reject) => {
++    const p = this.runWorkflow(
++      id,
++      params,
++      (res) => resolve(res),
++      (err) => reject(err),
++    );
++    if (p && typeof p.then === "function") p.then((res) => resolve(res), (err) => reject(err));
++  });
++
++const idaBgStatus = async (idaId) => {
++  try {
++    const res = await idaBgRun(IDA_BG_WF.SUBMIT, { operation: "STATUS", saveAs: "Completed", pageStatus: "Edit", ida_id: String(idaId),
++      idempotency_key: "", source: "FORM", form: {} });
++    return (res && res.data) || null;
++  } catch (error) {
++    console.error("Item Disassembly V2: status check failed", error);
++    return null;
++  }
++};
++
++const idaBgKick = (jobId) => {
++  try {
++    const p = this.runWorkflow(
++      IDA_BG_WF.WORKER,
++      { job_id: String(jobId) },
++      () => {},
++      (error) => console.error("Item Disassembly V2: worker start failed", error),
++    );
++    if (p && typeof p.catch === "function") p.catch(() => {});
++  } catch (error) {
++    console.error("Item Disassembly V2: worker could not be started", error);
++  }
++};
++
++// true when this browser already showed the job (and marks it shown)
++const idaFailedSeen = (jobId) => {
++  let seen = false;
++  try {
++    const key = "ida_v2_failed_seen_" + jobId;
++    seen = localStorage.getItem(key) === "1";
++    localStorage.setItem(key, "1");
++  } catch (e) {}
++  return seen;
++};
++
++const idaBgAlert = (message, title, type) => this.$alert(message, title, { confirmButtonText: "OK", type: type }).catch(() => {});
++
++const idaFollowBackground = async (idaId, name, jobOnRecord) => {
++  const refreshList = () => {
++    if (this.parentGenerateForm) this.parentGenerateForm.refresh();
++  };
++  const deadline = Date.now() + IDA_BG_WAIT_MS;
++  let kickedAt = 0;
++  let st = await idaBgStatus(idaId);
++  for (;;) {
++    if (st && (st.job_status === "NONE" || (idaBgText(st.terminal) === "YES" && !st.job_id))) {
++      // a new disassembly whose completion stopped before its link is released only when that job is worked
++      if (/^[0-9]{1,20}$/.test(jobOnRecord)) idaBgKick(jobOnRecord);
++      refreshList();
++      this.$message.warning(name + " is not being processed in the background any more. Close it and open it again to see its current state.");
++      return;
++    }
++    if (st && st.job_id) {
++      const js = idaBgText(st.job_status);
++      if (js === "COMPLETED") {
++        this.$message.success(name + " has been completed. Reopen it to see the result.");
++        refreshList();
++        return;
++      }
++      if (js === "FAILED" || js === "CANCELLED") {
++        refreshList();
++        if (idaFailedSeen(st.job_id)) return;
++        const reason = idaBgText(st.error_message || st.error_code || "No reason was given.");
++        await idaBgAlert(reason + (/[.!?]$/.test(reason) ? "" : ".") + " Reopen it to continue.", name + " was not completed", "error");
++        return;
++      }
++      if (js === "REQUIRES_REVIEW") {
++        await idaBgAlert(
++          "It stopped part-way through and needs a review before it can be changed. Please contact support." +
++            (st.error_message ? " (" + st.error_message + ")" : ""),
++          name + " needs a review",
++          "warning",
++        );
++        return;
++      }
++      // a retry backoff, a stock-lock wait or a parked second phase moves only when the worker is kicked again
++      if (!kickedAt || Date.now() - kickedAt >= IDA_BG_KICK_MS) {
++        if (!kickedAt) this.$message.info(name + " is being completed in the background. It is read-only until that finishes.");
++        kickedAt = Date.now();
++        idaBgKick(st.job_id);
++      }
++    }
++    if (Date.now() >= deadline) {
++      this.$message.info(name + " is still being processed in the background. Reopen it later.");
++      return;
++    }
++    await new Promise((resolve) => setTimeout(resolve, IDA_BG_POLL_MS));
++    st = await idaBgStatus(idaId);
++  }
++};
++
++// a disassembly a job once held (ida_v2_job_id) and released: its failure is shown once per browser; a job with nothing to
++// show is not asked about again in this browser
++const idaShowLastFailure = async (idaId, jobId, name) => {
++  try {
++    if (localStorage.getItem("ida_v2_failed_seen_" + jobId) === "1") return;
++  } catch (e) {
++    return;
++  }
++  const st = await idaBgStatus(idaId);
++  if (!st || !st.job_id) return;
++  const js = idaBgText(st.job_status);
++  if (["FAILED", "CANCELLED", "COMPLETED"].indexOf(js) < 0) return;
++  const shown = idaFailedSeen(st.job_id);
++  if (String(st.job_id) !== String(jobId)) idaFailedSeen(jobId);
++  if (shown || js === "COMPLETED") return;
++  const reason = idaBgText(st.error_message || st.error_code || "No reason was given.");
++  this.$message.warning(name + ": its last background completion failed - " + reason);
++};
++
++const idaBackgroundView = (pageStatus, status) => {
++  if (pageStatus !== "Edit" && pageStatus !== "View") return;
++  const on = idaBgOn();
++  if (status !== "Processing" && (!on || (status !== "Draft" && status !== "Completed"))) return;
++  const jobOnRecord = idaBgText(this.getValue("ida_v2_job_id"));
++  if (status !== "Processing" && !/^[0-9]{1,20}$/.test(jobOnRecord)) return;
++  const idaId = idaBgText(this.getValue("id"));
++  const name = ("Item Disassembly " + idaBgText(this.getValue("stock_movement_no"))).trim();
++  if (status === "Processing") {
++    if (!on) {
++      this.$message.warning(name + " is being processed in the background. It is read-only until that finishes.");
++      return;
++    }
++    idaFollowBackground(idaId, name, jobOnRecord);
++    return;
++  }
++  if (idaBgId(idaId)) idaShowLastFailure(idaId, jobOnRecord, name);
++};
++
+ (async () => {
+   try {
+@@ -212,4 +369,8 @@
+             "comp_post_button",
+           ]);
++        } else if (status === "Processing") {
++          // a background job holds it: read-only, no save or post button
++          this.hide(["button_draft", "button_completed", "comp_post_button", "button_post"]);
++          lockComponentsTable();
+         } else {
+           // Fully Posted and anything else past Draft: the stock has already
+@@ -226,4 +387,6 @@
+         break;
+     }
++
++    idaBackgroundView(pageStatus, status);
+   } catch (error) {
+     console.error(error);
+
+--- base/onChange_idaSourceItem.js
++++ built/onChange_idaSourceItem.js
+@@ -1,2 +1,45 @@
++// Chunked id reads with an explicit limit (the API clamps a read at IDA_READ_MAX rows, as GDonMounted.js); a short answer is read
++// again for the ids it left out; a failed read rejects
++const IDA_READ_CHUNK = 500;
++const IDA_READ_MAX = 5000;
++const idaChunks = (list, size) => {
++  const out = [];
++  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
++  return out;
++};
++const idaUniq = (list) => [...new Set((list || []).filter((v) => v !== undefined && v !== null && v !== "").map(String))];
++// rows of `collection` whose id is in `ids` (is_deleted 0), `fields` projected
++const idaReadIds = async (collection, ids, fields) => {
++  const rows = [];
++  await Promise.all(
++    idaChunks(idaUniq(ids), Math.min(IDA_READ_CHUNK, IDA_READ_MAX)).map(async (chunk) => {
++      let left = chunk;
++      while (left.length) {
++        let query = db.collection(collection).filter([
++          {
++            type: "branch",
++            operator: "all",
++            children: [
++              { prop: "id", operator: "in", value: left },
++              { prop: "is_deleted", operator: "equal", value: 0 },
++            ],
++          },
++        ]);
++        if (fields) query = query.field(fields);
++        const res = await query.limit(left.length).get();
++        const got = (res && res.data) || [];
++        rows.push(...got);
++        const seen = new Set(got.map((row) => String(row.id)));
++        const missing = left.filter((id) => !seen.has(id));
++        if (!got.length || missing.length === left.length) return;
++        left = missing;
++      }
++    }),
++  );
++  return { data: rows };
++};
++// every Item column this handler reads (.field() also prunes the Item subform joins)
++const IDA_ITEM_FIELDS = "material_code,material_name,material_desc,based_uom,serial_number_management,item_batch_management,batch_number_genaration,table_uom_conversion,table_default_bin";
++
+ (async () => {
+   const idaHeaderSelectionVisibility = arguments[0]?.value || "";
+@@ -66,23 +109,8 @@
+     }
+ 
+-    const fetchByIds = async (collection, ids) => {
+-      if (!ids.length) return { data: [] };
+-      return db
+-        .collection(collection)
+-        .filter([
+-          {
+-            type: "branch",
+-            operator: "all",
+-            children: [
+-              { prop: "id", operator: "in", value: ids },
+-              { prop: "is_deleted", operator: "equal", value: 0 },
+-            ],
+-          },
+-        ])
+-        .get();
+-    };
++    const fetchByIds = (collection, ids, fields) => idaReadIds(collection, ids, fields);
+ 
+     const [parentRes, bomRes] = await Promise.all([
+-      fetchByIds("item", [itemId]),
++      fetchByIds("item", [itemId], IDA_ITEM_FIELDS),
+       db
+         .collection("bill_of_materials")
+@@ -150,5 +178,5 @@
+       ...new Set(components.map((line) => line.bom_material_code)),
+     ];
+-    const componentRes = await fetchByIds("item", componentIds);
++    const componentRes = await fetchByIds("item", componentIds, IDA_ITEM_FIELDS);
+     const itemMap = new Map(
+       (componentRes.data || []).map((item) => [String(item.id), item]),
+@@ -188,4 +216,5 @@
+           location_type: "Common",
+         })
++        .limit(1)
+         .get()
+         .catch(() => ({ data: [] }));
+@@ -201,4 +230,5 @@
+             bin_status: 1,
+           })
++          .limit(1)
+           .get()
+           .catch(() => ({ data: [] }));
+@@ -375,4 +405,5 @@
+             is_deleted: 0,
+           })
++          .limit(IDA_READ_MAX)
+           .get()
+           .catch(() => ({ data: [] })),
+@@ -380,4 +411,5 @@
+           .collection("handling_unit_atu7sreg_sub")
+           .where({ material_id: itemId, is_deleted: 0 })
++          .limit(IDA_READ_MAX)
+           .get()
+           .catch(() => ({ data: [] })),
+@@ -410,4 +442,6 @@
+               },
+             ])
++            .field("plant_id")
++            .limit(IDA_READ_MAX)
+             .get()
+             .catch(() => ({ data: [] }))
+@@ -478,4 +512,5 @@
+               .collection("bin_location")
+               .where({ id: balance.location_id, is_deleted: 0 })
++              .limit(1)
+               .get()
+               .catch(() => ({ data: [] }))
+@@ -485,4 +520,5 @@
+               .collection("batch")
+               .where({ id: balance.batch_id, is_deleted: 0 })
++              .limit(1)
+               .get()
+               .catch(() => ({ data: [] }))
+@@ -495,4 +531,5 @@
+                 is_deleted: 0,
+               })
++              .limit(1)
+               .get()
+               .catch(() => ({ data: [] }))
+
+--- base/onClick_post.js
++++ built/onClick_post.js
+@@ -22,8 +22,29 @@
+     }
+ 
+-    const resAI = await db
+-      .collection("accounting_integration")
+-      .where({ organization_id: organizationId })
+-      .get();
++    // The form can be stale (a background job may hold it now, or it was posted since): the stored status decides.
++    const [resAI, storedRes] = await Promise.all([
++      db
++        .collection("accounting_integration")
++        .where({ organization_id: organizationId })
++        .get(),
++      db
++        .collection("sm_item_disassembly")
++        .where({ id: stockMovementId, is_deleted: 0 })
++        .field("item_disassembly_status,posted_status")
++        .get(),
++    ]);
++    const dictKey = (v) => String((v && typeof v === "object" ? v.dict_key : v) || "").trim();
++    const stored = (storedRes && storedRes.data && storedRes.data[0]) || null;
++    const status = stored ? dictKey(stored.item_disassembly_status) : "";
++    const posted = stored ? dictKey(stored.posted_status) : "";
++    if (status !== "Completed" || ["Unposted", "Failed Post", ""].indexOf(posted) < 0) {
++      this.hideLoading();
++      this.$message.error(
++        stored
++          ? `This Item Disassembly cannot be posted (${[status || "no status", posted].filter((x) => x).join(", ")}).`
++          : "This Item Disassembly is no longer available."
++      );
++      return;
++    }
+     const aiData = resAI.data[0];
+ 
+
+--- base/list_delete.js
++++ built/list_delete.js
+@@ -14,6 +14,7 @@
+     // Once a disassembly is completed the source item has left stock and the
+     // recovered components have been received; deleting the document would
+-    // strand both.
+-    if (status === "Completed" || status === "Fully Posted") {
++    // strand both. A Processing one is being completed in the background.
++    const UNDELETABLE = ["Completed", "Fully Posted", "Processing"];
++    if (UNDELETABLE.includes(status)) {
+       this.$message.error(
+         `Item Disassembly ${label} is ${status} and cannot be deleted.`
+@@ -46,4 +47,22 @@
+       throw new Error("cancelled");
+     });
++
++    // The grid can be stale (a background job may hold it now): the stored status decides.
++    const storedRes = await db
++      .collection("sm_item_disassembly")
++      .where({ id: row.id, is_deleted: 0 })
++      .field("item_disassembly_status")
++      .get();
++    const stored = (storedRes && storedRes.data && storedRes.data[0]) || null;
++    const storedStatus = stored ? statusOf(stored.item_disassembly_status) : "";
++    if (!stored || UNDELETABLE.includes(storedStatus)) {
++      this.$message.error(
++        stored
++          ? `Item Disassembly ${label} is ${storedStatus} and cannot be deleted.`
++          : `Item Disassembly ${label} is no longer available.`
++      );
++      this.refresh();
++      return;
++    }
+ 
+     await db
+
+--- base/list_onItemDisassemblyPostfunc_ee9v0c1h.js
++++ built/list_onItemDisassemblyPostfunc_ee9v0c1h.js
+@@ -1,2 +1,43 @@
++// Chunked id reads with an explicit limit (the API clamps a read at IDA_READ_MAX rows, as GDonMounted.js); a short answer is read
++// again for the ids it left out; a failed read rejects
++const IDA_READ_CHUNK = 500;
++const IDA_READ_MAX = 5000;
++const idaChunks = (list, size) => {
++  const out = [];
++  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
++  return out;
++};
++const idaUniq = (list) => [...new Set((list || []).filter((v) => v !== undefined && v !== null && v !== "").map(String))];
++// rows of `collection` whose id is in `ids` (is_deleted 0), `fields` projected
++const idaReadIds = async (collection, ids, fields) => {
++  const rows = [];
++  await Promise.all(
++    idaChunks(idaUniq(ids), Math.min(IDA_READ_CHUNK, IDA_READ_MAX)).map(async (chunk) => {
++      let left = chunk;
++      while (left.length) {
++        let query = db.collection(collection).filter([
++          {
++            type: "branch",
++            operator: "all",
++            children: [
++              { prop: "id", operator: "in", value: left },
++              { prop: "is_deleted", operator: "equal", value: 0 },
++            ],
++          },
++        ]);
++        if (fields) query = query.field(fields);
++        const res = await query.limit(left.length).get();
++        const got = (res && res.data) || [];
++        rows.push(...got);
++        const seen = new Set(got.map((row) => String(row.id)));
++        const missing = left.filter((id) => !seen.has(id));
++        if (!got.length || missing.length === left.length) return;
++        left = missing;
++      }
++    }),
++  );
++  return { data: rows };
++};
++
+ const callPostItemDisassemblyWorkflow = async (selectedRecords, aiData) => {
+   switch (aiData.acc_integration_type) {
+@@ -86,8 +127,37 @@
+     }
+ 
+-    const resAI = await db
+-      .collection("accounting_integration")
+-      .where({ organization_id: organizationID })
+-      .get();
++    // The grid can be stale (a background job may hold a row now, or it was posted since): the stored status decides.
++    const [resAI, storedRes] = await Promise.all([
++      db
++        .collection("accounting_integration")
++        .where({ organization_id: organizationID })
++        .get(),
++      idaReadIds(
++        "sm_item_disassembly",
++        selectedRecords.map((item) => item.id),
++        "item_disassembly_status,posted_status",
++      ),
++    ]);
++    const storedKey = (value) => String(dictValue(value) ?? "").trim();
++    const stored = new Map((storedRes.data || []).map((row) => [String(row.id), row]));
++    const postable = (item) => {
++      const row = stored.get(String(item.id));
++      return !!row && storedKey(row.item_disassembly_status) === "Completed" &&
++        ["Unposted", "Failed Post", ""].indexOf(storedKey(row.posted_status)) >= 0;
++    };
++    const changed = selectedRecords.filter((item) => !postable(item));
++    selectedRecords = selectedRecords.filter(postable);
++    if (changed.length > 0) {
++      const why = (item) => {
++        const row = stored.get(String(item.id));
++        return row ? [storedKey(row.item_disassembly_status) || "no status", storedKey(row.posted_status)].filter((x) => x).join(", ") : "no longer available";
++      };
++      this.$message.warning(`Not posted, changed since the list loaded: ${changed.map((item) => `${item.stock_movement_no || item.id} (${why(item)})`).join("; ")}`);
++    }
++    if (selectedRecords.length === 0) {
++      this.refresh();
++      this.hideLoading();
++      return;
++    }
+ 
+     if (resAI && resAI.data && resAI.data.length > 0) {

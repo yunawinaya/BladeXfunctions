@@ -17,7 +17,8 @@ const PROD_FIXTURES = "/Users/yunawinaya/Documents/ASC-dev/iav2-fixtures/a";
 const fixturePath = (name) => path.join(/^prod_/.test(name) ? PROD_FIXTURES : path.join(__dirname, "fixtures"), name + ".json");
 const hasFixture = (name) => fs.existsSync(fixturePath(name));
 const fixture = (name) => parseBig(fs.readFileSync(fixturePath(name), "utf8"));
-const built = () => parseBig(fs.readFileSync(path.join(OUT, "IA_V2_PREPARE.json"), "utf8"));
+// IAP_BUILT: another build of IA_V2_PREPARE (the RES-01 mutants)
+const built = () => parseBig(fs.readFileSync(process.env.IAP_BUILT || path.join(OUT, "IA_V2_PREPARE.json"), "utf8"));
 const nodeById = (doc, id) => {
   let hit = null;
   const walk = (n) => {
@@ -111,7 +112,9 @@ const JOB = "2112100000000000001";
 const DB_NOW = "2026-10-19 16:30:00";
 // one PREPARE run of the built IA_V2_PREPARE.json; spec = { tenant, iaId, key, request, hdr, lines, items, bins, job, owner, planI, planR }
 function runPrepare(spec) {
-  const doc = built();
+  let doc = built();
+  // RES-01 R4: spec.res = the holds read ({ hold, rows, live }); the stored hold status decides (review I4: no switch in the plan)
+  const resFile = null;
   const tenant = spec.tenant || "000000";
   const db = new RecDB(tenant);
   const jobRow = Object.assign({ db_now: DB_NOW, id: JOB, organization_id: spec.org, command: "COMPLETE_IA", job_status: "VALIDATING", lease_owner: "WRK|aaaaaaaaaaaaaaaaaaaaaaaa",
@@ -133,7 +136,8 @@ function runPrepare(spec) {
   };
   const sql = { sql_node_IPjob: rows("sql_node_IPjob", spec.jobRows || [jobRow]), sql_node_IPowner: rows("sql_node_IPowner", [ownerRow]),
     sql_node_IPhdr: rows("sql_node_IPhdr", spec.hdr), sql_node_IPlines: rows("sql_node_IPlines", spec.lines), sql_node_IPitems: rows("sql_node_IPitems", spec.items),
-    sql_node_IPbins: rows("sql_node_IPbins", spec.bins || []), sql_node_IPback: back };
+    sql_node_IPbins: rows("sql_node_IPbins", spec.bins || []), sql_node_IPback: back,
+    sql_node_IPres: rows("sql_node_IPres", [jrow(spec.res || { hold: "", rows: null, live: 0 })]) };
   // spec.engine = { items, bal, batch, fifo, wa }: the real INVENTORY_BULK_APPLY v10 (base/) plans on these rows (its reads mocked)
   const E = spec.engine;
   if (E) {
@@ -144,7 +148,7 @@ function runPrepare(spec) {
   }
   const sim = new Sim({
     dir: OUT, db: db, mocks: { sql: sql, read: {} },
-    load: E ? { INVENTORY_BULK_APPLY: path.join(IAV2, "base", "INVENTORY_BULK_APPLY.v10.json") } : {},
+    load: Object.assign(E ? { INVENTORY_BULK_APPLY: path.join(IAV2, "base", "INVENTORY_BULK_APPLY.v10.json") } : {}, resFile ? { IA_V2_PREPARE: resFile } : process.env.IAP_BUILT ? { IA_V2_PREPARE: process.env.IAP_BUILT } : {}),
     answers: E ? {} : { INVENTORY_BULK_APPLY: (p) => {
       const side = /\|R$/.test(p.operation_key) ? "R" : "I";
       const a = spec["plan" + side];

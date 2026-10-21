@@ -45,7 +45,8 @@ const session = (values, o) => {
     reads: (collection, n) => w.trace.slice(n || 0).filter((t) => /db\.get$/.test(t[0]) && t[1].collection === collection),
     wf: (id, n) => w.trace.slice(n || 0).filter((t) => /runWorkflow$/.test(t[0]) && t[1] === id),
     text: (n) => JSON.stringify(w.trace.slice(n || 0)),
-    // the info panel as the user sees it: "Label: value" per row shown (the last display / hide wins; at first, the widget's hidden)
+    // the info panel as the user sees it: "Label: value" per row shown (the last display / hide wins; at first, the widget's hidden);
+    // the Sales Order card's rows, then the BOM row (in the Production section since UI-01)
     panel: () => {
       const rows = [];
       const walk = (n) => {
@@ -56,6 +57,7 @@ const session = (values, o) => {
         }
       };
       walk(H.findModel(doc.list, "sc_info"));
+      if (!rows.some((r) => r[0] === "sc_info_bom")) walk(H.findModel(doc.list, "sc_info_bom"));
       const on = {};
       rows.forEach((r) => (on[r[0]] = r[2]));
       w.trace.forEach((t) => {

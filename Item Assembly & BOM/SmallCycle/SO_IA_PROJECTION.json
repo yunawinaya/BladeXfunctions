@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "it0u33ll",
+   "key": "zgdvvjxf",
    "name": "operation",
    "title": "operation",
    "description": "SUMMARY | CANDIDATES",
@@ -10,7 +10,7 @@
    "children": []
   },
   {
-   "key": "492zsuj7",
+   "key": "7iar4nfs",
    "name": "so_id",
    "title": "so_id",
    "description": "sales_order.id (optional)",
@@ -19,7 +19,7 @@
    "children": []
   },
   {
-   "key": "9k4ohgxp",
+   "key": "8269fkwi",
    "name": "so_line_id",
    "title": "so_line_id",
    "description": "the SO line id (SUMMARY)",
@@ -28,7 +28,7 @@
    "children": []
   },
   {
-   "key": "zgdvvjxf",
+   "key": "h2yf8cpx",
    "name": "item_id",
    "title": "item_id",
    "description": "the FG item id",
@@ -37,7 +37,7 @@
    "children": []
   },
   {
-   "key": "7iar4nfs",
+   "key": "6ina97ak",
    "name": "exclude_ia_id",
    "title": "exclude_ia_id",
    "description": "the IA being edited (optional)",
@@ -46,7 +46,7 @@
    "children": []
   },
   {
-   "key": "8269fkwi",
+   "key": "18k269dt",
    "name": "organization_id",
    "title": "organization_id",
    "description": "the caller's organisation",
@@ -55,7 +55,7 @@
    "children": []
   },
   {
-   "key": "h2yf8cpx",
+   "key": "lngdnabr",
    "name": "proposal_qty",
    "title": "proposal_qty",
    "description": "the IA's proposed quantity (optional)",
@@ -64,7 +64,7 @@
    "children": []
   },
   {
-   "key": "6ina97ak",
+   "key": "6kgd7kvo",
    "name": "proposal_uom_id",
    "title": "proposal_uom_id",
    "description": "its UOM",
@@ -73,7 +73,7 @@
    "children": []
   },
   {
-   "key": "18k269dt",
+   "key": "ocem3qof",
    "name": "baseline",
    "title": "baseline",
    "description": "the IA's source_so_context_json (optional)",
@@ -84,7 +84,7 @@
  ],
  "response_json": [
   {
-   "key": "lngdnabr",
+   "key": "emz84h0a",
    "name": "code",
    "title": "code",
    "description": "",
@@ -92,7 +92,7 @@
    "isExpand": false
   },
   {
-   "key": "6kgd7kvo",
+   "key": "9t7cqxdk",
    "name": "message",
    "title": "message",
    "description": "",
@@ -100,7 +100,7 @@
    "isExpand": false
   },
   {
-   "key": "ocem3qof",
+   "key": "fxgevexh",
    "name": "result_json",
    "title": "result_json",
    "description": "",
@@ -130,11 +130,11 @@
     "timeout": 30000,
     "script": {
      "type": "javascript",
-     "code": "// Small Cycle IA SO-line projection (scratchpad/iasc/CONTRACT.md section 6): pure, ES2015\nconst spS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst spNum = (v) => {\n  const x = parseFloat(v);\n  return isFinite(x) ? x : 0;\n};\nconst spQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// JSON text with 16+ digit integer tokens kept as strings (ids never become floats); objects pass through\nconst spParseJ = (v) => {\n  if (v && typeof v === \"object\") return v;\n  const t = spS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// sql-node rows carrying one JSON column `j` (text or object) -> objects\nconst spRows = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []).map((r) => (r && r.j !== undefined ? spParseJ(r.j) : null)).filter((x) => x && typeof x === \"object\");\nconst spConvs = (it) => {\n  let c = it && it.table_uom_conversion;\n  if (typeof c === \"string\") c = spParseJ(c);\n  return (Array.isArray(c) ? c : []).filter((x) => x && typeof x === \"object\");\n};\n// factor to the FG's base UOM (\"alt_qty alt = base_qty base\"); null when unknown, never 1:1\nconst spToBase = (fg, uom) => {\n  const u = spS(uom);\n  if (!fg) return null;\n  if (!u || u === spS(fg.based_uom)) return 1;\n  const c = spConvs(fg).filter((x) => spS(x.alt_uom_id) === u)[0];\n  if (!c) return null;\n  const a = spNum(c.alt_qty);\n  const b = spNum(c.base_qty);\n  return a > 0 && b > 0 ? b / a : null;\n};\nconst SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };\nconst SP_DONE = { Completed: 1, \"Fully Posted\": 1 };\n\nconst scProject = (input) => {\n  const inp = input || {};\n  const line = inp.line || null;\n  const header = inp.header || null;\n  const fg = inp.fg || null;\n  const uomName = typeof inp.uomName === \"function\" ? inp.uomName : (id) => id;\n  const warnings = [];\n  const warn = (code, text) => warnings.push({ code: code, text: text });\n  const soNo = spS(header && header.so_no) || \"the Sales Order\";\n  const where = soNo + (line && spS(line.line_index) ? \" line \" + spS(line.line_index) : \"\");\n  const lineLive = !!line && Number(line.is_deleted) !== 1;\n  const headLive = !!header && Number(header.is_deleted) !== 1;\n  const lineUom = spS(line && line.so_item_uom) || spS(fg && fg.based_uom);\n  const conv = (qty, fromUom) => {\n    const from = spS(fromUom) || spS(fg && fg.based_uom);\n    if (from === lineUom) return spNum(qty);\n    const a = spToBase(fg, from);\n    const b = spToBase(fg, lineUom);\n    return a === null || b === null ? null : (spNum(qty) * a) / b;\n  };\n  const ordered = lineLive ? spNum(line.so_quantity) : 0;\n  const delivered = lineLive ? spNum(line.delivered_qty) : 0;\n  let complete = true;\n  let planned = 0;\n  let produced = 0;\n  let open = 0;\n  const ias = (Array.isArray(inp.ias) ? inp.ias : []).map((x) => {\n    const status = spS(x.status);\n    const id = spS(x.id);\n    const row = { id: id, no: spS(x.no), status: status, role: \"none\", qty: null, itemQty: spQ8(x.item_qty), uomId: spS(x.item_uom),\n      planned: spQ8(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty), mode: spS(x.mode) };\n    if (Number(x.is_deleted) === 1) return row;\n    if (!SP_OPEN[status] && !SP_DONE[status]) {\n      warn(\"IA_STATUS_UNKNOWN\", \"Item Assembly \" + row.no + \" has status \" + (status || \"(blank)\") + \", so it is not counted.\");\n      return row;\n    }\n    const qty = conv(x.item_qty, x.item_uom);\n    const plan = conv(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty, x.item_uom);\n    if (qty === null || plan === null) {\n      complete = false;\n      warn(\"UNCONVERTIBLE\", \"Item Assembly \" + row.no + \" is in \" + uomName(spS(x.item_uom)) + \", which cannot be converted to \" + uomName(lineUom)\n        + \": the figures are incomplete.\");\n      return row;\n    }\n    row.qty = spQ8(qty);\n    planned += plan;\n    if (SP_DONE[status]) {\n      row.role = \"produced\";\n      produced += qty;\n    } else if (id && id === spS(inp.excludeIaId)) {\n      row.role = \"excluded\";\n    } else {\n      row.role = \"open\";\n      open += qty;\n    }\n    return row;\n  });\n  const headStatus = spS(header && header.so_status);\n  const lineStatus = spS(line && line.line_status);\n  if (!headLive) warn(\"SO_REMOVED\", \"The linked Sales Order no longer exists.\");\n  else if (headStatus === \"Cancelled\") warn(\"SO_CANCELLED\", soNo + \" is cancelled: it has no remaining demand.\");\n  else if (headStatus === \"Void\") warn(\"SO_VOID\", soNo + \" is void: it has no remaining demand.\");\n  else if (headStatus === \"Completed\") warn(\"SO_CLOSED\", soNo + \" is completed: it has no remaining demand.\");\n  else if (headStatus === \"Draft\") warn(\"SO_DRAFT\", soNo + \" is still a Draft.\");\n  else if (headStatus !== \"Issued\" && headStatus !== \"Processing\") warn(\"SO_INACTIVE\", soNo + \" has status \" + (headStatus || \"(blank)\") + \": it has no active demand.\");\n  if (!lineLive) warn(\"LINE_REMOVED\", \"The linked line of \" + soNo + \" no longer exists (it was removed or re-created): re-link this Item Assembly to a current line.\");\n  else if (lineStatus === \"Completed\") warn(\"LINE_COMPLETED\", where + \" is completed.\");\n  else if (lineStatus === \"Cancelled\") warn(\"LINE_CANCELLED\", where + \" is cancelled.\");\n  const itemMismatch = lineLive && spS(inp.iaItemId) && spS(line.item_name) !== spS(inp.iaItemId);\n  if (itemMismatch) warn(\"ITEM_CHANGED\", where + \" is for a different item than this Item Assembly.\");\n  const base = inp.baseline && typeof inp.baseline === \"object\" ? inp.baseline : null;\n  if (base && lineLive) {\n    if (spS(base.uomId) && spS(base.uomId) !== lineUom) warn(\"UOM_CHANGED\", where + \" changed its unit from \" + uomName(spS(base.uomId)) + \" to \" + uomName(lineUom) + \" since it was linked.\");\n    else if (spNum(base.orderedQty) > ordered + 1e-9) warn(\"REDUCED\", where + \" was reduced from \" + spQ8(base.orderedQty) + \" to \" + spQ8(ordered) + \" \" + uomName(lineUom) + \" since it was linked.\");\n  }\n  const active = lineLive && headLive && (headStatus === \"Issued\" || headStatus === \"Processing\") && lineStatus !== \"Completed\" && lineStatus !== \"Cancelled\";\n  let excess = 0;\n  if (inp.proposal && complete) {\n    const p = conv(inp.proposal.qty, inp.proposal.uomId);\n    if (p === null) complete = false;\n    else if (active) excess = spQ8(Math.max(0, Math.max(delivered, produced) + open + p - ordered));\n  }\n  if (excess > 0) warn(\"EXCESS\", \"This plan exceeds the remaining demand of \" + where + \" by \" + excess + \" \" + uomName(lineUom) + \"; you can still continue.\");\n  let reason = \"\";\n  if (!headLive || !lineLive) reason = \"The Sales Order line no longer exists.\";\n  else if (spS(inp.iaOrgId) && spS(header.organization_id) !== spS(inp.iaOrgId)) reason = soNo + \" belongs to another organisation.\";\n  else if (!active) reason = where + \" has no active demand (\" + (headStatus || \"no status\") + (lineStatus ? \" / \" + lineStatus : \"\") + \").\";\n  else if (itemMismatch) reason = where + \" is for a different item.\";\n  const suggestion = !complete ? null : active ? spQ8(Math.max(0, ordered - Math.max(delivered, produced) - open)) : 0;\n  return { ok: true, code: \"\", message: \"\", eligibleNew: !reason, reason: reason, uomId: lineUom,\n    totals: { ordered: spQ8(ordered), delivered: spQ8(delivered), undelivered: spQ8(Math.max(ordered - delivered, 0)), planned: spQ8(planned),\n      produced: spQ8(produced), open: spQ8(open), openOthers: spQ8(open), suggestion: suggestion, excess: excess, complete: complete },\n    ias: ias, warnings: warnings, candidates: Array.isArray(inp.candidates) ? inp.candidates : [] };\n};\n// CANDIDATES: the eligible lines for a new link, each with its own suggestion\nconst scCandidates = (input) => {\n  const inp = input || {};\n  const all = Array.isArray(inp.ias) ? inp.ias : [];\n  const out = [];\n  (Array.isArray(inp.rows) ? inp.rows : []).forEach((row) => {\n    const lineId = spS(row && row.line && row.line.id);\n    const p = scProject({ line: row.line, header: row.header, fg: inp.fg, ias: all.filter((x) => spS(x.source_so_line_id) === lineId),\n      iaItemId: inp.iaItemId, iaOrgId: inp.iaOrgId, uomName: inp.uomName });\n    if (!p.eligibleNew) return;\n    out.push({ lineId: lineId, soId: spS(row.header && row.header.id), soNo: spS(row.header && row.header.so_no), lineIndex: spS(row.line.line_index),\n      customerId: spS(row.header && row.header.customer_id), customerName: spS(row.header && row.header.customer_name), uomId: p.uomId,\n      ordered: p.totals.ordered, delivered: p.totals.delivered, undelivered: p.totals.undelivered, suggestion: p.totals.suggestion });\n  });\n  return out;\n};\n// SO_IA_PROJECTION - Guard: the operation, the session tenant, digit ids, the optional proposal and link baseline\nconst spGuard = function spGuard(input) {\n  const inp = input || {};\n  const digits = (v) => /^[0-9]{1,20}$/.test(spS(v));\n  const op = spS(inp.operation);\n  const bad = (why) => ({ route: \"REJECT\", code: \"400\", tenantId: \"0\", so: \"0\", line: \"0\", item: \"0\", exclude: \"\", org: \"0\", proposal: null, baseline: null,\n    result_code: \"SC_INVALID_DATA\", result_message: why, result_json: \"\" });\n  if (op !== \"SUMMARY\" && op !== \"CANDIDATES\") return bad(\"operation: SUMMARY or CANDIDATES\");\n  if (!digits(inp.tenantId)) return bad(\"no session tenant\");\n  if (!digits(inp.organization_id)) return bad(\"organization_id: digits only\");\n  if (!digits(inp.item_id)) return bad(\"item_id: digits only\");\n  if (op === \"SUMMARY\" && !digits(inp.so_line_id)) return bad(\"so_line_id: digits only\");\n  const opt = [\"so_id\", \"exclude_ia_id\", \"proposal_uom_id\"].filter((k) => spS(inp[k]) && !digits(inp[k]))[0];\n  if (opt) return bad(opt + \": digits only\");\n  const pq = spS(inp.proposal_qty);\n  if (pq && !/^[0-9]+(\\.[0-9]+)?$/.test(pq)) return bad(\"proposal_qty: a quantity\");\n  const baseline = spParseJ(inp.baseline);\n  return { route: op, tenantId: spS(inp.tenantId), so: spS(inp.so_id) || \"0\", line: op === \"SUMMARY\" ? spS(inp.so_line_id) : \"0\", item: spS(inp.item_id),\n    exclude: spS(inp.exclude_ia_id), org: spS(inp.organization_id), proposal: pq ? { qty: pq, uomId: spS(inp.proposal_uom_id) } : null,\n    baseline: baseline && typeof baseline === \"object\" && !Array.isArray(baseline) ? baseline : null, code: \"200\", result_code: \"\", result_message: \"\", result_json: \"\" };\n};\nconst res = spGuard({ operation: [{{workflowparams:operation}}][0], so_id: [{{workflowparams:so_id}}][0], so_line_id: [{{workflowparams:so_line_id}}][0],\n  item_id: [{{workflowparams:item_id}}][0], exclude_ia_id: [{{workflowparams:exclude_ia_id}}][0], organization_id: [{{workflowparams:organization_id}}][0],\n  proposal_qty: [{{workflowparams:proposal_qty}}][0], proposal_uom_id: [{{workflowparams:proposal_uom_id}}][0], baseline: [{{workflowparams:baseline}}][0],\n  tenantId: [{{system:tenantId}}][0] });\nconsole.log(\"projection guard\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
+     "code": "// Small Cycle IA SO-line projection (scratchpad/iasc/CONTRACT.md section 6): pure, ES2015\nconst spS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst spNum = (v) => {\n  const x = parseFloat(v);\n  return isFinite(x) ? x : 0;\n};\nconst spQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// JSON text with 16+ digit integer tokens kept as strings (ids never become floats); objects pass through\nconst spParseJ = (v) => {\n  if (v && typeof v === \"object\") return v;\n  const t = spS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// sql-node rows carrying one JSON column `j` (text or object) -> objects\nconst spRows = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []).map((r) => (r && r.j !== undefined ? spParseJ(r.j) : null)).filter((x) => x && typeof x === \"object\");\nconst spConvs = (it) => {\n  let c = it && it.table_uom_conversion;\n  if (typeof c === \"string\") c = spParseJ(c);\n  return (Array.isArray(c) ? c : []).filter((x) => x && typeof x === \"object\");\n};\n// factor to the FG's base UOM (\"alt_qty alt = base_qty base\"); null when unknown, never 1:1\nconst spToBase = (fg, uom) => {\n  const u = spS(uom);\n  if (!fg) return null;\n  if (!u || u === spS(fg.based_uom)) return 1;\n  const c = spConvs(fg).filter((x) => spS(x.alt_uom_id) === u)[0];\n  if (!c) return null;\n  const a = spNum(c.alt_qty);\n  const b = spNum(c.base_qty);\n  return a > 0 && b > 0 ? b / a : null;\n};\nconst SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };\nconst SP_DONE = { Completed: 1, \"Fully Posted\": 1 };\n\nconst scProject = (input) => {\n  const inp = input || {};\n  const line = inp.line || null;\n  const header = inp.header || null;\n  const fg = inp.fg || null;\n  const uomName = typeof inp.uomName === \"function\" ? inp.uomName : (id) => id;\n  const warnings = [];\n  const warn = (code, text) => warnings.push({ code: code, text: text });\n  const soNo = spS(header && header.so_no) || \"the Sales Order\";\n  const where = soNo + (line && spS(line.line_index) ? \" line \" + spS(line.line_index) : \"\");\n  const lineLive = !!line && Number(line.is_deleted) !== 1;\n  const headLive = !!header && Number(header.is_deleted) !== 1;\n  const lineUom = spS(line && line.so_item_uom) || spS(fg && fg.based_uom);\n  const conv = (qty, fromUom) => {\n    const from = spS(fromUom) || spS(fg && fg.based_uom);\n    if (from === lineUom) return spNum(qty);\n    const a = spToBase(fg, from);\n    const b = spToBase(fg, lineUom);\n    return a === null || b === null ? null : (spNum(qty) * a) / b;\n  };\n  const ordered = lineLive ? spNum(line.so_quantity) : 0;\n  const delivered = lineLive ? spNum(line.delivered_qty) : 0;\n  let complete = true;\n  let planned = 0;\n  let produced = 0;\n  let open = 0;\n  const ias = (Array.isArray(inp.ias) ? inp.ias : []).map((x) => {\n    const status = spS(x.status);\n    const id = spS(x.id);\n    const row = { id: id, no: spS(x.no), status: status, role: \"none\", qty: null, itemQty: spQ8(x.item_qty), uomId: spS(x.item_uom),\n      planned: spQ8(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty), mode: spS(x.mode) };\n    if (Number(x.is_deleted) === 1) return row;\n    if (!SP_OPEN[status] && !SP_DONE[status]) {\n      warn(\"IA_STATUS_UNKNOWN\", \"Item Assembly \" + row.no + \" has status \" + (status || \"(blank)\") + \", so it is not counted.\");\n      return row;\n    }\n    const qty = conv(x.item_qty, x.item_uom);\n    const plan = conv(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty, x.item_uom);\n    if (qty === null || plan === null) {\n      complete = false;\n      warn(\"UNCONVERTIBLE\", \"Item Assembly \" + row.no + \" is in \" + uomName(spS(x.item_uom)) + \", which cannot be converted to \" + uomName(lineUom)\n        + \": the figures are incomplete.\");\n      return row;\n    }\n    row.qty = spQ8(qty);\n    planned += plan;\n    if (SP_DONE[status]) {\n      row.role = \"produced\";\n      produced += qty;\n    } else if (id && id === spS(inp.excludeIaId)) {\n      row.role = \"excluded\";\n    } else {\n      row.role = \"open\";\n      open += qty;\n    }\n    return row;\n  });\n  const headStatus = spS(header && header.so_status);\n  const lineStatus = spS(line && line.line_status);\n  if (!headLive) warn(\"SO_REMOVED\", \"The linked Sales Order no longer exists.\");\n  else if (headStatus === \"Cancelled\") warn(\"SO_CANCELLED\", soNo + \" is cancelled: it has no remaining demand.\");\n  else if (headStatus === \"Void\") warn(\"SO_VOID\", soNo + \" is void: it has no remaining demand.\");\n  else if (headStatus === \"Completed\") warn(\"SO_CLOSED\", soNo + \" is completed: it has no remaining demand.\");\n  else if (headStatus === \"Draft\") warn(\"SO_DRAFT\", soNo + \" is still a Draft.\");\n  else if (headStatus !== \"Issued\" && headStatus !== \"Processing\") warn(\"SO_INACTIVE\", soNo + \" has status \" + (headStatus || \"(blank)\") + \": it has no active demand.\");\n  if (!lineLive) warn(\"LINE_REMOVED\", \"The linked line of \" + soNo + \" no longer exists (it was removed or re-created): re-link this Item Assembly to a current line.\");\n  else if (lineStatus === \"Completed\") warn(\"LINE_COMPLETED\", where + \" is completed.\");\n  else if (lineStatus === \"Cancelled\") warn(\"LINE_CANCELLED\", where + \" is cancelled.\");\n  const itemMismatch = lineLive && spS(inp.iaItemId) && spS(line.item_name) !== spS(inp.iaItemId);\n  if (itemMismatch) warn(\"ITEM_CHANGED\", where + \" is for a different item than this Item Assembly.\");\n  const base = inp.baseline && typeof inp.baseline === \"object\" ? inp.baseline : null;\n  if (base && lineLive) {\n    if (spS(base.uomId) && spS(base.uomId) !== lineUom) warn(\"UOM_CHANGED\", where + \" changed its unit from \" + uomName(spS(base.uomId)) + \" to \" + uomName(lineUom) + \" since it was linked.\");\n    else if (spNum(base.orderedQty) > ordered + 1e-9) warn(\"REDUCED\", where + \" was reduced from \" + spQ8(base.orderedQty) + \" to \" + spQ8(ordered) + \" \" + uomName(lineUom) + \" since it was linked.\");\n  }\n  const active = lineLive && headLive && (headStatus === \"Issued\" || headStatus === \"Processing\") && lineStatus !== \"Completed\" && lineStatus !== \"Cancelled\";\n  // nothing records which delivery came from which IA: when both delivered and produced are above 0 they may overlap, so the\n  // remaining demand lies between ordered - delivered - produced - open (no overlap) and ordered - max(delivered, produced) - open\n  const overlap = Math.min(delivered, produced) > 0;\n  let excess = 0;\n  if (inp.proposal && complete) {\n    const p = conv(inp.proposal.qty, inp.proposal.uomId);\n    if (p === null) complete = false;\n    else if (active) excess = spQ8(Math.max(0, Math.max(delivered, produced) + open + p - ordered));\n  }\n  // with an unknown overlap the excess is only a lower bound\n  if (excess > 0) warn(\"EXCESS\", \"This plan exceeds the remaining demand of \" + where + \" by \" + (overlap ? \"at least \" : \"\") + excess + \" \" + uomName(lineUom) + \"; you can still continue.\");\n  let reason = \"\";\n  if (!headLive || !lineLive) reason = \"The Sales Order line no longer exists.\";\n  else if (spS(inp.iaOrgId) && spS(header.organization_id) !== spS(inp.iaOrgId)) reason = soNo + \" belongs to another organisation.\";\n  else if (!active) reason = where + \" has no active demand (\" + (headStatus || \"no status\") + (lineStatus ? \" / \" + lineStatus : \"\") + \").\";\n  else if (itemMismatch) reason = where + \" is for a different item.\";\n  const lo = spQ8(Math.max(0, ordered - delivered - produced - open));\n  const hi = spQ8(Math.max(0, ordered - Math.max(delivered, produced) - open));\n  // exact only when both bounds agree; an inactive line has no demand (a genuine 0)\n  const unavailable = !complete ? \"UNCONVERTIBLE\" : active && lo !== hi ? \"OVERLAP\" : \"\";\n  const suggestion = unavailable ? null : active ? hi : 0;\n  return { ok: true, code: \"\", message: \"\", eligibleNew: !reason, reason: reason, uomId: lineUom,\n    totals: { ordered: spQ8(ordered), delivered: spQ8(delivered), undelivered: spQ8(Math.max(ordered - delivered, 0)), planned: spQ8(planned),\n      produced: spQ8(produced), open: spQ8(open), openOthers: spQ8(open), suggestion: suggestion, unavailable: unavailable, excess: excess,\n      excessExact: !overlap, complete: complete },\n    ias: ias, warnings: warnings, candidates: Array.isArray(inp.candidates) ? inp.candidates : [] };\n};\n// CANDIDATES: the eligible lines for a new link, each with its own suggestion\nconst scCandidates = (input) => {\n  const inp = input || {};\n  const all = Array.isArray(inp.ias) ? inp.ias : [];\n  const out = [];\n  (Array.isArray(inp.rows) ? inp.rows : []).forEach((row) => {\n    const lineId = spS(row && row.line && row.line.id);\n    const p = scProject({ line: row.line, header: row.header, fg: inp.fg, ias: all.filter((x) => spS(x.source_so_line_id) === lineId),\n      iaItemId: inp.iaItemId, iaOrgId: inp.iaOrgId, uomName: inp.uomName });\n    if (!p.eligibleNew) return;\n    out.push({ lineId: lineId, soId: spS(row.header && row.header.id), soNo: spS(row.header && row.header.so_no), lineIndex: spS(row.line.line_index),\n      customerId: spS(row.header && row.header.customer_id), customerName: spS(row.header && row.header.customer_name), uomId: p.uomId,\n      ordered: p.totals.ordered, delivered: p.totals.delivered, undelivered: p.totals.undelivered, suggestion: p.totals.suggestion });\n  });\n  return out;\n};\n// SO_IA_PROJECTION - Guard: the operation, the session tenant, digit ids, the optional proposal and link baseline\nconst spGuard = function spGuard(input) {\n  const inp = input || {};\n  const digits = (v) => /^[0-9]{1,20}$/.test(spS(v));\n  const op = spS(inp.operation);\n  const bad = (why) => ({ route: \"REJECT\", code: \"400\", tenantId: \"0\", uid: \"0\", so: \"0\", line: \"0\", item: \"0\", exclude: \"\", org: \"0\", proposal: null, baseline: null,\n    result_code: \"SC_INVALID_DATA\", result_message: why, result_json: \"\" });\n  if (op !== \"SUMMARY\" && op !== \"CANDIDATES\") return bad(\"operation: SUMMARY or CANDIDATES\");\n  if (!digits(inp.tenantId)) return bad(\"no session tenant\");\n  // FIX-03: the organisation is checked against the session user, never taken on trust\n  if (!digits(inp.uid)) return bad(\"no session user\");\n  if (!digits(inp.organization_id)) return bad(\"organization_id: digits only\");\n  if (!digits(inp.item_id)) return bad(\"item_id: digits only\");\n  if (op === \"SUMMARY\" && !digits(inp.so_line_id)) return bad(\"so_line_id: digits only\");\n  const opt = [\"so_id\", \"exclude_ia_id\", \"proposal_uom_id\"].filter((k) => spS(inp[k]) && !digits(inp[k]))[0];\n  if (opt) return bad(opt + \": digits only\");\n  const pq = spS(inp.proposal_qty);\n  if (pq && !/^[0-9]+(\\.[0-9]+)?$/.test(pq)) return bad(\"proposal_qty: a quantity\");\n  const baseline = spParseJ(inp.baseline);\n  return { route: op, tenantId: spS(inp.tenantId), uid: spS(inp.uid), so: spS(inp.so_id) || \"0\", line: op === \"SUMMARY\" ? spS(inp.so_line_id) : \"0\", item: spS(inp.item_id),\n    exclude: spS(inp.exclude_ia_id), org: spS(inp.organization_id), proposal: pq ? { qty: pq, uomId: spS(inp.proposal_uom_id) } : null,\n    baseline: baseline && typeof baseline === \"object\" && !Array.isArray(baseline) ? baseline : null, code: \"200\", result_code: \"\", result_message: \"\", result_json: \"\" };\n};\nconst res = spGuard({ operation: [{{workflowparams:operation}}][0], so_id: [{{workflowparams:so_id}}][0], so_line_id: [{{workflowparams:so_line_id}}][0],\n  item_id: [{{workflowparams:item_id}}][0], exclude_ia_id: [{{workflowparams:exclude_ia_id}}][0], organization_id: [{{workflowparams:organization_id}}][0],\n  proposal_qty: [{{workflowparams:proposal_qty}}][0], proposal_uom_id: [{{workflowparams:proposal_uom_id}}][0], baseline: [{{workflowparams:baseline}}][0],\n  tenantId: [{{system:tenantId}}][0], uid: [{{system:uid}}][0] });\nconsole.log(\"projection guard\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
     },
     "response_json": [
      {
-      "key": "x2j9vagm",
+      "key": "32uzcvig",
       "name": "route",
       "title": "route",
       "description": "",
@@ -143,7 +143,7 @@
       "children": []
      },
      {
-      "key": "bn182ku0",
+      "key": "1ko3bh6z",
       "name": "code",
       "title": "code",
       "description": "",
@@ -152,7 +152,7 @@
       "children": []
      },
      {
-      "key": "32uzcvig",
+      "key": "fzmgfpak",
       "name": "tenantId",
       "title": "tenantId",
       "description": "",
@@ -161,7 +161,16 @@
       "children": []
      },
      {
-      "key": "1ko3bh6z",
+      "key": "ei3w5c6x",
+      "name": "uid",
+      "title": "uid",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "nax09br6",
       "name": "so",
       "title": "so",
       "description": "",
@@ -170,7 +179,7 @@
       "children": []
      },
      {
-      "key": "fzmgfpak",
+      "key": "2dv8kvi9",
       "name": "line",
       "title": "line",
       "description": "",
@@ -179,7 +188,7 @@
       "children": []
      },
      {
-      "key": "ei3w5c6x",
+      "key": "7hpbxks1",
       "name": "item",
       "title": "item",
       "description": "",
@@ -188,7 +197,7 @@
       "children": []
      },
      {
-      "key": "nax09br6",
+      "key": "nof6tvwh",
       "name": "exclude",
       "title": "exclude",
       "description": "",
@@ -197,7 +206,7 @@
       "children": []
      },
      {
-      "key": "2dv8kvi9",
+      "key": "qrhkehh2",
       "name": "org",
       "title": "org",
       "description": "",
@@ -206,7 +215,7 @@
       "children": []
      },
      {
-      "key": "7hpbxks1",
+      "key": "9jw8066q",
       "name": "proposal",
       "title": "proposal",
       "description": "",
@@ -215,7 +224,7 @@
       "children": []
      },
      {
-      "key": "nof6tvwh",
+      "key": "6re4u2z5",
       "name": "baseline",
       "title": "baseline",
       "description": "",
@@ -224,7 +233,7 @@
       "children": []
      },
      {
-      "key": "qrhkehh2",
+      "key": "it0u33ll",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -233,7 +242,7 @@
       "children": []
      },
      {
-      "key": "9jw8066q",
+      "key": "492zsuj7",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -242,7 +251,7 @@
       "children": []
      },
      {
-      "key": "6re4u2z5",
+      "key": "9k4ohgxp",
       "name": "result_json",
       "title": "result_json",
       "description": "",
@@ -251,10 +260,10 @@
       "children": []
      }
     ],
-    "title": "Guard: operation, session tenant, digit ids",
+    "title": "Guard: operation, session tenant and user, digit ids",
     "isValidator": true,
-    "nodeName": "Guard: operation, session tenant, digit ids",
-    "name": "Guard: operation, session tenant, digit ids"
+    "nodeName": "Guard: operation, session tenant and user, digit ids",
+    "name": "Guard: operation, session tenant and user, digit ids"
    },
    "blocks": []
   },
@@ -652,6 +661,56 @@
                "blocks": []
               }
              ]
+            },
+            {
+             "id": "cai_SPmember",
+             "type": "condition-all-node-item",
+             "data": {
+              "title": "Member",
+              "filter": {
+               "list": []
+              },
+              "expression": {
+               "code": "",
+               "type": "javascript"
+              },
+              "displayContent": "sdk.form.setCondition",
+              "isValidator": true,
+              "nodeName": "Member",
+              "name": "Member",
+              "condition_type": "ConditionRule"
+             },
+             "blocks": [
+              {
+               "id": "sql_node_SPmember",
+               "type": "sql-node",
+               "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Is the session user assigned to the organisation (FIX-03)",
+                "isValidator": true,
+                "nodeName": "Is the session user assigned to the organisation (FIX-03)",
+                "name": "Is the session user assigned to the organisation (FIX-03)",
+                "script": {
+                 "type": "sql",
+                 "code": "SELECT JSON_OBJECT('member', (SELECT COUNT(*) FROM blade_dept p\n          WHERE p.tenant_id = '{{node:code_node_SPguard.data.tenantId}}' AND p.is_deleted = 0 AND {{node:code_node_SPguard.data.org}} > 0 AND (p.id = {{node:code_node_SPguard.data.org}} OR FIND_IN_SET('{{node:code_node_SPguard.data.org}}',\n\t\tp.ancestors) > 0)\n            AND FIND_IN_SET(CAST(p.id AS CHAR) COLLATE utf8mb4_general_ci,\n                  (SELECT COALESCE(u.dept_id, '') FROM blade_user u WHERE u.tenant_id = '{{node:code_node_SPguard.data.tenantId}}' AND u.is_deleted = 0 AND u.id = {{node:code_node_SPguard.data.uid}} LIMIT 1)) > 0)) AS j"
+                },
+                "response_json": [
+                 {
+                  "key": "izu7j03e",
+                  "name": "j",
+                  "title": "j",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false,
+                  "children": []
+                 }
+                ]
+               },
+               "blocks": []
+              }
+             ]
             }
            ]
           },
@@ -664,11 +723,11 @@
             "timeout": 30000,
             "script": {
              "type": "javascript",
-             "code": "// Small Cycle IA SO-line projection (scratchpad/iasc/CONTRACT.md section 6): pure, ES2015\nconst spS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst spNum = (v) => {\n  const x = parseFloat(v);\n  return isFinite(x) ? x : 0;\n};\nconst spQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// JSON text with 16+ digit integer tokens kept as strings (ids never become floats); objects pass through\nconst spParseJ = (v) => {\n  if (v && typeof v === \"object\") return v;\n  const t = spS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// sql-node rows carrying one JSON column `j` (text or object) -> objects\nconst spRows = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []).map((r) => (r && r.j !== undefined ? spParseJ(r.j) : null)).filter((x) => x && typeof x === \"object\");\nconst spConvs = (it) => {\n  let c = it && it.table_uom_conversion;\n  if (typeof c === \"string\") c = spParseJ(c);\n  return (Array.isArray(c) ? c : []).filter((x) => x && typeof x === \"object\");\n};\n// factor to the FG's base UOM (\"alt_qty alt = base_qty base\"); null when unknown, never 1:1\nconst spToBase = (fg, uom) => {\n  const u = spS(uom);\n  if (!fg) return null;\n  if (!u || u === spS(fg.based_uom)) return 1;\n  const c = spConvs(fg).filter((x) => spS(x.alt_uom_id) === u)[0];\n  if (!c) return null;\n  const a = spNum(c.alt_qty);\n  const b = spNum(c.base_qty);\n  return a > 0 && b > 0 ? b / a : null;\n};\nconst SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };\nconst SP_DONE = { Completed: 1, \"Fully Posted\": 1 };\n\nconst scProject = (input) => {\n  const inp = input || {};\n  const line = inp.line || null;\n  const header = inp.header || null;\n  const fg = inp.fg || null;\n  const uomName = typeof inp.uomName === \"function\" ? inp.uomName : (id) => id;\n  const warnings = [];\n  const warn = (code, text) => warnings.push({ code: code, text: text });\n  const soNo = spS(header && header.so_no) || \"the Sales Order\";\n  const where = soNo + (line && spS(line.line_index) ? \" line \" + spS(line.line_index) : \"\");\n  const lineLive = !!line && Number(line.is_deleted) !== 1;\n  const headLive = !!header && Number(header.is_deleted) !== 1;\n  const lineUom = spS(line && line.so_item_uom) || spS(fg && fg.based_uom);\n  const conv = (qty, fromUom) => {\n    const from = spS(fromUom) || spS(fg && fg.based_uom);\n    if (from === lineUom) return spNum(qty);\n    const a = spToBase(fg, from);\n    const b = spToBase(fg, lineUom);\n    return a === null || b === null ? null : (spNum(qty) * a) / b;\n  };\n  const ordered = lineLive ? spNum(line.so_quantity) : 0;\n  const delivered = lineLive ? spNum(line.delivered_qty) : 0;\n  let complete = true;\n  let planned = 0;\n  let produced = 0;\n  let open = 0;\n  const ias = (Array.isArray(inp.ias) ? inp.ias : []).map((x) => {\n    const status = spS(x.status);\n    const id = spS(x.id);\n    const row = { id: id, no: spS(x.no), status: status, role: \"none\", qty: null, itemQty: spQ8(x.item_qty), uomId: spS(x.item_uom),\n      planned: spQ8(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty), mode: spS(x.mode) };\n    if (Number(x.is_deleted) === 1) return row;\n    if (!SP_OPEN[status] && !SP_DONE[status]) {\n      warn(\"IA_STATUS_UNKNOWN\", \"Item Assembly \" + row.no + \" has status \" + (status || \"(blank)\") + \", so it is not counted.\");\n      return row;\n    }\n    const qty = conv(x.item_qty, x.item_uom);\n    const plan = conv(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty, x.item_uom);\n    if (qty === null || plan === null) {\n      complete = false;\n      warn(\"UNCONVERTIBLE\", \"Item Assembly \" + row.no + \" is in \" + uomName(spS(x.item_uom)) + \", which cannot be converted to \" + uomName(lineUom)\n        + \": the figures are incomplete.\");\n      return row;\n    }\n    row.qty = spQ8(qty);\n    planned += plan;\n    if (SP_DONE[status]) {\n      row.role = \"produced\";\n      produced += qty;\n    } else if (id && id === spS(inp.excludeIaId)) {\n      row.role = \"excluded\";\n    } else {\n      row.role = \"open\";\n      open += qty;\n    }\n    return row;\n  });\n  const headStatus = spS(header && header.so_status);\n  const lineStatus = spS(line && line.line_status);\n  if (!headLive) warn(\"SO_REMOVED\", \"The linked Sales Order no longer exists.\");\n  else if (headStatus === \"Cancelled\") warn(\"SO_CANCELLED\", soNo + \" is cancelled: it has no remaining demand.\");\n  else if (headStatus === \"Void\") warn(\"SO_VOID\", soNo + \" is void: it has no remaining demand.\");\n  else if (headStatus === \"Completed\") warn(\"SO_CLOSED\", soNo + \" is completed: it has no remaining demand.\");\n  else if (headStatus === \"Draft\") warn(\"SO_DRAFT\", soNo + \" is still a Draft.\");\n  else if (headStatus !== \"Issued\" && headStatus !== \"Processing\") warn(\"SO_INACTIVE\", soNo + \" has status \" + (headStatus || \"(blank)\") + \": it has no active demand.\");\n  if (!lineLive) warn(\"LINE_REMOVED\", \"The linked line of \" + soNo + \" no longer exists (it was removed or re-created): re-link this Item Assembly to a current line.\");\n  else if (lineStatus === \"Completed\") warn(\"LINE_COMPLETED\", where + \" is completed.\");\n  else if (lineStatus === \"Cancelled\") warn(\"LINE_CANCELLED\", where + \" is cancelled.\");\n  const itemMismatch = lineLive && spS(inp.iaItemId) && spS(line.item_name) !== spS(inp.iaItemId);\n  if (itemMismatch) warn(\"ITEM_CHANGED\", where + \" is for a different item than this Item Assembly.\");\n  const base = inp.baseline && typeof inp.baseline === \"object\" ? inp.baseline : null;\n  if (base && lineLive) {\n    if (spS(base.uomId) && spS(base.uomId) !== lineUom) warn(\"UOM_CHANGED\", where + \" changed its unit from \" + uomName(spS(base.uomId)) + \" to \" + uomName(lineUom) + \" since it was linked.\");\n    else if (spNum(base.orderedQty) > ordered + 1e-9) warn(\"REDUCED\", where + \" was reduced from \" + spQ8(base.orderedQty) + \" to \" + spQ8(ordered) + \" \" + uomName(lineUom) + \" since it was linked.\");\n  }\n  const active = lineLive && headLive && (headStatus === \"Issued\" || headStatus === \"Processing\") && lineStatus !== \"Completed\" && lineStatus !== \"Cancelled\";\n  let excess = 0;\n  if (inp.proposal && complete) {\n    const p = conv(inp.proposal.qty, inp.proposal.uomId);\n    if (p === null) complete = false;\n    else if (active) excess = spQ8(Math.max(0, Math.max(delivered, produced) + open + p - ordered));\n  }\n  if (excess > 0) warn(\"EXCESS\", \"This plan exceeds the remaining demand of \" + where + \" by \" + excess + \" \" + uomName(lineUom) + \"; you can still continue.\");\n  let reason = \"\";\n  if (!headLive || !lineLive) reason = \"The Sales Order line no longer exists.\";\n  else if (spS(inp.iaOrgId) && spS(header.organization_id) !== spS(inp.iaOrgId)) reason = soNo + \" belongs to another organisation.\";\n  else if (!active) reason = where + \" has no active demand (\" + (headStatus || \"no status\") + (lineStatus ? \" / \" + lineStatus : \"\") + \").\";\n  else if (itemMismatch) reason = where + \" is for a different item.\";\n  const suggestion = !complete ? null : active ? spQ8(Math.max(0, ordered - Math.max(delivered, produced) - open)) : 0;\n  return { ok: true, code: \"\", message: \"\", eligibleNew: !reason, reason: reason, uomId: lineUom,\n    totals: { ordered: spQ8(ordered), delivered: spQ8(delivered), undelivered: spQ8(Math.max(ordered - delivered, 0)), planned: spQ8(planned),\n      produced: spQ8(produced), open: spQ8(open), openOthers: spQ8(open), suggestion: suggestion, excess: excess, complete: complete },\n    ias: ias, warnings: warnings, candidates: Array.isArray(inp.candidates) ? inp.candidates : [] };\n};\n// CANDIDATES: the eligible lines for a new link, each with its own suggestion\nconst scCandidates = (input) => {\n  const inp = input || {};\n  const all = Array.isArray(inp.ias) ? inp.ias : [];\n  const out = [];\n  (Array.isArray(inp.rows) ? inp.rows : []).forEach((row) => {\n    const lineId = spS(row && row.line && row.line.id);\n    const p = scProject({ line: row.line, header: row.header, fg: inp.fg, ias: all.filter((x) => spS(x.source_so_line_id) === lineId),\n      iaItemId: inp.iaItemId, iaOrgId: inp.iaOrgId, uomName: inp.uomName });\n    if (!p.eligibleNew) return;\n    out.push({ lineId: lineId, soId: spS(row.header && row.header.id), soNo: spS(row.header && row.header.so_no), lineIndex: spS(row.line.line_index),\n      customerId: spS(row.header && row.header.customer_id), customerName: spS(row.header && row.header.customer_name), uomId: p.uomId,\n      ordered: p.totals.ordered, delivered: p.totals.delivered, undelivered: p.totals.undelivered, suggestion: p.totals.suggestion });\n  });\n  return out;\n};\n// SO_IA_PROJECTION - SUMMARY: one SO line's sales and production figures (CONTRACT.md section 6)\nconst g = [{{node:code_node_SPguard.data}}][0] || {};\nconst lh = spRows([{{node:sql_node_SPline.data}}][0])[0] || {};\n// the line is read by id within the tenant: another organisation's Sales Order shows no figures\nif (lh.header && spS(lh.header.organization_id) !== spS(g.org)) {\n  console.log(\"projection summary refused: another organisation\", JSON.stringify({ org: g.org }));\n  return { code: \"400\", message: \"This Sales Order line belongs to another organization.\", result_json: \"\" };\n}\nconst res = scProject({ line: lh.line || null, header: lh.header || null, fg: spRows([{{node:sql_node_SPfg.data}}][0])[0] || null,\n  ias: spRows([{{node:sql_node_SPias.data}}][0]), excludeIaId: g.exclude, iaItemId: g.item, iaOrgId: g.org, proposal: g.proposal, baseline: g.baseline,\n  candidates: spRows([{{node:sql_node_SPrelink.data}}][0]) });\nres.orphans = spRows([{{node:sql_node_SPorphans.data}}][0]);\nres.line = lh.line || null;\nres.header = lh.header || null;\nconsole.log(\"projection summary\", JSON.stringify({ totals: res.totals, warnings: res.warnings.map((w) => w.code) }));\nreturn { code: \"200\", message: \"\", result_json: JSON.stringify(res) };"
+             "code": "// Small Cycle IA SO-line projection (scratchpad/iasc/CONTRACT.md section 6): pure, ES2015\nconst spS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst spNum = (v) => {\n  const x = parseFloat(v);\n  return isFinite(x) ? x : 0;\n};\nconst spQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// JSON text with 16+ digit integer tokens kept as strings (ids never become floats); objects pass through\nconst spParseJ = (v) => {\n  if (v && typeof v === \"object\") return v;\n  const t = spS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// sql-node rows carrying one JSON column `j` (text or object) -> objects\nconst spRows = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []).map((r) => (r && r.j !== undefined ? spParseJ(r.j) : null)).filter((x) => x && typeof x === \"object\");\nconst spConvs = (it) => {\n  let c = it && it.table_uom_conversion;\n  if (typeof c === \"string\") c = spParseJ(c);\n  return (Array.isArray(c) ? c : []).filter((x) => x && typeof x === \"object\");\n};\n// factor to the FG's base UOM (\"alt_qty alt = base_qty base\"); null when unknown, never 1:1\nconst spToBase = (fg, uom) => {\n  const u = spS(uom);\n  if (!fg) return null;\n  if (!u || u === spS(fg.based_uom)) return 1;\n  const c = spConvs(fg).filter((x) => spS(x.alt_uom_id) === u)[0];\n  if (!c) return null;\n  const a = spNum(c.alt_qty);\n  const b = spNum(c.base_qty);\n  return a > 0 && b > 0 ? b / a : null;\n};\nconst SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };\nconst SP_DONE = { Completed: 1, \"Fully Posted\": 1 };\n\nconst scProject = (input) => {\n  const inp = input || {};\n  const line = inp.line || null;\n  const header = inp.header || null;\n  const fg = inp.fg || null;\n  const uomName = typeof inp.uomName === \"function\" ? inp.uomName : (id) => id;\n  const warnings = [];\n  const warn = (code, text) => warnings.push({ code: code, text: text });\n  const soNo = spS(header && header.so_no) || \"the Sales Order\";\n  const where = soNo + (line && spS(line.line_index) ? \" line \" + spS(line.line_index) : \"\");\n  const lineLive = !!line && Number(line.is_deleted) !== 1;\n  const headLive = !!header && Number(header.is_deleted) !== 1;\n  const lineUom = spS(line && line.so_item_uom) || spS(fg && fg.based_uom);\n  const conv = (qty, fromUom) => {\n    const from = spS(fromUom) || spS(fg && fg.based_uom);\n    if (from === lineUom) return spNum(qty);\n    const a = spToBase(fg, from);\n    const b = spToBase(fg, lineUom);\n    return a === null || b === null ? null : (spNum(qty) * a) / b;\n  };\n  const ordered = lineLive ? spNum(line.so_quantity) : 0;\n  const delivered = lineLive ? spNum(line.delivered_qty) : 0;\n  let complete = true;\n  let planned = 0;\n  let produced = 0;\n  let open = 0;\n  const ias = (Array.isArray(inp.ias) ? inp.ias : []).map((x) => {\n    const status = spS(x.status);\n    const id = spS(x.id);\n    const row = { id: id, no: spS(x.no), status: status, role: \"none\", qty: null, itemQty: spQ8(x.item_qty), uomId: spS(x.item_uom),\n      planned: spQ8(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty), mode: spS(x.mode) };\n    if (Number(x.is_deleted) === 1) return row;\n    if (!SP_OPEN[status] && !SP_DONE[status]) {\n      warn(\"IA_STATUS_UNKNOWN\", \"Item Assembly \" + row.no + \" has status \" + (status || \"(blank)\") + \", so it is not counted.\");\n      return row;\n    }\n    const qty = conv(x.item_qty, x.item_uom);\n    const plan = conv(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty, x.item_uom);\n    if (qty === null || plan === null) {\n      complete = false;\n      warn(\"UNCONVERTIBLE\", \"Item Assembly \" + row.no + \" is in \" + uomName(spS(x.item_uom)) + \", which cannot be converted to \" + uomName(lineUom)\n        + \": the figures are incomplete.\");\n      return row;\n    }\n    row.qty = spQ8(qty);\n    planned += plan;\n    if (SP_DONE[status]) {\n      row.role = \"produced\";\n      produced += qty;\n    } else if (id && id === spS(inp.excludeIaId)) {\n      row.role = \"excluded\";\n    } else {\n      row.role = \"open\";\n      open += qty;\n    }\n    return row;\n  });\n  const headStatus = spS(header && header.so_status);\n  const lineStatus = spS(line && line.line_status);\n  if (!headLive) warn(\"SO_REMOVED\", \"The linked Sales Order no longer exists.\");\n  else if (headStatus === \"Cancelled\") warn(\"SO_CANCELLED\", soNo + \" is cancelled: it has no remaining demand.\");\n  else if (headStatus === \"Void\") warn(\"SO_VOID\", soNo + \" is void: it has no remaining demand.\");\n  else if (headStatus === \"Completed\") warn(\"SO_CLOSED\", soNo + \" is completed: it has no remaining demand.\");\n  else if (headStatus === \"Draft\") warn(\"SO_DRAFT\", soNo + \" is still a Draft.\");\n  else if (headStatus !== \"Issued\" && headStatus !== \"Processing\") warn(\"SO_INACTIVE\", soNo + \" has status \" + (headStatus || \"(blank)\") + \": it has no active demand.\");\n  if (!lineLive) warn(\"LINE_REMOVED\", \"The linked line of \" + soNo + \" no longer exists (it was removed or re-created): re-link this Item Assembly to a current line.\");\n  else if (lineStatus === \"Completed\") warn(\"LINE_COMPLETED\", where + \" is completed.\");\n  else if (lineStatus === \"Cancelled\") warn(\"LINE_CANCELLED\", where + \" is cancelled.\");\n  const itemMismatch = lineLive && spS(inp.iaItemId) && spS(line.item_name) !== spS(inp.iaItemId);\n  if (itemMismatch) warn(\"ITEM_CHANGED\", where + \" is for a different item than this Item Assembly.\");\n  const base = inp.baseline && typeof inp.baseline === \"object\" ? inp.baseline : null;\n  if (base && lineLive) {\n    if (spS(base.uomId) && spS(base.uomId) !== lineUom) warn(\"UOM_CHANGED\", where + \" changed its unit from \" + uomName(spS(base.uomId)) + \" to \" + uomName(lineUom) + \" since it was linked.\");\n    else if (spNum(base.orderedQty) > ordered + 1e-9) warn(\"REDUCED\", where + \" was reduced from \" + spQ8(base.orderedQty) + \" to \" + spQ8(ordered) + \" \" + uomName(lineUom) + \" since it was linked.\");\n  }\n  const active = lineLive && headLive && (headStatus === \"Issued\" || headStatus === \"Processing\") && lineStatus !== \"Completed\" && lineStatus !== \"Cancelled\";\n  // nothing records which delivery came from which IA: when both delivered and produced are above 0 they may overlap, so the\n  // remaining demand lies between ordered - delivered - produced - open (no overlap) and ordered - max(delivered, produced) - open\n  const overlap = Math.min(delivered, produced) > 0;\n  let excess = 0;\n  if (inp.proposal && complete) {\n    const p = conv(inp.proposal.qty, inp.proposal.uomId);\n    if (p === null) complete = false;\n    else if (active) excess = spQ8(Math.max(0, Math.max(delivered, produced) + open + p - ordered));\n  }\n  // with an unknown overlap the excess is only a lower bound\n  if (excess > 0) warn(\"EXCESS\", \"This plan exceeds the remaining demand of \" + where + \" by \" + (overlap ? \"at least \" : \"\") + excess + \" \" + uomName(lineUom) + \"; you can still continue.\");\n  let reason = \"\";\n  if (!headLive || !lineLive) reason = \"The Sales Order line no longer exists.\";\n  else if (spS(inp.iaOrgId) && spS(header.organization_id) !== spS(inp.iaOrgId)) reason = soNo + \" belongs to another organisation.\";\n  else if (!active) reason = where + \" has no active demand (\" + (headStatus || \"no status\") + (lineStatus ? \" / \" + lineStatus : \"\") + \").\";\n  else if (itemMismatch) reason = where + \" is for a different item.\";\n  const lo = spQ8(Math.max(0, ordered - delivered - produced - open));\n  const hi = spQ8(Math.max(0, ordered - Math.max(delivered, produced) - open));\n  // exact only when both bounds agree; an inactive line has no demand (a genuine 0)\n  const unavailable = !complete ? \"UNCONVERTIBLE\" : active && lo !== hi ? \"OVERLAP\" : \"\";\n  const suggestion = unavailable ? null : active ? hi : 0;\n  return { ok: true, code: \"\", message: \"\", eligibleNew: !reason, reason: reason, uomId: lineUom,\n    totals: { ordered: spQ8(ordered), delivered: spQ8(delivered), undelivered: spQ8(Math.max(ordered - delivered, 0)), planned: spQ8(planned),\n      produced: spQ8(produced), open: spQ8(open), openOthers: spQ8(open), suggestion: suggestion, unavailable: unavailable, excess: excess,\n      excessExact: !overlap, complete: complete },\n    ias: ias, warnings: warnings, candidates: Array.isArray(inp.candidates) ? inp.candidates : [] };\n};\n// CANDIDATES: the eligible lines for a new link, each with its own suggestion\nconst scCandidates = (input) => {\n  const inp = input || {};\n  const all = Array.isArray(inp.ias) ? inp.ias : [];\n  const out = [];\n  (Array.isArray(inp.rows) ? inp.rows : []).forEach((row) => {\n    const lineId = spS(row && row.line && row.line.id);\n    const p = scProject({ line: row.line, header: row.header, fg: inp.fg, ias: all.filter((x) => spS(x.source_so_line_id) === lineId),\n      iaItemId: inp.iaItemId, iaOrgId: inp.iaOrgId, uomName: inp.uomName });\n    if (!p.eligibleNew) return;\n    out.push({ lineId: lineId, soId: spS(row.header && row.header.id), soNo: spS(row.header && row.header.so_no), lineIndex: spS(row.line.line_index),\n      customerId: spS(row.header && row.header.customer_id), customerName: spS(row.header && row.header.customer_name), uomId: p.uomId,\n      ordered: p.totals.ordered, delivered: p.totals.delivered, undelivered: p.totals.undelivered, suggestion: p.totals.suggestion });\n  });\n  return out;\n};\n// SO_IA_PROJECTION - SUMMARY: one SO line's sales and production figures (CONTRACT.md section 6)\nconst g = [{{node:code_node_SPguard.data}}][0] || {};\nconst lh = spRows([{{node:sql_node_SPline.data}}][0])[0] || {};\n// FIX-03: only a user assigned to the organisation (or one of its plants) sees its Sales Order figures\nif (!(Number((spRows([{{node:sql_node_SPmember.data}}][0])[0] || {}).member) > 0)) {\n  console.log(\"projection summary refused: the user is not assigned to the organisation\", JSON.stringify({ org: g.org }));\n  return { code: \"400\", message: \"Your user is not assigned to this organisation, so its Sales Order figures cannot be shown.\", result_json: \"\" };\n}\n// the line is read by id within the tenant: another organisation's Sales Order shows no figures\nif (lh.header && spS(lh.header.organization_id) !== spS(g.org)) {\n  console.log(\"projection summary refused: another organisation\", JSON.stringify({ org: g.org }));\n  return { code: \"400\", message: \"This Sales Order line belongs to another organization.\", result_json: \"\" };\n}\nconst res = scProject({ line: lh.line || null, header: lh.header || null, fg: spRows([{{node:sql_node_SPfg.data}}][0])[0] || null,\n  ias: spRows([{{node:sql_node_SPias.data}}][0]), excludeIaId: g.exclude, iaItemId: g.item, iaOrgId: g.org, proposal: g.proposal, baseline: g.baseline,\n  candidates: spRows([{{node:sql_node_SPrelink.data}}][0]) });\nres.orphans = spRows([{{node:sql_node_SPorphans.data}}][0]);\nres.line = lh.line || null;\nres.header = lh.header || null;\nconsole.log(\"projection summary\", JSON.stringify({ totals: res.totals, warnings: res.warnings.map((w) => w.code) }));\nreturn { code: \"200\", message: \"\", result_json: JSON.stringify(res) };"
             },
             "response_json": [
              {
-              "key": "izu7j03e",
+              "key": "s6cz7qfo",
               "name": "code",
               "title": "code",
               "description": "",
@@ -677,7 +736,7 @@
               "children": []
              },
              {
-              "key": "s6cz7qfo",
+              "key": "umdgx17c",
               "name": "message",
               "title": "message",
               "description": "",
@@ -686,7 +745,7 @@
               "children": []
              },
              {
-              "key": "umdgx17c",
+              "key": "4lv0k44m",
               "name": "result_json",
               "title": "result_json",
               "description": "",
@@ -809,7 +868,7 @@
                 },
                 "response_json": [
                  {
-                  "key": "4lv0k44m",
+                  "key": "fyf6fbuk",
                   "name": "j",
                   "title": "j",
                   "description": "",
@@ -859,7 +918,7 @@
                 },
                 "response_json": [
                  {
-                  "key": "fyf6fbuk",
+                  "key": "ojq43qbj",
                   "name": "j",
                   "title": "j",
                   "description": "",
@@ -909,7 +968,57 @@
                 },
                 "response_json": [
                  {
-                  "key": "ojq43qbj",
+                  "key": "o1b3aohd",
+                  "name": "j",
+                  "title": "j",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false,
+                  "children": []
+                 }
+                ]
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "cai_SPcmember",
+             "type": "condition-all-node-item",
+             "data": {
+              "title": "Member",
+              "filter": {
+               "list": []
+              },
+              "expression": {
+               "code": "",
+               "type": "javascript"
+              },
+              "displayContent": "sdk.form.setCondition",
+              "isValidator": true,
+              "nodeName": "Member",
+              "name": "Member",
+              "condition_type": "ConditionRule"
+             },
+             "blocks": [
+              {
+               "id": "sql_node_SPcmember",
+               "type": "sql-node",
+               "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Is the session user assigned to the organisation (FIX-03)",
+                "isValidator": true,
+                "nodeName": "Is the session user assigned to the organisation (FIX-03)",
+                "name": "Is the session user assigned to the organisation (FIX-03)",
+                "script": {
+                 "type": "sql",
+                 "code": "SELECT JSON_OBJECT('member', (SELECT COUNT(*) FROM blade_dept p\n          WHERE p.tenant_id = '{{node:code_node_SPguard.data.tenantId}}' AND p.is_deleted = 0 AND {{node:code_node_SPguard.data.org}} > 0 AND (p.id = {{node:code_node_SPguard.data.org}} OR FIND_IN_SET('{{node:code_node_SPguard.data.org}}',\n\t\tp.ancestors) > 0)\n            AND FIND_IN_SET(CAST(p.id AS CHAR) COLLATE utf8mb4_general_ci,\n                  (SELECT COALESCE(u.dept_id, '') FROM blade_user u WHERE u.tenant_id = '{{node:code_node_SPguard.data.tenantId}}' AND u.is_deleted = 0 AND u.id = {{node:code_node_SPguard.data.uid}} LIMIT 1)) > 0)) AS j"
+                },
+                "response_json": [
+                 {
+                  "key": "kbim0l5a",
                   "name": "j",
                   "title": "j",
                   "description": "",
@@ -934,11 +1043,11 @@
             "timeout": 30000,
             "script": {
              "type": "javascript",
-             "code": "// Small Cycle IA SO-line projection (scratchpad/iasc/CONTRACT.md section 6): pure, ES2015\nconst spS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst spNum = (v) => {\n  const x = parseFloat(v);\n  return isFinite(x) ? x : 0;\n};\nconst spQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// JSON text with 16+ digit integer tokens kept as strings (ids never become floats); objects pass through\nconst spParseJ = (v) => {\n  if (v && typeof v === \"object\") return v;\n  const t = spS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// sql-node rows carrying one JSON column `j` (text or object) -> objects\nconst spRows = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []).map((r) => (r && r.j !== undefined ? spParseJ(r.j) : null)).filter((x) => x && typeof x === \"object\");\nconst spConvs = (it) => {\n  let c = it && it.table_uom_conversion;\n  if (typeof c === \"string\") c = spParseJ(c);\n  return (Array.isArray(c) ? c : []).filter((x) => x && typeof x === \"object\");\n};\n// factor to the FG's base UOM (\"alt_qty alt = base_qty base\"); null when unknown, never 1:1\nconst spToBase = (fg, uom) => {\n  const u = spS(uom);\n  if (!fg) return null;\n  if (!u || u === spS(fg.based_uom)) return 1;\n  const c = spConvs(fg).filter((x) => spS(x.alt_uom_id) === u)[0];\n  if (!c) return null;\n  const a = spNum(c.alt_qty);\n  const b = spNum(c.base_qty);\n  return a > 0 && b > 0 ? b / a : null;\n};\nconst SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };\nconst SP_DONE = { Completed: 1, \"Fully Posted\": 1 };\n\nconst scProject = (input) => {\n  const inp = input || {};\n  const line = inp.line || null;\n  const header = inp.header || null;\n  const fg = inp.fg || null;\n  const uomName = typeof inp.uomName === \"function\" ? inp.uomName : (id) => id;\n  const warnings = [];\n  const warn = (code, text) => warnings.push({ code: code, text: text });\n  const soNo = spS(header && header.so_no) || \"the Sales Order\";\n  const where = soNo + (line && spS(line.line_index) ? \" line \" + spS(line.line_index) : \"\");\n  const lineLive = !!line && Number(line.is_deleted) !== 1;\n  const headLive = !!header && Number(header.is_deleted) !== 1;\n  const lineUom = spS(line && line.so_item_uom) || spS(fg && fg.based_uom);\n  const conv = (qty, fromUom) => {\n    const from = spS(fromUom) || spS(fg && fg.based_uom);\n    if (from === lineUom) return spNum(qty);\n    const a = spToBase(fg, from);\n    const b = spToBase(fg, lineUom);\n    return a === null || b === null ? null : (spNum(qty) * a) / b;\n  };\n  const ordered = lineLive ? spNum(line.so_quantity) : 0;\n  const delivered = lineLive ? spNum(line.delivered_qty) : 0;\n  let complete = true;\n  let planned = 0;\n  let produced = 0;\n  let open = 0;\n  const ias = (Array.isArray(inp.ias) ? inp.ias : []).map((x) => {\n    const status = spS(x.status);\n    const id = spS(x.id);\n    const row = { id: id, no: spS(x.no), status: status, role: \"none\", qty: null, itemQty: spQ8(x.item_qty), uomId: spS(x.item_uom),\n      planned: spQ8(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty), mode: spS(x.mode) };\n    if (Number(x.is_deleted) === 1) return row;\n    if (!SP_OPEN[status] && !SP_DONE[status]) {\n      warn(\"IA_STATUS_UNKNOWN\", \"Item Assembly \" + row.no + \" has status \" + (status || \"(blank)\") + \", so it is not counted.\");\n      return row;\n    }\n    const qty = conv(x.item_qty, x.item_uom);\n    const plan = conv(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty, x.item_uom);\n    if (qty === null || plan === null) {\n      complete = false;\n      warn(\"UNCONVERTIBLE\", \"Item Assembly \" + row.no + \" is in \" + uomName(spS(x.item_uom)) + \", which cannot be converted to \" + uomName(lineUom)\n        + \": the figures are incomplete.\");\n      return row;\n    }\n    row.qty = spQ8(qty);\n    planned += plan;\n    if (SP_DONE[status]) {\n      row.role = \"produced\";\n      produced += qty;\n    } else if (id && id === spS(inp.excludeIaId)) {\n      row.role = \"excluded\";\n    } else {\n      row.role = \"open\";\n      open += qty;\n    }\n    return row;\n  });\n  const headStatus = spS(header && header.so_status);\n  const lineStatus = spS(line && line.line_status);\n  if (!headLive) warn(\"SO_REMOVED\", \"The linked Sales Order no longer exists.\");\n  else if (headStatus === \"Cancelled\") warn(\"SO_CANCELLED\", soNo + \" is cancelled: it has no remaining demand.\");\n  else if (headStatus === \"Void\") warn(\"SO_VOID\", soNo + \" is void: it has no remaining demand.\");\n  else if (headStatus === \"Completed\") warn(\"SO_CLOSED\", soNo + \" is completed: it has no remaining demand.\");\n  else if (headStatus === \"Draft\") warn(\"SO_DRAFT\", soNo + \" is still a Draft.\");\n  else if (headStatus !== \"Issued\" && headStatus !== \"Processing\") warn(\"SO_INACTIVE\", soNo + \" has status \" + (headStatus || \"(blank)\") + \": it has no active demand.\");\n  if (!lineLive) warn(\"LINE_REMOVED\", \"The linked line of \" + soNo + \" no longer exists (it was removed or re-created): re-link this Item Assembly to a current line.\");\n  else if (lineStatus === \"Completed\") warn(\"LINE_COMPLETED\", where + \" is completed.\");\n  else if (lineStatus === \"Cancelled\") warn(\"LINE_CANCELLED\", where + \" is cancelled.\");\n  const itemMismatch = lineLive && spS(inp.iaItemId) && spS(line.item_name) !== spS(inp.iaItemId);\n  if (itemMismatch) warn(\"ITEM_CHANGED\", where + \" is for a different item than this Item Assembly.\");\n  const base = inp.baseline && typeof inp.baseline === \"object\" ? inp.baseline : null;\n  if (base && lineLive) {\n    if (spS(base.uomId) && spS(base.uomId) !== lineUom) warn(\"UOM_CHANGED\", where + \" changed its unit from \" + uomName(spS(base.uomId)) + \" to \" + uomName(lineUom) + \" since it was linked.\");\n    else if (spNum(base.orderedQty) > ordered + 1e-9) warn(\"REDUCED\", where + \" was reduced from \" + spQ8(base.orderedQty) + \" to \" + spQ8(ordered) + \" \" + uomName(lineUom) + \" since it was linked.\");\n  }\n  const active = lineLive && headLive && (headStatus === \"Issued\" || headStatus === \"Processing\") && lineStatus !== \"Completed\" && lineStatus !== \"Cancelled\";\n  let excess = 0;\n  if (inp.proposal && complete) {\n    const p = conv(inp.proposal.qty, inp.proposal.uomId);\n    if (p === null) complete = false;\n    else if (active) excess = spQ8(Math.max(0, Math.max(delivered, produced) + open + p - ordered));\n  }\n  if (excess > 0) warn(\"EXCESS\", \"This plan exceeds the remaining demand of \" + where + \" by \" + excess + \" \" + uomName(lineUom) + \"; you can still continue.\");\n  let reason = \"\";\n  if (!headLive || !lineLive) reason = \"The Sales Order line no longer exists.\";\n  else if (spS(inp.iaOrgId) && spS(header.organization_id) !== spS(inp.iaOrgId)) reason = soNo + \" belongs to another organisation.\";\n  else if (!active) reason = where + \" has no active demand (\" + (headStatus || \"no status\") + (lineStatus ? \" / \" + lineStatus : \"\") + \").\";\n  else if (itemMismatch) reason = where + \" is for a different item.\";\n  const suggestion = !complete ? null : active ? spQ8(Math.max(0, ordered - Math.max(delivered, produced) - open)) : 0;\n  return { ok: true, code: \"\", message: \"\", eligibleNew: !reason, reason: reason, uomId: lineUom,\n    totals: { ordered: spQ8(ordered), delivered: spQ8(delivered), undelivered: spQ8(Math.max(ordered - delivered, 0)), planned: spQ8(planned),\n      produced: spQ8(produced), open: spQ8(open), openOthers: spQ8(open), suggestion: suggestion, excess: excess, complete: complete },\n    ias: ias, warnings: warnings, candidates: Array.isArray(inp.candidates) ? inp.candidates : [] };\n};\n// CANDIDATES: the eligible lines for a new link, each with its own suggestion\nconst scCandidates = (input) => {\n  const inp = input || {};\n  const all = Array.isArray(inp.ias) ? inp.ias : [];\n  const out = [];\n  (Array.isArray(inp.rows) ? inp.rows : []).forEach((row) => {\n    const lineId = spS(row && row.line && row.line.id);\n    const p = scProject({ line: row.line, header: row.header, fg: inp.fg, ias: all.filter((x) => spS(x.source_so_line_id) === lineId),\n      iaItemId: inp.iaItemId, iaOrgId: inp.iaOrgId, uomName: inp.uomName });\n    if (!p.eligibleNew) return;\n    out.push({ lineId: lineId, soId: spS(row.header && row.header.id), soNo: spS(row.header && row.header.so_no), lineIndex: spS(row.line.line_index),\n      customerId: spS(row.header && row.header.customer_id), customerName: spS(row.header && row.header.customer_name), uomId: p.uomId,\n      ordered: p.totals.ordered, delivered: p.totals.delivered, undelivered: p.totals.undelivered, suggestion: p.totals.suggestion });\n  });\n  return out;\n};\n// SO_IA_PROJECTION - CANDIDATES: the SO lines an IA of this item may link to, each with its suggestion\nconst g = [{{node:code_node_SPguard.data}}][0] || {};\nconst rows = spRows([{{node:sql_node_SPcand.data}}][0]);\nconst res = { candidates: scCandidates({ rows: rows, ias: spRows([{{node:sql_node_SPcandIas.data}}][0]), fg: spRows([{{node:sql_node_SPcfg.data}}][0])[0] || null,\n  iaItemId: g.item, iaOrgId: g.org }), capped: rows.length >= 200 ? \"YES\" : \"NO\" };\nconsole.log(\"projection candidates\", JSON.stringify({ rows: rows.length, eligible: res.candidates.length }));\nreturn { code: \"200\", message: \"\", result_json: JSON.stringify(res) };"
+             "code": "// Small Cycle IA SO-line projection (scratchpad/iasc/CONTRACT.md section 6): pure, ES2015\nconst spS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst spNum = (v) => {\n  const x = parseFloat(v);\n  return isFinite(x) ? x : 0;\n};\nconst spQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// JSON text with 16+ digit integer tokens kept as strings (ids never become floats); objects pass through\nconst spParseJ = (v) => {\n  if (v && typeof v === \"object\") return v;\n  const t = spS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// sql-node rows carrying one JSON column `j` (text or object) -> objects\nconst spRows = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []).map((r) => (r && r.j !== undefined ? spParseJ(r.j) : null)).filter((x) => x && typeof x === \"object\");\nconst spConvs = (it) => {\n  let c = it && it.table_uom_conversion;\n  if (typeof c === \"string\") c = spParseJ(c);\n  return (Array.isArray(c) ? c : []).filter((x) => x && typeof x === \"object\");\n};\n// factor to the FG's base UOM (\"alt_qty alt = base_qty base\"); null when unknown, never 1:1\nconst spToBase = (fg, uom) => {\n  const u = spS(uom);\n  if (!fg) return null;\n  if (!u || u === spS(fg.based_uom)) return 1;\n  const c = spConvs(fg).filter((x) => spS(x.alt_uom_id) === u)[0];\n  if (!c) return null;\n  const a = spNum(c.alt_qty);\n  const b = spNum(c.base_qty);\n  return a > 0 && b > 0 ? b / a : null;\n};\nconst SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };\nconst SP_DONE = { Completed: 1, \"Fully Posted\": 1 };\n\nconst scProject = (input) => {\n  const inp = input || {};\n  const line = inp.line || null;\n  const header = inp.header || null;\n  const fg = inp.fg || null;\n  const uomName = typeof inp.uomName === \"function\" ? inp.uomName : (id) => id;\n  const warnings = [];\n  const warn = (code, text) => warnings.push({ code: code, text: text });\n  const soNo = spS(header && header.so_no) || \"the Sales Order\";\n  const where = soNo + (line && spS(line.line_index) ? \" line \" + spS(line.line_index) : \"\");\n  const lineLive = !!line && Number(line.is_deleted) !== 1;\n  const headLive = !!header && Number(header.is_deleted) !== 1;\n  const lineUom = spS(line && line.so_item_uom) || spS(fg && fg.based_uom);\n  const conv = (qty, fromUom) => {\n    const from = spS(fromUom) || spS(fg && fg.based_uom);\n    if (from === lineUom) return spNum(qty);\n    const a = spToBase(fg, from);\n    const b = spToBase(fg, lineUom);\n    return a === null || b === null ? null : (spNum(qty) * a) / b;\n  };\n  const ordered = lineLive ? spNum(line.so_quantity) : 0;\n  const delivered = lineLive ? spNum(line.delivered_qty) : 0;\n  let complete = true;\n  let planned = 0;\n  let produced = 0;\n  let open = 0;\n  const ias = (Array.isArray(inp.ias) ? inp.ias : []).map((x) => {\n    const status = spS(x.status);\n    const id = spS(x.id);\n    const row = { id: id, no: spS(x.no), status: status, role: \"none\", qty: null, itemQty: spQ8(x.item_qty), uomId: spS(x.item_uom),\n      planned: spQ8(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty), mode: spS(x.mode) };\n    if (Number(x.is_deleted) === 1) return row;\n    if (!SP_OPEN[status] && !SP_DONE[status]) {\n      warn(\"IA_STATUS_UNKNOWN\", \"Item Assembly \" + row.no + \" has status \" + (status || \"(blank)\") + \", so it is not counted.\");\n      return row;\n    }\n    const qty = conv(x.item_qty, x.item_uom);\n    const plan = conv(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty, x.item_uom);\n    if (qty === null || plan === null) {\n      complete = false;\n      warn(\"UNCONVERTIBLE\", \"Item Assembly \" + row.no + \" is in \" + uomName(spS(x.item_uom)) + \", which cannot be converted to \" + uomName(lineUom)\n        + \": the figures are incomplete.\");\n      return row;\n    }\n    row.qty = spQ8(qty);\n    planned += plan;\n    if (SP_DONE[status]) {\n      row.role = \"produced\";\n      produced += qty;\n    } else if (id && id === spS(inp.excludeIaId)) {\n      row.role = \"excluded\";\n    } else {\n      row.role = \"open\";\n      open += qty;\n    }\n    return row;\n  });\n  const headStatus = spS(header && header.so_status);\n  const lineStatus = spS(line && line.line_status);\n  if (!headLive) warn(\"SO_REMOVED\", \"The linked Sales Order no longer exists.\");\n  else if (headStatus === \"Cancelled\") warn(\"SO_CANCELLED\", soNo + \" is cancelled: it has no remaining demand.\");\n  else if (headStatus === \"Void\") warn(\"SO_VOID\", soNo + \" is void: it has no remaining demand.\");\n  else if (headStatus === \"Completed\") warn(\"SO_CLOSED\", soNo + \" is completed: it has no remaining demand.\");\n  else if (headStatus === \"Draft\") warn(\"SO_DRAFT\", soNo + \" is still a Draft.\");\n  else if (headStatus !== \"Issued\" && headStatus !== \"Processing\") warn(\"SO_INACTIVE\", soNo + \" has status \" + (headStatus || \"(blank)\") + \": it has no active demand.\");\n  if (!lineLive) warn(\"LINE_REMOVED\", \"The linked line of \" + soNo + \" no longer exists (it was removed or re-created): re-link this Item Assembly to a current line.\");\n  else if (lineStatus === \"Completed\") warn(\"LINE_COMPLETED\", where + \" is completed.\");\n  else if (lineStatus === \"Cancelled\") warn(\"LINE_CANCELLED\", where + \" is cancelled.\");\n  const itemMismatch = lineLive && spS(inp.iaItemId) && spS(line.item_name) !== spS(inp.iaItemId);\n  if (itemMismatch) warn(\"ITEM_CHANGED\", where + \" is for a different item than this Item Assembly.\");\n  const base = inp.baseline && typeof inp.baseline === \"object\" ? inp.baseline : null;\n  if (base && lineLive) {\n    if (spS(base.uomId) && spS(base.uomId) !== lineUom) warn(\"UOM_CHANGED\", where + \" changed its unit from \" + uomName(spS(base.uomId)) + \" to \" + uomName(lineUom) + \" since it was linked.\");\n    else if (spNum(base.orderedQty) > ordered + 1e-9) warn(\"REDUCED\", where + \" was reduced from \" + spQ8(base.orderedQty) + \" to \" + spQ8(ordered) + \" \" + uomName(lineUom) + \" since it was linked.\");\n  }\n  const active = lineLive && headLive && (headStatus === \"Issued\" || headStatus === \"Processing\") && lineStatus !== \"Completed\" && lineStatus !== \"Cancelled\";\n  // nothing records which delivery came from which IA: when both delivered and produced are above 0 they may overlap, so the\n  // remaining demand lies between ordered - delivered - produced - open (no overlap) and ordered - max(delivered, produced) - open\n  const overlap = Math.min(delivered, produced) > 0;\n  let excess = 0;\n  if (inp.proposal && complete) {\n    const p = conv(inp.proposal.qty, inp.proposal.uomId);\n    if (p === null) complete = false;\n    else if (active) excess = spQ8(Math.max(0, Math.max(delivered, produced) + open + p - ordered));\n  }\n  // with an unknown overlap the excess is only a lower bound\n  if (excess > 0) warn(\"EXCESS\", \"This plan exceeds the remaining demand of \" + where + \" by \" + (overlap ? \"at least \" : \"\") + excess + \" \" + uomName(lineUom) + \"; you can still continue.\");\n  let reason = \"\";\n  if (!headLive || !lineLive) reason = \"The Sales Order line no longer exists.\";\n  else if (spS(inp.iaOrgId) && spS(header.organization_id) !== spS(inp.iaOrgId)) reason = soNo + \" belongs to another organisation.\";\n  else if (!active) reason = where + \" has no active demand (\" + (headStatus || \"no status\") + (lineStatus ? \" / \" + lineStatus : \"\") + \").\";\n  else if (itemMismatch) reason = where + \" is for a different item.\";\n  const lo = spQ8(Math.max(0, ordered - delivered - produced - open));\n  const hi = spQ8(Math.max(0, ordered - Math.max(delivered, produced) - open));\n  // exact only when both bounds agree; an inactive line has no demand (a genuine 0)\n  const unavailable = !complete ? \"UNCONVERTIBLE\" : active && lo !== hi ? \"OVERLAP\" : \"\";\n  const suggestion = unavailable ? null : active ? hi : 0;\n  return { ok: true, code: \"\", message: \"\", eligibleNew: !reason, reason: reason, uomId: lineUom,\n    totals: { ordered: spQ8(ordered), delivered: spQ8(delivered), undelivered: spQ8(Math.max(ordered - delivered, 0)), planned: spQ8(planned),\n      produced: spQ8(produced), open: spQ8(open), openOthers: spQ8(open), suggestion: suggestion, unavailable: unavailable, excess: excess,\n      excessExact: !overlap, complete: complete },\n    ias: ias, warnings: warnings, candidates: Array.isArray(inp.candidates) ? inp.candidates : [] };\n};\n// CANDIDATES: the eligible lines for a new link, each with its own suggestion\nconst scCandidates = (input) => {\n  const inp = input || {};\n  const all = Array.isArray(inp.ias) ? inp.ias : [];\n  const out = [];\n  (Array.isArray(inp.rows) ? inp.rows : []).forEach((row) => {\n    const lineId = spS(row && row.line && row.line.id);\n    const p = scProject({ line: row.line, header: row.header, fg: inp.fg, ias: all.filter((x) => spS(x.source_so_line_id) === lineId),\n      iaItemId: inp.iaItemId, iaOrgId: inp.iaOrgId, uomName: inp.uomName });\n    if (!p.eligibleNew) return;\n    out.push({ lineId: lineId, soId: spS(row.header && row.header.id), soNo: spS(row.header && row.header.so_no), lineIndex: spS(row.line.line_index),\n      customerId: spS(row.header && row.header.customer_id), customerName: spS(row.header && row.header.customer_name), uomId: p.uomId,\n      ordered: p.totals.ordered, delivered: p.totals.delivered, undelivered: p.totals.undelivered, suggestion: p.totals.suggestion });\n  });\n  return out;\n};\n// SO_IA_PROJECTION - CANDIDATES: the SO lines an IA of this item may link to, each with its suggestion\nconst g = [{{node:code_node_SPguard.data}}][0] || {};\n// FIX-03: only a user assigned to the organisation (or one of its plants) sees its Sales Order lines\nif (!(Number((spRows([{{node:sql_node_SPcmember.data}}][0])[0] || {}).member) > 0)) {\n  console.log(\"projection candidates refused: the user is not assigned to the organisation\", JSON.stringify({ org: g.org }));\n  return { code: \"400\", message: \"Your user is not assigned to this organisation, so its Sales Order lines cannot be listed.\", result_json: \"\" };\n}\nconst rows = spRows([{{node:sql_node_SPcand.data}}][0]);\nconst res = { candidates: scCandidates({ rows: rows, ias: spRows([{{node:sql_node_SPcandIas.data}}][0]), fg: spRows([{{node:sql_node_SPcfg.data}}][0])[0] || null,\n  iaItemId: g.item, iaOrgId: g.org }), capped: rows.length >= 200 ? \"YES\" : \"NO\" };\nconsole.log(\"projection candidates\", JSON.stringify({ rows: rows.length, eligible: res.candidates.length }));\nreturn { code: \"200\", message: \"\", result_json: JSON.stringify(res) };"
             },
             "response_json": [
              {
-              "key": "o1b3aohd",
+              "key": "m9tlo71q",
               "name": "code",
               "title": "code",
               "description": "",
@@ -947,7 +1056,7 @@
               "children": []
              },
              {
-              "key": "kbim0l5a",
+              "key": "x2j9vagm",
               "name": "message",
               "title": "message",
               "description": "",
@@ -956,7 +1065,7 @@
               "children": []
              },
              {
-              "key": "m9tlo71q",
+              "key": "bn182ku0",
               "name": "result_json",
               "title": "result_json",
               "description": "",

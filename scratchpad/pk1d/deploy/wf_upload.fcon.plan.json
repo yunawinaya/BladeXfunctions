@@ -1,0 +1,19 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PICKING_ASYNC_SUBMIT",
+   "dataId": "2109531449614647297",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_ASYNC_SUBMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/.superpowers/sdd/picking-v2-1d/live/SUBMIT.v10.head.json"
+  },
+  {
+   "name": "Picking list page",
+   "kind": "page",
+   "dataId": "1935635853539348481",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pk1d/deploy/PickingListPage.fcon.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/.superpowers/sdd/picking-v2-1d/live/ListPage.enabled.json"
+  }
+ ]
+}

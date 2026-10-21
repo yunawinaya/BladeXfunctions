@@ -1,0 +1,3941 @@
+====================================================================================================
+start [start-node] Start Node
+====================================================================================================
+if_aWrhMuyO [if] Save Draft ?
+{
+ "title": "Save Draft ?",
+ "isValidator": true,
+ "nodeName": "Save Draft ?",
+ "name": "Save Draft ?",
+ "condition_type": "Expression",
+ "filter": {
+  "list": [
+   {
+    "id": 1772596157760,
+    "parentId": 1772596157759,
+    "isTop": true,
+    "prop": "",
+    "operator": "",
+    "valueType": "",
+    "value": "",
+    "type": "leaf",
+    "level": 1
+   }
+  ]
+ },
+ "expression": {
+  "type": "javascript",
+  "code": "'{{workflowparams:data.si_status}}' == 'Draft'"
+ }
+}
+====================================================================================================
+ifBlock_CsTVgya0 [ifBlock] true
+====================================================================================================
+code_node_2Pxz18TD [code-node] Draft Check Doc No
+response_json: ["table"]
+let table = {{workflowparams:data}};
+
+if(table.sales_invoice_no_type !== -9999 && (
+  !table.sales_invoice_no|| table.sales_invoice_no === null || table.sales_invoice_no === ''
+)) {
+  table.sales_invoice_no = 'draft'
+}
+
+return { table };
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Draft Check Doc No", "name": "Draft Check Doc No"}
+====================================================================================================
+code_node_pFAvrqMt [code-node] Draft Required Fields
+response_json: ["required_fields", "data"]
+return {
+  required_fields: JSON.stringify([
+  { name: "plant_id", label: "Plant" },
+  { name: "sales_invoice_no", label: "Sales Invoice Number " },
+  {
+    name: "table_si",
+    label: "Item Information",
+    isArray: true,
+    arrayType: "object",
+    arrayFields: [],
+  },
+]),
+  data: JSON.stringify({
+    plant_id: {{node:code_node_2Pxz18TD.data.table.plant_id}},
+    sales_invoice_no: {{node:code_node_2Pxz18TD.data.table.sales_invoice_no}},
+    table_si: {{node:code_node_2Pxz18TD.data.table.table_si}}
+  })
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Draft Required Fields", "name": "Draft Required Fields"}
+====================================================================================================
+workflow_node_sA0QWuCO [workflow-node] Draft Run Check Required Workflow
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Draft Run Check Required Workflow",
+ "isValidator": true,
+ "nodeName": "Draft Run Check Required Workflow",
+ "name": "Draft Run Check Required Workflow",
+ "workflow": {
+  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+  "rules": {
+   "collectionId": "1988831880511062018",
+   "list": [
+    {
+     "id": 1763010683443,
+     "parentId": 1763010683442,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "entry",
+    "propLabel": "entry",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_pFAvrqMt.data.data}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "required_fields",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_pFAvrqMt.data.required_fields}}",
+    "valueLabel": "",
+    "propLabel": "required_fields"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_snSOMjGm [if] Validation Failed?
+{
+ "title": "Validation Failed?",
+ "isValidator": true,
+ "nodeName": "Validation Failed?",
+ "name": "Validation Failed?",
+ "condition_type": "Expression",
+ "filter": {
+  "list": [
+   {
+    "id": 1736695973613,
+    "parentId": 1736695973612,
+    "isTop": true,
+    "prop": "",
+    "operator": "",
+    "valueType": "",
+    "value": "",
+    "type": "leaf",
+    "level": 1
+   }
+  ]
+ },
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:workflow_node_sA0QWuCO.data.data.status}}' == 'Failed'"
+ }
+}
+====================================================================================================
+ifBlock_4SLGdjnj [ifBlock] true
+====================================================================================================
+end_node_xosv0w1w [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "Default",
+ "code": 406,
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:workflow_node_sA0QWuCO.data.data.message}}"
+ }
+}
+====================================================================================================
+ifBlock_NXZMrgJD [ifBlock] false
+====================================================================================================
+ifBlock_5iiRAyH4 [ifBlock] false
+====================================================================================================
+code_node_QdIIcL7J [code-node] Check Doc No
+response_json: ["table"]
+let table = {{workflowparams:data}}
+
+if (
+  table.sales_invoice_no_type !== -9999 &&
+  (!table.sales_invoice_no ||
+    table.sales_invoice_no === null ||
+    table.sales_invoice_no === "" ||
+    table.previous_status !== "Issued")
+) {
+  table.sales_invoice_no = 'issued'
+}
+
+if(!table.need_cl|| table.need_cl === '' || table.need_cl === null) {
+  if(table.acc_integration_type !== 'No Accounting') {
+    table.need_cl = 'required'
+  } else {
+    table.need_cl = 'not required'
+  }
+}
+
+return { table };
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Check Doc No", "name": "Check Doc No"}
+====================================================================================================
+code_node_zy0OA1sN [code-node] Required Fields
+response_json: ["required_fields", "data"]
+return {
+  required_fields: JSON.stringify([
+  { name: "plant_id", label: "Plant" },
+  { name: "sales_invoice_no", label: "Sales Invoice Number " },
+  { name: "sales_invoice_date", label: "Sales Invoice Date" },
+  { name: "si_description", label: "Description" },
+  {
+    name: "table_si",
+    label: "SI Items",
+    isArray: true,
+    arrayType: "object",
+    arrayFields: [],
+  },
+]),
+  data: JSON.stringify({
+    plant_id: {{node:code_node_QdIIcL7J.data.table.plant_id}},
+    sales_invoice_no: {{node:code_node_QdIIcL7J.data.table.sales_invoice_no}},
+    sales_invoice_date: {{node:code_node_QdIIcL7J.data.table.sales_invoice_date}},
+    si_description: {{node:code_node_QdIIcL7J.data.table.si_description}},
+    table_si: {{node:code_node_QdIIcL7J.data.table.table_si}}
+  })
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Required Fields", "name": "Required Fields"}
+====================================================================================================
+workflow_node_1wzUt9V3 [workflow-node] Check Required Workflow
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Check Required Workflow",
+ "isValidator": true,
+ "nodeName": "Check Required Workflow",
+ "name": "Check Required Workflow",
+ "workflow": {
+  "source": "CHECK_REQUIRED_FIELD:Workflow:1988831880511062018",
+  "rules": {
+   "collectionId": "1988831880511062018",
+   "list": [
+    {
+     "id": 1763010683443,
+     "parentId": 1763010683442,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "entry",
+    "propLabel": "entry",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_zy0OA1sN.data.data}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "required_fields",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_zy0OA1sN.data.required_fields}}",
+    "valueLabel": "",
+    "propLabel": "required_fields"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_i3Hdh4gm [if] Validation Failed?
+{
+ "title": "Validation Failed?",
+ "isValidator": true,
+ "nodeName": "Validation Failed?",
+ "name": "Validation Failed?",
+ "condition_type": "Expression",
+ "filter": {
+  "list": [
+   {
+    "id": 1736695973613,
+    "parentId": 1736695973612,
+    "isTop": true,
+    "prop": "",
+    "operator": "",
+    "valueType": "",
+    "value": "",
+    "type": "leaf",
+    "level": 1
+   }
+  ]
+ },
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:workflow_node_1wzUt9V3.data.data.status}}' == 'Failed'"
+ }
+}
+====================================================================================================
+ifBlock_eEyK5BIo [ifBlock] true
+====================================================================================================
+end_node_7w09ASUe [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "Default",
+ "code": 406,
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:workflow_node_1wzUt9V3.data.data.message}}"
+ }
+}
+====================================================================================================
+ifBlock_0et6se7W [ifBlock] false
+====================================================================================================
+code_node_QaPUxa3s [code-node] Check Invoice Qty
+response_json: ["entry", "status", "code", "message"]
+let entry = {{node:code_node_QdIIcL7J.data.table}};
+
+// A bundle line has no item of its own; the items under it carry both the
+// bundle and an item. table_si reaches this node in either of two shapes --
+// nested under `children`, or flat with a bundle's items following their bundle
+// line -- so both are read here. Each entry remembers the position of its
+// bundle line (-1 when the row is not in a bundle) and whether it was nested to
+// begin with, so what is written back keeps the shape it arrived in.
+const bundleKey = (row) => {
+  const bundle = row.item_bundle_id;
+
+  if (bundle && typeof bundle === "object") {
+    return String(bundle.id || bundle.ib_no || "");
+  }
+
+  return String(bundle || "");
+};
+
+const flattenWithParent = (rows, itemKey) => {
+  const flat = [];
+  const positionOf = new Map();
+
+  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];
+  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);
+
+  let openBundle = -1; // bundle line the flat rows below it belong to
+
+  for (const [index, row] of (rows || []).entries()) {
+    const position = flat.length;
+    positionOf.set(index, position);
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    // Already a tree: nothing to reattach, and a bundle spelled out this way
+    // ends whatever run was open above it.
+    if (children.length > 0) {
+      openBundle = -1;
+      flat.push({ row, parent: -1, nested: false });
+
+      for (const child of children) {
+        flat.push({ row: child, parent: position, nested: true });
+      }
+
+      continue;
+    }
+
+    if (isBundleRow(row)) {
+      openBundle = position;
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    if (!isBundleItem(row)) {
+      openBundle = -1; // a plain line closes the bundle above it
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    // A flat item: linked to its bundle line by id, or else belonging to the
+    // bundle line it follows, as long as that is the same bundle.
+    let parent = -1;
+
+    for (let candidate = index - 1; candidate >= 0; candidate--) {
+      const candidateRow = rows[candidate];
+
+      if (!isBundleRow(candidateRow)) continue;
+
+      const byId =
+        row.parent_id != null &&
+        candidateRow.id != null &&
+        String(row.parent_id) === String(candidateRow.id);
+      const byKey =
+        row.parent_fm_key != null &&
+        candidateRow.fm_key != null &&
+        String(row.parent_fm_key) === String(candidateRow.fm_key);
+
+      if (byId || byKey) {
+        parent = positionOf.get(candidate);
+        break;
+      }
+    }
+
+    if (
+      parent === -1 &&
+      openBundle !== -1 &&
+      bundleKey(flat[openBundle].row) === bundleKey(row)
+    ) {
+      parent = openBundle;
+    }
+
+    flat.push({ row, parent, nested: false });
+  }
+
+  return flat;
+};
+
+const flat = flattenWithParent(entry.table_si, "material_id");
+
+const totalQuantity = flat.reduce((sum, item) => {
+    const { invoice_qty } = item.row;
+    const positiveInvQty = Math.abs(invoice_qty)
+    return sum + (positiveInvQty || 0); // Handle null/undefined invoice_qty
+  }, 0);
+
+if (totalQuantity === 0) {
+  return {
+    entry: {},
+    status: 'Failed',
+    code: 407,
+    message: 'Total invoiced quantity is 0.'
+  }
+}
+
+// A bundle is invoiced as a whole. Nothing invoiced on the bundle line means
+// the whole bundle goes, its items with it. Inside a bundle that is kept, a
+// zero-quantity item is dropped exactly like a zero-quantity top-level line.
+const dropped = new Set();
+
+for (const [position, item] of flat.entries()) {
+  if (item.row.invoice_qty !== 0) continue;
+
+  dropped.add(position);
+
+  if (item.parent !== -1) continue;
+
+  for (const [childPosition, candidate] of flat.entries()) {
+    if (candidate.parent === position) {
+      dropped.add(childPosition);
+    }
+  }
+}
+
+// Rebuilt in the shape it arrived in: a bundle's items go back under their
+// bundle line only if that is where they came from.
+const keptRows = [];
+
+for (const [position, item] of flat.entries()) {
+  if (dropped.has(position) || item.nested) continue;
+
+  const children = [];
+
+  for (const [childPosition, candidate] of flat.entries()) {
+    if (dropped.has(childPosition) || !candidate.nested) continue;
+    if (candidate.parent !== position) continue;
+
+    children.push(candidate.row);
+  }
+
+  if (children.length > 0) {
+    keptRows.push({ ...item.row, children });
+  } else if (Array.isArray(item.row.children)) {
+    keptRows.push({ ...item.row, children: [] });
+  } else {
+    keptRows.push(item.row);
+  }
+}
+
+entry.table_si = keptRows;
+
+let soID = [];
+let gdID = [];
+let salesOrderNumber = [];
+let goodsDeliveryNumber = [];
+
+// Read off the flattened view of what was kept: a bundle's items reference a
+// sales order and a goods delivery of their own, and those would otherwise
+// never reach the header's so_id / gd_id / display numbers.
+for(const [position, item] of flat.entries()) {
+  if (dropped.has(position)) continue;
+
+  const si = item.row;
+
+  if(si.line_gd_id && si.line_gd_id !== "") {
+    gdID.push(si.line_gd_id);
+    goodsDeliveryNumber.push(si.line_gd_no);
+  }
+
+  soID.push(si.line_so_id);
+  salesOrderNumber.push(si.line_so_no);
+}
+
+soID = [...new Set(soID)];
+gdID = [...new Set(gdID)];
+salesOrderNumber = [...new Set(salesOrderNumber)];
+goodsDeliveryNumber = [...new Set(goodsDeliveryNumber)];
+
+entry.so_id = soID;
+entry.gd_id = gdID;
+entry.so_no_display = salesOrderNumber.join(", ");
+entry.gd_no_display = goodsDeliveryNumber.join(", ");
+
+return {
+  entry: entry,
+  status: 'Success',
+  code: 200,
+  message: ''
+};
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Check Invoice Qty", "name": "Check Invoice Qty"}
+====================================================================================================
+if_OnhRnKBf [if] Qty Validation Passed?
+{
+ "title": "Qty Validation Passed?",
+ "isValidator": true,
+ "nodeName": "Qty Validation Passed?",
+ "name": "Qty Validation Passed?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_QaPUxa3s.data.status}}' == 'Success'"
+ }
+}
+====================================================================================================
+ifBlock_YG8WVwdm [ifBlock] true
+====================================================================================================
+if_RYZU6f21 [if] Need CL?
+{
+ "title": "Need CL?",
+ "isValidator": true,
+ "nodeName": "Need CL?",
+ "name": "Need CL?",
+ "condition_type": "Expression",
+ "filter": {
+  "list": [
+   {
+    "id": 1765427406584,
+    "parentId": 1765427406583,
+    "isTop": true,
+    "prop": "",
+    "operator": "",
+    "valueType": "",
+    "value": "",
+    "type": "leaf",
+    "level": 1
+   }
+  ]
+ },
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_QaPUxa3s.data.entry.need_cl}}' == 'required'"
+ }
+}
+====================================================================================================
+ifBlock_oyJH4tQQ [ifBlock] true
+====================================================================================================
+workflow_node_G4KBFPGT [workflow-node] Run CL Workflow
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Run CL Workflow",
+ "isValidator": true,
+ "nodeName": "Run CL Workflow",
+ "name": "Run CL Workflow",
+ "workflow": {
+  "source": "CREDIT_LIMIT_CHECK:Workflow:1990247316342333442",
+  "rules": {
+   "collectionId": "1990247316342333442",
+   "list": [
+    {
+     "id": 1723795236686,
+     "parentId": 1723795236685,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "customer_id",
+    "propLabel": "Customer ID",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_QaPUxa3s.data.entry.customer_id}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "total",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_QaPUxa3s.data.entry.invoice_total}}",
+    "valueLabel": "",
+    "propLabel": "Total Amount"
+   },
+   {
+    "prop": "document_type",
+    "operator": "",
+    "valueType": "value",
+    "value": "Sales Invoices",
+    "valueLabel": "",
+    "propLabel": "Document Type"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_yqk0qfvn [if] Failed CL?
+{
+ "title": "Failed CL?",
+ "isValidator": true,
+ "nodeName": "Failed CL?",
+ "name": "Failed CL?",
+ "condition_type": "Expression",
+ "filter": {
+  "list": [
+   {
+    "id": 1736695973613,
+    "parentId": 1736695973612,
+    "isTop": true,
+    "prop": "",
+    "operator": "",
+    "valueType": "",
+    "value": "",
+    "type": "leaf",
+    "level": 1
+   }
+  ]
+ },
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:workflow_node_G4KBFPGT.data.result}}' == 'failed'"
+ }
+}
+====================================================================================================
+ifBlock_1yWfSJkO [ifBlock] true
+====================================================================================================
+if_7IMJkojx [if] IF not from convert?
+{
+ "title": "IF not from convert?",
+ "isValidator": true,
+ "nodeName": "IF not from convert?",
+ "name": "IF not from convert?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{workflowparams:data.page_status}}' != 'Convert'"
+ }
+}
+====================================================================================================
+if_block_y3d7WeIv [ifBlock] true
+====================================================================================================
+code_node_bJcEEvRF [code-node] Define Block or Override
+response_json: ["isBlock"]
+const message = {{node:workflow_node_G4KBFPGT.data.message}};
+const isBlock = message.indexOf('Block - ') !== -1 ? 'block' : 'override';
+
+return {
+  isBlock
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Define Block or Override", "name": "Define Block or Override"}
+====================================================================================================
+if_sRudeqlI [if] Block ?
+{
+ "title": "Block ?",
+ "isValidator": true,
+ "nodeName": "Block ?",
+ "name": "Block ?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_bJcEEvRF.data.isBlock}}' == 'block'"
+ }
+}
+====================================================================================================
+ifBlock_utUTdrjz [ifBlock] true
+====================================================================================================
+end_node_QowGlXAl [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "Default",
+ "code": 408,
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:workflow_node_G4KBFPGT.data.message}}"
+ }
+}
+====================================================================================================
+ifBlock_jcAnpmAn [ifBlock] false
+====================================================================================================
+end_node_26jDZHdB [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "Default",
+ "code": 409,
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:workflow_node_G4KBFPGT.data.message}}"
+ }
+}
+====================================================================================================
+if_block_N33bfGOt [ifBlock] false
+====================================================================================================
+code_node_Z0Tcxb1v [code-node] Change Status to Draft
+response_json: ["entry"]
+const entry = {{node:code_node_QaPUxa3s.data.entry}};
+
+entry.si_status = 'Draft'
+entry.posted_status = ''
+// code_node_QdIIcL7J stamped the issued sentinel; a Draft takes a draft number.
+if (entry.sales_invoice_no === 'issued') entry.sales_invoice_no = 'draft'
+
+return { entry }
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Change Status to Draft", "name": "Change Status to Draft"}
+====================================================================================================
+ifBlock_fmqrDPMP [ifBlock] false
+====================================================================================================
+ifBlock_XjbbzHHY [ifBlock] false
+====================================================================================================
+ifBlock_xGaqxG2c [ifBlock] false
+====================================================================================================
+end_node_Xl2tnvr8 [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "Default",
+ "code": 407,
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:code_node_QaPUxa3s.data.message}}"
+ }
+}
+====================================================================================================
+if_si_pi_gate_completed [if] IF Completed (PI gate)
+{
+ "title": "IF Completed (PI gate)",
+ "isValidator": true,
+ "nodeName": "IF Completed (PI gate)",
+ "name": "IF Completed (PI gate)",
+ "condition_type": "Expression",
+ "filter": {
+  "list": [
+   {
+    "id": 195000000018,
+    "parentId": 195000000019,
+    "isTop": true,
+    "prop": "",
+    "operator": "",
+    "valueType": "",
+    "value": "",
+    "type": "leaf",
+    "level": 1
+   }
+  ]
+ },
+ "expression": {
+  "type": "javascript",
+  "code": "'{{workflowparams:data.si_status}}' == 'Completed'"
+ }
+}
+====================================================================================================
+if_si_pi_gate_completed_t [ifBlock] true
+====================================================================================================
+code_si_srcids [code-node] Collect PI Source Ids
+response_json: ["soIds", "gdIdsSearch", "gdIdsReal"]
+
+const data = {{workflowparams:data}};
+const tableSi = (data && data.table_si) ? data.table_si : [];
+const soSet = {}; const gdSet = {};
+for (const r of tableSi) {
+  if (!r) continue;
+  if ((r.invoice_qty || 0) <= 0) continue;
+  if (r.line_so_id) soSet[String(r.line_so_id)] = true;
+  if (r.line_gd_id) gdSet[String(r.line_gd_id)] = true;
+}
+const soIds = Object.keys(soSet);
+const gdReal = Object.keys(gdSet);
+return {
+  soIds: soIds.length ? soIds : ["0"],
+  gdIdsSearch: gdReal.length ? gdReal : ["0"],
+  gdIdsReal: gdReal
+};
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Collect PI Source Ids", "name": "Collect PI Source Ids"}
+====================================================================================================
+search_si_sopo [search-node] Get SO-PO Linkage
+{
+ "table_id": {
+  "source": "Document Linkage:Table:2069270865093935105",
+  "rules": {
+   "collectionId": "2069270865093935105",
+   "list": [
+    {
+     "id": 195000000001,
+     "parentId": 195000000002,
+     "isTop": true,
+     "type": "branch",
+     "operator": "all",
+     "prop": "",
+     "valueType": "",
+     "value": "",
+     "level": 1,
+     "children": [
+      {
+       "id": 195000000003,
+       "parentId": 195000000001,
+       "isTop": false,
+       "prop": "target_doc_type",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "Sales Order",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "target_doc_type",
+       "valueLabel": "",
+       "operatorLabel": "equal"
+      },
+      {
+       "id": 195000000004,
+       "parentId": 195000000001,
+       "isTop": false,
+       "prop": "target_doc_id",
+       "operator": "in",
+       "valueType": "field",
+       "value": "{{node:code_si_srcids.data.soIds}}",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "target_doc_id",
+       "valueLabel": "",
+       "operatorLabel": "in"
+      },
+      {
+       "id": 195000000005,
+       "parentId": 195000000001,
+       "isTop": false,
+       "prop": "link_status",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "Linked",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "link_status",
+       "valueLabel": "",
+       "operatorLabel": "equal"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 200,
+ "title": "Get SO-PO Linkage",
+ "isValidator": true,
+ "nodeName": "Get SO-PO Linkage",
+ "name": "Get SO-PO Linkage"
+}
+====================================================================================================
+code_si_link [code-node] Extract Linkage
+response_json: ["poIds", "poNos", "buyerOrg", "sellerOrg"]
+
+const rows = {{node:search_si_sopo.data.data}};
+const arr = Array.isArray(rows) ? rows : (rows ? [rows] : []);
+const poSet = {}; const poNoSet = {}; let buyerOrg = ''; let sellerOrg = '';
+for (const r of arr) {
+  if (!r) continue;
+  if (r.source_doc_id) poSet[String(r.source_doc_id)] = true;
+  if (r.source_doc_no) poNoSet[String(r.source_doc_no)] = true;
+  if (!buyerOrg && r.buyer_org_id) buyerOrg = String(r.buyer_org_id);
+  if (!sellerOrg && r.seller_org_id) sellerOrg = String(r.seller_org_id);
+}
+return {
+  poIds: Object.keys(poSet),
+  poNos: Object.keys(poNoSet).join(', '),
+  buyerOrg: buyerOrg || '0',
+  sellerOrg: sellerOrg || '0'
+};
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Extract Linkage", "name": "Extract Linkage"}
+====================================================================================================
+search_si_its [search-node] Get Internal Trading Setup
+{
+ "table_id": {
+  "source": "Internal Trading Setup:Table:2069278647482400769",
+  "rules": {
+   "collectionId": "2069278647482400769",
+   "list": [
+    {
+     "id": 195000000006,
+     "parentId": 195000000007,
+     "isTop": true,
+     "type": "branch",
+     "operator": "all",
+     "prop": "",
+     "valueType": "",
+     "value": "",
+     "level": 1,
+     "children": [
+      {
+       "id": 195000000008,
+       "parentId": 195000000006,
+       "isTop": false,
+       "prop": "buyer_org_id",
+       "operator": "equal",
+       "valueType": "field",
+       "value": "{{node:code_si_link.data.buyerOrg}}",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "buyer_org_id",
+       "valueLabel": "",
+       "operatorLabel": "equal"
+      },
+      {
+       "id": 195000000009,
+       "parentId": 195000000006,
+       "isTop": false,
+       "prop": "seller_org_id",
+       "operator": "equal",
+       "valueType": "field",
+       "value": "{{node:code_si_link.data.sellerOrg}}",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "seller_org_id",
+       "valueLabel": "",
+       "operatorLabel": "equal"
+      },
+      {
+       "id": 195000000010,
+       "parentId": 195000000006,
+       "isTop": false,
+       "prop": "is_active",
+       "operator": "numberEqual",
+       "valueType": "value",
+       "value": 1,
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "is_active",
+       "valueLabel": "",
+       "operatorLabel": "numberEqual"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 10,
+ "title": "Get Internal Trading Setup",
+ "isValidator": true,
+ "nodeName": "Get Internal Trading Setup",
+ "name": "Get Internal Trading Setup"
+}
+====================================================================================================
+search_si_gdgr [search-node] Get GD-GR Linkage
+{
+ "table_id": {
+  "source": "Document Linkage:Table:2069270865093935105",
+  "rules": {
+   "collectionId": "2069270865093935105",
+   "list": [
+    {
+     "id": 195000000011,
+     "parentId": 195000000012,
+     "isTop": true,
+     "type": "branch",
+     "operator": "all",
+     "prop": "",
+     "valueType": "",
+     "value": "",
+     "level": 1,
+     "children": [
+      {
+       "id": 195000000013,
+       "parentId": 195000000011,
+       "isTop": false,
+       "prop": "source_doc_type",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "Goods Delivery",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "source_doc_type",
+       "valueLabel": "",
+       "operatorLabel": "equal"
+      },
+      {
+       "id": 195000000014,
+       "parentId": 195000000011,
+       "isTop": false,
+       "prop": "source_doc_id",
+       "operator": "in",
+       "valueType": "field",
+       "value": "{{node:code_si_srcids.data.gdIdsSearch}}",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "source_doc_id",
+       "valueLabel": "",
+       "operatorLabel": "in"
+      },
+      {
+       "id": 195000000015,
+       "parentId": 195000000011,
+       "isTop": false,
+       "prop": "link_status",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "Linked",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "link_status",
+       "valueLabel": "",
+       "operatorLabel": "equal"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 200,
+ "title": "Get GD-GR Linkage",
+ "isValidator": true,
+ "nodeName": "Get GD-GR Linkage",
+ "name": "Get GD-GR Linkage"
+}
+====================================================================================================
+code_si_gate [code-node] PI Gate Decision
+response_json: ["piConfirm", "msg", "doAutoPi", "buyerOrg", "sellerOrg"]
+
+const data = {{workflowparams:data}};
+const saveAs = (data && data.si_status) ? data.si_status : '';
+const autoConfirmed = (data && data.auto_pi_confirmed) ? data.auto_pi_confirmed : false;
+const autoSkip = (data && data.auto_pi_skip) ? data.auto_pi_skip : false;
+const poIds = {{node:code_si_link.data.poIds}} || [];
+const buyerOrg = {{node:code_si_link.data.buyerOrg}} || '0';
+const sellerOrg = {{node:code_si_link.data.sellerOrg}} || '0';
+const itsRows = {{node:search_si_its.data.data}};
+const itsArr = Array.isArray(itsRows) ? itsRows : (itsRows ? [itsRows] : []);
+const autoCreatePi = itsArr.some(function (r) { return r && Number(r.auto_create_pi) === 1; });
+
+// Eligible whenever at least one invoiced SO is internally linked to a PO.
+// Per-line resolution (GD->GR, SO->PO) and dropping of unlinked lines happens
+// in the SItoPI build; an all-internal SI is not required.
+const internalLinked = (saveAs === 'Completed') && poIds.length > 0 && autoCreatePi;
+
+let piConfirm = 0; let msg = ''; let doAutoPi = 0;
+if (!internalLinked || autoSkip) {
+  piConfirm = 0;
+} else if (!autoConfirmed) {
+  piConfirm = 411;
+  msg = 'This invoice is linked to an internal Purchase Order.<br><br>Auto-create the Purchase Invoice in the buyer organization when this invoice is completed?';
+} else {
+  doAutoPi = 1;
+}
+return { piConfirm: piConfirm, msg: msg, doAutoPi: doAutoPi, buyerOrg: buyerOrg, sellerOrg: sellerOrg };
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "PI Gate Decision", "name": "PI Gate Decision"}
+====================================================================================================
+if_si_gate [if] IF PI Confirm
+{
+ "title": "IF PI Confirm",
+ "isValidator": true,
+ "nodeName": "IF PI Confirm",
+ "name": "IF PI Confirm",
+ "condition_type": "ConditionRule",
+ "expression": {
+  "type": "javascript",
+  "code": ""
+ },
+ "filter": {
+  "list": [
+   {
+    "id": 195000000016,
+    "parentId": 195000000017,
+    "isTop": true,
+    "prop": "node.code_si_gate.data.piConfirm",
+    "operator": "numberEqual",
+    "valueType": "value",
+    "value": 411,
+    "type": "leaf",
+    "level": 1,
+    "propLabel": "node.code_si_gate.data.piConfirm",
+    "valueLabel": "",
+    "operatorLabel": "numberEqual"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_si_gate_t [ifBlock] true
+====================================================================================================
+end_si_411 [end-node] 结束节点
+{
+ "isValidator": true,
+ "title": "结束节点",
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "OutputParams",
+ "msg": {
+  "type": "javascript",
+  "code": ""
+ },
+ "response_value": {
+  "list": [
+   {
+    "prop": "pi_confirm",
+    "propLabel": "pi_confirm",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "value",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "411"
+   },
+   {
+    "prop": "msg",
+    "propLabel": "msg",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "{{node:code_si_gate.data.msg}}"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_si_gate_f [ifBlock] false
+====================================================================================================
+if_si_pi_gate_completed_f [ifBlock] false
+====================================================================================================
+code_node_JoF0YVzG [code-node] Fillback Header Fields
+response_json: ["entry"]
+let entry = {{node:code_node_2Pxz18TD.data.table}} || {{node:code_node_Z0Tcxb1v.data.entry}} || {{node:code_node_QaPUxa3s.data.entry}}
+
+// Everything stamped onto a line regardless of where it sits in the tree. A
+// bundle's items are invoiced lines in their own right and carry the same
+// header fields as a top-level line.
+const round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;
+
+const stampSiLineItem = (siLineItem) => {
+  siLineItem.customer_id = entry.customer_id || null;
+  siLineItem.plant_id = entry.plant_id || null;
+  siLineItem.payment_term_id = entry.si_payment_term_id || null;
+  siLineItem.billing_state_id = entry.billing_address_state || null;
+  siLineItem.billing_country_id = entry.billing_address_country || null;
+  siLineItem.shipping_state_id = entry.shipping_address_state || null;
+  siLineItem.shipping_country_id = entry.shipping_address_country || null;
+  siLineItem.agent_id = entry.sales_person_id;
+  siLineItem.tax_amount = round8(parseFloat(siLineItem.tax_amount || 0));
+  siLineItem.so_order_quantity = round8(parseFloat(siLineItem.so_order_quantity || 0));
+  siLineItem.si_discount = round8(parseFloat(siLineItem.si_discount || 0));
+  siLineItem.discount_amount = round8(parseFloat(siLineItem.discount_amount || 0));
+  siLineItem.invoice_qty = round8(parseFloat(siLineItem.invoice_qty || 0));
+  siLineItem.si_amount = round8(parseFloat(siLineItem.si_amount || 0));
+  siLineItem.gross = round8(parseFloat(siLineItem.gross || 0));
+  siLineItem.area_id = entry.si_area_id || '';
+  siLineItem.agent_user_id = entry.agent_user_id || '';
+};
+
+// A bundle line has no item of its own; the items under it carry both the
+// bundle and an item. table_si reaches this node in either of two shapes --
+// nested under `children`, or flat with a bundle's items following their bundle
+// line -- so both are read here. Each entry remembers the position of its
+// bundle line (-1 when the row is not in a bundle) and whether it was nested to
+// begin with, so what is written back keeps the shape it arrived in.
+const bundleKey = (row) => {
+  const bundle = row.item_bundle_id;
+
+  if (bundle && typeof bundle === "object") {
+    return String(bundle.id || bundle.ib_no || "");
+  }
+
+  return String(bundle || "");
+};
+
+const flattenWithParent = (rows, itemKey) => {
+  const flat = [];
+  const positionOf = new Map();
+
+  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];
+  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);
+
+  let openBundle = -1; // bundle line the flat rows below it belong to
+
+  for (const [index, row] of (rows || []).entries()) {
+    const position = flat.length;
+    positionOf.set(index, position);
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    // Already a tree: nothing to reattach, and a bundle spelled out this way
+    // ends whatever run was open above it.
+    if (children.length > 0) {
+      openBundle = -1;
+      flat.push({ row, parent: -1, nested: false });
+
+      for (const child of children) {
+        flat.push({ row: child, parent: position, nested: true });
+      }
+
+      continue;
+    }
+
+    if (isBundleRow(row)) {
+      openBundle = position;
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    if (!isBundleItem(row)) {
+      openBundle = -1; // a plain line closes the bundle above it
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    // A flat item: linked to its bundle line by id, or else belonging to the
+    // bundle line it follows, as long as that is the same bundle.
+    let parent = -1;
+
+    for (let candidate = index - 1; candidate >= 0; candidate--) {
+      const candidateRow = rows[candidate];
+
+      if (!isBundleRow(candidateRow)) continue;
+
+      const byId =
+        row.parent_id != null &&
+        candidateRow.id != null &&
+        String(row.parent_id) === String(candidateRow.id);
+      const byKey =
+        row.parent_fm_key != null &&
+        candidateRow.fm_key != null &&
+        String(row.parent_fm_key) === String(candidateRow.fm_key);
+
+      if (byId || byKey) {
+        parent = positionOf.get(candidate);
+        break;
+      }
+    }
+
+    if (
+      parent === -1 &&
+      openBundle !== -1 &&
+      bundleKey(flat[openBundle].row) === bundleKey(row)
+    ) {
+      parent = openBundle;
+    }
+
+    flat.push({ row, parent, nested: false });
+  }
+
+  return flat;
+};
+
+// The rows are stamped in place, so the tree keeps whatever shape it arrived
+// in. A bundle's items are numbered within their own bundle rather than in the
+// document's top-level ordering: {parent_index}-{child_index}.
+const flat = flattenWithParent(entry.table_si, "material_id");
+const itemsNumbered = new Map(); // bundle line position -> items numbered so far
+let lineNumber = 0;
+
+for (const item of flat) {
+  stampSiLineItem(item.row);
+
+  if (item.parent === -1) {
+    lineNumber++;
+    item.row.line_index = lineNumber;
+    continue;
+  }
+
+  const childNumber = (itemsNumbered.get(item.parent) || 0) + 1;
+  itemsNumbered.set(item.parent, childNumber);
+
+  item.row.line_index = `${flat[item.parent].row.line_index}-${childNumber}`;
+}
+
+entry.invoice_subtotal = round8(parseFloat(entry.invoice_subtotal || 0));
+entry.invoice_total_discount = round8(parseFloat(entry.invoice_total_discount || 0));
+entry.invoice_taxes_amount = round8(parseFloat(entry.invoice_taxes_amount || 0));
+entry.invoice_total = round8(parseFloat(entry.invoice_total || 0));
+entry.myr_total_amount = round8(parseFloat(entry.myr_total_amount || 0));
+entry.outstanding_amount = round8(parseFloat(entry.invoice_total || 0));
+entry.payment_status = entry.si_status === 'Draft' ? '' : 'Unpaid'
+
+return { entry };
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Fillback Header Fields", "name": "Fillback Header Fields"}
+====================================================================================================
+search_node_NDKdFanY [search-node] Fetch SO Data
+{
+ "table_id": {
+  "source": "Sales Order:Table:1902773735979597826",
+  "rules": {
+   "collectionId": "1902773735979597826",
+   "list": [
+    {
+     "id": 1772617932161,
+     "parentId": 1772617932160,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_JoF0YVzG.data.entry.so_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "Fetch SO Data",
+ "isValidator": true,
+ "nodeName": "Fetch SO Data",
+ "name": "Fetch SO Data"
+}
+====================================================================================================
+search_node_lTy219I0 [search-node] Fetch GD Data
+{
+ "table_id": {
+  "source": "Goods Delivery:Table:1902054888473481218",
+  "rules": {
+   "collectionId": "1902054888473481218",
+   "list": [
+    {
+     "id": 1772617963175,
+     "parentId": 1772617963174,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_JoF0YVzG.data.entry.gd_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "Fetch GD Data",
+ "isValidator": true,
+ "nodeName": "Fetch GD Data",
+ "name": "Fetch GD Data"
+}
+====================================================================================================
+if_KzCWBJ76 [if] IF completed?
+{
+ "title": "IF completed?",
+ "isValidator": true,
+ "nodeName": "IF completed?",
+ "name": "IF completed?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_JoF0YVzG.data.entry.si_status}}' == 'Completed'"
+ }
+}
+====================================================================================================
+if_block_KpM9gwzu [ifBlock] true
+====================================================================================================
+get_node_siSrSetup1 [get-node] Get SR Setup
+{
+ "table_id": {
+  "source": "Sales Return Setup:Table:2046120455801585665",
+  "rules": {
+   "collectionId": "2046120455801585665",
+   "list": [
+    {
+     "id": 1777500000001,
+     "parentId": 1777500000000,
+     "isTop": true,
+     "prop": "organization_id",
+     "operator": "equal",
+     "valueType": "field",
+     "value": "{{node:code_node_JoF0YVzG.data.entry.organization_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "Organization",
+     "valueLabel": "",
+     "operatorLabel": "Equal"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Get SR Setup",
+ "isValidator": true,
+ "nodeName": "Get SR Setup",
+ "name": "Get SR Setup"
+}
+====================================================================================================
+code_node_hHnkhdFI [code-node] Map Updated SO & GD
+response_json: ["updatedGD", "updatedSO", "allErrors", "status"]
+const soList = {{node:search_node_NDKdFanY.data.data}} || [];
+const gdList = {{node:search_node_lTy219I0.data.data}} || [];
+const data = {{node:code_node_JoF0YVzG.data.entry}};
+let allErrors = [];
+
+// How a sales return is billed, scoped by organisation: every plant row in an org
+// carries the same values, and plant_id on an invoice may hold an organisation
+// rather than a plant. Under "Deduct from Invoice" the returned quantity is not
+// billable, which the item picker and the convert workflows already apply when
+// they default a line -- enforced here too, where it cannot be typed around.
+// Unset means the credit-note method, where the full delivered quantity is
+// invoiceable and the return is handled by the credit note instead.
+const srSetupRaw = {{node:get_node_siSrSetup1.data.data}};
+const srSetup = Array.isArray(srSetupRaw) ? srSetupRaw[0] : srSetupRaw;
+// Trigger By only decides when an automatic credit note is raised, not whether a return is billed.
+const deductReturnQty = Boolean(
+  srSetup && srSetup.return_billing_method === "Deduct from Invoice",
+);
+
+const absRound8 = (value) => {
+  let positiveValue = Math.abs(value);
+  return Math.round((parseFloat(positiveValue) || 0) * 100000000) / 100000000;
+};
+
+// A bundle line has no item of its own; the items under it carry both the
+// bundle and an item. table_si, table_so and table_gd reaches this node in either of two shapes --
+// nested under `children`, or flat with a bundle's items following their bundle
+// line -- so both are read here. Each entry remembers the position of its
+// bundle line (-1 when the row is not in a bundle) and whether it was nested to
+// begin with, so what is written back keeps the shape it arrived in.
+const bundleKey = (row) => {
+  const bundle = row.item_bundle_id;
+
+  if (bundle && typeof bundle === "object") {
+    return String(bundle.id || bundle.ib_no || "");
+  }
+
+  return String(bundle || "");
+};
+
+const flattenWithParent = (rows, itemKey) => {
+  const flat = [];
+  const positionOf = new Map();
+
+  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];
+  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);
+
+  let openBundle = -1; // bundle line the flat rows below it belong to
+
+  for (const [index, row] of (rows || []).entries()) {
+    const position = flat.length;
+    positionOf.set(index, position);
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    // Already a tree: nothing to reattach, and a bundle spelled out this way
+    // ends whatever run was open above it.
+    if (children.length > 0) {
+      openBundle = -1;
+      flat.push({ row, parent: -1, nested: false });
+
+      for (const child of children) {
+        flat.push({ row: child, parent: position, nested: true });
+      }
+
+      continue;
+    }
+
+    if (isBundleRow(row)) {
+      openBundle = position;
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    if (!isBundleItem(row)) {
+      openBundle = -1; // a plain line closes the bundle above it
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    // A flat item: linked to its bundle line by id, or else belonging to the
+    // bundle line it follows, as long as that is the same bundle.
+    let parent = -1;
+
+    for (let candidate = index - 1; candidate >= 0; candidate--) {
+      const candidateRow = rows[candidate];
+
+      if (!isBundleRow(candidateRow)) continue;
+
+      const byId =
+        row.parent_id != null &&
+        candidateRow.id != null &&
+        String(row.parent_id) === String(candidateRow.id);
+      const byKey =
+        row.parent_fm_key != null &&
+        candidateRow.fm_key != null &&
+        String(row.parent_fm_key) === String(candidateRow.fm_key);
+
+      if (byId || byKey) {
+        parent = positionOf.get(candidate);
+        break;
+      }
+    }
+
+    if (
+      parent === -1 &&
+      openBundle !== -1 &&
+      bundleKey(flat[openBundle].row) === bundleKey(row)
+    ) {
+      parent = openBundle;
+    }
+
+    flat.push({ row, parent, nested: false });
+  }
+
+  return flat;
+};
+
+const flattenRows = (rows, itemKey) =>
+  flattenWithParent(rows, itemKey).map((item) => item.row);
+
+
+const validateInvoiceQuantities = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey, itemKey) => {
+  // A bundle's items are invoiced lines in their own right -- each has its own
+  // order line and its own invoiced quantity -- so both sides are read flat.
+  const flatItems = flattenRows(items, itemKey);
+  const filteredSI = flattenRows(tableSi, "material_id").filter((item) => item[docIdKey] === docId);
+  
+  const errors = [];
+  
+  filteredSI.forEach((siItem) => {
+    const originalItem = flatItems.find(item => item.id === siItem[siLineIdKey]);
+    
+    if (originalItem) {
+      // Clamped: a line can be returned in full.
+      const returnedQty = deductReturnQty
+        ? absRound8(originalItem.return_qty)
+        : 0;
+      const availableQty = Math.max(
+        0,
+        absRound8(originalItem[qtyKey]) - returnedQty,
+      );
+      const currentInvoicedQty = absRound8(originalItem.invoice_qty);
+      const newInvoiceQty = absRound8(siItem.invoice_qty);
+      const totalInvoicedQty = absRound8(currentInvoicedQty + newInvoiceQty);
+      
+      if (totalInvoicedQty > availableQty) {
+        errors.push({
+          itemName: originalItem.item_id || originalItem.material_name || `Item ${originalItem.id}`,
+          // Carried so the message can say what the cap is and where it came
+          // from: the same line is checked against both the delivery and the
+          // order, and "10 delivered" and "10 ordered" are different sentences.
+          available: availableQty,
+          total: absRound8(originalItem[qtyKey]),
+          basis: qtyKey === "gd_qty" ? "delivered" : "ordered",
+        });
+      }
+    }
+  });
+  
+  return errors;
+};
+
+const updateGoodsDelivery = (gdIds, tableSi) => {
+  let gdUpdatedList = [];
+  for(const gdID of gdIds) {
+    const gdData = gdList.find(gd => gd.id === gdID)
+    const gdItems = gdData.table_gd || [];
+
+    const validationErrors = validateInvoiceQuantities(
+      gdItems,
+      tableSi,
+      gdData.id,
+      "line_gd_id",
+      "gd_line_id",
+      "gd_qty",
+      "material_id",
+    );
+
+    allErrors = [...allErrors, ...validationErrors];
+
+    // Process GR items
+    const { updatedItems, newSIStatus } = processItems(
+      gdItems,
+      tableSi,
+      gdData.id,
+      "line_gd_id",
+      "gd_line_id",
+      "gd_qty",
+      "material_id",
+    );
+
+    gdUpdatedList.push({
+      gd_id: gdData.id,
+      si_status: newSIStatus,
+      table_gd: updatedItems
+    })
+  }
+
+  return gdUpdatedList;
+};
+
+const updateSalesOrder = (soIds, tableSi) => {
+  let soUpdatedList = [];
+  for(const soID of soIds) {
+    const soData = soList.find(so => so.id === soID)
+    const soItems = soData.table_so || [];
+
+    const validationErrors = validateInvoiceQuantities(
+      soItems,
+      tableSi,
+      soData.id,
+      "line_so_id",
+      "so_line_id",
+      "so_quantity",
+      "item_name",
+    );
+
+    allErrors = [...allErrors, ...validationErrors];
+
+    const { updatedItems, newSIStatus } = processItems(
+      soItems,
+      tableSi,
+      soData.id,
+      "line_so_id",
+      "so_line_id",
+      "so_quantity",
+      "item_name",
+    );
+
+    soUpdatedList.push({
+      so_id: soData.id,
+      si_status: newSIStatus,
+      table_so: updatedItems
+    })
+  }
+
+  return soUpdatedList;
+};
+
+
+const processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey, itemKey) => {
+  // Filter PI items for the current document -- a bundle's items are invoiced
+  // lines of their own, so the invoice is read flat here.
+  const filteredSI = flattenRows(tableSi, "material_id").filter((item) => item[docIdKey] === docId);
+
+  // The order's own lines, flat, each remembering the bundle line it sits under.
+  const flat = flattenWithParent(items, itemKey);
+
+  // Filter items where item.id matches any siLineIdKey in filteredSI
+  const filteredItems = flat.filter((entry) =>
+    filteredSI.some((pi) => pi[siLineIdKey] === entry.row.id),
+  );
+
+  // Initialize tracking. Only a bundle line counts towards the document's
+  // status -- its items cannot be invoiced independently of it.
+  let totalItems = flat.filter((entry) => entry.parent === -1).length;
+  let partiallyInvoicedItems = 0;
+  let fullyInvoicedItems = 0;
+  const updated = flat.map((entry) => ({ ...entry, row: { ...entry.row } }));
+
+  // Update invoice quantities
+  filteredItems.forEach((filteredItem, filteredIndex) => {
+    const originalIndex = updated.findIndex(
+      (entry) => entry.row.id === filteredItem.row.id,
+    );
+
+    if (originalIndex === -1) return;
+
+    const itemQty = parseFloat(filteredItem.row[qtyKey] || 0);
+    const piInvoicedQty = absRound8(
+      filteredSI[filteredIndex]?.invoice_qty
+    );
+    const currentInvoicedQty = absRound8(
+      updated[originalIndex].row.invoice_qty
+    );
+    const totalInvoicedQty = absRound8(currentInvoicedQty + piInvoicedQty);
+
+    // Update invoice quantity
+    updated[originalIndex].row.invoice_qty = totalInvoicedQty;
+  });
+
+  for (const entry of updated) {
+    if (entry.parent !== -1) continue;
+
+    // Under the deduct method a returned quantity is settled by never billing it.
+    const billable = Math.max(
+      0,
+      absRound8(entry.row[qtyKey]) -
+        (deductReturnQty ? absRound8(entry.row.return_qty) : 0),
+    );
+
+    if (absRound8(entry.row.invoice_qty) > 0) {
+      partiallyInvoicedItems++;
+      entry.row.si_status = "Partially Invoiced";
+      if (absRound8(entry.row.invoice_qty) >= billable) {
+        fullyInvoicedItems++;
+        entry.row.si_status = "Fully Invoiced";
+      }
+    } else if (deductReturnQty && billable <= 0) {
+      fullyInvoicedItems++;
+    }
+  }
+
+  // A bundle's items carry the bundle's status, whatever it came out as.
+  for (const entry of updated) {
+    if (entry.parent === -1) continue;
+
+    entry.row.si_status = updated[entry.parent].row.si_status;
+  }
+
+  // Written back in the shape it arrived in: a bundle's items go back under
+  // their bundle line only if that is where they came from.
+  const updatedItems = [];
+
+  for (const [index, entry] of updated.entries()) {
+    if (entry.nested) continue;
+
+    const children = updated
+      .filter((candidate) => candidate.nested && candidate.parent === index)
+      .map((candidate) => candidate.row);
+
+    if (children.length > 0) {
+      updatedItems.push({ ...entry.row, children });
+    } else if (Array.isArray(entry.row.children)) {
+      updatedItems.push({ ...entry.row, children: [] });
+    } else {
+      updatedItems.push(entry.row);
+    }
+  }
+
+  // Determine new PI status
+  const allItemsComplete = fullyInvoicedItems === totalItems;
+  const anyItemProcessing = partiallyInvoicedItems > 0;
+  let newSIStatus = anyItemProcessing
+    ? allItemsComplete
+      ? "Fully Invoiced"
+      : "Partially Invoiced"
+    : "";
+
+  return { updatedItems, newSIStatus };
+};
+
+const soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];
+let updatedGD = [];
+if (data.gd_id.length > 0) {
+  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];
+  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);
+  updatedGD = updatedGDData.flat();
+}
+let updatedSO = updateSalesOrder(soIds, data.table_si);
+updatedGD = updatedGD.filter(gd => gd.si_status === 'Fully Invoiced').map(gd => gd.gd_id)
+updatedSO = updatedSO.filter(so => so.si_status === 'Fully Invoiced').map(so => so.so_id)
+
+return {
+  status: allErrors.length > 0 ? 'Failed' : 'Success', 
+  allErrors, updatedGD, updatedSO
+}
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Map Updated SO & GD", "name": "Map Updated SO & GD"}
+====================================================================================================
+if_i2nGxo5C [if] IF qty validate failed?
+{
+ "title": "IF qty validate failed?",
+ "isValidator": true,
+ "nodeName": "IF qty validate failed?",
+ "name": "IF qty validate failed?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_hHnkhdFI.data.status}}' == 'Failed'"
+ }
+}
+====================================================================================================
+if_block_pcrquDOi [ifBlock] true
+====================================================================================================
+code_node_xRSPTIpa [code-node] 410 Error Msg
+response_json: ["message"]
+const errors = {{node:code_node_hHnkhdFI.data.allErrors}} || [];
+
+const fmt = (n) => String(Math.round((parseFloat(n) || 0) * 1000) / 1000);
+
+// One line per item. A line is checked against both its delivery and its order,
+// so the same item arrives twice when both caps are breached -- the tighter one
+// is the one worth reporting, and the name is only said once.
+const tightest = {};
+
+for (const err of errors) {
+  const name = err.itemName;
+  const available = parseFloat(err.available) || 0;
+
+  if (!tightest[name] || available < tightest[name].available) {
+    tightest[name] = { available, total: parseFloat(err.total) || 0, basis: err.basis };
+  }
+}
+
+const lines = Object.keys(tightest).map((name) => {
+  const row = tightest[name];
+  const blocked = Math.round((row.total - row.available) * 1000) / 1000;
+
+  let line = `${name}: invoice quantity cannot exceed ${fmt(row.available)}.`;
+
+  if (blocked > 0) {
+    line += ` ${fmt(row.total)} ${row.basis}; ${fmt(blocked)} is not invoiceable because it was returned or already invoiced.`;
+  }
+
+  return line;
+});
+
+return { message: lines.join("<br>") };
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "410 Error Msg", "name": "410 Error Msg"}
+====================================================================================================
+end_chFD_S_S [end-node] 结束节点
+{
+ "title": "结束节点",
+ "outputs": {
+  "type": "object",
+  "properties": {
+   "result": {
+    "type": "string"
+   }
+  }
+ },
+ "isValidator": true,
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "msg": {
+  "type": "javascript",
+  "code": "{{node:code_node_xRSPTIpa.data.message}}"
+ },
+ "code": 410
+}
+====================================================================================================
+if_block__kMSW4Ee [ifBlock] false
+====================================================================================================
+if_block_5P6g6Mcd [ifBlock] false
+====================================================================================================
+if_D49IflKy [if] IF add?
+{
+ "title": "IF add?",
+ "isValidator": true,
+ "nodeName": "IF add?",
+ "name": "IF add?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{workflowparams:data.page_status}}' == 'Add' || '{{workflowparams:data.page_status}}' == 'Convert'"
+ }
+}
+====================================================================================================
+if_block_ttA082eX [ifBlock] true
+====================================================================================================
+add_node_adYeQB4a [add-node] Add Data
+{
+ "table_id": {
+  "source": "Sales Invoice:Table:1902525285396496385",
+  "rules": {
+   "collectionId": "1902525285396496385",
+   "list": [
+    {
+     "id": 1772607616373,
+     "parentId": 1772607616372,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "title": "Add Data",
+ "isValidator": true,
+ "nodeName": "Add Data",
+ "name": "Add Data",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "si_status",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_status}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "SI Status"
+   },
+   {
+    "prop": "agent_user_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.agent_user_id}}",
+    "valueLabel": "",
+    "propLabel": "Agent User"
+   },
+   {
+    "prop": "si_ref_doc",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_ref_doc}}",
+    "valueLabel": "",
+    "propLabel": "Reference Documents"
+   },
+   {
+    "prop": "created_source",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.created_source}}",
+    "valueLabel": "",
+    "propLabel": "Created Source"
+   },
+   {
+    "prop": "wa_number",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.wa_number}}",
+    "valueLabel": "",
+    "propLabel": "Whatsapp No"
+   },
+   {
+    "prop": "wa_group",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.wa_group}}",
+    "valueLabel": "",
+    "propLabel": "Whatsapp Group"
+   },
+   {
+    "prop": "plant_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.plant_id}}",
+    "valueLabel": "",
+    "propLabel": "Plant"
+   },
+   {
+    "prop": "so_no_display",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.so_no_display}}",
+    "valueLabel": "",
+    "propLabel": "SO Number"
+   },
+   {
+    "prop": "gd_no_display",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.gd_no_display}}",
+    "valueLabel": "",
+    "propLabel": "GD Number"
+   },
+   {
+    "prop": "so_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.so_id}}",
+    "valueLabel": "",
+    "propLabel": "SO ID"
+   },
+   {
+    "prop": "gd_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.gd_id}}",
+    "valueLabel": "",
+    "propLabel": "GD ID"
+   },
+   {
+    "prop": "customer_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.customer_id}}",
+    "valueLabel": "",
+    "propLabel": "Customer"
+   },
+   {
+    "prop": "currency_code",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.currency_code}}",
+    "valueLabel": "",
+    "propLabel": "Currency"
+   },
+   {
+    "prop": "si_billing_address",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_billing_address}}",
+    "valueLabel": "",
+    "propLabel": "Billing Address"
+   },
+   {
+    "prop": "si_shipping_address",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_shipping_address}}",
+    "valueLabel": "",
+    "propLabel": "Shipping Address"
+   },
+   {
+    "prop": "sales_invoice_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_no}}",
+    "valueLabel": "",
+    "propLabel": "Sales Invoice Number"
+   },
+   {
+    "prop": "sales_invoice_no_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_no_type}}",
+    "valueLabel": "",
+    "propLabel": "规则"
+   },
+   {
+    "prop": "sales_invoice_date",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_date}}",
+    "valueLabel": "",
+    "propLabel": "Sales Invoice Date"
+   },
+   {
+    "prop": "sales_person_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.sales_person_id}}",
+    "valueLabel": "",
+    "propLabel": "Sales Representative"
+   },
+   {
+    "prop": "si_payment_term_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_payment_term_id}}",
+    "valueLabel": "",
+    "propLabel": "Payment Term"
+   },
+   {
+    "prop": "exchange_rate_currency",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.exchange_rate_currency}}",
+    "valueLabel": "",
+    "propLabel": "Exchange Rate"
+   },
+   {
+    "prop": "exchange_rate",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.exchange_rate}}",
+    "valueLabel": "",
+    "propLabel": "Exchange Rate"
+   },
+   {
+    "prop": "si_description",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_description}}",
+    "valueLabel": "",
+    "propLabel": "Description"
+   },
+   {
+    "prop": "posted_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.posted_status}}",
+    "valueLabel": "",
+    "propLabel": "Posted Status"
+   },
+   {
+    "prop": "organization_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.organization_id}}",
+    "valueLabel": "",
+    "propLabel": "Organization"
+   },
+   {
+    "prop": "acc_integration_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.acc_integration_type}}",
+    "valueLabel": "",
+    "propLabel": "Accounting Integration Type"
+   },
+   {
+    "prop": "projec
+====================================================================================================
+if_block_jzbjgHNc [ifBlock] false
+====================================================================================================
+update_node_I7KGszOE [update-node] Update Data
+{
+ "table_id": {
+  "source": "Sales Invoice:Table:1902525285396496385",
+  "rules": {
+   "collectionId": "1902525285396496385",
+   "list": [
+    {
+     "id": 1772674146119,
+     "parentId": 1772674146118,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_JoF0YVzG.data.entry.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update Data",
+ "isValidator": true,
+ "nodeName": "Update Data",
+ "name": "Update Data",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "id",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.id}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "主键ID"
+   },
+   {
+    "prop": "agent_user_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.agent_user_id}}",
+    "valueLabel": "",
+    "propLabel": "Agent User"
+   },
+   {
+    "prop": "si_ref_doc",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_ref_doc}}",
+    "valueLabel": "",
+    "propLabel": "Reference Documents"
+   },
+   {
+    "prop": "created_source",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.created_source}}",
+    "valueLabel": "",
+    "propLabel": "Created Source"
+   },
+   {
+    "prop": "wa_number",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.wa_number}}",
+    "valueLabel": "",
+    "propLabel": "Whatsapp No"
+   },
+   {
+    "prop": "wa_group",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.wa_group}}",
+    "valueLabel": "",
+    "propLabel": "Whatsapp Group"
+   },
+   {
+    "prop": "si_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_status}}",
+    "valueLabel": "",
+    "propLabel": "SI Status"
+   },
+   {
+    "prop": "plant_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.plant_id}}",
+    "valueLabel": "",
+    "propLabel": "Plant"
+   },
+   {
+    "prop": "so_no_display",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.so_no_display}}",
+    "valueLabel": "",
+    "propLabel": "SO Number"
+   },
+   {
+    "prop": "gd_no_display",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.gd_no_display}}",
+    "valueLabel": "",
+    "propLabel": "GD Number"
+   },
+   {
+    "prop": "so_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.so_id}}",
+    "valueLabel": "",
+    "propLabel": "SO ID"
+   },
+   {
+    "prop": "gd_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.gd_id}}",
+    "valueLabel": "",
+    "propLabel": "GD ID"
+   },
+   {
+    "prop": "customer_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.customer_id}}",
+    "valueLabel": "",
+    "propLabel": "Customer"
+   },
+   {
+    "prop": "currency_code",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.currency_code}}",
+    "valueLabel": "",
+    "propLabel": "Currency"
+   },
+   {
+    "prop": "si_billing_address",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_billing_address}}",
+    "valueLabel": "",
+    "propLabel": "Billing Address"
+   },
+   {
+    "prop": "si_shipping_address",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_shipping_address}}",
+    "valueLabel": "",
+    "propLabel": "Shipping Address"
+   },
+   {
+    "prop": "sales_invoice_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_no}}",
+    "valueLabel": "",
+    "propLabel": "Sales Invoice Number"
+   },
+   {
+    "prop": "sales_invoice_no_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_no_type}}",
+    "valueLabel": "",
+    "propLabel": "规则"
+   },
+   {
+    "prop": "sales_invoice_date",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.sales_invoice_date}}",
+    "valueLabel": "",
+    "propLabel": "Sales Invoice Date"
+   },
+   {
+    "prop": "sales_person_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.sales_person_id}}",
+    "valueLabel": "",
+    "propLabel": "Sales Representative"
+   },
+   {
+    "prop": "si_payment_term_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_payment_term_id}}",
+    "valueLabel": "",
+    "propLabel": "Payment Term"
+   },
+   {
+    "prop": "exchange_rate_currency",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.exchange_rate_currency}}",
+    "valueLabel": "",
+    "propLabel": "Exchange Rate"
+   },
+   {
+    "prop": "exchange_rate",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.exchange_rate}}",
+    "valueLabel": "",
+    "propLabel": "Exchange Rate"
+   },
+   {
+    "prop": "si_description",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.si_description}}",
+    "valueLabel": "",
+    "propLabel": "Description"
+   },
+   {
+    "prop": "posted_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.posted_status}}",
+    "valueLabel": "",
+    "propLabel": "Posted Status"
+   },
+   {
+    "prop": "organization_id",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_JoF0YVzG.data.entry.organizat
+====================================================================================================
+get_node_fcE2I4vj [get-node] Fetch SI
+{
+ "table_id": {
+  "source": "Sales Invoice:Table:1902525285396496385",
+  "rules": {
+   "collectionId": "1902525285396496385",
+   "list": [
+    {
+     "id": 1777279551551,
+     "parentId": 1777279551550,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_JoF0YVzG.data.entry.id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Fetch SI",
+ "isValidator": true,
+ "nodeName": "Fetch SI",
+ "name": "Fetch SI"
+}
+====================================================================================================
+code_node_ytRbog2e [code-node] Map Latest SI
+response_json: ["siData"]
+// "Convert" takes the SAME add-node branch as "Add" (see if_D49IflKy), so the inserted
+// row must be read back from the add-node. Reading get_node_fcE2I4vj here left siData null
+// for every convert, which silently broke the final return (id / si_no), auto-post and auto-PI.
+const pageStatus = {{workflowparams:data.page_status}};
+const isInsert = pageStatus === 'Add' || pageStatus === 'Convert';
+
+const siData = isInsert ? {{node:add_node_adYeQB4a.data}}[0] : {{node:get_node_fcE2I4vj.data.data}};
+
+return { siData }
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Map Latest SI", "name": "Map Latest SI"}
+====================================================================================================
+if_5DHm2eA0 [if] IF completed?
+{
+ "title": "IF completed?",
+ "isValidator": true,
+ "nodeName": "IF completed?",
+ "name": "IF completed?",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_JoF0YVzG.data.entry.si_status}}' == 'Completed'"
+ }
+}
+====================================================================================================
+if_block_wJFTcZvJ [ifBlock] true
+====================================================================================================
+code_node_4CvJopJk [code-node] Map Updated SO & GD
+response_json: ["updatedGD", "updatedSO"]
+const soList = {{node:search_node_NDKdFanY.data.data}} || [];
+const gdList = {{node:search_node_lTy219I0.data.data}} || [];
+const data = {{node:code_node_JoF0YVzG.data.entry}};
+
+const absRound8 = (value) => {
+  let positiveValue = Math.abs(value);
+  return Math.round((parseFloat(positiveValue) || 0) * 100000000) / 100000000;
+};
+
+// A bundle line has no item of its own; the items under it carry both the
+// bundle and an item. table_si, table_so and table_gd reaches this node in either of two shapes --
+// nested under `children`, or flat with a bundle's items following their bundle
+// line -- so both are read here. Each entry remembers the position of its
+// bundle line (-1 when the row is not in a bundle) and whether it was nested to
+// begin with, so what is written back keeps the shape it arrived in.
+const bundleKey = (row) => {
+  const bundle = row.item_bundle_id;
+
+  if (bundle && typeof bundle === "object") {
+    return String(bundle.id || bundle.ib_no || "");
+  }
+
+  return String(bundle || "");
+};
+
+const flattenWithParent = (rows, itemKey) => {
+  const flat = [];
+  const positionOf = new Map();
+
+  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];
+  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);
+
+  let openBundle = -1; // bundle line the flat rows below it belong to
+
+  for (const [index, row] of (rows || []).entries()) {
+    const position = flat.length;
+    positionOf.set(index, position);
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    // Already a tree: nothing to reattach, and a bundle spelled out this way
+    // ends whatever run was open above it.
+    if (children.length > 0) {
+      openBundle = -1;
+      flat.push({ row, parent: -1, nested: false });
+
+      for (const child of children) {
+        flat.push({ row: child, parent: position, nested: true });
+      }
+
+      continue;
+    }
+
+    if (isBundleRow(row)) {
+      openBundle = position;
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    if (!isBundleItem(row)) {
+      openBundle = -1; // a plain line closes the bundle above it
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    // A flat item: linked to its bundle line by id, or else belonging to the
+    // bundle line it follows, as long as that is the same bundle.
+    let parent = -1;
+
+    for (let candidate = index - 1; candidate >= 0; candidate--) {
+      const candidateRow = rows[candidate];
+
+      if (!isBundleRow(candidateRow)) continue;
+
+      const byId =
+        row.parent_id != null &&
+        candidateRow.id != null &&
+        String(row.parent_id) === String(candidateRow.id);
+      const byKey =
+        row.parent_fm_key != null &&
+        candidateRow.fm_key != null &&
+        String(row.parent_fm_key) === String(candidateRow.fm_key);
+
+      if (byId || byKey) {
+        parent = positionOf.get(candidate);
+        break;
+      }
+    }
+
+    if (
+      parent === -1 &&
+      openBundle !== -1 &&
+      bundleKey(flat[openBundle].row) === bundleKey(row)
+    ) {
+      parent = openBundle;
+    }
+
+    flat.push({ row, parent, nested: false });
+  }
+
+  return flat;
+};
+
+const flattenRows = (rows, itemKey) =>
+  flattenWithParent(rows, itemKey).map((item) => item.row);
+
+const updateGoodsDelivery = (gdIds, tableSi) => {
+  let gdUpdatedList = [];
+  for(const gdID of gdIds) {
+    const gdData = gdList.find(gd => gd.id === gdID)
+    const gdItems = gdData.table_gd || [];
+
+    // Process GR items
+    const { updatedItems, newSIStatus } = processItems(
+      gdItems,
+      tableSi,
+      gdData.id,
+      "line_gd_id",
+      "gd_line_id",
+      "gd_qty",
+      "material_id",
+    );
+
+    gdUpdatedList.push({
+      gd_id: gdData.id,
+      si_status: newSIStatus,
+      table_gd: updatedItems
+    })
+  }
+
+  return gdUpdatedList;
+};
+
+const updateSalesOrder = (soIds, tableSi) => {
+  let soUpdatedList = [];
+  for(const soID of soIds) {
+    const soData = soList.find(so => so.id === soID)
+    const soItems = soData.table_so || [];
+
+    const { updatedItems, newSIStatus } = processItems(
+      soItems,
+      tableSi,
+      soData.id,
+      "line_so_id",
+      "so_line_id",
+      "so_quantity",
+      "item_name",
+    );
+
+    soUpdatedList.push({
+      so_id: soData.id,
+      si_status: newSIStatus,
+      table_so: updatedItems
+    })
+  }
+
+  return soUpdatedList;
+};
+
+const processItems = (items, tableSi, docId, docIdKey, siLineIdKey, qtyKey, itemKey) => {
+  // Filter SI items for the current document -- a bundle's items are invoiced
+  // lines of their own, so the invoice is read flat here.
+  const filteredSI = flattenRows(tableSi, "material_id").filter((item) => item[docIdKey] === docId);
+
+  // The order's own lines, flat, each remembering the bundle line it sits under.
+  const flat = flattenWithParent(items, itemKey);
+
+  // Initialize tracking. Only a bundle line counts towards the document's
+  // status -- its items cannot be invoiced independently of it.
+  let totalItems = flat.filter((entry) => entry.parent === -1).length;
+  let partiallyInvoicedItems = 0;
+  let fullyInvoicedItems = 0;
+
+  // Invoiced quantity is set on every line, a bundle's items included; only a
+  // bundle line's own quantity counts towards the document's status.
+  const updated = flat.map(({ row, parent, nested }) => {
+    const matchedSI = filteredSI.find(pi => pi[siLineIdKey] === row.id);
+
+    if (matchedSI) {
+      const piInvoicedQty = absRound8(matchedSI.invoice_qty);
+      const currentInvoicedQty = absRound8(row.invoice_qty);
+      const totalInvoicedQty = absRound8(currentInvoicedQty + piInvoicedQty);
+
+      const updatedItem = {
+        ...row,
+        invoice_qty: totalInvoicedQty
+      };
+
+      if (absRound8(updatedItem.invoice_qty) > 0) {
+          if (parent === -1) partiallyInvoicedItems++;
+          updatedItem.si_status = "Partially Invoiced";
+          if (absRound8(updatedItem.invoice_qty) >= absRound8(row[qtyKey] || 0)) {
+            if (parent === -1) fullyInvoicedItems++;
+            updatedItem.si_status = "Fully Invoiced";
+          }
+      }
+
+      return { row: updatedItem, parent, nested };
+    }
+
+    return { row: { ...row }, parent, nested };
+  });
+
+  // A bundle's items carry the bundle's status, whatever it came out as.
+  for (const entry of updated) {
+    if (entry.parent === -1) continue;
+
+    entry.row.si_status = updated[entry.parent].row.si_status;
+  }
+
+  // Written back as table_so / table_gd in the shape it arrived in: a bundle's
+  // items go back under their bundle line only if that is where they came from,
+  // and stay where they are when the document keeps them as flat rows.
+  const updatedItems = [];
+
+  for (const [index, entry] of updated.entries()) {
+    if (entry.nested) continue;
+
+    const children = updated
+      .filter((candidate) => candidate.nested && candidate.parent === index)
+      .map((candidate) => candidate.row);
+
+    if (children.length > 0) {
+      updatedItems.push({ ...entry.row, children });
+    } else if (Array.isArray(entry.row.children)) {
+      updatedItems.push({ ...entry.row, children: [] });
+    } else {
+      updatedItems.push(entry.row);
+    }
+  }
+
+  // Determine new SI status
+  const allItemsComplete = fullyInvoicedItems === totalItems;
+  const anyItemProcessing = partiallyInvoicedItems > 0;
+  let newSIStatus = anyItemProcessing
+    ? allItemsComplete
+      ? "Fully Invoiced"
+      : "Partially Invoiced"
+    : "";
+
+  return { updatedItems, newSIStatus };
+};
+
+const soIds = Array.isArray(data.so_id) ? data.so_id : [data.so_id];
+let updatedGD = [];
+if (data.gd_id.length > 0) {
+  const gdIds = Array.isArray(data.gd_id) ? data.gd_id : [data.gd_id];
+  const updatedGDData = updateGoodsDelivery(gdIds, data.table_si);
+  updatedGD = updatedGDData
+}
+
+const updatedSO = updateSalesOrder(soIds, data.table_si);
+
+return {
+  updatedGD, updatedSO
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Map Updated SO & GD", "name": "Map Updated SO & GD"}
+====================================================================================================
+search_node_I3e7ZpkH [search-node] Get Draft SI
+{
+ "table_id": {
+  "source": "Sales Invoice:Table:1902525285396496385",
+  "rules": {
+   "collectionId": "1902525285396496385",
+   "list": [
+    {
+     "id": 1772769697185,
+     "parentId": 1772769697186,
+     "isTop": true,
+     "prop": "so_id",
+     "operator": "all",
+     "valueType": "field",
+     "value": "{{node:code_node_hHnkhdFI.data.updatedSO}}",
+     "type": "branch",
+     "level": 1,
+     "propLabel": "SO ID",
+     "valueLabel": "",
+     "operatorLabel": "In",
+     "children": [
+      {
+       "id": 1772769697188,
+       "isTop": false,
+       "parentId": 1772769697185,
+       "type": "branch",
+       "operator": "any",
+       "level": 2,
+       "children": [
+        {
+         "id": 1772769697187,
+         "parentId": 1772769697188,
+         "isTop": false,
+         "prop": "so_id",
+         "operator": "in",
+         "valueType": "field",
+         "value": "{{node:code_node_4CvJopJk.data.updatedSO.so_id}}",
+         "type": "leaf",
+         "level": 3,
+         "propLabel": "SO ID",
+         "valueLabel": "",
+         "operatorLabel": "In"
+        },
+        {
+         "id": 1772769697189,
+         "parentId": 1772769697188,
+         "isTop": false,
+         "prop": "gd_id",
+         "operator": "in",
+         "valueType": "field",
+         "value": "{{node:code_node_4CvJopJk.data.updatedGD.gd_id}}",
+         "type": "leaf",
+         "level": 3,
+         "propLabel": "GD ID",
+         "valueLabel": "",
+         "operatorLabel": "In"
+        }
+       ]
+      },
+      {
+       "id": 1772769697187,
+       "parentId": 1772769697185,
+       "isTop": false,
+       "prop": "si_status",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "Draft",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "SI Status",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "limit": 100,
+ "title": "Get Draft SI",
+ "isValidator": true,
+ "nodeName": "Get Draft SI",
+ "name": "Get Draft SI"
+}
+====================================================================================================
+delete_node_vpLUnjoe [delete-node] Delete Draft SI
+{
+ "table_id": {
+  "source": ""
+ },
+ "condition": {},
+ "title": "Delete Draft SI",
+ "isValidator": true,
+ "nodeName": "Delete Draft SI",
+ "name": "Delete Draft SI",
+ "node_ids": [
+  "search_node_I3e7ZpkH"
+ ]
+}
+====================================================================================================
+condition_all_bCtEHeEx [condition-all-node] Parallel Branch
+{
+ "title": "Parallel Branch",
+ "filter": {
+  "list": []
+ },
+ "expression": {
+  "code": ""
+ },
+ "displayContent": "sdk.form.setCondition"
+}
+====================================================================================================
+condition_all_node_item_8tQ82FnL [condition-all-node-item] Branch 1
+====================================================================================================
+update_node_CTTDlnVN [update-node] Update SO
+{
+ "table_id": {
+  "source": "Sales Order:Table:1902773735979597826",
+  "rules": {
+   "collectionId": "1902773735979597826",
+   "list": [
+    {
+     "id": 1772677979432,
+     "parentId": 1772677979431,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_JoF0YVzG.data.entry.so_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update SO",
+ "isValidator": true,
+ "nodeName": "Update SO",
+ "name": "Update SO",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "id",
+    "valueType": "field",
+    "value": "{{node:code_node_4CvJopJk.data.updatedSO.so_id}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "主键ID"
+   },
+   {
+    "prop": "si_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_4CvJopJk.data.updatedSO.si_status}}",
+    "valueLabel": "",
+    "propLabel": "SI Completed Status"
+   },
+   {
+    "prop": "table_so",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_4CvJopJk.data.updatedSO.table_so}}",
+    "valueLabel": "",
+    "propLabel": "Sales Order Table"
+   }
+  ]
+ }
+}
+====================================================================================================
+condition_all_node_item_PhrzKoP9 [condition-all-node-item] Branch 2
+====================================================================================================
+update_node_co3J1EoF [update-node] Update GD
+{
+ "table_id": {
+  "source": "Goods Delivery:Table:1902054888473481218",
+  "rules": {
+   "collectionId": "1902054888473481218",
+   "list": [
+    {
+     "id": 1772678110110,
+     "parentId": 1772678110109,
+     "isTop": true,
+     "prop": "id",
+     "operator": "in",
+     "valueType": "field",
+     "value": "{{node:code_node_JoF0YVzG.data.entry.gd_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "In"
+    }
+   ]
+  }
+ },
+ "fields": [],
+ "condition": {},
+ "title": "Update GD",
+ "isValidator": true,
+ "nodeName": "Update GD",
+ "name": "Update GD",
+ "props": {
+  "modelName": "",
+  "list": [
+   {
+    "prop": "id",
+    "valueType": "field",
+    "value": "{{node:code_node_4CvJopJk.data.updatedGD.gd_id}}",
+    "operator": "",
+    "valueLabel": "",
+    "propLabel": "主键ID"
+   },
+   {
+    "prop": "si_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_4CvJopJk.data.updatedGD.si_status}}",
+    "valueLabel": "",
+    "propLabel": "SI Status"
+   },
+   {
+    "prop": "table_gd",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_4CvJopJk.data.updatedGD.table_gd}}",
+    "valueLabel": "",
+    "propLabel": "table_gd"
+   }
+  ]
+ }
+}
+====================================================================================================
+get_node_oLOE8Qt7 [get-node] Get Accounting Integration
+{
+ "table_id": {
+  "source": "Accounting Integration:Table:1930794597760651266",
+  "rules": {
+   "collectionId": "1930794597760651266",
+   "list": [
+    {
+     "id": 1779628890133,
+     "parentId": 1779628890132,
+     "isTop": true,
+     "prop": "organization_id",
+     "operator": "numberEqual",
+     "valueType": "field",
+     "value": "{{workflowparams:data.organization_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "Organization ID",
+     "valueLabel": "",
+     "operatorLabel": "Equal"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Get Accounting Integration",
+ "isValidator": true,
+ "nodeName": "Get Accounting Integration",
+ "name": "Get Accounting Integration"
+}
+====================================================================================================
+if_WSO-qb5O [if] IF totalAmount > 0
+{
+ "title": "IF totalAmount > 0",
+ "isValidator": true,
+ "nodeName": "IF totalAmount > 0",
+ "name": "IF totalAmount > 0",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "{{node:code_node_ytRbog2e.data.siData.invoice_total}} > 0"
+ }
+}
+====================================================================================================
+if_block_R0BrBB1D [ifBlock] true
+====================================================================================================
+code_node_p0XoMz8H [code-node] Map AR Data
+response_json: ["arData", "arPageStatus"]
+const round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;
+
+// Same insert-branch rule as code_node_ytRbog2e: "Convert" inserts via the add-node.
+const pageStatus = {{workflowparams:data.page_status}};
+const isInsert = pageStatus === 'Add' || pageStatus === 'Convert';
+
+const siData = isInsert ? {{node:add_node_adYeQB4a.data}}[0] : {{node:get_node_fcE2I4vj.data.data}};
+
+// Which branch AR_SAVE should take. It adds on 'Add' / 'Clone', and on anything
+// else looks the receivable up by si_id and updates whatever it finds.
+//
+// A draft invoice has no receivable. The whole AR branch sits under IF
+// completed, so nothing was ever raised against it -- completing a draft is the
+// first time this invoice needs one. Handing AR_SAVE the incoming 'Edit' sent it
+// looking for a record that was never created, so it updated nothing and no
+// receivable appeared at all.
+//
+// previous_status is the status the invoice was opened with, stamped onto the
+// form by its mounted handler in edit mode.
+//
+// Everything else is passed through untouched. An invoice that was already
+// completed and is edited again does have a receivable, and that one must go on
+// being updated rather than raised a second time.
+const previousStatus = {{workflowparams:data.previous_status}};
+const arPageStatus =
+  pageStatus === "Edit" && previousStatus === "Draft" ? "Add" : pageStatus;
+
+
+const mapLineItem = (item, record, index) => {
+  const lineItemPromise = {
+    item_id: item.material_id,
+    item_name: item.material_name,
+    item_description: item.material_desc,
+    item_bundle_id: bundleKey(item),
+    amount: round8(
+      parseFloat(item.gross) - parseFloat(item.discount_amount || 0)
+    ),
+    tax_code: item.si_tax_rate_id,
+    tax_percent: item.tax_percent,
+    tax_inclusive: item.si_tax_inclusive,
+    tax_tariff_id: item.tariff_id,
+    tax_amount: round8(parseFloat(item.tax_amount)),
+    subtotal: round8(parseFloat(item.si_amount)),
+    customer_id: item.customer_id,
+    area_id: item.area_id,
+    agent_id: item.agent_id,
+    payment_term_id: item.payment_term_id,
+    plant_id: item.organization_id,
+    organization_id: item.organization_id,
+    project_id: item.project_id ?? null
+  };
+
+  return lineItemPromise;
+};
+
+const mapHeaderData = (record, lineItemPromise) => {
+  const data = {
+    payment_status: "Unpaid",
+    plant_id: record.organization_id,
+    organization_id: record.organization_id,
+    ar_invoice_no: record.sales_invoice_no,
+    ar_invoice_no_type: -9999,
+    customer_id: record.customer_id,
+    currency_code: record.currency_code,
+    description: record.si_description,
+    ar_billing_address: record.si_billing_address,
+    ar_shipping_address: record.si_shipping_address,
+    invoice_date: record.sales_invoice_date,
+    area_id: record.si_area_id || "",
+    agent_id: record.sales_person_id,
+    agent_user_id: record.agent_user_id,
+    payment_term_id: record.si_payment_term_id,
+    due_date: new Date().toISOString().split("T")[0],
+    si_id: record.id,
+    project_id: record.project_id ?? null,
+    table_ar_invoice: lineItemPromise,
+    tax_total_currency: record.currency_code,
+    invoice_total_currency: record.currency_code,
+    outstanding_amount_currency: record.currency_code,
+    tax_total: round8(parseFloat(record.invoice_taxes_amount)),
+    invoice_total: round8(parseFloat(record.invoice_total)),
+    outstanding_amount: round8(parseFloat(record.invoice_total)),
+    myr_invoice_total: round8(parseFloat(record.myr_total_amount)),
+    billing_address_name: record.billing_address_name,
+    billing_address_phone: record.billing_address_phone,
+    billing_address_line_1: record.billing_address_line_1,
+    billing_address_line_2: record.billing_address_line_2,
+    billing_address_line_3: record.billing_address_line_3,
+    billing_address_line_4: record.billing_address_line_4,
+    billing_address_city: record.billing_address_city,
+    billing_postal_code: record.billing_postal_code,
+    billing_address_state: record.billing_address_state,
+    billing_address_country: record.billing_address_country,
+    billing_attention: record.billing_attention,
+    billing_address_fax: record.billing_address_fax,
+    billing_address_code: record.billing_address_code,
+    shipping_address_name: record.shipping_address_name,
+    shipping_address_phone: record.shipping_address_phone,
+    shipping_address_line_1: record.shipping_address_line_1,
+    shipping_address_line_2: record.shipping_address_line_2,
+    shipping_address_line_3: record.shipping_address_line_3,
+    shipping_address_line_4: record.shipping_address_line_4,
+    shipping_address_city: record.shipping_address_city,
+    shipping_postal_code: record.shipping_postal_code,
+    shipping_address_state: record.shipping_address_state,
+    shipping_address_country: record.shipping_address_country,
+    shipping_attention: record.shipping_attention,
+    shipping_address_code: record.shipping_address_code,
+    shipping_address_fax: record.shipping_address_fax,
+  };
+
+  return data;
+};
+
+let arLineItem = [];
+
+// A bundle line has no item of its own; the items under it carry both the
+// bundle and an item. table_si reaches this node in either of two shapes --
+// nested under `children`, or flat with a bundle's items following their bundle
+// line -- so both are read here. Each entry remembers the position of its
+// bundle line (-1 when the row is not in a bundle) and whether it was nested to
+// begin with, so what is written back keeps the shape it arrived in.
+const bundleKey = (row) => {
+  const bundle = row.item_bundle_id;
+
+  if (bundle && typeof bundle === "object") {
+    return String(bundle.id || bundle.ib_no || "");
+  }
+
+  return String(bundle || "");
+};
+
+const flattenWithParent = (rows, itemKey) => {
+  const flat = [];
+  const positionOf = new Map();
+
+  const isBundleRow = (row) => Boolean(bundleKey(row)) && !row[itemKey];
+  const isBundleItem = (row) => Boolean(bundleKey(row)) && Boolean(row[itemKey]);
+
+  let openBundle = -1; // bundle line the flat rows below it belong to
+
+  for (const [index, row] of (rows || []).entries()) {
+    const position = flat.length;
+    positionOf.set(index, position);
+
+    const children = Array.isArray(row.children) ? row.children : [];
+
+    // Already a tree: nothing to reattach, and a bundle spelled out this way
+    // ends whatever run was open above it.
+    if (children.length > 0) {
+      openBundle = -1;
+      flat.push({ row, parent: -1, nested: false });
+
+      for (const child of children) {
+        flat.push({ row: child, parent: position, nested: true });
+      }
+
+      continue;
+    }
+
+    if (isBundleRow(row)) {
+      openBundle = position;
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    if (!isBundleItem(row)) {
+      openBundle = -1; // a plain line closes the bundle above it
+      flat.push({ row, parent: -1, nested: false });
+      continue;
+    }
+
+    // A flat item: linked to its bundle line by id, or else belonging to the
+    // bundle line it follows, as long as that is the same bundle.
+    let parent = -1;
+
+    for (let candidate = index - 1; candidate >= 0; candidate--) {
+      const candidateRow = rows[candidate];
+
+      if (!isBundleRow(candidateRow)) continue;
+
+      const byId =
+        row.parent_id != null &&
+        candidateRow.id != null &&
+        String(row.parent_id) === String(candidateRow.id);
+      const byKey =
+        row.parent_fm_key != null &&
+        candidateRow.fm_key != null &&
+        String(row.parent_fm_key) === String(candidateRow.fm_key);
+
+      if (byId || byKey) {
+        parent = positionOf.get(candidate);
+        break;
+      }
+    }
+
+    if (
+      parent === -1 &&
+      openBundle !== -1 &&
+      bundleKey(flat[openBundle].row) === bundleKey(row)
+    ) {
+      parent = openBundle;
+    }
+
+    flat.push({ row, parent, nested: false });
+  }
+
+  return flat;
+};
+
+// The receivable keeps the shape the invoice has: a bundle is ONE line with the
+// bundle's items under its `children`.
+//
+// The bundle line carries the money. What its items came to is already on it --
+// that is what the invoice totals are built from -- so the items are mapped for
+// what they show and never added to the receivable a second time. Nothing
+// re-sums these lines: tax_total, invoice_total and outstanding_amount all come
+// straight off the invoice.
+//
+// table_si reaches this node in either shape. Read back from the database it is
+// flat, a bundle's items sitting beside their bundle line; handed over from a
+// convert it is already a tree. flattenWithParent reads both.
+const flat = flattenWithParent(siData.table_si, "material_id");
+const arRowByPosition = new Map();
+
+flat.forEach((entry, position) => {
+  const lineItemPromise = mapLineItem(entry.row, siData);
+
+  if (entry.parent === -1) {
+    // A line worth nothing stays off the receivable, as before. A bundle worth
+    // nothing takes its items with it -- they never find a row to sit under.
+    if (!(parseFloat(entry.row.si_amount) > 0)) return;
+
+    arRowByPosition.set(position, lineItemPromise);
+    arLineItem.push(lineItemPromise);
+
+    return;
+  }
+
+  const parentRow = arRowByPosition.get(entry.parent);
+
+  if (!parentRow) return;
+
+  // An item is a row of its bundle, not a row of the receivable. It is kept
+  // whatever it comes to: a bundle is billed whole, and an item worth nothing
+  // is still part of what the bundle is made of.
+  if (!Array.isArray(parentRow.children)) parentRow.children = [];
+
+  parentRow.children.push(lineItemPromise);
+});
+const arData = mapHeaderData(siData, arLineItem);
+
+return { arData, arPageStatus };
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Map AR Data", "name": "Map AR Data"}
+====================================================================================================
+workflow_node_OJQSOuvk [workflow-node] Run Workflow
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Run Workflow",
+ "isValidator": true,
+ "nodeName": "Run Workflow",
+ "name": "Run Workflow",
+ "workflow": {
+  "rules": {
+   "collectionId": "2072601187701137409",
+   "list": [
+    {
+     "id": 1723795236686,
+     "parentId": 1723795236685,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  },
+  "source": "AR_SAVE:Workflow:2072601187701137409"
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "data",
+    "propLabel": "Data",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "{{node:code_node_p0XoMz8H.data.arData}}",
+    "is_negative_number": false
+   },
+   {
+    "prop": "page_status",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_p0XoMz8H.data.arPageStatus}}",
+    "valueLabel": "",
+    "propLabel": "page_status",
+    "is_negative_number": false
+   }
+  ]
+ }
+}
+====================================================================================================
+if_block_0YzmGY6L [ifBlock] false
+====================================================================================================
+if_-xQaPih0 [if] IF auto post SI?
+{
+ "title": "IF auto post SI?",
+ "isValidator": true,
+ "nodeName": "IF",
+ "name": "IF",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "{{node:get_node_oLOE8Qt7.data.data.auto_post_si}} == 1"
+ }
+}
+====================================================================================================
+if_block_xaGRZfRf [ifBlock] true
+====================================================================================================
+code_node_gYlCQuTa [code-node] Return SI IDs
+response_json: ["si_ids"]
+const siData = {{node:code_node_ytRbog2e.data.siData}};
+
+return {
+  si_ids: [siData.id]
+}
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Return SI IDs", "name": "Return SI IDs"}
+====================================================================================================
+workflow_node_n5GEjrps [workflow-node] Run Workflow
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Run Workflow",
+ "isValidator": true,
+ "nodeName": "Run Workflow",
+ "name": "Run Workflow",
+ "workflow": {
+  "source": "SI_POST:Workflow:2029464545187823617",
+  "rules": {
+   "collectionId": "2029464545187823617",
+   "list": [
+    {
+     "id": 1723795236686,
+     "parentId": 1723795236685,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "si_ids",
+    "propLabel": "si_ids",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_gYlCQuTa.data.si_ids}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "acc_integration_type",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:get_node_oLOE8Qt7.data.data.acc_integration_type}}",
+    "valueLabel": "",
+    "propLabel": "acc_integration_type"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_block_Z8QjUUDp [ifBlock] false
+====================================================================================================
+if_T-6kKe6I [if] IF invoice type == 'Cash'
+{
+ "title": "IF invoice type == 'Cash'",
+ "isValidator": true,
+ "nodeName": "IF invoice type == 'Cash'",
+ "name": "IF invoice type == 'Cash'",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_JoF0YVzG.data.entry.invoice_type}}' == 'Cash' && {{node:code_node_JoF0YVzG.data.entry.invoice_total}} > 0"
+ }
+}
+====================================================================================================
+if_block_hxRcM4Wb [ifBlock] true
+====================================================================================================
+if_ehyBAz2c [if] IF payment == 'Unpaid'
+{
+ "title": "IF payment == 'Unpaid'",
+ "isValidator": true,
+ "nodeName": "IF payment == 'Unpaid'",
+ "name": "IF payment == 'Unpaid'",
+ "condition_type": "Expression",
+ "expression": {
+  "type": "javascript",
+  "code": "'{{node:code_node_JoF0YVzG.data.entry.payment_status}}' == 'Unpaid' && '{{node:code_node_JoF0YVzG.data.entry.invoice_type}}' == 'Cash'"
+ }
+}
+====================================================================================================
+if_block_Ja1XU0Yr [ifBlock] true
+====================================================================================================
+get_node_auG34VOC [get-node] Get CP Format
+{
+ "table_id": {
+  "source": "流水号规则表:Table:1994006139209117697",
+  "rules": {
+   "collectionId": "1994006139209117697",
+   "list": [
+    {
+     "id": 1775722394955,
+     "parentId": 1775722394956,
+     "isTop": true,
+     "prop": "",
+     "operator": "all",
+     "valueType": "",
+     "value": "",
+     "type": "branch",
+     "level": 1,
+     "children": [
+      {
+       "id": 1775722394956,
+       "parentId": 1775722394955,
+       "isTop": false,
+       "prop": "department_id",
+       "operator": "numberEqual",
+       "valueType": "field",
+       "value": "{{workflowparams:data.organization_id}}",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "部门ID",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      },
+      {
+       "id": 1775722394957,
+       "parentId": 1775722394955,
+       "isTop": false,
+       "prop": "business_type",
+       "operator": "equal",
+       "valueType": "value",
+       "value": "Customer Payment",
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "Document Type",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      },
+      {
+       "id": 1775722394958,
+       "parentId": 1775722394955,
+       "isTop": false,
+       "prop": "is_default",
+       "operator": "numberEqual",
+       "valueType": "value",
+       "value": 1,
+       "type": "leaf",
+       "level": 2,
+       "propLabel": "Default",
+       "valueLabel": "",
+       "operatorLabel": "Equal"
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Get CP Format",
+ "isValidator": true,
+ "nodeName": "Get CP Format",
+ "name": "Get CP Format"
+}
+====================================================================================================
+get_node_Jcmd2YdP [get-node] Get Customer
+{
+ "table_id": {
+  "source": "Customer:Table:1902779099617804290",
+  "rules": {
+   "collectionId": "1902779099617804290",
+   "list": [
+    {
+     "id": 1775722566919,
+     "parentId": 1775722566918,
+     "isTop": true,
+     "prop": "id",
+     "operator": "numberEqual",
+     "valueType": "field",
+     "value": "{{workflowparams:data.customer_id}}",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "主键ID",
+     "valueLabel": "",
+     "operatorLabel": "Equal"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Get Customer",
+ "isValidator": true,
+ "nodeName": "Get Customer",
+ "name": "Get Customer"
+}
+====================================================================================================
+get_node_PsZEEuNO [get-node] Get Payment Method
+{
+ "table_id": {
+  "source": "Account Master:Table:2053882049103073281",
+  "rules": {
+   "collectionId": "2053882049103073281",
+   "list": [
+    {
+     "id": 1781832942805,
+     "parentId": 1781832942804,
+     "isTop": true,
+     "prop": "description",
+     "operator": "equal",
+     "valueType": "value",
+     "value": "CASH SALES",
+     "type": "leaf",
+     "level": 1,
+     "propLabel": "Description",
+     "valueLabel": "",
+     "operatorLabel": "Equal"
+    }
+   ]
+  }
+ },
+ "condition": {},
+ "title": "Get Payment Method",
+ "isValidator": true,
+ "nodeName": "Get Payment Method",
+ "name": "Get Payment Method"
+}
+====================================================================================================
+code_node_QfhrfMFO [code-node] Map CP Data
+response_json: ["cpData"]
+// Same insert-branch rule as code_node_ytRbog2e: "Convert" inserts via the add-node, and the
+// fallback (entry) carries no id -- table_cp.invoice_id needs the inserted row's id.
+const pageStatus = {{workflowparams:data.page_status}};
+const isInsert = pageStatus === 'Add' || pageStatus === 'Convert';
+
+const siData = isInsert ? {{node:add_node_adYeQB4a.data}}[0] : {{node:code_node_JoF0YVzG.data.entry}};
+
+const docFormat = {{node:get_node_auG34VOC.data.data}};
+const customerData = {{node:get_node_Jcmd2YdP.data.data}};
+const accountMasterData = {{node:get_node_PsZEEuNO.data.data}};
+
+const cpData = {
+  cp_no: 'issued',
+  area_id: siData.si_area_id,
+  irbm_id: customerData.customer_irbm_id,
+  agent_id: siData.sales_person_id,
+  plant_id: siData.plant_id,
+  table_cp: [
+    {
+      invoice_total: siData.invoice_total,
+      paid_amount: siData.invoice_total,
+      invoice_id: siData.id,
+      line_status: 'Completed',
+      outstanding_amount: 0
+    }
+  ],
+  cp_status: 'Completed',
+  cp_no_type: docFormat.id,
+  customer_id: siData.customer_id,
+  payment_date: new Date().toISOString().split('T')[0],
+  page_status: "Add",
+  exchange_rate: siData.exchange_rate,
+  organization_id: siData.organization_id,
+  unallocated_myr: 'MYR',
+  payment_currency: customerData.customer_currency_id,
+  customer_currency: customerData.customer_currency_id,
+  exchange_rate_myr: "MYR",
+  total_payment_myr: "MYR",
+  unallocated_amount: 0,
+  cust_payment_method: accountMasterData.id,
+  payment_description: 'Customer Payment',
+  acc_integration_type: siData.acc_integration_type,
+  total_payment_amount: siData.invoice_total,
+  unallocated_currency: siData.currency_code,
+  exchange_rate_currency: siData.currency_code,
+  myr_unallocated_amount: 0,
+  total_payment_currency: siData.currency_code,
+  myr_total_payment_amount: siData.myr_total_amount
+}
+
+return { cpData }
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "Map CP Data", "name": "Map CP Data"}
+====================================================================================================
+workflow_node_FCMmQkB9 [workflow-node] Create CP
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Create CP",
+ "isValidator": true,
+ "nodeName": "Create CP",
+ "name": "Create CP",
+ "workflow": {
+  "source": "CP_SAVE:Workflow:2037376510712283138",
+  "rules": {
+   "collectionId": "2037376510712283138",
+   "list": [
+    {
+     "id": 1723795236686,
+     "parentId": 1723795236685,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "allData",
+    "propLabel": "All Data",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_QfhrfMFO.data.cpData}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "saveAs",
+    "operator": "",
+    "valueType": "value",
+    "value": "Completed",
+    "valueLabel": "",
+    "propLabel": "Save As"
+   },
+   {
+    "prop": "pageStatus",
+    "operator": "",
+    "valueType": "value",
+    "value": "Add",
+    "valueLabel": "",
+    "propLabel": "Page Status"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_block_zWX-usdX [ifBlock] false
+====================================================================================================
+if_block_RvHp3Wua [ifBlock] false
+====================================================================================================
+if_si_trigger_pi [if] IF Auto PI
+{
+ "title": "IF Auto PI",
+ "isValidator": true,
+ "nodeName": "IF Auto PI",
+ "name": "IF Auto PI",
+ "condition_type": "ConditionRule",
+ "expression": {
+  "type": "javascript",
+  "code": ""
+ },
+ "filter": {
+  "list": [
+   {
+    "id": 195000000024,
+    "parentId": 195000000025,
+    "isTop": true,
+    "prop": "node.code_si_gate.data.doAutoPi",
+    "operator": "numberEqual",
+    "valueType": "value",
+    "value": 1,
+    "type": "leaf",
+    "level": 1,
+    "propLabel": "node.code_si_gate.data.doAutoPi",
+    "valueLabel": "",
+    "operatorLabel": "numberEqual"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_si_trigger_pi_t [ifBlock] true
+====================================================================================================
+wf_auto_pi [workflow-node] Auto-create PI
+{
+ "workflow_id": "",
+ "workflow_name": "",
+ "input_params": {},
+ "title": "Auto-create PI",
+ "isValidator": true,
+ "nodeName": "Auto-create PI",
+ "name": "Auto-create PI",
+ "workflow": {
+  "source": "SI_TO_PI:Workflow:2071778395376971778",
+  "rules": {
+   "collectionId": "2071778395376971778",
+   "list": [
+    {
+     "id": 195000000020,
+     "parentId": 195000000021,
+     "isTop": true,
+     "prop": "",
+     "operator": "",
+     "valueType": "",
+     "value": "",
+     "type": "leaf",
+     "level": 1
+    }
+   ]
+  }
+ },
+ "remote": true,
+ "remoteType": "innerdatasource",
+ "body_params": {
+  "list": [
+   {
+    "prop": "si_id",
+    "propLabel": "si_id",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_ytRbog2e.data.siData.id}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "si_no",
+    "propLabel": "si_no",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_node_ytRbog2e.data.siData.sales_invoice_no}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "buyer_org",
+    "propLabel": "buyer_org",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_si_gate.data.buyerOrg}}",
+    "valueLabel": ""
+   },
+   {
+    "prop": "seller_org",
+    "propLabel": "seller_org",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "value": "{{node:code_si_gate.data.sellerOrg}}",
+    "valueLabel": ""
+   }
+  ]
+ }
+}
+====================================================================================================
+code_si_trigger_result [code-node] PI Trigger Result
+response_json: ["piTriggerFailed", "piMessage"]
+
+const r = {{node:wf_auto_pi.data}};
+const d = (r && r.data && typeof r.data === 'object') ? r.data : r;
+const code = d ? d.code : '';
+const failed = (String(code) === '200') ? 0 : 1;
+const msg = (d && (d.message || d.msg)) ? (d.message || d.msg) : 'The invoice was completed, but the linked Purchase Invoice could not be created automatically. Please create it manually.';
+return { piTriggerFailed: failed, piMessage: msg };
+
+other: {"language": "javascript", "code": "", "timeout": 30000, "isValidator": true, "nodeName": "PI Trigger Result", "name": "PI Trigger Result"}
+====================================================================================================
+if_si_trigger_failed [if] IF PI Trigger Failed
+{
+ "title": "IF PI Trigger Failed",
+ "isValidator": true,
+ "nodeName": "IF PI Trigger Failed",
+ "name": "IF PI Trigger Failed",
+ "condition_type": "ConditionRule",
+ "expression": {
+  "type": "javascript",
+  "code": ""
+ },
+ "filter": {
+  "list": [
+   {
+    "id": 195000000022,
+    "parentId": 195000000023,
+    "isTop": true,
+    "prop": "node.code_si_trigger_result.data.piTriggerFailed",
+    "operator": "numberEqual",
+    "valueType": "value",
+    "value": 1,
+    "type": "leaf",
+    "level": 1,
+    "propLabel": "node.code_si_trigger_result.data.piTriggerFailed",
+    "valueLabel": "",
+    "operatorLabel": "numberEqual"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_si_trigger_failed_t [ifBlock] true
+====================================================================================================
+end_si_413 [end-node] 结束节点
+{
+ "isValidator": true,
+ "title": "结束节点",
+ "nodeName": "结束节点",
+ "name": "结束节点",
+ "back_data_type": "OutputParams",
+ "msg": {
+  "type": "javascript",
+  "code": ""
+ },
+ "response_value": {
+  "list": [
+   {
+    "prop": "pi_trigger_failed",
+    "propLabel": "pi_trigger_failed",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "value",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "1"
+   },
+   {
+    "prop": "pi_message",
+    "propLabel": "pi_message",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "{{node:code_si_trigger_result.data.piMessage}}"
+   },
+   {
+    "prop": "id",
+    "propLabel": "id",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "{{node:code_node_ytRbog2e.data.siData.id}}"
+   },
+   {
+    "prop": "si_no",
+    "propLabel": "si_no",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "{{node:code_node_ytRbog2e.data.siData.sales_invoice_no}}"
+   }
+  ]
+ }
+}
+====================================================================================================
+if_si_trigger_failed_f [ifBlock] false
+====================================================================================================
+if_si_trigger_pi_f [ifBlock] false
+====================================================================================================
+if_block_XppvMt2n [ifBlock] false
+====================================================================================================
+end [end-node] End Node
+{
+ "isValidator": true,
+ "title": "End Node",
+ "nodeName": "End Node",
+ "name": "End Node",
+ "back_data_type": "OutputParams",
+ "msg": {
+  "type": "javascript",
+  "code": ""
+ },
+ "response_value": {
+  "list": [
+   {
+    "prop": "id",
+    "propLabel": "id",
+    "operator": "",
+    "operatorLabel": "",
+    "valueType": "field",
+    "valueTypeLabel": "",
+    "valueLabel": "",
+    "value": "{{node:code_node_ytRbog2e.data.siData.id}}"
+   },
+   {
+    "prop": "si_no",
+    "operator": "",
+    "valueType": "field",
+    "value": "{{node:code_node_ytRbog2e.data.siData.sales_invoice_no}}",
+    "valueLabel": "",
+    "propLabel": "si_no"
+   }
+  ]
+ }
+}

@@ -190,6 +190,12 @@ function callee(w, name, params) {
     else if (mode === "400env") ans = { code: 400, success: false, data: null, msg: "An error occurred: Duplicate entry '000000-" + X.ORG + "-COST|1|2' for key 'Lock Key'" };
     else if (mode === "none") ans = {};
     else if (mode === "null") ans = null;
+    // engine v12: an earlier run of this operation is alive (or died < 20 min ago): 409, nothing written by this call
+    else if (mode === "busy") ans = { code: "409", result_code: "LOCK_BUSY", message: "the same operation is still running (run 1, last heartbeat now); try again later" };
+    else if (mode === "intent-died") {
+      w.steps.push({ id: w.id(), job_id: params.operation_key, step_name: "IBA|I|001", step_status: "INTENT", result_ref: "{}", is_deleted: 0 });
+      ans = null;
+    }
     else if (w.engine.done[params.operation_key]) ans = { code: "200", result_code: "REPLAYED", message: "replayed" };
     else if (mode === "applied-none") {
       w.engine.effects += params.movements.length;
@@ -318,6 +324,8 @@ for (const kind of ["COMPLETE", "DIRECT", "REVIEW"]) {
   const w = world(c);
   const a = runCommit(w);
   ok(!a.err && a.out.path === "SPLIT" && w.job.job_status === "COMMITTING_SA" && /^SPLIT\|/.test(w.job.lease_owner) && w.job.progress_percent === 80 && w.job.attempt_count === 0, kind + ": phase A ends SPLIT", a);
+  const leaseS = Math.min(5400, 600 + Math.ceil(0.6 * c.movements.length));
+  ok(w.job.lease_expires_at === fmt(w.now + leaseS * 1000), kind + ": the SPLIT lease = 10 min + 0.6 s per entry (" + leaseS + " s)", w.job.lease_expires_at);
   ok(w.sa.stock_adjustment_status === "Processing" && w.engine.effects === c.movements.length && w.reorder.length === 0, kind + ": after phase A the stock moved, the SA still Processing");
   const b = runCommit(w);
   ok(!b.err && b.out.path === "DONE" && b.out.job_status === "COMPLETED", kind + ": phase B -> DONE", b);
@@ -442,6 +450,25 @@ for (const kind of ["COMPLETE", "REVIEW"]) {
   ok(w.job.job_status === "REQUIRES_REVIEW" && w.job.error_code === "SA_RECONCILIATION_MISMATCH" && w.engine.calls === 4 && w.sa.stock_adjustment_status === "Processing",
     "persistent no answer with intents -> 3 retries, then REQUIRES_REVIEW, no unlock", { job: w.job, calls: w.engine.calls });
   console.log("ok   no answer: 0 intents -> wait -> 200 DONE; intents -> retry -> REPLAYED DONE; persistent -> FAILED + Draft (0 intents) / REQUIRES_REVIEW after 3 retries (intents)");
+}
+
+// ------------------------------------------------------------------ 4c. engine v12: the same operation is still running (409 with intent rows)
+{
+  let w = world(X.makeCase("REVIEW"), { engine: ["intent-died", "busy", "busy", "busy"] });
+  runCommit(w);
+  ok(w.job.error_code === "SA_STEP_RETRY" && w.job.job_status === "COMMITTING_SA", "a run that died after its intents -> retry", w.job);
+  w.now = parse(w.job.next_attempt_at) + 1000;
+  runCommit(w);
+  ok(w.job.error_code === "SA_LOCK_WAIT" && w.job.job_status === "COMMITTING_SA" && w.engine.effects === 0, "v12 409 with intents -> a lock wait, not review", w.job);
+  drive(w);
+  ok(w.job.job_status === "COMPLETED" && w.engine.effects === X.makeCase("REVIEW").movements.length && w.sa.stock_adjustment_status === "Completed",
+    "... the 20-min window ends, the next APPLY resumes -> COMPLETED, moved once", { job: w.job, engine: w.engine.effects });
+  w = world(X.makeCase("COMPLETE"), { engine: ["intent-died"].concat(Array(30).fill("busy")) });
+  drive(w, 60);
+  ok(w.job.job_status === "REQUIRES_REVIEW" && w.job.error_code === "SA_RECONCILIATION_MISMATCH" && w.sa.stock_adjustment_status === "Processing" && w.engine.effects === 0,
+    "persistent v12 409 with intents -> lock waits up to the budget, then REQUIRES_REVIEW (never FAILED / unlocked)", { job: w.job, calls: w.engine.calls });
+  ok(w.engine.calls >= 9, "... after at least the 8 lock waits (" + w.engine.calls + " calls)", w.engine.calls);
+  console.log("ok   v12 409 with intents: lock waits (not review) -> resumes -> COMPLETED; persistent -> REQUIRES_REVIEW after the wait budget");
 }
 
 // ------------------------------------------------------------------ 5. 500 -> REQUIRES_REVIEW at once, no unlock

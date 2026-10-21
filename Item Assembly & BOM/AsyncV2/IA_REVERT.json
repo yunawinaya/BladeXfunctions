@@ -1035,6 +1035,277 @@
    ]
   },
   {
+   "id": "code_node_RESrvDue",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "RES-01: a revert of an IA that reserves?",
+    "isValidator": true,
+    "nodeName": "RES-01: a revert of an IA that reserves?",
+    "name": "RES-01: a revert of an IA that reserves?",
+    "script": {
+     "type": "javascript",
+     "code": "// IA_REVERT v6 - RES-01 R5: a reverted completion of an IA that reserves (its stored material_hold_status set) checks its holds first\n// (closed at completion: CLOSE); every other IA reverts exactly as v5\nconst ia = [{{node:get_node_iaRvIa.data.data}}][0] || {};\nconst row = (Array.isArray(ia) ? ia[0] : ia) || {};\nconst p = [{{node:code_node_iaRvPrep.data}}][0] || {};\nconst tenant = String([{{system:tenantId}}][0] || \"\");\nconst hold = row.material_hold_status === undefined || row.material_hold_status === null ? \"\" : String(row.material_hold_status);\nconst id = String(p.iaId || \"\");\nconst org = String(p.organizationId || \"\");\nconst due = hold !== \"\" && [id, org, tenant].every((x) => /^[0-9]{1,20}$/.test(x));\nconsole.log(\"res revert due\", JSON.stringify({ hold: hold, due: due }));\nreturn { due: due ? \"YES\" : \"NO\", ia: due ? id : \"0\", org: due ? org : \"0\", tenantId: due ? tenant : \"0\", hold: hold };"
+    },
+    "response_json": [
+     {
+      "key": "due00000",
+      "name": "due",
+      "title": "due",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ia000000",
+      "name": "ia",
+      "title": "ia",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "org00000",
+      "name": "org",
+      "title": "org",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "tenantid",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "hold0000",
+      "name": "hold",
+      "title": "hold",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_RESrvDue",
+   "type": "if",
+   "data": {
+    "title": "IF RES-01: its holds to check",
+    "isValidator": true,
+    "nodeName": "IF RES-01: its holds to check",
+    "name": "IF RES-01: its holds to check",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1791000000201,
+       "parentId": 1791000000202,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_RESrvDue.data.due}}' == 'YES'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_block_RESrvDueTrue",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "sql_node_RESrvOwn",
+       "type": "sql-node",
+       "data": {
+        "title": "RES-01: its open holds, this IA's Delivered holds and running hold tickets (on_reserved_gd + gd_publish_step)",
+        "isValidator": true,
+        "nodeName": "RES-01: its open holds, this IA's Delivered holds and running hold tickets (on_reserved_gd + gd_publish_step)",
+        "name": "RES-01: its open holds, this IA's Delivered holds and running hold tickets (on_reserved_gd + gd_publish_step)",
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "script": {
+         "type": "sql",
+         "code": "SELECT JSON_OBJECT(\n       'rows', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(r.id AS CHAR), 'status', r.status, 'doc_line_id', r.doc_line_id, 'material_id', CAST(r.material_id AS CHAR),\n                'bin_location', CAST(r.bin_location AS CHAR), 'batch_id', CAST(r.batch_id AS CHAR), 'from_category', r.from_category, 'open_qty', CAST(r.open_qty AS CHAR),\n                'item_uom', CAST(r.item_uom AS CHAR)))\n                FROM on_reserved_gd r WHERE r.tenant_id = '{{node:code_node_RESrvDue.data.tenantId}}' AND r.organization_id = '{{node:code_node_RESrvDue.data.org}}' AND r.is_deleted = 0 AND r.doc_type = 'Item Assembly'\n                 AND r.doc_id = '{{node:code_node_RESrvDue.data.ia}}' AND r.status IN ('Allocated', 'Processing', 'Releasing')),\n       'delivered', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(d.id AS CHAR), 'material_id', CAST(d.material_id AS CHAR),\n                'bin_location', CAST(d.bin_location AS CHAR), 'batch_id', CAST(d.batch_id AS CHAR), 'from_category', d.from_category,\n                'delivered_qty', CAST(d.delivered_qty AS CHAR), 'item_uom', CAST(d.item_uom AS CHAR)))\n                FROM on_reserved_gd d WHERE d.tenant_id = '{{node:code_node_RESrvDue.data.tenantId}}' AND d.organization_id = '{{node:code_node_RESrvDue.data.org}}' AND d.is_deleted = 0 AND d.doc_type = 'Item Assembly'\n                 AND d.doc_id = '{{node:code_node_RESrvDue.data.ia}}' AND d.status = 'Delivered'),\n       'live', (SELECT COUNT(*) FROM gd_publish_step p WHERE p.tenant_id = '{{node:code_node_RESrvDue.data.tenantId}}' AND p.job_id = 'IAH|{{node:code_node_RESrvDue.data.ia}}' AND p.step_name LIKE 'TICKET|%' AND p.step_status = 'HELD'\n                 AND p.is_deleted = 0 AND p.started_at > CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00') - INTERVAL 10 MINUTE)) AS j"
+        },
+        "response_json": [
+         {
+          "key": "j0000000",
+          "name": "j",
+          "title": "j",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       }
+      }
+     ]
+    },
+    {
+     "id": "if_block_RESrvDueFalse",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_RESrvOpen",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "RES-01: its holds still open?",
+    "isValidator": true,
+    "nodeName": "RES-01: its holds still open?",
+    "name": "RES-01: its holds still open?",
+    "script": {
+     "type": "javascript",
+     "code": "// IA_REVERT v6 - RES-01 R5: its holds must be closed before the revert (a completed IA's CLOSE delivered or released them all); one still\n// open, a hold run in flight, or holds that could not be read -> refused, nothing written\nconst due = [{{node:code_node_RESrvDue.data.due}}][0] === \"YES\";\nlet st = null;\ntry {\n  const raw = [{{node:sql_node_RESrvOwn.data}}][0];\n  const r = (Array.isArray(raw) ? raw : raw ? [raw] : [])[0];\n  st = r && r.j !== undefined ? (typeof r.j === \"string\" ? JSON.parse(r.j) : r.j) : null;\n} catch (e) {\n  st = null;\n}\nconst open = due && (!st || Number(st.live) > 0 || (Array.isArray(st.rows) && st.rows.length > 0));\nreturn { route: open ? \"OPEN\" : \"GO\",\n  message: open ? \"This Item Assembly still holds materials reserved for it: they are closed when it is opened. Open it once, then revert it.\" : \"\" };"
+    },
+    "response_json": [
+     {
+      "key": "route000",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "messag03",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_RESrvOpen",
+   "type": "if",
+   "data": {
+    "title": "IF RES-01: its holds are still open",
+    "isValidator": true,
+    "nodeName": "IF RES-01: its holds are still open",
+    "name": "IF RES-01: its holds are still open",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1791000000203,
+       "parentId": 1791000000204,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_RESrvOpen.data.route}}' == 'OPEN'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_block_RESrvOpenTrue",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "return_node_RESrvOpen",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Refused (RES-01: its holds are still open)",
+        "isValidator": true,
+        "nodeName": "Return Refused (RES-01: its holds are still open)",
+        "name": "Return Refused (RES-01: its holds are still open)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "operator": "",
+           "valueType": "value",
+           "value": "409",
+           "valueLabel": "",
+           "propLabel": "code"
+          },
+          {
+           "prop": "message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_RESrvOpen.data.message}}",
+           "valueLabel": "",
+           "propLabel": "message"
+          },
+          {
+           "prop": "conflicts",
+           "operator": "",
+           "valueType": "value",
+           "value": "[]",
+           "valueLabel": "",
+           "propLabel": "conflicts"
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_block_RESrvOpenFalse",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
    "id": "condition_all_iaRvFetch2",
    "type": "condition-all-node",
    "data": {
@@ -1693,6 +1964,35 @@
       "title": "hasBatchDeletes",
       "description": "",
       "bsonType": "int",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_RESrvMap",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "RES-01: a component issued from Reserved comes back to the bucket its hold came from",
+    "isValidator": true,
+    "nodeName": "RES-01: a component issued from Reserved comes back to the bucket its hold came from",
+    "name": "RES-01: a component issued from Reserved comes back to the bucket its hold came from",
+    "script": {
+     "type": "javascript",
+     "code": "// RES-01 R5 (scratchpad/iasc/res01/RES01_PLAN.md): a reverted completion of an IA that reserves (a material_hold_status) returns a\n// component issued from Reserved (its hold, closed at completion) to the bucket the hold came from: this cycle's Delivered rows (id above\n// `bound`, the IA's last revert) say how much of each material|bin|batch came from Unrestricted or Blocked (review I3). A return they do\n// not cover, a handling-unit one (never held), every other component and every IA that never reserved: as today (the category it left\n// from). One return spanning two holds is split, the extra part with a new index after the last. Pure, ES2015: the classic IA_REVERT and\n// IA_REVERT_V2_PREPARE inline it\nconst resRevertAdds = (adds, holdStatus, delivered, bound, items) => {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v));\n  const num = (v) => (isFinite(parseFloat(v)) ? parseFloat(v) : 0);\n  const q8 = (v) => Number(num(v).toFixed(8));\n  const eps = 0.0000001;\n  const list = Array.isArray(adds) ? adds : [];\n  if (s(holdStatus) === \"\") return list.map((a) => a);\n  const after = (id) => (s(id).length !== s(bound).length ? s(id).length > s(bound).length : s(id) > s(bound));\n  const itemOf = {};\n  (Array.isArray(items) ? items : []).forEach((i) => (itemOf[s(i && i.id)] = i));\n  // base units per one unit of a row (its item_uom); unknown -> 1\n  const factor = (item, uom) => {\n    if (!item || !s(uom) || s(uom) === s(item.based_uom)) return 1;\n    const c = (Array.isArray(item.table_uom_conversion) ? item.table_uom_conversion : []).find((x) => x && s(x.alt_uom_id) === s(uom));\n    return c && num(c.base_qty) > 0 ? num(c.base_qty) : 1;\n  };\n  const keyOf = (mat, bin, batch) => [s(mat), s(bin), s(batch)].join(\"|\");\n  const pool = {};\n  (Array.isArray(delivered) ? delivered : []).filter((d) => d && after(d.id))\n    .sort((a, b) => s(a.id).length - s(b.id).length || (s(a.id) < s(b.id) ? -1 : s(a.id) > s(b.id) ? 1 : 0))\n    .forEach((d) => {\n      const k = keyOf(d.material_id, d.bin_location, d.batch_id);\n      (pool[k] = pool[k] || []).push({ cat: s(d.from_category) || \"Unrestricted\", base: q8(num(d.delivered_qty) * factor(itemOf[s(d.material_id)], d.item_uom)) });\n    });\n  const held = (a) => !!a && s(a.inventory_category) === \"Reserved\" && !s(a.handling_unit_id);\n  const parts = list.map(() => null);\n  // one return per held pick: an exact match first, then what is left in order\n  list.forEach((a, i) => {\n    if (!held(a)) return;\n    const e = (pool[keyOf(a.material_id, a.location_id, a.batch_id)] || []).find((x) => x.base > eps && Math.abs(x.base - q8(a.quantity)) < eps);\n    if (!e) return;\n    parts[i] = [{ qty: q8(a.quantity), cat: e.cat }];\n    e.base = 0;\n  });\n  list.forEach((a, i) => {\n    if (!held(a) || parts[i]) return;\n    let left = q8(a.quantity);\n    const got = [];\n    (pool[keyOf(a.material_id, a.location_id, a.batch_id)] || []).forEach((x) => {\n      if (left <= eps || x.base <= eps) return;\n      const take = q8(Math.min(left, x.base));\n      got.push({ qty: take, cat: x.cat });\n      x.base = q8(x.base - take);\n      left = q8(left - take);\n    });\n    if (left > eps) got.push({ qty: left, cat: \"Reserved\" });\n    parts[i] = got;\n  });\n  let next = list.reduce((m, a) => Math.max(m, Number(a && a.index) || 0), 0);\n  const out = [];\n  list.forEach((a, i) => {\n    if (!parts[i]) return void out.push(a);\n    const whole = parts[i].length === 1;\n    parts[i].forEach((p, j) => out.push(Object.assign({}, a, { quantity: whole ? a.quantity : p.qty, inventory_category: p.cat }, j > 0 ? { index: ++next } : {})));\n  });\n  return out;\n};\n// the cycle a revert undoes starts after the IA's last revert: its highest 'IA-R' movement id among the IA's movements, else the IA id\nconst resRevertBound = (moves, iaId) => {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v));\n  let bound = s(iaId);\n  (Array.isArray(moves) ? moves : []).forEach((m) => {\n    const id = s(m && m.id);\n    if (s(m && m.transaction_type) === \"IA-R\" && (id.length !== bound.length ? id.length > bound.length : id > bound)) bound = id;\n  });\n  return bound;\n};\n// IA_REVERT v6 - RES-01 R5: the components to return (code_node_iaRvBuild's adds); for an IA that reserves, one issued from Reserved (its\n// hold, closed at completion) comes back to the bucket its hold came from: this cycle's Delivered rows (after the IA's last revert,\n// resRevertBound over its movements; review I3); loop_iaRvAdd reads these\nconst adds = [{{node:code_node_iaRvBuild.data.adds}}][0];\nlet st = null;\ntry {\n  const raw = [{{node:sql_node_RESrvOwn.data}}][0];\n  const r = (Array.isArray(raw) ? raw : raw ? [raw] : [])[0];\n  st = r && r.j !== undefined ? (typeof r.j === \"string\" ? JSON.parse(r.j) : r.j) : null;\n} catch (e) {\n  st = null;\n}\nconst list = (v) => (Array.isArray(v) ? v : v ? [v] : []);\nconst bound = resRevertBound(list([{{node:sql_node_iaRvMovs.data}}][0]), [{{node:code_node_iaRvPrep.data.iaId}}][0]);\nconst out = resRevertAdds(adds, [{{node:code_node_RESrvDue.data.hold}}][0], st && Array.isArray(st.delivered) ? st.delivered : [], bound,\n  list([{{node:search_node_iaRvItems.data.data}}][0]));\nreturn { adds: out };"
+    },
+    "response_json": [
+     {
+      "key": "adds0001",
+      "name": "adds",
+      "title": "adds",
+      "description": "",
+      "bsonType": "any",
       "isExpand": false,
       "children": []
      }
@@ -2507,7 +2807,7 @@
         "loopType": "Var",
         "loopSeletVar": {
          "type": "markdown",
-         "code": "{{node:code_node_iaRvBuild.data.adds}}"
+         "code": "{{node:code_node_RESrvMap.data.adds}}"
         }
        },
        "blocks": [
@@ -3223,6 +3523,111 @@
     }
    },
    "blocks": []
+  },
+  {
+   "id": "if_RESrvMark",
+   "type": "if",
+   "data": {
+    "title": "IF RES-01: it reserves",
+    "isValidator": true,
+    "nodeName": "IF RES-01: it reserves",
+    "name": "IF RES-01: it reserves",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1791000000207,
+       "parentId": 1791000000208,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_RESrvDue.data.due}}' == 'YES'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_block_RESrvMarkTrue",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "update_node_RESrvMark",
+       "type": "update-node",
+       "data": {
+        "table_id": {
+         "source": "Item Assembly:Table:2098256587713404929",
+         "rules": {
+          "collectionId": "2098256587713404929",
+          "list": [
+           {
+            "id": 1791000000205,
+            "parentId": 1791000000206,
+            "isTop": true,
+            "prop": "id",
+            "operator": "in",
+            "valueType": "field",
+            "value": "{{node:code_node_iaRvPrep.data.iaId}}",
+            "type": "leaf",
+            "level": 1,
+            "propLabel": "id",
+            "valueLabel": "",
+            "operatorLabel": "in"
+           }
+          ]
+         }
+        },
+        "fields": [],
+        "condition": {},
+        "title": "RES-01: mark it RESERVING (the next open or save reserves again)",
+        "isValidator": true,
+        "nodeName": "RES-01: mark it RESERVING (the next open or save reserves again)",
+        "name": "RES-01: mark it RESERVING (the next open or save reserves again)",
+        "props": {
+         "modelName": "",
+         "list": [
+          {
+           "prop": "id",
+           "valueType": "field",
+           "value": "{{node:code_node_iaRvPrep.data.iaId}}",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "id"
+          },
+          {
+           "prop": "material_hold_status",
+           "valueType": "value",
+           "value": "RESERVING",
+           "operator": "",
+           "valueLabel": "",
+           "propLabel": "material_hold_status"
+          }
+         ]
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_block_RESrvMarkFalse",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
   },
   {
    "id": "return_node_iaRvSuccess",

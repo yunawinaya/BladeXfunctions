@@ -1,0 +1,1417 @@
+--- base/onChange_assembledItem.js
++++ built/onChange_assembledItem.js
+@@ -4,4 +4,114 @@
+ // Fetch budget is fixed regardless of how many sub-materials the BOM has:
+ // every lookup is batched across the whole component set.
++// A non-stock (labour / overhead) component takes its BOM quantity, no picks.
++
++// Chunked reads with an explicit limit (the API clamps at IA_READ_MAX rows, as GDonMounted.js); a clamped read is read again
++const IA_READ_CHUNK = 500;
++const IA_READ_MAX = 5000;
++const iaChunks = (list, size) => {
++  const out = [];
++  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
++  return out;
++};
++const iaUniq = (list) => [...new Set((list || []).filter((v) => v !== undefined && v !== null && v !== "").map(String))];
++
++// rows of `collection` whose id is in `ids` (is_deleted 0), `fields` projected
++const iaReadIds = async (collection, ids, fields) => {
++  const rows = [];
++  await Promise.all(
++    iaChunks(iaUniq(ids), Math.min(IA_READ_CHUNK, IA_READ_MAX)).map(async (chunk) => {
++      let left = chunk;
++      while (left.length) {
++        let got = [];
++        try {
++          let query = db.collection(collection);
++          if (fields) query = query.field(fields);
++          const res = await query
++            .filter([
++              {
++                type: "branch",
++                operator: "all",
++                children: [
++                  { prop: "id", operator: "in", value: left },
++                  { prop: "is_deleted", operator: "equal", value: 0 },
++                ],
++              },
++            ])
++            .limit(left.length)
++            .get();
++          got = (res && res.data) || [];
++        } catch (error) {
++          console.error(`Error fetching ${collection}:`, error);
++          return;
++        }
++        rows.push(...got);
++        const seen = new Set(got.map((row) => String(row.id)));
++        const missing = left.filter((id) => !seen.has(id));
++        if (!got.length || missing.length === left.length) return;
++        left = missing;
++      }
++    }),
++  );
++  return { data: rows };
++};
++
++// rows of `collection` whose `prop` is in `values`, with the other conditions
++const iaReadMany = async (collection, prop, values, conditions) => {
++  const rows = [];
++  const read = async (chunk) => {
++    let got = [];
++    try {
++      const res = await db
++        .collection(collection)
++        .filter([
++          {
++            type: "branch",
++            operator: "all",
++            children: [{ prop: prop, operator: "in", value: chunk }, ...conditions],
++          },
++        ])
++        .limit(IA_READ_MAX)
++        .get();
++      got = (res && res.data) || [];
++    } catch (error) {
++      console.error(`Error fetching ${collection}:`, error);
++      return;
++    }
++    if (got.length >= IA_READ_MAX && chunk.length > 1) {
++      const half = Math.ceil(chunk.length / 2);
++      await Promise.all([read(chunk.slice(0, half)), read(chunk.slice(half))]);
++      return;
++    }
++    if (got.length >= IA_READ_MAX) console.error(`${collection}: more than ${IA_READ_MAX} rows for ${chunk[0]}; ${got.length} read`);
++    rows.push(...got);
++  };
++  await Promise.all(iaChunks(iaUniq(values), IA_READ_CHUNK).map(read));
++  return { data: rows };
++};
++
++// Non-stock (stock_control 0) item ids learnt by one handler, kept for the others in this.models._data
++const iaIsNonStock = (item) => !!item && (item.stock_control === 0 || item.stock_control === "0");
++const iaNsItems = () => (this.models["_data"] || {}).ia_ns_items || {};
++const iaNsRemember = (ids) => {
++  if (!ids.length) return;
++  const known = { ...iaNsItems() };
++  ids.forEach((id) => {
++    known[String(id)] = 1;
++  });
++  this.models["_data"] = { ...this.models["_data"], ia_ns_items: known };
++};
++// Transfer Stock off for the non-stock rows of [rowIndex, itemId] pairs, on again for the rest once any was switched off
++const iaNsLinks = (pairs) => {
++  const known = iaNsItems();
++  const off = [];
++  const on = [];
++  pairs.forEach(([index, itemId]) => (known[String(itemId)] ? off : on).push(`stock_movement.${index}.transfer_stock`));
++  if (!off.length && !(this.models["_data"] || {}).ia_ns_links) return;
++  if (off.length) {
++    this.models["_data"] = { ...this.models["_data"], ia_ns_links: 1 };
++    this.disabled(off, true);
++  }
++  if (on.length) this.disabled(on, false);
++};
+ 
+ const getOrganizationId = () => {
+@@ -36,24 +146,5 @@
+ };
+ 
+-const fetchByIds = (collection, ids, fields) => {
+-  let query = db.collection(collection);
+-  if (fields) query = query.field(fields);
+-  return query
+-    .filter([
+-      {
+-        type: "branch",
+-        operator: "all",
+-        children: [
+-          { prop: "id", operator: "in", value: ids },
+-          { prop: "is_deleted", operator: "equal", value: 0 },
+-        ],
+-      },
+-    ])
+-    .get()
+-    .catch((error) => {
+-      console.error(`Error fetching ${collection}:`, error);
+-      return { data: [] };
+-    });
+-};
++const fetchByIds = (collection, ids, fields) => iaReadIds(collection, ids, fields);
+ 
+ // Item master default bin for this plant. A row without a bin is treated as
+@@ -110,23 +201,9 @@
+ 
+ const fetchBalances = (collection, materialIds, plantId, organizationId) =>
+-  db
+-    .collection(collection)
+-    .filter([
+-      {
+-        type: "branch",
+-        operator: "all",
+-        children: [
+-          { prop: "material_id", operator: "in", value: materialIds },
+-          { prop: "plant_id", operator: "equal", value: plantId },
+-          { prop: "organization_id", operator: "equal", value: organizationId },
+-          { prop: "is_deleted", operator: "equal", value: 0 },
+-        ],
+-      },
+-    ])
+-    .get()
+-    .catch((error) => {
+-      console.error(`Error fetching ${collection}:`, error);
+-      return { data: [] };
+-    });
++  iaReadMany(collection, "material_id", materialIds, [
++    { prop: "plant_id", operator: "equal", value: plantId },
++    { prop: "organization_id", operator: "equal", value: organizationId },
++    { prop: "is_deleted", operator: "equal", value: 0 },
++  ]);
+ 
+ // Loose availability, mirroring the rules the Transfer Stock dialog applies:
+@@ -136,5 +213,7 @@
+ const autoAllocate = async (rows, itemMap, uomMap, plantId, organizationId) => {
+   const allocatable = rows.filter(
+-    (row) => itemMap.get(row.item_selection)?.serial_number_management !== 1
++    (row) =>
++      itemMap.get(row.item_selection)?.serial_number_management !== 1 &&
++      !iaIsNonStock(itemMap.get(row.item_selection))
+   );
+   if (allocatable.length === 0) return;
+@@ -157,34 +236,12 @@
+       ? fetchBalances("item_batch_balance", batchIds, plantId, organizationId)
+       : Promise.resolve({ data: [] }),
+-    db
+-      .collection("handling_unit_atu7sreg_sub")
+-      .filter([
+-        {
+-          type: "branch",
+-          operator: "all",
+-          children: [
+-            { prop: "material_id", operator: "in", value: allIds },
+-            { prop: "is_deleted", operator: "equal", value: 0 },
+-          ],
+-        },
+-      ])
+-      .get()
+-      .catch(() => ({ data: [] })),
+-    db
+-      .collection("on_reserved_gd")
+-      .filter([
+-        {
+-          type: "branch",
+-          operator: "all",
+-          children: [
+-            { prop: "material_id", operator: "in", value: allIds },
+-            { prop: "plant_id", operator: "equal", value: plantId },
+-            { prop: "organization_id", operator: "equal", value: organizationId },
+-            { prop: "is_deleted", operator: "equal", value: 0 },
+-          ],
+-        },
+-      ])
+-      .get()
+-      .catch(() => ({ data: [] })),
++    iaReadMany("handling_unit_atu7sreg_sub", "material_id", allIds, [
++      { prop: "is_deleted", operator: "equal", value: 0 },
++    ]),
++    iaReadMany("on_reserved_gd", "material_id", allIds, [
++      { prop: "plant_id", operator: "equal", value: plantId },
++      { prop: "organization_id", operator: "equal", value: organizationId },
++      { prop: "is_deleted", operator: "equal", value: 0 },
++    ]),
+   ]);
+ 
+@@ -284,5 +341,5 @@
+   rows.forEach((row, rowIndex) => {
+     const item = itemMap.get(row.item_selection);
+-    if (!item || item.serial_number_management === 1) return;
++    if (!item || item.serial_number_management === 1 || iaIsNonStock(item)) return;
+ 
+     let remaining = parseFloat(row.requested_qty) || 0;
+@@ -539,5 +596,5 @@
+       "item",
+       componentIds,
+-      "material_name,material_desc,based_uom,serial_number_management,item_batch_management,table_uom_conversion,table_default_bin"
++      "material_name,material_desc,based_uom,serial_number_management,item_batch_management,table_uom_conversion,table_default_bin,stock_control"
+     );
+     const itemMap = new Map(
+@@ -607,5 +664,5 @@
+         item_desc: sub.sub_material_desc || item?.material_desc || "",
+         requested_qty: requestedQty,
+-        total_quantity: 0,
++        total_quantity: iaIsNonStock(item) ? requestedQty : 0,
+         quantity_uom: sub.sub_material_qty_uom || item?.based_uom || "",
+         uom_options: JSON.stringify(rowUoms),
+@@ -659,4 +716,11 @@
+     });
+ 
++    iaNsRemember(
++      rows
++        .filter((row) => iaIsNonStock(itemMap.get(row.item_selection)))
++        .map((row) => row.item_selection)
++    );
++    iaNsLinks(rows.map((row, rowIndex) => [rowIndex, row.item_selection]));
++
+     if (!plantId) {
+       this.$message.warning(
+
+--- base/onChange_componentQty.js
++++ built/onChange_componentQty.js
+@@ -5,4 +5,114 @@
+ // Fetch budget: one parallel burst for the item and every stock source, then one
+ // round trip for handling units and one for the bin / batch names on the summary.
++// A non-stock (labour / overhead) line keeps the typed quantity, no picks.
++
++// Chunked reads with an explicit limit (the API clamps at IA_READ_MAX rows, as GDonMounted.js); a clamped read is read again
++const IA_READ_CHUNK = 500;
++const IA_READ_MAX = 5000;
++const iaChunks = (list, size) => {
++  const out = [];
++  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
++  return out;
++};
++const iaUniq = (list) => [...new Set((list || []).filter((v) => v !== undefined && v !== null && v !== "").map(String))];
++
++// rows of `collection` whose id is in `ids` (is_deleted 0), `fields` projected
++const iaReadIds = async (collection, ids, fields) => {
++  const rows = [];
++  await Promise.all(
++    iaChunks(iaUniq(ids), Math.min(IA_READ_CHUNK, IA_READ_MAX)).map(async (chunk) => {
++      let left = chunk;
++      while (left.length) {
++        let got = [];
++        try {
++          let query = db.collection(collection);
++          if (fields) query = query.field(fields);
++          const res = await query
++            .filter([
++              {
++                type: "branch",
++                operator: "all",
++                children: [
++                  { prop: "id", operator: "in", value: left },
++                  { prop: "is_deleted", operator: "equal", value: 0 },
++                ],
++              },
++            ])
++            .limit(left.length)
++            .get();
++          got = (res && res.data) || [];
++        } catch (error) {
++          console.error(`Error fetching ${collection}:`, error);
++          return;
++        }
++        rows.push(...got);
++        const seen = new Set(got.map((row) => String(row.id)));
++        const missing = left.filter((id) => !seen.has(id));
++        if (!got.length || missing.length === left.length) return;
++        left = missing;
++      }
++    }),
++  );
++  return { data: rows };
++};
++
++// rows of `collection` whose `prop` is in `values`, with the other conditions
++const iaReadMany = async (collection, prop, values, conditions) => {
++  const rows = [];
++  const read = async (chunk) => {
++    let got = [];
++    try {
++      const res = await db
++        .collection(collection)
++        .filter([
++          {
++            type: "branch",
++            operator: "all",
++            children: [{ prop: prop, operator: "in", value: chunk }, ...conditions],
++          },
++        ])
++        .limit(IA_READ_MAX)
++        .get();
++      got = (res && res.data) || [];
++    } catch (error) {
++      console.error(`Error fetching ${collection}:`, error);
++      return;
++    }
++    if (got.length >= IA_READ_MAX && chunk.length > 1) {
++      const half = Math.ceil(chunk.length / 2);
++      await Promise.all([read(chunk.slice(0, half)), read(chunk.slice(half))]);
++      return;
++    }
++    if (got.length >= IA_READ_MAX) console.error(`${collection}: more than ${IA_READ_MAX} rows for ${chunk[0]}; ${got.length} read`);
++    rows.push(...got);
++  };
++  await Promise.all(iaChunks(iaUniq(values), IA_READ_CHUNK).map(read));
++  return { data: rows };
++};
++
++// Non-stock (stock_control 0) item ids learnt by one handler, kept for the others in this.models._data
++const iaIsNonStock = (item) => !!item && (item.stock_control === 0 || item.stock_control === "0");
++const iaNsItems = () => (this.models["_data"] || {}).ia_ns_items || {};
++const iaNsRemember = (ids) => {
++  if (!ids.length) return;
++  const known = { ...iaNsItems() };
++  ids.forEach((id) => {
++    known[String(id)] = 1;
++  });
++  this.models["_data"] = { ...this.models["_data"], ia_ns_items: known };
++};
++// Transfer Stock off for the non-stock rows of [rowIndex, itemId] pairs, on again for the rest once any was switched off
++const iaNsLinks = (pairs) => {
++  const known = iaNsItems();
++  const off = [];
++  const on = [];
++  pairs.forEach(([index, itemId]) => (known[String(itemId)] ? off : on).push(`stock_movement.${index}.transfer_stock`));
++  if (!off.length && !(this.models["_data"] || {}).ia_ns_links) return;
++  if (off.length) {
++    this.models["_data"] = { ...this.models["_data"], ia_ns_links: 1 };
++    this.disabled(off, true);
++  }
++  if (on.length) this.disabled(on, false);
++};
+ 
+ const q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));
+@@ -28,45 +138,12 @@
+   picks.reduce((sum, pick) => sum + (parseFloat(pick.sm_quantity) || 0), 0);
+ 
+-const fetchByIds = (collection, ids, fields) => {
+-  let query = db.collection(collection);
+-  if (fields) query = query.field(fields);
+-  return query
+-    .filter([
+-      {
+-        type: "branch",
+-        operator: "all",
+-        children: [
+-          { prop: "id", operator: "in", value: ids },
+-          { prop: "is_deleted", operator: "equal", value: 0 },
+-        ],
+-      },
+-    ])
+-    .get()
+-    .catch((error) => {
+-      console.error(`Error fetching ${collection}:`, error);
+-      return { data: [] };
+-    });
+-};
++const fetchByIds = (collection, ids, fields) => iaReadIds(collection, ids, fields);
+ 
+ const fetchBalances = (collection, materialId, plantId, organizationId) =>
+-  db
+-    .collection(collection)
+-    .filter([
+-      {
+-        type: "branch",
+-        operator: "all",
+-        children: [
+-          { prop: "material_id", operator: "in", value: [materialId] },
+-          { prop: "plant_id", operator: "equal", value: plantId },
+-          { prop: "organization_id", operator: "equal", value: organizationId },
+-          { prop: "is_deleted", operator: "equal", value: 0 },
+-        ],
+-      },
+-    ])
+-    .get()
+-    .catch((error) => {
+-      console.error(`Error fetching ${collection}:`, error);
+-      return { data: [] };
+-    });
++  iaReadMany(collection, "material_id", [materialId], [
++    { prop: "plant_id", operator: "equal", value: plantId },
++    { prop: "organization_id", operator: "equal", value: organizationId },
++    { prop: "is_deleted", operator: "equal", value: 0 },
++  ]);
+ 
+ // Item master default bin for this plant. A row without a bin is treated as
+@@ -111,4 +188,20 @@
+     this.models["ia_allocating_line"] = rowIndex;
+ 
++    // the typed quantity is the total (no write when the row already says so)
++    const keepTyped = async () => {
++      const qty = Math.max(0, requested);
++      if (Math.abs(q8(row.total_quantity) - qty) <= 0.0000001 && !row.temp_qty_data && !row.temp_hu_data && !row.stock_summary) return;
++      await this.setData({
++        [`stock_movement.${rowIndex}.total_quantity`]: qty,
++        [`stock_movement.${rowIndex}.temp_qty_data`]: "",
++        [`stock_movement.${rowIndex}.temp_hu_data`]: "",
++        [`stock_movement.${rowIndex}.stock_summary`]: "",
++      });
++    };
++    if (iaNsItems()[String(materialId)]) {
++      await keepTyped();
++      return;
++    }
++
+     const [itemRes, looseRes, batchRes, huSubRes, reservationRes] =
+       await Promise.all([
+@@ -116,45 +209,26 @@
+           "item",
+           [materialId],
+-          "material_name,serial_number_management,item_batch_management,table_default_bin"
++          "material_name,serial_number_management,item_batch_management,table_default_bin,stock_control"
+         ),
+         fetchBalances("item_balance", materialId, plantId, organizationId),
+         fetchBalances("item_batch_balance", materialId, plantId, organizationId),
+-        db
+-          .collection("handling_unit_atu7sreg_sub")
+-          .filter([
+-            {
+-              type: "branch",
+-              operator: "all",
+-              children: [
+-                { prop: "material_id", operator: "in", value: [materialId] },
+-                { prop: "is_deleted", operator: "equal", value: 0 },
+-              ],
+-            },
+-          ])
+-          .get()
+-          .catch(() => ({ data: [] })),
+-        db
+-          .collection("on_reserved_gd")
+-          .filter([
+-            {
+-              type: "branch",
+-              operator: "all",
+-              children: [
+-                { prop: "material_id", operator: "in", value: [materialId] },
+-                { prop: "plant_id", operator: "equal", value: plantId },
+-                {
+-                  prop: "organization_id",
+-                  operator: "equal",
+-                  value: organizationId,
+-                },
+-                { prop: "is_deleted", operator: "equal", value: 0 },
+-              ],
+-            },
+-          ])
+-          .get()
+-          .catch(() => ({ data: [] })),
++        iaReadMany("handling_unit_atu7sreg_sub", "material_id", [materialId], [
++          { prop: "is_deleted", operator: "equal", value: 0 },
++        ]),
++        iaReadMany("on_reserved_gd", "material_id", [materialId], [
++          { prop: "plant_id", operator: "equal", value: plantId },
++          { prop: "organization_id", operator: "equal", value: organizationId },
++          { prop: "is_deleted", operator: "equal", value: 0 },
++        ]),
+       ]);
+ 
+     const item = (itemRes.data || [])[0];
++
++    if (iaIsNonStock(item)) {
++      iaNsRemember([materialId]);
++      iaNsLinks([[rowIndex, materialId]]);
++      await keepTyped();
++      return;
++    }
+ 
+     // A serialized component can only be picked serial by serial, so the typed
+
+--- base/onAfterUpdate_item.js
++++ built/onAfterUpdate_item.js
+@@ -4,4 +4,114 @@
+ // requested_qty is left at 0: the row carries no BOM demand, which is also what
+ // marks it as added when the BOM variance is reported at completion.
++// A non-stock (labour / overhead) item gets no Transfer Stock: its quantity is typed.
++
++// Chunked reads with an explicit limit (the API clamps at IA_READ_MAX rows, as GDonMounted.js); a clamped read is read again
++const IA_READ_CHUNK = 500;
++const IA_READ_MAX = 5000;
++const iaChunks = (list, size) => {
++  const out = [];
++  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
++  return out;
++};
++const iaUniq = (list) => [...new Set((list || []).filter((v) => v !== undefined && v !== null && v !== "").map(String))];
++
++// rows of `collection` whose id is in `ids` (is_deleted 0), `fields` projected
++const iaReadIds = async (collection, ids, fields) => {
++  const rows = [];
++  await Promise.all(
++    iaChunks(iaUniq(ids), Math.min(IA_READ_CHUNK, IA_READ_MAX)).map(async (chunk) => {
++      let left = chunk;
++      while (left.length) {
++        let got = [];
++        try {
++          let query = db.collection(collection);
++          if (fields) query = query.field(fields);
++          const res = await query
++            .filter([
++              {
++                type: "branch",
++                operator: "all",
++                children: [
++                  { prop: "id", operator: "in", value: left },
++                  { prop: "is_deleted", operator: "equal", value: 0 },
++                ],
++              },
++            ])
++            .limit(left.length)
++            .get();
++          got = (res && res.data) || [];
++        } catch (error) {
++          console.error(`Error fetching ${collection}:`, error);
++          return;
++        }
++        rows.push(...got);
++        const seen = new Set(got.map((row) => String(row.id)));
++        const missing = left.filter((id) => !seen.has(id));
++        if (!got.length || missing.length === left.length) return;
++        left = missing;
++      }
++    }),
++  );
++  return { data: rows };
++};
++
++// rows of `collection` whose `prop` is in `values`, with the other conditions
++const iaReadMany = async (collection, prop, values, conditions) => {
++  const rows = [];
++  const read = async (chunk) => {
++    let got = [];
++    try {
++      const res = await db
++        .collection(collection)
++        .filter([
++          {
++            type: "branch",
++            operator: "all",
++            children: [{ prop: prop, operator: "in", value: chunk }, ...conditions],
++          },
++        ])
++        .limit(IA_READ_MAX)
++        .get();
++      got = (res && res.data) || [];
++    } catch (error) {
++      console.error(`Error fetching ${collection}:`, error);
++      return;
++    }
++    if (got.length >= IA_READ_MAX && chunk.length > 1) {
++      const half = Math.ceil(chunk.length / 2);
++      await Promise.all([read(chunk.slice(0, half)), read(chunk.slice(half))]);
++      return;
++    }
++    if (got.length >= IA_READ_MAX) console.error(`${collection}: more than ${IA_READ_MAX} rows for ${chunk[0]}; ${got.length} read`);
++    rows.push(...got);
++  };
++  await Promise.all(iaChunks(iaUniq(values), IA_READ_CHUNK).map(read));
++  return { data: rows };
++};
++
++// Non-stock (stock_control 0) item ids learnt by one handler, kept for the others in this.models._data
++const iaIsNonStock = (item) => !!item && (item.stock_control === 0 || item.stock_control === "0");
++const iaNsItems = () => (this.models["_data"] || {}).ia_ns_items || {};
++const iaNsRemember = (ids) => {
++  if (!ids.length) return;
++  const known = { ...iaNsItems() };
++  ids.forEach((id) => {
++    known[String(id)] = 1;
++  });
++  this.models["_data"] = { ...this.models["_data"], ia_ns_items: known };
++};
++// Transfer Stock off for the non-stock rows of [rowIndex, itemId] pairs, on again for the rest once any was switched off
++const iaNsLinks = (pairs) => {
++  const known = iaNsItems();
++  const off = [];
++  const on = [];
++  pairs.forEach(([index, itemId]) => (known[String(itemId)] ? off : on).push(`stock_movement.${index}.transfer_stock`));
++  if (!off.length && !(this.models["_data"] || {}).ia_ns_links) return;
++  if (off.length) {
++    this.models["_data"] = { ...this.models["_data"], ia_ns_links: 1 };
++    this.disabled(off, true);
++  }
++  if (on.length) this.disabled(on, false);
++};
+ 
+ const clearRow = (rowIndex, extra) =>
+@@ -59,20 +169,10 @@
+       .filter((id, i, arr) => arr.indexOf(id) === i);
+ 
+-    const uomRes = uomIds.length
+-      ? await db
+-          .collection("unit_of_measurement")
+-          .filter([
+-            {
+-              type: "branch",
+-              operator: "all",
+-              children: [
+-                { prop: "id", operator: "in", value: uomIds },
+-                { prop: "is_deleted", operator: "equal", value: 0 },
+-              ],
+-            },
+-          ])
+-          .get()
+-          .catch(() => ({ data: [] }))
+-      : { data: [] };
++    // the picked row carries stock_control; read only when it does not
++    const known = itemData.stock_control !== undefined && itemData.stock_control !== null;
++    const [uomRes, stockRes] = await Promise.all([
++      uomIds.length ? iaReadIds("unit_of_measurement", uomIds) : Promise.resolve({ data: [] }),
++      known ? Promise.resolve({ data: [itemData] }) : iaReadIds("Item", [value], "stock_control"),
++    ]);
+ 
+     const uomOptions = uomRes.data || [];
+@@ -92,4 +192,7 @@
+ 
+     this.setOptionData([`stock_movement.${rowIndex}.quantity_uom`], uomOptions);
++
++    if (iaIsNonStock((stockRes.data || [])[0])) iaNsRemember([value]);
++    iaNsLinks([[rowIndex, value]]);
+   } catch (error) {
+     console.error("Error loading the component item:", error);
+
+--- base/onConfirm_batchAddItem.js
++++ built/onConfirm_batchAddItem.js
+@@ -5,4 +5,114 @@
+ // Rows arrive with no quantity: requested_qty stays 0 because they carry no BOM
+ // demand, and the user types a quantity next, which allocates the line.
++// A non-stock (labour / overhead) row keeps the typed quantity, no Transfer Stock.
++
++// Chunked reads with an explicit limit (the API clamps at IA_READ_MAX rows, as GDonMounted.js); a clamped read is read again
++const IA_READ_CHUNK = 500;
++const IA_READ_MAX = 5000;
++const iaChunks = (list, size) => {
++  const out = [];
++  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
++  return out;
++};
++const iaUniq = (list) => [...new Set((list || []).filter((v) => v !== undefined && v !== null && v !== "").map(String))];
++
++// rows of `collection` whose id is in `ids` (is_deleted 0), `fields` projected
++const iaReadIds = async (collection, ids, fields) => {
++  const rows = [];
++  await Promise.all(
++    iaChunks(iaUniq(ids), Math.min(IA_READ_CHUNK, IA_READ_MAX)).map(async (chunk) => {
++      let left = chunk;
++      while (left.length) {
++        let got = [];
++        try {
++          let query = db.collection(collection);
++          if (fields) query = query.field(fields);
++          const res = await query
++            .filter([
++              {
++                type: "branch",
++                operator: "all",
++                children: [
++                  { prop: "id", operator: "in", value: left },
++                  { prop: "is_deleted", operator: "equal", value: 0 },
++                ],
++              },
++            ])
++            .limit(left.length)
++            .get();
++          got = (res && res.data) || [];
++        } catch (error) {
++          console.error(`Error fetching ${collection}:`, error);
++          return;
++        }
++        rows.push(...got);
++        const seen = new Set(got.map((row) => String(row.id)));
++        const missing = left.filter((id) => !seen.has(id));
++        if (!got.length || missing.length === left.length) return;
++        left = missing;
++      }
++    }),
++  );
++  return { data: rows };
++};
++
++// rows of `collection` whose `prop` is in `values`, with the other conditions
++const iaReadMany = async (collection, prop, values, conditions) => {
++  const rows = [];
++  const read = async (chunk) => {
++    let got = [];
++    try {
++      const res = await db
++        .collection(collection)
++        .filter([
++          {
++            type: "branch",
++            operator: "all",
++            children: [{ prop: prop, operator: "in", value: chunk }, ...conditions],
++          },
++        ])
++        .limit(IA_READ_MAX)
++        .get();
++      got = (res && res.data) || [];
++    } catch (error) {
++      console.error(`Error fetching ${collection}:`, error);
++      return;
++    }
++    if (got.length >= IA_READ_MAX && chunk.length > 1) {
++      const half = Math.ceil(chunk.length / 2);
++      await Promise.all([read(chunk.slice(0, half)), read(chunk.slice(half))]);
++      return;
++    }
++    if (got.length >= IA_READ_MAX) console.error(`${collection}: more than ${IA_READ_MAX} rows for ${chunk[0]}; ${got.length} read`);
++    rows.push(...got);
++  };
++  await Promise.all(iaChunks(iaUniq(values), IA_READ_CHUNK).map(read));
++  return { data: rows };
++};
++
++// Non-stock (stock_control 0) item ids learnt by one handler, kept for the others in this.models._data
++const iaIsNonStock = (item) => !!item && (item.stock_control === 0 || item.stock_control === "0");
++const iaNsItems = () => (this.models["_data"] || {}).ia_ns_items || {};
++const iaNsRemember = (ids) => {
++  if (!ids.length) return;
++  const known = { ...iaNsItems() };
++  ids.forEach((id) => {
++    known[String(id)] = 1;
++  });
++  this.models["_data"] = { ...this.models["_data"], ia_ns_items: known };
++};
++// Transfer Stock off for the non-stock rows of [rowIndex, itemId] pairs, on again for the rest once any was switched off
++const iaNsLinks = (pairs) => {
++  const known = iaNsItems();
++  const off = [];
++  const on = [];
++  pairs.forEach(([index, itemId]) => (known[String(itemId)] ? off : on).push(`stock_movement.${index}.transfer_stock`));
++  if (!off.length && !(this.models["_data"] || {}).ia_ns_links) return;
++  if (off.length) {
++    this.models["_data"] = { ...this.models["_data"], ia_ns_links: 1 };
++    this.disabled(off, true);
++  }
++  if (on.length) this.disabled(on, false);
++};
+ 
+ (async () => {
+@@ -33,22 +143,19 @@
+     ];
+ 
+-    const uomRes = uomIds.length
+-      ? await db
+-          .collection("unit_of_measurement")
+-          .filter([
+-            {
+-              type: "branch",
+-              operator: "all",
+-              children: [
+-                { prop: "id", operator: "in", value: uomIds },
+-                { prop: "is_deleted", operator: "equal", value: 0 },
+-              ],
+-            },
+-          ])
+-          .get()
+-          .catch(() => ({ data: [] }))
+-      : { data: [] };
++    // only the picked rows without stock_control are read
++    const unknownIds = currentItemArray
++      .filter((item) => item.stock_control === undefined || item.stock_control === null)
++      .map((item) => item.id);
++    const [uomRes, stockRes] = await Promise.all([
++      uomIds.length ? iaReadIds("unit_of_measurement", uomIds) : Promise.resolve({ data: [] }),
++      unknownIds.length ? iaReadIds("Item", unknownIds, "stock_control") : Promise.resolve({ data: [] }),
++    ]);
+ 
+     const uomMap = new Map((uomRes.data || []).map((uom) => [uom.id, uom]));
++    iaNsRemember(
++      [...currentItemArray, ...(stockRes.data || [])]
++        .filter((item) => iaIsNonStock(item))
++        .map((item) => item.id)
++    );
+ 
+     const newRows = currentItemArray.map((item, index) => {
+@@ -96,4 +203,5 @@
+       );
+     });
++    iaNsLinks(newRows.map((row, index) => [existingLines.length + index, row.item_selection]));
+ 
+     this.closeDialog("dialog_item_selection");
+
+--- base/onClick_post.js
++++ built/onClick_post.js
+@@ -22,8 +22,29 @@
+     }
+ 
+-    const resAI = await db
+-      .collection("accounting_integration")
+-      .where({ organization_id: organizationId })
+-      .get();
++    // The form can be stale (a background job may hold it now, or it was posted since): the stored status decides.
++    const [resAI, storedRes] = await Promise.all([
++      db
++        .collection("accounting_integration")
++        .where({ organization_id: organizationId })
++        .get(),
++      db
++        .collection("sm_item_assembly")
++        .where({ id: stockMovementId, is_deleted: 0 })
++        .field("item_assembly_status,posted_status")
++        .get(),
++    ]);
++    const dictKey = (v) => String((v && typeof v === "object" ? v.dict_key : v) || "").trim();
++    const stored = (storedRes && storedRes.data && storedRes.data[0]) || null;
++    const status = stored ? dictKey(stored.item_assembly_status) : "";
++    const posted = stored ? dictKey(stored.posted_status) : "";
++    if (status !== "Completed" || ["Unposted", "Failed Post", ""].indexOf(posted) < 0) {
++      this.hideLoading();
++      this.$message.error(
++        stored
++          ? `This Item Assembly cannot be posted (${[status || "no status", posted].filter((x) => x).join(", ")}).`
++          : "This Item Assembly is no longer available."
++      );
++      return;
++    }
+     const aiData = resAI.data[0];
+ 
+
+--- base/onClick_select_stock.rule_mr8f903u.js
++++ built/onClick_select_stock.rule_mr8f903u.js
+@@ -398,4 +398,12 @@
+     }
+     if (!itemData) return;
++    // a non-stock (labour / overhead) line takes its quantity as typed: nothing to pick
++    if (itemData.stock_control === 0 || itemData.stock_control === "0") {
++      this.closeDialog("sm_item_balance");
++      this.$message.warning(
++        `${lineItemData.item_name || itemData.material_name || "This component"} is not stock-controlled: enter its quantity on the line.`,
++      );
++      return;
++    }
+ 
+     const isBatchManaged = itemData.item_batch_management === 1;
+
+--- base/mounted.js
++++ built/mounted.js
+@@ -5,4 +5,5 @@
+     Completed: "completed_status",
+     "Fully Posted": "fullyposted_status",
++    Processing: "processing_status",
+   };
+   if (statusMap[status]) {
+@@ -114,4 +115,177 @@
+ };
+ 
++// IA V2: an Item Assembly a background job holds stays Processing (read-only, no save or post button) until the job ends;
++// opening it follows the job: STATUS, and a worker kick every 15 s (the completion worker for a completion, the revert worker
++// for a revert). A failed background job is reported once per browser. With both switches false (or a workflow id not set)
++// nothing here calls a workflow or touches browser storage.
++const IA_BG_WF = {
++  SUBMIT: "2112141238600376321", // IA_V2_SUBMIT
++  WORKER: "2112141277456408577", // IA_V2_WORKER
++  REVERT_SUBMIT: "2112141384234999809", // IA_REVERT_V2_SUBMIT
++  REVERT_WORKER: "2112141417890095105", // IA_REVERT_V2_WORKER
++};
++// the Completed buttons' switch and the list's Revert switch
++const IA_BG_ENABLED = true;
++const IA_BG_REVERT_ENABLED = true;
++const IA_BG_POLL_MS = 3000;
++const IA_BG_KICK_MS = 15000;
++const IA_BG_WAIT_MS = 420000;
++
++const iaBgId = (v) => /^[1-9][0-9]{0,19}$/.test(String(v || "").trim());
++const iaBgOn = () => IA_BG_ENABLED === true && iaBgId(IA_BG_WF.SUBMIT) && iaBgId(IA_BG_WF.WORKER);
++const iaBgRevertOn = () => IA_BG_REVERT_ENABLED === true && iaBgId(IA_BG_WF.REVERT_SUBMIT) && iaBgId(IA_BG_WF.REVERT_WORKER);
++const iaBgText = (v) => String(v === undefined || v === null ? "" : v).trim();
++
++const iaBgRun = (id, params) =>
++  new Promise((resolve, reject) => {
++    const p = this.runWorkflow(
++      id,
++      params,
++      (res) => resolve(res),
++      (err) => reject(err),
++    );
++    if (p && typeof p.then === "function") p.then((res) => resolve(res), (err) => reject(err));
++  });
++
++// STATUS answers the assembly's latest job of either command; its action (DIRECT / REVERT) says which worker moves it
++const iaBgStatus = async (iaId) => {
++  try {
++    const res = iaBgOn()
++      ? await iaBgRun(IA_BG_WF.SUBMIT, { operation: "STATUS", saveAs: "Completed", pageStatus: "Edit", ia_id: String(iaId),
++        idempotency_key: "", source: "FORM", form: {} })
++      : await iaBgRun(IA_BG_WF.REVERT_SUBMIT, { operation: "STATUS", ia_id: String(iaId), idempotency_key: "", source: "FORM",
++        min_picks: "", form: {} });
++    return (res && res.data) || null;
++  } catch (error) {
++    console.error("Background job: status check failed", error);
++    return null;
++  }
++};
++
++const iaBgIsRevert = (st) => iaBgText(st && st.action) === "REVERT" || iaBgText(st && st.command) === "REVERT_IA";
++
++const iaBgKick = (workerId, jobId) => {
++  if (!workerId) return;
++  try {
++    const p = this.runWorkflow(
++      workerId,
++      { job_id: String(jobId) },
++      () => {},
++      (error) => console.error("Background job: worker start failed", error),
++    );
++    if (p && typeof p.catch === "function") p.catch(() => {});
++  } catch (error) {
++    console.error("Background job: worker could not be started", error);
++  }
++};
++
++// true when this browser already showed the job (and marks it shown)
++const iaFailedSeen = (jobId) => {
++  let seen = false;
++  try {
++    const key = "ia_v2_failed_seen_" + jobId;
++    seen = localStorage.getItem(key) === "1";
++    localStorage.setItem(key, "1");
++  } catch (e) {}
++  return seen;
++};
++
++const iaBgAlert = (message, title, type) => this.$alert(message, title, { confirmButtonText: "OK", type: type }).catch(() => {});
++
++const iaFollowBackground = async (iaId, name, jobOnRecord) => {
++  const refreshList = () => {
++    if (this.parentGenerateForm) this.parentGenerateForm.refresh();
++  };
++  const deadline = Date.now() + IA_BG_WAIT_MS;
++  let kickedAt = 0;
++  let st = await iaBgStatus(iaId);
++  for (;;) {
++    // no job holds it (any more): stop following - the assembly on screen may be out of date
++    if (st && (st.job_status === "NONE" || (iaBgText(st.terminal) === "YES" && !st.job_id))) {
++      // a new assembly whose completion stopped before it was linked to its job is released only when that job is worked
++      if (/^[0-9]{1,20}$/.test(jobOnRecord) && iaBgOn()) iaBgKick(IA_BG_WF.WORKER, jobOnRecord);
++      refreshList();
++      this.$message.warning(name + " is not being processed in the background any more. Close it and open it again to see its current state.");
++      return;
++    }
++    if (st && st.job_id) {
++      const revert = iaBgIsRevert(st);
++      const verb = revert ? "reverted" : "completed";
++      const js = iaBgText(st.job_status);
++      if (js === "COMPLETED") {
++        this.$message.success(name + (revert ? " has been reverted to Draft." : " has been completed.") + " Reopen it to see the result.");
++        refreshList();
++        return;
++      }
++      if (js === "FAILED" || js === "CANCELLED") {
++        refreshList();
++        if (iaFailedSeen(st.job_id)) return;
++        const reason = iaBgText(st.error_message || st.error_code || "No reason was given.");
++        await iaBgAlert(reason + (/[.!?]$/.test(reason) ? "" : ".") + " Reopen it to continue.", name + " was not " + verb, "error");
++        return;
++      }
++      if (js === "REQUIRES_REVIEW") {
++        await iaBgAlert(
++          "It stopped part-way through and needs a review before it can be changed. Please contact support." +
++            (st.error_message ? " (" + st.error_message + ")" : ""),
++          name + " needs a review",
++          "warning",
++        );
++        return;
++      }
++      // a job waiting out a retry backoff, a stock-lock wait or a parked second phase moves only when kicked again
++      if (!kickedAt || Date.now() - kickedAt >= IA_BG_KICK_MS) {
++        if (!kickedAt) this.$message.info(name + " is being " + verb + " in the background. It is read-only until that finishes.");
++        kickedAt = Date.now();
++        iaBgKick(revert ? (iaBgRevertOn() ? IA_BG_WF.REVERT_WORKER : "") : iaBgOn() ? IA_BG_WF.WORKER : "", st.job_id);
++      }
++    }
++    if (Date.now() >= deadline) {
++      this.$message.info(name + " is still being processed in the background. Reopen it later.");
++      return;
++    }
++    await new Promise((resolve) => setTimeout(resolve, IA_BG_POLL_MS));
++    st = await iaBgStatus(iaId);
++  }
++};
++
++// an assembly a background job once held (ia_v2_job_id) and released: a failure is shown once per browser; a job with nothing
++// to show is not asked about again in this browser
++const iaShowLastFailure = async (iaId, jobId, name) => {
++  try {
++    if (localStorage.getItem("ia_v2_failed_seen_" + jobId) === "1") return;
++  } catch (e) {
++    return;
++  }
++  const st = await iaBgStatus(iaId);
++  if (!st || !st.job_id) return;
++  const js = iaBgText(st.job_status);
++  if (["FAILED", "CANCELLED", "COMPLETED"].indexOf(js) < 0) return;
++  const shown = iaFailedSeen(st.job_id);
++  if (String(st.job_id) !== String(jobId)) iaFailedSeen(jobId);
++  if (shown || js === "COMPLETED") return;
++  const reason = iaBgText(st.error_message || st.error_code || "No reason was given.");
++  this.$message.warning(name + ": its last background " + (iaBgIsRevert(st) ? "revert" : "completion") + " failed - " + reason);
++};
++
++const iaBackgroundView = (pageStatus, status) => {
++  if (pageStatus !== "Edit" && pageStatus !== "View") return;
++  const on = iaBgOn() || iaBgRevertOn();
++  if (status !== "Processing" && (!on || (status !== "Draft" && status !== "Completed"))) return;
++  const jobOnRecord = iaBgText(this.getValue("ia_v2_job_id"));
++  if (status !== "Processing" && !/^[0-9]{1,20}$/.test(jobOnRecord)) return;
++  const iaId = iaBgText(this.getValue("id"));
++  const name = ("Item Assembly " + iaBgText(this.getValue("stock_movement_no"))).trim();
++  if (status === "Processing") {
++    if (!on) {
++      this.$message.warning(name + " is being processed in the background. It is read-only until that finishes.");
++      return;
++    }
++    iaFollowBackground(iaId, name, jobOnRecord);
++    return;
++  }
++  if (iaBgId(iaId)) iaShowLastFailure(iaId, jobOnRecord, name);
++};
++
+ (async () => {
+   try {
+@@ -183,4 +357,8 @@
+             "comp_post_button",
+           ]);
++        } else if (status === "Processing") {
++          // a background job holds it: read-only, no save or post button
++          this.hide(["button_draft", "button_completed", "comp_post_button", "button_post"]);
++          lockComponentsTable();
+         } else {
+           // Fully Posted and anything else past Draft: the stock has already
+@@ -201,4 +379,6 @@
+         break;
+     }
++
++    iaBackgroundView(pageStatus, status);
+   } catch (error) {
+     console.error(error);
+
+--- base/list_delete.js
++++ built/list_delete.js
+@@ -12,5 +12,7 @@
+     // Once an assembly is completed the components have left stock and the
+     // assembled item has been received; deleting the document would strand both.
+-    if (status === "Completed" || status === "Fully Posted") {
++    // A Processing one is being completed or reverted in the background.
++    const UNDELETABLE = ["Completed", "Fully Posted", "Processing"];
++    if (UNDELETABLE.includes(status)) {
+       this.$message.error(
+         `Item Assembly ${label} is ${status} and cannot be deleted.`
+@@ -43,4 +45,21 @@
+       throw new Error("cancelled");
+     });
++
++    // The grid can be stale (a background job may hold it now): the stored status decides.
++    const storedRes = await db
++      .collection("sm_item_assembly")
++      .where({ id: row.id, is_deleted: 0 })
++      .field("item_assembly_status")
++      .get();
++    const stored = (storedRes && storedRes.data && storedRes.data[0]) || null;
++    if (!stored || UNDELETABLE.includes(stored.item_assembly_status)) {
++      this.$message.error(
++        stored
++          ? `Item Assembly ${label} is ${stored.item_assembly_status} and cannot be deleted.`
++          : `Item Assembly ${label} is no longer available.`
++      );
++      this.refresh();
++      return;
++    }
+ 
+     await db
+
+--- base/list_IArevertCompleted.js
++++ built/list_IArevertCompleted.js
+@@ -3,5 +3,17 @@
+ // Everything is decided server-side: the workflow re-reads the record, so this
+ // only filters out rows the list already shows as ineligible.
++//
++// IA Revert V2: with ASYNC_IA_REVERT_ENABLED each assembly asks IA_REVERT_V2_SUBMIT first: more than 50 live stock rows ->
++// reverted in the background by IA_REVERT_V2_WORKER (started here; the list's mounted starts it again); NOT_ELIGIBLE, INVALID
++// or no usable answer -> the classic IA_REVERT below, unchanged.
+ const IA_REVERT_WORKFLOW_ID = "2099319746652852225";
++const IARV_WF = {
++  SUBMIT: "2112141384234999809", // IA_REVERT_V2_SUBMIT
++  WORKER: "2112141417890095105", // IA_REVERT_V2_WORKER
++};
++// Switch: false = every assembly takes the classic revert
++const ASYNC_IA_REVERT_ENABLED = true;
++const IA_RV_MIN_ROWS = 50;
++const IARV_KICK_MAX = 10;
+ 
+ const runRevertWorkflow = async (ia) => {
+@@ -70,4 +82,109 @@
+ 
+   return fail(message || "Failed to revert Item Assembly");
++};
++
++const rvOn = () =>
++  ASYNC_IA_REVERT_ENABLED === true && /^[1-9][0-9]{0,19}$/.test(IARV_WF.SUBMIT) && /^[1-9][0-9]{0,19}$/.test(IARV_WF.WORKER);
++const str = (v) => (v === undefined || v === null ? "" : String(v)).trim();
++const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
++// settles on the callback or on the promise runWorkflow returns, whichever comes first
++const run = (id, params) =>
++  new Promise((resolve, reject) => {
++    const p = this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));
++    if (p && typeof p.then === "function") p.then((res) => resolve(res), (err) => reject(err));
++  });
++
++// one key per click and assembly: a lost answer re-sent with the same key finds the same job
++const clickToken = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
++const keyOf = (ia) => ("IAV:" + str(ia.organization_id) + ":" + str(ia.id) + ":" + clickToken).replace(/[^A-Za-z0-9|:_.-]/g, "-").slice(0, 128);
++// RV4: every request key is sent (strings except form; the form is the list row)
++const rvRequest = (ia, operation) => ({
++  operation: operation,
++  ia_id: str(ia.id),
++  idempotency_key: keyOf(ia),
++  source: "LIST",
++  min_picks: String(IA_RV_MIN_ROWS),
++  form:
++    operation === "STATUS"
++      ? {}
++      : { id: str(ia.id), item_assembly_status: str(ia.item_assembly_status), stock_movement_no: str(ia.stock_movement_no), organization_id: str(ia.organization_id) },
++});
++
++const submitV2 = async (ia) => {
++  const params = rvRequest(ia, "SUBMIT");
++  let res = null;
++  try {
++    res = await run(IARV_WF.SUBMIT, params);
++  } catch (e) {
++    // the losing twin of the unique insert, a dropped connection: once more with the same key
++    console.log("IA Revert V2: submit failed, repeating once with the same key", e);
++    try {
++      res = await run(IARV_WF.SUBMIT, params);
++    } catch (again) {
++      console.error("IA Revert V2: submit failed twice", again);
++    }
++  }
++  return (res && res.data) || null;
++};
++
++const RV_OPEN = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_REVERT"];
++const watching = [];
++const revertOne = async (ia) => {
++  const label = ia.stock_movement_no || ia.id;
++  const r = await submitV2(ia);
++  // no usable answer, NOT_ELIGIBLE (50 live stock rows or fewer, handling units, ...) or INVALID: the classic revert
++  if (!r || !r.route || r.route === "NOT_ELIGIBLE" || r.route === "INVALID") {
++    return handleWorkflowResult(await runRevertWorkflow(ia), ia);
++  }
++  const js = str(r.job_status);
++  if (r.route === "QUEUED" || (r.route === "STATUS" && RV_OPEN.indexOf(js) >= 0)) {
++    watching.push(ia);
++    return { label, success: true, queued: true };
++  }
++  if (r.route === "STATUS" && js === "COMPLETED") return { label, success: true };
++  if (r.route === "STATUS" && (js === "FAILED" || js === "REQUIRES_REVIEW")) {
++    return { label, success: false, error: str(r.error_message) || str(r.progress_message) || "The previous revert of this Item Assembly did not finish." };
++  }
++  return { label, success: false, error: str(r.message) || str(r.progress_message) || "Failed to revert Item Assembly" };
++};
++
++// the background revert finds the classic's conflicts (the assembled item used since, ...) only once it runs: say why
++const reportFinished = async () => {
++  const stopped = [];
++  for (const ia of watching.splice(0)) {
++    let r = {};
++    try {
++      const res = await run(IARV_WF.SUBMIT, rvRequest(ia, "STATUS"));
++      r = (res && res.data) || {};
++    } catch (e) {
++      console.error("IA Revert V2: status check failed", e);
++    }
++    const js = str(r.job_status);
++    if (js === "FAILED" || js === "REQUIRES_REVIEW") {
++      stopped.push(`${esc(ia.stock_movement_no || ia.id)}: ${esc(str(r.error_message) || str(r.progress_message) || "The revert did not finish.")}`);
++    } else if (js !== "COMPLETED") {
++      watching.push(ia);
++    }
++  }
++  if (stopped.length > 0) {
++    await this.$alert(stopped.join("<br>"), "Revert did not finish", { type: "error", dangerouslyUseHTMLString: true }).catch(() => {});
++  }
++};
++
++// no scheduled worker: driven here while it finds work (at most IARV_KICK_MAX calls), then by the list's mounted
++const drainWorker = async () => {
++  for (let n = 1; n <= IARV_KICK_MAX; n++) {
++    let processed = 0;
++    try {
++      const res = await run(IARV_WF.WORKER, { job_id: "" });
++      processed = Number((res && res.data && res.data.processed) || 0);
++    } catch (e) {
++      console.error("IA Revert V2: worker tick failed - the list starts it again", e);
++    }
++    this.refresh();
++    if (watching.length > 0) await reportFinished();
++    if (watching.length === 0) return;
++    if (processed <= 0) await sleep(3000);
++  }
+ };
+ 
+@@ -143,8 +260,9 @@
+     this.showLoading("Reverting Item Assembly...");
+     const results = skipped.slice();
++    const v2 = rvOn();
+ 
+     for (const ia of revertable) {
+       try {
+-        results.push(handleWorkflowResult(await runRevertWorkflow(ia), ia));
++        results.push(v2 ? await revertOne(ia) : handleWorkflowResult(await runRevertWorkflow(ia), ia));
+       } catch (error) {
+         results.push({
+@@ -167,15 +285,22 @@
+     }
+ 
+-    const successCount = results.filter((r) => r.success).length;
++    const queued = results.filter((r) => r.queued).length;
++    const successCount = results.filter((r) => r.success && !r.queued).length;
+     const failed = results.filter((r) => !r.success);
++    const queuedNote = queued > 0 ? `${queued} being reverted in the background, ` : "";
+ 
+     if (failed.length > 0) {
+       this.$message({
+         type: "error",
+-        message: `${successCount} reverted, ${failed.length} failed:<br>${describe(
++        message: `${successCount} reverted, ${queuedNote}${failed.length} failed:<br>${describe(
+           failed,
+         )}`,
+         dangerouslyUseHTMLString: true,
+       });
++    } else if (queued > 0) {
++      this.$message.success(
++        `${queued} Item Assembly ${queued === 1 ? "is" : "are"} being reverted to Draft in the background` +
++          (successCount > 0 ? `; ${successCount} reverted` : ""),
++      );
+     } else {
+       this.$message.success(
+@@ -185,4 +310,5 @@
+ 
+     this.refresh();
++    if (queued > 0) drainWorker();
+   } catch (error) {
+     this.hideLoading();
+
+--- base/list_onItemAssemblyPostfunc_z4qy8mae.js
++++ built/list_onItemAssemblyPostfunc_z4qy8mae.js
+@@ -1,2 +1,86 @@
++// Chunked reads with an explicit limit (the API clamps at IA_READ_MAX rows, as GDonMounted.js); a clamped read is read again
++const IA_READ_CHUNK = 500;
++const IA_READ_MAX = 5000;
++const iaChunks = (list, size) => {
++  const out = [];
++  for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
++  return out;
++};
++const iaUniq = (list) => [...new Set((list || []).filter((v) => v !== undefined && v !== null && v !== "").map(String))];
++
++// rows of `collection` whose id is in `ids` (is_deleted 0), `fields` projected
++const iaReadIds = async (collection, ids, fields) => {
++  const rows = [];
++  await Promise.all(
++    iaChunks(iaUniq(ids), Math.min(IA_READ_CHUNK, IA_READ_MAX)).map(async (chunk) => {
++      let left = chunk;
++      while (left.length) {
++        let got = [];
++        try {
++          let query = db.collection(collection);
++          if (fields) query = query.field(fields);
++          const res = await query
++            .filter([
++              {
++                type: "branch",
++                operator: "all",
++                children: [
++                  { prop: "id", operator: "in", value: left },
++                  { prop: "is_deleted", operator: "equal", value: 0 },
++                ],
++              },
++            ])
++            .limit(left.length)
++            .get();
++          got = (res && res.data) || [];
++        } catch (error) {
++          console.error(`Error fetching ${collection}:`, error);
++          return;
++        }
++        rows.push(...got);
++        const seen = new Set(got.map((row) => String(row.id)));
++        const missing = left.filter((id) => !seen.has(id));
++        if (!got.length || missing.length === left.length) return;
++        left = missing;
++      }
++    }),
++  );
++  return { data: rows };
++};
++
++// rows of `collection` whose `prop` is in `values`, with the other conditions
++const iaReadMany = async (collection, prop, values, conditions) => {
++  const rows = [];
++  const read = async (chunk) => {
++    let got = [];
++    try {
++      const res = await db
++        .collection(collection)
++        .filter([
++          {
++            type: "branch",
++            operator: "all",
++            children: [{ prop: prop, operator: "in", value: chunk }, ...conditions],
++          },
++        ])
++        .limit(IA_READ_MAX)
++        .get();
++      got = (res && res.data) || [];
++    } catch (error) {
++      console.error(`Error fetching ${collection}:`, error);
++      return;
++    }
++    if (got.length >= IA_READ_MAX && chunk.length > 1) {
++      const half = Math.ceil(chunk.length / 2);
++      await Promise.all([read(chunk.slice(0, half)), read(chunk.slice(half))]);
++      return;
++    }
++    if (got.length >= IA_READ_MAX) console.error(`${collection}: more than ${IA_READ_MAX} rows for ${chunk[0]}; ${got.length} read`);
++    rows.push(...got);
++  };
++  await Promise.all(iaChunks(iaUniq(values), IA_READ_CHUNK).map(read));
++  return { data: rows };
++};
++
+ const callPostItemAssemblyWorkflow = async (selectedRecords, aiData) => {
+   switch (aiData.acc_integration_type) {
+@@ -85,8 +169,36 @@
+     }
+ 
+-    const resAI = await db
+-      .collection("accounting_integration")
+-      .where({ organization_id: organizationID })
+-      .get();
++    // The grid can be stale (a background job may hold a row now, or it was posted since): the stored status decides.
++    const [resAI, storedRes] = await Promise.all([
++      db
++        .collection("accounting_integration")
++        .where({ organization_id: organizationID })
++        .get(),
++      iaReadIds(
++        "sm_item_assembly",
++        selectedRecords.map((item) => item.id),
++        "item_assembly_status,posted_status",
++      ),
++    ]);
++    const dictKey = (v) => String((v && typeof v === "object" ? v.dict_key : v) || "").trim();
++    const stored = new Map((storedRes.data || []).map((row) => [String(row.id), row]));
++    const postable = (item) => {
++      const row = stored.get(String(item.id));
++      return !!row && dictKey(row.item_assembly_status) === "Completed" && ["Unposted", "Failed Post", ""].indexOf(dictKey(row.posted_status)) >= 0;
++    };
++    const changed = selectedRecords.filter((item) => !postable(item));
++    selectedRecords = selectedRecords.filter(postable);
++    if (changed.length > 0) {
++      const why = (item) => {
++        const row = stored.get(String(item.id));
++        return row ? [dictKey(row.item_assembly_status) || "no status", dictKey(row.posted_status)].filter((x) => x).join(", ") : "no longer available";
++      };
++      this.$message.warning(`Not posted, changed since the list loaded: ${changed.map((item) => `${item.stock_movement_no || item.id} (${why(item)})`).join("; ")}`);
++    }
++    if (selectedRecords.length === 0) {
++      this.refresh();
++      this.hideLoading();
++      return;
++    }
+ 
+     if (resAI && resAI.data && resAI.data.length > 0) {

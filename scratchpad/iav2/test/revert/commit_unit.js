@@ -131,6 +131,13 @@ const guard = { jobId: JOB, tenantId: "000000", leaseOwner: "PUB|ff", nonce: "00
   r = V1(entryA({ attempts: 8 }), { code: "409", result_code: "LOCK_BUSY" });
   ok(r.result_code === "IA_RV_INVENTORY_LOCK_BUSY" && r.job_status === "FAILED" && r.needUnlock === "YES" && r.jobRows[0].error_message === "The stock of its components stayed locked by another operation: nothing was moved, please try again later.",
     "V1 409 after 8 waits -> FAILED IA_RV_INVENTORY_LOCK_BUSY + Completed again", r);
+  // engine v12: this operation's earlier run is still alive (a resumed pass): wait it out even with intents; review once the waits are
+  // spent, never FAILED (that run may still be writing)
+  const alive = { code: "409", result_code: "LOCK_BUSY", message: "the same operation is still running (run 2, last heartbeat 2026-10-19 11:59:00)" };
+  r = V1(entryA(), alive, { intents: "3" });
+  ok(r.result_code === "IA_RV_LOCK_WAIT" && r.needUnlock === "NO", "V1 v12 'the same operation is still running' WITH intents -> lock wait", r);
+  r = V1(entryA({ attempts: 8 }), alive);
+  ok(r.job_status === "REQUIRES_REVIEW" && r.needUnlock === "NO", "V1 v12 'the same operation is still running' after 8 waits -> REQUIRES_REVIEW, never FAILED", r);
   r = V1(entryA(), { code: "", result_code: "" }, { intents: "2" });
   ok(r.result_code === "IA_RV_STEP_RETRY" && r.job_status === "COMMITTING_REVERT" && r.needUnlock === "NO", "V1 no answer WITH intents -> a counted retry, never an unlock", r);
   r = V1(entryA({ attempts: 3 }), { code: "", result_code: "" }, { intents: "2" });

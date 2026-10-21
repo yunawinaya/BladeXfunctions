@@ -16,6 +16,7 @@ const eq = (label, got, want) => {
 const yes = (label, v) => eq(label, !!v, true);
 
 const T = "000000";
+const UID = "2109866916722085890";
 const ORG = "1123598813738675201";
 const SO = "2112017989476458498";
 const LINE = "2112017989484847107";
@@ -34,6 +35,16 @@ const world = () => ({
 const J = (o) => ({ j: JSON.stringify(o) });
 const has = (sql, frag) => {
   if (sql.indexOf(frag) < 0) throw new Error("SQL is missing " + frag + ":\n" + sql);
+};
+// FIX-03: whether the session user is assigned to the organisation (or one of its plants); w.member 0 = not assigned
+const member = (w, sql, org) => {
+  // the platform-safe wrap breaks long SQL lines after ", ": compare with the whitespace folded
+  const s = sql.replace(/\s+/g, " ");
+  has(s, "u.tenant_id = '" + T + "' AND u.is_deleted = 0 AND u.id = " + UID + " LIMIT 1");
+  has(s, "(p.id = " + (org || ORG) + " OR FIND_IN_SET('" + (org || ORG) + "', p.ancestors) > 0)");
+  has(s, "p.tenant_id = '" + T + "'");
+  has(s, "AND " + (org || ORG) + " > 0 AND (p.id");
+  return [J({ member: w.member === undefined ? 1 : w.member })];
 };
 const projMocks = (w, seen) => ({
   sql_node_SPline: (sql) => {
@@ -58,6 +69,8 @@ const projMocks = (w, seen) => ({
     return Object.keys(w.lines).map((k) => w.lines[k]).filter((l) => !l.is_deleted).map((l) => J({ id: l.id, line_index: l.line_index }));
   },
   sql_node_SPorphans: () => [],
+  sql_node_SPmember: (sql) => member(w, sql),
+  sql_node_SPcmember: (sql) => member(w, sql),
   sql_node_SPcand: (sql) => {
     has(sql, "l.item_name = '" + ITEM + "'");
     return Object.keys(w.lines).map((k) => w.lines[k]).map((l) => J({ line: l, header: w.header }));
@@ -66,7 +79,7 @@ const projMocks = (w, seen) => ({
   sql_node_SPcfg: () => [J(w.fg)],
 });
 const run = (name, mocks, params, db) => {
-  const eng = new Engine({ dir: DIR, db: db || { tenantId: T }, mocks: { sql: mocks, read: {} } });
+  const eng = new Engine({ dir: DIR, db: db || { tenantId: T, uid: UID }, mocks: { sql: mocks, read: {} } });
   return eng.run(name, params).returned;
 };
 const P = (extra) => Object.assign({ operation: "SUMMARY", so_id: SO, so_line_id: LINE, item_id: ITEM, exclude_ia_id: "", organization_id: ORG,
@@ -82,25 +95,36 @@ r = run("SO_IA_PROJECTION", projMocks(w, seen), P({ so_line_id: "12x" }));
 eq("bad line id -> 400", r.code, "400");
 r = run("SO_IA_PROJECTION", projMocks(w, seen), P({ organization_id: "" }));
 eq("no organisation -> 400", r.code, "400");
-r = run("SO_IA_PROJECTION", projMocks(w, seen), P(), { tenantId: "" });
+r = run("SO_IA_PROJECTION", projMocks(w, seen), P(), { tenantId: "", uid: UID });
 eq("no session tenant -> 400", [r.code, /tenant/.test(r.message)], ["400", true]);
+r = run("SO_IA_PROJECTION", projMocks(w, seen), P(), { tenantId: T, uid: "" });
+eq("no session user -> 400 (FIX-03)", [r.code, /session user/.test(r.message)], ["400", true]);
 r = run("SO_IA_PROJECTION", projMocks(w, seen), P());
 let x = parse(r);
 eq("SUMMARY 200", r.code, "200");
-eq("SUMMARY section 11 step 5 figures", [x.totals.ordered, x.totals.delivered, x.totals.produced, x.totals.open, x.totals.suggestion], [100, 30, 50, 40, 10]);
+eq("SUMMARY section 11 step 5 figures: delivered 30 + produced 50 may overlap -> no suggestion (FIX-01)", [x.totals.ordered, x.totals.delivered, x.totals.produced,
+  x.totals.open, x.totals.suggestion, x.totals.unavailable], [100, 30, 50, 40, null, "OVERLAP"]);
 eq("SUMMARY carries the line and header", [x.line.id, x.header.so_no], [LINE, "SO/1"]);
 eq("SUMMARY read the right line", seen.line, LINE);
 r = run("SO_IA_PROJECTION", projMocks(w, seen), P({ exclude_ia_id: "12", proposal_qty: "50", proposal_uom_id: EA }));
 x = parse(r);
-eq("SUMMARY editing Draft 12 to 50: suggest 50, excess 0", [x.totals.suggestion, x.totals.excess], [50, 0]);
+eq("SUMMARY editing Draft 12 to 50: no suggestion (overlap unknown), no certain excess", [x.totals.suggestion, x.totals.excess], [null, 0]);
 r = run("SO_IA_PROJECTION", projMocks(w, seen), P({ exclude_ia_id: "12", proposal_qty: "70", proposal_uom_id: EA }));
-eq("SUMMARY excess 20 warns", [parse(r).totals.excess, parse(r).warnings.map((v) => v.code).indexOf("EXCESS") >= 0], [20, true]);
+eq("SUMMARY excess at least 20 warns", [parse(r).totals.excess, parse(r).totals.excessExact, parse(r).warnings.map((v) => v.code).indexOf("EXCESS") >= 0], [20, false, true]);
 r = run("SO_IA_PROJECTION", projMocks(w, seen), P({ baseline: JSON.stringify({ v: 1, orderedQty: "120", uomId: EA }) }));
 yes("SUMMARY baseline reduction warns", parse(r).warnings.some((v) => v.code === "REDUCED"));
 w = world();
 w.header.organization_id = "999";
 r = run("SO_IA_PROJECTION", projMocks(w, {}), P());
 eq("SUMMARY of another organization's line: 400, no figures", [r.code, r.result_json || "", /another organization/.test(r.message || "")], ["400", "", true]);
+w = world();
+w.member = 0;
+r = run("SO_IA_PROJECTION", projMocks(w, {}), P());
+eq("SUMMARY by a user not assigned to the organisation: 400, no figures (FIX-03)", [r.code, r.result_json || "", /not assigned to this organisation/.test(r.message || "")],
+  ["400", "", true]);
+r = run("SO_IA_PROJECTION", projMocks(w, {}), P({ operation: "CANDIDATES", so_line_id: "" }));
+eq("CANDIDATES by a user not assigned to the organisation: 400, no lines (FIX-03)", [r.code, r.result_json || "", /not assigned to this organisation/.test(r.message || "")],
+  ["400", "", true]);
 w = world();
 w.lines[LINE].is_deleted = 1;
 w.lines[LINE2] = Object.assign({}, w.lines[LINE], { id: LINE2, is_deleted: 0, line_index: 2 });
@@ -110,12 +134,12 @@ eq("SUMMARY removed line: LINE_REMOVED + the live candidate", [x.warnings.some((
 w = world();
 r = run("SO_IA_PROJECTION", projMocks(w, {}), P({ operation: "CANDIDATES", so_line_id: "" }));
 x = parse(r);
-eq("CANDIDATES: the line with its suggestion", [r.code, x.candidates.map((c) => [c.lineId, c.suggestion]), x.capped], ["200", [[LINE, 10]], "NO"]);
+eq("CANDIDATES: the line, no suggestion while the overlap is unknown", [r.code, x.candidates.map((c) => [c.lineId, c.suggestion]), x.capped], ["200", [[LINE, null]], "NO"]);
 
 // ---------------------------------------------------------------- IA_SC_RELINK
-const relink = (ia, lines, params) => {
+const relink = (ia, lines, params, w) => {
   const writes = [];
-  const db = { tenantId: T, update: (table, rows) => {
+  const db = { tenantId: T, uid: w && w.uid !== undefined ? w.uid : UID, update: (table, rows) => {
     writes.push({ table: table, rows: rows });
     rows.forEach((row) => Object.keys(row).forEach((k) => {
       if (k !== "__id") ia[k] = row[k];
@@ -132,9 +156,12 @@ const relink = (ia, lines, params) => {
       return [J({ line: lines[id] || null, header: world().header })];
     },
     sql_node_RLfg: () => [J(world().fg)],
+    sql_node_RLmember: (sql) => member(w || {}, sql),
     sql_node_RLback: () => [J(Object.assign({}, ia, { old_line_live: 1 }))],
   };
-  const ret = run("IA_SC_RELINK", mocks, Object.assign({ ia_id: ia.id, so_line_id: LINE2, item_id: ITEM, organization_id: ORG }, params || {}), db);
+  // FIX-06: the link and status the user saw (the client sends the IA's values as it opened it)
+  const ret = run("IA_SC_RELINK", mocks, Object.assign({ ia_id: ia.id, so_line_id: LINE2, item_id: ITEM, organization_id: ORG, expected_line_id: ia.source_so_line_id,
+    expected_status: ia.status }, params || {}), db);
   return { ret: ret, writes: writes };
 };
 const lines2 = () => {
@@ -160,11 +187,28 @@ const diffItem = lines2();
 diffItem[LINE2].item_name = "77";
 o = relink(done(), diffItem);
 eq("relink to another item -> 400", [o.ret.code, o.writes.length], ["400", 0]);
+o = relink(done(), lines2(), {}, { uid: "" });
+eq("relink without a session user -> 400, nothing written (FIX-03)", [o.ret.code, /session user/.test(o.ret.message), o.writes.length], ["400", true, 0]);
+o = relink(done(), lines2(), {}, { member: 0 });
+eq("relink by a user not assigned to the organisation -> 400, nothing written (FIX-03)", [o.ret.code, /not assigned to this organisation/.test(o.ret.message), o.writes.length],
+  ["400", true, 0]);
+o = relink(done(), lines2(), { expected_line_id: "2112017989484847111" });
+eq("relink after the IA's link changed -> 400 'changed since you opened it', nothing written (FIX-06)", [o.ret.code, /changed since you opened it/.test(o.ret.message),
+  o.writes.length], ["400", true, 0]);
+o = relink(done(), lines2(), { expected_status: "Fully Posted" });
+eq("relink after the IA's status changed -> 400, nothing written (FIX-06)", [o.ret.code, /changed since you opened it/.test(o.ret.message), o.writes.length], ["400", true, 0]);
+o = relink(done(), lines2(), { expected_line_id: "" });
+eq("relink without the link the user saw -> 400 (FIX-06)", [o.ret.code, /expected_line_id/.test(o.ret.message), o.writes.length], ["400", true, 0]);
+o = relink(done(), lines2(), { expected_status: "" });
+eq("relink without the status the user saw -> 400 (FIX-06)", [o.ret.code, /expected_status/.test(o.ret.message), o.writes.length], ["400", true, 0]);
 const ia = done();
 o = relink(ia, lines2());
 eq("relink repairs the orphan -> 200", [o.ret.code, o.writes.length, o.writes[0] && o.writes[0].rows.length], ["200", 1, 1]);
 const ctx = JSON.parse(ia.source_so_context_json);
 eq("relink writes the new line + baseline", [ia.source_so_line_id, ctx.lineId, ctx.orderedQty, ctx.history.map((h) => h.op)], [LINE2, LINE2, "90", ["LINK", "RELINK"]]);
+const rl = ctx.history[1] || {};
+eq("relink history keeps the old line and its baseline, the new line, who and why (FIX-06)", [rl.fromLineId, rl.fromOrderedQty, rl.lineId, rl.orderedQty, rl.by, rl.reason],
+  [LINE, "100", LINE2, "90", UID, "LINE_REMOVED"]);
 eq("relink writes only the source columns", Object.keys(o.writes[0].rows[0]).sort(), ["__id", "source_so_context_json", "source_so_line_id"]);
 
 console.log((fails ? "FAILED " + fails : "ok") + " - " + n + " checks");

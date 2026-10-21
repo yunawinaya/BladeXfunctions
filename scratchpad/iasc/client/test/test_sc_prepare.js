@@ -28,8 +28,10 @@ const flatWorld = (extraBoms) => F.tables({ boms: extraBoms || [] });
     const rows = table(s.v());
     const tag = "P1" + (fire ? " (onChange echoes)" : "");
     check(tag + ": a confirm first (lines exist)", s.calls("$confirm").length === 1 && s.calls("$confirm")[0][1] === "BOM Mode");
-    check(tag + ": the dialog lists Frame only (the sub-assembly with a BOM), level 1, BOM V1, under SC-BOX, unticked", s.calls("openDialog").some((t) => t[1] === "sc_expand_dialog") &&
-      same(rows.map((r) => [r.component, r.level, r.bom, r.under, r.item_id, r.expand]), [["SC-FRAME", 1, "V1", "SC-BOX", "C1", 0]]), rows);
+    check(tag + ": the dialog lists Frame only (the sub-assembly with a BOM), level 1, BOM V1, under SC-BOX, used once, unticked", s.calls("openDialog").some((t) => t[1] === "sc_expand_dialog") &&
+      same(rows.map((r) => [r.component, r.level, r.bom, r.under, r.uses, r.item_id, r.expand]), [["SC-FRAME", 1, "V1", "SC-BOX", 1, "C1", 0]]), rows);
+    check(tag + ": the dialog says a tick applies to every place the item is used", /applies to every place/.test(((s.v().sc_expand_dialog || {}).sc_expand_note) || ""),
+      (s.v().sc_expand_dialog || {}).sc_expand_note);
     check(tag + ": nothing written before the dialog's OK", same(s.v().stock_movement, legacy) && s.v().bom_snapshot_json === "");
     await tick(s, ["C1"]);
     const m = s.mark();
@@ -241,6 +243,16 @@ const flatWorld = (extraBoms) => F.tables({ boms: extraBoms || [] });
     await s.fire("sc_onConfirm_expand");
     check("P12: expanded through V9: SC-SCREW 6 (2 x 1 x 3)", same((s.v().stock_movement || []).map((l) => [l.item_selection, l.requested_qty]), [["C2", 6]]),
       (s.v().stock_movement || []).map((l) => [l.item_selection, l.requested_qty]));
+  }
+  // ---- P14: the same sub-assembly on two BOM lines resolving to different BOMs: used twice, both parents, both versions shown
+  {
+    const boms = [F.bom("B9", "P9", 1, [F.row("C1", 1), F.row("C3", 1)]),
+      F.bom("B3", "C1", 1, [F.row("C2", 3)], { parent_mat_is_default: 0, parent_mat_bom_version: "V9" }),
+      F.bom("B4", "C3", 1, [F.row("C1", 2, { bom_type: "reference", ref_bom_id: "B3" })])];
+    const s = session(F.header({ item_id: "P9", item_name: "NO-BOM", item_qty: 2, bom_consumption_mode: "FLAT" }), { tables: flatWorld(boms) });
+    await s.fire("sc_onChange_mode", { value: "FLAT" });
+    const c1 = table(s.v()).filter((r) => r.item_id === "C1")[0] || {};
+    check("P14: SC-FRAME on 2 lines: used 2, under NO-BOM and SC-PANEL, versions V1 and V9", same([c1.uses, c1.under, c1.bom], [2, "NO-BOM, SC-PANEL", "V1, V9"]), c1);
   }
   // ---- P13: a serial component and 250 picks (+ at least 1 for the serial line): told at preparation (such an IA completes through the
   // classic save, which takes at most 250 picks); 251 picks without a serial component: nothing said (IA V2 takes it)

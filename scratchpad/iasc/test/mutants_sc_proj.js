@@ -16,7 +16,7 @@ const MUTANTS = [
   ["Processing not open", "const SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };", "const SP_OPEN = { Draft: 1, Issued: 1 };"],
   ["Fully Posted not produced", "const SP_DONE = { Completed: 1, \"Fully Posted\": 1 };", "const SP_DONE = { Completed: 1 };"],
   ["unknown conversion = 1:1", "if (!c) return null;", "if (!c) return 1;"],
-  ["inactive SO still suggests", ": active ? spQ8(Math.max(0, ordered", ": true ? spQ8(Math.max(0, ordered"],
+  ["inactive SO still suggests", "const suggestion = unavailable ? null : active ? hi : 0;", "const suggestion = unavailable ? null : hi;"],
   ["outstanding_quantity trusted", "const delivered = lineLive ? spNum(line.delivered_qty) : 0;", "const delivered = lineLive ? spNum(line.so_quantity) - spNum(line.outstanding_quantity) : 0;"],
   ["undelivered not clamped", "undelivered: spQ8(Math.max(ordered - delivered, 0))", "undelivered: spQ8(ordered - delivered)"],
   ["organisation not checked", "else if (spS(inp.iaOrgId) && spS(header.organization_id) !== spS(inp.iaOrgId))", "else if (false)"],
@@ -26,6 +26,10 @@ const MUTANTS = [
   ["excess ignores the proposal", "+ open + p - ordered", "+ open - ordered"],
   ["planned ignores planned_output_qty", "const plan = conv(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty, x.item_uom);", "const plan = conv(x.item_qty, x.item_uom);"],
   ["candidates not filtered", "if (!p.eligibleNew) return;", ""],
+  ["overlap never unavailable", 'active && lo !== hi ? "OVERLAP" : ""', '""'],
+  ["the lower bound ignores production", "const lo = spQ8(Math.max(0, ordered - delivered - produced - open));", "const lo = spQ8(Math.max(0, ordered - delivered - open));"],
+  ["excess never 'at least'", '(overlap ? "at least " : "")', '""'],
+  ["excess marked exact under an overlap", "excessExact: !overlap", "excessExact: true"],
 ];
 let survived = 0;
 MUTANTS.forEach(([name, from, to], i) => {

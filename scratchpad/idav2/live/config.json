@@ -1,0 +1,191 @@
+{
+ "_about": "Item Disassembly V2 live-check kit (package E, phase 1). DEV only (IDA is not on prod). Ids verified read-only 2026-10-21 (e-report.md). Workflow ids come from scratchpad/idav2/ids.json at run time. 711077: never pick 'blade, loose' 2105492637718319110 at bin 2106278340907413505, never touch SO/20261016-034 / -035; every 711077 receipt goes to the ONE receipt bin below.",
+ "tenants": {
+  "711077": {
+   "identity": "scratchpad/gdc/tools/id711077.json",
+   "org": "2105190589240086530",
+   "plant": "2105200506810306561",
+   "nickname": "admin",
+   "number": {
+    "type": -9999,
+    "prefix": "IDV2"
+   },
+   "_number": "711077 has NO 'Item Disassembly' su_code_serial_no_rule (000000 has the only two): the form's number field is canManualInput, so its type select offers only Manual Input (-9999, a NUMBER) and the user types the number. Every 711077 IDA of this kit carries a typed number <prefix>-<subject>-<MMDDHHMMSS>",
+   "draft_rule": null,
+   "default_storage": "2105223032261218305",
+   "default_bin": "2106278340907413505",
+   "_default": "the form's explode / Batch Add default: Common storage 'Warehouse' (is_default 1) and its default bin A1-01 - where -41's GD test stock sits (every 711077 balance)",
+   "receipt": {
+    "storage": "2105223032261218305",
+    "bin": "2107138647224946690",
+    "bin_name": "J3-07"
+   },
+   "_receipt": "the ONE bin every 711077 receipt of this kit goes to (each line's Storage / Bin changed as a user would): an active bin of the default Warehouse storage with NO movement and NO balance ever (2026-10-21 read). Of the plant's 380 bins only A1-01 (53,839 movements: -41's GD stock) and MBA 2107138649393401857 (3,693 LOT movements 10-19 / 10-20: the LOT V2 session) were ever used; J3-07 is the last bin of the Warehouse storage, the least likely pick of another session. build_ida_payload.py re-checks it (no foreign movement in 7 days) before every build"
+  },
+  "000000": {
+   "identity": "scratchpad/gdc/tools/id000000.json",
+   "org": "1123598813738675201",
+   "plant": "1123598813738675202",
+   "nickname": "admin",
+   "number": {
+    "type": "2107022471794724866"
+   },
+   "_number": "su_code_serial_no_rule 'IDA Doc' (business_type Item Disassembly, is_default 1, department = the org): numbers IDA-2610-nnn; Draft saves take 'Draft Item Disassembly' 2107022165333708801 (DRAFT-IDA-2610-nnn)",
+   "draft_rule": "2107022165333708801",
+   "default_storage": "2018912759311265793",
+   "default_bin": "2018912822846582786",
+   "second_bin": "2018912875841613825",
+   "receipt": {
+    "storage": "2018912759311265793",
+    "bin": "2018912822846582786",
+    "bin_name": "A1-B1"
+   },
+   "_receipt": "the plant default Common Storage / A1-B1 (what the explode and Batch Add set); subject c sends its second set of lines to A1-B2 2018912875841613825",
+   "batch_cfg": "2062365526375706626",
+   "_batch_cfg": "the org's only batch_number_config: Organization Level, Batch-%5d, Never Reset, Document Created Date; running_number = the NEXT number GENERATE_BATCH issues (631 issues Batch-00631)",
+   "accounting": "SQL Accounting V2 agent: posting goes into the dev accounting DB (verification item 8: the user's yes first)"
+  }
+ },
+ "subjects": {
+  "a": {
+   "tenant": "711077",
+   "kind": "bom",
+   "source": "2105489115887079441",
+   "bom": "2105498079022452744",
+   "qty": 1,
+   "number": "A",
+   "_": "verification 4: 1 x 2783-000000-00 (100,000 in A1-01, one positive balance -> the explode's single-source pick) into its 830-component BOM (all FIFO, base UOM, non-batch -> 830 NONE lines '-'), every line's bin set to J3-07; 831 moves"
+  },
+  "b": {
+   "tenant": "711077",
+   "kind": "bom",
+   "twin": true,
+   "bom": "2105497919928307730",
+   "qty": 1,
+   "number": "B",
+   "min_lines": 55,
+   "max_lines": 70,
+   "_": "verification 3: twin A (classic IDA_SAVE) and twin B (V2) of one 58-component BOM (parent 2105490483502813224: one positive balance 100,000 at A1-01, one FIFO layer 100,000 @ 0 untouched by any test; components FIFO, base UOM, non-batch); 59 moves each; availability checked for TWO runs; --bom ID picks another"
+  },
+  "c": {
+   "tenant": "000000",
+   "kind": "manual",
+   "source": "2107721324476432385",
+   "source_balance": "2107724306903400449",
+   "qty": 1,
+   "bom_lines": true,
+   "manual": [
+    {
+     "item": "2084165274322399234",
+     "qty": 1,
+     "typed": "S1",
+     "_": "JN-MANUAL-02 (Fixed Cost, Manual Input batch): TYPED number S1 shared by two lines of one item"
+    },
+    {
+     "item": "2084165274322399234",
+     "qty": 1,
+     "typed": "S1",
+     "bin": "second",
+     "_": "the same number into A1-B2: one batch received into two bins"
+    },
+    {
+     "item": "2064633018934157313",
+     "qty": 1,
+     "_": "ITM-20260600005-A AUTO (FIFO)"
+    },
+    {
+     "item": "2064927628683968514",
+     "qty": 1,
+     "_": "FENTANYL_02 AUTO (FIFO)"
+    },
+    {
+     "item": "2066778886182596609",
+     "qty": 1,
+     "uom": "2018906563477008385",
+     "_": "METHYLENEDIOXYMETHAMPHETAMINE AUTO (FIFO), the alt-UOM line: 1 BAG = 10 PCS"
+    },
+    {
+     "item": "2072575012874395649",
+     "qty": 1,
+     "_": "FRESH FJORD TROUT AUTO (WA batch)"
+    },
+    {
+     "item": "2105557416063438850",
+     "qty": 1,
+     "_": "Yamahaci-001 AUTO (no costing method)"
+    }
+   ],
+   "quiet": {
+    "count": 21,
+    "copies_to_second_bin": 20,
+    "qty": 1,
+    "_": "NONE lines: the org's quiet non-batch items (no movement in 30 days, no balance key twice, created before 2026-10-19: 5 WA + no-method ones), each once into A1-B1, then 20 of them again into A1-B2"
+   },
+   "_": "verification 6 (+ 7 / 9): ITEM-0035 (FIFO, layer 1 @ 10.00; three positive balances -> Select Stock: the dialog pick of balance A1-B1) x 1 -> its BOM (Bom-1 NONE, Bom-2 AUTO, Bom-3 TYPED) + the lines above: 3 + 7 + 21 + 20 = 51 lines, 52 moves (> 50: the client routes V2); 6 AUTO lines (the 6 auto-batch items); TYPED: Bom-3 + JN-MANUAL-02 x 2"
+  },
+  "r1": {
+   "tenant": "000000",
+   "kind": "manual",
+   "source": "2107721324476432385",
+   "source_balance": "2107724306903400449",
+   "qty": 1,
+   "bom_lines": true,
+   "manual": [
+    {
+     "item": "2066778886182596609",
+     "qty": 1,
+     "uom": "2018906563477008385",
+     "_": "the non-base-UOM line (BAG = 10 PCS): v7 prices it per base unit"
+    }
+   ],
+   "_": "verifications 1 / 2 / 7: the classic regression subject - ITEM-0035 x 1 -> Bom-1 / Bom-2 / Bom-3 (the recorded IDA-2610-001 / -003 shape) + one alt-UOM line; 5 moves; --typed X sets Bom-3's number (7b: take a V2 IDA's typed number)"
+  },
+  "d": {
+   "tenant": "711077",
+   "kind": "k2",
+   "source": "2105489115887079441",
+   "qty": 1,
+   "lines": 2000,
+   "line_qty": 1,
+   "number": "D",
+   "_": "verification 5: 1 x 2783-000000-00 (as a) into 2,000 manual (Batch Add) lines of 2,000 distinct stock-controlled 711077 items, qty 1 each, all into J3-07; 2,001 moves; PARK (op 2 > 1,000); > 1,000 distinct items: never post it"
+  },
+  "p8": {
+   "tenant": "000000",
+   "kind": "manual",
+   "source": "2107721324476432385",
+   "source_balance": "2107724306903400449",
+   "qty": 1,
+   "bom_lines": true,
+   "drop_none": true,
+   "cycle": {
+    "items": [
+     "2064633018934157313",
+     "2064927628683968514",
+     "2066778886182596609",
+     "2072575012874395649",
+     "2105557416063438850"
+    ],
+    "count": 49,
+    "qty": 1
+   },
+   "_": "verification 8 (Complete & Post, browser): every recovery line batch-numbered (flag F1: the posting fetch refuses a '-' line) - ITEM-0035 x 1 -> its BOM without Bom-1 (the NONE row the user deletes) = Bom-2 AUTO + Bom-3 TYPED, + 49 Batch Add AUTO lines cycling the 5 other auto-batch items: 51 lines, 52 moves (> 50: V2); 50 AUTO numbers consumed; plan.json lists the lines for the browser, submit.json is the same IDA for a direct V2 completion"
+  }
+ },
+ "workflows_classic": {
+  "IDA_SAVE": "2107305535347552257",
+  "INVENTORY_BULK_APPLY": "2109916822821744641",
+  "GENERATE_BATCH": "2060178784435535873",
+  "ADD_INVENTORY": "2012005532688723970",
+  "SUBTRACT_INVENTORY": "2012096660219564034",
+  "ACC_PRODUCER": "2013511169625042946"
+ },
+ "budget_mb": {
+  "IDA_V2_SUBMIT": 25,
+  "IDA_V2_PREPARE": 30,
+  "IDA_V2_COMMIT": 30,
+  "IDA_V2_WORKER": 35,
+  "tick": 35,
+  "_": "CONTRACT section 14: SUBMIT 15-25 MB at 2,000 lines, PREPARE 20-30, COMMIT A <= 30 / B <= 25, target <= ~35 MB per run (the dev crashes began near 60 MB)"
+ }
+}

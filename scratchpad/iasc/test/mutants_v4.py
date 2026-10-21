@@ -11,6 +11,9 @@ MUTANTS = [
     ("completion treated as a Draft", "submit/sc_check.js", "saveAs: \"Completed\"", "saveAs: \"Draft\""),
     ("the form's record instead of the gate's", "submit/sc_check.js", "allData: [{{node:code_node_ISgate.data.allData}}][0]", "allData: {}"),
     ("Edit not detected", "submit/sc_in.js", "pageStatus: g.pageStatus,", "pageStatus: \"Add\","),
+    # FIX-03 through SUBMIT
+    ("submit: no session user", "submit/sc_in.js", ", uid: g.uid });", " });"),
+    ("a non-member makes a new link (SUBMIT)", "shared/sc_check.js", "if (!(Number(src.member) > 0)) return stop(", "if (false) return stop("),
     # the shared check through SUBMIT too: re-linking a stored Draft and the item rule (review 10-20, #5 / #6)
     ("an Edit moving the link skips the new-link checks", "shared/sc_check.js", 'const isNew = sin.edit !== "YES" || out.source_so_line_id !== storedLine;', 'const isNew = sin.edit !== "YES";'),
     ("RELINK recorded as LINK", "shared/sc_check.js", 'op: storedLine ? "RELINK" : "LINK"', 'op: "LINK"'),

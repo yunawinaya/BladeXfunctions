@@ -1,0 +1,29 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_PICKING_OUTBOX_CONSUMER",
+   "dataId": "2105134245397041153",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_PICKING_OUTBOX_CONSUMER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_PICKING_OUTBOX_CONSUMER.v8.json"
+  },
+  {
+   "name": "GD_COMPLETE_SUBMIT",
+   "dataId": "2110182609618337794",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/CompleteV2/GD_COMPLETE_SUBMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/gdrev/base/GD_COMPLETE_SUBMIT.v8.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "gd_id": "2101923744897765377",
+     "source": "LIST"
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  }
+ ]
+}

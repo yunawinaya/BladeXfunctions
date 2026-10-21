@@ -1,8 +1,9 @@
 // GD_EDIT_COMMIT - E1 INVENTORY: INVENTORY_BULK_APPLY APPLY of the ENGINE part (all-or-nothing; GDE|<job> makes a re-run
 // replay it). An edit that moves no stock (header, remarks, a no-op) skips the call. GD_COMPLETE_COMMIT v5's C2 rules:
 // 200 -> DONE + the SPLIT hand-over; 400 -> FAILED (the engine wrote nothing): the GD back to its stored status, a Draft's
-// number put back; 409 lock busy -> wait, then FAILED, only while the operation has no intent rows (IBA|I|*), else retry
-// -> review; anything else -> REQUIRES_REVIEW
+// number put back; 409 lock busy -> wait, then FAILED, only while the operation has no intent rows (IBA|I|*); anything else
+// -> REQUIRES_REVIEW. Engine v12: a 409 with intent rows (or its "the same operation is still running") is our own APPLY from
+// a run that died mid-write, held up to 20 min: it waits the same ~23 min, then REQUIRES_REVIEW - never FAILED.
 const LOCK_WAIT_TRIES = 8;
 const commitE1In = function commitE1In(entry, eng) {
   const ok = eng && s(eng.operation_key) === "GDE|" + entry.jobId && Array.isArray(eng.movements);
@@ -25,7 +26,8 @@ const commitE1 = function commitE1(entry, guard, input, eng, ops, e0nIntentRows)
   const why = "INVENTORY_BULK_APPLY answered " + (code || "nothing") + " " + s(eng.result_code) + (s(eng.message) ? ": " + s(eng.message) : "");
   if (code === "200") return split(stepOk(entry, "E1_INVENTORY", s(eng.result_code) + " " + s(eng.message), "inventory " + s(eng.result_code)));
   if (code === "409") {
-    if (num((ops || {}).intents) > 0) return stepEnd(entry, "E1_INVENTORY", why, false);
+    const own = num((ops || {}).intents) > 0 || /^the same operation is still running/.test(s(eng.message));
+    if (entry.attempts >= LOCK_WAIT_TRIES && own) return stepEnd(entry, "E1_INVENTORY", why, true);
     if (entry.attempts >= LOCK_WAIT_TRIES) return failNoWrite(entry, "GDE_INVENTORY_LOCK_BUSY", "the stock of its items stayed locked by another operation (" + why.slice(0, 300) + "): nothing was written, save it again later", restore);
     const n = entry.attempts;
     return Object.assign({}, END_EMPTY, { route: "END", jobRows: [jobRow(entry, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(entry.dbNow, Math.min(300, 15 * Math.pow(2, n))), error_code: "GDE_LOCK_WAIT",

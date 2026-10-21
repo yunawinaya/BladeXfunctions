@@ -48,8 +48,17 @@ const iarvPlanNode = function iarvPlanNode(entry, prep, S, opts) {
   const serial = L.items.filter((id) => itemBy[id] && Number(itemBy[id].serial_number_management) === 1);
   if (serial.length) return fail("IA_RV_NOT_ELIGIBLE", iarvNotEligible("serial numbers"), { reason: "serial numbers", items: serial });
   const subs = iaList(b.subtracts);
-  const adds = iaList(b.adds);
-  if (subs.length + adds.length !== L.liveRows) return fail("IA_RV_PLAN_BROKEN", "The revert could not be prepared: " + (subs.length + adds.length) + " reverse movement(s) for " + L.liveRows + " live row(s)");
+  // RES-01 R5: an IA that reserves - its holds must be closed (its completion's CLOSE); a component issued from Reserved (its hold) comes
+  // back to the bucket its hold came from (this cycle's Delivered rows: resRevertAdds / resRevertBound, review I3); the reverted Draft is
+  // marked RESERVING (HDR.mark)
+  const resRead = iaRows(S.res)[0] || null;
+  const hold = resRead ? iaS(resRead.hold) : "";
+  if (hold && (Number(resRead.live) > 0 || iaList(resRead.rows).length > 0)) {
+    return fail("IA_RV_HOLDS_OPEN", "This Item Assembly still holds materials reserved for it: they are closed when it is opened. Open it once, then revert it.");
+  }
+  const built = iaList(b.adds);
+  const adds = resRevertAdds(built, hold, resRead ? iaList(resRead.delivered) : [], resRevertBound(moves, e.iaId), R.items);
+  if (subs.length + built.length !== L.liveRows) return fail("IA_RV_PLAN_BROKEN", "The revert could not be prepared: " + (subs.length + adds.length) + " reverse movement(s) for " + L.liveRows + " live row(s)");
 
   // ENGINE: the classic's SUBTRACT_INVENTORY / ADD_INVENTORY parameters per build row, in its order
   const binBy = {};
@@ -109,7 +118,7 @@ const iarvPlanNode = function iarvPlanNode(entry, prep, S, opts) {
   if (batchDeletes.some((x) => !iaDigits(x))) return fail("IA_RV_PLAN_BROKEN", "The revert could not be prepared: a batch row to remove has no id");
   const parts = {
     ENGINE: { operation_key: iaRvOpKey(jobId), mode: "APPLY", organization_id: org, movements: movements }, COST: cost, BATCH: { batchDeletes: batchDeletes },
-    HDR: { id: iaS(e.iaId), before: { item_assembly_status: "Processing" }, after: { item_assembly_status: "Draft", posted_status: "" } }, LABELS: labels,
+    HDR: { id: iaS(e.iaId), before: { item_assembly_status: "Processing" }, after: { item_assembly_status: "Draft", posted_status: "" }, mark: hold ? "RESERVING" : "" }, LABELS: labels,
   };
   const nonce = (iaS(e.nonce).replace(/[^0-9A-Za-z]/g, "") + "00000000").slice(0, 8);
   const partRows = [];

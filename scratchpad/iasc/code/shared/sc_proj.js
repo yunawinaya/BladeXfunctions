@@ -113,22 +113,31 @@ const scProject = (input) => {
     else if (spNum(base.orderedQty) > ordered + 1e-9) warn("REDUCED", where + " was reduced from " + spQ8(base.orderedQty) + " to " + spQ8(ordered) + " " + uomName(lineUom) + " since it was linked.");
   }
   const active = lineLive && headLive && (headStatus === "Issued" || headStatus === "Processing") && lineStatus !== "Completed" && lineStatus !== "Cancelled";
+  // nothing records which delivery came from which IA: when both delivered and produced are above 0 they may overlap, so the
+  // remaining demand lies between ordered - delivered - produced - open (no overlap) and ordered - max(delivered, produced) - open
+  const overlap = Math.min(delivered, produced) > 0;
   let excess = 0;
   if (inp.proposal && complete) {
     const p = conv(inp.proposal.qty, inp.proposal.uomId);
     if (p === null) complete = false;
     else if (active) excess = spQ8(Math.max(0, Math.max(delivered, produced) + open + p - ordered));
   }
-  if (excess > 0) warn("EXCESS", "This plan exceeds the remaining demand of " + where + " by " + excess + " " + uomName(lineUom) + "; you can still continue.");
+  // with an unknown overlap the excess is only a lower bound
+  if (excess > 0) warn("EXCESS", "This plan exceeds the remaining demand of " + where + " by " + (overlap ? "at least " : "") + excess + " " + uomName(lineUom) + "; you can still continue.");
   let reason = "";
   if (!headLive || !lineLive) reason = "The Sales Order line no longer exists.";
   else if (spS(inp.iaOrgId) && spS(header.organization_id) !== spS(inp.iaOrgId)) reason = soNo + " belongs to another organisation.";
   else if (!active) reason = where + " has no active demand (" + (headStatus || "no status") + (lineStatus ? " / " + lineStatus : "") + ").";
   else if (itemMismatch) reason = where + " is for a different item.";
-  const suggestion = !complete ? null : active ? spQ8(Math.max(0, ordered - Math.max(delivered, produced) - open)) : 0;
+  const lo = spQ8(Math.max(0, ordered - delivered - produced - open));
+  const hi = spQ8(Math.max(0, ordered - Math.max(delivered, produced) - open));
+  // exact only when both bounds agree; an inactive line has no demand (a genuine 0)
+  const unavailable = !complete ? "UNCONVERTIBLE" : active && lo !== hi ? "OVERLAP" : "";
+  const suggestion = unavailable ? null : active ? hi : 0;
   return { ok: true, code: "", message: "", eligibleNew: !reason, reason: reason, uomId: lineUom,
     totals: { ordered: spQ8(ordered), delivered: spQ8(delivered), undelivered: spQ8(Math.max(ordered - delivered, 0)), planned: spQ8(planned),
-      produced: spQ8(produced), open: spQ8(open), openOthers: spQ8(open), suggestion: suggestion, excess: excess, complete: complete },
+      produced: spQ8(produced), open: spQ8(open), openOthers: spQ8(open), suggestion: suggestion, unavailable: unavailable, excess: excess,
+      excessExact: !overlap, complete: complete },
     ias: ias, warnings: warnings, candidates: Array.isArray(inp.candidates) ? inp.candidates : [] };
 };
 // CANDIDATES: the eligible lines for a new link, each with its own suggestion

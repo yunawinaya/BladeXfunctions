@@ -1,0 +1,64 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_REVERT_PREPARE",
+   "dataId": "2112758189069041665",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_PREPARE.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "GDR_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "GD_REVERT_COMMIT",
+   "dataId": "2112758315749605378",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_COMMIT.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "path",
+     "equals": "NO_WRITE"
+    }
+   }
+  },
+  {
+   "name": "GD_REVERT_WORKER",
+   "dataId": "2112758130420088833",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_WORKER.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  },
+  {
+   "name": "GD_REVERT_SUBMIT",
+   "dataId": "2112758069166473217",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_SUBMIT.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "gd_id": "2111007666288590849",
+     "source": "LIST"
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  }
+ ]
+}

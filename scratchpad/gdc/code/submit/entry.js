@@ -1,5 +1,6 @@
 // GD_COMPLETE_SUBMIT - Entry: STATUS answers from the GD's latest COMPLETE_GD job; SUBMIT goes on only for a Created GD with
-// no open completion, Packing V2, GD Edit V2 or Picking V2 job (REQUIRES_REVIEW counts as open: stock may be half-moved)
+// no open completion, Packing V2, GD Edit V2 or Picking V2 job (REQUIRES_REVIEW counts as open: stock may be half-moved) and no
+// GD Created V2 job still making its Picking (completed first, that job would never finish)
 const submitEntry = function submitEntry(guard, factRows) {
   const f = list(factRows)[0] || {};
   const parse = (t) => {
@@ -27,10 +28,11 @@ const submitEntry = function submitEntry(guard, factRows) {
   const blocking = open[0];
   if (blocking) {
     const cmd = s(blocking.command);
-    const what = cmd === "COMPLETE_PACKING" ? "Its Packing" : cmd === "EDIT_GD" ? "Its edit" : "Its completion";
+    const what = cmd === "COMPLETE_PACKING" ? "Its Packing" : cmd === "EDIT_GD" ? "Its edit" : cmd === "CREATE_GD_FROM_FORM" ? "Its creation" : "Its completion";
     const message = s(blocking.job_status) === "REQUIRES_REVIEW"
       ? what + " stopped half-way and is under review: please contact support."
-      : (cmd === "COMPLETE_PACKING" ? "Its Packing is being completed" : cmd === "EDIT_GD" ? "Its edit is being saved" : "This delivery is already being completed") + " - please wait for it to finish.";
+      : (cmd === "COMPLETE_PACKING" ? "Its Packing is being completed" : cmd === "EDIT_GD" ? "Its edit is being saved" : cmd === "CREATE_GD_FROM_FORM" ? "Its Picking is still being created"
+        : "This delivery is already being completed") + " - please wait for it to finish.";
     return Object.assign(base, job(blocking), answer("BUSY", "409", message));
   }
   const status = s(f.gd_status);

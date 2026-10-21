@@ -1,0 +1,6 @@
+{
+ "_note": "Where test_v12.js finds the recorded IA_SAVE runs. DEV runs live beside it (classic/fixtures/); the PROD run holds prod business data and lives OUTSIDE the repo (prod_dir; env IAV2_PROD_FIXTURES overrides). Re-pull read-only: python3 scratchpad/iav2/classic/fetch_fixtures.py [--dev] [--prod]",
+ "prod_dir": "/Users/yunawinaya/Documents/ASC-dev/iav2-fixtures/b",
+ "dev_runs": ["2110283306516287490", "2110283309582323714"],
+ "prod_runs": ["2110996652046290946"]
+}

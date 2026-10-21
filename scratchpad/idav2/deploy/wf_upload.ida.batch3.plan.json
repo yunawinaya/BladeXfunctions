@@ -1,0 +1,20 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IDA form (ON)",
+   "kind": "form",
+   "dataId": "2106937624568991746",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/idav2/deploy/base_off/IDAform.json"
+  },
+  {
+   "name": "IDA list (ON)",
+   "kind": "page",
+   "dataId": "2107013669846454273",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/idav2/deploy/base_off/IDAlistPage.json"
+  }
+ ]
+}

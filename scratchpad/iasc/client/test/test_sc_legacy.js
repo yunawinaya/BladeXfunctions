@@ -27,7 +27,8 @@ const run = async (doc, name, values, args, o) => {
 };
 const explodedRows = async () => (await run(V36, "onChange_assembledItem", F.header(), { value: "P1" })).values.stock_movement;
 
-// v36 vs a build: the build's trace with the Small Cycle calls removed (or nothing removed, `exact`) and the final values equal
+// v36 vs a build: the build's trace with the Small Cycle calls removed (or nothing removed, `exact`) and the final values equal;
+// o.scExtra = the display-only values the Small Cycle sets on top (UI-01: Actual Received on a completed IA), checked then dropped
 const compare = async (what, name, values, args, o, docs) => {
   o = o || {};
   const a = await run(V36, name, values, args, o);
@@ -36,7 +37,13 @@ const compare = async (what, name, values, args, o, docs) => {
     const tb = exact ? b.trace : H.legacyTrace(b.trace);
     const firstDiff = tb.findIndex((t, i) => JSON.stringify(t) !== JSON.stringify(a.trace[i]));
     check(what + " [" + label + "]: v36 call for call" + (exact ? " (nothing removed)" : ""), same(tb, a.trace), { at: firstDiff, v36: a.trace[firstDiff], built: tb[firstDiff], lengths: [a.trace.length, tb.length] });
-    check(what + " [" + label + "]: the same final values", same(b.values, a.values));
+    const bv = H.clone(b.values);
+    const extra = exact ? {} : o.scExtra || {};
+    Object.keys(extra).forEach((k) => {
+      check(what + " [" + label + "]: Small Cycle sets " + k + " = " + JSON.stringify(extra[k]), bv[k] === extra[k], bv[k]);
+      delete bv[k];
+    });
+    check(what + " [" + label + "]: the same final values", same(bv, a.values));
     if (exact) check(what + " [" + label + "]: no Small Cycle call at all", !b.trace.some((t) => /^sc:/.test(t[0]) || (t[0] === "triggerEvent" && t[1] === "sc_main")));
   }
   return a;
@@ -70,13 +77,13 @@ const compare = async (what, name, values, args, o, docs) => {
     ["Add, org-level login", { isAdd: true, system: { deptIds: "1001", uid: "77" } }, F.header()],
     ["Clone", { isCopy: true }, F.header({ id: "4001", stock_movement: rows, batch_no: "X" })],
     ["Edit, Draft", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", stock_movement: rows })],
-    ["Edit, Completed", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Completed", stock_movement: rows })],
-    ["Edit, Fully Posted", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Fully Posted", stock_movement: rows })],
+    ["Edit, Completed", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Completed", stock_movement: rows }), { sc_actual: "10" }],
+    ["Edit, Fully Posted", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Fully Posted", stock_movement: rows }), { sc_actual: "10" }],
     ["Edit, Processing", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Processing", ia_v2_job_id: "7001", stock_movement: rows })],
-    ["View, Completed", { isView: true }, F.header({ id: "4001", page_status: "View", item_assembly_status: "Completed", stock_movement: rows })],
+    ["View, Completed", { isView: true }, F.header({ id: "4001", page_status: "View", item_assembly_status: "Completed", stock_movement: rows }), { sc_actual: "10" }],
   ];
-  for (const [what, flags, values] of pages) {
-    await compare("mounted, " + what, "mounted", values, undefined, { this: flags });
+  for (const [what, flags, values, extra] of pages) {
+    await compare("mounted, " + what, "mounted", values, undefined, { this: flags, scExtra: extra });
   }
   // ON on a legacy page: the Small Cycle calls are display-only (no read, no write, no workflow)
   {
@@ -87,7 +94,10 @@ const compare = async (what, name, values, args, o, docs) => {
       sc.some((t) => t[0] === "sc:display" && same(t[1], ["sc_section", "bom_consumption_mode", "sc_actions", "sc_btn_line"])), sc);
     const c = await run(ON, "mounted", F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Completed", stock_movement: rows }), undefined, { this: { isEdit: true } });
     const sc2 = c.trace.filter((t) => /^sc:/.test(t[0]));
-    check("mounted ON, legacy Completed: nothing shown", !sc2.some((t) => t[0] === "sc:display") && sc2.every((t) => ["sc:getValues", "sc:getParamsVariables", "sc:hide", "sc:disabled"].indexOf(t[0]) >= 0), sc2);
+    // UI-01: only the read-only Actual Received row in place of the quantity; no read, no workflow
+    check("mounted ON, legacy Completed: only Actual Received shown, in place of the quantity", same(sc2.filter((t) => t[0] === "sc:display").map((t) => t[1]), [["sc_actual"]]) &&
+      same(sc2.filter((t) => t[0] === "sc:setData").map((t) => t[1]), [{ sc_actual: "10" }]) && sc2.some((t) => t[0] === "sc:hide" && same(t[1], ["item_qty"])) &&
+      sc2.every((t) => ["sc:getValues", "sc:getParamsVariables", "sc:hide", "sc:disabled", "sc:display", "sc:setData"].indexOf(t[0]) >= 0), sc2);
   }
 
   // ---- completion: the four BOM-variance copies, classic and V2, and Draft
@@ -113,7 +123,9 @@ const compare = async (what, name, values, args, o, docs) => {
   {
     const ui = { sc_info: "", sc_info_so: "x", sc_info_ordered: "x", sc_info_produced: "x", sc_info_open: "x", sc_info_suggest: "x", sc_info_cover: "x", sc_info_bom: "x",
       sc_info_warn: "x", sc_actions: "", sc_btn_line: "", sc_btn_unlink: "", sc_btn_relink: "", sc_btn_suggest: "", sc_btn_bom: "", sc_btn_refresh: "",
-      sc_line_dialog: { sc_line_table: [] }, sc_expand_dialog: { sc_expand_table: [] } };
+      sc_line_dialog: { sc_line_table: [] }, sc_expand_dialog: { sc_expand_table: [] },
+      // UI-01's sections, their grids, the Actual Received row and the Production buttons
+      sc_sec_production: "", sc_prod_grid: "", sc_sec_output: "", sc_output_grid: "", sc_sec_more: "", sc_more_grid: "", sc_actual: "x", sc_prod_actions: "" };
     const values = Object.assign(F.header({ stock_movement: big, bom_consumption_mode: "STANDARD", source_bom_id: "B1" }), ui);
     const b = await run(ON, "iaV2_onClick_completed", values, undefined, {});
     const submit = b.trace.find((t) => t[0] === "runWorkflow" && t[1] === IA_V2_IDS[0]);

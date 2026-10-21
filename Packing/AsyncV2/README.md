@@ -22,7 +22,8 @@ Packing form "Completed" ──► pending HUs completed ONE AT A TIME (TableHUC
                     └─► PACKING_BULK_COMMIT    run A: P0 revalidate → P1 inventory → P2 reservations → SPLIT
                         PACKING_BULK_COMMIT    run B: P3 GD lines → P4 sales order → P5 Packing → COMPLETED
 mobile app ──► PACKING_SAVE (classic, plus guards that refuse a Completed save before any write: above 500 GD lines, or
-               while the delivery is Processing or has an open EDIT_GD / COMPLETE_GD / COMPLETE_PACKING job)
+               while the delivery is Processing or has an open EDIT_GD / COMPLETE_GD / COMPLETE_PACKING job, or an SO
+               of its lines has an open SAVE_SO job)
 ```
 
 GOODS_DELIVERY (v243, owned by the GD Completed session) refuses an Edit save on the same conditions, so a mobile GD save
@@ -53,6 +54,8 @@ SUBMIT **refuses** (a message, nothing written):
 - a GD line not fully picked (`code_node_PkPickChk`'s message);
 - an open job on the same delivery: another Packing's completion, or another command's job with
   `correlation_id = GD|<gd>` (GD Completed, built in session bladexfunctions-ce, follows the same convention);
+- an open SO Save V2 job (`SAVE_SO`, `correlation_id = SO|<so>`) on an SO of the delivery's lines (v6, 2026-10-21;
+  it reads the job table, not `sales_order.is_processing`);
 - a live mobile Packing session of another user (`packing_lock_*`).
 
 Switch: `ASYNC_PACKING_ENABLED` at the top of `code_node_KSdecide` (SUBMIT) and in the client handler.

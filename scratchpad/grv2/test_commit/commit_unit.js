@@ -100,6 +100,14 @@ const baseEntry = (extra) => Object.assign({ jobId: JOB, organizationId: "112359
   ok(r.route === "OK" && r.stepRows[0].step_name === "C1_BATCHES", "C1 check ok", r);
   r = commitC1Check(baseEntry({ attempts: 3 }), partRows(NONCE, "BATCH", part), intentRows("C1|I|", { numbers: { b1: "A-7" }, configs: [], adopt: {} }), [], jrows([{ id: "70", batch_number: "A-7", material_id: "500", transaction_no: "GR-1" }]));
   ok(r.route === "END" && r.result_code === "GRC_STEP_FAILED" && r.batchDelRows.length === 1 && r.needUnlock === "YES", "C1 check: M-1 missing after retries -> FAILED + cleanup", r);
+  const backOk = jrows([{ id: "70", batch_number: "A-7", material_id: "500", transaction_no: "GR-1" }]);
+  r = commitC1Check(baseEntry(), partRows(NONCE, "BATCH", part), intentRows("C1|I|", { numbers: { b1: "A-7" }, configs: draft.draft.configs, adopt: { b2: "41" } }), cfgAt(8), backOk,
+    jrows([{ id: "70", batch_number: "A-7", material_id: "500", transaction_no: "GR-1" }, { id: "95", batch_number: "a-7 ", material_id: "999", transaction_no: "SM-OTHER" }]));
+  ok(r.route === "END" && r.result_code === "GRC_BATCH_DUPLICATE" && r.batchDelRows.length === 1 && r.batchDelRows[0].id === "70" && r.needUnlock === "YES",
+    "C1 check: another document took our generated number after the pre-check -> FAILED, our rows removed, receipt back", r);
+  r = commitC1Check(baseEntry(), partRows(NONCE, "BATCH", part), intentRows("C1|I|", { numbers: { b1: "A-7" }, configs: draft.draft.configs, adopt: { b2: "41" } }), cfgAt(8), backOk,
+    jrows([{ id: "70", batch_number: "A-7", material_id: "500", transaction_no: "GR-1" }, { id: "41", batch_number: "M-1", material_id: "500", transaction_no: "OTHER" }]));
+  ok(r.route === "OK", "C1 check: only our row holds the generated number; a manual number shared with another document is fine", r);
   const b1 = load("c1b_plan.js", ["commitC1bPlan"]);
   r = b1.commitC1bPlan(baseEntry(), partRows(NONCE, "GR", { patch: { gr_status: "Completed" }, autoLines: [{ id: "L1", key: "b1" }] }), intentRows("C1|I|", { numbers: { b1: "A-7" } }),
     jrows([{ id: "L1", item_batch_no: "Auto-generated batch number" }]));

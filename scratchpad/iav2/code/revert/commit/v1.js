@@ -22,6 +22,12 @@ const commitV1 = function commitV1(entry, guard, input, ans, ops, labelRows) {
   }
   // no intent row: nothing written, wait like a lock; with intents: retry (APPLY resumes its own intents)
   if (code === "409" || code === "" || code === "400") {
+    // engine v12: this operation's earlier run is still alive (a resumed pass): wait it out even with intents; review once the waits
+    // are spent, never FAILED (that run may still be writing)
+    if (code === "409" && s(ans.message).indexOf("the same operation is still running") >= 0) {
+      if (entry.attempts >= IA_LOCK_WAIT_TRIES) return stepEnd(entry, "V1_INVENTORY", why + " after " + entry.attempts + " waits", true);
+      return lockWait(entry, why);
+    }
     if (num((ops || {}).intents) > 0) return stepEnd(entry, "V1_INVENTORY", why, false);
     if (entry.attempts >= IA_LOCK_WAIT_TRIES) return failNoWrite(entry, "IA_RV_INVENTORY_LOCK_BUSY", IA_TEXT.lockBusy, why.slice(0, 1000) + ": nothing was moved");
     return lockWait(entry, why);

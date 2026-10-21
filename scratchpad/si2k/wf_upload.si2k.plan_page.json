@@ -1,0 +1,7 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "Goods Delivery list page", "kind": "page", "dataId": "1902688873696313346", "file": "scratchpad/si2k/client/out_GoodsDelivery_page.json", "base": "scratchpad/si2k/client/base_GoodsDelivery_page.v399.json" }
+  ]
+}

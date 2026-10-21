@@ -52,6 +52,7 @@ const answer = (world, ids, extra) => (id, params) => {
   const s = world.so;
   if (id === ids.SO_IA_PROJECTION) {
     if (world.projectionDown) return { reject: new Error("projection down") };
+    if (world.projectionRefuse) return { data: { code: "400", message: world.projectionRefuse, result_json: "" } };
     if (params.operation === "CANDIDATES") {
       const rows = s.lines.filter((l) => Number(l.is_deleted) !== 1 && l.item_name === params.item_id).map((l) => ({ line: l, header: s.header }));
       return { data: { code: "200", message: "", result_json: JSON.stringify({ candidates: P.scCandidates({ rows: rows, ias: s.ias, fg: s.fg, iaItemId: params.item_id, iaOrgId: params.organization_id }),
