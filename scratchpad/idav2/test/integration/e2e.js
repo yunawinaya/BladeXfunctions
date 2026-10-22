@@ -720,6 +720,156 @@ if (want("h")) {
   console.log("ok   h  crash after each of " + total + " chain writes -> resume: " + JSON.stringify(outcomes));
 }
 
+// ================================================================================================ (i) two auto-batch completions racing at D1 (live 10-21, Batch-00641)
+if (want("i")) {
+  // the interleave: B's whole tick runs INSIDE A's D1 read-back. B reads the config and the holders as A read them (the same moment,
+  // before A's writes), so it mints the same numbers and inserts them; A's read-back is answered as of B's (both sets of rows live).
+  // Both post-insert re-checks see the other's rows - live both FAILED IDA_BATCH_DUPLICATE; now both renumber and complete
+  const lines = [{ kind: "auto", item: 801, qty: 2 }, { kind: "auto", item: 802, qty: 1 }];
+  for (let i = 3; i <= 52; i++) lines.push({ kind: "none", item: 800 + i, qty: 1 });
+  const f = F.world({ lines: lines });
+  const w = f.w;
+  const keyA = F.keyOf("new-int-iA", "8c9d0e1f2a3b4c5d");
+  const keyB = F.keyOf("new-int-iB", "8c9d0e1f2a3b4c5e");
+  const rA = submit(w, "Add", "", keyA, F.addForm(f));
+  const rB = submit(w, "Add", "", keyB, F.addForm(f));
+  const A = jobOf(w, keyA);
+  const B = jobOf(w, keyB);
+  const idaA = rA.out && rA.out.ida_id;
+  const idaB = rB.out && rB.out.ida_id;
+  ok(!rA.err && !rB.err && A && B && rA.out.route === "QUEUED" && rB.out.route === "QUEUED" && idaA !== idaB, "i two Adds (52 lines, 2 AUTO each) in one organization: two jobs", [rA.err || rA.out, rB.err || rB.out]);
+  const copy = (x) => JSON.parse(JSON.stringify(x));
+  const sql0 = W.World.prototype.sql;
+  const jobIn = (ctx) => (ctx && ctx.name === "IDA_V2_COMMIT" ? W.s(ctx.params && ctx.params.job_id) : "");
+  const asOf = (key, snap, fn) => {
+    const cur = w[key];
+    w[key] = snap;
+    try {
+      return fn();
+    } finally {
+      w[key] = cur;
+    }
+  };
+  const race = { phase: 0, bnc: null, batches: null, aText: null, aCtx: null, aBack: null, bServed: [] };
+  w.sql = function (nid, text, ctx) {
+    const j = jobIn(ctx);
+    if (j === A.id && race.phase === 0) {
+      if (nid === "sql_node_DCd1bnc") race.bnc = copy(w.bnc);
+      if (nid === "sql_node_DCd1hold") race.batches = copy(w.batches);
+      if (nid === "sql_node_DCd1holdB") {
+        Object.assign(race, { phase: 1, aText: text, aCtx: ctx });
+        race.tickB = kick(w, B.id);
+        race.phase = 2;
+        return race.aBack;
+      }
+    }
+    if (j === B.id && race.phase === 1) {
+      if (nid === "sql_node_DCd1bnc" || nid === "sql_node_DCd1hold") {
+        race.bServed.push(nid);
+        return nid === "sql_node_DCd1bnc" ? asOf("bnc", copy(race.bnc), () => sql0.call(w, nid, text, ctx)) : asOf("batches", copy(race.batches), () => sql0.call(w, nid, text, ctx));
+      }
+      if (nid === "sql_node_DCd1holdB") {
+        race.bServed.push(nid);
+        race.aBack = sql0.call(w, nid, race.aText, race.aCtx);
+      }
+    }
+    return sql0.call(w, nid, text, ctx);
+  };
+  const tA = kick(w, A.id);
+  delete w.sql;
+  const both = () => w.batches.filter((b) => b.transaction_no === w.ida(idaA).stock_movement_no || b.transaction_no === w.ida(idaB).stock_movement_no);
+  const minted = w.batches.filter((b) => /^Batch-0063[12]$/.test(b.batch_number));
+  const retired = (job) => w.steps.filter((r) => r.job_id === job.id && /^D1\|X\|/.test(r.step_name) && r.is_deleted === 1).length;
+  const waitOf = (job) => (job.next_attempt_at - w.now) / 1000;
+  // the number the job's first D1 intent (live or retired) gave its first AUTO row
+  const firstB1 = (job) => {
+    const r = w.steps.filter((x) => x.job_id === job.id && /^D1\|[IX]\|/.test(x.step_name)).sort(W.byIdAsc)[0];
+    const p = r ? C.idaParseJ(r.result_ref) : null;
+    return p && p.numbers ? p.numbers.B1 : null;
+  };
+  ok(!tA.err && race.tickB && !race.tickB.err && JSON.stringify(race.bServed) === JSON.stringify(["sql_node_DCd1bnc", "sql_node_DCd1hold", "sql_node_DCd1holdB"]) && minted.length === 4
+    && [A, B].every((j) => firstB1(j) === "Batch-00631"),
+  "i the race: B's D1 read the config and the holders as A did, both minted and inserted Batch-00631 / 632 (4 rows)", { a: tA.err, b: race.tickB && race.tickB.err, served: race.bServed,
+    minted: minted.map((b) => [b.batch_number, b.transaction_no, b.is_deleted]) });
+  ok([A, B].every((j) => j.job_status === "COMMITTING_IDA" && j.error_code === "IDA_BATCH_RETRY" && /renumbering \(try 1 of 5\)$/.test(W.s(j.error_message)) && j.attempt_count === 1
+    && W.s(j.lease_owner) === "" && retired(j) === 1) && minted.every((b) => b.is_deleted === 1) && w.mv.length === 0
+    && [idaA, idaB].every((id) => w.ida(id).item_disassembly_status === "Processing") && w.bnc[0].running_number === 633,
+  "i both post-insert re-checks saw the other's rows: both COMMITTING_IDA IDA_BATCH_RETRY (try 1 of 5), their rows and intents retired, nothing moved, both IDAs Processing (live: both FAILED)",
+  { A: [A.job_status, A.error_code, A.error_message, waitOf(A)], B: [B.job_status, B.error_code, B.error_message, waitOf(B)], cfg: w.bnc[0].running_number });
+  // the asymmetric wait: A inserted first (its colliding rows are the older ones) -> 5 s; B -> 20-30 s: the next WORKER kicks take them apart
+  const det = (j) => C.idaParseJ(j.error_details) || {};
+  ok(det(A).waitReason === "short" && det(A).wait === 5 && waitOf(A) >= 5 && waitOf(A) <= 10 && det(B).waitReason === "long" && det(B).wait >= 20 && det(B).wait <= 30
+    && waitOf(B) >= 20 && waitOf(B) <= 35 && det(B).wait - det(A).wait >= 15,
+  "i the waits agree from the same rows: A (whose rows are older) SHORT 5 s, B LONG 20-30 s", { A: [det(A).wait, det(A).waitReason, waitOf(A)], B: [det(B).wait, det(B).waitReason, waitOf(B)] });
+  const tsA = drive(w, A.id);
+  const tsB = drive(w, B.id);
+  const liveNums = live(w.batches).map((b) => W.ci(b.batch_number));
+  const lineNums = (id) => w.liveLines(id).filter((l) => /^Batch-/.test(l.batch_number)).sort((a, b) => Number(a.line_index) - Number(b.line_index)).map((l) => l.batch_number);
+  ok(!tsA.some((x) => x.err) && !tsB.some((x) => x.err) && A.job_status === "COMPLETED" && B.job_status === "COMPLETED" && w.ida(idaA).item_disassembly_status === "Completed"
+    && w.ida(idaB).item_disassembly_status === "Completed", "i both renumbered jobs COMPLETED, both IDAs Completed", { A: [A.job_status, A.error_code, A.error_message], B: [B.job_status, B.error_code, B.error_message] });
+  ok(JSON.stringify(lineNums(idaA)) === '["Batch-00633","Batch-00634"]' && JSON.stringify(lineNums(idaB)) === '["Batch-00635","Batch-00636"]' && new Set(liveNums).size === liveNums.length
+    && live(both()).length === 4 && both().filter((b) => b.is_deleted).length === 4 && w.bnc[0].running_number === 637,
+  "i unique live Batch numbers (A 633 / 634, B 635 / 636; 631 / 632 skipped as the classic leaves a failure's numbers), no duplicate, the config past every number used or skipped (637)",
+  { A: lineNums(idaA), B: lineNums(idaB), live: liveNums, cfg: w.bnc[0].running_number });
+  ok([A, B].every((j) => movesOf(w, "IDC|" + j.id + "|I").length === 1 && movesOf(w, "IDC|" + j.id + "|R").length === 52) && locksFree(w).length === 0 && w.violations.length === 0,
+    "i each job issued once and received its 52 lines once; every lock given back; no forbidden write", { violations: w.violations.slice(0, 3), held: locksFree(w).slice(0, 3) });
+  report.scenarios.i = { jobs: [A.id, B.id], numbers: { A: lineNums(idaA), B: lineNums(idaB) }, ticks: [tsA.length, tsB.length], cfg: w.bnc[0].running_number };
+  console.log("ok   i  two auto-batch completions racing at D1 (both re-checks see the other's rows) -> both renumber -> both COMPLETED, unique numbers, 631 / 632 skipped");
+}
+
+// ================================================================================================ (i2) the other overlap: X reads the config, Y numbers and inserts, X checks the holders
+if (want("i2") || want("i")) {
+  // controller ruling 10-22 (D1 row 4): Y's whole tick runs between X's config read and X's holders read, so X minted the numbers Y
+  // inserts (from the same config value) and finds them held before it wrote anything. Y's rows are newer than X's job: X renumbers
+  const lines = [{ kind: "auto", item: 851, qty: 2 }, { kind: "auto", item: 852, qty: 1 }];
+  for (let i = 3; i <= 52; i++) lines.push({ kind: "none", item: 850 + i, qty: 1 });
+  const f = F.world({ lines: lines });
+  const w = f.w;
+  const keyX = F.keyOf("new-int-i2X", "9d0e1f2a3b4c5d6e");
+  const keyY = F.keyOf("new-int-i2Y", "9d0e1f2a3b4c5d6f");
+  const rX = submit(w, "Add", "", keyX, F.addForm(f));
+  const rY = submit(w, "Add", "", keyY, F.addForm(f));
+  const jX = jobOf(w, keyX);
+  const jY = jobOf(w, keyY);
+  const idaX = rX.out && rX.out.ida_id;
+  const idaY = rY.out && rY.out.ida_id;
+  ok(!rX.err && !rY.err && jX && jY && idaX !== idaY, "i2 two Adds (52 lines, 2 AUTO each) in one organization: two jobs", [rX.err || rX.out, rY.err || rY.out]);
+  const sql0 = W.World.prototype.sql;
+  const race = { phase: 0, bncX: null };
+  w.sql = function (nid, text, ctx) {
+    const mine = ctx && ctx.name === "IDA_V2_COMMIT" && W.s(ctx.params && ctx.params.job_id) === jX.id;
+    if (mine && race.phase === 0 && nid === "sql_node_DCd1bnc") race.bncX = w.bnc[0].running_number;
+    if (mine && race.phase === 0 && nid === "sql_node_DCd1hold") {
+      race.phase = 1;
+      race.tickY = kick(w, jY.id);
+      race.phase = 2;
+    }
+    return sql0.call(w, nid, text, ctx);
+  };
+  const tX = kick(w, jX.id);
+  delete w.sql;
+  const linesOf = (id) => w.liveLines(id).filter((l) => /^Batch-/.test(l.batch_number)).sort((a, b) => Number(a.line_index) - Number(b.line_index)).map((l) => l.batch_number);
+  const rowsOf = (id) => w.batches.filter((b) => b.transaction_no === w.ida(id).stock_movement_no);
+  const waitX = (jX.next_attempt_at - w.now) / 1000;
+  ok(!tX.err && race.tickY && !race.tickY.err && race.bncX === 631 && jY.job_status === "COMPLETED" && JSON.stringify(linesOf(idaY)) === '["Batch-00631","Batch-00632"]'
+    && rowsOf(idaY).every((b) => W.big(b.id) > W.big(jX.id)), "i2 the overlap: X read the config at 631, then Y's whole tick COMPLETED on Batch-00631 / 632 (rows newer than X's job)",
+  { x: tX.err, y: race.tickY && (race.tickY.err || race.tickY.out), bncX: race.bncX, Y: [jY.job_status, jY.error_code], linesY: linesOf(idaY) });
+  ok(jX.job_status === "COMMITTING_IDA" && jX.error_code === "IDA_BATCH_RETRY" && /^D1_BATCH: batch number Batch-00631 was taken .* \(try 1 of 5\)$/.test(W.s(jX.error_message)) && jX.attempt_count === 1
+    && W.s(jX.lease_owner) === "" && waitX >= 20 && waitX <= 33 && (C.idaParseJ(jX.error_details) || {}).waitReason === "long" && rowsOf(idaX).length === 0 && !w.steps.some((r) => r.job_id === jX.id && /^D1\|/.test(r.step_name))
+    && movesOf(w, "IDC|" + jX.id + "|I").length === 0 && w.ida(idaX).item_disassembly_status === "Processing",
+  "i2 X found its generated numbers held by newer rows before writing anything (D1 row 4): COMMITTING_IDA IDA_BATCH_RETRY (try 1 of 5, the long wait: 20-30 s, no row of its own yet), no intent / Batch row, nothing moved, X Processing (was: FAILED IDA_BATCH_DUPLICATE)",
+  { X: [jX.job_status, jX.error_code, jX.error_message, waitX], rows: rowsOf(idaX).length });
+  const tsX = drive(w, jX.id);
+  const liveNums = live(w.batches).map((b) => W.ci(b.batch_number));
+  ok(!tsX.some((x) => x.err) && jX.job_status === "COMPLETED" && w.ida(idaX).item_disassembly_status === "Completed" && JSON.stringify(linesOf(idaX)) === '["Batch-00633","Batch-00634"]'
+    && new Set(liveNums).size === liveNums.length && liveNums.length === 4 && w.bnc[0].running_number === 635,
+  "i2 X renumbered from the config Y advanced -> COMPLETED on Batch-00633 / 634; both COMPLETED, unique live numbers, the config 635", { X: [jX.job_status, jX.error_code, jX.error_message], linesX: linesOf(idaX), live: liveNums, cfg: w.bnc[0].running_number });
+  ok([jX, jY].every((j) => movesOf(w, "IDC|" + j.id + "|I").length === 1 && movesOf(w, "IDC|" + j.id + "|R").length === 52) && locksFree(w).length === 0 && w.violations.length === 0,
+    "i2 each job issued once and received its 52 lines once; every lock given back; no forbidden write", { violations: w.violations.slice(0, 3), held: locksFree(w).slice(0, 3) });
+  report.scenarios.i2 = { jobs: [jX.id, jY.id], numbers: { X: linesOf(idaX), Y: linesOf(idaY) }, cfg: w.bnc[0].running_number };
+  console.log("ok   i2 X reads the config, Y numbers / inserts / completes, X finds its numbers held by newer rows (D1 row 4) -> X renumbers -> both COMPLETED");
+}
+
 console.log((fails ? "FAILED " + fails + " of " : "") + checks + " checks" + (fails ? "" : " passed"));
 if (JSON_OUT) fs.writeFileSync(JSON_OUT, JSON.stringify(Object.assign(report, { checks: checks, fails: fails, failed: failed }), null, 1));
 process.exit(fails ? 1 : 0);

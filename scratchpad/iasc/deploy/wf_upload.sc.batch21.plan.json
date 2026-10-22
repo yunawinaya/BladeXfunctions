@@ -1,0 +1,31 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_HOLD",
+   "dataId": "2112752274794217473",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_HOLD.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_HOLD/v8_20261022-133422.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "organization_id": "1",
+     "operation": "CLOSE",
+     "source": "COMPLETE"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Item Assembly not found."
+    }
+   }
+  },
+  {
+   "name": "IA form (MIN-06: Draft row, truthful reservation labels, Unreserved reasons)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v50.json"
+  }
+ ]
+}

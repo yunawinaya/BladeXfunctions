@@ -1,0 +1,58 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_REVERT",
+   "dataId": "2099319746652852225",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT/v6_20261022-095645.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "ia_no": "IAV2-SMOKE",
+     "organization_id": "1123598813738675201"
+    },
+    "expect": {
+     "key": "code",
+     "equals": "400"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_PREPARE",
+   "dataId": "2112141455206817794",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_PREPARE/v4_20261022-095646.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_RV_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_SUBMIT",
+   "dataId": "2112141384234999809",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_SUBMIT/v3_20261022-095647.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "ia_id": "2112143339233648642",
+     "idempotency_key": "",
+     "source": "LIST",
+     "min_picks": "",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  }
+ ]
+}

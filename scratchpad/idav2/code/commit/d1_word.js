@@ -2,7 +2,8 @@
 // line of that Batch row: 'Line <i> (<item name>)'); every other outcome passes through unchanged
 const commitD1Word = function commitD1Word(entry, d, labelRows) {
   const out = { route: s(d.route), jobRows: list(d.jobRows), needJobUpd: s(d.needJobUpd), unlockRows: list(d.unlockRows), needUnlock: s(d.needUnlock), batchDelSlices: list(d.batchDelSlices),
-    needBatchDel: s(d.needBatchDel), result_code: s(d.result_code), result_message: s(d.result_message), job_status: s(d.job_status) };
+    needBatchDel: s(d.needBatchDel), intentDelSlices: list(d.intentDelSlices), needIntentDel: s(d.needIntentDel) || "NO", result_code: s(d.result_code), result_message: s(d.result_message),
+    job_status: s(d.job_status) };
   if (s(d.needLabels) !== "YES" || s(d.job_status) !== "FAILED") return out;
   const labels = idaJoinChunks(labelRows, entry.partPrefix + "LABELS|");
   const all = labels && typeof labels === "object" ? Object.keys(labels).map((k) => labels[k]).filter((l) => l && typeof l === "object") : [];
@@ -12,7 +13,8 @@ const commitD1Word = function commitD1Word(entry, d, labelRows) {
 };
 const res = commitD1Word([{{node:code_node_DCentry.data}}][0], { route: [{{node:code_node_DCd1decide.data.route}}][0], jobRows: [{{node:code_node_DCd1decide.data.jobRows}}][0],
   needJobUpd: [{{node:code_node_DCd1decide.data.needJobUpd}}][0], unlockRows: [{{node:code_node_DCd1decide.data.unlockRows}}][0], needUnlock: [{{node:code_node_DCd1decide.data.needUnlock}}][0],
-  batchDelSlices: [{{node:code_node_DCd1decide.data.batchDelSlices}}][0], needBatchDel: [{{node:code_node_DCd1decide.data.needBatchDel}}][0], result_code: [{{node:code_node_DCd1decide.data.result_code}}][0],
+  batchDelSlices: [{{node:code_node_DCd1decide.data.batchDelSlices}}][0], needBatchDel: [{{node:code_node_DCd1decide.data.needBatchDel}}][0],
+  intentDelSlices: [{{node:code_node_DCd1decide.data.intentDelSlices}}][0], needIntentDel: [{{node:code_node_DCd1decide.data.needIntentDel}}][0], result_code: [{{node:code_node_DCd1decide.data.result_code}}][0],
   result_message: [{{node:code_node_DCd1decide.data.result_message}}][0], job_status: [{{node:code_node_DCd1decide.data.job_status}}][0], needLabels: [{{node:code_node_DCd1decide.data.needLabels}}][0],
   labelLine: [{{node:code_node_DCd1decide.data.labelLine}}][0], labelItem: [{{node:code_node_DCd1decide.data.labelItem}}][0], labelNumber: [{{node:code_node_DCd1decide.data.labelNumber}}][0] },
   [{{node:sql_node_DCd1dlab.data}}][0]);

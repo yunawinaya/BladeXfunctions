@@ -46,14 +46,15 @@ STEPS = """SELECT st.step_name, st.step_status, st.result_ref, DATE_FORMAT(st.fi
    AND st.is_deleted = 0"""
 STEPS_COLS = ["step_name", "step_status", "result_ref", "finished_at"]
 
-INTENT = """SELECT st.step_name, st.result_ref
+# the id: D1's renumber exit retires exactly these rows
+INTENT = """SELECT CAST(st.id AS CHAR) AS id, st.step_name, st.result_ref
   FROM gd_publish_step st
  WHERE st.tenant_id = '@T'
    AND st.job_id = '@JOB'
    AND st.step_name LIKE 'D1|I|%'
    AND st.is_deleted = 0
  ORDER BY st.step_name"""
-INTENT_COLS = ["step_name", "result_ref"]
+INTENT_COLS = ["id", "step_name", "result_ref"]
 
 PAYLOAD = "SELECT j.prepared_payload FROM gd_async_job j WHERE j.tenant_id = '@T' AND j.id = @JOB"
 

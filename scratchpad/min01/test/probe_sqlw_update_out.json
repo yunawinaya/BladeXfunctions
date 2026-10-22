@@ -1,0 +1,1 @@
+{"code":400,"msg":"An error occurred: 节点[Canary: SQL UPDATE (0 rows)]执行失败[java.lang.IllegalArgumentException: Only SELECT/WITH statements are allowed]","success":false}

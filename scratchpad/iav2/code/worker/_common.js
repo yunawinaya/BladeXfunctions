@@ -64,7 +64,8 @@ const iaDbSeconds = function iaDbSeconds(a, b) {
   };
   return (t(b) - t(a)) / 1000;
 };
-const IA_PREV_STATUSES = ["Draft"];
+// RES-01 Created (BA, 10-22): a Created IA completes like a Draft and goes back to Created on a clean failure
+const IA_PREV_STATUSES = ["Draft", "Created"];
 const iaPrevStatusOk = (v) => IA_PREV_STATUSES.indexOf(iaS(v)) >= 0;
 const IA_V2_MIN_PICKS = 50;
 // the user's cap (2026-10-19): classic IA_SAVE Completed picks and classic IA_REVERT live rows

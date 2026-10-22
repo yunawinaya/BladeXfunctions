@@ -1,0 +1,12 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_EDIT_WORKER",
+   "dataId": "2110618789356687361",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_WORKER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/.superpowers/sdd/picking-v2-1d/live/GDE_WORKER.v7.head.json"
+  }
+ ]
+}

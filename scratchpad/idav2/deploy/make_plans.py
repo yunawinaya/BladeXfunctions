@@ -66,3 +66,14 @@ batch4 = {"profile": "dev-write", "tableId": "1856231112670498818", "items": [
 p4 = os.path.join(HERE, "wf_upload.ida.batch4.plan.json")
 json.dump(batch4, open(p4, "w"), indent=1, ensure_ascii=False)
 print("wrote", p4)
+
+# batch 5 (10-22): COMMIT (D1 renumber on a batch-number race) + form (classic dialogs escaped); bases = live COMMIT v4 / form v38
+batch5 = {"profile": "dev-write", "tableId": "1856231112670498818", "items": [
+    {"name": "IDA_V2_COMMIT", "dataId": ids["IDA_V2_COMMIT"], "file": os.path.join(OUT, "IDA_V2_COMMIT.json"), "base": os.path.join(HERE, "base_v4", "IDA_V2_COMMIT.json"),
+     "smoke": {"request": {"job_id": "x"}, "expect": {"key": "result_code", "equals": "IDA_INVALID_DATA"}}},
+    {"name": "IDA form (ON, classic escaped)", "kind": "form", "dataId": ids["form_sm_item_disassembly"],
+     "file": os.path.join(OUT, "IDAform.json"), "base": os.path.join(HERE, "base_on38", "IDAform.json")},
+]}
+p5 = os.path.join(HERE, "wf_upload.ida.batch5.plan.json")
+json.dump(batch5, open(p5, "w"), indent=1, ensure_ascii=False)
+print("wrote", p5)

@@ -1,0 +1,92 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_HOLD",
+   "dataId": "2112752274794217473",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_HOLD.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_HOLD/v10_20261022-170113.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "organization_id": "1",
+     "operation": "CHECK",
+     "source": "FORM"
+    },
+    "expect": {
+     "key": "code",
+     "equals": "200"
+    }
+   }
+  },
+  {
+   "name": "IA_SAVE",
+   "dataId": "2098335576774463489",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SAVE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_SAVE/v23_20261022-170114.enabled.json",
+   "smoke": {
+    "request": {
+     "allData": {
+      "page_status": "Add",
+      "organization_id": "1",
+      "issuing_operation_faci": "1",
+      "item_id": "1",
+      "item_qty": 1,
+      "item_uom": "1",
+      "storage_location_id": "1",
+      "location_id": "1",
+      "stock_movement_no": "",
+      "stock_movement_no_type": "1",
+      "stock_movement": [
+       {
+        "item_selection": "1",
+        "requested_qty": 1,
+        "total_quantity": 1,
+        "quantity_uom": "1",
+        "temp_qty_data": "",
+        "temp_hu_data": ""
+       }
+      ],
+      "source_so_id": "1",
+      "source_so_line_id": "1"
+     },
+     "saveAs": "Draft",
+     "pageStatus": "Add"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Your user is not assigned to this organisation, so this Item Assembly cannot be linked to its Sales Order line."
+    }
+   }
+  },
+  {
+   "name": "IA_V2_SUBMIT",
+   "dataId": "2112141238600376321",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_SUBMIT/v11_20261022-170115.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "",
+     "ia_id": "2112143339233648642",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  },
+  {
+   "name": "IA form (BA rev 1.2 C2: completion check row)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v53.json"
+  }
+ ]
+}

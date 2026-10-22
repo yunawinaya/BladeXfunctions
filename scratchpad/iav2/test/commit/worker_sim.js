@@ -206,15 +206,16 @@ function tick(w, jobId) {
   console.log("ok   PARK: tick 1 ends after COMMIT A, tick 2 runs COMMIT B");
 }
 // 4. PREPARE hard code -> FAILED + Draft; prevStatus unknown / missing -> REQUIRES_REVIEW, no unlock
-for (const [prev, want] of [["Draft", "Draft"], ["Completed", null], ["In Progress", null], [undefined, null]]) {
+// RES-01 Created (BA, 10-22): a Created IA's job unlocks back to Created
+for (const [prev, want] of [["Draft", "Draft"], ["Created", "Created"], ["Completed", null], ["In Progress", null], [undefined, null]]) {
   const w = world();
   addJob(w, JOB1, IA1, { prevStatus: prev });
   w.prepare[JOB1] = "hard";
   tick(w);
   const j = w.jobs[JOB1];
   if (want) {
-    ok(j.job_status === "FAILED" && j.error_code === "IA_LINES_CHANGED" && j.lease_owner === null && w.ia[IA1].item_assembly_status === "Draft" && J(w.unlocks) === J([IA1 + ":Draft"]) && J(w.calls) === J(["PREPARE:" + JOB1]),
-      "PREPARE hard code -> FAILED + Draft, no COMMIT", { job: j, unlocks: w.unlocks });
+    ok(j.job_status === "FAILED" && j.error_code === "IA_LINES_CHANGED" && j.lease_owner === null && w.ia[IA1].item_assembly_status === want && J(w.unlocks) === J([IA1 + ":" + want]) && J(w.calls) === J(["PREPARE:" + JOB1]),
+      "PREPARE hard code -> FAILED + " + want + ", no COMMIT", { job: j, unlocks: w.unlocks });
   } else {
     ok(j.job_status === "REQUIRES_REVIEW" && j.error_code === "IA_PREV_STATUS_UNKNOWN" && w.unlocks.length === 0 && w.ia[IA1].item_assembly_status === "Processing",
       "prevStatus " + J(prev) + " -> REQUIRES_REVIEW IA_PREV_STATUS_UNKNOWN, no unlock (no default)", { job: j, unlocks: w.unlocks });

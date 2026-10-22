@@ -99,7 +99,7 @@ const ownRows = movRows.filter((r) => S(r.trx_no) === iaNo && sideOf(r) !== "");
 // unit as the row it undoes, so that tuple is the pairing key.
 const tupleOf = (r) =>
   sideOf(r) + "|" + S(r.item_id) + "|" + S(r.batch_number_id) + "|" + S(r.bin_location_id) + "|" +
-  S(r.inventory_category) + "|" + S(r.handling_unit_id);
+  (sideOf(r) === "component" ? "" : S(r.inventory_category)) + "|" + S(r.handling_unit_id);
 const byTuple = {};
 for (const r of ownRows) {
   const t = tupleOf(r);

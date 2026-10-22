@@ -115,6 +115,13 @@ const postSegment = (trace) => {
   return a < 0 ? [] : trace.slice(a, b < 0 ? undefined : b + 1).filter((t) => t[0] !== "hideLoading");
 };
 
+// the classic handlers carry the same three escapes (user, 10-22): base -> built, independently of the builder
+const ESC_HELPER = "// the BOM-variance dialog renders HTML: names go in escaped\nconst idaEscHtml = (value) =>\n  String(value === null || value === undefined ? \"\" : value)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\")\n    .replace(/\"/g, \"&quot;\")\n    .replace(/'/g, \"&#39;\");\n\n";
+const ESC_EDITS = [["const label = line.item_name || line.item_selection;", "const label = idaEscHtml(line.item_name || line.item_selection);"],
+  ["`Removed: ${sub.sub_material_name || sub.bom_material_code}`", "`Removed: ${idaEscHtml(sub.sub_material_name || sub.bom_material_code)}`"],
+  ["`These components differ from BOM ${bom.parent_mat_bom_version}:<br><br>`", "`These components differ from BOM ${idaEscHtml(bom.parent_mat_bom_version)}:<br><br>`"]];
+const escapeClassic = (func) => ESC_EDITS.reduce((t, [a, b]) => t.replace(a, b), func.replace("const confirmBomVariance = async (data) => {", ESC_HELPER + "const confirmBomVariance = async (data) => {"));
+
 (async () => {
   // ---- wiring
   for (const [model, classic] of Object.entries(BUTTONS)) {
@@ -122,7 +129,7 @@ const postSegment = (trace) => {
     const b1 = bound(BUILT, model);
     check("wiring " + model + ": base bound " + classic, b0.name === classic, b0.name);
     check("wiring " + model + ": built bound to its idaV2_ handler (js)", b1.name === (model === "button_completed" ? "idaV2_onClick_completed" : "idaV2_onClick_completed_post") && b1.type === "js", b1.name);
-    check("wiring " + model + ": classic entry byte-identical", same(H.byName(BUILT, classic), b0), classic);
+    check("wiring " + model + ": classic entry = base + its BOM-variance names HTML-escaped", same(H.byName(BUILT, classic), Object.assign({}, b0, { func: escapeClassic(b0.func) })), classic);
     check("wiring " + model + ": the handler names its classic and its post flag", b1.func.indexOf('const IDA_CLASSIC = "' + classic + '";') > 0 &&
       b1.func.indexOf("const IDA_BUTTON_POSTS = " + (model === "comp_post_button") + ";") > 0);
     const shipped = H.shippedState(b1.func);
@@ -210,6 +217,14 @@ const postSegment = (trace) => {
         r.calls(IDA_SAVE).length === 1 && r.calls(WORKER).length === 0 && r.calls(SUBMIT, "STATUS").length === 0 && named(r.trace, "$confirm").length === 2 &&
         r.self.models._data.ida_submitting === 0, r.trace.map((t) => t[0] + ":" + (t[1] || "")));
     }
+    // the classic fallback shows its own variance confirm: escaped too
+    const shownAll = [];
+    const xr = record(60);
+    xr.stock_movement[0].item_name = XSS;
+    await run(ON, model, xr, { bom: true, bomDoc: Object.assign({}, BOM, { parent_mat_bom_version: XSS, subform_sub_material: [{ bom_material_code: "OTHER", consume_type: "", sub_material_name: XSS }] }),
+      confirm: (m) => (shownAll.push(m), "confirm"), script: { submit: { route: "NOT_ELIGIBLE", code: "300", reason: "costing migration" } } });
+    check("ON " + model + " NOT_ELIGIBLE: the V2 and the classic variance confirms both escape the names", shownAll.length === 2 &&
+      shownAll.every((m) => m.indexOf("<img") < 0 && m.split("&lt;img src=x onerror=&quot;alert(1)&quot;&gt;").length === 4), shownAll.map((m) => m.slice(0, 120)));
     // a double click while V2 runs
     const dbl = await run(ON, model, record(60), { data: { ida_submitting: 1 } });
     check("ON " + model + " double click -> already in progress", named(dbl.trace, "$message.warning").length === 1 && dbl.calls(SUBMIT).length === 0 && named(dbl.trace, "triggerEvent").length === 0);

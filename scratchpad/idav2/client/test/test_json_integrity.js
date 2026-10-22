@@ -30,12 +30,18 @@ const safely = (f) => (...a) => {
   }
 };
 const newKeys = (doc, base) => doc.config.eventScript.map((e) => e.key).filter((k) => !base.config.eventScript.some((e) => e.key === k));
-const CHANGED_FORM = ["mounted", "ida_src_item", "e9ib2r8i"];
+const CHANGED_FORM = ["mounted", "ida_src_item", "e9ib2r8i", "iasvcomp", "aymq6q8z"];
 const CHANGED_LIST = ["mounted", "q82pv0wg", "ee9v0c1h"];
 const READS = read(path.join(SRC, "ida_reads.js")).trimEnd();
 const ITEM_FIELDS = "material_code,material_name,material_desc,based_uom,serial_number_management,item_batch_management,batch_number_genaration,table_uom_conversion,table_default_bin";
 
 // the intended edits, undone: [built text, base text] pairs (the mounted block is the one the shipped switches produce)
+// the classic Completed / Complete & Post: their BOM-variance names HTML-escaped (user, 10-22)
+const ESC_HELPER = "// the BOM-variance dialog renders HTML: names go in escaped\nconst idaEscHtml = (value) =>\n  String(value === null || value === undefined ? \"\" : value)\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\")\n    .replace(/\"/g, \"&quot;\")\n    .replace(/'/g, \"&#39;\");\n\n";
+const ESC_EDITS = [["const label = line.item_name || line.item_selection;", "const label = idaEscHtml(line.item_name || line.item_selection);"],
+  ["`Removed: ${sub.sub_material_name || sub.bom_material_code}`", "`Removed: ${idaEscHtml(sub.sub_material_name || sub.bom_material_code)}`"],
+  ["`These components differ from BOM ${bom.parent_mat_bom_version}:<br><br>`", "`These components differ from BOM ${idaEscHtml(bom.parent_mat_bom_version)}:<br><br>`"]];
+const undoClassicEscape = safely((func) => ESC_EDITS.reduce((t, [a, b], i) => once(t, b, a, "escape " + i), once(func, ESC_HELPER, "", "helper")));
 const undoMounted = safely((func) => {
   const sw = H.shippedState(func);
   const block = H.variant(read(path.join(SRC, "idaV2_mounted_block.js")).replace(/__IDA_V2_SUBMIT__|__IDA_V2_WORKER__/g, "0").replace(/__ASYNC_IDA_ENABLED__/g, "false"),
@@ -107,7 +113,7 @@ for (const [label, A, B] of [["form (shipped)", F0, F1], ["form (ON preview)", F
   sameEvents(label, A, B, CHANGED_FORM, added);
   check(label + ": the added events are the two button handlers (js)", same(added.map((k) => H.byKey(B, k).name), ["idaV2_onClick_completed", "idaV2_onClick_completed_post"]) &&
     added.every((k) => H.byKey(B, k).type === "js"));
-  for (const n of ["onClick_saveAsCompleted", "onClick_saveAsCompletedPost", "onClick_saveAsDraft", "onConfirm_batchAddItem", "onAfterUpdate_item", "onClick_select_stock"]) {
+  for (const n of ["onClick_saveAsDraft", "onConfirm_batchAddItem", "onAfterUpdate_item", "onClick_select_stock"]) {
     check(label + ": classic " + n + " byte-identical under its key", JSON.stringify(H.byName(B, n)) === JSON.stringify(H.byName(A, n)));
   }
   // the widgets: undo the intended changes -> the base list exactly
@@ -163,6 +169,7 @@ for (const [label, A, B] of [["form (shipped)", F0, F1], ["form (ON preview)", F
   const e0 = H.byKey(A, "ida_src_item").func;
   check(label + ": onChange_idaSourceItem = base + the chunked / projected / limited reads only", undoExplode(H.byKey(B, "ida_src_item").func, e0) === e0);
   check(label + ": onClick_post = base + the stored-status re-read", undoPost(H.byKey(B, "e9ib2r8i").func) === H.byKey(A, "e9ib2r8i").func);
+  for (const k of ["iasvcomp", "aymq6q8z"]) check(label + ": classic " + H.byKey(B, k).name + " = base + its BOM-variance names HTML-escaped", undoClassicEscape(H.byKey(B, k).func) === H.byKey(A, k).func);
   for (const k of CHANGED_FORM) check(label + ": " + k + " keeps its name / type", same(Object.assign({}, H.byKey(B, k), { func: "" }), Object.assign({}, H.byKey(A, k), { func: "" })));
 }
 

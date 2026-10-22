@@ -109,7 +109,7 @@ const planOk = (params) => ({ code: "200", result_code: "OK", message: "Planned 
 
 const JOB = "2112100000000000001";
 const DB_NOW = "2026-10-21 16:30:00";
-const ENGINE_FILE = path.join(IDAV2, "base", "INVENTORY_BULK_APPLY.v10.json");
+const ENGINE_FILE = path.join(IDAV2, "base", "INVENTORY_BULK_APPLY.v12.json");
 // one PREPARE run of the built IDA_V2_PREPARE.json; spec = { tenant, org, idaId, key, request, hdr, lines, items, bins, typed, job, owner, planI, planR, engine }
 function runPrepare(spec) {
   const doc = built();

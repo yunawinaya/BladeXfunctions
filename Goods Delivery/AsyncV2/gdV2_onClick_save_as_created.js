@@ -21,6 +21,8 @@ const GD_V2_WF = {
 // serialization cap (2,922 lines failed in GD_BULK_PREPARE; 1,948 passed end to end).
 const ASYNC_GD_ENABLED = true;
 const GD_V2_MAX_LINES = 2000;
+// a NEW delivery past this size never falls back to the frozen save: its per-line fan-out took dev down (10-16, 10-20)
+const GD_V2_CLASSIC_MAX_LINES = 500;
 
 const UXC = {"ux_of_job":{"QUEUED":"QUEUED","VALIDATING":"PREPARING","AWAITING_CONFIRMATION":"PREPARING","CALCULATING":"PREPARING","READY_TO_COMMIT":"PREPARING","COMMITTING_GD":"PUBLISHING","RECONCILING_GD":"PUBLISHING","GD_COMMITTED":"CREATED","CREATING_PICKING":"CREATED","PICKING_RETRYING":"CREATED","PICKING_READY":"CREATED","COMPLETED":"CREATED","FAILED":"REJECTED","CANCELLED":"REJECTED","REQUIRES_REVIEW":"REQUIRES_REVIEW"},"labels":{"QUEUED":"Queued","PREPARING":"Preparing","PUBLISHING":"Publishing","CREATED":"Created","REJECTED":"Rejected","REQUIRES_REVIEW":"Requires review"},"display":{"QUEUED":"Queued for processing","VALIDATING":"Validating","AWAITING_CONFIRMATION":"Conditions changed; confirmation needed","CALCULATING":"Checking stock and allocation","READY_TO_COMMIT":"Ready to publish","COMMITTING_GD":"Publishing Goods Delivery","RECONCILING_GD":"GD {gd_no} created; finishing publication","GD_COMMITTED":"GD {gd_no} created","CREATING_PICKING":"GD {gd_no} created; creating Picking","PICKING_RETRYING":"GD {gd_no} created; Picking retrying","PICKING_READY":"GD {gd_no} created; Picking {picking_no} ready","COMPLETED":"GD {gd_no} created; processing complete","FAILED":"Not created; correct the highlighted lines","CANCELLED":"Cancelled before publishing","REQUIRES_REVIEW":"Under review (ref {review_reference}); do not retry"},"pre_commit":["QUEUED","VALIDATING","AWAITING_CONFIRMATION","CALCULATING","READY_TO_COMMIT"],"cancellable":["QUEUED","VALIDATING","AWAITING_CONFIRMATION","CALCULATING","READY_TO_COMMIT"],"post_commit":["GD_COMMITTED","CREATING_PICKING","PICKING_RETRYING","PICKING_READY","COMPLETED"],"terminal":["COMPLETED","FAILED","CANCELLED","REQUIRES_REVIEW"],"retry_codes":["GD_TRANSIENT_DEADLOCK","GD_TRANSIENT_LOCK_TIMEOUT","GD_TRANSIENT_CONNECTIVITY","GD_TRANSIENT_RETRIES_EXHAUSTED","GD_INVENTORY_RETRYABLE_REJECTION"],"uncertain_ops":["MUTATING","VERIFYING","REQUIRES_REVIEW"],"claim_prefix":"W0_CLAIM_","rclaim_prefix":"R0_CLAIM_","cancel_owner_prefix":"CAN|","lease_minutes":10,"stock_chunk":50,"poll":{"first_ms":2000,"factor":1.5,"max_ms":10000,"budget_ms":600000},"key_prefix":"GDF","header_fields":["plant_id","customer_name","currency_code","so_no","pp_no","so_id","gd_billing_address","gd_shipping_address","delivery_no","gd_contact_name","contact_number","email_address","gd_delivery_method","delivery_date","document_description","assigned_to","organization_id","gd_created_by","acc_integration_type","reference_type","gd_ref_doc","last_sync_date","customer_credit_limit","overdue_limit","outstanding_balance","overdue_inv_total_amount","is_accurate","driver_name","ic_no","driver_contact_no","vehicle_no","pickup_date","validity_of_collection","courier_company","shipping_date","freight_charges","tracking_number","est_arrival_date","est_delivery_date","delivery_cost","shipping_company","shipping_method","tpt_vehicle_number","tpt_transport_name","tpt_ic_no","tpt_driver_contact_no","select_vehicle_id","gd_vehicle_type","gd_vehicle_capacity","gd_vehicle_cap_uom","select_driver_id","gd_driver_contact","gd_driver_ic","gd_total","order_tnc","order_payment_details","order_delivery_term","order_remark","order_remark2","order_remark3","order_remark4","order_remark5","picking_status","billing_address_name","billing_address_phone","billing_address_line_1","billing_address_line_2","billing_address_line_3","billing_address_line_4","billing_address_city","billing_postal_code","billing_address_state","billing_address_country","billing_attention","billing_address_fax","billing_address_code","shipping_address_code","shipping_address_fax","shipping_address_name","shipping_address_phone","shipping_address_line_1","shipping_address_line_2","shipping_address_line_3","shipping_address_line_4","shipping_address_city","shipping_postal_code","shipping_address_state","shipping_address_country","shipping_attention","delivery_no_type","to_no","is_select_picking","pp_id","sp_vehicle_no","gd_area_id","tpt_driver_name","di_shipping_method","di_driver_name","di_ic_no","di_driver_contact_no","di_shipping_company","di_transport_name","di_vehicle_number","di_est_delivery_date","di_est_arrival_date","di_pickup_date","di_validity_of_collection","di_tracking_number","di_freight_charges","project_id","sales_person"],"cancel_message":"Saving has started; cancellation is no longer possible","mismatch_message":"Save outcome requires review"};
 const gdV2Dec = function gdV2Dec(v) {
@@ -128,6 +130,20 @@ const gdV2LineCount = function gdV2LineCount(values) {
   let n = 0;
   for (const l of Array.isArray((values || {}).table_gd) ? values.table_gd : []) n += 1 + (Array.isArray((l || {}).children) ? l.children.length : 0);
   return n;
+};
+// the frozen save's zero-quantity rule (continueZero): a line at 0 goes, a bundle when every item is at 0 (some at 0 = partial)
+const gdV2ZeroLines = function gdV2ZeroLines(values) {
+  const labels = [];
+  const keep = [];
+  let partial = false;
+  (Array.isArray((values || {}).table_gd) ? values.table_gd : []).forEach((l, i) => {
+    const kids = Array.isArray((l || {}).children) ? l.children : [];
+    const zero = kids.length ? kids.filter((k) => (k || {}).gd_qty <= 0).length === kids.length : (l || {}).gd_qty <= 0;
+    if (kids.length && !zero && kids.some((k) => (k || {}).gd_qty <= 0)) partial = true;
+    if (zero) labels.push("#" + (i + 1));
+    else keep.push(l);
+  });
+  return { labels: labels, keep: keep, partial: partial };
 };
 const gdV2MaterialIds = function gdV2MaterialIds(values) {
   const s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
@@ -298,9 +314,23 @@ const closeDialog = () => {
       this.$message.warning("A save request is already being sent. Please wait.");
       return;
     }
-    const values = this.getValues();
+    let values = this.getValues();
     const organizationId = gdV2Org();
     const routeCtx = { saveAs: "Created", isAdd: this.isAdd, isCopy: this.isCopy, organizationId: organizationId, enabled: ASYNC_GD_ENABLED === true };
+    // a 0 is how a line is left out (lines cannot be removed): the frozen save's question, asked here, keeps the delivery async (10-22)
+    const zero = this.isAdd || this.isCopy ? gdV2ZeroLines(values) : { labels: [], keep: [], partial: false };
+    if (ASYNC_GD_ENABLED === true && zero.labels.length && zero.keep.length && !zero.partial) {
+      const list = zero.labels.length > 20 ? zero.labels.slice(0, 20).join(", ") + " and " + (zero.labels.length - 20) + " more" : zero.labels.join(", ");
+      try {
+        await this.$confirm("Line" + (zero.labels.length > 1 ? "s " : " ") + list + " ha" + (zero.labels.length > 1 ? "ve" : "s") +
+          " a zero deliver quantity, which may prevent processing.\nIf you proceed, it will delete the row with 0 deliver quantity. \nWould you like to proceed?",
+          "", { confirmButtonText: "Proceed", cancelButtonText: "Cancel", type: "warning" });
+      } catch (e) {
+        return;
+      }
+      await this.setData({ table_gd: zero.keep });
+      values = this.getValues();
+    }
     let route = gdV2Route(values, routeCtx);
     if (route.route === "ASYNC") {
       // review fix round 1, I-1: the item flags of every line and bundle item from the item master (the rows carry
@@ -325,6 +355,10 @@ const closeDialog = () => {
     if (route.route !== "ASYNC") {
       // the frozen handler, unchanged (Draft / Edit / Edit of a Draft / the switch off / Picking / a bundle / a
       // zero-quantity line / no usable number ...) - never the size of the delivery
+      if ((this.isAdd || this.isCopy) && gdV2LineCount(values) > GD_V2_CLASSIC_MAX_LINES) {
+        this.$message.error("This Goods Delivery has " + gdV2LineCount(values) + " lines and cannot use the background save (" + route.reason + "). The standard save takes at most " + GD_V2_CLASSIC_MAX_LINES + " lines: please fix that line or split the delivery.");
+        return;
+      }
       await this.triggerEvent("onClick_save_as_created");
       return;
     }
@@ -392,6 +426,10 @@ const closeDialog = () => {
     if (outcome.action === "FROZEN") {
       // GD_ASYNC_SUBMIT created no job: a delivery GD_BULK_PREPARE would refuse goes to the frozen save
       console.log("GD V2: submit answered GD_V2_USE_CLASSIC -", outcome.message);
+      if (lineCount > GD_V2_CLASSIC_MAX_LINES) {
+        this.$message.error("This Goods Delivery has " + lineCount + " lines and cannot use the background save (" + outcome.message + "). The standard save takes at most " + GD_V2_CLASSIC_MAX_LINES + " lines: please fix that line or split the delivery.");
+        return;
+      }
       await this.triggerEvent("onClick_save_as_created");
       return;
     }

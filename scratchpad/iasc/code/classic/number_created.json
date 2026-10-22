@@ -1,0 +1,35 @@
+{
+ "_": "RES-01 Created numbering (user 10-22: 'we are using Draft prefix for Created ... which is wrong'): a Created IA carries its real number, like a Created GD. Applied by classic/patch_v13.py, reverted in its identity check",
+ "sql": {
+  "node": "sql_node_IAguard",
+  "was": "SELECT CAST(h.id AS CHAR) AS ia_id, h.item_assembly_status\n",
+  "now": "SELECT CAST(h.id AS CHAR) AS ia_id, h.item_assembly_status, h.stock_movement_no\n"
+ },
+ "guard": {
+  "node": "code_node_IAguardStored",
+  "pairs": [
+   {
+    "was": "let iaGuardStored = \"\";",
+    "now": "let iaGuardStored = \"\";\n// RES-01 Created numbering (user 10-22): the stored number, which a Created IA keeps at its completion\nlet iaGuardStoredNo = \"\";"
+   },
+   {
+    "was": "  iaGuardStored = iaS(row.item_assembly_status);",
+    "now": "  iaGuardStored = iaS(row.item_assembly_status);\n  iaGuardStoredNo = iaS(row.stock_movement_no);"
+   },
+   {
+    "was": "  stored: iaGuardStored,",
+    "now": "  stored: iaGuardStored,\n  storedNo: iaGuardStoredNo,"
+   }
+  ]
+ },
+ "fillback": [
+  {
+   "was": "    allData.stock_movement_no = 'draft';",
+   "now": "    // RES-01 Created numbering (user 10-22): a new IA saved as Created gets its real number, like a Created GD (a stored Draft becoming\n    // Created gets it right after its write: code_node_IAnumIssue)\n    allData.stock_movement_no = iaCreated ? 'issued' : 'draft';"
+  },
+  {
+   "was": "  if (allData.stock_movement_no_type !== -9999 &&\n      (!allData.stock_movement_no || allData.stock_movement_no === '' ||\n       storedStatus !== 'Completed')) {\n    allData.stock_movement_no = 'issued';\n  }",
+   "now": "  // RES-01 Created numbering (user 10-22): a Created IA completes under the number it was issued at Created, the stored one (the guard's\n  // read: a mobile payload sends none, a stale tab may show another status); Manual Input keeps the typed number as before\n  const iaKeepNo = pageStatus === 'Edit' && [{{node:code_node_IAguardStored.data.stored}}][0] === 'Created' &&\n    allData.stock_movement_no_type !== -9999 && String([{{node:code_node_IAguardStored.data.storedNo}}][0] || '') !== '';\n  if (iaKeepNo) {\n    allData.stock_movement_no = String([{{node:code_node_IAguardStored.data.storedNo}}][0]);\n  } else if (allData.stock_movement_no_type !== -9999 &&\n      (!allData.stock_movement_no || allData.stock_movement_no === '' ||\n       storedStatus !== 'Completed')) {\n    allData.stock_movement_no = 'issued';\n  }"
+  }
+ ]
+}

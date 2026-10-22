@@ -1,5 +1,5 @@
 {
- "why": "RES-01 R4: after a completion the form closes the IA's holds (src/sc_close_after.js, switched off with RES_ENABLED)",
+ "why": "RES-01 R4: after a completion the form closes the IA's holds (src/sc_close_after.js; an IA that reserves, whatever the switch: review I4)",
  "block": "sc_close_after.js",
  "iasvcomp": [
   {

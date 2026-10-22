@@ -1,0 +1,116 @@
+{
+ "_": "RES-01 Created (BA, 10-22): the Created status next to Draft (scratchpad/iasc/client/build_client_sc.py). handler: the Created button's handler = the final Draft handler with these pairs (it saves through the Draft path with ia_target_status Created). mount: mounted's badge, a stored Created IA's buttons and editing, the IA V2 failure notice (the Created button on a new IA or a Draft is sc_main's). v2: the IA V2 Complete handlers take a stored Created IA like a Draft, and a new IA whose background save did not answer hides the Created button with the Draft one (review 1: no second IA). badge: the Created badge = the Draft badge with these pairs.",
+ "handler": [
+  {
+   "was": "    this.showLoading(\"Saving Item Assembly as draft...\");",
+   "now": "    this.showLoading(\"Saving Item Assembly as Created...\");"
+  },
+  {
+   "was": "    const pageStatus = data.page_status;\n",
+   "now": "    const pageStatus = data.page_status;\n    // RES-01 Created (BA, 10-22): saved through the Draft path; IA_SAVE writes it Created and marks it RESERVING (an older IA_SAVE saves a\n    // plain Draft)\n    data.ia_target_status = \"Created\";\n"
+  },
+  {
+   "was": "    this.$message.success(\"Item Assembly saved as draft\");",
+   "now": "    this.$message.success(\"Item Assembly saved as Created\");"
+  }
+ ],
+ "mount": [
+  {
+   "was": "    Draft: \"draft_status\",\n",
+   "now": "    Draft: \"draft_status\",\n    Created: \"created_status\",\n"
+  },
+  {
+   "was": "        if (status !== \"Draft\") {\n          this.disabled(EDIT_DISABLED_FIELDS, true);\n",
+   "now": "        if (status !== \"Draft\" && status !== \"Created\") {\n          this.disabled(EDIT_DISABLED_FIELDS, true);\n"
+  },
+  {
+   "was": "        } else if (status === \"Draft\") {\n          this.display([\n            \"button_draft\",\n            \"button_completed\",\n            \"comp_post_button\",\n          ]);\n        } else if (status === \"Processing\") {\n",
+   "now": "        } else if (status === \"Draft\") {\n          this.display([\n            \"button_draft\",\n            \"button_completed\",\n            \"comp_post_button\",\n          ]);\n        } else if (status === \"Created\") {\n          // RES-01 Created (BA, 10-22): saved and reserving; an edit is saved as Created again (it never goes back to Draft)\n          this.display([\"button_created\", \"button_completed\", \"comp_post_button\"]);\n        } else if (status === \"Processing\") {\n"
+  },
+  {
+   "was": "        if (status === \"Draft\") await showBatchFields(this.getValue(\"item_id\"));\n",
+   "now": "        if (status === \"Draft\" || status === \"Created\") await showBatchFields(this.getValue(\"item_id\"));\n"
+  },
+  {
+   "was": "  if (status !== \"Processing\" && (!on || (status !== \"Draft\" && status !== \"Completed\"))) return;\n",
+   "now": "  if (status !== \"Processing\" && (!on || (status !== \"Draft\" && status !== \"Created\" && status !== \"Completed\"))) return;\n"
+  }
+ ],
+ "v2": [
+  {
+   "was": "  if (!isNew && s(v.item_assembly_status) !== \"Draft\") return { why: \"stored \" + (s(v.item_assembly_status) || \"no status\") };",
+   "now": "  if (!isNew && s(v.item_assembly_status) !== \"Draft\" && s(v.item_assembly_status) !== \"Created\") return { why: \"stored \" + (s(v.item_assembly_status) || \"no status\") };"
+  },
+  {
+   "was": "  if (ctx.isNew) this.hide([\"button_draft\"]);",
+   "now": "  if (ctx.isNew) this.hide([\"button_draft\", \"button_created\"]);"
+  }
+ ],
+ "v2Keys": [
+  "uhn48srb",
+  "wia8s2r9"
+ ],
+ "badge": [
+  {
+   "was": "<title>Draft Button</title>",
+   "now": "<title>Created Button</title>"
+  },
+  {
+   "was": ".draft-button {",
+   "now": ".created-button {"
+  },
+  {
+   "was": "border: 2px solid #8C95A4;",
+   "now": "border: 2px solid #036DF8;"
+  },
+  {
+   "was": "background-color: #D0D5DD;",
+   "now": "background-color: #C6DFFF;"
+  },
+  {
+   "was": "<div class=\"draft-button\">Draft</div>",
+   "now": "<div class=\"created-button\">Created</div>"
+  }
+ ],
+ "statusLeafId": 1789400000002,
+ "cancel": {
+  "_": "RES-01 Cancel (user 10-22): mounted shows Cancel on a Created IA and keeps a Cancelled IA read-only (its badge, no button); the Cancelled badge = the Draft badge in the list's Cancelled colours; the handler is src/sc_cancel.js",
+  "mount": [
+   {
+    "was": "    Created: \"created_status\",\n",
+    "now": "    Created: \"created_status\",\n    Cancelled: \"cancelled_status\",\n"
+   },
+   {
+    "was": "          this.display([\"button_created\", \"button_completed\", \"comp_post_button\"]);\n        } else if (status === \"Processing\") {\n",
+    "now": "          this.display([\"button_created\", \"button_completed\", \"comp_post_button\"]);\n        } else if (status === \"Cancelled\") {\n          // RES-01 Cancel (user 10-22): cancelled, its reservation released: read-only, no button\n          lockComponentsTable();\n        } else if (status === \"Processing\") {\n"
+   }
+  ],
+  "badge": [
+   {
+    "was": "<title>Draft Button</title>",
+    "now": "<title>Cancelled Button</title>"
+   },
+   {
+    "was": ".draft-button {",
+    "now": ".cancelled-button {"
+   },
+   {
+    "was": "border: 2px solid #8C95A4;",
+    "now": "border: 2px solid #F90A0A;"
+   },
+   {
+    "was": "background-color: #D0D5DD;",
+    "now": "background-color: #FDC4C4;"
+   },
+   {
+    "was": "color: #4D5A74;",
+    "now": "color: #A30505;"
+   },
+   {
+    "was": "<div class=\"draft-button\">Draft</div>",
+    "now": "<div class=\"cancelled-button\">Cancelled</div>"
+   }
+  ],
+  "statusLeafId": 1789400000003
+ }
+}

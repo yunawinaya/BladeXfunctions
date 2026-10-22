@@ -249,7 +249,23 @@ it("E6: a header cell still holding a placeholder is never written (review)", ()
 it("e5 run: an unresolved placeholder ends E5 in review and writes nothing", () => {
   const r = call("commitE5Run", E(), { PICK: { mode: "CREATE", createData: { table_picking_items: [{ gd_line_id: PH1 }] } }, STAMP: { lineIds: [] }, GDL: gdlNew }, [], [], [], [], []);
   assert.strictEqual(r.route, "END"); assert.strictEqual(r.job_status, "REQUIRES_REVIEW");
-  assert.strictEqual(r.needAdd, "NO"); assert.strictEqual(r.needWrite, "NO"); assert.deepStrictEqual(r.addRow, {});
+  assert.strictEqual(r.needAdd, "NO"); assert.strictEqual(r.needWrite, "NO"); assert.deepStrictEqual(r.addRow.table_picking_items, []);
+});
+it("e5 run: every column the add-node maps goes out, a missing one as its empty value (dev v10 hotfix 10-22: a null ref_doc reached the add-node as undefined, Long conversion failed)", () => {
+  const r = call("commitE5Run", E(), { PICK: { mode: "CREATE", createData: { to_status: "Created", table_picking_items: [{ gd_line_id: PH1 }] } }, STAMP: { lineIds: [PH1] }, GDL: gdlNew }, newLine, [], [], [], []);
+  assert.deepStrictEqual([r.addRow.ref_doc, r.addRow.remarks, r.addRow.plant_id, r.addRow.to_status], [[], "", "", "Created"]);
+});
+it("e5 run: a value rendered as the text \"undefined\" goes out as '' (dev v11 hotfix 10-22: a reservation with no bin gave its Picking item source_bin \"undefined\")", () => {
+  const r = call("commitE5Run", E(), { PICK: { mode: "CREATE", createData: { to_status: "Created", ref_doc: "undefined", table_picking_items: [{ gd_line_id: PH1, source_bin: "undefined", batch_no: "B1" }] } }, STAMP: { lineIds: [PH1] }, GDL: gdlNew }, newLine, [], [], [], []);
+  assert.deepStrictEqual([r.addRow.ref_doc, r.addRow.table_picking_items[0].source_bin, r.addRow.table_picking_items[0].batch_no], ["", "", "B1"]);
+});
+it("e5 run: the Picking update and the header sync drop the text \"undefined\" too (the same no-bin reservation rebuilds an unstarted Picking's items)", () => {
+  const upd = Object.assign({}, pickUpd, { header: { to_status: "Created", ref_doc: "undefined" }, hdrSync: { pickingId: "2200000000000000002", headerData: { remarks: "undefined", plant_id: "7" } },
+    items: { layout: [{ ref: "6001" }], cells: { "6001": { qty_to_pick: 4, pending_process_qty: 4, source_bin: "undefined" } }, drop: {}, added: [] } });
+  const p = call("commitE5Run", E(), { PICK: upd, STAMP: { lineIds: [] }, GDL: { inserts: [], patches: [], deletes: [] } }, [], [], [head()], [item()], []);
+  assert.strictEqual(p.needWrite, "YES");
+  assert.deepStrictEqual([p.writeRow.ref_doc, p.writeRow.table_picking_items[0].source_bin, p.writeRow.table_picking_items[0].qty_to_pick], ["", "", 4]);
+  assert.deepStrictEqual([p.syncRow.remarks, p.syncRow.plant_id], ["", "7"]);
 });
 it("e5 run: resolved, a new Picking's row goes out as ONE object (the classic add-node maps a single record)", () => {
   const r = call("commitE5Run", E(), { PICK: { mode: "CREATE", createData: { to_status: "Created", table_picking_items: [{ gd_line_id: PH1 }] } }, STAMP: { lineIds: [PH1] }, GDL: gdlNew }, newLine, [], [], [], []);

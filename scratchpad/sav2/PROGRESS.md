@@ -265,3 +265,35 @@ Nothing published, nothing written to any DB. Only local files in `scratchpad/sa
   intents keeps the quick retry. test_steps 146 (2 new), commit_sim 1,150 (5 new v12 checks), SQL clean; only code_node_SACa2 differs
   from live v6. Plan deploy/wf_upload.sa.commit_v12busy.plan.json (base base/sa_v2_commit_v6.live.json), dry-run OK. Needs a yes.
 - 17:17 PUBLISHED (user yes): SA_V2_COMMIT v7 (v12 409 + intents → lock wait); smoke OK; IDENTICAL; 0 open jobs.
+
+## 2026-10-22
+- Resume: dev prod_check --dev ALL 25 PASSED; prod 21 FAIL = not promoted yet. Dev backend restarted 10-21 22:24 → warmed my 6 one at a time.
+- LIVE RE-TEST on engine v12 + COMMIT v7 (user yes, AskUserQuestion): T1 twin, classic SA 2113075599114059778 vs V2 job
+  2113075776948355073 / SA/20261022/0019: 0 tables differ, 0 failed; engine rows IBA|I|001 + IBA|RUN|001 (v12 marker) + IBA|DONE; 0 locks held;
+  1 worker tick (6 s).
+- 10-22: race/fire.mjs auth 'cli' path → profile dev-main-write (dev.mes; the old dev-write = sumes-cli, now the CN team's env) + endpoint guard
+  matches dev.mes exactly (the old /\.dev\./ test would refuse it). Plans keep "dev-write" (wf_upload maps it). Not run (no race test pending).
+- 10-22 MIN-01 (9d) changes ADD_INVENTORY / SUBTRACT_INVENTORY (B1 atomic deltas, switch; A1/A2 Reserved-hold refusal, switch OFF).
+  Told 9d: classic STOCK_ADJUSTMENT stops only on child data.code '400' (if_FRgRBcnT / if_nolDyGWp → return its errorMessage); any
+  other code is ignored and the loop goes on (SA Completed with the movement missing) → refusals must be '400'. Classic SA is
+  non-atomic (header Completed before the loop). V2 unaffected (engine only). Offered a T1 twin re-run once B1 is ON (needs a yes).
+- 10-22 16:02 (user yes): T1 twin vs 9d's ADD_INVENTORY v66 / SUBTRACT_INVENTORY v60 (MIN-01, classic lock OFF): classic SA
+  2113179093971173377 vs V2 job 2113179184773660673 / SA/20261022/0021 → 0 tables differ, 0 failed, 0 locks. Sent to 9d for its TESTS.md.
+- 10-22 RF-03 (9d; user chose 'Refuse Reserved in the classic'): BUILT guarded STOCK_ADJUSTMENT v26 - code/classic/sa_guard.js: a moving
+  entry (sa_quantity > 0) with category Reserved (trimmed, any case), saveAs != Draft → 400 'Line <n>: Reserved stock belongs to another
+  document. Release it there first.' (9d's wording), after the 500 cap, before the line size; nothing written. Only code_node_SAguard (+2
+  titles) changed vs live v25; base v24 58 nodes identical; guard flow 271/271 (12 new); lint clean. CONTRACT §10/§11 updated. Plan
+  deploy/wf_upload.sa.classic_reserved.plan.json (base base/stock_adjustment_v25.live.json), dry-run OK. Needs the publish yes.
+- 16:24 PUBLISHED (user yes): STOCK_ADJUSTMENT v26 (Reserved refusal); smoke 400; live probe (deploy/requests/sa_refuse_reserved.json, 496474) → the Reserved message, 0 SAs / 0 movements written; IDENTICAL.
+- 10-22 lock check (9d's proposal, user chose 'Build'): BUILT guarded STOCK_ADJUSTMENT v27 - sa_guard.js lists the non-Draft save's engine
+  lock keys (ITEM|mat|bin, BATCH|mat|bin|batch, COST|mat|plant from digit ids); sa_guard.sql = the stored status UNION ALL the held lock
+  rows (free_token 0, owner set, not CL|; lock_key IN JSON_TABLE, tenant + org); sa_verdict.js → SA_STOCK_LOCKED last ('Some of this stock
+  is being moved by another background operation (<owner>). Please try again in a minute.'). Tests: guard flow all passed (11 new lock
+  cases), lint rules updated (inventory_balance_lock allowed for the SA guard), sql_live on dev (free → none; flipped → exactly the 2
+  SAV2T keys; other tenant / org → none; EXPLAIN g PRIMARY + l eq_ref 'Lock Key'). Only the 4 guard nodes differ from live v26. Plan
+  deploy/wf_upload.sa.classic_lockcheck.plan.json (base base/stock_adjustment_v26.live.json), dry-run OK. NOTE: the classic now depends on
+  inventory_balance_lock (V2 foundation, same full deployment; prod_check.py checks it).
+- 16:37 PUBLISHED (user yes): STOCK_ADJUSTMENT v27 (lock check); smoke OK; IDENTICAL. 16:38 T1 twin vs 9d's v62 / v67 (user yes): 9/11
+  tables identical; fifo + 1 mv differ ONLY because ALT's FIFO layer 1 ran out between the twins (14 left: A 10 @5; B 4 @5 + 6 @6) -
+  plan_twin on each twin's own start state predicts both exactly. Kit note: twins assume both consume the same layer; check layer
+  headroom (ALT layer 1 now 0, layer 2 94) before re-running. Sent to 9d.

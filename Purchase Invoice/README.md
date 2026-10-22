@@ -54,4 +54,7 @@ like a Completed one.
 - A minted test token whose first department is deleted (`scratchpad/gdc/tools/id000000.json`) gives an empty
   `{{global:firstLvDeptId}}`, so GR_Convert_PI finds no number rule and PI_SAVE fails with "Next serial number is
   already in use". Use `id000000_asai.json` for 000000 tests.
-- Not checked at 2,000 lines: PI Cancel, PI Post.
+- PI Cancel and PI Post at 2,000 lines (measured 2026-10-22, not changed). PI_CANCEL v17 projects to ~16 MB in one
+  request: it reads the whole invoice, POs and GRs and passes them through one node, with no loops or per-line calls.
+  Its time is the same PO / GR counter writes as the save. PI_POST is ~2 MB: all 249 prod posts in 60 days took the
+  AutoCount V2 path, which reads the invoice once and hands it to the integration.

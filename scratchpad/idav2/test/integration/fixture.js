@@ -13,7 +13,7 @@ const C = require(path.join(IDAV2, "code", "shared", "ida_common.js"));
 const IDS = JSON.parse(fs.readFileSync(path.join(IDAV2, "ids.json"), "utf8"));
 
 const BUILT = ["IDA_V2_SUBMIT", "IDA_V2_WORKER", "IDA_V2_PREPARE", "IDA_V2_COMMIT", "IDA_SAVE"];
-const BASES = { INVENTORY_BULK_APPLY: "INVENTORY_BULK_APPLY.v10.json", INVENTORY_LOCK_TOKENS: "INVENTORY_LOCK_TOKENS.v5.json", INVENTORY_LOCK_SEED: "INVENTORY_LOCK_SEED.v5.json",
+const BASES = { INVENTORY_BULK_APPLY: "INVENTORY_BULK_APPLY.v12.json", INVENTORY_LOCK_TOKENS: "INVENTORY_LOCK_TOKENS.v5.json", INVENTORY_LOCK_SEED: "INVENTORY_LOCK_SEED.v5.json",
   CHECK_REQUIRED_FIELD: "CHECK_REQUIRED_FIELD.v8.json" };
 function loadDocs() {
   const docs = {};

@@ -1,0 +1,13 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_EDIT_COMMIT",
+   "dataId": "2110618866011787266",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/.superpowers/sdd/picking-v2-1d/live/GDE_COMMIT.v11.live.json",
+   "designingHistoryId": "2113150172029059073"
+  }
+ ]
+}

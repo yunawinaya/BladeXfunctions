@@ -27,9 +27,12 @@ const commitD1 = function commitD1(entry, check, ans, labelRows, counts) {
   }
   return failNoWrite(entry, "IDA_PLAN_FAILED", IDA_TEXT.planFailed(why), why, ours);
 };
-const res = commitD1([{{node:code_node_DCentry.data}}][0], { ours: [{{node:code_node_DCd1check.data.ours}}][0], needPlan: [{{node:code_node_DCd1check.data.needPlan}}][0],
+// D1 DONE starts the count at 0 again, as the READY_TO_COMMIT claim does: D1's renumber tries and retries never shorten D2's lock waits
+const withReset = (entry, r) => Object.assign(r, s(r.route) === "OK" && num(entry.attempts) > 0 ? { resetRows: [{ id: entry.jobId, attempt_count: 0 }], needReset: "YES" }
+  : { resetRows: [], needReset: "NO" });
+const res = withReset([{{node:code_node_DCentry.data}}][0], commitD1([{{node:code_node_DCentry.data}}][0], { ours: [{{node:code_node_DCd1check.data.ours}}][0], needPlan: [{{node:code_node_DCd1check.data.needPlan}}][0],
   planKey: [{{node:code_node_DCd1check.data.planKey}}][0], keys: [{{node:code_node_DCd1check.data.keys}}][0], result_message: [{{node:code_node_DCd1check.data.result_message}}][0] },
   [{{node:code_node_DCd1ans.data}}][0], [{{node:sql_node_DCd1labels.data}}][0], { rows: [{{node:code_node_DCd1plan.data.planned}}][0], inserted: [{{node:code_node_DCd1decide.data.insertCount}}][0],
-  adopted: [{{node:code_node_DCd1decide.data.adoptCount}}][0] });
+  adopted: [{{node:code_node_DCd1decide.data.adoptCount}}][0] }));
 console.log("commit D1", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));
 return res;

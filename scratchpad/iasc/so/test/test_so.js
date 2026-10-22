@@ -212,6 +212,11 @@ const runSo = async (name, row, header) => {
     await p.fire("sli_onClick_open", { rowIndex: 0, row: (v.sli_ias || [])[0] });
     const o2 = p.trace().slice(m2).find((t) => /toView$/.test(t[0]));
     check("page: Open on a Completed IA -> view", !!o2 && o2[1].type === "view" && same(o2[1].data, { id: "4100" }));
+    // RES-01 Created (BA, 10-22): a Created IA is edited like a Draft
+    const mc = p.trace().length;
+    await p.fire("sli_onClick_open", { rowIndex: 1, row: Object.assign({}, (v.sli_ias || [])[1], { status: "Created", ia_id: "4102" }) });
+    const oc = p.trace().slice(mc).find((t) => /toView$/.test(t[0]));
+    check("page: Open on a Created IA -> the IA form, edit", !!oc && oc[1].type === "edit" && !oc[1].viewMode && same(oc[1].data, { id: "4102" }), oc && oc[1]);
     const m3 = p.trace().length;
     await p.fire("sli_onClick_create");
     const c = p.trace().slice(m3).find((t) => /toView$/.test(t[0]));
@@ -254,12 +259,13 @@ const runSo = async (name, row, header) => {
   }
   {
     const orphans = [{ id: "4200", no: "IA-9", status: "Completed", item_id: "P1", item_qty: "5", item_uom: F.EA, planned_output_qty: "5", mode: "STANDARD", is_deleted: 0, source_so_line_id: "7999" },
-      { id: "4201", no: "IA-10", status: "Draft", item_id: "P1", item_qty: "7", item_uom: F.EA, planned_output_qty: "8", mode: "STANDARD", is_deleted: 0, source_so_line_id: "7999" }];
+      { id: "4201", no: "IA-10", status: "Draft", item_id: "P1", item_qty: "7", item_uom: F.EA, planned_output_qty: "8", mode: "STANDARD", is_deleted: 0, source_so_line_id: "7999" },
+      { id: "4202", no: "IA-11", status: "Created", item_id: "P1", item_qty: "3", item_uom: F.EA, planned_output_qty: "3", mode: "STANDARD", is_deleted: 0, source_so_line_id: "7999" }];
     const p = await page({}, { orphans: orphans });
-    check("page: an orphan's quantity received when Completed, to receive when Draft", same((p.v().sli_orphans || []).map((r) => [r.ia_no, r.planned, r.to_receive, r.actual]),
-      [["IA-9", 5, null, 5], ["IA-10", 8, 7, null]]), p.v().sli_orphans);
+    check("page: an orphan's quantity received when Completed, to receive when Draft or Created (review 3)", same((p.v().sli_orphans || []).map((r) => [r.ia_no, r.planned, r.to_receive, r.actual]),
+      [["IA-9", 5, null, 5], ["IA-10", 8, 7, null], ["IA-11", 3, 3, null]]), p.v().sli_orphans);
     check("page: the SO's IAs whose line was removed are listed apart", same((p.v().sli_orphans || []).map((r) => [r.ia_no, r.status, r.counted, r.ia_id]),
-      [["IA-9", "Completed", "Line removed", "4200"], ["IA-10", "Draft", "Line removed", "4201"]]) &&
+      [["IA-9", "Completed", "Line removed", "4200"], ["IA-10", "Draft", "Line removed", "4201"], ["IA-11", "Created", "Line removed", "4202"]]) &&
       p.trace().some((t) => /display$/.test(t[0]) && JSON.stringify(t[1]).indexOf("sli_orphans") >= 0), p.v().sli_orphans);
     const m = p.trace().length;
     await p.fire("sli_onClick_openOrphan", { rowIndex: 0, row: (p.v().sli_orphans || [])[0] });
@@ -289,8 +295,18 @@ const runSo = async (name, row, header) => {
     const RAW = H.readJSON(path.join(OUT, "SOLinkedIAsPage.json"));
     check("page vs v7: the widgets identical", JSON.stringify(RAW.list) === JSON.stringify(V6.list));
     const changed = RAW.config.eventScript.filter((e) => JSON.stringify(H.byKey(V6, e.key)) !== JSON.stringify(e)).map((e) => e.name);
-    check("page vs v7: the same events and config, nothing changed", same(RAW.config.eventScript.map((e) => e.key), V6.config.eventScript.map((e) => e.key)) &&
-      same(changed, []) && JSON.stringify(Object.assign({}, RAW.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, V6.config, { eventScript: [] })), changed);
+    // RES-01 Created (BA, 10-22): only the two Open handlers changed (a Created IA opens to edit, like a Draft), and only at that line
+    const openChange = (e) => {
+      const was = (H.byKey(V6, e.key) || {}).func || "";
+      return was.replace("(a Draft to edit, any other\n// status to view;", "(a Draft or a Created IA to\n// edit, any other status to view;")
+        .replace('const draft = String(scRow.status || "") === "Draft";', 'const edit = ["Draft", "Created"].indexOf(String(scRow.status || "")) >= 0;')
+        .replace('type: draft ? "edit" : "view", mode: "dialog", title: draft ? "Edit" : "View"', 'type: edit ? "edit" : "view", mode: "dialog", title: edit ? "Edit" : "View"')
+        .replace("if (!draft) view.viewMode", "if (!edit) view.viewMode") === e.func;
+    };
+    check("page vs v7: the same events and config; only the two Open handlers changed, by the Created rule", same(RAW.config.eventScript.map((e) => e.key), V6.config.eventScript.map((e) => e.key)) &&
+      same(changed, ["sli_load", "sli_onClick_open", "sli_onClick_openOrphan"]) && RAW.config.eventScript.filter((e) => e.name !== "sli_load" && changed.indexOf(e.name) >= 0).every(openChange) &&
+      (H.byKey(V6, H.byName(RAW, "sli_load").key) || {}).func.replace("const OPEN_ST = { Draft: 1, Processing: 1 };", "// a Created IA (RES-01, BA 10-22) is open production like a Draft (review 3)\nconst OPEN_ST = { Draft: 1, Created: 1, Processing: 1 };") === H.byName(RAW, "sli_load").func &&
+      JSON.stringify(Object.assign({}, RAW.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, V6.config, { eventScript: [] })), changed);
   }
   H.done("test_so");
 })();

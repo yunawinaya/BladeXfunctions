@@ -129,7 +129,7 @@ starts at 1, + 1 after a FAILED answer. A lost answer re-sent with the same key 
 | READY_TO_COMMIT | COMMITTING_IDA (lease `PUB|`, `idaLeaseSeconds`; a phase-B pass of more than `IDA_PARK` receipts: 5,400 s) | COMMIT entry | |
 | COMMITTING_IDA (phase A) | FAILED (+ unlock, + our Batch rows soft-deleted) | COMMIT `failNoWrite` | §9 phase-A failures, while NEITHER op has an engine row; else REQUIRES_REVIEW [IA R2, ruling] |
 | COMMITTING_IDA (phase A) | COMMITTING_IDA, `SPLIT|` lease or PARK, attempt_count 0, progress 75 | COMMIT D2 | op 1 applied (§8 tick rule) |
-| COMMITTING_IDA | COMMITTING_IDA, attempt + 1, backoff | COMMIT | `stepEnd` / D2 `lockWait` |
+| COMMITTING_IDA | COMMITTING_IDA, attempt + 1, backoff | COMMIT | `stepEnd` / D2 `lockWait` / D1 `d1Renumber` (5 s or 20-30 s, D1 rows 4 / 6 / 10) |
 | COMMITTING_IDA (phase B) | COMMITTING_IDA, due in 10 s, attempt unchanged | COMMIT D3 | op 2 transient (`stepWait`) until its deadline |
 | COMMITTING_IDA | REQUIRES_REVIEW | COMMIT / WORKER | §9 review cases; phase B 3 failures; a dead COMMIT run 3 times. The IDA stays Processing |
 | COMMITTING_IDA | COMPLETED | COMMIT finish | after D4 |
@@ -152,7 +152,7 @@ varchar(32), `step_status` varchar(16), `result_ref` longtext. Writes: `lib/v2bu
 | claim gate | `<jobId>` | `W0_CLAIM_<row_version>` | `DONE` | `WRK|<nonce>` | WORKER pick | WORKER |
 | PREPARE parts | `<jobId>` | `P|<nonce>|<PART>|<nnn>` | `PAYLOAD` | <= 400,000 chars each | PREPARE | COMMIT |
 | step done | `<jobId>` | `D0_REVALIDATE` ... `D4_FINISH` | `DONE` | a note <= 2,000 chars (D0 the fingerprint; D1 `{"rows","inserted","adopted"}`; D2 `{"called":"YES","code","result_code","summary"}`; D3 `{"out_rows","out_total","movements","result_code"}`; D4 `Completed / <number>`) | COMMIT `doneRow` | COMMIT entry, D3 (D2 row) |
-| D1 intent | `<jobId>` | `D1|I|<nnn>` | `INTENT` | `{ "numbers": { "<BATCH row key>": "<generated number>" }, "configs": [{ "id", "before": {running_number, last_reset_date}, "after": {...} }] }` (AUTO rows only; `{}` / `[]` when none) | COMMIT D1, BEFORE any config / Batch write | D1, D3, D4, every failure path (the soft-delete set) |
+| D1 intent | `<jobId>` | `D1|I|<nnn>` | `INTENT` | `{ "numbers": { "<BATCH row key>": "<generated number>" }, "configs": [{ "id", "before": {running_number, last_reset_date}, "after": {...} }] }` (AUTO rows only; `{}` / `[]` when none) | COMMIT D1, BEFORE any config / Batch write; D1's renumber retires it (`{ id, step_name: "D1|X|<its id>", is_deleted: 1 }`: the unique `Job Step` keeps deleted rows, the rename frees `D1|I|<nnn>` for the next numbering) | D1, D3, D4, every failure path (the soft-delete set) |
 | engine op 1 | `IDC|<jobId>|I` | `IBA|I|<nnn>`, `IBA|DONE`, `IBA|REVIEW` | engine's | engine's (`IBA|DONE` = `{results, summary}`) | INVENTORY_BULK_APPLY | D2, D3, entry (`OP_STATE`), runbook |
 | engine op 2 | `IDC|<jobId>|R` | same | engine's | engine's | INVENTORY_BULK_APPLY | D3, entry, runbook |
 
@@ -351,7 +351,7 @@ line_count, progress_percent, progress_message, error_code, error_message, evide
 |---|---|---|---|
 | QUEUED | 200 | a job was queued and read back | follow (STATUS every 2.5 s <= 420 s, worker kick every 15 s; an Add answered without a digit `ida_id` waits for its link with the SAME key) |
 | STATUS | 200 | operation STATUS, or this key already has a job | non-terminal = as QUEUED; COMPLETED = success (+ post for Complete & Post, never twice); FAILED = error, gen + 1; REQUIRES_REVIEW = warning |
-| NOT_ELIGIBLE | 300 | Draft; another stored status; an eligibility reason with moves <= 250 | the byte-identical classic handler (`triggerEvent`) |
+| NOT_ELIGIBLE | 300 | Draft; another stored status; an eligibility reason with moves <= 250 | the classic handler (`triggerEvent`; byte-identical but for its BOM-dialog escape) |
 | BUSY | 409 | §2 | warning (the open job's fields filled) |
 | STALE | 409 | §2 | warning: reopen the IDA |
 | STOP | 400 | a gate, an eligibility reason above 250 moves (`IDA_TOO_BIG`), a limit, the WA screen, the dry run, not found | error message, nothing written |
@@ -455,7 +455,9 @@ IDA_BATCH_CONFIG, IDA_BATCH_DUPLICATE, JOB_ILLEGAL_TRANSITION` [ruling: + the tw
 resumes phase B). Both reset `attempt_count` to 0 and set progress 75 `P75`. **Chain budget** [controller ruling 10-21]: a tick is ONE
 synchronous request chain (dev died at ~68 MB in one request); above 2,000 moves (`IDA_PREPARE_ALONE_MOVES`, C's constant) the WORKER ends
 the tick right after a successful PREPARE (READY_TO_COMMIT, due now) and the next tick runs COMMIT A; <= 2,000 moves unchanged. COMMIT
-writes `attempt_count` 0 when it claims a READY_TO_COMMIT job (PREPARE's retries never shrink D1's / D2's) [C review Minor 1].
+writes `attempt_count` 0 when it claims a READY_TO_COMMIT job (PREPARE's retries never shrink D1's / D2's) [C review Minor 1], and again
+at D1 DONE when it is above 0 (D1's renumber tries and retries never shrink D2's 8 lock waits) [renumber, 10-22]. A COMMITTING_IDA job is
+resumed whatever its `error_code`: COMMIT's waits (`IDA_STEP_RETRY`, `IDA_LOCK_WAIT`, `IDA_WAIT`, `IDA_BATCH_RETRY`) need no worker code.
 
 ---------------------------------------------------------------------------------------------------------------------------
 ## 9. IDA_V2_PREPARE (A) and IDA_V2_COMMIT (C) - called by the worker only
@@ -506,8 +508,8 @@ Node-id prefixes [ruling]: SUBMIT `DS`, PREPARE `DP`, COMMIT `DC`, WORKER `DW`, 
 Each step reads its part and fresh rows; at the after-value = done, at the before-value = write, otherwise per its table; writes; reads
 back; writes `<STEP> DONE`. `jobRow`'s default progress = this pass's (A 70, B 75 / 85) [IA dev 7]. Primitives (IA `_common.js`, renamed):
 `stepOk`, `stepEnd` (2 s x 2^n, max 30 s; after `MAX_RETRIES` 3 -> REQUIRES_REVIEW `IDA_RECONCILIATION_MISMATCH`), `stepWait`
-(not counted), `lockWait` (15 s x 2^n, cap 300 s, attempt + 1, `IDA_LOCK_WAIT`), `reviewEnd`, `failNoWrite` (below). In phase A a step
-that must give up after its retries calls `failNoWrite` itself (never `stepEnd`'s review).
+(not counted), `lockWait` (15 s x 2^n, cap 300 s, attempt + 1, `IDA_LOCK_WAIT`), `reviewEnd`, `failNoWrite` (below), D1's `d1Renumber`
+(`_d1.js`, below). In phase A a step that must give up after its retries calls `failNoWrite` itself (never `stepEnd`'s review).
 
 **"Ours"** [ruling]: the `BATCH_OURS` rows whose (`idaBatchKey(batch_number)`, material_id, plant_id) equals a planned BATCH row's (TYPED:
 its number; AUTO: the D1 intent's number) - re-derived from the table each time it is needed (a 2,000-row map does not fit a step
@@ -520,6 +522,25 @@ part / intent -> no soft-delete (runbook). Counters stay advanced (as the classi
 intents > 0, review > 0, or a DONE summary - the entry's read), every phase-A `failNoWrite` writes REQUIRES_REVIEW
 `IDA_RECONCILIATION_MISMATCH` instead (`error_details.wouldFail` = the code): no unlock, no soft-delete [IA R2, extended to op 2: ruling].
 **Phase B** never unlocks and never fails: its failures are REQUIRES_REVIEW.
+
+**d1Renumber** [user decision 10-22: two overlapping auto-batch completions renumber instead of both failing] (D1 rows 4 / 6 / 10) = when
+EVERY planned number a foreign holder holds is a generated (AUTO) number of this job only (no TYPED row plans it), `entry.attempts <
+IDA_BATCH_RENUMBER_TRIES` (5, COMMIT-own in `_d1.js`), no engine row (R2), and - rows 6 / 10 - the `D1|I|` intent rows read back with
+their ids, or - row 4, no intent and nothing of ours yet [controller ruling 10-22] - every holder's id is greater than the job's (digit
+text, `idaIdAfter`: a concurrent writer; an older holder is a configuration behind, F5, and fails at once; nothing to delete or retire): ours
+`{ id, is_deleted: 1 }` (slices of 250) -> the intent rows `{ id, step_name: "D1|X|<id>", is_deleted: 1 }` (slices of 250, ids from the
+`INTENT` read, filtered in code to `D1|I|`) -> the job row LAST: COMMITTING_IDA, `attempt_count + 1`, `next_attempt_at = db now + wait`, an
+ASYMMETRIC wait [review M1, 10-22: a WORKER kick every 15-18 s would wake two symmetric 5-25 s waits together]: 5 s (`short`) when
+this job's own colliding Batch row (rows 6 / 10: ours holding a taken number) has a lower id than EVERY foreign holder of the taken
+numbers (digit text, `idaIdAfter`; both racing jobs read the same rows, so exactly one goes first), else `20 + floor(random x 11)` s
+(`long`, 20-30 s: row 4, no colliding row of ours, a tie or an unknown id) (`_d1.js` `d1Wait`); `error_code` `IDA_BATCH_RETRY`,
+`error_message` "D1_BATCH: batch number <n> was taken by another document at the same moment - renumbering (try <k> of 5)",
+`error_details` `{ step: "D1_BATCH", why, numbers, wait: <seconds>, waitReason: "short" | "long" }`, progress unchanged, the lease
+released (as `stepEnd`); no unlock (the IDA stays Processing). The next pass has no intent and numbers afresh from a fresh `BNC` read,
+already past the collided numbers (they stay consumed, as the classic leaves a failure's). Crash points: ours deleted, intent present ->
+the next pass plans the OLD numbers again: still held -> row 6 renumbers again, free -> re-inserted and re-checked; intent retired ->
+numbered afresh. A TYPED number taken, or the tries spent: failNoWrite `IDA_BATCH_DUPLICATE` as before.
+D1 DONE then writes `{ id, attempt_count: 0 }` when the count is above 0 and D2 counts from 0 in that pass (§8).
 
 | Step | Ph | Reads | Writes | Decisions (-> outcome) |
 |---|---|---|---|---|
@@ -539,13 +560,13 @@ row's generated number, `insert: false` rows included):
 | 1 | the BATCH part unreadable / a row without kind, key or (TYPED) number | failNoWrite `IDA_INVALID_DATA` |
 | 2 | an intent exists but does not parse | REVIEW `IDA_RECONCILIATION_MISMATCH` |
 | 3 | no intent: AUTO numbers = `idaBatchnum(fresh BNC, BATCH.items, AUTO requests in row order, Date.now())` returns `error`; or (intent) a config the intent names is gone from BNC | failNoWrite `IDA_BATCH_CONFIG` with batchnum's text (or "batch number configuration <id> no longer exists") + ": nothing was moved" (+ ours) |
-| 4 | no intent: a live org Batch row (any item, `BATCH_HOLDERS`) holds a generated number | failNoWrite `IDA_BATCH_DUPLICATE` `IDA_TEXT.batchDuplicate(n)` (GENERATE_BATCH's refusal; config not advanced) |
+| 4 | no intent: a live org Batch row (any item, `BATCH_HOLDERS`) holds a generated number | every holder newer than the job (id > jobId as digit text: a writer that numbered from the same config value), every held number only a generated one and tries left: d1Renumber with nothing to delete or retire (the next pass reads `BNC` fresh) [controller ruling 10-22]; else (an older holder = a configuration behind, F5; a TYPED one; the tries spent) failNoWrite `IDA_BATCH_DUPLICATE` `IDA_TEXT.batchDuplicate(n)` (GENERATE_BATCH's refusal; config not advanced) |
 | 5 | no intent: a live org Batch row holds a TYPED number (taken since SUBMIT) | failNoWrite `IDA_BATCH_DUPLICATE` `IDA_TEXT.typedTaken(label, n)` |
-| 6 | intent exists: a holder that is not ours holds a planned number | failNoWrite `IDA_BATCH_DUPLICATE` `batchDuplicate(n)` (+ ours soft-deleted) |
+| 6 | intent exists: a holder that is not ours holds a planned number | every such number only a generated one of this job and tries left: d1Renumber (ours + the intent retired, due in 5 s or 20-30 s); else failNoWrite `IDA_BATCH_DUPLICATE` `batchDuplicate(n)` (+ ours soft-deleted) |
 | 7 | a planned row with two or more ours | failNoWrite `IDA_BATCH_FAILED` `batchFailed("inserted twice")` (all of them soft-deleted) |
 | 8 | else write: intent (when none) -> each config to its after-state unless it already holds it or has moved past it (a running number never goes back; GR `c1_decide`) -> the planned rows with `insert: true` and no ours (add-node, slices of 250) | - |
 | 9 | read-back: an intent missing, an inserted planned row without its ours, or a config behind its after-state | retry (`stepEnd`); after 3 retries failNoWrite `IDA_BATCH_FAILED` (+ ours soft-deleted) |
-| 10 | **post-insert re-check** [controller ruling 10-21]: any OTHER live org Batch row (not ours; compared as `utf8mb4_general_ci` = `idaBatchKey`) holds one of our numbers | failNoWrite `IDA_BATCH_DUPLICATE` `batchDuplicate(n)` (+ ours soft-deleted; nothing moved; the next click gets new numbers) |
+| 10 | **post-insert re-check** [controller ruling 10-21]: any OTHER live org Batch row (not ours; compared as `utf8mb4_general_ci` = `idaBatchKey`) holds one of our numbers | every such number only a generated one of this job and tries left (the live race of 10-21, Batch-00641): d1Renumber; else (a TYPED number, or 5 tries spent) failNoWrite `IDA_BATCH_DUPLICATE` `batchDuplicate(n)` (+ ours soft-deleted; nothing moved; the next click gets new numbers) |
 | 11 | re-PLAN op 2 (`mode PLAN`, `IDC|<jobId>|R`, every R with `batch_id` = `oursByKey[batch_key]`, `unit_price 0`) - skipped when no planned row inserts [ruling]: 200 with every R `"200"` | D1 DONE `{"rows","inserted","adopted"}` |
 | 12 | re-PLAN: an R result not `"200"` | failNoWrite `IDA_PLAN_SKIPPED` (LABELS-mapped + ": nothing was moved.") (+ ours) |
 | 13 | re-PLAN: 400 with a result_code | failNoWrite `IDA_INVENTORY_<result_code>` (+ ours) |
@@ -589,9 +610,10 @@ request; the cleared `error_details` opens a fresh 30-minute window). (4) Dev: t
 | IDA_PLAN_FAILED / IDA_PLAN_BROKEN | PREPARE; COMMIT D1 (FAILED) | FAILED | `planFailed(why)` "The completion could not be prepared: <why>" (BROKEN = an internal invariant broke) |
 | IDA_INVENTORY_<engine code> | PREPARE PLAN 400; COMMIT D1 re-PLAN / D2 400 | FAILED | the LABELS-mapped engine message, e.g. "Insufficient quantity - source pick 1 (FG-0001), bin A1-B2 (Unrestricted)" |
 | IDA_INVENTORY_LOCK_BUSY | COMMIT D2 | FAILED | `lockBusy` "The stock of the item being disassembled stayed locked by another operation: nothing was moved, please try again later." |
-| IDA_BATCH_DUPLICATE | PREPARE; COMMIT D1 | FAILED | generated / race: `batchDuplicate(n)` "Duplicate Batch Format found. (batch number <n>) Nothing was moved."; typed: `typedTaken(label, n)` "<label>: Batch No <n> already exists. Nothing was moved." with `code_validate`'s label `'Line ' + i + ' (' + (item_name or item_selection or '-') + ')'`, i = the line's 1-based position in line order |
+| IDA_BATCH_DUPLICATE | PREPARE; COMMIT D1 | FAILED | generated / race: `batchDuplicate(n)` "Duplicate Batch Format found. (batch number <n>) Nothing was moved." (D1 row 4: a holder older than the job; rows 4 / 6 / 10: a typed number taken, or after 5 renumber tries; else a generated one renumbers, `IDA_BATCH_RETRY`); typed: `typedTaken(label, n)` "<label>: Batch No <n> already exists. Nothing was moved." with `code_validate`'s label `'Line ' + i + ' (' + (item_name or item_selection or '-') + ')'`, i = the line's 1-based position in line order |
 | IDA_BATCH_FAILED | COMMIT D1 | FAILED | `batchFailed(why)` "The Batch rows of the recovered items could not be created (<why>): nothing was moved, please complete it again." [ruling] |
 | IDA_RECEIPT_COUNT_MISMATCH / IDA_RECEIPT_REFUSED / IDA_RECEIPT_TIMEOUT | COMMIT D3 | REQUIRES_REVIEW | `review` (details: stored rows vs op 1's code-200 results, or op 1 skipped a source pick ('401', nothing issued) [final review M3] / the engine answer / waited 1,800 s) |
+| IDA_BATCH_RETRY | COMMIT D1 (rows 4 / 6 / 10) | transient (job COMMITTING_IDA, due in 5 s when its own colliding row is the oldest, else 20-30 s) | "D1_BATCH: batch number <n> was taken by another document at the same moment - renumbering (try <k> of 5)" (error_message; the progress message unchanged) |
 | IDA_LOCK_WAIT, IDA_STEP_RETRY, IDA_WAIT, IDA_TRANSIENT | COMMIT / WORKER | transient (job open) | progress_message only |
 | IDA_TRANSIENT_RETRIES_EXHAUSTED | WORKER | FAILED | `notCompleted` "Temporary failures persisted; not completed." |
 | IDA_RECONCILIATION_MISMATCH | COMMIT / WORKER | REQUIRES_REVIEW | `review` "Under review: the completion stopped half-way. Please contact support." |
@@ -633,15 +655,16 @@ Not changed: the GENERATE_BATCH loop and its Redis array, the blank Batch row pe
 - **Handlers:** one source `client/src/idaV2_onClick_completed.js` (template `tpl/iav2/client/src/iaV2_onClick_completed.js`) built into
   `idaV2_onClick_completed` (POST false, classic `onClick_saveAsCompleted`, key `iasvcomp`) bound to `button_completed` (`dxpzlyqp`) and
   `idaV2_onClick_completed_post` (POST true, classic `onClick_saveAsCompletedPost`, `aymq6q8z`) bound to `comp_post_button` (`lnfr8gna`).
-  New event keys: 8 of `[a-z0-9]`, unique in the form. The classic handlers stay byte-identical (rollback = rebind).
+  New event keys: 8 of `[a-z0-9]`, unique in the form. The classic handlers stay byte-identical but for the BOM-dialog escape
+  (10-22; rollback = rebind).
 - **Route:** V2 when `ASYNC_IDA_ENABLED`, the action is ON (`COMPLETE` for Completed; `COMPLETE_POST` or, when it is OFF, `COMPLETE`
   for the post button), both workflow ids set (SUBMIT, WORKER), the page is Add / Clone or an Edit of a stored Draft, moves >
   `IDA_V2_MIN_MOVES` (§1, no item read), no HU (`idaHasHu`) and no serial pick (`idaPickHasSerial`). Anything else, an exception before
   SUBMIT, a NOT_ELIGIBLE or INVALID answer -> `this.triggerEvent(<classic>)`, once. The V2 path first runs IDA's own `validateForSave`
   (a bare `this.validate()` would send every dialog-picked IDA to the classic) and `confirmBomVariance`, both copied from `iasvcomp`:
   `validateForSave` verbatim, `confirmBomVariance` verbatim except its three names HTML-escaped (`idaEscHtml`: the line's item name,
-  the removed component's name / code, the BOM version - the dialog renders HTML) [security review 10-21; the classic handlers stay
-  byte-identical and unescaped] (Cancel ends the click; a NOT_ELIGIBLE fallback shows the classic's confirm again - accepted).
+  the removed component's name / code, the BOM version - the dialog renders HTML) [security review 10-21; since 10-22 the classic
+  handlers carry the same three escapes (user decision), otherwise byte-identical] (Cancel ends the click; a NOT_ELIGIBLE fallback shows the classic's confirm again - accepted).
 - **NOT_RECORD** (real payloads: dev runs 2110921351171846145, 2108127883327025153): `ida_v2_job_id`, `ida_idem_key`, `_data`, `$_v`,
   `_vts`, `isTrusted`, `sm_item_balance`, `button_draft`, `button_completed`, `comp_post_button`, `button_post`, `button_kdsxzl2q`,
   `draft_status`, `issued_status`, `completed_status`, `fullyposted_status`, `processing_status`, `flex_2det1nd2`, `flex_t6y2yh5r`,
@@ -676,7 +699,7 @@ Not changed: the GENERATE_BATCH loop and its Redis array, the blank Batch row pe
   stored status before deleting; Post (`ee9v0c1h`) and the form's `onClick_post` (`e9ib2r8i`) re-read the STORED status / posted_status
   and post only Completed + Unposted / Failed Post / blank [IA R3]; the Status badge already has Processing.
 - **Builds:** OFF (default) = live v35 / v16 + the fields, the Processing UI, the explode fixes, the guards; every save handler
-  byte-identical. `--on[=COMPLETE,COMPLETE_POST]` flips the switches and refuses while `ids.json` holds "0" for SUBMIT / WORKER. Rollback:
+  byte-identical but the classic Completed / Complete & Post BOM-dialog escape (10-22). `--on[=COMPLETE,COMPLETE_POST]` flips the switches and refuses while `ids.json` holds "0" for SUBMIT / WORKER. Rollback:
   bind the two buttons back to `iasvcomp` / `aymq6q8z`. Publish order: form + list (OFF) + IDA_SAVE v7, then PREPARE -> COMMIT -> WORKER ->
   SUBMIT, then the ON client. The form publish (it creates `ida_v2_job_id` / `ida_idem_key` and labels `Processing`) precedes any V2 write.
 

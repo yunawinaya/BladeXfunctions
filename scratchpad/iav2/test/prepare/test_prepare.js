@@ -398,6 +398,17 @@ section("entry");
       ["REQUIRES_REVIEW", "IA_PREV_STATUS_UNKNOWN", [], ["sql_node_IPback", "sql_node_IPjob"]]);
   };
   review("prevStatus Completed", (s) => (s.request.prevStatus = "Completed"));
+  // RES-01 Created (BA, 10-22): a Created IA's job (prevStatus Created) is prepared like a Draft's; a refused plan puts it back to Created
+  {
+    const cs = JSON.parse(JSON.stringify(okd.spec));
+    cs.request.prevStatus = "Created";
+    eq("prevStatus Created: READY_TO_COMMIT", L.runPrepare(cs).returned.job_status, "READY_TO_COMMIT");
+    const cf = JSON.parse(JSON.stringify(okd.spec));
+    cf.request.prevStatus = "Created";
+    [1, 2].forEach((n) => itemsWith(n, { stock_control: 0 })(cf));
+    const r = L.runPrepare(cf);
+    eq("prevStatus Created + a refused plan: FAILED, the IA back to Created", [r.failed && r.failed.job_status, r.unlocks], ["FAILED", [{ id: S.IA, item_assembly_status: "Created" }]]);
+  }
   review("an unreadable request", (s) => (s.job = { request_payload: "{not json" }));
   const unlinked = (label, linked, unlock) => {
     const spec = JSON.parse(JSON.stringify(okd.spec));

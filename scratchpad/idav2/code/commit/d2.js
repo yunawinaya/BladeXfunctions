@@ -5,7 +5,9 @@
 // without a result_code -> op 1 intent rows ? retry (review once spent) : 8 lock waits then FAILED IDA_INVENTORY_LOCK_BUSY; 400 with a
 // result_code -> FAILED (LABELS-worded); 500 or anything else -> REQUIRES_REVIEW. A FAILED exit reads ours (BATCH part + intent +
 // BATCH_OURS) and soft-deletes them after the unlock
-const commitD2 = function commitD2(entry, guard, input, ans, ops, labelRows) {
+const commitD2 = function commitD2(entry0, guard, input, ans, ops, labelRows) {
+  // D1 DONE in this pass reset the count (D1's write): the lock waits count from 0
+  const entry = s(entry0.needD1) === "YES" ? Object.assign({}, entry0, { attempts: 0 }) : entry0;
   const hand = { splitRows: [], needSplit: "NO", path: "" };
   const fail = (code, message, why) => {
     const f = failNoWrite(entry, code, message, why, []);

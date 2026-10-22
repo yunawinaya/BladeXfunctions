@@ -22,6 +22,155 @@
 // Note table_so's field names are inverted: item_name holds the item's id.
 // ===========================================================================
 
+// ============================================================================
+// V2 data layer (10-22): the stock facts of the picked lines from GD_STOCK_CHECK, as Convert to GD reads them
+// (gdV2_func_processGDLineItem, copied from it byte for byte); the old reads below stay as the fallback.
+// ============================================================================
+const GD_V2_WF = {
+  STOCK_CHECK: "2105663605526925314", // GD_STOCK_CHECK
+};
+const UXC = { stock_chunk: 50 };
+const gdV2StockRequests = function gdV2StockRequests(items) {
+  const s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
+  const real = (x) => s(x) !== "" && s(x) !== "null" && s(x) !== "undefined";
+  const list = Array.isArray(items) ? items : [];
+  const out = [];
+  for (let i = 0; i < list.length; i += UXC.stock_chunk) {
+    const chunk = list.slice(i, i + UXC.stock_chunk);
+    const mats = {};
+    const lines = {};
+    for (const it of chunk) {
+      const m = it ? (it.itemId !== undefined ? it.itemId : it.material_id) : "";
+      if (real(m)) mats[s(m)] = true;
+      if (it && real(it.so_line_item_id)) lines[s(it.so_line_item_id)] = true;
+    }
+    const mk = Object.keys(mats);
+    const lk = Object.keys(lines);
+    if (mk.length || lk.length) out.push({ material_ids: mk.join(","), so_line_ids: lk.join(","), line_count: chunk.length });
+  }
+  return out;
+};
+
+const gdV2MergeFacts = function gdV2MergeFacts(list) {
+  const out = { items: {}, balances: { regular: {}, batch: {}, serial: {} }, batches: {}, reserved: {}, hu: {}, bins: {} };
+  const add = (bucket, row) => {
+    if (row && row.id !== undefined && row.id !== null && String(row.id) !== "") bucket[String(row.id)] = row;
+  };
+  for (const f of Array.isArray(list) ? list : []) {
+    if (!f) continue;
+    for (const i of f.items || []) add(out.items, i);
+    for (const k of ["regular", "batch", "serial"]) for (const b of (f.balances || {})[k] || []) add(out.balances[k], b);
+    for (const b of f.batches || []) add(out.batches, b);
+    for (const r of f.reserved || []) add(out.reserved, r);
+    for (const h of f.hu || []) out.hu[String(h)] = true;
+    for (const b of f.bins || []) add(out.bins, b);
+  }
+  const values = (o) => Object.keys(o).map((k) => o[k]);
+  return { items: values(out.items), balances: { regular: values(out.balances.regular), batch: values(out.balances.batch), serial: values(out.balances.serial) }, batches: values(out.batches), reserved: values(out.reserved), hu: Object.keys(out.hu), bins: values(out.bins) };
+};
+
+// The delivery's organization: the form's own field, else the session's (deptIds; "0" = tenant level -> deptParentId).
+const gdV2Org = () => {
+  let organizationId = String(this.getValue("organization_id") || "");
+  if (!organizationId) {
+    organizationId = String(this.getVarSystem("deptIds") || "").split(",")[0];
+    if (organizationId === "0") organizationId = String(this.getVarGlobal("deptParentId") || "");
+  }
+  return organizationId;
+};
+
+// One workflow call as a promise that always settles: { ok: true, data } on an answer with data; { ok: false, error }
+// on the error callback or an answer without data (a failed instance - e.g. the losing twin of the submit's unique
+// insert, which ends its run: engine fact F5).
+const gdV2Call = (workflowId, params) =>
+  new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        workflowId,
+        params,
+        (res) => {
+          console.log("GD V2: workflow " + workflowId + " answered", res);
+          resolve(res && res.data ? { ok: true, data: res.data } : { ok: false, error: "the answer carries no data" });
+        },
+        (err) => {
+          console.error("GD V2: workflow " + workflowId + " failed", err);
+          resolve({ ok: false, error: (err && (err.message || err.msg)) || String(err) });
+        },
+      );
+    } catch (e) {
+      console.error("GD V2: workflow " + workflowId + " could not be called", e);
+      resolve({ ok: false, error: e.message || String(e) });
+    }
+  });
+
+const isRealId = (id) =>
+  id !== null &&
+  id !== undefined &&
+  id !== "" &&
+  id !== "null" &&
+  id !== "undefined";
+const realIds = (ids) => [...new Set((ids || []).filter(isRealId))];
+
+let gdV2FactsPromise = null;
+const gdV2FactsMaps = (merged) => {
+  const group = (rows, key) => {
+    const m = new Map();
+    (rows || []).forEach((r) => {
+      const k = String(r[key]);
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(r);
+    });
+    return m;
+  };
+  return {
+    items: new Map((merged.items || []).map((i) => [String(i.id), i])),
+    balances: { serial: group(merged.balances.serial, "material_id"), batch: group(merged.balances.batch, "material_id"), regular: group(merged.balances.regular, "material_id") },
+    batches: group(merged.batches, "material_id"),
+    reserved: group(merged.reserved, "parent_line_id"),
+    hu: new Set((merged.hu || []).map(String)),
+    bins: new Map((merged.bins || []).map((b) => [String(b.id), b])),
+    calls: merged.calls || 0,
+  };
+};
+const gdV2LoadStockFacts = (items, plantId) => {
+  if (gdV2FactsPromise) return gdV2FactsPromise;
+  gdV2FactsPromise = (async () => {
+    const requests = gdV2StockRequests(items || []);
+    const organizationId = gdV2Org();
+    const plant = String(plantId || this.getValue("plant_id") || "");
+    const facts = [];
+    let failed = isRealId(plant) ? "" : "no plant selected";
+    // at most 4 calls in flight at a time (bounded load; the wall time of 500 lines is about
+    // ceil(10 / 4) call durations instead of 10)
+    for (let i = 0; i < requests.length && !failed; i += 4) {
+      const wave = requests.slice(i, i + 4);
+      const answers = await Promise.all(wave.map((r) => gdV2Call(GD_V2_WF.STOCK_CHECK, { organization_id: organizationId, plant_id: plant, material_ids: r.material_ids, so_line_ids: r.so_line_ids })));
+      for (const res of answers) {
+        if (failed) break;
+        if (!res.ok) failed = res.error;
+        else if (res.data.result_code) failed = res.data.result_code + ": " + res.data.result_message;
+        else {
+          try {
+            facts.push(JSON.parse(res.data.facts || "{}"));
+          } catch (e) {
+            failed = "the stock facts are not readable";
+          }
+        }
+      }
+    }
+    if (failed) {
+      console.error("GD V2 stock check failed:", failed);
+      return Object.assign(gdV2FactsMaps(gdV2MergeFacts([])), { failed: failed });
+    }
+    console.log("GD V2 stock check: " + requests.length + " GD_STOCK_CHECK call(s) for " + (items || []).length + " line(s)");
+    return gdV2FactsMaps(Object.assign(gdV2MergeFacts(facts), { calls: requests.length }));
+  })();
+  return gdV2FactsPromise;
+};
+
+// The facts of this Batch Add; a loader called before they were loaded reads the old way.
+const gdV2Facts = () => gdV2FactsPromise || Promise.resolve({ failed: "the stock facts were not loaded" });
+
 // A picked entry that is a bundle rather than an item.
 const isBundleParentItem = (item) =>
   !item.itemId &&
@@ -210,12 +359,10 @@ const rebuildTree = (rows, flat, refs) => {
 // BATCH QUERY HELPER FUNCTIONS
 // ============================================================================
 
-const batchFetchItems = async (materialIds) => {
+const legacyBatchFetchItems = async (materialIds) => {
   if (!materialIds || materialIds.length === 0) return new Map();
   const uniqueIds = [
-    ...new Set(
-      materialIds.filter((id) => id && id !== "undefined" && id !== "null"),
-    ),
+    ...new Set(materialIds.filter((id) => id && id !== "undefined" && id !== "null")),
   ];
   if (uniqueIds.length === 0) return new Map();
 
@@ -258,15 +405,27 @@ const batchFetchItems = async (materialIds) => {
   }
 };
 
-const batchFetchBalanceData = async (materialIds, plantId) => {
+const batchFetchItems = async (materialIds) => {
+  const facts = await gdV2Facts();
+  if (facts.failed) return legacyBatchFetchItems(materialIds);
+  const itemMap = new Map();
+  realIds(materialIds).forEach((id) => {
+    const item = facts.items.get(String(id));
+    if (item) itemMap.set(item.id, item);
+  });
+  const missing = realIds(materialIds).filter((id) => !itemMap.has(String(id)));
+  if (missing.length) (await legacyBatchFetchItems(missing)).forEach((item, id) => itemMap.set(id, item));
+  console.log(`GD V2: ${itemMap.size} items from GD_STOCK_CHECK (${missing.length} read the old way)`);
+  return itemMap;
+};
+
+const legacyBatchFetchBalanceData = async (materialIds, plantId) => {
   if (!materialIds || materialIds.length === 0) {
     return { serial: new Map(), batch: new Map(), regular: new Map() };
   }
 
   const uniqueIds = [
-    ...new Set(
-      materialIds.filter((id) => id && id !== "undefined" && id !== "null"),
-    ),
+    ...new Set(materialIds.filter((id) => id && id !== "undefined" && id !== "null")),
   ];
   if (uniqueIds.length === 0) {
     return { serial: new Map(), batch: new Map(), regular: new Map() };
@@ -361,6 +520,20 @@ const batchFetchBalanceData = async (materialIds, plantId) => {
   }
 };
 
+const batchFetchBalanceData = async (materialIds, plantId) => {
+  const facts = await gdV2Facts();
+  if (facts.failed) return legacyBatchFetchBalanceData(materialIds, plantId);
+  const pick = (source) => {
+    const m = new Map();
+    realIds(materialIds).forEach((id) => {
+      const rows = source.get(String(id));
+      if (rows && rows.length) m.set(String(id), rows);
+    });
+    return m;
+  };
+  return { serial: pick(facts.balances.serial), batch: pick(facts.balances.batch), regular: pick(facts.balances.regular) };
+};
+
 const fetchPickingSetup = async (plantId) => {
   try {
     const response = await db
@@ -395,13 +568,9 @@ const fetchPickingSetup = async (plantId) => {
   }
 };
 
-const batchFetchBinLocations = async (locationIds) => {
+const legacyBatchFetchBinLocations = async (locationIds) => {
   if (!locationIds || locationIds.length === 0) return new Map();
-  const uniqueIds = [
-    ...new Set(
-      locationIds.filter((id) => id && id !== "undefined" && id !== "null"),
-    ),
-  ];
+  const uniqueIds = [...new Set(locationIds.filter((id) => id && id !== "undefined" && id !== "null"))];
   if (uniqueIds.length === 0) return new Map();
 
   try {
@@ -435,12 +604,21 @@ const batchFetchBinLocations = async (locationIds) => {
   }
 };
 
-const batchFetchBatchData = async (materialIds, plantId) => {
+const batchFetchBinLocations = async (locationIds) => {
+  const facts = await gdV2Facts();
+  if (facts.failed) return legacyBatchFetchBinLocations(locationIds);
+  const binMap = new Map();
+  realIds(locationIds).forEach((id) => {
+    const bin = facts.bins.get(String(id));
+    if (bin) binMap.set(bin.id, bin);
+  });
+  return binMap;
+};
+
+const legacyBatchFetchBatchData = async (materialIds, plantId) => {
   if (!materialIds || materialIds.length === 0) return new Map();
   const uniqueIds = [
-    ...new Set(
-      materialIds.filter((id) => id && id !== "undefined" && id !== "null"),
-    ),
+    ...new Set(materialIds.filter((id) => id && id !== "undefined" && id !== "null")),
   ];
   if (uniqueIds.length === 0) return new Map();
 
@@ -479,13 +657,22 @@ const batchFetchBatchData = async (materialIds, plantId) => {
   }
 };
 
+const batchFetchBatchData = async (materialIds, plantId) => {
+  const facts = await gdV2Facts();
+  if (facts.failed) return legacyBatchFetchBatchData(materialIds, plantId);
+  const batchMap = new Map();
+  realIds(materialIds).forEach((id) => {
+    const rows = facts.batches.get(String(id));
+    if (rows && rows.length) batchMap.set(String(id), rows);
+  });
+  return batchMap;
+};
+
 // 🔧 NEW: Batch fetch pending reserved data for all SO line items
-const batchFetchPendingReserved = async (soLineItemIds, plantId) => {
+const legacyBatchFetchPendingReserved = async (soLineItemIds, plantId) => {
   if (!soLineItemIds || soLineItemIds.length === 0) return new Map();
   const uniqueIds = [
-    ...new Set(
-      soLineItemIds.filter((id) => id && id !== "undefined" && id !== "null"),
-    ),
+    ...new Set(soLineItemIds.filter((id) => id && id !== "undefined" && id !== "null")),
   ];
   if (uniqueIds.length === 0) return new Map();
 
@@ -522,6 +709,17 @@ const batchFetchPendingReserved = async (soLineItemIds, plantId) => {
     console.error("Error batch fetching pending reserved data:", error);
     return new Map();
   }
+};
+
+const batchFetchPendingReserved = async (soLineItemIds, plantId) => {
+  const facts = await gdV2Facts();
+  if (facts.failed) return legacyBatchFetchPendingReserved(soLineItemIds, plantId);
+  const reservedMap = new Map();
+  realIds(soLineItemIds).forEach((id) => {
+    const rows = facts.reserved.get(String(id));
+    if (rows && rows.length) reservedMap.set(String(id), rows);
+  });
+  return reservedMap;
 };
 
 // Helper function to convert quantity from alt UOM to base UOM
@@ -639,6 +837,8 @@ const checkInventoryWithDuplicates = async (
 
   // Fetch HU sub-items to check which materials have handling units
   const fetchHUData = async () => {
+    const facts = await gdV2Facts();
+    if (!facts.failed) return new Set(materialIds.filter((id) => facts.hu.has(String(id))));
     const huResults = await Promise.all(
       materialIds.map((id) =>
         db
@@ -802,7 +1002,7 @@ const checkInventoryWithDuplicates = async (
           material_name: item.itemName,
           gd_material_desc: item.sourceItem.so_desc || "",
           gd_order_quantity: orderedQty,
-          gd_delivered_qty: deliveredQty + undeliveredQty,
+          gd_delivered_qty: (deliveredQty + undeliveredQty),
           gd_initial_delivered_qty: deliveredQty,
           gd_order_uom_id: item.altUOM,
           good_delivery_uom_id: item.altUOM,
@@ -817,7 +1017,7 @@ const checkInventoryWithDuplicates = async (
           total_price: item.sourceItem.so_amount || 0,
           item_costing_method: itemData.material_costing_method,
           gd_qty: suggestedQty,
-          base_qty: convertToBaseUOM(suggestedQty, item.altUOM, itemData),
+          base_qty: (convertToBaseUOM(suggestedQty, item.altUOM, itemData)),
           gd_undelivered_qty: 0,
         };
 
@@ -919,9 +1119,8 @@ const checkInventoryWithDuplicates = async (
     // Calculate total demand (only unplanned portion needs stock)
     let totalDemandBase = 0;
     items.forEach((item) => {
-      const undeliveredQty =
-        (parseFloat(item.orderedQty) || 0) -
-        (parseFloat(item.deliveredQtyFromSource) || 0);
+      const undeliveredQty = (parseFloat(item.orderedQty) || 0) -
+          (parseFloat(item.deliveredQtyFromSource) || 0);
       const plannedQty = parseFloat(item.plannedQtyFromSource) || 0;
       const remainingDemandQty = Math.max(0, undeliveredQty - plannedQty);
       let remainingDemandQtyBase = remainingDemandQty;
@@ -985,26 +1184,10 @@ const checkInventoryWithDuplicates = async (
           const undeliveredQty = orderedQty - deliveredQty;
           const remainingDemandQty = Math.max(0, undeliveredQty - plannedQty);
 
-          const orderedQtyBase = convertToBaseUOM(
-            orderedQty,
-            item.altUOM,
-            itemData,
-          );
-          const deliveredQtyBase = convertToBaseUOM(
-            deliveredQty,
-            item.altUOM,
-            itemData,
-          );
-          const undeliveredQtyBase = convertToBaseUOM(
-            undeliveredQty,
-            item.altUOM,
-            itemData,
-          );
-          const remainingDemandQtyBase = convertToBaseUOM(
-            remainingDemandQty,
-            item.altUOM,
-            itemData,
-          );
+          const orderedQtyBase = convertToBaseUOM(orderedQty, item.altUOM, itemData);
+          const deliveredQtyBase = convertToBaseUOM(deliveredQty, item.altUOM, itemData);
+          const undeliveredQtyBase = convertToBaseUOM(undeliveredQty, item.altUOM, itemData);
+          const remainingDemandQtyBase = convertToBaseUOM(remainingDemandQty, item.altUOM, itemData);
 
           let availableQtyBase = 0;
           if (remainingSerialCount > 0 && remainingDemandQtyBase > 0) {
@@ -1025,7 +1208,7 @@ const checkInventoryWithDuplicates = async (
             undelivered_qty: undeliveredQtyBase,
             remaining_demand_qty: remainingDemandQtyBase,
             available_qty: availableQtyBase,
-            shortfall_qty: remainingDemandQtyBase - availableQtyBase,
+            shortfall_qty: (remainingDemandQtyBase - availableQtyBase),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -1076,8 +1259,7 @@ const checkInventoryWithDuplicates = async (
             const uomConversion = itemData.table_uom_conversion?.find(
               (conv) => conv.alt_uom_id === item.altUOM,
             );
-            availableQtyAlt =
-              item.altUOM !== itemData.based_uom
+            availableQtyAlt = item.altUOM !== itemData.based_uom
                 ? allocatedBase / (uomConversion?.base_qty || 1)
                 : allocatedBase;
 
@@ -1093,7 +1275,7 @@ const checkInventoryWithDuplicates = async (
             undelivered_qty: undeliveredQty,
             remaining_demand_qty: remainingDemandQty,
             available_qty: availableQtyAlt,
-            shortfall_qty: remainingDemandQty - availableQtyAlt,
+            shortfall_qty: (remainingDemandQty - availableQtyAlt),
             fm_key:
               Date.now().toString(36) + Math.random().toString(36).substr(2, 5),
           });
@@ -1136,21 +1318,9 @@ const checkInventoryWithDuplicates = async (
         } else {
           if (itemData.serial_number_management === 1) {
             // Serialized - use base UOM
-            const orderedQtyBase = convertToBaseUOM(
-              orderedQty,
-              item.altUOM,
-              itemData,
-            );
-            const deliveredQtyBase = convertToBaseUOM(
-              deliveredQty,
-              item.altUOM,
-              itemData,
-            );
-            const finalQtyBase = convertToBaseUOM(
-              finalQty,
-              item.altUOM,
-              itemData,
-            );
+            const orderedQtyBase = convertToBaseUOM(orderedQty, item.altUOM, itemData);
+            const deliveredQtyBase = convertToBaseUOM(deliveredQty, item.altUOM, itemData);
+            const finalQtyBase = convertToBaseUOM(finalQty, item.altUOM, itemData);
 
             flatRows[index] = {
               ...flatRows[index],
@@ -1173,15 +1343,16 @@ const checkInventoryWithDuplicates = async (
           } else {
             // Non-serialized - fill gd_qty only (allocation deferred to workflow)
             if (pickingMode === "Manual") {
-              flatRows[index].gd_qty = balanceData.length === 1 ? finalQty : 0;
+              flatRows[index].gd_qty =
+                balanceData.length === 1 ? finalQty : 0;
             } else {
               flatRows[index].gd_qty = finalQty;
             }
             flatRows[index].base_qty = convertToBaseUOM(
-              flatRows[index].gd_qty,
-              item.altUOM,
-              itemData,
-            );
+                flatRows[index].gd_qty,
+                item.altUOM,
+                itemData,
+              );
           }
         }
       });
@@ -1229,18 +1400,19 @@ const checkInventoryWithDuplicates = async (
         soWeightConversion !== null &&
         soWeightConversion !== ""
           ? Number(soWeightConversion)
-          : (Number(rowItemData?.net_weight) || 0) * baseQty;
+          : ((Number(rowItemData?.net_weight) || 0) * baseQty);
 
       flatRows[index] = {
         ...row,
         packing_uom: packingDetail?.packing_uom_id || "",
         packing_conversion: packingConversion,
-        packing_qty: packingConversion ? qty / packingConversion : 0,
+        packing_qty: packingConversion ? (qty / packingConversion) : 0,
         weight_conversion: weightConversion,
-        net_weight: qty * weightConversion,
+        net_weight: (qty * weightConversion),
       };
     }
   }
+
 
   // An item bundle is delivered as a whole. The bundle row's quantity is the
   // number of bundles going out, and every item under it follows from that by
@@ -1285,9 +1457,8 @@ const checkInventoryWithDuplicates = async (
       const row = flatRows[index] || {};
       // gd_delivered_qty is what the source has already delivered, so this is
       // the number of bundles still to go out.
-      const outstanding =
-        (parseFloat(row.gd_order_quantity) || 0) -
-        (parseFloat(row.gd_delivered_qty) || 0);
+      const outstanding = (parseFloat(row.gd_order_quantity) || 0) -
+          (parseFloat(row.gd_delivered_qty) || 0);
 
       flatRows[index] = { ...row, gd_qty: outstanding };
       bundlePaths.push(path);
@@ -1373,6 +1544,7 @@ if (!window.globalAllocationTracker) {
 // ============================================================================
 
 const createTableGdWithBaseUOM = async (allItems) => {
+
   // A bundle row has no item behind it, so the fields that would describe one --
   // item category, tariff, unit of measure -- come back empty from the sales
   // order. Those columns are id-typed, and the server rejects a null on one with
@@ -1409,7 +1581,9 @@ const createTableGdWithBaseUOM = async (allItems) => {
   // leaving its stock fields empty, which is what a bundle row should carry.
   const buildRow = async (item) => {
     let itemData = null;
-    if (item.itemId) {
+    const facts = item.itemId ? await gdV2Facts() : null;
+    if (facts && !facts.failed) itemData = facts.items.get(String(item.itemId)) || null;
+    if (item.itemId && !itemData) {
       try {
         const res = await db
           .collection("Item")
@@ -1439,7 +1613,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_material_desc: item.itemDesc || "",
         gd_order_quantity: orderedQtyBase,
         gd_delivered_qty: deliveredQtyBase,
-        gd_undelivered_qty: orderedQtyBase - deliveredQtyBase,
+        gd_undelivered_qty:
+          (orderedQtyBase - deliveredQtyBase),
         gd_order_uom_id: itemData.based_uom,
         good_delivery_uom_id: itemData.based_uom,
         unit_price: item.sourceItem.so_item_price || 0,
@@ -1470,7 +1645,8 @@ const createTableGdWithBaseUOM = async (allItems) => {
         gd_material_desc: item.itemDesc || "",
         gd_order_quantity: item.orderedQty,
         gd_delivered_qty: item.deliveredQtyFromSource,
-        gd_undelivered_qty: item.orderedQty - item.sourceItem.delivered_qty,
+        gd_undelivered_qty:
+          (item.orderedQty - item.sourceItem.delivered_qty),
         gd_order_uom_id: item.altUOM,
         good_delivery_uom_id: item.altUOM,
         unit_price: item.sourceItem.so_item_price || 0,
@@ -1727,35 +1903,38 @@ const createTableGdWithBaseUOM = async (allItems) => {
     }
   }
 
-  allItems = allItems.filter((gd) => {
-    const alreadyAdded = existingGD.some(
-      (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id,
-    );
+  allItems = allItems.filter(
+    (gd) => {
+        const alreadyAdded = existingGD.some(
+            (gdItem) => gdItem.so_line_item_id === gd.so_line_item_id,
+        );
 
-    if (alreadyAdded) {
-      return false;
+        if (alreadyAdded) {
+            return false;
+        }
+
+        const bundleChildren = Array.isArray(gd.bundleChildren) ? gd.bundleChildren : [];
+
+        if(bundleChildren.length > 0) {
+            const allChildrenCompleted = bundleChildren.every((child) => {
+                const orderedQty = parseFloat(child.orderedQty || 0);
+                const deliveredQty = parseFloat(child.deliveredQtyFromSource || 0);
+                return deliveredQty >= orderedQty;
+            });
+            return !allChildrenCompleted;
+        }
+
+        const orderedQty = parseFloat(gd.orderedQty || 0);
+        const deliveredQty = parseFloat(gd.deliveredQtyFromSource || 0);
+        return deliveredQty < orderedQty;
     }
-
-    const bundleChildren = Array.isArray(gd.bundleChildren)
-      ? gd.bundleChildren
-      : [];
-
-    if (bundleChildren.length > 0) {
-      const allChildrenCompleted = bundleChildren.every((child) => {
-        const orderedQty = parseFloat(child.orderedQty || 0);
-        const deliveredQty = parseFloat(child.deliveredQtyFromSource || 0);
-        return deliveredQty >= orderedQty;
-      });
-      return !allChildrenCompleted;
-    }
-
-    const orderedQty = parseFloat(gd.orderedQty || 0);
-    const deliveredQty = parseFloat(gd.deliveredQtyFromSource || 0);
-    return deliveredQty < orderedQty;
-  });
+  );
 
   console.log("allItems after filter", allItems);
 
+  // V2: every stock fact of the picked lines (bundle items too), one GD_STOCK_CHECK call per <= 50 lines
+  gdV2FactsPromise = null;
+  await gdV2LoadStockFacts(flattenAllItems(allItems), this.getValue("plant_id"));
   let newTableGd = await createTableGdWithBaseUOM(allItems);
 
   const latestTableGD = [...existingGD, ...newTableGd];

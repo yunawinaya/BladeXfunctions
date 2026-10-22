@@ -1,0 +1,18 @@
+{
+ "_": "RES-01 Cancel (user 10-22): IA_SAVE's stored-status guard (code_node_IAguardStored) refuses any save of a Cancelled IA with 409; applied by classic/patch_v13.py, reverted in its identity check",
+ "node": "code_node_IAguardStored",
+ "pairs": [
+  {
+   "was": "const iaGuardBig = !iaGuardBusy && !iaGuardFinal && iaS(iaGuardOut.big) === \"YES\";",
+   "now": "// RES-01 Cancel (user 10-22): a Cancelled IA can no longer be changed (any save is refused)\nconst iaGuardCancelled = !iaGuardBusy && iaGuardStored === \"Cancelled\";\nconst iaGuardBig = !iaGuardBusy && !iaGuardFinal && !iaGuardCancelled && iaS(iaGuardOut.big) === \"YES\";"
+  },
+  {
+   "was": "  refuse409: iaGuardFinal ? \"YES\" : \"NO\",",
+   "now": "  refuse409: iaGuardFinal || iaGuardCancelled ? \"YES\" : \"NO\","
+  },
+  {
+   "was": "  message: iaGuardBusy ? IA_TEXT.busy : iaGuardFinal ?",
+   "now": "  message: iaGuardBusy ? IA_TEXT.busy : iaGuardCancelled ? \"This Item Assembly is cancelled: it can no longer be changed.\" : iaGuardFinal ?"
+  }
+ ]
+}

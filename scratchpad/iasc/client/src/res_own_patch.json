@@ -23,7 +23,7 @@
    },
    {
     "was": "          available: Math.max(\n            0,\n            (parseFloat(balance.unrestricted_qty) || 0) -\n              (huQtyMap.get(key) || 0) -\n              (siblingStaged.get(key) || 0)\n          ),",
-    "now": "          available: Math.max(\n            0,\n            (parseFloat(balance.unrestricted_qty) || 0) -\n              (huQtyMap.get(key) || 0) -\n              (siblingStaged.get(key) || 0)\n          ) + resOwnHeld(reservationRes.data, resOwnId(allData), balance.material_id, balance.location_id, balance.batch_id, \"Unrestricted\", item),"
+    "now": "          // the free stock outside handling units, plus this IA's own holds (loose Reserved stock, never in a handling unit), less what\n          // the IA's other lines of this material already picked here (they pick from the same pool; the mobile session, 10-22)\n          available: Math.max(\n            0,\n            Math.max(0, (parseFloat(balance.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0)) +\n              resOwnHeld(reservationRes.data, resOwnId(allData), balance.material_id, balance.location_id, balance.batch_id, \"Unrestricted\", item) -\n              (siblingStaged.get(key) || 0)\n          ),"
    }
   ]
  },

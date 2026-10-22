@@ -1,0 +1,70 @@
+  INVENTORY_APPLY_OPERATION  status=Complete  exit=return_node_ilMWnjUG
+  Complete code-node     code_node_cW0Exw93                   402ms  {  "route": "CONTINUE",  "operation_id": "GD|2113189363888857090|1",  
+  Complete sql-node      sql_node_U1SF0De4                      1ms  [  {   "db_now": "2026-10-22 16:43:11",   "org_ok": "1",   "plant_ok":
+  Complete code-node     code_node_zyCoUNH0                     4ms  {  "route": "CONTINUE",  "problems": [],  "resp": {} }
+  Complete sql-node      sql_node_zTCi3kjm                     17ms  [  {   "db_now": "2026-10-22 16:43:11",   "db_now_f": "2026-10-22 16:4
+  Complete code-node     code_node_tr2ByLFB                     5ms  {  "route": "NEW",  "decision": "PROCEED",  "dbNow": "2026-10-22 16:43
+  Complete sql-node      sql_node_ZOjcC30c                      5ms  [  {   "id": "2105911439877673002",   "lock_key": "ITEM|21004291665096
+  Complete code-node     code_node_28qGxGjn                     3ms  {  "rowsToAdd": [   {    "organization_id": "1901545950162329602",    
+  Complete code-node     code_node_ifQHBNHZ                     2ms  {  "batches": [   {    "i": 0,    "from": 0,    "to": 60   }  ],  "cou
+  Complete code-node     code_node_iKHBGqbI                     5ms  {  "batches": [   {    "i": 0,    "from": 0,    "to": 174   }  ],  "co
+  Complete sql-node      sql_node_D927U5Fx                      1ms  [  {   "db_now": "2026-10-22 16:43:11",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_oT3BGF65                     3ms  {  "stage": "EFFECTS_INSERTED",  "dbNow": "2026-10-22 16:43:11",  "lea
+  Complete sql-node      sql_node_MGfabkGB                      7ms  [  {   "kind": "OP",   "id": "2113189410449825794",   "k": "GD|2113189
+  Complete code-node     code_node_ZVNjiTwt                    21ms  {  "opId": "2113189410449825794",  "effectIds": [   {    "effect_key":
+  Complete sql-node      sql_node_i9QBqwL2                      4ms  [  {   "id": "2105911439877673002",   "lock_key": "ITEM|21004291665096
+  Complete code-node     code_node_J6YxjhQw                     6ms  {  "items": [   {    "id": "2105911439877673002",    "lock_key": "ITEM
+  Complete sql-node      sql_node_Otky4Lzb                      2ms  [  {   "db_now": "2026-10-22 16:43:11",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_AbCxKTsM                     2ms  {  "stage": "BEFORE_TAKE",  "dbNow": "2026-10-22 16:43:11",  "leaseUnt
+  Complete code-node     code_node_LNtake                       3ms  {  "warm": [   "2105911439877673002",   "2105911439877673003",   "2105
+  Complete sql-node      sql_node_oelU4GiG                     11ms  [  {   "id": "2105911439877673002",   "lock_key": "ITEM|21004291665096
+  Complete code-node     code_node_19zGnIId                    12ms  {  "verified": 117,  "lockedAt": "2026-10-22 16:43:14",  "lockedRows":
+  Complete sql-node      sql_node_pe2IAGdc                      3ms  [  {   "db_now": "2026-10-22 16:43:14",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_gcorgdKQ                     4ms  {  "stage": "LOCKED",  "dbNow": "2026-10-22 16:43:14",  "leaseUntil": 
+  Complete sql-node      sql_node_e7OzTOyD                      9ms  [  {   "db_now": "2026-10-22 16:43:14",   "lease_until": "2026-10-22 1
+  Complete sql-node      sql_node_iUFF5k2o                     76ms  []
+  Complete sql-node      sql_node_fkBvL3YG                      5ms  [  {   "id": "2100429166509625392",   "material_costing_method": "Firs
+  Complete sql-node      sql_node_WicASt1F                      4ms  []
+  Complete sql-node      sql_node_GfLGxjTi                      8ms  [  {   "id": "2113189383115546625",   "organization_id": "190154595016
+  Complete sql-node      sql_node_h1WAAE87                     20ms  [  {   "kind": "FIFO",   "id": "2105180841740505090",   "material_id":
+  Complete code-node     code_node_8rCPo75P                    69ms  {  "route": "OK",  "dbNow": "2026-10-22 16:43:14",  "leaseUntil": "202
+  Complete code-node     code_node_LNokEff                      4ms  {  "rest": [],  "hasRest": "NO",  "count": "174",  "lane0": [   {    "
+  Complete update-node   update_node_bxZUEUaN                  44ms  [  {   "id": "2113189410449825794",   "operation_status": "MUTATING", 
+  Complete sql-node      sql_node_dlLkOZRe                      1ms  [  {   "db_now": "2026-10-22 16:43:22",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_bCKhB6Hs                     3ms  {  "stage": "MUTATING",  "dbNow": "2026-10-22 16:43:22",  "leaseUntil"
+  Complete code-node     code_node_LNmStart                     3ms  {  "rest": [],  "hasRest": "NO",  "count": "174",  "lane0": [   {    "
+  Complete sql-node      sql_node_FTiYfHq0                      2ms  [  {   "db_now": "2026-10-22 16:43:30",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_ciPWqmXr                     3ms  {  "stage": "EFFECTS_STARTED",  "dbNow": "2026-10-22 16:43:30",  "leas
+  Complete sql-node      sql_node_d03ti5gw                      7ms  [  {   "db_now": "2026-10-22 16:43:30",   "op_status": "MUTATING",   "
+  Complete code-node     code_node_FyT3zuFi                    14ms  {  "route": "OK",  "dbNow": "2026-10-22 16:43:30",  "problems": [],  "
+  Complete code-node     code_node_LNmBal                       2ms  {  "rest": [],  "hasRest": "NO",  "count": "57",  "lane0": [   {    "i
+  Complete sql-node      sql_node_0CE8Ru5k                      8ms  [  {   "db_now": "2026-10-22 16:43:33",   "op_status": "MUTATING",   "
+  Complete code-node     code_node_p0sOD8ej                    19ms  {  "route": "OK",  "dbNow": "2026-10-22 16:43:33",  "problems": [],  "
+  Complete sql-node      sql_node_DNxZHbw6                      1ms  [  {   "db_now": "2026-10-22 16:43:33",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_WyY5fygf                     3ms  {  "stage": "BALANCES_CHECKED",  "dbNow": "2026-10-22 16:43:33",  "lea
+  Complete code-node     code_node_UP70yh3p                     6ms  {  "batches": [   {    "i": 0,    "from": 0,    "to": 114   }  ],  "co
+  Complete sql-node      sql_node_gf5rUccM                    127ms  [  {   "db_now": "2026-10-22 16:43:33",   "op_status": "MUTATING",   "
+  Complete code-node     code_node_Pf6NFe7B                    23ms  {  "route": "OK",  "dbNow": "2026-10-22 16:43:33",  "problems": [],  "
+  Complete sql-node      sql_node_7IFk1mcr                      1ms  [  {   "db_now": "2026-10-22 16:43:33",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_Q9w4fybq                     3ms  {  "stage": "MOVEMENTS_CHECKED",  "dbNow": "2026-10-22 16:43:33",  "le
+  Complete code-node     code_node_LNmApplied                   5ms  {  "rest": [],  "hasRest": "NO",  "count": "174",  "lane0": [   {    "
+  Complete sql-node      sql_node_erJlFaex                      1ms  [  {   "db_now": "2026-10-22 16:43:41",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_8aIcS60T                     3ms  {  "stage": "EFFECTS_APPLIED",  "dbNow": "2026-10-22 16:43:41",  "leas
+  Complete sql-node      sql_node_ww2k7Nzm                      8ms  [  {   "db_now": "2026-10-22 16:43:41",   "op_status": "VERIFYING",   
+  Complete sql-node      sql_node_CenWkK6U                    140ms  [  {   "db_now": "2026-10-22 16:43:41",   "op_status": "VERIFYING",   
+  Complete sql-node      sql_node_VsNjRtjZ                      5ms  [  {   "id": "2113189410684706930",   "effect_key": "1.1.ITEM.IN",   "
+  Complete code-node     code_node_ncZJyNmS                    42ms  {  "route": "OK",  "dbNow": "2026-10-22 16:43:41",  "problems": [],  "
+  Complete sql-node      sql_node_OY7PimSQ                      1ms  [  {   "db_now": "2026-10-22 16:43:42",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_q8OsItRk                     3ms  {  "stage": "VERIFIED",  "dbNow": "2026-10-22 16:43:42",  "leaseUntil"
+  Complete code-node     code_node_LNvEffUpd                    5ms  {  "rest": [],  "hasRest": "NO",  "count": "174",  "lane0": [   {    "
+  Complete sql-node      sql_node_zcakGFnh                      1ms  [  {   "db_now": "2026-10-22 16:43:49",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_MvyWuxk5                     3ms  {  "stage": "DONE",  "dbNow": "2026-10-22 16:43:49",  "leaseUntil": "2
+  Complete sql-node      sql_node_Icke6DLX                      3ms  [  {   "id": "2105911439877673002",   "lock_key": "ITEM|21004291665096
+  Complete code-node     code_node_mkkHs3G9                     4ms  {  "clearRows": [   {    "id": "2105911439877673002",    "owner_operat
+  Complete code-node     code_node_LNdRlClear                   3ms  {  "rest": [],  "hasRest": "NO",  "count": "117",  "lane0": [   {    "
+  Complete sql-node      sql_node_XCFMZP6z                      2ms  [  {   "db_now": "2026-10-22 16:43:54",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_JyonGwH4                     3ms  {  "stage": "DONE_BEFORE_GIVE",  "dbNow": "2026-10-22 16:43:54",  "lea
+  Complete code-node     code_node_LNgive                       3ms  {  "warm": [   "2105911439877673002",   "2105911439877673003",   "2105
+  Complete sql-node      sql_node_nbhrfC7K                      3ms  [  {   "kind": "OP",   "k": "DONE",   "v": "OK",   "n": "5"  },  {   "
+  Complete code-node     code_node_yD4M33mY                     5ms  {  "operation_id": "GD|2113189363888857090|1",  "operation_status": "D
+  Start    return-node   return_node_ilMWnjUG                   ?ms  {  "operation_id": "GD|2113189363888857090|1",  "operation_status": "D

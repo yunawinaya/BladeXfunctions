@@ -2536,7 +2536,7 @@
                                   "prop": "message",
                                   "operator": "",
                                   "valueType": "field",
-                                  "value": "{{node:workflow_node_inAddInv.data.message}}",
+                                  "value": "{{node:workflow_node_inAddInv.data.errorMessage}}",
                                   "valueLabel": "",
                                   "propLabel": "message"
                                 },

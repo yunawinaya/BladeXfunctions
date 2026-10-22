@@ -12,7 +12,7 @@ const workerSplitResume = function workerSplitResume(guard, mid, rows) {
   if (!split) return Object.assign(base, { result_message: "job is " + s(job.job_status) + (s(job.lease_owner) ? " (lease " + s(job.lease_owner) + ")" : "") + ": no further publish call" });
   return Object.assign(base, { route: "PUBLISH", result_message: "split: the next GD_EDIT_COMMIT call of this tick" });
 };
-const guard = [{{node:code_node_GWguard.data}}][0];
+const guard = [{{node:code_node_GEWguard.data}}][0];
 const mid = [{{node:code_node_GWmid.data}}][0];
 const res = workerSplitResume(guard, mid, [{{node:sql_node_GWsplit.data}}][0]);
 console.log("worker split", JSON.stringify(res));

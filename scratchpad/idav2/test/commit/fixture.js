@@ -2,7 +2,7 @@
 // ENGINE_I / ENGINE_R (+ alloc) / BATCH / LABELS / ITEMS, built here from the contract's field lists), the stored Item Disassembly (FP_HEADER /
 // FP_LINES shapes), the stock the engine reads and the organization's batch_number_config (000000's real row: Organization Level,
 // Batch-%5d, running_number 631 = the next number). Built with code/shared so the fingerprint, the batch kinds, the request and the price
-// helpers are the shipped ones; the engine is the DEPLOYED planner (base/INVENTORY_BULK_APPLY.v10.json code_node_IBplan's planBulk).
+// helpers are the shipped ones; the engine is the DEPLOYED planner (base/INVENTORY_BULK_APPLY.v12.json code_node_IBplan's planBulk).
 const fs = require("fs");
 const path = require("path");
 const IDAV2 = path.join(__dirname, "..", "..");
@@ -14,7 +14,7 @@ const OUT = path.join(REPO, "Item Disassembly", "AsyncV2");
 
 // the deployed planner: code_node_IBplan's text up to its request plumbing (planBulk + fifoUnitPrice and their helpers)
 function loadPlanner() {
-  const doc = JSON.parse(fs.readFileSync(path.join(IDAV2, "base", "INVENTORY_BULK_APPLY.v10.json"), "utf8"));
+  const doc = JSON.parse(fs.readFileSync(path.join(IDAV2, "base", "INVENTORY_BULK_APPLY.v12.json"), "utf8"));
   let code = null;
   const walk = (n) => {
     if (code) return;
@@ -26,7 +26,7 @@ function loadPlanner() {
   };
   walk(doc);
   const cut = code.indexOf("\nconst arr = (v) =>");
-  if (!code || cut < 0) throw new Error("code_node_IBplan not found in base/INVENTORY_BULK_APPLY.v10.json");
+  if (!code || cut < 0) throw new Error("code_node_IBplan not found in base/INVENTORY_BULK_APPLY.v12.json");
   return new Function(code.slice(0, cut) + "\nreturn { planBulk };")();
 }
 const { planBulk } = loadPlanner();

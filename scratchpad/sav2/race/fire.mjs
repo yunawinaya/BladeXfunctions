@@ -124,8 +124,8 @@ if (cfg.auth === 'cli') {
   const { ensureFresh } = await import(`${CLI}/auth/session.mjs`);
   const { appendAudit } = await import(`${CLI}/audit.mjs`);
   const r = roots();
-  const profile = resolveProfile(r, 'dev-write');
-  if (!/\.dev\./.test(profile.endpoint)) die(`profile ${profile.name} is not a dev endpoint`);
+  const profile = resolveProfile(r, 'dev-main-write');
+  if (!/^https:\/\/dev\.mes\.sudu\.ai\/api\/?$/.test(profile.endpoint)) die(`profile ${profile.name} is not the dev.mes endpoint`);
   if (!profile.allowWrites) die(`profile ${profile.name} is read-only`);
   const session = await ensureFresh(r, profile.name, { fetchImpl: fetch });
   post = async (req, out) => {

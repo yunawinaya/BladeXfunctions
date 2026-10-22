@@ -157,7 +157,7 @@ def build_sa():
     ret["data"]["response_value"]["list"][1]["value"] = "{{node:%s.data.message}}" % V_
     iff = copy.deepcopy(tpl_if)
     iff["id"] = "if_SAguardRefuse"
-    iff["data"].update(k.title("IF refused (Processing / more than 500 entries / a line over 60,000 bytes)"))
+    iff["data"].update(k.title("IF refused (Processing / more than 500 entries / Reserved stock / a line over 60,000 bytes / stock locked)"))
     a, b = k.filter_ids()
     iff["data"]["filter"]["list"][0].update({"id": a, "parentId": b})
     iff["data"]["expression"]["code"] = "'{{node:%s.data.refuse}}' == 'YES'" % V_
@@ -165,9 +165,9 @@ def build_sa():
     iff["blocks"][0].update({"id": "ifBlock_TSAguardRefuse", "blocks": [ret]})
     iff["blocks"][1].update({"id": "ifBlock_FSAguardRefuse", "blocks": []})
     guard = [
-        k.code(G, "SA V2 Guard: payload entries / line sizes, stored SA id", js("sa_guard.js"), ["saId", "tenantId", "entries", "reason", "message"]),
-        k.sql(S, "SA V2 Guard: stored status (id 0 = no stored SA)", text("sa_guard.sql"), ["stock_adjustment_status"]),
-        k.code(V_, "SA V2 Guard: Processing? too many entries? line too large?", js("sa_verdict.js"), ["refuse", "reason", "message"]),
+        k.code(G, "SA V2 Guard: payload entries / line sizes, stored SA id", js("sa_guard.js"), ["saId", "tenantId", "lockTenantId", "orgId", "lockKeysJson", "entries", "reason", "message"]),
+        k.sql(S, "SA V2 Guard: stored status (id 0 = no stored SA) + this save's lock keys held by a background operation", text("sa_guard.sql"), ["stock_adjustment_status", "lock_key", "owner_operation_id"]),
+        k.code(V_, "SA V2 Guard: Processing? too many entries? Reserved? line too large? stock locked?", js("sa_verdict.js"), ["refuse", "reason", "message"]),
         iff,
     ]
     return splice(name, base, old, guard)

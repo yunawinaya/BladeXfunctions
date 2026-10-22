@@ -1,7 +1,7 @@
 // live_req.js <reads.json> <out_request.json> <n>: a GD_EDIT_SUBMIT FORM request for a live test (+ <out>.classic.json, the same
 // edit as GOODS_DELIVERY's params) - the GD as stored (the
 // PREPARE reads, as the form loads it) with n allocated lines' quantity lowered by 1, as GDgdQty.js would update them
-// (gd_qty, base_qty, gd_delivered_qty, gd_undelivered_qty, the last temp_qty_data entry). Writes the request and
+// (gd_qty, base_qty, gd_delivered_qty, gd_undelivered_qty, the last temp_qty_data entry, the view_stock summary). Writes the request and
 // <out_request.json>.changes.json (the lines and their before / after) for the checker. Tenant data: session scratchpad only.
 // --remove=<k,...>: also drop those top-level lines (1-based, the form's order), as the row delete does; the changes file keeps
 // each removed row. --add-from=<changes.json>: also append a fresh line for each row an earlier --remove dropped (the fields a
@@ -34,9 +34,30 @@ const form = JSON.parse(JSON.stringify(stored));
 const parse = (t) => { try { const v = JSON.parse(t || "[]"); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
 const rows = form.table_gd.flatMap((r) => [r].concat(r.children || []));
 const changes = [];
+// the line's summary as GDgdQty.js rebuilds it on a quantity change; bin / batch / unit names read off the stored summary
+// (entry i <-> detail line i), the ids when it has none (as the form's maps fall back)
+const summaryNames = (text, t) => {
+  const lines = String(text || "").split("\n");
+  const uom = ((lines[0] || "").match(/^Total: \S+ (.+)$/) || [])[1] || "";
+  const at = [];
+  for (const ln of lines) {
+    const d = ln.match(/^(\d+)\. (.+): \S+ /);
+    if (d) at.push({ loc: d[2], batch: "" });
+    const b = ln.match(/^\s+\[Batch: (.+)\]$/);
+    if (b && at.length) at[at.length - 1].batch = b[1];
+  }
+  const byKey = {};
+  t.forEach((e, i) => { if (at[i]) byKey[e.location_id + "|" + (e.batch_id || "")] = at[i]; });
+  return { uom, byKey };
+};
+const viewStock = (names, t, qty) => "Total: " + qty + " " + names.uom + "\n\nDETAILS:\n" + t.map((e, i) => {
+  const nm = names.byKey[e.location_id + "|" + (e.batch_id || "")] || { loc: e.location_id, batch: e.batch_id };
+  return (i + 1) + ". " + nm.loc + ": " + (e.gd_quantity || 0) + " " + names.uom + (e.batch_id ? "\n   [Batch: " + (nm.batch || e.batch_id) + "]" : "");
+}).join("\n");
 const setQty = (l, t, qty) => {
   const delta = qty - Number(l.gd_qty);
-  const was = { gd_qty: l.gd_qty, base_qty: l.base_qty, gd_delivered_qty: l.gd_delivered_qty, gd_undelivered_qty: l.gd_undelivered_qty, temp_qty_data: l.temp_qty_data };
+  const was = { gd_qty: l.gd_qty, base_qty: l.base_qty, gd_delivered_qty: l.gd_delivered_qty, gd_undelivered_qty: l.gd_undelivered_qty, temp_qty_data: l.temp_qty_data, view_stock: l.view_stock };
+  const names = summaryNames(l.view_stock, t);
   const factor = Number(l.gd_qty) ? Number(l.base_qty) / Number(l.gd_qty) : 1;
   l.gd_qty = qty;
   l.base_qty = Number((l.gd_qty * factor).toFixed(8));
@@ -48,8 +69,9 @@ const setQty = (l, t, qty) => {
   if (delta > 0) t[t.length - 1].gd_quantity = Number(t[t.length - 1].gd_quantity) + delta;
   t.splice(0, t.length, ...t.filter((e) => Number(e.gd_quantity) > 0));
   l.temp_qty_data = JSON.stringify(t);
+  l.view_stock = viewStock(names, t, qty);
   changes.push({ id: String(l.id), material_id: String(l.material_id), so_line_item_id: String(l.so_line_item_id || ""), before: was,
-    after: { gd_qty: l.gd_qty, base_qty: l.base_qty, gd_delivered_qty: l.gd_delivered_qty, gd_undelivered_qty: l.gd_undelivered_qty, temp_qty_data: l.temp_qty_data } });
+    after: { gd_qty: l.gd_qty, base_qty: l.base_qty, gd_delivered_qty: l.gd_delivered_qty, gd_undelivered_qty: l.gd_undelivered_qty, temp_qty_data: l.temp_qty_data, view_stock: l.view_stock } });
 };
 for (const l of rows) {
   if (changes.length >= n) break;

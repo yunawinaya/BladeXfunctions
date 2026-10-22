@@ -159,10 +159,36 @@ for (const [label, A, B] of [["form (shipped)", F0, F1], ["form (ON preview)", F
 
 // ---- the list
 for (const [label, A, B] of [["list (shipped)", L0, L1], ["list (ON preview)", L0, LON]]) {
-  sameEvents(label, A, B, CHANGED_LIST, []);
+  // RES-01 MIN-03 (BA 10-22): one handler added at the end, Retry Reservation = client/src/ia_list_retryReservation.js with the IA_HOLD id
+  // RES-01 Cancel from the list (user 10-22): a second handler, the bulk Cancel = client/src/ia_list_cancel.js with the IA_HOLD id
+  sameEvents(label, A, B, CHANGED_LIST, ["iarsrv01", "iacncl01"]);
+  const rr = H.byKey(B, "iarsrv01");
+  const HOLD = String(require("../../../iasc/ids.json").IA_HOLD);
+  check(label + ": the added handler is Retry Reservation, its source with the IA_HOLD id", !!rr && rr.name === "onItemAssemblyRetryReservation" && rr.type === "js" &&
+    rr.func === read(path.join(SRC, "ia_list_retryReservation.js")).replace("__IA_HOLD__", HOLD));
+  const cn = H.byKey(B, "iacncl01");
+  check(label + ": the second added handler is the bulk Cancel, its source with the IA_HOLD id", !!cn && cn.name === "onItemAssemblyCancel" && cn.type === "js" &&
+    cn.func === read(path.join(SRC, "ia_list_cancel.js")).replace("__IA_HOLD__", HOLD));
   const u = H.clone(B);
   u.list[0].options.customProps.rowActions[1].hidden = A.list[0].options.customProps.rowActions[1].hidden;
-  check(label + ": every widget byte-identical but the Edit action's hidden", JSON.stringify(u.list) === JSON.stringify(A.list) &&
+  // RES-01 Created (BA, 10-22): the status column gains one Created badge right after the Draft one (undone here)
+  const sc = u.list[0].options.customProps.columns.find((c) => c.name === "item_assembly_status");
+  const created = (sc.configCustom.content.match(/ <div v-if="scope\.value==='Created'"[^>]*>\{\{scope\.value\}\}<\/div>/) || [""])[0];
+  check(label + ": the status column gains one Created badge, after the Draft one", !!created && sc.configCustom.content.split(created).length === 2 &&
+    sc.configCustom.content.indexOf("{{scope.value}}</div>" + created) >= 0);
+  sc.configCustom.content = sc.configCustom.content.replace(created, "");
+  // RES-01 MIN-03: the Reservation column right after Status and the Retry Reservation button right after Revert Completed (undone here)
+  const ucp = u.list[0].options.customProps;
+  const rc = ucp.columns.findIndex((c) => c.name === "material_hold_status");
+  const rt = ucp.toolbar.findIndex((x) => x.title === "Retry Reservation");
+  check(label + ": one Reservation column after Status, one Retry Reservation button after Revert Completed", rc === 2 && ucp.columns[1].name === "item_assembly_status" &&
+    ucp.columns.filter((c) => c.name === "material_hold_status").length === 1 && rt > 0 && ucp.toolbar[rt - 1].title === "Revert Completed" &&
+    ucp.toolbar.filter((x) => x.title === "Retry Reservation").length === 1);
+  ucp.columns.splice(rc, 1);
+  // the Cancel button right after Retry Reservation (undone with it)
+  check(label + ": one Cancel button right after Retry Reservation", ucp.toolbar.filter((x) => x.title === "Cancel").length === 1 && ucp.toolbar[rt + 1].title === "Cancel");
+  ucp.toolbar.splice(rt, 2);
+  check(label + ": every widget byte-identical but the Edit action's hidden (and the Created badge, the Reservation column, the Retry button)", JSON.stringify(u.list) === JSON.stringify(A.list) &&
     JSON.stringify(Object.assign({}, u.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, A.config, { eventScript: [] })));
   check(label + ": mounted became a js event", H.byName(B, "mounted").type === "js" && H.byName(A, "mounted").func === "");
 }

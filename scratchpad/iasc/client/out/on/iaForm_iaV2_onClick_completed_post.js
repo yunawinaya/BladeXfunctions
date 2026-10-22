@@ -502,7 +502,7 @@ const routeOf = (v) => {
   const isNew = page === "Add" || page === "Clone" || page === "Copy";
   if (!isNew && page !== "Edit") return { why: "page " + (page || "unknown") };
   if (!isNew && !digits(v.id)) return { why: "no document id" };
-  if (!isNew && s(v.item_assembly_status) !== "Draft") return { why: "stored " + (s(v.item_assembly_status) || "no status") };
+  if (!isNew && s(v.item_assembly_status) !== "Draft" && s(v.item_assembly_status) !== "Created") return { why: "stored " + (s(v.item_assembly_status) || "no status") };
   const lines = Array.isArray(v.stock_movement) ? v.stock_movement : [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] || {};
@@ -560,7 +560,7 @@ const pin = (ctx, on) => store({ [pinSlot(ctx)]: on ? ctx.key : "" });
 // a new assembly that SUBMIT may have saved: Save as Draft would add a second one (the Completed buttons re-send the key)
 const keepKey = (ctx) => {
   pin(ctx, true);
-  if (ctx.isNew) this.hide(["button_draft"]);
+  if (ctx.isNew) this.hide(["button_draft", "button_created"]);
 };
 
 // CONTRACT section 7: every request key is sent (strings except form)

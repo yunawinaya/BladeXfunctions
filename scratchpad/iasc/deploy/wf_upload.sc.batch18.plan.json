@@ -1,0 +1,38 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_REVERT",
+   "dataId": "2099319746652852225",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT/v7_20261022-100655.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "ia_no": "IAV2-SMOKE",
+     "organization_id": "1123598813738675201"
+    },
+    "expect": {
+     "key": "code",
+     "equals": "400"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_PREPARE",
+   "dataId": "2112141455206817794",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_PREPARE/v5_20261022-100656.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_RV_INVALID_DATA"
+    }
+   }
+  }
+ ]
+}

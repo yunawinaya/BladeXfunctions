@@ -1,0 +1,12 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "ADD_INVENTORY (MIN-01: pair HELD mode via cl_hold_op, switch OFF)",
+   "dataId": "2012005532688723970",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/p_ADD_INVENTORY.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/q_ADD_INVENTORY.json"
+  }
+ ]
+}

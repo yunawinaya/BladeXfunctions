@@ -283,14 +283,32 @@ def step_done(ids, tag, src, step):
         K.add(ids, "add_node_XC%sstep" % tag, "%s DONE (unique job / step)" % step, STEP, [(p, N(src, "data.stepRows." + p)) for p in STEP_PROPS], labels=ORG)])
 
 
+LANES = 12
+LANE_IDS = K.Ids(1798660000000)  # its own range: the published nodes keep their filter ids
+
+
 def slice_loop(ids, tag, src, field, title, table, props, labels=None):
+    # update-nodes write row by row (~46 ms a row on dev): the first LANES slices go to parallel lanes, the rest to the loop (10-22)
     loop_id = "loop_XC%s" % tag
     sl = "code_node_XC%sslice" % tag
+    ln = "code_node_XC%slanes" % tag
     body = mine("commit/slice.js").replace("__LOOP__", loop_id)
-    return K.loop(ids, loop_id, title, N(src, "data." + field), [
-        K.code(sl, "This slice (the loop item: <= 250 rows)", body, ["n", "rows"], arrays=("rows",), objects=("n",)),
-        K.update(ids, "update_node_XC%swrite" % tag, title + " (<= 250 per call)", table, ("id", "in", N(sl, "data.rows.id")), [(p, N(sl, "data.rows." + p)) for p in ["id"] + props], labels),
-    ])
+    lanes = mine("commit/lanes.js").replace("__SRC__", "%s.data.%s" % (src, field)).replace("__LANES__", str(LANES))
+    lane_names = ["lane%d" % k for k in range(LANES)]
+    lane = lambda k: K.update(LANE_IDS, "update_node_XC%sl%d" % (tag, k), "%s (lane %d)" % (title, k), table, ("id", "in", N(ln, "data.lane%d.id" % k)),
+                              [(p, N(ln, "data.lane%d.%s" % (k, p))) for p in ["id"] + props], labels)
+    return [
+        K.code(ln, "Lanes of %s: the first %d slices in parallel, the rest in the loop" % (tag, LANES), lanes,
+               ["rest", "hasRest", "count"] + lane_names + ["has%d" % k for k in range(LANES)], arrays=tuple(["rest"] + lane_names)),
+        K.parallel("cond_all_XC%sl" % tag, "%s: %d parallel lanes" % (title, LANES),
+                   [("cai_XC%sl%d" % (tag, k), "Lane %d" % k, [K.when_yes(LANE_IDS, "cor_XC%sl%d" % (tag, k), "Lane %d has rows?" % k, "node.%s.data.has%d" % (ln, k), "has%d" % k, [lane(k)])])
+                    for k in range(LANES)]),
+        K.when_yes(LANE_IDS, "cor_XC%slrest" % tag, "Slices past lane %d?" % (LANES - 1), "node.%s.data.hasRest" % ln, "hasRest", [
+            K.loop(ids, loop_id, title, N(ln, "data.rest"), [
+                K.code(sl, "This slice (the loop item: <= 250 rows)", body, ["n", "rows"], arrays=("rows",), objects=("n",)),
+                K.update(ids, "update_node_XC%swrite" % tag, title + " (<= 250 per call)", table, ("id", "in", N(sl, "data.rows.id")), [(p, N(sl, "data.rows." + p)) for p in ["id"] + props], labels),
+            ])]),
+    ]
 
 
 def upd(ids, nid, title, table, src, field, props, labels=None):
@@ -462,7 +480,7 @@ def build_commit():
             K.code("code_node_XCx3plan", "X3 plan: write a row only while it holds what PREPARE read; each create once", cc(["x3_plan.js"]),
                    ["route", "slices", "writeCount", "createRows", "needCreates", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"], arrays=("slices", "createRows", "jobRows"), objects=("writeCount",)),
             end_block(ids, "x3pl", "code_node_XCx3plan", "IF the reservations cannot be written"),
-            slice_loop(ids, "x3", "code_node_XCx3plan", "slices", "X3 WRITE: on_reserved_gd", RESV, RES_COLS),
+            *slice_loop(ids, "x3", "code_node_XCx3plan", "slices", "X3 WRITE: on_reserved_gd", RESV, RES_COLS),
             gate(ids, "cor_XCx3add", "Reservations to create?", "code_node_XCx3plan", "needCreates", [
                 K.add(ids, "add_node_XCx3add", "X3 WRITE: new on_reserved_gd rows (job_line_key <job>|C|<n>)", RESV, [(p, N("code_node_XCx3plan", "data.createRows." + p)) for p in CREATE_COLS])]),
             sqlj("sql_node_XCx3back", "X3 read-back", resrows(N("code_node_XCx3ids", "data.idsJson"), N("code_node_XCx3ids", "data.createLike"))),
@@ -485,7 +503,7 @@ def build_commit():
                    arrays=("intentRows", "lineSlices", "headerRows", "jobRows"), objects=("lineCount",)),
             end_block(ids, "x4pl", "code_node_XCx4plan", "IF the sales orders cannot be written"),
             gate(ids, "cor_XCx4intent", "Intent to record?", "code_node_XCx4plan", "needIntent", [step_add(ids, "add_node_XCx4intent", "X4 INTENT: X4|I|<nnn> (before + after of every row)", "code_node_XCx4plan", "intentRows")]),
-            slice_loop(ids, "x4", "code_node_XCx4plan", "lineSlices", "X4 WRITE: SO lines", SOL, ["delivered_qty", "planned_qty", "outstanding_quantity", "line_status"]),
+            *slice_loop(ids, "x4", "code_node_XCx4plan", "lineSlices", "X4 WRITE: SO lines", SOL, ["delivered_qty", "planned_qty", "outstanding_quantity", "line_status"]),
             gate(ids, "cor_XCx4hdr", "Sales Orders to write?", "code_node_XCx4plan", "needHeaders", [
                 upd(ids, "update_node_XCx4hdr", "X4 WRITE: Sales Order status", SOH, "code_node_XCx4plan", "headerRows", ["so_status", "gd_status", "partially_delivered", "fully_delivered"])]),
             K.parallel("condition_all_XCx4back", "X4 read-back in parallel", [
@@ -508,7 +526,7 @@ def build_commit():
                    ["route", "lineSlices", "lineCount", "headerRows", "needHeaders", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"],
                    arrays=("lineSlices", "headerRows", "jobRows"), objects=("lineCount",)),
             end_block(ids, "x4ppl", "code_node_XCx4pplan", "IF the Pickings cannot be written"),
-            slice_loop(ids, "x4p", "code_node_XCx4pplan", "lineSlices", "X4P WRITE: Picking rows Cancelled, nothing pending", PKL, ["line_status", "pending_process_qty"],
+            *slice_loop(ids, "x4p", "code_node_XCx4pplan", "lineSlices", "X4P WRITE: Picking rows Cancelled, nothing pending", PKL, ["line_status", "pending_process_qty"],
                        {"line_status": "Line Status", "pending_process_qty": "Pending Process Quantity"}),
             gate(ids, "cor_XCx4phdr", "Picking headers to close?", "code_node_XCx4pplan", "needHeaders", [
                 upd(ids, "update_node_XCx4phdr", "X4P WRITE: Picking Cancelled (+ -Cancelled) / Completed", PKH, "code_node_XCx4pplan", "headerRows", ["to_status", "to_id"], {"to_status": "Transfer Order Status"})]),
@@ -529,7 +547,7 @@ def build_commit():
                    ["route", "lineSlices", "lineCount", "headerRows", "needHeaders", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"],
                    arrays=("lineSlices", "headerRows", "jobRows"), objects=("lineCount",)),
             end_block(ids, "x4kpl", "code_node_XCx4kplan", "IF the Packings cannot be written"),
-            slice_loop(ids, "x4k", "code_node_XCx4kplan", "lineSlices", "X4K WRITE: Packing lines Cancelled, nothing remaining", PACKL, ["line_status", "remaining_qty"]),
+            *slice_loop(ids, "x4k", "code_node_XCx4kplan", "lineSlices", "X4K WRITE: Packing lines Cancelled, nothing remaining", PACKL, ["line_status", "remaining_qty"]),
             gate(ids, "cor_XCx4khdr", "Packing headers to cancel?", "code_node_XCx4kplan", "needHeaders", [
                 upd(ids, "update_node_XCx4khdr", "X4K WRITE: Packing Cancelled (packing_status, gd_status)", PACKH, "code_node_XCx4kplan", "headerRows", ["packing_status", "gd_status"])]),
             sqlj("sql_node_XCx4kback", "X4K read-back", x4krows),
@@ -592,12 +610,12 @@ def build_commit():
             end_block(ids, "x5pl", "code_node_XCx5plan", "IF the numbers cannot be written"),
             gate(ids, "cor_XCx5hdr", "Picking headers to renumber?", "code_node_XCx5plan", "needHeaders", [
                 upd(ids, "update_node_XCx5hdr", "X5 WRITE: Picking headers' GD numbers", PKH, "code_node_XCx5plan", "headerRows", ["delivery_no"])]),
-            slice_loop(ids, "x5r", "code_node_XCx5plan", "rowSlices", "X5 WRITE: Picking rows' gd_no", PKL, ["gd_no"]),
+            *slice_loop(ids, "x5r", "code_node_XCx5plan", "rowSlices", "X5 WRITE: Picking rows' gd_no", PKL, ["gd_no"]),
             gate(ids, "cor_XCx5pk", "Packing headers to renumber?", "code_node_XCx5plan", "needPackHeaders", [
                 upd(ids, "update_node_XCx5pk", "X5 WRITE: Packing headers' gd_no", PACKH, "code_node_XCx5plan", "packHeaderRows", ["gd_no"])]),
-            slice_loop(ids, "x5i", "code_node_XCx5plan", "itemSlices", "X5 WRITE: Packing lines' gd_no", PACKL, ["gd_no"]),
-            slice_loop(ids, "x5s", "code_node_XCx5plan", "sourceSlices", "X5 WRITE: Packing source rows' gd_no", PACKS, ["gd_no"]),
-            slice_loop(ids, "x5m", "code_node_XCx5plan", "moveSlices", "X5 WRITE: movements' trx_no", MOVE, ["trx_no"]),
+            *slice_loop(ids, "x5i", "code_node_XCx5plan", "itemSlices", "X5 WRITE: Packing lines' gd_no", PACKL, ["gd_no"]),
+            *slice_loop(ids, "x5s", "code_node_XCx5plan", "sourceSlices", "X5 WRITE: Packing source rows' gd_no", PACKS, ["gd_no"]),
+            *slice_loop(ids, "x5m", "code_node_XCx5plan", "moveSlices", "X5 WRITE: movements' trx_no", MOVE, ["trx_no"]),
             K.parallel("condition_all_XCx5back", "X5 read-back in parallel", [
                 ("cai_XCx5rowsB", "Numbers", [sqlj("sql_node_XCx5rowsB", "X5 read-back: the Picking / Packing rows", x5rows)]),
                 ("cai_XCx5movesB", "Movements", [K.sql("sql_node_XCx5movesB", "X5 read-back: movements still carrying the old number", x5moves, ["id"])]),
@@ -619,7 +637,7 @@ def build_commit():
                    ["route", "headerRows", "soRows", "needSoHead", "lineSlices", "lineCount", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"],
                    arrays=("headerRows", "soRows", "lineSlices", "jobRows"), objects=("lineCount",)),
             end_block(ids, "x6pl", "code_node_XCx6plan", "IF the delivery cannot be written"),
-            slice_loop(ids, "x6", "code_node_XCx6plan", "lineSlices", "X6 WRITE: GD lines", GDL, GX_LINE_COLS),
+            *slice_loop(ids, "x6", "code_node_XCx6plan", "lineSlices", "X6 WRITE: GD lines", GDL, GX_LINE_COLS),
             gate(ids, "cor_XCx6so", "Order list to write?", "code_node_XCx6plan", "needSoHead", [
                 upd(ids, "update_node_XCx6so", "X6 WRITE: the GD's order list", GD, "code_node_XCx6plan", "soRows", ["so_id", "so_no"])]),
             upd(ids, "update_node_XCx6head", "X6 WRITE: the GD Cancelled (gd_status, the -Cancelled number, picking_status, gd_total)", GD, "code_node_XCx6plan", "headerRows",
@@ -637,7 +655,7 @@ def build_commit():
                    cc(["x7.js"], "const res = cancelX7Plan(%s, [%s][0]);\nconsole.log(\"commit X7 plan\", JSON.stringify({ route: res.route, reorder: res.needReorder }));\nreturn res;" % (E_, N("sql_node_XCx7part", "data"))),
                    ["route", "itemSlices", "reorderRows", "needReorder", "reorderPrevious", "jobRows", "needJobUpd"], arrays=("itemSlices", "reorderRows", "reorderPrevious", "jobRows")),
             end_block(ids, "x7", "code_node_XCx7", "IF the after part cannot be read"),
-            slice_loop(ids, "x7", "code_node_XCx7", "itemSlices", "X7 WRITE: Item last_transaction_date", ITEM, ["last_transaction_date"]),
+            *slice_loop(ids, "x7", "code_node_XCx7", "itemSlices", "X7 WRITE: Item last_transaction_date", ITEM, ["last_transaction_date"]),
             gate(ids, "cor_XCx7reorder", "Reorder tracking to run?", "code_node_XCx7", "needReorder", [
                 step_add(ids, "add_node_XCx7reorder", "X7_REORDER marker (written before the call: at most once)", "code_node_XCx7", "reorderRows"),
                 call(ids, "workflow_node_XCx7reorder", "REORDER_SET_REDIS GD_CANCELLED (if_ReorderCancelled)", REORDER, [

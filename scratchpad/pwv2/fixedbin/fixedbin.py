@@ -8,7 +8,7 @@
   python3 fixedbin.py restore          FIXED BIN -> RANDOM; every added default-bin row logically deleted (data del)
 
 The strategy is one UPDATE (.dbtools/dbw); the default bins go through the platform's own data API (sudu-lowcode data add /
-del, dev-write), since the dev DB account can only UPDATE.
+del, dev-main-write), since the dev DB account can only UPDATE.
 """
 import json
 import os
@@ -17,7 +17,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
-APP = os.path.expanduser("~/Documents/ASC-dev/sudu-lowcode-apps/dev/1901532458164277249")
+APP = os.path.expanduser("~/Documents/ASC-dev/sudu-lowcode-apps/dev-main/1901532458164277249")
 sys.path.insert(0, os.path.join(ROOT, "scratchpad", "grv2"))
 from dbq import q  # noqa: E402
 
@@ -38,7 +38,7 @@ def dbw(frm, to):
 
 
 def cli(args):
-    r = subprocess.run(["sudu-lowcode", "--profile", "dev-write", "--full"] + args + ["--format", "json"], cwd=APP, capture_output=True, text=True)
+    r = subprocess.run(["sudu-lowcode", "--profile", "dev-main-write", "--full"] + args + ["--format", "json"], cwd=APP, capture_output=True, text=True)
     t = r.stdout
     d = json.loads(t[t.find("{"):]) if "{" in t else {}
     if not d.get("ok"):

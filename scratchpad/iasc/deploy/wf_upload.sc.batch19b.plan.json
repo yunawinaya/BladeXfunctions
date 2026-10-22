@@ -1,0 +1,45 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_SC_RELINK",
+   "dataId": "2112448260018900994",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SC_RELINK.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_SC_RELINK/v6_20261022-122122.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "so_line_id": "1",
+     "item_id": "1",
+     "organization_id": "1"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "expected_line_id: digits only"
+    }
+   }
+  },
+  {
+   "name": "SO Linked IAs page (Created opens to edit)",
+   "kind": "page",
+   "dataId": "2112449353901772801",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/SOLinkedIAsPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/page_so_linked_ias_v7.json"
+  },
+  {
+   "name": "IA list (Created badge, M4 delete order; over Vincent's v24 designer draft, user 10-22)",
+   "kind": "page",
+   "dataId": "2098312073316716546",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iav2/base/ia_list_v24_designing_vincent.json"
+  },
+  {
+   "name": "IA form (Created, classic double click)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v48.json"
+  }
+ ]
+}

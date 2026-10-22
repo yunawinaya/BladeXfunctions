@@ -57,8 +57,9 @@ PINS = {
 }
 # a rule event: its js action's func, pinned the same way
 RULE_PINS = {"evhzkk8e": "b9ebf784c77d78cea006b6e6d15cade3e07c19b41d5f32194c71ac00a4cd0ad9"}  # onClick_select_stock (RES-01)
-# RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): the client switch, shipped off with IA_SAVE's own
-RES_ENABLED = False
+# RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): the client switch (the reservation after a save and on open), with
+# IA_SAVE's own; ON on DEV since 10-22 (user)
+RES_ENABLED = True
 # the Draft handler starts the reservation once IA_SAVE answered (user 10-21: never inside the save)
 DRAFT_DONE = '    this.$message.success("Item Assembly saved as draft");\n    this.hideLoading();\n    closeDialog();\n'
 DRAFT_HOLD = '    this.$message.success("Item Assembly saved as draft");\n    await resHoldAfterSave(workflowResult.data, data);\n    this.hideLoading();\n    closeDialog();\n'
@@ -72,6 +73,9 @@ EXPLODE_HELPERS_END = "// The BOM is a template: once the table has been edited 
 # and both posted on COMPLETED; src/v2_double_patch.json (also read by test_sc_json.js) claims the click before its first await
 # and posts a job once while still unposted
 DOUBLE = [(p["was"], p["now"]) for p in json.load(open(os.path.join(SRC, "v2_double_patch.json"), encoding="utf-8"))["patch"]]
+# the classic save handlers (10-22): a double click saved twice; src/classic_double_patch.json (also read by test_sc_json.js) claims the
+# click before the first await with the same form flag and frees it in a finally
+CLASSIC_DOUBLE = json.load(open(os.path.join(SRC, "classic_double_patch.json"), encoding="utf-8"))
 MOUNT_ANCHOR = '(async () => {\n  try {\n    let pageStatus = "";\n'
 MOUNT_CALL_AFTER = "    iaBackgroundView(pageStatus, status);\n"
 MOUNT_CALL = "    scMount(pageStatus, status);\n"
@@ -132,6 +136,9 @@ SC_HISTORY = ["source_so_id", "source_so_line_id", "source_so_context_json", "pl
 UI01_TOP = ["sc_sec_production", "sc_prod_grid", "sc_sec_output", "sc_output_grid", "sc_sec_more", "sc_more_grid", "sc_actual", "sc_prod_actions"]
 UI_TOP = (["sc_section", "sc_collapse", "sc_info"] + [m for m, _ in ROWS] + ["sc_actions", "sc_btn_line", "sc_btn_unlink", "sc_btn_relink", "sc_btn_suggest", "sc_btn_bom",
           "sc_btn_refresh", "sc_line_dialog", "sc_expand_dialog"] + UI01_TOP)
+
+# RES-01 Created (BA, 10-22): the Created status next to Draft (src/created_patch.json: the handler, mounted, IA V2 and badge pairs)
+CREATED = json.load(open(os.path.join(SRC, "created_patch.json"), encoding="utf-8"))
 
 
 def read(path):
@@ -300,7 +307,8 @@ def build_widgets(form, keys, pkeys):
     left = grid["columns"][0]["list"]
     mode = copy.deepcopy(radio_tpl)
     mode.pop("version", None)
-    mode = widget(mode, keys, "bom_consumption_mode", "BOM Mode", hidden=True, disabled=False, defaultValue="",
+    # Standard by default: the user's designer edit (dev v55, 22 October); no snapshot = not enhanced, so a plain IA stays legacy
+    mode = widget(mode, keys, "bom_consumption_mode", "BOM Mode", hidden=True, disabled=False, defaultValue="STANDARD",
                   options=[{"value": "STANDARD", "label": "Standard", "explain": ""}, {"value": "FLAT", "label": "Flat", "explain": ""}])
     planned = widget(T["item_qty"], keys, "planned_output_qty", "Planned Output", hidden=True, required=False, defaultValue=None)
     planned["rules"] = []
@@ -384,12 +392,72 @@ def build_res_widgets(form, rkeys):
     req["options"]["disabled"] = False
     txt_tpl = [c for c in sm["tableColumns"] if c["model"] == "balance_id"][0]
     assert (txt_tpl["type"], txt_tpl["options"]["hidden"]) == ("input", True)
-    sm["tableColumns"] += [widget(txt_tpl, rkeys, "res_reserved", "Reserved", disabled=True, defaultValue=""),
-                           widget(txt_tpl, rkeys, "res_short", "Short", disabled=True, defaultValue="")]
+    # MIN-06 (BA 10-22): Reserved for this IA / Unreserved (with its reason, sc_main's resCells)
+    sm["tableColumns"] += [widget(txt_tpl, rkeys, "res_reserved", "Reserved for this IA", disabled=True, defaultValue=""),
+                           widget(txt_tpl, rkeys, "res_short", "Unreserved", disabled=True, defaultValue="")]
     text_tpl = json.load(open(TEXT_TPL, encoding="utf-8"))
     at = [w.get("model") for w in top].index("bom_tab")
     top.insert(at, widget(text_tpl, rkeys, "res_summary", "Raw material reservation", hidden=True, defaultValue="", customClass="", hideLabel=True, color=""))
-    return ["material_hold_status", "material_hold_at", "required_qty", "res_reserved", "res_short", "res_summary"]
+    # RF-09 (BA 10-22): the line's manual-Required flag (bound, hidden; Required's onChange sets it). Keyed LAST from the stream, so every
+    # earlier widget keeps its key (the IA list's Reservation column references material_hold_status's), placed right after Required
+    manual = widget(txt_tpl, rkeys, "required_manual", "Required set by hand", defaultValue="")
+    cols = sm["tableColumns"]
+    cols.insert([c["model"] for c in cols].index("required_qty") + 1, manual)
+    # BA rev 1.2 C2: how a completed IA's completion ended (sc_main's resCheck, IA_HOLD CHECK), right before the reservation row; keyed
+    # after required_manual, so every earlier widget keeps its key
+    check = widget(text_tpl, rkeys, "completion_check", "Completion check", hidden=True, defaultValue="", customClass="error-msg", hideLabel=True, color="")
+    top.insert([w.get("model") for w in top].index("res_summary"), check)
+    return ["material_hold_status", "material_hold_at", "required_qty", "res_reserved", "res_short", "res_summary", "required_manual", "completion_check"]
+
+
+def build_created_widgets(form, ckeys):
+    """RES-01 Created (BA, 10-22): the Created button after the Draft one, the Created badge after the Draft one, the Created option"""
+    def place(model):
+        hits = []
+
+        def walk(n):
+            if isinstance(n, list):
+                for i, x in enumerate(n):
+                    if isinstance(x, dict) and x.get("model") == model:
+                        hits.append((n, i, x))
+                    walk(x)
+            elif isinstance(n, dict):
+                for v in n.values():
+                    walk(v)
+        walk(form["list"])
+        assert len(hits) == 1, (model, len(hits))
+        return hits[0]
+    lst, i, draft = place("button_draft")
+    # primary: the user's designer edit (dev v55, 22 October)
+    lst.insert(i + 1, widget(draft, ckeys, "button_created", "Created", buttonName="Created", buttonType="primary"))
+    # RES-01 Cancel: no Cancel button on the form (user 10-22: Cancel is the list's bulk action); its key is still drawn, so every later
+    # key of this stream stays the same
+    ckeys.new()
+    lst, i, badge = place("draft_status")
+    nb = widget(badge, ckeys, "created_status", "Created Status")
+    for d in CREATED["badge"]:
+        assert nb["options"]["defaultValue"].count(d["was"]) == 1, d["was"]
+        nb["options"]["defaultValue"] = nb["options"]["defaultValue"].replace(d["was"], d["now"])
+    lst.insert(i + 1, nb)
+    cb = widget(badge, ckeys, "cancelled_status", "Cancelled Status")
+    for d in CREATED["cancel"]["badge"]:
+        assert cb["options"]["defaultValue"].count(d["was"]) == 1, d["was"]
+        cb["options"]["defaultValue"] = cb["options"]["defaultValue"].replace(d["was"], d["now"])
+    lst.insert(i + 2, cb)
+    st = find(form["list"], "item_assembly_status")[0]
+    leaves = st["options"]["datasource"]["rules"]["list"][0]["children"][1]["children"]
+    d = [x for x in leaves if x.get("value") == "Draft"]
+    assert len(d) == 1 and not [x for x in leaves if x.get("value") == "Created"], [x.get("value") for x in leaves]
+    leaf = copy.deepcopy(d[0])
+    leaf.update({"id": CREATED["statusLeafId"], "value": "Created"})
+    assert str(leaf["id"]) not in json.dumps(form)
+    leaves.insert(leaves.index(d[0]) + 1, leaf)
+    assert not [x for x in leaves if x.get("value") == "Cancelled"]
+    cleaf = copy.deepcopy(d[0])
+    cleaf.update({"id": CREATED["cancel"]["statusLeafId"], "value": "Cancelled"})
+    assert str(cleaf["id"]) not in json.dumps(form)
+    leaves.insert(leaves.index(leaf) + 1, cleaf)
+    return ["button_created", "created_status", "cancelled_status"]
 
 
 def regroup(form, pkeys):
@@ -471,7 +539,7 @@ def patch_handlers(form, c, keys):
     sc_bom = shared("sc_bom.js")
     sc_proj = shared("sc_proj.js")
     mirrors = {}
-    main = fill(js("sc_main.js"), c, {"/*@@SC_BOM@@*/": sc_bom, "/*@@SC_PROJ@@*/": sc_proj, "/*@@IA_EXPLODE_HELPERS@@*/": helpers})
+    main = fill(js("sc_main.js"), c, {"/*@@SC_BOM@@*/": sc_bom, "/*@@SC_PROJ@@*/": sc_proj, "/*@@IA_EXPLODE_HELPERS@@*/": helpers, "/*@@RES_FP@@*/": js("res_fp.js").rstrip("\n")})
     new = [("sc_main", main)] + [(n, "// %s: Small Cycle (scratchpad/iasc), handled by sc_main\nthis.triggerEvent(\"sc_main\", %s);\n" % (what, op)) for n, what, op in FORWARDERS]
     keyed = {}
     for name, func in new:
@@ -540,6 +608,54 @@ def patch_handlers(form, c, keys):
             assert t.count(pair["was"]) == 1, (key, pair["was"][:60])
             t = t.replace(pair["was"], pair["now"])
         k[key]["func"] = close_block + t
+    for key in CLASSIC_DOUBLE["handlers"]:
+        t = k[key]["func"]
+        for pair in CLASSIC_DOUBLE["patch"]:
+            assert t.count(pair["was"]) == 1, (key, pair["was"][:60])
+            t = t.replace(pair["was"], pair["now"])
+        k[key]["func"] = t
+    # RES-01 Created (BA, 10-22): the Created button's handler (from the final Draft handler), the mounted and IA V2 patches
+    m = k["mounted"]["func"]
+    for d in CREATED["mount"]:
+        assert m.count(d["was"]) == 1, ("mounted", d["was"][:70])
+        m = m.replace(d["was"], d["now"])
+    for d in CREATED["cancel"]["mount"]:
+        assert m.count(d["was"]) == 1, ("mounted cancel", d["was"][:70])
+        m = m.replace(d["was"], d["now"])
+    k["mounted"]["func"] = m
+    for key in CREATED["v2Keys"]:
+        for d in CREATED["v2"]:
+            assert k[key]["func"].count(d["was"]) == 1, (key, d["was"][:60])
+            k[key]["func"] = k[key]["func"].replace(d["was"], d["now"])
+    created = k["iasvdrft"]["func"]
+    for d in CREATED["handler"]:
+        assert created.count(d["was"]) == 1, ("created", d["was"][:60])
+        created = created.replace(d["was"], d["now"])
+    assert "onClick_saveAsCreated" not in names
+    ck = Keys(json.dumps(form), SEED + 4).new()
+    es.append({"key": ck, "name": "onClick_saveAsCreated", "func": created, "type": k["iasvdrft"].get("type", "js")})
+    bc = find(form["list"], "button_created")[0]
+    assert bc["events"].get("onClick") == "", bc["events"]
+    bc["events"]["onClick"] = ck
+    assert created.count("{{") == k["iasvdrft"]["func"].count("{{")
+    mirrors["iaForm_onClick_saveAsCreated"] = created
+    # RF-09 (BA 10-22): Required's onChange flags a hand-typed value (required_manual)
+    rq = fill(js("sc_required_manual.js"), c)
+    assert "onChange_requiredQty" not in names and "{{" not in rq
+    rk = Keys(json.dumps(form), SEED + 6).new()
+    es.append({"key": rk, "name": "onChange_requiredQty", "func": rq, "type": "js"})
+    rcol = [x for x in find(form["list"], "stock_movement", "tlm8ve69")[0]["tableColumns"] if x["model"] == "required_qty"][0]
+    assert rcol["events"].get("onChange") == "", rcol["events"]
+    rcol["events"]["onChange"] = rk
+    mirrors["iaForm_onChange_requiredQty"] = rq
+    # RES-01 MIN-06 (BA 10-22): the form's own change hook (empty in the base) carries the unsaved-changes marker
+    fc = k["onFormChange"]
+    assert fc.get("func", "") == "" and not fc.get("rules"), ("onFormChange is no longer empty", fc.get("type"))
+    dirty = fill(js("sc_res_dirty.js"), c, {"/*@@RES_FP@@*/": js("res_fp.js").rstrip("\n")})
+    assert "{{" not in dirty
+    fc["type"] = "js"
+    fc["func"] = dirty
+    mirrors["iaForm_onFormChange"] = dirty
     # a js event's func goes through the platform's replaceVariables ({{type:x}} tokens): none may be in our code
     base = by_key(json.loads(read(BASE)))
     for key in PINS:
@@ -555,6 +671,28 @@ def patch_handlers(form, c, keys):
     return mirrors
 
 
+def user_v55(form):
+    """the designer's own option defaults the user's v55 edit (22 October) stored on the title and the header grid, kept by every build"""
+    find(form["list"], "item_assembly_tittle")[0]["options"].update({"left": 3, "right": 4, "pad": "*", "desensitization_pattern": "",
+                                                                     "desensitization_replace": "", "select-card_n7ge7fmb": []})
+    find(form["list"], "grid_x46134mc")[0]["options"]["dataIdentifier"] = False
+
+
+def sink_hidden(form):
+    """the hidden fields between the title row and the header grid (v36's data fields and Small Cycle's) moved right after the action
+    bar: under the title they left a ~125 px gap (the user, v55). Hidden inputs take no space (the GD form keeps 11 under its title); the
+    two hidden textareas and the hidden fields with change history are what is new there. Keys, models and values are unchanged"""
+    top = form["list"]
+    order = [w.get("model") for w in top]
+    title, grid = order.index("flex_2det1nd2"), order.index("grid_x46134mc")
+    strip = top[title + 1:grid]
+    assert strip and all(w["options"].get("hidden") is True for w in strip), [w.get("model") for w in strip]
+    del top[title + 1:grid]
+    bar = [w.get("model") for w in top].index("flex_t6y2yh5r")
+    assert "button_draft" in [c.get("model") for c in top[bar].get("list") or []]
+    top[bar + 1:bar + 1] = strip
+
+
 def build(on):
     raw = read(BASE)
     assert hashlib.md5(raw.encode("utf-8")).hexdigest() == BASE_MD5, "base/ia_form_v36.json is not the pinned v36"
@@ -562,6 +700,7 @@ def build(on):
     keys = Keys(raw)
     pkeys = Keys(raw, SEED + 1)
     added = build_widgets(form, keys, pkeys) + build_res_widgets(form, Keys(raw, SEED + 2))
+    added += build_created_widgets(form, Keys(json.dumps(form), SEED + 3))
     mirrors = {}
     if on:
         wf = ids()
@@ -570,6 +709,8 @@ def build(on):
         mirrors = patch_handlers(form, c, keys)
         regroup(form, pkeys)
         track_history(form)
+    user_v55(form)
+    sink_hidden(form)
     every = []
 
     def walk(n):

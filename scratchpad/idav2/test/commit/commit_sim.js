@@ -26,8 +26,10 @@ function expectedPrices(w, c) {
   c.alloc.forEach((a, i) => { if (a.movement_key) out[a.movement_key] = { value: al[i].value, unit: al[i].unit_price, base: a.base_qty, item: a.item_id, batchKey: a.batch_key, lineId: a.line_id }; });
   return { issued: issued, lines: out, values: al };
 }
-function expectCompleted(w, c, label, skipped) {
+// opts (a renumbered run): running = the config value its last numbering started from, retired = the D1 intents it retired
+function expectCompleted(w, c, label, skipped, opts) {
   const skip = skipped || [];
+  const o = opts || {};
   ok(w.job.job_status === "COMPLETED" && w.job.progress_percent === 100 && w.job.lease_owner === null && w.job.finished_at && w.job.error_code === null, label + ": job COMPLETED 100, lease released", w.job);
   ok(w.ida.item_disassembly_status === "Completed" && w.ida.posted_status === "Unposted", label + ": the IDA Completed / Unposted", [w.ida.item_disassembly_status, w.ida.posted_status]);
   ok(w.engine.applied["IDC|" + JOB + "|I"] === 1 && w.engine.applied["IDC|" + JOB + "|R"] === 1, label + ": op 1 and op 2 each applied exactly once", w.engine.applied);
@@ -67,12 +69,15 @@ function expectCompleted(w, c, label, skipped) {
   const autos = c.batchRows.filter((r) => r.kind === "AUTO");
   const lineNo = (id) => (w.lines.find((l) => l.id === id) || {}).batch_number;
   ok(autos.every((r) => lineNo(r.line_ids[0]) === (w.numbers || {})[r.key]), label + ": every AUTO line holds its generated number (the non-stock ones too)", autos.map((r) => [r.key, lineNo(r.line_ids[0])]));
-  ok(Number(w.bnc[0].running_number) === 631 + autos.length, label + ": the config advanced by the AUTO rows (" + autos.length + ")", w.bnc[0]);
+  ok(Number(w.bnc[0].running_number) === (o.running || 631) + autos.length, label + ": the config advanced by the AUTO rows (" + autos.length + ")", w.bnc[0]);
   ok(J(Object.keys(w.itemDates).sort()) === J(c.itemIds.slice().sort()), label + ": Item dates for the source and every recovery item (non-stock included)", Object.keys(w.itemDates).length);
-  const want = ["D0_REVALIDATE:DONE", "D2_ISSUE:DONE", "D3_RECEIPT:DONE", "D4_FINISH:DONE"].concat(c.batchMode === "insert" ? ["D1_BATCH:DONE", "D1|I|001:INTENT"] : []).sort();
-  ok(J(stepNames(w)) === J(want), label + ": step rows", stepNames(w));
+  const want = ["D0_REVALIDATE:DONE", "D2_ISSUE:DONE", "D3_RECEIPT:DONE", "D4_FINISH:DONE"].concat(c.batchMode === "insert" ? ["D1_BATCH:DONE", "D1|I|001:INTENT"] : [])
+    .concat(Array(o.retired || 0).fill("D1|X|<id>:INTENT")).sort();
+  ok(J(namesOf(w)) === J(want), label + ": step rows", stepNames(w));
   ok(w.violations.length === 0, label + ": no forbidden write", w.violations);
 }
+// the step rows with a retired intent's id masked (D1|X|<its own id>)
+const namesOf = (w) => stepNames(w).map((x) => x.replace(/^D1\|X\|[0-9]+:/, "D1|X|<id>:")).sort();
 // the AUTO numbers N sequential GENERATE_BATCH calls give on 000000's config (Batch-%5d, next 631), in AUTO row (= line) order
 const numbersOf = (c, running) => {
   const n = {};
@@ -270,7 +275,7 @@ for (const name of ["plain", "mixed", "slices"]) {
   drive(w);
   ok(w.job.job_status === "COMPLETED", "D1: a holder of another organization does not count", w.job);
   // rows 6 / 7: after the inserts (crash) another row takes one of our numbers / one of ours is duplicated
-  for (const [label, add, code] of [["row 6", (x) => ({ id: x.id(), batch_number: "Batch-00631", material_id: X.itemId(92), plant_id: X.PLANT, organization_id: ORG, transaction_no: "GR-1", is_deleted: 0 }), "IDA_BATCH_DUPLICATE"],
+  for (const [label, add, code] of [["row 6", (x) => ({ id: x.id(), batch_number: "lot-7", material_id: X.itemId(92), plant_id: X.PLANT, organization_id: ORG, transaction_no: "GR-1", is_deleted: 0 }), "IDA_BATCH_DUPLICATE"],
     ["row 7", (x) => Object.assign({}, liveBatches(x).find((b) => b.batch_number === "Batch-00633"), { id: x.id(), ours: true }), "IDA_BATCH_FAILED"]]) {
     c = X.makeCase(CASES.mixed);
     w = world(c, { crashAfter: clean.mixed.writes.indexOf("batch insert x3") + 1 });
@@ -299,20 +304,20 @@ for (const name of ["plain", "mixed", "slices"]) {
   drive(w);
   failed(w, "IDA_BATCH_FAILED", "D1 row 9 (persistent)");
   ok(/missing after the insert/.test(w.job.error_message) && w.writes.filter((x) => /lost/.test(x)).length === 4, "D1 row 9: 4 passes (3 retries) then FAILED IDA_BATCH_FAILED", w.writes.filter((x) => /lost/.test(x)).length);
-  // row 10: a concurrent writer inserts one of our numbers in the read-write window -> the post-insert re-check FAILS the job
+  // row 10: a concurrent writer inserts our TYPED number in the read-write window -> the post-insert re-check FAILS the job (a generated one renumbers: 3b)
   c = X.makeCase(CASES.mixed);
   w = world(c);
   w.batchInsertHook = (x) => {
     if (!x.raced) {
       x.raced = true;
-      x.batches.push({ id: x.id(), batch_number: "batch-00633", material_id: X.itemId(93), plant_id: X.PLANT, organization_id: ORG, transaction_no: "GD-2610-0001", is_deleted: 0, initial_quantity: "1.00000000" });
+      x.batches.push({ id: x.id(), batch_number: "lot-7 ", material_id: X.itemId(93), plant_id: X.PLANT, organization_id: ORG, transaction_no: "GD-2610-0001", is_deleted: 0, initial_quantity: "1.00000000" });
     }
     return true;
   };
   drive(w);
   failed(w, "IDA_BATCH_DUPLICATE", "D1 row 10");
-  ok(w.job.error_message === "Duplicate Batch Format found. (batch number Batch-00633) Nothing was moved." && w.batchDeletes.length === 3 && liveBatches(w).length === 1 && w.engine.calls.length === 0,
-    "D1 row 10: ours (3) soft-deleted, the other writer's row kept, no engine call", w.job);
+  ok(w.job.error_message === "Duplicate Batch Format found. (batch number LOT-7) Nothing was moved." && w.batchDeletes.length === 3 && liveBatches(w).length === 1 && w.engine.calls.length === 0
+    && w.intentRetires.length === 0, "D1 row 10: ours (3) soft-deleted, the other writer's row kept, the intent kept, no engine call", w.job);
   // row 11: nothing inserts (only a non-stock AUTO row) -> no re-PLAN, D1 DONE
   c = X.makeCase({ lines: [{ kind: "none" }, { kind: "nsauto" }] });
   w = world(c);
@@ -347,6 +352,181 @@ for (const name of ["plain", "mixed", "slices"]) {
   failed(w, "IDA_PLAN_FAILED", "D1 row 14 (persistent)");
   ok(w.batchDeletes.length === 3 && opCalls(w, "R", "PLAN").length === 4, "D1 row 14: 4 re-PLANs, then FAILED, ours soft-deleted", opCalls(w, "R", "PLAN").length);
   console.log("ok   D1 rows 1-14: part unusable, intent unreadable, config refusals, generated / typed numbers taken, a foreign / twice row after a crash, lost inserts, the post-insert re-check, no re-PLAN, re-PLAN refusals and silence");
+}
+
+// ------------------------------------------------------------------ 3b. D1 renumber (user decision 10-22): a generated number taken -> number again, complete
+{
+  // the live race of 10-21 (Batch-00641): another writer takes one of our GENERATED numbers inside D1's insert window
+  const race = (x) => {
+    if (!x.raced) {
+      x.raced = true;
+      x.batches.push({ id: x.id(), batch_number: "batch-00633", material_id: X.itemId(93), plant_id: X.PLANT, organization_id: ORG, transaction_no: "IDA-2610-0099", is_deleted: 0, initial_quantity: "1.00000000" });
+    }
+    return true;
+  };
+  let c = X.makeCase(CASES.mixed);
+  let w = world(c);
+  w.batchInsertHook = race;
+  const a = runCommit(w);
+  const det = JSON.parse(w.job.error_details || "{}");
+  const wait = (parse(w.job.next_attempt_at) - w.now) / 1000;
+  const retired = w.steps.filter((r) => r.job_id === JOB && /^D1\|X\|/.test(r.step_name));
+  ok(!a.err && a.out.path === "D1CK_END" && a.out.job_status === "COMMITTING_IDA" && a.out.result_code === "IDA_BATCH_RETRY" && w.job.job_status === "COMMITTING_IDA" && w.job.error_code === "IDA_BATCH_RETRY"
+    && w.job.error_message === "D1_BATCH: batch number Batch-00633 was taken by another document at the same moment - renumbering (try 1 of 5)" && det.step === "D1_BATCH" && J(det.numbers) === J(["Batch-00633"])
+    && w.job.attempt_count === 1 && w.job.progress_percent === 70 && w.job.progress_message === "Issuing the item being disassembled (1 source pick)" && w.job.lease_owner === null
+    && w.job.lease_expires_at === null && wait >= 20 && wait <= 31 && det.waitReason === "long" && det.wait >= 20 && det.wait <= 30,
+  "renumber: the pass ends COMMITTING_IDA (progress kept, lease released), IDA_BATCH_RETRY try 1 of 5; the other row is older than ours: the LONG wait, due in " + wait + " s", w.job);
+  ok(w.ida.item_disassembly_status === "Processing" && w.idaWrites.length === 0 && w.batchDeletes.length === 3 && liveBatches(w).filter((b) => b.ours).length === 0 && liveBatches(w).length === 1
+    && retired.length === 1 && retired[0].is_deleted === 1 && retired[0].step_name === "D1|X|" + retired[0].id && !w.steps.some((r) => !r.is_deleted && r.job_id === JOB && /^D1\|I\|/.test(r.step_name))
+    && w.engine.calls.length === 0 && w.mv.length === 0 && Number(w.bnc[0].running_number) === 634 && w.violations.length === 0,
+  "renumber: no unlock, ours (3) soft-deleted, the other writer's row kept, the intent renamed D1|X|<id> + soft-deleted, nothing moved, the config stays at 634", { ida: w.ida.item_disassembly_status, writes: w.writes });
+  ok(J(w.writes.slice(-3)) === J(["update Batch x3", "update GD Publish Step x1", "update GD Async Job x1"]), "renumber: the exit order ours -> the intent -> the job", w.writes.slice(-3));
+  w.numbers = numbersOf(c, 634);
+  drive(w);
+  expectCompleted(w, c, "renumbered", [], { running: 634, retired: 1 });
+  const at = w.writes.indexOf("step D1_BATCH");
+  ok(J(w.lines.map((l) => l.batch_number)) === J(["-", "LOT-7", "LOT-7", "Batch-00634", "-", "Batch-00635", "Batch-00636"]) && w.writes[at + 1] === "update GD Async Job x1"
+    && w.writes.filter((x) => x === "batch insert x3").length === 2, "renumbered: the next pass numbers afresh from 634 (631-633 skipped), D1 DONE then the count reset, COMPLETED", { lines: w.lines.map((l) => l.batch_number), writes: w.writes });
+  clean.renumber = { c, state: state(w), writes: w.writes.slice(), opR: opCalls(w, "R").map((x) => x.text) };
+  // a crash right after EVERY write of the renumbered chain (the exit's three new writes, the count reset), then the resume
+  const masked = (st) => Object.assign({}, st, { steps: st.steps.map((x) => x.replace(/^D1\|X\|[0-9]+:/, "D1|X|<id>:")) });
+  const total = clean.renumber.writes.length;
+  const seen = {};
+  for (let k = 1; k <= total; k++) {
+    c = X.makeCase(CASES.mixed);
+    w = world(c, { crashAfter: k });
+    w.batchInsertHook = race;
+    w.numbers = numbersOf(c, 634);
+    const runs = drive(w);
+    const what = w.crashed;
+    seen[what] = (seen[what] || 0) + 1;
+    ok(runs.filter((r) => r.err).length === 1 && w.job.job_status === "COMPLETED", "renumber crash@" + k + " (" + what + "): resumed to COMPLETED", { job: w.job, runs: runs.map((r) => r.err || r.out.path + " " + r.out.result_code) });
+    expectCompleted(w, c, "renumber crash@" + k, [], { running: 634, retired: 1 });
+    const st = masked(state(w));
+    const want = masked(clean.renumber.state);
+    for (const key of Object.keys(st)) ok(J(st[key]) === J(want[key]), "renumber crash@" + k + ": " + key + " = the clean renumbered run's", { got: st[key], want: want[key] });
+    ok(opCalls(w, "R").every((x) => x.text === clean.renumber.opR[0]), "renumber crash@" + k + ": op 2's request = the clean run's");
+  }
+  ok(["update Batch x3", "update GD Publish Step x1", "update GD Async Job x1"].every((x) => seen[x] >= 1), "renumber sweep: crashed right after ours soft-deleted, the intent retired and the renumber job row",
+    seen);
+  // a crash right after ours were soft-deleted: the intent is still there (old numbers), the other row still holds one -> row 6 renumbers again
+  c = X.makeCase(CASES.mixed);
+  w = world(c, { crashAfter: clean.renumber.writes.indexOf("update Batch x3") + 1 });
+  w.batchInsertHook = race;
+  runCommit(w);
+  Object.assign(w, { crashAfter: 0, now: w.now + 11 * 60000 });
+  Object.assign(w.job, { attempt_count: w.job.attempt_count + 1, row_version: w.job.row_version + 1 });
+  const b = runCommit(w);
+  ok(w.crashed === "update Batch x3" && b.out.path === "D1DE_END" && w.job.error_code === "IDA_BATCH_RETRY" && /\(try 2 of 5\)$/.test(w.job.error_message) && w.intentRetires.length === 1
+    && w.batchDeletes.length === 3 && w.cfgWrites.length === 1, "renumber crash after ours deleted: intent present, ours gone, the number still held -> D1 row 6 renumbers (try 2), nothing re-inserted", { out: b.out, job: w.job });
+  // ... and when the other writer has let the number go meanwhile, the next pass re-inserts the planned rows with the OLD numbers and completes
+  c = X.makeCase(CASES.mixed);
+  w = world(c, { crashAfter: clean.renumber.writes.indexOf("update Batch x3") + 1 });
+  w.batchInsertHook = race;
+  runCommit(w);
+  w.batches.filter((x) => !x.ours).forEach((x) => { x.is_deleted = 1; });
+  Object.assign(w, { crashAfter: 0, now: w.now + 11 * 60000 });
+  Object.assign(w.job, { attempt_count: w.job.attempt_count + 1, row_version: w.job.row_version + 1 });
+  w.numbers = numbersOf(c);
+  drive(w);
+  expectCompleted(w, c, "renumber crash after ours deleted, the number free again");
+  ok(w.intentRetires.length === 0 && w.writes.filter((x) => x === "batch insert x3").length === 2 && J(w.lines.map((l) => l.batch_number)) === J(["-", "LOT-7", "LOT-7", "Batch-00631", "-", "Batch-00632", "Batch-00633"]),
+    "renumber crash after ours deleted, the number free: the old numbers re-inserted, no renumber, COMPLETED", w.writes);
+  // the tries are bounded: a writer that takes every new generated number -> 5 renumbers, then FAILED IDA_BATCH_DUPLICATE as before
+  c = X.makeCase(CASES.mixed);
+  w = world(c);
+  w.batchInsertHook = (x, rows) => {
+    const n = rows.map((r) => r.batch_number).find((v) => /^Batch-/.test(v));
+    x.batches.push({ id: x.id(), batch_number: n, material_id: X.itemId(94), plant_id: X.PLANT, organization_id: ORG, transaction_no: "GR-2610-" + n.slice(-4), is_deleted: 0, initial_quantity: "1.00000000" });
+    return true;
+  };
+  const waits = [];
+  const msgs = [];
+  for (let i = 0; i < 20 && TERMINAL.indexOf(w.job.job_status) < 0; i++) {
+    runCommit(w);
+    if (w.job.error_code === "IDA_BATCH_RETRY") {
+      waits.push((parse(w.job.next_attempt_at) - w.now) / 1000);
+      msgs.push(w.job.error_message.replace(/^.*\(try /, "").replace(/\)$/, ""));
+      w.now = parse(w.job.next_attempt_at) + 1000;
+    }
+  }
+  failed(w, "IDA_BATCH_DUPLICATE", "renumber tries spent");
+  ok(J(msgs) === J(["1 of 5", "2 of 5", "3 of 5", "4 of 5", "5 of 5"]) && waits.every((x) => x >= 20 && x <= 31) && w.intentRetires.length === 5 && w.batchDeletes.length === 18
+    && w.job.error_message === "Duplicate Batch Format found. (batch number Batch-00646) Nothing was moved." && Number(w.bnc[0].running_number) === 649 && J(w.idaWrites) === J(["Draft"])
+    && w.engine.calls.length === 0, "renumber: 5 tries (every wait the long 20-30 s: the other row is always older), the 6th collision FAILED IDA_BATCH_DUPLICATE + Draft, 6 rounds of ours soft-deleted, the config past every number (649)",
+  { msgs, waits, job: w.job, del: w.batchDeletes.length, cfg: w.bnc[0].running_number });
+  // row 6 with a GENERATED number taken after a crash (the inserts done) -> renumber -> COMPLETED with the next numbers
+  c = X.makeCase(CASES.mixed);
+  w = world(c, { crashAfter: clean.mixed.writes.indexOf("batch insert x3") + 1 });
+  runCommit(w);
+  w.batches.push({ id: w.id(), batch_number: "Batch-00631", material_id: X.itemId(92), plant_id: X.PLANT, organization_id: ORG, transaction_no: "GR-1", is_deleted: 0 });
+  Object.assign(w, { crashAfter: 0, now: w.now + 11 * 60000 });
+  w.job.attempt_count += 1;
+  w.numbers = numbersOf(c, 634);
+  drive(w);
+  expectCompleted(w, c, "D1 row 6 AUTO renumbered", [], { running: 634, retired: 1 });
+  ok(w.batchDeletes.length === 3 && liveBatches(w).some((x) => x.batch_number === "Batch-00631" && !x.ours), "D1 row 6 AUTO: the first round's rows (3) soft-deleted, the other writer's Batch-00631 kept", w.batchDeletes);
+  // the other row is NEWER than ours (inserted between our insert and our re-check): we go first - the SHORT wait, 5 s
+  c = X.makeCase(CASES.mixed);
+  w = world(c);
+  w.beforeSql = (name, x) => {
+    if (name === "d1holdB" && !x.raced) {
+      x.raced = true;
+      x.batches.push({ id: x.id(), batch_number: "batch-00633", material_id: X.itemId(97), plant_id: X.PLANT, organization_id: ORG, transaction_no: "IDA-2610-0097", is_deleted: 0, initial_quantity: "1.00000000" });
+    }
+  };
+  runCommit(w);
+  const detS = JSON.parse(w.job.error_details || "{}");
+  const waitS = (parse(w.job.next_attempt_at) - w.now) / 1000;
+  ok(w.job.error_code === "IDA_BATCH_RETRY" && detS.waitReason === "short" && detS.wait === 5 && waitS >= 5 && waitS <= 6 && w.batchDeletes.length === 3 && w.intentRetires.length === 1,
+    "renumber: the other row is newer than ours -> the SHORT wait (5 s), ours + the intent retired all the same", { job: w.job, waitS });
+  w.numbers = numbersOf(c, 634);
+  drive(w);
+  expectCompleted(w, c, "renumbered after the short wait", [], { running: 634, retired: 1 });
+  // row 4 (controller ruling 10-22): another writer takes our generated number between D1's config read and its holders read - a
+  // newer row: the renumber wait with nothing written; the next pass reads the config that writer advanced and completes
+  c = X.makeCase(CASES.mixed);
+  w = world(c);
+  w.beforeSql = (name, x) => {
+    if (name === "d1hold" && !x.raced) {
+      x.raced = true;
+      x.batches.push({ id: x.id(), batch_number: "Batch-00631", material_id: X.itemId(95), plant_id: X.PLANT, organization_id: ORG, transaction_no: "IDA-2610-0098", is_deleted: 0, initial_quantity: "1.00000000" });
+      x.bnc[0].running_number = 632;
+    }
+  };
+  const p4 = runCommit(w);
+  const wait4 = (parse(w.job.next_attempt_at) - w.now) / 1000;
+  ok(!p4.err && p4.out.path === "D1DE_END" && w.job.job_status === "COMMITTING_IDA" && w.job.error_code === "IDA_BATCH_RETRY" && /^D1_BATCH: batch number Batch-00631 was taken .* \(try 1 of 5\)$/.test(w.job.error_message)
+    && w.job.attempt_count === 1 && w.job.lease_owner === null && wait4 >= 20 && wait4 <= 31 && JSON.parse(w.job.error_details).waitReason === "long" && J(w.writes) === J(["update GD Async Job x1", "step D0_REVALIDATE", "update GD Async Job x1"])
+    && !w.steps.some((r) => r.job_id === JOB && /^D1\|/.test(r.step_name)) && w.cfgWrites.length === 0 && w.batches.length === 1 && w.idaWrites.length === 0 && w.batchDeletes.length === 0,
+  "row 4 renumber: a newer holder -> COMMITTING_IDA IDA_BATCH_RETRY (try 1 of 5, due in " + wait4 + " s); only the job row written (no intent, config or Batch row), no unlock", { out: p4.out, job: w.job, writes: w.writes });
+  w.numbers = numbersOf(c, 632);
+  drive(w);
+  expectCompleted(w, c, "row 4 renumbered", [], { running: 632 });
+  ok(J(w.lines.map((l) => l.batch_number)) === J(["-", "LOT-7", "LOT-7", "Batch-00632", "-", "Batch-00633", "Batch-00634"]) && liveBatches(w).some((b) => b.batch_number === "Batch-00631" && !b.ours),
+    "row 4 renumbered: the next pass numbers from the config the other writer advanced (632..634), COMPLETED; the other writer's Batch-00631 kept", w.lines.map((l) => l.batch_number));
+  // ... a newer holder whose writer never advances the config (typed by hand) -> every pass collides -> 5 tries, then FAILED at once as today
+  c = X.makeCase(CASES.mixed);
+  w = world(c);
+  w.beforeSql = (name, x) => {
+    if (name === "d1hold" && !x.raced) {
+      x.raced = true;
+      x.batches.push({ id: x.id(), batch_number: "batch-00631", material_id: X.itemId(96), plant_id: X.PLANT, organization_id: ORG, transaction_no: "GR-2610-0101", is_deleted: 0, initial_quantity: "1.00000000" });
+    }
+  };
+  const tries4 = [];
+  for (let i = 0; i < 20 && TERMINAL.indexOf(w.job.job_status) < 0; i++) {
+    runCommit(w);
+    if (w.job.error_code === "IDA_BATCH_RETRY") {
+      tries4.push(w.job.error_message.replace(/^.*\(try /, "").replace(/\)$/, ""));
+      w.now = parse(w.job.next_attempt_at) + 1000;
+    }
+  }
+  failed(w, "IDA_BATCH_DUPLICATE", "row 4 tries spent");
+  ok(J(tries4) === J(["1 of 5", "2 of 5", "3 of 5", "4 of 5", "5 of 5"]) && w.job.error_message === "Duplicate Batch Format found. (batch number Batch-00631) Nothing was moved." && w.cfgWrites.length === 0
+    && w.batches.length === 1 && !w.steps.some((r) => r.job_id === JOB && /^D1\|/.test(r.step_name)) && w.engine.calls.length === 0, "row 4: the number never freed -> 5 tries, then FAILED IDA_BATCH_DUPLICATE, nothing ever written", { tries4, job: w.job });
+  console.log("ok   D1 renumber: a generated number taken -> ours + the intent retired, due in 5 s (our row oldest) or 20-30 s, numbered afresh -> COMPLETED; a crash after each of the " + total
+    + " writes resumes to the same end state; ours deleted + intent present -> row 6 again or the old numbers; 5 tries then FAILED; row 6 AUTO after a crash; row 4 with a newer holder renumbers (5 tries)");
 }
 
 // ------------------------------------------------------------------ 4. D2: op 1

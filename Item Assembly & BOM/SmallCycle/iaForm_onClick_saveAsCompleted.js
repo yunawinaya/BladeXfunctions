@@ -297,6 +297,14 @@ const confirmBomVariance = async (data) => {
 
 
 (async () => {
+  // one save per click: a second click while this one validates, checks the BOM or saves is refused (the IA V2 handler's form flag,
+  // which it clears before it hands a small IA over to this handler)
+  const iaClaimDone = () => (this.models["_data"] = { ...this.models["_data"], ia_submitting: 0 });
+  if ((this.models["_data"] || {}).ia_submitting === 1) {
+    this.$message.warning("Workflow is already in progress. Please wait.");
+    return;
+  }
+  this.models["_data"] = { ...this.models["_data"], ia_submitting: 1 };
   try {
     await this.validate();
 
@@ -364,5 +372,7 @@ const confirmBomVariance = async (data) => {
     }
 
     this.$message.error(errorMessage);
+  } finally {
+    iaClaimDone();
   }
 })();

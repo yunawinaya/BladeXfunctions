@@ -1,0 +1,12 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_UNUSED_FN_NEW (MIN-01: classic lock pre-check, switch OFF)",
+   "dataId": "2032273338771128322",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/GD_UNUSED_FN_NEW.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/base/GD_UNUSED_FN_NEW.live.json"
+  }
+ ]
+}

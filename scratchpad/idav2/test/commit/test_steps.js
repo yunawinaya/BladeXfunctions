@@ -19,7 +19,11 @@ const props = (id) => node(id).data.props.list.map((p) => p.prop);
 const MIX = [{ kind: "none" }, { kind: "typed", number: "LOT-7", item: 50 }, { kind: "typed", number: "LOT-7", item: 50 }, { kind: "auto" }, { kind: "ns" }, { kind: "nsauto" }, { kind: "auto", alt: true }];
 const mix = () => X.makeCase({ lines: MIX });
 const bncRows = (running) => [{ j: J(X.bnc(running)) }];
-const intentOf = (numbers, configs) => [{ step_name: "D1|I|001", result_ref: J({ numbers: numbers, configs: configs }) }];
+const INTENT_ID = "2112100000000000501";
+const intentOf = (numbers, configs) => [{ id: INTENT_ID, step_name: "D1|I|001", result_ref: J({ numbers: numbers, configs: configs }) }];
+// Math.random fixed for one call (the renumber wait: 5 + floor(random x 21) s)
+const RANDOM = Math.random;
+const withRandom = (v, f) => { Math.random = () => v; try { return f(); } finally { Math.random = RANDOM; } };
 const batchRow = (id, o) => ({ j: J(Object.assign({ id: id, batch_number: "LOT-7", material_id: X.itemId(50), plant_id: PLANT, organization_id: ORG, transaction_no: IDANO }, o || {})) });
 
 function entryOf(c, patch) {
@@ -43,9 +47,17 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
     "every Batch soft-delete writes { id, is_deleted } from a <= 250-row slice", del.map((n) => n.id));
   for (const tag of ["ef", "d0", "d1pl", "d1de", "d1ck", "d1", "d2"]) {
     const blk = (tag === "ef" ? node("ifBlock_TDCentryend") : node("ifBlock_TDC" + tag + "end")).blocks.map((n) => n.id);
-    const u = blk.indexOf("cor_DC" + tag + "unlock"), b = blk.indexOf("loop_DC" + tag + "bd"), jb = blk.indexOf("cor_DC" + tag + "job");
-    ok(u >= 0 && u < b && b < jb, tag + ": a phase-A exit writes the unlock, then the Batch soft-delete slices, then the job", blk);
+    const u = blk.indexOf("cor_DC" + tag + "unlock"), b = blk.indexOf("loop_DC" + tag + "bd"), ix = blk.indexOf("cor_DC" + tag + "ix"), jb = blk.indexOf("cor_DC" + tag + "job");
+    ok(u >= 0 && u < b && b < ix && ix < jb, tag + ": a phase-A exit writes the unlock, then the Batch soft-delete slices, then the D1 intent retired (renumber), then the job", blk);
+    const g = node("cor_DC" + tag + "ix");
+    ok(g.blocks[0].data.filter.list[0].prop === "node." + (["ef", "d0", "d2"].indexOf(tag) >= 0 ? "code_node_DC" + tag + "end" : { d1pl: "code_node_DCd1plan", d1de: "code_node_DCd1word",
+      d1ck: "code_node_DCd1check", d1: "code_node_DCd1" }[tag]) + ".data.needIntentDel" && g.blocks[0].blocks[0].id === "loop_DC" + tag + "ix", tag + ": the intent loop is gated by the exit's needIntentDel");
   }
+  const ix = all.filter((n) => n.type === "update-node" && /GD Publish Step:Table:2105131615547461634/.test(J(n.data.table_id)));
+  ok(ix.length === 7 && ix.every((n) => J(n.data.props.list.map((p) => p.prop)) === J(["id", "step_name", "is_deleted"]) && /data\.rows\.id/.test(J(n.data.table_id))),
+    "every intent retirement writes { id, step_name, is_deleted } from a <= 250-row slice (the only step-table updates)", ix.map((n) => n.id));
+  ok(/CAST\(st\.id AS CHAR\) AS id/.test(node("sql_node_DCintent").data.script.code) && node("sql_node_DCintent").data.response_json.some((r) => r.name === "id"),
+    "the intent read carries the step row ids (the renumber exit retires exactly them)");
   for (const tag of ["ef", "d0", "d2"]) ok(node("cor_DC" + tag + "ours").blocks[0].blocks[0].type === "condition-all-node", tag + ": the ours read is one fork-join behind its gate");
   ok(J(props("add_node_DCd1iwrite")) === J(X.BATCH_COLS) && /Batch:Table:/.test(J(node("add_node_DCd1iwrite").data.table_id)), "D1 Batch insert = add_node_F9KqZLfd's 11 columns", props("add_node_DCd1iwrite"));
   ok(J(props("update_node_DCd1cfg")) === J(["id", "running_number", "last_reset_date"]) && /Batch Number Configuration:Table:2058765580973846530/.test(J(node("update_node_DCd1cfg").data.table_id)),
@@ -63,7 +75,10 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
   const d1 = node("ifBlock_TDCd1").blocks.map((n) => n.id);
   const at = (x) => d1.indexOf(x);
   ok(at("cor_DCd1intent") > at("if_DCd1deend") && at("cor_DCd1intent") < at("cor_DCd1cfg") && at("cor_DCd1cfg") < at("loop_DCd1i") && at("loop_DCd1i") < at("condition_all_DCd1back")
-    && at("condition_all_DCd1back") < at("cor_DCd1plan") && at("cor_DCd1plan") < at("cor_DCd1done"), "D1: decide -> intent -> configs -> Batch inserts -> read-back -> re-PLAN -> DONE", d1);
+    && at("condition_all_DCd1back") < at("cor_DCd1plan") && at("cor_DCd1plan") < at("cor_DCd1done") && at("cor_DCd1done") === at("cor_DCd1reset") - 1 && at("cor_DCd1reset") === d1.length - 1,
+    "D1: decide -> intent -> configs -> Batch inserts -> read-back -> re-PLAN -> DONE -> the count reset", d1);
+  ok(J(props("update_node_DCd1reset")) === J(["id", "attempt_count"]) && /GD Async Job:Table:/.test(J(node("update_node_DCd1reset").data.table_id))
+    && node("cor_DCd1reset").blocks[0].data.filter.list[0].prop === "node.code_node_DCd1.data.needReset", "D1 DONE's count reset writes { id, attempt_count } only (the lease kept)");
   const d2 = node("ifBlock_TDCd2").blocks.map((n) => n.id);
   ok(d2.indexOf("cor_DCd2done") < d2.indexOf("cor_DCsplit") && d2.indexOf("cor_DCsplit") < d2.indexOf("code_node_DCsplitres"), "D2: DONE row, then the SPLIT / PARK hand-over, then the answer", d2);
   const d4 = node("ifBlock_TDCd4").blocks.map((n) => n.id);
@@ -342,10 +357,37 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
     "D1 decide row 8: the intent (numbers + configs), the config's after-state, 3 Batch rows (the non-stock AUTO row consumes a number, no row)", d);
   ok(Object.keys(d.intentRows[0]).sort().join() === "attempt_count,error_code,error_message,finished_at,inventory_operation_id,job_id,organization_id,result_ref,started_at,step_name,step_status",
     "D1 decide: the intent rows carry STEP_PROPS");
-  // row 4: no intent, a live org row holds a generated number (any item) -> FAILED, config NOT advanced
-  d = commitD1Decide(e(), plan0, part, [], bncRows(), [batchRow("2111000000000000001", { batch_number: "batch-00632", material_id: X.itemId(77), transaction_no: "GR-9" })]);
+  // row 4: no intent, a live org row OLDER than the job holds a generated number (any item: a configuration behind, F5) -> FAILED at once, config NOT advanced
+  const older = batchRow("2111000000000000001", { batch_number: "batch-00632", material_id: X.itemId(77), transaction_no: "GR-9" });
+  d = commitD1Decide(e(), plan0, part, [], bncRows(), [older]);
   ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE" && d.jobRows[0].error_message === "Duplicate Batch Format found. (batch number Batch-00632) Nothing was moved." && d.needIntent === "NO"
-    && d.bncRows.length === 0 && d.insertSlices.length === 0 && d.needBatchDel === "NO", "D1 row 4: a generated number held elsewhere -> FAILED IDA_BATCH_DUPLICATE, nothing written", d);
+    && d.bncRows.length === 0 && d.insertSlices.length === 0 && d.needBatchDel === "NO" && d.needIntentDel === "NO",
+    "D1 row 4: a generated number held by a row older than the job -> FAILED IDA_BATCH_DUPLICATE at once, nothing written", d);
+  // row 4, controller ruling 10-22: every holder NEWER than the job (a concurrent writer) -> the renumber wait; nothing of ours to soft-delete, no intent to retire
+  const newer = batchRow("2113000000000000040", { batch_number: "batch-00632", material_id: X.itemId(77), transaction_no: "IDA-2610-0099" });
+  d = withRandom(0.25, () => commitD1Decide(e({ attempts: 2 }), plan0, part, [], bncRows(), [newer]));
+  const jr4 = d.jobRows[0];
+  ok(d.route === "END" && d.job_status === "COMMITTING_IDA" && d.result_code === "IDA_BATCH_RETRY" && jr4.job_status === "COMMITTING_IDA" && jr4.attempt_count === 3
+    && jr4.next_attempt_at === "2026-10-21 10:00:22" && jr4.progress_percent === 70 && jr4.lease_owner === null && jr4.lease_expires_at === null
+    && jr4.error_message === "D1_BATCH: batch number Batch-00632 was taken by another document at the same moment - renumbering (try 3 of 5)"
+    && J(JSON.parse(jr4.error_details)) === J({ step: "D1_BATCH", why: "generated batch number Batch-00632 is held by Batch row 2113000000000000040 (IDA-2610-0099): nothing was moved", numbers: ["Batch-00632"],
+      wait: 22, waitReason: "long" })
+    && d.needUnlock === "NO" && d.needBatchDel === "NO" && d.batchDelSlices.length === 0 && d.needIntentDel === "NO" && d.intentDelSlices.length === 0 && d.needIntent === "NO"
+    && d.intentRows.length === 0 && d.bncRows.length === 0 && d.insertSlices.length === 0,
+    "D1 row 4: a holder newer than the job -> the renumber wait, always the LONG one (no row of ours yet: try 3 of 5, due in 20 + 2 s, no unlock), no ours / intent slices, nothing written", d);
+  const w4 = commitD1Word(e({ attempts: 2 }), d, []);
+  ok(w4.route === "END" && w4.job_status === "COMMITTING_IDA" && w4.needIntentDel === "NO" && w4.needBatchDel === "NO" && J(w4.jobRows) === J(d.jobRows), "D1 word: the row-4 renumber passes through", w4);
+  d = commitD1Decide(e({ attempts: 5 }), plan0, part, [], bncRows(), [newer]);
+  ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE" && d.jobRows[0].error_message === "Duplicate Batch Format found. (batch number Batch-00632) Nothing was moved." && d.needUnlock === "YES"
+    && d.needBatchDel === "NO", "D1 row 4: a newer holder with the 5 tries spent -> FAILED IDA_BATCH_DUPLICATE", d);
+  d = commitD1Decide(e(), plan0, part, [], bncRows(), [older, newer]);
+  ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE", "D1 row 4: an older AND a newer holder -> FAILED at once (every holder must be newer)", d.result_code);
+  d = commitD1Decide(e(), plan0, part, [], bncRows(), [newer, batchRow("2113000000000000041", { batch_number: "LOT-7", material_id: X.itemId(78), transaction_no: "GD-3" })]);
+  ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE", "D1 row 4: a newer holder of a generated AND one of the typed number -> FAILED (the typed one cannot be renumbered)", d.result_code);
+  d = commitD1Decide(e({ opWrote: "YES", op1Wrote: "YES" }), plan0, part, [], bncRows(), [newer]);
+  ok(d.job_status === "REQUIRES_REVIEW" && d.result_code === "IDA_RECONCILIATION_MISMATCH", "D1 row 4: an engine row exists (R2) -> REQUIRES_REVIEW, never a renumber", d.result_code);
+  d = commitD1Decide(e(), plan0, part, [], bncRows(), [batchRow("2112100000000000001", { batch_number: "Batch-00631", material_id: X.itemId(77), transaction_no: "GR-9" })]);
+  ok(d.job_status === "FAILED", "D1 row 4: a holder id equal to the job's is not newer -> FAILED", d.job_status);
   // row 5: no intent, a live org row holds the TYPED number -> FAILED with code_validate's wording (LABELS)
   d = commitD1Decide(e(), plan0, part, [], bncRows(), [batchRow("2111000000000000001", { transaction_no: "GR-9", material_id: X.itemId(88) })]);
   ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE" && d.needLabels === "YES" && d.labelLine === X.lineId(2) && d.labelNumber === "LOT-7", "D1 row 5: a typed number taken -> FAILED, LABELS to word it", d);
@@ -374,13 +416,36 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
   d = commitD1Decide(e(), planI, part, withIntent, [], ours3);
   ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_CONFIG" && /batch number configuration 2062365526375706626 no longer exists: nothing was moved/.test(d.jobRows[0].error_message) && ids(d).length === 3,
     "D1 row 3: the intent's config gone -> FAILED + ours soft-deleted", d);
-  // row 6: intent exists, a holder that is not ours holds a planned number -> FAILED IDA_BATCH_DUPLICATE + ours
-  for (const [label, foreign] of [["another document", { id: "2113000000000000020", batch_number: "Batch-00632", material_id: X.itemId(77), transaction_no: "GR-9" }],
+  // row 6: intent exists, a holder that is not ours holds the TYPED planned number -> FAILED IDA_BATCH_DUPLICATE + ours (a typed number is never renumbered)
+  for (const [label, foreign] of [["another document", { id: "2113000000000000020", batch_number: "lot-7 ", material_id: X.itemId(77), transaction_no: "GR-9" }],
     ["an older row of this IDA", { id: "2111000000000000002", batch_number: "LOT-7" }], ["this IDA's number on another item", { id: "2113000000000000021", batch_number: "LOT-7", material_id: X.itemId(99) }]]) {
     d = commitD1Decide(e(), planI, part, withIntent, bncRows(634), ours3.concat([batchRow(foreign.id, foreign)]));
-    ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE" && J(ids(d)) === J(["2113000000000000008", "2113000000000000009", "2113000000000000010"]) && d.insertSlices.length === 0,
-      "D1 row 6: " + label + " holds a planned number -> FAILED IDA_BATCH_DUPLICATE, ours soft-deleted, the foreign row kept", d);
+    ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE" && J(ids(d)) === J(["2113000000000000008", "2113000000000000009", "2113000000000000010"]) && d.insertSlices.length === 0
+      && d.needUnlock === "YES" && d.needIntentDel === "NO" && d.intentDelSlices.length === 0, "D1 row 6: " + label + " holds the TYPED number -> FAILED IDA_BATCH_DUPLICATE, ours soft-deleted, the foreign row kept", d);
   }
+  // row 6 AUTO (user decision 10-22): every taken planned number is one this job generated -> renumber: ours + the intent retired, nothing written
+  const RETIRE = [{ n: 1, rows: [{ id: INTENT_ID, step_name: "D1|X|" + INTENT_ID, is_deleted: 1 }] }];
+  d = withRandom(0.5, () => commitD1Decide(e(), planI, part, withIntent, bncRows(634), ours3.concat([batchRow("2113000000000000020", { batch_number: "Batch-00632", material_id: X.itemId(77),
+    transaction_no: "GR-9" })])));
+  let jr = d.jobRows[0];
+  ok(d.route === "END" && d.job_status === "COMMITTING_IDA" && d.result_code === "IDA_BATCH_RETRY" && jr.job_status === "COMMITTING_IDA" && jr.attempt_count === 1 && jr.next_attempt_at === "2026-10-21 10:00:25"
+    && jr.error_message === "D1_BATCH: batch number Batch-00632 was taken by another document at the same moment - renumbering (try 1 of 5)"
+    && J(JSON.parse(jr.error_details)) === J({ step: "D1_BATCH", why: "batch number Batch-00632 is held by Batch row 2113000000000000020 (GR-9), not this job's: nothing was moved", numbers: ["Batch-00632"],
+      wait: 25, waitReason: "long" })
+    && d.needUnlock === "NO" && J(ids(d)) === J(["2113000000000000008", "2113000000000000009", "2113000000000000010"]) && J(d.intentDelSlices) === J(RETIRE) && d.needIntentDel === "YES"
+    && d.needIntent === "NO" && d.bncRows.length === 0 && d.insertSlices.length === 0,
+    "D1 row 6 AUTO: another document holds the number this job generated for the non-stock line (no row of ours holds it: the LONG wait, 20 + 5 s) -> renumber (try 1 of 5), ours + the intent retired, no insert / config write", d);
+  d = withRandom(0.9999999, () => commitD1Decide(e(), planI, part, withIntent, bncRows(634), ours3.concat([batchRow("2113000000000000020", { batch_number: "Batch-00633", material_id: X.itemId(77),
+    transaction_no: "GR-9" })])));
+  ok(d.result_code === "IDA_BATCH_RETRY" && d.jobRows[0].next_attempt_at === "2026-10-21 10:00:05" && JSON.parse(d.jobRows[0].error_details).waitReason === "short" && J(d.intentDelSlices) === J(RETIRE)
+    && ids(d).length === 3, "D1 row 6 AUTO: our row of the taken number (..10) is older than the other holder (..20) -> the SHORT wait (5 s whatever the draw)", d.jobRows[0]);
+  const w6 = commitD1Word(e(), d, []);
+  ok(w6.route === "END" && w6.job_status === "COMMITTING_IDA" && J(w6.intentDelSlices) === J(RETIRE) && w6.needIntentDel === "YES" && J(w6.batchDelSlices) === J(d.batchDelSlices) && J(w6.jobRows) === J(d.jobRows)
+    && w6.needUnlock === "NO", "D1 word: the renumber exit passes through, its intent slices included", w6);
+  d = commitD1Decide(e(), planI, part, withIntent, bncRows(634), ours3.concat([batchRow("2113000000000000022", { batch_number: "BATCH-00633", material_id: X.itemId(77), transaction_no: "GR-9" }),
+    batchRow("2113000000000000023", { batch_number: "lot-7", material_id: X.itemId(78), transaction_no: "GD-3" })]));
+  ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE" && d.jobRows[0].error_message === "Duplicate Batch Format found. (batch number Batch-00633) Nothing was moved." && d.needIntentDel === "NO",
+    "D1 row 6: a generated AND the typed number taken -> FAILED IDA_BATCH_DUPLICATE (the typed one cannot be renumbered)", d);
   // row 7: a planned row with two or more ours -> FAILED IDA_BATCH_FAILED, all of them soft-deleted
   d = commitD1Decide(e(), planI, part, withIntent, bncRows(634), ours3.concat([batchRow("2113000000000000030", { batch_number: "LOT-7 " })]));
   ok(d.job_status === "FAILED" && d.result_code === "IDA_BATCH_FAILED" && /inserted twice/.test(d.jobRows[0].error_message) && ids(d).length === 4, "D1 row 7: a row inserted twice -> FAILED, all four soft-deleted", d);
@@ -392,6 +457,10 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
   d = commitD1Decide(entryOf(tw), twPlan, twPart, twIntent, bncRows(632), [batchRow("2113000000000000040", { batch_number: "Batch-00631", material_id: X.itemId(4) }),
     batchRow("2113000000000000041", { batch_number: "Batch-00631", material_id: X.itemId(4) })]);
   ok(d.route === "GO" && d.adoptCount === 2 && d.insertSlices.length === 0, "D1: a typed number equal to a generated one (same item) -> two rows, both ours (classic parity)", d);
+  const twPlan0 = commitD1Plan(entryOf(tw), twPart, [], bncRows());
+  d = commitD1Decide(entryOf(tw), twPlan0, twPart, [], bncRows(), [batchRow("2113000000000000042", { batch_number: "Batch-00631", material_id: X.itemId(77), transaction_no: "GR-9" })]);
+  ok(J(twPlan0.draft.numbers) === J({ B2: "Batch-00631" }) && d.job_status === "FAILED" && d.result_code === "IDA_BATCH_DUPLICATE",
+    "D1 row 4: a newer holder of a number a TYPED and an AUTO row both plan -> FAILED (the typed one cannot be renumbered)", d);
   // check (rows 7, 9, 10, 11)
   const engR = rowsOf(c, "ENGINE_R");
   let k = commitD1Check(e(), part, withIntent, bncRows(634), ours3, engR);
@@ -410,9 +479,62 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
   ok(k.result_code === "IDA_STEP_RETRY" && /behind/.test(k.result_message), "D1 row 9: a config behind its after-state -> retry", k.result_message);
   k = commitD1Check(e(), part, withIntent, bncRows(634), ours3.concat([batchRow("2113000000000000031", { batch_number: "Batch-00633", material_id: X.itemId(7) })]), engR);
   ok(k.job_status === "FAILED" && k.result_code === "IDA_BATCH_FAILED" && ids(k).length === 4, "D1 row 7 (read-back): inserted twice -> FAILED, all of them soft-deleted", k);
-  k = commitD1Check(e(), part, withIntent, bncRows(634), ours3.concat([batchRow("2113000000000000032", { batch_number: "BATCH-00631", material_id: X.itemId(70), transaction_no: "GD-1" })]), engR);
-  ok(k.job_status === "FAILED" && k.result_code === "IDA_BATCH_DUPLICATE" && k.jobRows[0].error_message === "Duplicate Batch Format found. (batch number Batch-00631) Nothing was moved." && ids(k).length === 3,
-    "D1 row 10: the post-insert re-check - another live org row (case-insensitive) holds one of our numbers -> FAILED IDA_BATCH_DUPLICATE, ours soft-deleted", k);
+  // row 10, user decision 10-22 (the live race of 10-21, Batch-00641): another live org row holds one of our GENERATED numbers -> renumber
+  const other = batchRow("2113000000000000032", { batch_number: "BATCH-00631", material_id: X.itemId(70), transaction_no: "GD-1" });
+  k = withRandom(0, () => commitD1Check(e({ attempts: 1 }), part, withIntent, bncRows(634), ours3.concat([other]), engR));
+  jr = k.jobRows[0];
+  ok(k.route === "END" && k.job_status === "COMMITTING_IDA" && k.result_code === "IDA_BATCH_RETRY" && k.needPlan === "NO" && jr.id === JOB && jr.job_status === "COMMITTING_IDA" && jr.attempt_count === 2
+    && jr.next_attempt_at === "2026-10-21 10:00:05" && jr.progress_percent === 70 && jr.progress_message === "Issuing the item being disassembled (1 source pick)" && jr.lease_owner === null
+    && jr.lease_expires_at === null && jr.row_version === 7 && jr.finished_at === null && jr.error_code === "IDA_BATCH_RETRY"
+    && jr.error_message === "D1_BATCH: batch number Batch-00631 was taken by another document at the same moment - renumbering (try 2 of 5)"
+    && J(JSON.parse(jr.error_details)) === J({ step: "D1_BATCH", why: "after the insert batch number Batch-00631 is also held by Batch row 2113000000000000032 (GD-1): nothing was moved", numbers: ["Batch-00631"],
+      wait: 5, waitReason: "short" })
+    && k.needUnlock === "NO" && k.unlockRows.length === 0 && J(ids(k)) === J(["2113000000000000008", "2113000000000000009", "2113000000000000010"]) && k.needBatchDel === "YES"
+    && J(k.intentDelSlices) === J(RETIRE) && k.needIntentDel === "YES" && k.needJobUpd === "YES",
+    "D1 row 10: only generated numbers taken (case-insensitive) -> renumber: COMMITTING_IDA at the pass's progress, lease released, attempt + 1, IDA_BATCH_RETRY (try 2 of 5), no unlock, ours "
+    + "(3, the other writer's row kept) + the intent retired; our row of the taken number (..09) is older than the other (..32): the SHORT wait, 5 s", k);
+  ok(withRandom(0.9999999, () => commitD1Check(e({ attempts: 1 }), part, withIntent, bncRows(634), ours3.concat([other]), engR)).jobRows[0].next_attempt_at === "2026-10-21 10:00:05",
+    "D1 renumber: the short wait is 5 s whatever the draw (deterministic)");
+  // the other writer's row is OLDER than ours (it inserted first): the LONG wait, 20 + floor(random x 11) s
+  const earlier = batchRow("2113000000000000005", { batch_number: "BATCH-00631", material_id: X.itemId(70), transaction_no: "GD-1" });
+  const longOf = (v) => withRandom(v, () => commitD1Check(e({ attempts: 1 }), part, withIntent, bncRows(634), ours3.concat([earlier]), engR)).jobRows[0];
+  ok(longOf(0).next_attempt_at === "2026-10-21 10:00:20" && longOf(0.9999999).next_attempt_at === "2026-10-21 10:00:30" && JSON.parse(longOf(0.5).error_details).wait === 25
+    && JSON.parse(longOf(0.5).error_details).waitReason === "long" && /\(try 2 of 5\)$/.test(longOf(0).error_message), "D1 row 10: the other row (..05) older than ours (..09) -> the LONG wait, 20-30 s", longOf(0));
+  const secs = (x) => (Date.parse(x.replace(" ", "T") + "Z") - Date.parse(DB_NOW.replace(" ", "T") + "Z")) / 1000;
+  const dues = [];
+  for (let i = 0; i < 200; i++) dues.push(secs(commitD1Check(e(), part, withIntent, bncRows(634), ours3.concat([earlier]), engR).jobRows[0].next_attempt_at));
+  ok(dues.every((x) => Number.isInteger(x) && x >= 20 && x <= 30) && new Set(dues).size >= 8, "D1 renumber: 200 real draws of the long wait, every due 20-30 s after the DB clock, spread ("
+    + new Set(dues).size + " distinct)", dues.slice(0, 20));
+  // only OUR rows holding a taken number count: our older LOT-7 row (..100) does not make us first against the other's ..200
+  const ours300 = [batchRow("2113000000000000100"), batchRow("2113000000000000300", { batch_number: "Batch-00631", material_id: X.itemId(4) }),
+    batchRow("2113000000000000310", { batch_number: "Batch-00633", material_id: X.itemId(7) })];
+  k = commitD1Check(e(), part, withIntent, bncRows(634), ours300.concat([batchRow("2113000000000000200", { batch_number: "Batch-00631", material_id: X.itemId(70), transaction_no: "GD-1" })]), engR);
+  ok(k.result_code === "IDA_BATCH_RETRY" && JSON.parse(k.jobRows[0].error_details).waitReason === "long" && ids(k).length === 3, "D1 row 10: our row of the taken number (..300) newer than the other (..200) -> LONG, "
+    + "though our LOT-7 row (..100, not taken) is older", k.jobRows[0]);
+  // two numbers taken: first only when our oldest colliding row is older than EVERY other holder
+  const fA = (id) => batchRow(id, { batch_number: "batch-00631", material_id: X.itemId(70), transaction_no: "GD-1" });
+  const fB = (id) => batchRow(id, { batch_number: "batch-00633", material_id: X.itemId(71), transaction_no: "GD-2" });
+  k = commitD1Check(e(), part, withIntent, bncRows(634), ours3.concat([fA("2113000000000000005"), fB("2113000000000000040")]), engR);
+  ok(k.result_code === "IDA_BATCH_RETRY" && JSON.parse(k.jobRows[0].error_details).waitReason === "long" && J(JSON.parse(k.jobRows[0].error_details).numbers) === J(["Batch-00631", "Batch-00633"]),
+    "D1 row 10: two numbers taken, one other row (..05) older than our oldest colliding row (..09) -> LONG", k.jobRows[0]);
+  k = commitD1Check(e(), part, withIntent, bncRows(634), ours3.concat([fA("2113000000000000041"), fB("2113000000000000040")]), engR);
+  ok(k.result_code === "IDA_BATCH_RETRY" && JSON.parse(k.jobRows[0].error_details).waitReason === "short", "D1 row 10: two numbers taken, every other row newer than our oldest colliding row -> SHORT", k.jobRows[0]);
+  k = commitD1Check(e(), part, withIntent, bncRows(634), ours3.concat([batchRow("x-1", { batch_number: "Batch-00631", material_id: X.itemId(70), transaction_no: "GD-1" })]), engR);
+  ok(k.result_code === "IDA_BATCH_RETRY" && JSON.parse(k.jobRows[0].error_details).waitReason === "long", "D1 row 10: an other holder with an unknown id -> LONG", k.jobRows[0]);
+  k = withRandom(0, () => commitD1Check(e({ attempts: 4 }), part, withIntent, bncRows(634), ours3.concat([other]), engR));
+  ok(k.result_code === "IDA_BATCH_RETRY" && k.jobRows[0].attempt_count === 5 && /\(try 5 of 5\)$/.test(k.jobRows[0].error_message), "D1 row 10: attempt 4 -> the last try (5 of 5)", k.jobRows[0]);
+  k = commitD1Check(e({ attempts: 5 }), part, withIntent, bncRows(634), ours3.concat([other]), engR);
+  ok(k.job_status === "FAILED" && k.result_code === "IDA_BATCH_DUPLICATE" && k.jobRows[0].error_message === "Duplicate Batch Format found. (batch number Batch-00631) Nothing was moved." && ids(k).length === 3
+    && k.needUnlock === "YES" && k.needIntentDel === "NO" && k.intentDelSlices.length === 0, "D1 row 10: the 5 renumber tries spent -> FAILED IDA_BATCH_DUPLICATE as before (Draft, ours soft-deleted)", k);
+  k = commitD1Check(e(), part, withIntent, bncRows(634), ours3.concat([batchRow("2113000000000000033", { batch_number: "lot-7 ", material_id: X.itemId(70), transaction_no: "GD-1" })]), engR);
+  ok(k.job_status === "FAILED" && k.result_code === "IDA_BATCH_DUPLICATE" && k.jobRows[0].error_message === "Duplicate Batch Format found. (batch number LOT-7) Nothing was moved." && ids(k).length === 3
+    && k.needUnlock === "YES" && k.needIntentDel === "NO", "D1 row 10: another document holds the TYPED number after the insert -> FAILED IDA_BATCH_DUPLICATE as before", k);
+  k = commitD1Check(e(), part, withIntent, bncRows(634), ours3.concat([other, batchRow("2113000000000000034", { batch_number: "LOT-7", material_id: X.itemId(71), transaction_no: "GD-2" })]), engR);
+  ok(k.job_status === "FAILED" && k.result_code === "IDA_BATCH_DUPLICATE" && k.needIntentDel === "NO", "D1 row 10: a generated and the typed number taken -> FAILED", k.result_code);
+  k = commitD1Check(e(), part, [{ step_name: "D1|I|001", result_ref: withIntent[0].result_ref }], bncRows(634), ours3.concat([other]), engR);
+  ok(k.job_status === "FAILED" && k.result_code === "IDA_BATCH_DUPLICATE", "D1 row 10: intent rows without an id (nothing to retire, the next pass could not number afresh) -> FAILED as before", k.result_code);
+  k = commitD1Check(e({ opWrote: "YES", op1Wrote: "YES" }), part, withIntent, bncRows(634), ours3.concat([other]), engR);
+  ok(k.job_status === "REQUIRES_REVIEW" && k.result_code === "IDA_RECONCILIATION_MISMATCH" && k.needIntentDel === "NO" && k.needBatchDel === "NO", "D1 row 10: an engine row exists (R2) -> REQUIRES_REVIEW, never a renumber", k);
   const onlyNs = X.makeCase({ lines: [{ kind: "none" }, { kind: "nsauto" }] });
   k = commitD1Check(entryOf(onlyNs), rowsOf(onlyNs, "BATCH"), intentOf({ B1: "Batch-00631" }, CFG), bncRows(634), [], []);
   ok(k.route === "GO" && k.needPlan === "NO" && /skipped/.test(k.result_message), "D1 row 11 (ruling 21): no planned row inserts -> the re-PLAN is skipped", k);
@@ -427,6 +549,14 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
   ok(a.allOk === "YES" && a.needLabels === "NO", "D1 answer: every R 200");
   let f = commitD1(e(), chk, a, [], { rows: 4, inserted: 3, adopted: 0 });
   ok(f.route === "OK" && f.stepRows[0].step_name === "D1_BATCH" && J(JSON.parse(f.stepRows[0].result_ref)) === J({ rows: 4, inserted: 3, adopted: 0 }), "D1 row 11: re-PLAN 200 + every R 200 -> DONE", f);
+  // D1 DONE starts D2's count at 0 again (as the READY_TO_COMMIT claim does)
+  const { withReset } = L("code_node_DCd1", ["withReset"]);
+  let rs = withReset(e({ attempts: 2 }), commitD1(e({ attempts: 2 }), chk, a, [], { rows: 4, inserted: 3, adopted: 0 }));
+  ok(rs.route === "OK" && J(rs.resetRows) === J([{ id: JOB, attempt_count: 0 }]) && rs.needReset === "YES" && rs.needStep === "YES", "D1 DONE after 2 renumber tries / retries -> the attempt count back to 0", rs);
+  rs = withReset(e(), commitD1(e(), chk, a, [], { rows: 4, inserted: 3, adopted: 0 }));
+  ok(rs.route === "OK" && rs.needReset === "NO" && rs.resetRows.length === 0, "D1 DONE at count 0 -> no reset write", rs);
+  rs = withReset(e({ attempts: 2 }), commitD1(e({ attempts: 2 }), chk, commitD1Ans({ needPlan: "YES", keys: chk.keys }, { code: "500", result_code: "X" }), [], { rows: 4 }));
+  ok(rs.job_status === "FAILED" && rs.needReset === "NO", "D1 not DONE -> no reset", rs.job_status);
   a = commitD1Ans({ needPlan: "YES", keys: chk.keys }, { code: "200", result_code: "OK", results: J(okRes.map((r) => (r.movement_key === "R4" ? { movement_key: "R4", code: "401", message: "Skipping inventory update for item (stock control = 0)" } : r))) });
   ok(a.allOk === "NO" && a.refusedKey === "R4" && a.needLabels === "YES", "D1 answer: results as text, R4 401 -> refused, LABELS needed", a);
   f = commitD1(e(), chk, a, rowsOf(c, "LABELS"), { rows: 4, inserted: 3, adopted: 0 });
@@ -496,6 +626,13 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
   ok(r.job_status === "REQUIRES_REVIEW" && r.needUnlock === "NO" && r.needOursRead === "NO", "D2: 409 same operation still running, no intent rows, after 8 waits -> REQUIRES_REVIEW (was FAILED + Draft)", r);
   r = commitD2(e(), guard, inp, { code: "409", result_code: "LOCK_BUSY" }, { intents: 1 }, []);
   ok(r.result_code === "IDA_STEP_RETRY" && r.needUnlock === "NO", "D2: another 409 WITH intent rows -> retry as before", r);
+  // D1 DONE in this pass reset the count: D2's 8 lock waits start at 0 whatever the entry read; D1 done in an earlier pass -> the job's count
+  r = commitD2(e({ attempts: 3, needD1: "YES" }), guard, inp, { code: "409", result_code: "LOCK_BUSY" }, { intents: 0 }, []);
+  ok(r.result_code === "IDA_LOCK_WAIT" && r.jobRows[0].attempt_count === 1 && r.jobRows[0].next_attempt_at === "2026-10-21 10:00:15", "D2: D1 DONE in this pass after 3 renumber tries -> lock wait 1 of 8 (15 s)", r.jobRows[0]);
+  r = commitD2(e({ attempts: 8, needD1: "YES" }), guard, inp, { code: "409", result_code: "LOCK_BUSY" }, { intents: 0 }, []);
+  ok(r.result_code === "IDA_LOCK_WAIT" && r.jobRows[0].attempt_count === 1 && r.needUnlock === "NO", "D2: D1's count of 8 never makes the first 409 FAILED", r);
+  r = commitD2(e({ attempts: 3 }), guard, inp, { code: "409", result_code: "LOCK_BUSY" }, { intents: 0 }, []);
+  ok(r.result_code === "IDA_LOCK_WAIT" && r.jobRows[0].attempt_count === 4 && r.jobRows[0].next_attempt_at === "2026-10-21 10:02:00", "D2: D1 done in an earlier pass -> the job's own count (wait 4, 120 s)", r.jobRows[0]);
   r = commitD2(e(), guard, inp, { code: "500", result_code: "REQUIRES_REVIEW" }, null, []);
   ok(r.job_status === "REQUIRES_REVIEW" && r.needUnlock === "NO" && r.needOursRead === "NO", "D2: 500 -> REQUIRES_REVIEW at once, nothing else");
   ok(commitD2(e(), guard, Object.assign({}, inp, { ok: "NO", why: "x" }), {}, null, []).result_code === "IDA_INVALID_DATA", "D2: no ENGINE_I part -> FAILED");
@@ -677,6 +814,21 @@ const ids = (r) => (r.batchDelSlices || []).reduce((a, sl) => a.concat(sl.rows.m
   const NUMS = { B2: "Batch-00631", B3: "Batch-00632", B4: "Batch-00633" };
   check("code_node_DCd1check", commitD1Check(entryOf(c), rowsOf(c, "BATCH"), intentOf(NUMS, []), bncRows(634), [batchRow("2113000000000000008"),
     batchRow("2113000000000000009", { batch_number: "Batch-00631", material_id: X.itemId(4) }), batchRow("2113000000000000010", { batch_number: "Batch-00633", material_id: X.itemId(7) })], rowsOf(c, "ENGINE_R")));
+  const raced = [batchRow("2113000000000000008"), batchRow("2113000000000000009", { batch_number: "Batch-00631", material_id: X.itemId(4) }),
+    batchRow("2113000000000000010", { batch_number: "Batch-00633", material_id: X.itemId(7) }), batchRow("2113000000000000032", { batch_number: "Batch-00631", material_id: X.itemId(70), transaction_no: "GD-1" })];
+  check("code_node_DCd1check", commitD1Check(entryOf(c), rowsOf(c, "BATCH"), intentOf(NUMS, []), bncRows(634), raced, rowsOf(c, "ENGINE_R")));
+  const planR = commitD1Plan(entryOf(c), rowsOf(c, "BATCH"), intentOf(NUMS, []), bncRows(634));
+  const dR = commitD1Decide(entryOf(c), planR, rowsOf(c, "BATCH"), intentOf(NUMS, []), bncRows(634), raced);
+  check("code_node_DCd1decide", dR);
+  const { commitD1Word } = L("code_node_DCd1word", ["commitD1Word"]);
+  check("code_node_DCd1word", commitD1Word(entryOf(c), dR, []));
+  const plan4 = commitD1Plan(entryOf(c), rowsOf(c, "BATCH"), [], bncRows());
+  const d4 = commitD1Decide(entryOf(c), plan4, rowsOf(c, "BATCH"), [], bncRows(), [batchRow("2113000000000000040", { batch_number: "Batch-00631", material_id: X.itemId(77), transaction_no: "IDA-2610-0099" })]);
+  ok(d4.result_code === "IDA_BATCH_RETRY", "declared types: the row-4 renumber exit is the one checked", d4.result_code);
+  check("code_node_DCd1decide", d4);
+  check("code_node_DCd1word", commitD1Word(entryOf(c), d4, []));
+  const { commitD1, withReset } = L("code_node_DCd1", ["commitD1", "withReset"]);
+  check("code_node_DCd1", withReset(entryOf(c, { attempts: 2 }), commitD1(entryOf(c, { attempts: 2 }), { needPlan: "NO", ours: [], result_message: "x" }, {}, [], { rows: 1, inserted: 0, adopted: 0 })));
   const { commitD3Plan } = L("code_node_DCd3plan", ["commitD3Plan"]);
   check("code_node_DCd3plan", commitD3Plan(entryOf(c, { phase: "B" }), rowsOf(c, "ENGINE_R"), [{ n: 1, total: "10" }], [{ intents: 1, review: 0, done_summary: J({ movements: 1 }) }], rowsOf(c, "BATCH"),
     intentOf(NUMS, []), [batchRow("2113000000000000008"), batchRow("2113000000000000009", { batch_number: "Batch-00631", material_id: X.itemId(4) }),

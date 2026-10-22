@@ -68,7 +68,9 @@ ITEM_FIELDS = ("material_code,material_name,material_desc,based_uom,serial_numbe
                "batch_number_genaration,table_uom_conversion,table_default_bin")
 # the base scripts this build patches, by event key (name, the repo mirror's name)
 FORM_PATCHED = {"mounted": ("mounted", "idaForm_mounted.js"), "ida_src_item": ("onChange_idaSourceItem", "idaForm_onChange_idaSourceItem.js"),
-                "e9ib2r8i": ("onClick_post", "idaForm_onClick_post.js")}
+                "e9ib2r8i": ("onClick_post", "idaForm_onClick_post.js"),
+                "iasvcomp": ("onClick_saveAsCompleted", "idaForm_onClick_saveAsCompleted.js"),
+                "aymq6q8z": ("onClick_saveAsCompletedPost", "idaForm_onClick_saveAsCompletedPost.js")}
 LIST_PATCHED = {"q82pv0wg": ("delete", "idaList_delete.js"), "ee9v0c1h": ("onItemDisassemblyPostfunc_ee9v0c1h", "idaList_onItemDisassemblyPostfunc_ee9v0c1h.js")}
 
 
@@ -196,6 +198,13 @@ BOM_ESCAPES = [
 ]
 
 
+def classic_escape_edits():
+    """the classic Completed / Complete & Post handlers: the same three names escaped in their BOM-variance dialog (user, 10-22)"""
+    helper = piece(read(os.path.join(SRC, "idaV2_onClick_completed.js")), "// the BOM-variance dialog renders HTML", "\n\n/*@@CONFIRM_BOM_VARIANCE@@*/", "idaEscHtml")
+    anchor = "const confirmBomVariance = async (data) => {"
+    return [("idaEscHtml", anchor, helper + "\n\n" + anchor)] + [("escape %d" % i, old, new) for i, (old, new) in enumerate(BOM_ESCAPES)]
+
+
 def classic_pieces(form):
     """the verbatim lifts from the classic handlers (CONTRACT section 12): validateForSave and confirmBomVariance (identical in both),
     and the Complete & Post posting code (AGENT id, its closeDialog, postToAccounting) wrapped so its closeDialog stays its own"""
@@ -311,7 +320,8 @@ def build_form(c, rng, taken):
         mirrors[name + ".js"] = func
 
     block = fill(src("idaV2_mounted_block.js", c), {})
-    edits = {"mounted": mounted_edits(block), "ida_src_item": explode_edits(k["ida_src_item"]["func"], reads), "e9ib2r8i": onclick_post_edits()}
+    edits = {"mounted": mounted_edits(block), "ida_src_item": explode_edits(k["ida_src_item"]["func"], reads), "e9ib2r8i": onclick_post_edits(),
+             "iasvcomp": classic_escape_edits(), "aymq6q8z": classic_escape_edits()}
     for key, (name, mirror) in FORM_PATCHED.items():
         e = k[key]
         assert e["name"] == name and e.get("type") == "js", (key, name)

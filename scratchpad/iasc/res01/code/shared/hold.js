@@ -163,16 +163,22 @@ const hdMoves = (holds, releases, ctx) => {
   });
   return out;
 };
+// the item master's code, name and description on every row written, as a Goods Delivery's rows carry them (user 10-22)
+const hdItemText = (ia, f) => {
+  const it = (ia && ia.items && ia.items[hdS(f.materialId)]) || {};
+  const text = { item_code: hdS(it.material_code), item_name: hdS(it.material_name), item_desc: hdS(it.material_desc) };
+  return text;
+};
 // the rows written BEFORE the move: new holds and kept remainders as Processing (every reader skips them), the released rows
 // marked Releasing; each carries the operation key, so a dead run is resolved from the engine's record of it
 const hdRows = (holds, releases, ia, opKey, now) => {
   const add = [];
   const mark = [];
   let n = 0;
-  const row = (f, qty, source) => ({ doc_type: "Item Assembly", status: "Processing", doc_id: hdS(ia.id), doc_no: hdS(ia.no), doc_line_id: hdS(f.lineId), material_id: hdS(f.materialId),
-    bin_location: hdS(f.binId), batch_id: hdS(f.batchId) || null, item_uom: hdS(f.uomId), reserved_qty: hdText(qty), open_qty: hdText(qty), delivered_qty: hdText(0),
-    from_category: hdS(f.cat), plant_id: hdS(ia.plantId), organization_id: hdS(ia.orgId), reserved_date: hdS(now), job_line_key: opKey + "|" + ++n, parent_id: "", parent_no: "",
-    parent_line_id: "", target_gd_id: "", source_reserved_id: hdS(source) });
+  const row = (f, qty, source) => Object.assign({ doc_type: "Item Assembly", status: "Processing", doc_id: hdS(ia.id), doc_no: hdS(ia.no), doc_line_id: hdS(f.lineId),
+    material_id: hdS(f.materialId), bin_location: hdS(f.binId), batch_id: hdS(f.batchId) || null, item_uom: hdS(f.uomId), reserved_qty: hdText(qty), open_qty: hdText(qty),
+    delivered_qty: hdText(0), from_category: hdS(f.cat), plant_id: hdS(ia.plantId), organization_id: hdS(ia.orgId), reserved_date: hdS(now), job_line_key: opKey + "|" + ++n,
+    parent_id: "", parent_no: "", parent_line_id: "", target_gd_id: "", source_reserved_id: hdS(source) }, hdItemText(ia, f));
   (holds || []).forEach((h) => add.push(row(h.frag, h.qty, "")));
   (releases || []).forEach((r) => {
     if (r.keepQty > HD_EPS) add.push(row(r.frag, r.keepQty, r.rows[0] && r.rows[0].id));
@@ -279,22 +285,31 @@ const hdCloseRows = (plan, ia, opKey, now) => {
   (plan.releases || []).forEach((x) => {
     if (x.whole) return void mark.push({ id: x.source, status: "Releasing", job_line_key: opKey + "|" + x.source });
     const f = x.frag;
-    add.push({ doc_type: "Item Assembly", status: "Releasing", doc_id: hdS(ia.id), doc_no: hdS(ia.no), doc_line_id: hdS(f.lineId), material_id: hdS(f.materialId),
+    add.push(Object.assign({ doc_type: "Item Assembly", status: "Releasing", doc_id: hdS(ia.id), doc_no: hdS(ia.no), doc_line_id: hdS(f.lineId), material_id: hdS(f.materialId),
       bin_location: hdS(f.binId), batch_id: hdS(f.batchId) || null, item_uom: hdS(f.uomId), reserved_qty: hdText(x.releaseQty), open_qty: hdText(x.releaseQty),
       delivered_qty: hdText(0), from_category: hdS(f.cat), plant_id: hdS(ia.plantId), organization_id: hdS(ia.orgId), reserved_date: hdS(now), job_line_key: opKey + "|" + ++n,
-      parent_id: "", parent_no: "", parent_line_id: "", target_gd_id: "", source_reserved_id: x.source });
+      parent_id: "", parent_no: "", parent_line_id: "", target_gd_id: "", source_reserved_id: x.source }, hdItemText(ia, f)));
   });
   const out = { add: add, mark: mark };
   return out;
 };
-// required / reserved / short per component line (required = required_qty, else the line's quantity) and the label
+// required / reserved / unreserved per component line (required = required_qty, else the line's quantity), why the rest is not
+// reserved, and the label. MIN-06 (BA 10-22): the reasons come from hdWanted, the rules reservation holds by; a line with an input it
+// does not support (unknown item, serial, handling unit, another category, a unit with no conversion) is never fully reserved, and
+// NONE (nothing to reserve) means no stock line requires anything
 const hdStatus = (lines, rows, items) => {
   const held = {};
   (rows || []).forEach((r) => {
     if (hdS(r.status) !== "Allocated" || Number(r.is_deleted) === 1) return;
     held[hdS(r.doc_line_id)] = hdQ8((held[hdS(r.doc_line_id)] || 0) + hdNum(r.open_qty));
   });
+  const w = hdWanted({ lines: lines, items: items });
+  const picked = {};
+  w.fragments.forEach((f) => (picked[f.lineId] = hdQ8((picked[f.lineId] || 0) + f.qty)));
+  const skip = {};
+  w.notHeld.forEach((x) => x.reason !== "NON_STOCK" && (skip[x.lineId] = (skip[x.lineId] || []).concat([x.reason])));
   const out = [];
+  const why = { notFree: 0, notAllocated: 0, unsupported: {} };
   let need = 0;
   let full = 0;
   let any = 0;
@@ -302,22 +317,27 @@ const hdStatus = (lines, rows, items) => {
     if (Number(l.is_deleted) === 1) return;
     const item = (items || {})[hdS(l.item_selection)];
     if (item && Number(item.stock_control) === 0) return;
-    // an unknown item is not reservable (shown with the reason, not counted), like a serial one
-    const serial = !item || Number(item.serial_number_management) === 1;
-    const hu = !serial && hdParse(l.temp_hu_data).length > 0;
+    const lineId = hdS(l.id);
+    const reasons = skip[lineId] || [];
     const required = hdQ8(hdS(l.required_qty) !== "" ? l.required_qty : l.total_quantity);
-    const reserved = serial ? 0 : hdQ8(held[hdS(l.id)] || 0);
-    const short = serial ? 0 : hdQ8(Math.max(0, required - reserved));
-    out.push({ lineId: hdS(l.id), required: required, reserved: reserved, short: short, reason: !item ? "ITEM" : serial ? "SERIAL" : hu ? "HANDLING_UNIT" : "" });
-    if (!serial && required > HD_EPS) {
+    const reserved = hdQ8(held[lineId] || 0);
+    const short = hdQ8(Math.max(0, required - reserved));
+    // a supported line's rest: allocated stock that was not free, then what was never allocated
+    const notFree = reasons.length ? 0 : hdQ8(Math.max(0, Math.min(required, picked[lineId] || 0) - reserved));
+    const notAllocated = reasons.length ? 0 : hdQ8(Math.max(0, short - notFree));
+    out.push({ lineId: lineId, required: required, reserved: reserved, short: short, reason: reasons[0] || "", reasons: reasons, notFree: notFree, notAllocated: notAllocated });
+    if (required > HD_EPS) {
       need += 1;
-      if (short <= HD_EPS) full += 1;
+      if (!reasons.length && short <= HD_EPS) full += 1;
       if (reserved > HD_EPS) any += 1;
+      if (notFree > HD_EPS) why.notFree += 1;
+      if (notAllocated > HD_EPS) why.notAllocated += 1;
+      reasons.forEach((r) => (why.unsupported[r] = (why.unsupported[r] || 0) + 1));
     }
   });
   // NONE only when nothing is held either (review M3: a completed IA labelled NONE is never closed again)
   const holding = Object.keys(held).some((k) => held[k] > HD_EPS);
-  const summary = { status: need === 0 ? (holding ? "FULL" : "NONE") : full === need ? "FULL" : any === 0 ? "SHORT" : "PARTIAL", lines: out };
+  const summary = { status: need === 0 ? (holding ? "FULL" : "NONE") : full === need ? "FULL" : any === 0 ? "SHORT" : "PARTIAL", lines: out, why: why };
   return summary;
 };
 if (typeof module !== "undefined") module.exports = { HD_CATS, HD_LEASE_MS, HD_ID, HD_OP, hdClose, hdCloseRows, hdNet, hdS, hdNum, hdQ8, hdText, hdParse, hdJson, hdSqlRows, hdSqlRow, hdKey, hdFactor, hdWanted, hdHeld, hdDelta, hdCap, hdMoves, hdRows, hdFinish, hdOpsOf, hdRecover, hdStatus };

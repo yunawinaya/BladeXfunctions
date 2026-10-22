@@ -1,0 +1,140 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_HOLD",
+   "dataId": "2112752274794217473",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_HOLD.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_HOLD/v7_20261022-130745.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "organization_id": "1",
+     "operation": "CLOSE",
+     "source": "COMPLETE"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Item Assembly not found."
+    }
+   }
+  },
+  {
+   "name": "IA_SAVE",
+   "dataId": "2098335576774463489",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SAVE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_SAVE/v19_20261022-130746.enabled.json",
+   "smoke": {
+    "request": {
+     "allData": {
+      "page_status": "Add",
+      "organization_id": "1",
+      "issuing_operation_faci": "1",
+      "item_id": "1",
+      "item_qty": 1,
+      "item_uom": "1",
+      "storage_location_id": "1",
+      "location_id": "1",
+      "stock_movement_no": "",
+      "stock_movement_no_type": "1",
+      "stock_movement": [
+       {
+        "item_selection": "1",
+        "requested_qty": 1,
+        "total_quantity": 1,
+        "quantity_uom": "1",
+        "temp_qty_data": "",
+        "temp_hu_data": ""
+       }
+      ],
+      "source_so_id": "1",
+      "source_so_line_id": "1"
+     },
+     "saveAs": "Draft",
+     "pageStatus": "Add"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Your user is not assigned to this organisation, so this Item Assembly cannot be linked to its Sales Order line."
+    }
+   }
+  },
+  {
+   "name": "IA_V2_SUBMIT",
+   "dataId": "2112141238600376321",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_SUBMIT/v9_20261022-130745.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "",
+     "ia_id": "2112143339233648642",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  },
+  {
+   "name": "SO_IA_PROJECTION",
+   "dataId": "2112448183267332097",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/SO_IA_PROJECTION.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/SO_IA_PROJECTION/v7_20261022-130747.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "SUMMARY",
+     "so_id": "",
+     "so_line_id": "1",
+     "item_id": "1",
+     "exclude_ia_id": "",
+     "organization_id": "1",
+     "proposal_qty": "",
+     "proposal_uom_id": "",
+     "baseline": ""
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Your user is not assigned to this organisation, so its Sales Order figures cannot be shown."
+    }
+   }
+  },
+  {
+   "name": "IA_SC_RELINK",
+   "dataId": "2112448260018900994",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SC_RELINK.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_SC_RELINK/v7_20261022-130747.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "so_line_id": "1",
+     "item_id": "1",
+     "organization_id": "1"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "expected_line_id: digits only"
+    }
+   }
+  },
+  {
+   "name": "IA list (Cancel: Created not deletable, Edit hidden for Cancelled)",
+   "kind": "page",
+   "dataId": "2098312073316716546",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iav2/base/ia_list_v24.json"
+  },
+  {
+   "name": "IA form (Cancel button, Cancelled badge / read-only)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v49.json"
+  }
+ ]
+}

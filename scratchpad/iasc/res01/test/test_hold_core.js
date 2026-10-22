@@ -171,12 +171,29 @@ const frag = (lineId, mat, bin, qty, extra) => Object.assign({ key: lineId + "|"
     line("L3", "SN", EA, [pick("B1", 1)], { required_qty: "1" })];
   const held = [row("R1", "L1", "C1", "B1", null, "Unrestricted", 6), row("R2", "L2", "C2", "B1", null, "Unrestricted", 3)];
   const st = C.hdStatus(ls, held, items);
-  eq("hdStatus: per line required / reserved / short; no required_qty -> the line quantity; serial not reservable", st.lines.map((x) => [x.lineId, x.required, x.reserved, x.short, x.reason]),
-    [["L1", 10, 6, 4, ""], ["L2", 3, 3, 0, ""], ["L3", 1, 0, 0, "SERIAL"]]);
+  eq("hdStatus: per line required / reserved / unreserved; no required_qty -> the line quantity; a serial line unreserved, its reason named",
+    st.lines.map((x) => [x.lineId, x.required, x.reserved, x.short, x.reason]), [["L1", 10, 6, 4, ""], ["L2", 3, 3, 0, ""], ["L3", 1, 0, 1, "SERIAL"]]);
   eq("hdStatus: some short -> PARTIAL", st.status, "PARTIAL");
   eq("hdStatus: all covered -> FULL", C.hdStatus([ls[1]], [held[1]], items).status, "FULL");
   eq("hdStatus: nothing held while something is required -> SHORT", C.hdStatus([ls[0]], [], items).status, "SHORT");
-  eq("hdStatus: no reservable line -> NONE", C.hdStatus([ls[2]], [], items).status, "NONE");
+  // MIN-06 (BA 10-22): Fully reserved never hides an input reservation skips; Nothing to reserve only with no stock input at all
+  eq("hdStatus MIN-06: a serial line next to a fully reserved one -> PARTIAL, not FULL", C.hdStatus([ls[1], ls[2]], [held[1]], items).status, "PARTIAL");
+  eq("hdStatus MIN-06: only a serial line -> SHORT, not NONE", C.hdStatus([ls[2]], [], items).status, "SHORT");
+  eq("hdStatus MIN-06: only non-stock lines -> NONE", C.hdStatus([line("L4", "NS", EA, [], { required_qty: "1" })], [], items).status, "NONE");
+  const hu = line("L5", "C2", EA, [pick("B1", 2)], { temp_hu_data: JSON.stringify([{ handling_unit_id: "H1", sm_quantity: 2 }]) });
+  const hs = C.hdStatus([hu], [row("R5", "L5", "C2", "B1", null, "Unrestricted", 2)], items);
+  eq("hdStatus MIN-06: a handling-unit pick next to a held loose pick -> not FULL, the reason named", [hs.status, hs.lines.map((x) => [x.reason, x.reasons])],
+    ["PARTIAL", [["HANDLING_UNIT", ["HANDLING_UNIT"]]]]);
+  const mix = C.hdStatus([line("L1", "C1", EA, [pick("B1", 6)], { required_qty: "10" }), line("L2", "C2", EA, [pick("B1", 3)], { required_qty: "3" }),
+    line("L6", "C2", EA, [pick("B1", 2), pick("B5", 3, { category: "Reserved" })], { required_qty: "5" }), line("L8", "C2", CTN, [pick("B1", 1)], { required_qty: "1" }), ls[2],
+    line("L9", "C9", EA, [pick("B1", 1)], { required_qty: "1" })],
+    [row("R1", "L1", "C1", "B1", null, "Unrestricted", 6), row("R2", "L2", "C2", "B1", null, "Unrestricted", 1), row("R6", "L6", "C2", "B1", null, "Unrestricted", 2)], items);
+  eq("hdStatus MIN-06: per line what is not reserved: allocated for less than required, allocated stock not free, the reasons it does not support",
+    mix.lines.map((x) => [x.lineId, x.short, x.notAllocated, x.notFree, x.reasons]), [["L1", 4, 4, 0, []], ["L2", 2, 0, 2, []], ["L6", 3, 0, 0, ["CATEGORY"]],
+      ["L8", 1, 0, 0, ["UOM"]], ["L3", 1, 0, 0, ["SERIAL"]], ["L9", 1, 0, 0, ["ITEM"]]]);
+  eq("hdStatus MIN-06: the why of the label, in lines", [mix.status, mix.why], ["PARTIAL", { notFree: 1, notAllocated: 1, unsupported: { CATEGORY: 1, UOM: 1, SERIAL: 1, ITEM: 1 } }]);
+  const over = C.hdStatus([line("L1", "C1", EA, [pick("B1", 5)], { required_qty: "2" })], [row("R1", "L1", "C1", "B1", null, "Unrestricted", 1)], items).lines[0];
+  eq("hdStatus MIN-06: allocated beyond the requirement: only the required part counts as not free", [over.short, over.notFree, over.notAllocated], [1, 1, 0]);
   // review M3: NONE means nothing held (a completed IA labelled NONE is never closed again)
   eq("hdStatus: nothing required (Required typed 0) but its picks held -> FULL, not NONE",
     C.hdStatus([line("L1", "C1", EA, [pick("B1", 2)], { required_qty: "0" })], [row("R1", "L1", "C1", "B1", null, "Unrestricted", 2)], items).status, "FULL");

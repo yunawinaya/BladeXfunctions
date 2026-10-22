@@ -6,8 +6,10 @@ const H = require("./harness");
 const F = require("./fixture");
 const { check } = H;
 
-const BUILT = H.scVariant(H.readJSON(H.FILES.formOn), true, H.SC_TEST_IDS);
-const ON = H.resVariant(BUILT, true);
+// the shipped build (RES-01 ON on DEV since 10-22) and its two switch variants
+const SHIPPED = H.scVariant(H.readJSON(H.FILES.formOn), true, H.SC_TEST_IDS);
+const BUILT = H.resVariant(SHIPPED, false);
+const ON = H.resVariant(SHIPPED, true);
 const IA_SAVE = "2098335576774463489";
 const SUBMIT = "2112141238600376321";
 const ACC = "2013511169625042946";

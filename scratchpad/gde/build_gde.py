@@ -368,6 +368,8 @@ def classic_node(nid, new_id, title, refs):
 
 def build_commit():
     ids = K.Ids(1798200000000)
+    # the lanes' own filter-id range and response-key sequence: the published nodes keep their ids and keys
+    LANES, LANE_IDS, LANE_RNG = 12, K.Ids(1798260000000), K.random.Random("gde:GD_EDIT_COMMIT:lanes")
     TEN, JOBID, GDID, PFX, ORGID = N(XG, "data.tenantId"), N(XG, "data.jobId"), N(XE, "data.gdId"), N(XE, "data.partPrefix"), N(XE, "data.organizationId")
     ENTRY = "const entry = %s;" % d(XE)
 
@@ -505,11 +507,27 @@ SELECT 'C' AS k, JSON_OBJECT('id', CAST(r.id AS CHAR), 'job_line_key', r.job_lin
     def step_done(tag, src, step):
         return gate(ids, "cor_GX%sstep" % tag, "%s DONE to record?" % step, src, "needStep", [step_add(ids, "add_node_GX%sstep" % tag, "%s DONE (unique job / step)" % step, src, "stepRows")])
 
+    # update-nodes write row by row (~40 ms a row on dev): the first LANES slices go to parallel lanes, the rest to the loop (10-22,
+    # as GD Completed V2)
     def slice_loop(tag, src, field, title, table, props, labels=None):
-        loop_id, sl = "loop_GX%s" % tag, "code_node_GX%sslice" % tag
-        return K.loop(ids, loop_id, title, N(src, "data." + field), [
+        loop_id, sl, ln = "loop_GX%s" % tag, "code_node_GX%sslice" % tag, "code_node_GX%slanes" % tag
+        lanes = read(HERE + "/code/commit/lanes.js").replace("__SRC__", "%s.data.%s" % (src, field)).replace("__LANES__", str(LANES))
+        lane_names = ["lane%d" % k for k in range(LANES)]
+        loop = K.loop(ids, loop_id, title, N(ln, "data.rest"), [
             K.code(sl, "This slice (the loop item: <= 250 rows)", read(HERE + "/code/commit/slice.js").replace("__LOOP__", loop_id), ["n", "rows"], arrays=("rows",), objects=("n",)),
             rows_update(ids, "update_node_GX%swrite" % tag, title + " (<= 250 per call)", table, sl, "rows", props, labels)])
+        main, K._rng = K._rng, LANE_RNG
+        try:
+            return [
+                K.code(ln, "Lanes of %s: the first %d slices in parallel, the rest in the loop" % (tag, LANES), lanes,
+                       ["rest", "hasRest", "count"] + lane_names + ["has%d" % k for k in range(LANES)], arrays=tuple(["rest"] + lane_names)),
+                K.parallel("cond_all_GX%sl" % tag, "%s: %d parallel lanes" % (title, LANES),
+                           [("cai_GX%sl%d" % (tag, k), "Lane %d" % k, [K.when_yes(LANE_IDS, "cor_GX%sl%d" % (tag, k), "Lane %d has rows?" % k, "node.%s.data.has%d" % (ln, k), "has%d" % k,
+                             [rows_update(LANE_IDS, "update_node_GX%sl%d" % (tag, k), "%s (lane %d)" % (title, k), table, ln, "lane%d" % k, props, labels)])]) for k in range(LANES)]),
+                K.when_yes(LANE_IDS, "cor_GX%slrest" % tag, "Slices past lane %d?" % (LANES - 1), "node.%s.data.hasRest" % ln, "hasRest", [loop]),
+            ]
+        finally:
+            K._rng = main
 
     def parts(tag, names):
         return [("cai_GX%s%s" % (tag, n), n, [K.sql("sql_node_GX%s%s" % (tag, n), "Part %s of the prepared payload" % n, part(n), ["step_name", "result_ref"])]) for n in names]
@@ -634,7 +652,7 @@ return res;"""
             end_block("e2a", "code_node_GXe2a", "IF the lines changed after the stock moved: review"),
             e2_add("a"),
             K.if_(ids, "if_GXe2one", "IF no bundle item waited for its parent: this plan's patches and removals", is_("code_node_GXe2ids", "twoPass", "NO"), [
-                slice_loop("e2pa", "code_node_GXe2a", "patchSlices", "E2 WRITE: GD lines, whole rows", GDL, LINE_COLS),
+                *slice_loop("e2pa", "code_node_GXe2a", "patchSlices", "E2 WRITE: GD lines, whole rows", GDL, LINE_COLS),
                 gate(ids, "cor_GXe2dela", "Lines to remove?", "code_node_GXe2a", "needDelete", [
                     rows_update(ids, "update_node_GXe2dela", "E2 WRITE: removed lines is_deleted = 1 (as the classic save)", GDL, "code_node_GXe2a", "deleteRows", ["is_deleted"])])]),
             K.if_(ids, "if_GXe2two", "IF new bundle items waited for their parent: plan again with the parents' ids, then its patches and removals", is_("code_node_GXe2ids", "twoPass", "YES"), [
@@ -642,7 +660,7 @@ return res;"""
                 e2_plan("b", "sql_node_GXe2lb"),
                 end_block("e2b", "code_node_GXe2b", "IF the lines changed meanwhile: review"),
                 e2_add("b"),
-                slice_loop("e2pb", "code_node_GXe2b", "patchSlices", "E2 WRITE: GD lines, whole rows", GDL, LINE_COLS),
+                *slice_loop("e2pb", "code_node_GXe2b", "patchSlices", "E2 WRITE: GD lines, whole rows", GDL, LINE_COLS),
                 gate(ids, "cor_GXe2delb", "Lines to remove?", "code_node_GXe2b", "needDelete", [
                     rows_update(ids, "update_node_GXe2delb", "E2 WRITE: removed lines is_deleted = 1 (as the classic save)", GDL, "code_node_GXe2b", "deleteRows", ["is_deleted"])])]),
             K.sql("sql_node_GXe2back", "E2 read-back (the compared columns only)", gdlines_sel(N("code_node_GXe2ids", "data.lineCheckSql"), N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
@@ -670,7 +688,7 @@ return res;"""
                   tail("commitE3Plan(entry, %s, %s, %s, %s)" % (part_js("b2", "RES"), part_js("b2", "GDL"), d("sql_node_GXe3res"), d("sql_node_GXe3gdl")), "commit E3 plan", pre=ENTRY),
                   CHK + ["slices", "writeCount", "createRows", "needCreates"], arrays=CHK_ARR + ("slices", "createRows"), objects=("writeCount",)),
             end_block("e3pl", "code_node_GXe3plan", "IF the reservations cannot be written"),
-            slice_loop("e3", "code_node_GXe3plan", "slices", "E3 WRITE: on_reserved_gd", RESV, RES_COLS),
+            *slice_loop("e3", "code_node_GXe3plan", "slices", "E3 WRITE: on_reserved_gd", RESV, RES_COLS),
             gate(ids, "cor_GXe3add", "Reservations to create?", "code_node_GXe3plan", "needCreates", [
                 K.add(ids, "add_node_GXe3add", "E3 WRITE: new on_reserved_gd rows (job_line_key <job>|C|<n>)", RESV,
                       [(p, N("code_node_GXe3plan", "data.createRows." + p)) for p in RES_CREATE_COLS])]),
@@ -693,7 +711,7 @@ return res;"""
             end_block("e4pl", "code_node_GXe4plan", "IF the sales orders cannot be written"),
             gate(ids, "cor_GXe4intent", "E4 intent to record?", "code_node_GXe4plan", "needIntent", [
                 step_add(ids, "add_node_GXe4intent", "E4 INTENT: E4|I|<nnn> (before + after of every row)", "code_node_GXe4plan", "intentRows")]),
-            slice_loop("e4", "code_node_GXe4plan", "lineSlices", "E4 WRITE: SO lines", SOL, SO_LINE_COLS),
+            *slice_loop("e4", "code_node_GXe4plan", "lineSlices", "E4 WRITE: SO lines", SOL, SO_LINE_COLS),
             gate(ids, "cor_GXe4hdr", "Sales orders to write?", "code_node_GXe4plan", "needHeaders", [
                 rows_update(ids, "update_node_GXe4hdr", "E4 WRITE: Sales Order status", SOH, "code_node_GXe4plan", "headerRows", SO_HDR_COLS)]),
             par("condition_all_GXe4back", "E4 read-back in parallel", [
@@ -762,7 +780,7 @@ return res;"""
                         tail("commitE5Stamps(entry, rz.stamp, %s)" % d("sql_node_GXcgdl"), "commit E5 stamps", "{ stamps: res.stampCount }",
                              pre=ENTRY + "\nconst rz = geE5Resolve(entry, %s, %s);" % (PARTS_C, d("sql_node_GXcgdl"))),
                         ["stampSlices", "stampCount"], arrays=("stampSlices",), objects=("stampCount",)),
-                  slice_loop("e5s", "code_node_GXe5stamps", "stampSlices", "E5 WRITE: GD line picking_status", GDL, ["picking_status"]),
+                  *slice_loop("e5s", "code_node_GXe5stamps", "stampSlices", "E5 WRITE: GD line picking_status", GDL, ["picking_status"]),
                   step_done("e5", "code_node_GXe5check", "E5_PICKING")]),
         K.if_(ids, "if_GXe6", "IF E6 HEADER is due: the changed cells + gd_status Created (the unlock), our Picking lock released at its version", is_(XE, "needE6", "YES"), [
             par("condition_all_GXe6read", "E6 reads in parallel", [
@@ -790,7 +808,7 @@ return res;"""
                 step_add(ids, "add_node_GXe7marker", "E7_REORDER marker (written before the call: at most once)", "code_node_GXe7", "markerRows"),
                 call(ids, "workflow_node_GXe7reorder", "REORDER_SET_REDIS GD_CREATED (as GOODS_DELIVERY's workflow_node_ReorderCreated)", REORDER, [
                     ("document_type", "GD_CREATED", "value"), ("previous_data", N("code_node_GXe7", "data.previous")), ("latest_data", N("code_node_GXe7", "data.latest"))])]),
-            slice_loop("e7", "code_node_GXe7", "itemSlices", "E7 WRITE: Item last_transaction_date", ITEM, ["last_transaction_date"])]),
+            *slice_loop("e7", "code_node_GXe7", "itemSlices", "E7 WRITE: Item last_transaction_date", ITEM, ["last_transaction_date"])]),
         cnode("code_node_GXfinish", "FINISH: E7_AFTER DONE, the job COMPLETED (the notes the form shows)", C0 + [CM + "e7.js"],
               tail("commitFinish(entry, entry.manifest)", "commit finish", "{ message: res.result_message }", pre=ENTRY), ["stepRows", "jobRows", "result_message"], arrays=("stepRows", "jobRows")),
         gate(ids, "cor_GXfinstep", "E7_AFTER DONE to record?", XE, "needE7", [step_add(ids, "add_node_GXfinstep", "E7_AFTER DONE", "code_node_GXfinish", "stepRows")]),
@@ -899,7 +917,7 @@ def wjob_sql(ten, job_ref):
 
 def build_worker():
     ids = K.Ids(1798300000000)
-    G = "code_node_GWguard"
+    G = "code_node_GEWguard"
     TEN = N(G, "data.tenantId")
     prep = ("GD_EDIT_PREPARE", IDS.get("GD_EDIT_PREPARE", "0"))
     comm = ("GD_EDIT_COMMIT", IDS.get("GD_EDIT_COMMIT", "0"))

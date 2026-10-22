@@ -1,5 +1,8 @@
 // IA_HOLD - Delta: an unfinished run's rows resolved from the engine's record (DONE -> finish, nothing moved -> roll back,
 // uncertain -> Needs review, no new move), then what this IA wants held against what it holds; the keys whose free stock to read
+// BA rev 1.2 C5: the reservation switch, server-side - every route that reserves (the form, the save, a direct call, Retry, the list)
+// ends here; off, no new or extra hold is made, while releases, closes, cancels and the sweep go on (finishing holds never switches off)
+const HD_ACQUIRE_ENABLED = true;
 const hdDeltaStep = function hdDeltaStep(g, st, items, opsRows, consumedRows, plan) {
   const rows = Array.isArray(st.rows) ? st.rows : [];
   const state = {};
@@ -19,7 +22,7 @@ const hdDeltaStep = function hdDeltaStep(g, st, items, opsRows, consumedRows, pl
   const rowsAfter = Object.keys(after).map((k) => after[k]);
   const out = { route: uncertain ? "REVIEW" : "GO", fix: fix, needPublish: fix.publish.length ? "YES" : "NO", needClose: fix.close.length ? "YES" : "NO",
     needDrop: fix.drop.length ? "YES" : "NO", needRestore: fix.restore.length ? "YES" : "NO", rowsAfter: rowsAfter, holds: [], releases: [], notHeld: [], keysJson: "[]", mats: "0",
-    needBal: "NO", plant: /^[0-9]{1,20}$/.test(hdS((st.ia || {}).plant_id)) ? hdS(st.ia.plant_id) : "0", deliver: [], over: [], under: [], why: "" };
+    needBal: "NO", plant: /^[0-9]{1,20}$/.test(hdS((st.ia || {}).plant_id)) ? hdS(st.ia.plant_id) : "0", deliver: [], over: [], under: [], why: "", acquireOff: "NO" };
   if (uncertain) return out;
   if (g.op === "CLOSE" && hdS((plan || {}).badNo) === "YES") return Object.assign(out, { route: "REVIEW", why: "its number cannot be used to read what its completion issued" });
   if (g.op === "CLOSE") {
@@ -40,13 +43,16 @@ const hdDeltaStep = function hdDeltaStep(g, st, items, opsRows, consumedRows, pl
     return Object.assign(out, { releases: cl.releases, deliver: cl.deliver, over: cl.over, under: net.under,
       keysJson: "[" + keys.map((k) => "[" + k.join(",") + "]").join(",") + "]", mats: mats.length ? mats.join(",") : "0", needBal: keys.length ? "YES" : "NO" });
   }
-  const w = g.op === "RELEASE_ALL" ? { fragments: [], notHeld: [] } : hdWanted({ lines: st.lines || [], items: items });
+  // a Draft wants nothing held (RES-01 Created, BA 10-22): what it still holds is released
+  const w = g.op === "RELEASE_ALL" || g.op === "CANCEL" || hdS((st.ia || {}).status) === "Draft" ? { fragments: [], notHeld: [] } : hdWanted({ lines: st.lines || [], items: items });
   const d = hdDelta(w.fragments, hdHeld(rowsAfter));
   // only digit ids reach the SQL text (the items read returns digit ids only; a pick's bin and batch come from the client):
   // a hold on anything else is not made (PICK), a release always comes from a stored row (bigint ids)
   const idsOk = (f) => [hdS(f.materialId), hdS(f.binId), hdS(f.batchId) || "0"].every((v) => HD_ID.test(v));
   const notHeld = w.notHeld.slice();
-  const holds = d.holds.filter((h) => (idsOk(h.frag) ? true : (notHeld.push({ lineId: h.frag.lineId, reason: "PICK" }), false)));
+  const wanted = d.holds.filter((h) => (idsOk(h.frag) ? true : (notHeld.push({ lineId: h.frag.lineId, reason: "PICK" }), false)));
+  const holds = HD_ACQUIRE_ENABLED === true ? wanted : [];
+  out.acquireOff = HD_ACQUIRE_ENABLED !== true && wanted.length > 0 ? "YES" : "NO";
   const releases = d.releases.filter((r) => idsOk(r.frag));
   const keys = [];
   const mats = [];

@@ -12,7 +12,7 @@ const workerResult = function workerResult(guard, plan, rows) {
   const firstRow = first ? byId[first.job_id] || null : null;
   return { worker_route: guard.route === "REJECT" ? "REJECTED" : !plan || plan.route === "IDLE" ? "IDLE" : "WORKED", processed: String(jobs.length), jobs: JSON.stringify(jobs), job_id: first ? first.job_id : "", job_status: first ? first.job_status : "", result_code: firstRow && s(firstRow.error_code) ? s(firstRow.error_code) : s(guard.result_code), result_message: firstRow && s(firstRow.error_message) ? s(firstRow.error_message) : s(guard.result_message) || s(plan && plan.result_message), gd_id: first ? first.gd_id : "", evidence: JSON.stringify({ v: 1, workflow: "GD_COMPLETE_WORKER", path: "__PATH__" }) };
 };
-const guard = [{{node:code_node_GWguard2.data}}][0];
+const guard = [{{node:code_node_GWguard3.data}}][0];
 const plan = __PLAN__;
 const res = workerResult(guard, plan, __ROWS__);
 console.log("worker result", JSON.stringify({ route: res.worker_route, processed: res.processed }));

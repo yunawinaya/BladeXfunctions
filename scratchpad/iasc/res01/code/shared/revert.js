@@ -2,7 +2,7 @@
 // component issued from Reserved (its hold, closed at completion) to the bucket the hold came from: this cycle's Delivered rows (id above
 // `bound`, the IA's last revert) say how much of each material|bin|batch came from Unrestricted or Blocked (review I3). A return they do
 // not cover, a handling-unit one (never held), every other component and every IA that never reserved: as today (the category it left
-// from). One return spanning two holds is split, the extra part with a new index after the last. Pure, ES2015: the classic IA_REVERT and
+// from). One return spanning two buckets is split (one part per bucket), the extra part with a new index after the last. Pure, ES2015: the classic IA_REVERT and
 // IA_REVERT_V2_PREPARE inline it
 const resRevertAdds = (adds, holdStatus, delivered, bound, items) => {
   const s = (v) => (v === undefined || v === null ? "" : String(v));
@@ -50,7 +50,14 @@ const resRevertAdds = (adds, holdStatus, delivered, bound, items) => {
       left = q8(left - take);
     });
     if (left > eps) got.push({ qty: left, cat: "Reserved" });
-    parts[i] = got;
+    // one part per bucket: a key reserved over several saves has several Delivered rows (R6 live 10-22)
+    const merged = [];
+    got.forEach((p) => {
+      const m = merged.find((x) => x.cat === p.cat);
+      if (m) m.qty = q8(m.qty + p.qty);
+      else merged.push({ qty: p.qty, cat: p.cat });
+    });
+    parts[i] = merged;
   });
   let next = list.reduce((m, a) => Math.max(m, Number(a && a.index) || 0), 0);
   const out = [];

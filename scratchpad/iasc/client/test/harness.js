@@ -265,7 +265,8 @@ function makeThis(w, doc, opts) {
             if (ok) ok(clone(a));
             resolve(clone(a));
           }
-        }, 0);
+          // an answer may arrive later (a.__delay ms of virtual time): RES-01 MIN-06's row re-rendered while the form is dirty
+        }, (a && a.__delay) || 0);
       });
       p.catch(() => {});
       return p;

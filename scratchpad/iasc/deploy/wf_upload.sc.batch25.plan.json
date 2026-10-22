@@ -1,0 +1,31 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_HOLD",
+   "dataId": "2112752274794217473",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_HOLD.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_HOLD/v9_20261022-144951.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "organization_id": "1",
+     "operation": "CLOSE",
+     "source": "COMPLETE"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Item Assembly not found."
+    }
+   }
+  },
+  {
+   "name": "IA list (MIN-05: sweep of IAs deleted while still holding)",
+   "kind": "page",
+   "dataId": "2098312073316716546",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iav2/base/ia_list_v26.json"
+  }
+ ]
+}

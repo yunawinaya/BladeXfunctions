@@ -172,6 +172,9 @@ const identity = { batch_number: X.BATCH_NO, material_id: PARENT, plant_id: PLAN
   r = fx.failNoWrite(entryOf(c, { op1Wrote: "YES" }), "IA_INVENTORY_INSUFFICIENT", "msg", "why", ["2113000000000000008"]);
   ok(r.job_status === "REQUIRES_REVIEW" && r.result_code === "IA_RECONCILIATION_MISMATCH" && r.needUnlock === "NO" && r.needBatchDel === "NO" && JSON.parse(r.jobRows[0].error_details).wouldFail === "IA_INVENTORY_INSUFFICIENT",
     "failNoWrite R2: op 1 has engine rows -> REQUIRES_REVIEW, no unlock, no Batch soft-delete (every phase-A exit)", r);
+  // RES-01 Created (BA, 10-22): a Created IA's job unlocks back to Created
+  r = fx.failNoWrite(entryOf(c, { prevStatus: "Created" }), "IA_X", "msg", "why", ["2113000000000000008"]);
+  ok(r.job_status === "FAILED" && r.needUnlock === "YES" && JSON.stringify(r.unlockRows) === JSON.stringify([{ id: IAID, item_assembly_status: "Created" }]), "failNoWrite: prevStatus Created -> FAILED, unlocked to Created", r);
   for (const p of ["In Progress", "", "Completed"]) {
     r = fx.failNoWrite(entryOf(c, { prevStatus: p }), "IA_X", "msg", "why", ["2113000000000000008"]);
     ok(r.job_status === "REQUIRES_REVIEW" && r.result_code === "IA_PREV_STATUS_UNKNOWN" && r.needUnlock === "NO" && r.needBatchDel === "NO", "failNoWrite: prevStatus " + J(p) + " -> review, nothing else");

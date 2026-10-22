@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD form",
+   "kind": "form",
+   "dataId": "1902054888473481218",
+   "file": "scratchpad/gd_batchadd/GD_form.v1485_batchadd_v2.json",
+   "base": "scratchpad/gd_batchadd/GD_form.live_v1485.json"
+  }
+ ]
+}

@@ -33,6 +33,9 @@ const codes = (r) => r.warnings.map((w) => w.code);
 eq("SO100, nothing linked: suggest 100", proj({}).totals.suggestion, 100);
 eq("SC04 saved Draft60 -> suggest 40", proj({ ias: [ia("1", "Draft", 60)] }).totals.suggestion, 40);
 eq("step 2 Draft60 + Draft40 -> 0", proj({ ias: [ia("1", "Draft", 60), ia("2", "Draft", 40)] }).totals.suggestion, 0);
+// RES-01 Created (BA, 10-22): a Created IA is open production like a Draft
+eq("Created60 counts as open like a Draft -> suggest 40", proj({ ias: [ia("1", "Created", 60)] }).totals.suggestion, 40);
+eq("Created60 + Draft40 -> 0", proj({ ias: [ia("1", "Created", 60), ia("2", "Draft", 40)] }).totals.suggestion, 0);
 let r = proj({ ias: [ia("1", "Completed", 50, { planned_output_qty: "60" }), ia("2", "Draft", 40)] });
 eq("step 3 completed 50 of plan 60, Draft40: 100/0/100 planned 100 produced 50 open 40 suggest 10", T(r), [100, 0, 100, 100, 50, 40, 10]);
 // BA handoff FIX-01: with both deliveries and linked production, nothing records which delivery came from which IA: the remaining
@@ -77,6 +80,10 @@ r = proj({ ias: [ia("1", "Processing", 20), ia("2", "Fully Posted", 30), ia("3",
 eq("Processing open, Fully Posted produced, deleted and unknown not counted", [r.totals.open, r.totals.produced], [20, 30]);
 yes("unknown status warns", codes(r).indexOf("IA_STATUS_UNKNOWN") >= 0);
 eq("ia roles", r.ias.map((x) => [x.id, x.role]), [["1", "open"], ["2", "produced"], ["3", "none"], ["4", "none"]]);
+// RES-01 Cancel (user 10-22): a Cancelled IA counts as nothing, without the unknown-status warning
+r = proj({ ias: [ia("1", "Cancelled", 60), ia("2", "Draft", 40)] });
+eq("Cancelled60 + Draft40: only the Draft is open (suggest 60), the Cancelled IA not counted, no warning", [r.totals.open, r.totals.suggestion, codes(r).indexOf("IA_STATUS_UNKNOWN"),
+  r.ias.map((x) => [x.id, x.role])], [40, 60, -1, [["1", "none"], ["2", "open"]]]);
 r = proj({ ias: [ia("1", "Draft", 6, { planned_output_qty: "10" })] });
 eq("open Draft counts item_qty, planned shown", [r.totals.open, r.totals.planned], [6, 10]);
 

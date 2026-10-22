@@ -1,0 +1,12 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_PROCESS_REVERT",
+   "dataId": "2058820005398224897",
+   "file": "scratchpad/revert_msg/GD_PROCESS_REVERT.v14_msg.json",
+   "base": "scratchpad/revert_msg/base/GD_PROCESS_REVERT.live_v14.json"
+  }
+ ]
+}

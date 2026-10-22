@@ -1,0 +1,21 @@
+{
+ "plant_id": "1123598813738675202",
+ "organization_id": "1123598813738675201",
+ "material_id": "2049734383547097089",
+ "quantity": 1,
+ "material_uom": "2018906563477008392",
+ "unit_price": 0,
+ "transaction_type": "LOT",
+ "parent_trx_no": "",
+ "inventory_category": "Unrestricted",
+ "batch_id": null,
+ "index": 0,
+ "itemData": null,
+ "manufacturing_date": null,
+ "expired_date": null,
+ "doc_date": "2026-10-22",
+ "isMovingInv": 1,
+ "handling_unit_id": null,
+ "trx_no": "MIN01-SMOKE-S",
+ "location_id": "2034476113458442241"
+}

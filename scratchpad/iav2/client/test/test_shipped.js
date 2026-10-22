@@ -61,8 +61,10 @@ const click = async (doc, model, values) => {
     H.compile(w, H.byName(LIST, "mounted").func, false).call(self, {});
     await H.drain(w);
     const kicked = w.trace.filter((t) => t[0] === "runWorkflow").map((t) => t[1]);
-    check("shipped list mounted: kicks exactly the workers whose ids are set", same(kicked, [completion ? ID.IA_V2_WORKER : null, revert ? ID.IA_REVERT_V2_WORKER : null].filter((x) => x)) &&
-      (kicked.length > 0 || w.trace.length === 0), kicked);
+    // RES-01 MIN-05 (BA 10-22): after the workers, IA_HOLD's sweep of IAs deleted while still holding (whatever the switch: finishing holds)
+    const HOLD = String(require("../../../iasc/ids.json").IA_HOLD);
+    check("shipped list mounted: kicks exactly the workers whose ids are set, then the reservation sweep", same(kicked, [completion ? ID.IA_V2_WORKER : null,
+      revert ? ID.IA_REVERT_V2_WORKER : null, HOLD].filter((x) => x)), kicked);
   }
   // Revert
   {

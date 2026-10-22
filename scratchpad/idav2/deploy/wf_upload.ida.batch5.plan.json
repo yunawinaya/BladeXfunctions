@@ -1,0 +1,28 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IDA_V2_COMMIT",
+   "dataId": "2112749139006717954",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDA_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/idav2/deploy/base_v4/IDA_V2_COMMIT.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IDA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IDA form (ON, classic escaped)",
+   "kind": "form",
+   "dataId": "2106937624568991746",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Disassembly/AsyncV2/IDAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/idav2/deploy/base_on38/IDAform.json"
+  }
+ ]
+}

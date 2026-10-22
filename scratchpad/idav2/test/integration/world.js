@@ -430,6 +430,14 @@ class World {
       } else if (table === "GD Publish Step") {
         const st = this.steps.find((x) => x.id === id);
         if (!st) continue;
+        // a renamed row moves its unique Job Step key (D1's renumber renames its intent D1|X|<id>)
+        if (set.step_name !== undefined && s(set.step_name) !== s(st.step_name)) {
+          this.lengthCheck(nid, set, { step_name: 32 });
+          const k = s(st.job_id) + "\u0001" + s(set.step_name);
+          if (this.stepKey.has(k)) throw new Error("Duplicate entry '" + T + "-" + st.job_id + "-" + set.step_name + "' for key 'Job Step'");
+          this.stepKey.delete(s(st.job_id) + "\u0001" + s(st.step_name));
+          this.stepKey.set(k, st);
+        }
         Object.assign(st, set, { id: st.id });
       } else if (table === "Inventory Balance Lock") {
         const lk = this.lockById.get(id);
@@ -1010,7 +1018,7 @@ const HANDLERS = {
     return stepRows.call(this, text, (r) => /^D[0-9]_/.test(r.step_name), ["step_name", "step_status", "result_ref", "finished_at"]);
   },
   sql_node_DCintent(text) {
-    return stepRows.call(this, text, (r) => like("D1|I|%", r.step_name), ["step_name", "result_ref"]);
+    return stepRows.call(this, text, (r) => like("D1|I|%", r.step_name), ["id", "step_name", "result_ref"]);
   },
   sql_node_DCpayload(text) {
     const j = jobOnly.call(this, text);
@@ -1040,7 +1048,7 @@ const HANDLERS = {
   sql_node_DCd1hold: holders,
   sql_node_DCd1dlab: part,
   sql_node_DCd1intentB(text) {
-    return stepRows.call(this, text, (r) => like("D1|I|%", r.step_name), ["step_name", "result_ref"]);
+    return stepRows.call(this, text, (r) => like("D1|I|%", r.step_name), ["id", "step_name", "result_ref"]);
   },
   sql_node_DCd1bncB: bncRows,
   sql_node_DCd1holdB: holders,
@@ -1051,7 +1059,7 @@ const HANDLERS = {
   sql_node_DCd2labels: part,
   sql_node_DCd2opart: part,
   sql_node_DCd2oint(text) {
-    return stepRows.call(this, text, (r) => like("D1|I|%", r.step_name), ["step_name", "result_ref"]);
+    return stepRows.call(this, text, (r) => like("D1|I|%", r.step_name), ["id", "step_name", "result_ref"]);
   },
   sql_node_DCd2oours: ours,
   sql_node_DCd3engr: part,
@@ -1093,20 +1101,40 @@ const HANDLERS = {
   sql_node_IBops(text) {
     const op = must(text, /p\.job_id = '([^']*)'/, "op key")[1];
     const rows = this.liveStep(op, (r) => like("IBA|%", r.step_name));
-    if (!rows.length) return [{ step_name: null, step_status: null, result_ref: null, error_message: null, db_now: this.dbNow() }];
-    return rows.sort(byIdAsc).map((r) => ({ step_name: r.step_name, step_status: r.step_status, result_ref: r.result_ref, error_message: r.error_message, db_now: this.dbNow() }));
+    if (!rows.length) return [{ step_name: null, step_status: null, result_ref: null, error_message: null, id: null, heartbeat: null, db_now: this.dbNow() }];
+    return rows.sort(byIdAsc).map((r) => ({ step_name: r.step_name, step_status: r.step_status, result_ref: r.result_ref, error_message: r.error_message, id: r.id,
+      heartbeat: typeof r.finished_at === "number" ? fmt(r.finished_at) : dt(r.finished_at), db_now: this.dbNow() }));
+  },
+  // v12 run marker (c8's copy of the harness)
+  sql_node_IBrunMe(text) {
+    const op = must(text, /job_id = '([^']*)'/, "op key")[1];
+    const name = must(text, /step_name = '([^']*)'/, "step name")[1];
+    return this.liveStep(op, (r) => r.step_name === name).map((r) => ({ id: r.id, result_ref: r.result_ref, db_now: this.dbNow() }));
+  },
+  sql_node_IBfence(text) {
+    const op = must(text, /p\.job_id = '([^']*)'/, "op key")[1];
+    const rows = this.liveStep(op, (r) => like("IBA|%", r.step_name));
+    const marks = rows.filter((r) => r.step_name.indexOf("IBA|RUN|") === 0).sort((a, b) => (a.step_name < b.step_name ? 1 : -1));
+    return [{ latest_gen: marks.length ? String(parseInt(marks[0].step_name.slice(8), 10)) : null, latest_status: marks.length ? marks[0].step_status : null,
+      done: String(rows.filter((r) => r.step_name === "IBA|DONE").length), db_now: this.dbNow() }];
+  },
+  sql_node_IBfzRel(text) {
+    return lockRows.call(this, text, ["id", "lock_key", "free_token", "owner_operation_id", "last_owner_operation_id", "lock_version", "db_now"], true);
   },
   sql_node_IBlk1(text) {
     return lockRows.call(this, text, ["id", "lock_key", "balance_type", "free_token", "owner_operation_id", "lock_version", "last_owner_operation_id", "is_deleted", "db_now"], false);
   },
   sql_node_IBlk2(text) {
-    return lockRows.call(this, text, ["id", "lock_key", "free_token", "owner_operation_id", "db_now"], true);
+    return lockRows.call(this, text, ["id", "lock_key", "free_token", "owner_operation_id", "last_owner_operation_id", "db_now"], true);
   },
   sql_node_IBlk3(text) {
-    return lockRows.call(this, text, ["id", "lock_key", "free_token", "owner_operation_id"], true);
+    return lockRows.call(this, text, ["id", "lock_key", "free_token", "owner_operation_id", "last_owner_operation_id", "db_now"], true);
   },
   sql_node_IBrel(text) {
-    return lockRows.call(this, text, ["id", "lock_key", "free_token", "owner_operation_id", "lock_version", "db_now"], true);
+    return lockRows.call(this, text, ["id", "lock_key", "free_token", "owner_operation_id", "last_owner_operation_id", "lock_version", "db_now"], true);
+  },
+  sql_node_IBrpRel(text) {
+    return lockRows.call(this, text, ["id", "lock_key", "free_token", "owner_operation_id", "last_owner_operation_id", "lock_version", "db_now"], true);
   },
   sql_node_IBitems(text) {
     const ids = must(text, /CONCAT\('\[', '([0-9,]*)', '\]'\)/, "material ids")[1].split(",").filter((x) => x && x !== "0");

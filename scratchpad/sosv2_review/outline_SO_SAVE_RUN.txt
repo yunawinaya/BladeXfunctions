@@ -1,0 +1,31 @@
+start-node start: Start Node
+code-node code_node_SRstart: Start: job_id, the start time (4020 chars)
+workflow-node wf_SR1: SO_SAVE_WORKER (run 1) -> SO_SAVE_WORKER
+code-node code_node_SRn1: Next: run 2 only while the job moves on (MORE), within the time budget (4078 chars)
+if if_SRgo1: IF run 2
+  ifBlock ifBlock_TSRgo1: true
+    workflow-node wf_SR2: SO_SAVE_WORKER (run 2) -> SO_SAVE_WORKER
+    code-node code_node_SRn2: Next: run 3 only while the job moves on (MORE), within the time budget (4078 chars)
+    if if_SRgo2: IF run 3
+      ifBlock ifBlock_TSRgo2: true
+        workflow-node wf_SR3: SO_SAVE_WORKER (run 3) -> SO_SAVE_WORKER
+        code-node code_node_SRn3: Next: run 4 only while the job moves on (MORE), within the time budget (4078 chars)
+        if if_SRgo3: IF run 4
+          ifBlock ifBlock_TSRgo3: true
+            workflow-node wf_SR4: SO_SAVE_WORKER (run 4) -> SO_SAVE_WORKER
+            code-node code_node_SRn4: Next: run 5 only while the job moves on (MORE), within the time budget (4078 chars)
+            if if_SRgo4: IF run 5
+              ifBlock ifBlock_TSRgo4: true
+                workflow-node wf_SR5: SO_SAVE_WORKER (run 5) -> SO_SAVE_WORKER
+                code-node code_node_SRn5: Next: run 6 only while the job moves on (MORE), within the time budget (4078 chars)
+                if if_SRgo5: IF run 6
+                  ifBlock ifBlock_TSRgo5: true
+                    workflow-node wf_SR6: SO_SAVE_WORKER (run 6) -> SO_SAVE_WORKER
+                  ifBlock ifBlock_FSRgo5: false
+              ifBlock ifBlock_FSRgo4: false
+          ifBlock ifBlock_FSRgo3: false
+      ifBlock ifBlock_FSRgo2: false
+  ifBlock ifBlock_FSRgo1: false
+code-node code_node_SRres: Result: the last worker run's answer (4235 chars)
+return-node return_node_SRdone: Return
+end-node end: End Node

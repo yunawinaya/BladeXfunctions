@@ -2,7 +2,7 @@
 // HS256 token minted the way sudu-dealer-api's SaasTokenProvider mints (same claim set) from the DEV BLADE_JWT_SECRET in
 // sudu-dealer-api/.env, read at run time. User-approved 2026-10-14. The secret and the token are never printed or written.
 //
-//   node scratchpad/gdc/tools/runas.mjs <identity.json> <workflowId> <request.json> <out.json>
+//   node scratchpad/gdc/tools/runas.mjs <identity.json> <workflowId> <request.json> <out.json> [--test <flowgram.json>] [--also <req>=<out>,...]
 // identity.json: { tenant_id, user_id, account, dept_id, role_id, first_lv_dept_id } of a REAL user (create_user is filled
 // from user_id)
 import fs from 'node:fs';
@@ -42,21 +42,30 @@ const claims = {
 const unsigned = b64({ alg: 'HS256', typ: 'JWT' }) + '.' + b64(claims);
 const token = unsigned + '.' + crypto.createHmac('sha256', env.BLADE_JWT_SECRET).update(unsigned).digest('base64url');
 
-const started = Date.now();
-const res = testFile
-  ? await fetch(BASE + `/su-code-workflow/workflow/doTest/${wfId}`, {
+// --also <request.json>=<out.json>[=<workflowId>[=<flowgram.json>]][,...]: more requests sent at the same moment as the first
+// (concurrency tests); each defaults to the main workflow id and --test file
+const alsoAt = process.argv.indexOf('--also');
+const pairs = [[requestFile, outFile]].concat(alsoAt > 0 ? process.argv[alsoAt + 1].split(',').map((p) => p.split('=')) : []);
+for (const [, , w] of pairs) if (w && !/^[0-9]{1,20}$/.test(w)) throw new Error('--also workflow id must be digits: ' + w);
+const send = (rq, wf, tf) => tf
+  ? fetch(BASE + `/su-code-workflow/workflow/doTest/${wf}`, {
       method: 'POST',
       headers: { 'Blade-Auth': `bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ scriptJson: JSON.stringify(JSON.parse(fs.readFileSync(testFile, 'utf8'))), request: JSON.parse(fs.readFileSync(requestFile, 'utf8')), dryRun: false }),
+      body: JSON.stringify({ scriptJson: JSON.stringify(JSON.parse(fs.readFileSync(tf, 'utf8'))), request: JSON.parse(fs.readFileSync(rq, 'utf8')), dryRun: false }),
     })
-  : await fetch(BASE + `/su-code-workflow/workflow/run/${wfId}`, {
+  : fetch(BASE + `/su-code-workflow/workflow/run/${wf}`, {
       method: 'POST',
       headers: { 'Blade-Auth': `bearer ${token}`, Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: fs.readFileSync(requestFile, 'utf8'),
+      body: fs.readFileSync(rq, 'utf8'),
     });
-const text = await res.text();
-fs.writeFileSync(outFile, text);
-appendAudit(roots(), { osUser: os.userInfo().username, profile: 'minted:' + who.tenant_id + ':' + who.account, endpoint: BASE, args: ['runas', wfId, requestFile].concat(testFile ? ['--test', testFile] : []), class: 'write',
-  account: who.account, client: 'saber3', result: `http:${res.status}`, durationMs: Date.now() - started });
-console.log(`${BASE} as ${who.account}@${who.tenant_id} HTTP ${res.status} ${Date.now() - started} ms`);
-console.log(text.slice(0, 1500));
+await Promise.all(pairs.map(async ([rq, of, wf, tf]) => {
+  const started = Date.now();
+  const res = await send(rq, wf || wfId, wf ? tf || null : testFile);
+  const text = await res.text();
+  fs.writeFileSync(of, text);
+  const usedTest = wf ? tf || null : testFile;
+  appendAudit(roots(), { osUser: os.userInfo().username, profile: 'minted:' + who.tenant_id + ':' + who.account, endpoint: BASE, args: ['runas', wf || wfId, rq].concat(usedTest ? ['--test', usedTest] : []), class: 'write',
+    account: who.account, client: 'saber3', result: `http:${res.status}`, durationMs: Date.now() - started });
+  console.log(`${BASE} as ${who.account}@${who.tenant_id} HTTP ${res.status} ${Date.now() - started} ms` + (pairs.length > 1 ? ` (${rq})` : ''));
+  console.log(text.slice(0, pairs.length > 1 ? 200 : 1500));
+}));

@@ -1,0 +1,19 @@
+{
+ "doc_id": "",
+ "plant_id": "1123598813738675202",
+ "organization_id": "1123598813738675201",
+ "page_status": "Add",
+ "saveAs": "Completed",
+ "doc_no": "MIN01-TEST-GD1",
+ "parent_id": "",
+ "parent_no": "",
+ "tableData": [],
+ "doc_status": "",
+ "doc_date": "2026-10-22",
+ "isGDPP": 0,
+ "picking_plan_id": "",
+ "transaction_type": "GDL",
+ "isPacking": 0,
+ "isLoadingBay": 0,
+ "checkOnly": 1
+}

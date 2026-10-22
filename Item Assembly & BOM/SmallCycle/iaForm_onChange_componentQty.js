@@ -349,12 +349,14 @@ const getItemDefaultBin = (tableDefaultBin, plantId) => {
         }`;
         return {
           balance,
+          // the free stock outside handling units, plus this IA's own holds (loose Reserved stock, never in a handling unit), less what
+          // the IA's other lines of this material already picked here (they pick from the same pool; the mobile session, 10-22)
           available: Math.max(
             0,
-            (parseFloat(balance.unrestricted_qty) || 0) -
-              (huQtyMap.get(key) || 0) -
+            Math.max(0, (parseFloat(balance.unrestricted_qty) || 0) - (huQtyMap.get(key) || 0)) +
+              resOwnHeld(reservationRes.data, resOwnId(allData), balance.material_id, balance.location_id, balance.batch_id, "Unrestricted", item) -
               (siblingStaged.get(key) || 0)
-          ) + resOwnHeld(reservationRes.data, resOwnId(allData), balance.material_id, balance.location_id, balance.batch_id, "Unrestricted", item),
+          ),
         };
       })
       .filter((candidate) => candidate.available > 0)

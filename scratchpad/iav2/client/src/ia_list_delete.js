@@ -16,11 +16,12 @@ const resOn = /^[1-9][0-9]{0,19}$/.test(RES_HOLD);
     // Once an assembly is completed the components have left stock and the
     // assembled item has been received; deleting the document would strand both.
     // A Processing one is being completed or reverted in the background.
-    const UNDELETABLE = ["Completed", "Fully Posted", "Processing"];
+    // RES-01 Cancel (user 10-22): Delete is for Draft and Cancelled IAs; a Created IA is cancelled first (Cancel releases its reservation)
+    const UNDELETABLE = ["Completed", "Fully Posted", "Processing", "Created"];
+    const whyNot = (st) => (st === "Created" ? `Item Assembly ${label} is Created: cancel it first (Cancel releases its reserved materials).`
+      : `Item Assembly ${label} is ${st} and cannot be deleted.`);
     if (UNDELETABLE.includes(status)) {
-      this.$message.error(
-        `Item Assembly ${label} is ${status} and cannot be deleted.`
-      );
+      this.$message.error(whyNot(status));
       return;
     }
 
@@ -59,29 +60,42 @@ const resOn = /^[1-9][0-9]{0,19}$/.test(RES_HOLD);
     if (!stored || UNDELETABLE.includes(stored.item_assembly_status)) {
       this.$message.error(
         stored
-          ? `Item Assembly ${label} is ${stored.item_assembly_status} and cannot be deleted.`
+          ? whyNot(stored.item_assembly_status)
           : `Item Assembly ${label} is no longer available.`
       );
       this.refresh();
       return;
     }
 
-    // held stock is never left behind: deleted only once IA_HOLD answers that nothing is held
+    await db
+      .collection("sm_item_assembly")
+      .doc(row.id)
+      .update({ is_deleted: 1 });
+
+    // held stock is never left behind: the header went first (IA_HOLD refuses a deleted IA, so no reservation can start for it any
+    // more; review M4), then its holds are released - one still being made is waited for; refused -> the IA restored, nothing else deleted
     if (resOn && String(stored.material_hold_status || "") !== "") {
-      let answer = null;
-      try {
-        const res = await new Promise((resolve, reject) => {
-          const p = this.runWorkflow(
-            RES_HOLD,
-            { ia_id: String(row.id), organization_id: String(stored.organization_id || ""), operation: "RELEASE_ALL", source: "LIST" },
-            (r) => resolve(r),
-            (e) => reject(e)
-          );
-          if (p && typeof p.then === "function") p.then(resolve, reject);
-        });
-        answer = (res && res.data) || null;
-      } catch (e) {
-        console.error("RES-01: releasing the reserved materials failed", e);
+      const release = async () => {
+        try {
+          const res = await new Promise((resolve, reject) => {
+            const p = this.runWorkflow(
+              RES_HOLD,
+              { ia_id: String(row.id), organization_id: String(stored.organization_id || ""), operation: "RELEASE_ALL", source: "LIST" },
+              (r) => resolve(r),
+              (e) => reject(e)
+            );
+            if (p && typeof p.then === "function") p.then(resolve, reject);
+          });
+          return (res && res.data) || null;
+        } catch (e) {
+          console.error("RES-01: releasing the reserved materials failed", e);
+          return null;
+        }
+      };
+      let answer = await release();
+      for (let i = 0; i < 3 && answer && String(answer.code) === "409"; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        answer = await release();
       }
       let held = "";
       try {
@@ -90,6 +104,7 @@ const resOn = /^[1-9][0-9]{0,19}$/.test(RES_HOLD);
         held = "";
       }
       if (!answer || String(answer.code) !== "200" || held !== "NONE") {
+        await db.collection("sm_item_assembly").doc(row.id).update({ is_deleted: 0 });
         this.$message.error(
           `The materials reserved for Item Assembly ${label} could not be released, so it was not deleted.` + (answer && answer.message ? ` ${answer.message}` : "")
         );
@@ -97,11 +112,6 @@ const resOn = /^[1-9][0-9]{0,19}$/.test(RES_HOLD);
         return;
       }
     }
-
-    await db
-      .collection("sm_item_assembly")
-      .doc(row.id)
-      .update({ is_deleted: 1 });
 
     // Both subforms are real child tables; leaving them behind orphans them.
     const CHILD_TABLES = [

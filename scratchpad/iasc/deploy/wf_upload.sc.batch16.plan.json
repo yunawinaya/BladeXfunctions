@@ -1,0 +1,176 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA form (RES-01 R3-R5, switch ON)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v47.json"
+  },
+  {
+   "name": "IA_SAVE",
+   "dataId": "2098335576774463489",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SAVE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_SAVE/v17_20261022-091010.enabled.json",
+   "smoke": {
+    "request": {
+     "allData": {
+      "page_status": "Add",
+      "organization_id": "1",
+      "issuing_operation_faci": "1",
+      "item_id": "1",
+      "item_qty": 1,
+      "item_uom": "1",
+      "storage_location_id": "1",
+      "location_id": "1",
+      "stock_movement_no": "",
+      "stock_movement_no_type": "1",
+      "stock_movement": [
+       {
+        "item_selection": "1",
+        "requested_qty": 1,
+        "total_quantity": 1,
+        "quantity_uom": "1",
+        "temp_qty_data": "",
+        "temp_hu_data": ""
+       }
+      ],
+      "source_so_id": "1",
+      "source_so_line_id": "1"
+     },
+     "saveAs": "Draft",
+     "pageStatus": "Add"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Your user is not assigned to this organisation, so this Item Assembly cannot be linked to its Sales Order line."
+    }
+   }
+  },
+  {
+   "name": "IA_HOLD",
+   "dataId": "2112752274794217473",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_HOLD.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_HOLD/v5_20261022-091013.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "organization_id": "1",
+     "operation": "CLOSE",
+     "source": "COMPLETE"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "Item Assembly not found."
+    }
+   }
+  },
+  {
+   "name": "IA_V2_SUBMIT",
+   "dataId": "2112141238600376321",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_SUBMIT/v7_20261022-091015.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "",
+     "ia_id": "2112143339233648642",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  },
+  {
+   "name": "IA_V2_PREPARE",
+   "dataId": "2112141312130719745",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_V2_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_PREPARE/v3_20261022-091016.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_V2_COMMIT",
+   "dataId": "2112141346016501762",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_COMMIT/v4_20261022-091018.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT",
+   "dataId": "2099319746652852225",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT/v5_20261022-091019.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "ia_no": "IAV2-SMOKE",
+     "organization_id": "1123598813738675201"
+    },
+    "expect": {
+     "key": "code",
+     "equals": "400"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_PREPARE",
+   "dataId": "2112141455206817794",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_PREPARE/v3_20261022-091021.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_RV_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_COMMIT",
+   "dataId": "2112141490329919490",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_COMMIT/v4_20261022-091028.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_RV_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA list (RES-01 delete release)",
+   "kind": "page",
+   "dataId": "2098312073316716546",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iav2/base/ia_list_v22.json"
+  }
+ ]
+}

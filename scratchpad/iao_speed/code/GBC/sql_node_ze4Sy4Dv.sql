@@ -1,0 +1,19 @@
+SELECT 'RES' AS kind, CAST(r.id AS CHAR) AS id, CAST(r.job_line_key AS CHAR) AS k, CAST(r.status AS CHAR) AS v, CAST(r.reserved_qty AS CHAR) AS n, CAST(r.target_gd_id AS CHAR) AS x, CAST(r.doc_line_id AS CHAR) AS y, CAST(r.is_deleted AS CHAR) AS deleted
+  FROM on_reserved_gd r
+ WHERE r.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'
+   AND r.organization_id = '{{node:code_node_rZGbQJid.data.organizationId}}'
+   AND r.job_line_key LIKE '{{node:code_node_WaEyJtlE.data.jobPrefixLike}}'
+UNION ALL
+SELECT 'PACK' AS kind, CAST(pk.id AS CHAR) AS id, CAST(pk.idempotency_key AS CHAR) AS k, CAST(pk.packing_status AS CHAR) AS v, CAST(pk.packing_no AS CHAR) AS n, CAST(pk.gd_id AS CHAR) AS x, '' AS y, CAST(pk.is_deleted AS CHAR) AS deleted
+  FROM packing pk
+ WHERE pk.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'
+   AND pk.organization_id = '{{node:code_node_rZGbQJid.data.organizationId}}'
+   AND CAST(pk.gd_id AS CHAR) IN (SELECT CAST(g.id AS CHAR) FROM goods_delivery g
+                     WHERE g.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'
+                       AND g.gd_dockey = CONCAT('JOB|', '{{node:code_node_WaEyJtlE.data.jobId}}'))
+UNION ALL
+SELECT 'STEP' AS kind, CAST(st.id AS CHAR) AS id, CAST(st.step_name AS CHAR) AS k, CAST(st.step_status AS CHAR) AS v, CAST(st.attempt_count AS CHAR) AS n, CAST(st.inventory_operation_id AS CHAR) AS x, CAST(st.result_ref AS CHAR) AS y, CAST(st.is_deleted AS CHAR) AS deleted
+  FROM gd_publish_step st
+ WHERE st.tenant_id = '{{node:code_node_WaEyJtlE.data.tenantId}}'
+   AND st.job_id = '{{node:code_node_WaEyJtlE.data.jobId}}'
+   AND st.is_deleted = 0

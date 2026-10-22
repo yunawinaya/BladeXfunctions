@@ -9,7 +9,20 @@ const IAV2 = path.join(IASC, "..", "iav2");
 const { Engine } = require(path.join(IAV2, "lib", "sim", "engine.js"));
 const B = require(path.join(IASC, "code", "shared", "sc_bom.js"));
 const REPO = path.join(IASC, "..", "..");
-const V13 = process.env.IA_V13 || path.join(REPO, "Item Assembly & BOM", "SmallCycle", "IA_SAVE.json");
+// the shipped build (RES-01 ON on DEV since 10-22) and its two switch variants: OFF for every "legacy = v12" comparison, ON for RES-01
+const SHIPPED = process.env.IA_V13 || path.join(REPO, "Item Assembly & BOM", "SmallCycle", "IA_SAVE.json");
+const RES_SWITCH = /const RES_ENABLED = (true|false);/g;
+// MIN-02 (BA 10-22): the completion claim has its own switch (shipped ON); every earlier case runs with it off, its own cases with it on
+const CLAIM_SWITCH = /const IA_CLAIM_ENABLED = (true|false);/g;
+const resFile = (on, claim) => {
+  const f = path.join(fs.mkdtempSync(path.join(require("os").tmpdir(), "ia-v13-")), "IA_SAVE.json");
+  fs.writeFileSync(f, fs.readFileSync(SHIPPED, "utf8").replace(RES_SWITCH, "const RES_ENABLED = " + (on ? "true" : "false") + ";")
+    .replace(CLAIM_SWITCH, "const IA_CLAIM_ENABLED = " + (claim ? "true" : "false") + ";"));
+  return f;
+};
+const V13 = resFile(false, false);
+const V13_ON = resFile(true, false);
+const V13_CL = resFile(true, true);
 const V12 = path.join(REPO, "Item Assembly & BOM", "AsyncV2", "IA_SAVE.json");
 const SC_NODES = new Set(["code_node_SCin", "sql_node_SCsource", "code_node_SCcheck"]);
 const SC_PROPS = ["source_so_id", "source_so_line_id", "source_so_context_json", "bom_consumption_mode", "source_bom_id", "bom_snapshot_json", "planned_output_qty"];
@@ -40,18 +53,32 @@ class Sim extends Engine {
     const writes = [];
     const calls = [];
     const sqls = [];
+    // MIN-02: GD Publish Step with its unique (tenant, job_id, step_name) key, soft-deleted rows included (sc.steps)
+    sc.steps = sc.steps || [];
     const db = {
       tenantId: T,
       uid: UID,
       insert: (table, rows) => rows.map((r0, i) => {
+        if (table === "GD Publish Step") {
+          // a twin's claim landing between our number read and our insert
+          if (sc.beforeClaim) {
+            sc.beforeClaim(sc.steps);
+            sc.beforeClaim = null;
+          }
+          if (sc.steps.some((x) => x.job_id === r0.job_id && x.step_name === r0.step_name)) throw new Error("Duplicate entry for key 'Job Step'");
+        }
         const r = Object.assign({}, r0, { id: String(3000000000000000001n + BigInt(writes.length + i)) });
         if (r.stock_movement_no === "issued") r.stock_movement_no = "IA-0001";
         if (r.stock_movement_no === "draft") r.stock_movement_no = "Draft-0001";
         writes.push(["insert", table, r]);
+        if (table === "GD Publish Step") sc.steps.push(Object.assign({ is_deleted: 0 }, r));
         return r;
       }),
       update: (table, rows) => {
-        for (const r of rows) writes.push(["update", table, r]);
+        for (const r of rows) {
+          writes.push(["update", table, r]);
+          if (table === "GD Publish Step") sc.steps.filter((x) => x.id === r.id).forEach((x) => Object.assign(x, r));
+        }
         return { count: rows.length };
       },
     };
@@ -60,7 +87,9 @@ class Sim extends Engine {
       dir: path.dirname(file), db,
       mocks: {
         sql: {
-          sql_node_IAguard: () => (sc.stored === null ? [] : [{ ia_id: IA, item_assembly_status: sc.stored }]),
+          // RES-01 Created numbering: the stored number only when the guard's SQL selects it
+          sql_node_IAguard: (text) => (sc.stored === null ? [] : [Object.assign({ ia_id: IA, item_assembly_status: sc.stored },
+            /h\.stock_movement_no\b/.test(String(text || "")) ? { stock_movement_no: sc.storedNo !== undefined ? sc.storedNo : "IA-0009" } : {})]),
           // RES-01 R4: this IA's own holds (Allocated / in flight) and its live hold tickets, read before a completion issues
           sql_node_RESown: (text) => {
             sqls.push(text);
@@ -70,6 +99,24 @@ class Sim extends Engine {
             // the hold lease against IA_HOLD's own clock (UTC+8), never NOW() (UTC on prod; review M7)
             if (/\bNOW\(\)/.test(q) || q.indexOf("p.started_at > CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00') - INTERVAL 10 MINUTE") < 0) throw new Error("RES SQL clock: " + q);
             return [{ j: JSON.stringify({ rows: (sc.res && sc.res.rows) || null, live: (sc.res && sc.res.live) || 0 }) }];
+          },
+          // MIN-02: the claim number before our insert, the HELD claims and the IA's status after it (the server clock UTC+8, never NOW())
+          sql_node_IAclaimState: (text) => {
+            sqls.push(text);
+            const q = text.replace(/\s+/g, " ");
+            if (q.indexOf("p.tenant_id = '" + T + "' AND p.job_id = 'IAS|" + IA + "' AND p.step_name LIKE 'CLAIM|%'") < 0 || /is_deleted/.test(q) || /\bNOW\(\)/.test(q) ||
+              q.indexOf("CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')") < 0) throw new Error("claim state SQL: " + q);
+            const mine = sc.steps.filter((x) => x.job_id === "IAS|" + IA && /^CLAIM\|/.test(x.step_name));
+            return [{ j: JSON.stringify({ max: mine.reduce((m, x) => Math.max(m, Number(x.step_name.slice(6))), 0), now: sc.now || "2026-10-22 14:00:00" }) }];
+          },
+          sql_node_IAclaims: (text) => {
+            sqls.push(text);
+            const q = text.replace(/\s+/g, " ");
+            if (q.indexOf("p.job_id = 'IAS|" + IA + "' AND p.step_name LIKE 'CLAIM|%' AND p.step_status = 'HELD' AND p.is_deleted = 0") < 0 ||
+              q.indexOf("h.tenant_id = '" + T + "' AND h.id = '" + IA + "' AND h.is_deleted = 0") < 0) throw new Error("claims SQL: " + q);
+            const held = sc.steps.filter((x) => x.job_id === "IAS|" + IA && /^CLAIM\|/.test(x.step_name) && x.step_status === "HELD" && !Number(x.is_deleted));
+            return [{ j: JSON.stringify({ claims: held.length ? held.map((x) => ({ id: x.id, name: x.step_name, started_at: x.started_at })) : null,
+              status: sc.statusNow !== undefined ? sc.statusNow : sc.stored, now: sc.now || "2026-10-22 14:00:00" }) }];
           },
           sql_node_SCsource: (text) => {
             sqls.push(text);
@@ -82,9 +129,9 @@ class Sim extends Engine {
             // the stored keys of the payload lines that came without one (x.id IN (...)), non-empty only
             const ids = ((/x\.id IN \(([0-9,]+)\)/.exec(text) || [])[1] || "").split(",").filter((x) => x && x !== "0");
             const hasSql = (m, x) => !!m && Object.prototype.hasOwnProperty.call(m, x);
-            const keys = ids.filter((x) => iaId && iaId !== "0" && (hasSql(sc.storedLines, x) || hasSql(sc.storedReq, x)))
+            const keys = ids.filter((x) => iaId && iaId !== "0" && (hasSql(sc.storedLines, x) || hasSql(sc.storedReq, x) || hasSql(sc.storedManual, x)))
               .map((x) => ({ id: x, k: hasSql(sc.storedLines, x) ? sc.storedLines[x] : "", r: hasSql(sc.storedReq, x) ? sc.storedReq[x] : null,
-                q: hasSql(sc.storedRef, x) ? sc.storedRef[x] : null }));
+                q: hasSql(sc.storedRef, x) ? sc.storedRef[x] : null, m: hasSql(sc.storedManual, x) ? sc.storedManual[x] : null }));
             // FIX-03: whether the session user is assigned to the IA's organisation (sc.member 0 = not assigned)
             if (/'hold', h\.material_hold_status/.test(text) !== true) throw new Error("SC SQL does not read the stored hold status: " + text);
             return [{ j: JSON.stringify({ member: sc.member === undefined ? 1 : sc.member, stored: st, line: line, header: line && sc.headers ? sc.headers[line.sales_order_id] || null : null,
@@ -113,10 +160,12 @@ class Sim extends Engine {
   }
 
   run(name, params) {
-    const stub = { GLOBAL_INVENTORY_VALIDATION: { code: "200", message: "Sufficient stock" }, SUBTRACT_INVENTORY: { code: "200" },
-      ADD_INVENTORY: { code: "200", unitPrice: 0 }, GENERATE_BATCH: { batch_number: "B-0001" }, HANDLING_UNIT: { code: "200" } }[name];
+    const stub = Object.assign({ GLOBAL_INVENTORY_VALIDATION: { code: "200", message: "Sufficient stock" }, SUBTRACT_INVENTORY: { code: "200" },
+      ADD_INVENTORY: { code: "200", unitPrice: 0 }, GENERATE_BATCH: { batch_number: "B-0001" }, HANDLING_UNIT: { code: "200" } }, this.sc.stubs || {})[name];
     if (stub) {
       this.calls.push([name, JSON.parse(JSON.stringify(params))]);
+      // a child that crashes (a thrown error fails the whole run, as on the platform)
+      if (stub instanceof Error) throw stub;
       return { returned: stub, ctx: null };
     }
     return super.run(name, params);
@@ -166,7 +215,7 @@ function go(file, sc) {
   return { returned: r.returned, steps: steps, writes: e.writes, calls: e.calls, sqls: e.sqls };
 }
 // the Small Cycle nodes and RES-01's enrolment (code_node_RESenrol / if_RESenrol: no write while the switch is off)
-const isSc = (s) => SC_NODES.has(s) || /^(if|code_node)_(SC|RES)/.test(s);
+const isSc = (s) => SC_NODES.has(s) || /^(if|code_node)_(SC|RES|IAclaim|IAnum)/.test(s);
 const header = (res) => res.writes.filter((w) => w[1] === "Item Assembly")[0];
 const strip = (w) => JSON.parse(JSON.stringify(w, (k, v) => (SC_PROPS.indexOf(k) >= 0 ? undefined : v)).replace(/"last_transaction_date":"[^"]*"/g, '"last_transaction_date":"<now>"'));
 const sameAsV12 = (label, sc) => {
@@ -202,6 +251,16 @@ r = sameAsV12("Clone, Draft, legacy", { stored: "Completed", saveAs: "Draft", pa
 eq("Clone legacy: no stored read", r.sqls.length, 0);
 r = go(V13, { stored: "Processing", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3), scStored: {} });
 eq("guard refusal still first (Processing)", [r.returned.code, r.writes.length, r.steps.filter(isSc)], ["400", 0, []]);
+// a Completed / Fully Posted IA is never completed twice by a later save (10-22, checked: no change needed): a stale tab (form Draft)
+// -> 409 code_idem_guard; the IA opened from the list's Edit (form Completed) -> 401 code_validate; nothing written or issued either way.
+// A Clone of it is a new IA and completes (its form is a Draft)
+for (const [stored, form, code] of [["Completed", "Draft", "409"], ["Fully Posted", "Draft", "409"], ["Completed", "Completed", "401"], ["Fully Posted", "Fully Posted", "409"]]) {
+  r = go(V13, { stored: stored, saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3, { item_assembly_status: form }), scStored: {} });
+  eq("stored " + stored + ", form " + form + ", saved as Completed: refused " + code + ", nothing written or issued", [r.returned.code, /already/.test(r.returned.message || ""),
+    r.writes.length, r.calls.filter((c) => c[0] === "SUBTRACT_INVENTORY").length], [code, true, 0, 0]);
+}
+r = go(V13, { stored: "Completed", saveAs: "Completed", pageStatus: "Clone", allData: record("Clone", 3, { id: IA, item_assembly_status: "Draft" }) });
+eq("a Clone of a Completed IA saved as Completed: completes (a new IA; the stored status is not read)", r.returned.code, "200");
 
 // ---------------------------------------------------------------- merge: a legacy (mobile) payload keeps the stored values
 const STORED = { source_so_id: SO, source_so_line_id: LINE, source_so_context_json: JSON.stringify({ v: 1, lineId: LINE, orderedQty: "100", history: [{ op: "LINK" }] }),
@@ -335,29 +394,87 @@ for (const saveAs of ["Draft", "Completed"]) {
   e = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: mobile(), scStored: FLAT_STORED, storedLines: { 5001: "" } });
   eq("a stored empty key: the line left as sent", lineOf(e).map((l) => Object.prototype.hasOwnProperty.call(l, "sc_ref_key")), [false]);
 
-  // ---------------------------------------------------------------- RES-01 R3: enrolment and required_qty (switch ON variant; the build ships OFF)
+  // ---------------------------------------------------------------- RES-01 R3: enrolment and required_qty (the switch ON and OFF variants)
   {
     const os = require("os");
-    const text = fs.readFileSync(V13, "utf8");
-    const off = "const RES_ENABLED = false;";
-    eq("RES-01: the build ships with the switch OFF, one constant", text.split(off).length - 1, 1);
-    const ON = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "ia-res-")), "IA_SAVE.json");
-    fs.writeFileSync(ON, text.replace(off, "const RES_ENABLED = true;"));
+    eq("RES-01: the build ships with the switch ON (DEV since 10-22, user), one constant", (fs.readFileSync(SHIPPED, "utf8").match(RES_SWITCH) || []).join(), "const RES_ENABLED = true;");
+    const ON = V13_ON;
     const enrolOf = (res) => res.writes.filter((w) => w[0] === "update" && w[1] === "Item Assembly" && w[2].material_hold_status !== undefined).map((w) => [w[2].id, w[2].material_hold_status]);
     const idOf = (res) => (res.writes.find((w) => w[0] === "insert" && w[1] === "Item Assembly") || [0, 0, {}])[2].id;
-    let e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2) });
-    eq("ON, a new Draft: saved, then marked RESERVING (its new id), after the Draft write", [e.returned.code, enrolOf(e), e.writes.map((w) => w[0] + " " + w[1]).slice(-1)[0]],
-      ["200", [[idOf(e), "RESERVING"]], "update Item Assembly"]);
-    e = go(ON, { stored: "Completed", saveAs: "Draft", pageStatus: "Clone", allData: record("Clone", 2, { id: IA, item_assembly_status: "Completed" }) });
-    eq("ON, a clone saved as Draft: marked RESERVING (the clone, never the source)", enrolOf(e), [[idOf(e), "RESERVING"]]);
-    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2), scStored: {}, hold: "" });
-    eq("ON, an Edit of an IA that never reserved: not enrolled", enrolOf(e), []);
+    // RES-01 Created (BA, 10-22): the Created button saves through the Draft path (saveAs Draft, ia_target_status Created): written Created,
+    // then RESERVING; a Draft is never enrolled; a Draft save of an IA stored Created (an Edit only: a Clone keeps its source's id) keeps it Created
+    const statusOf = (res) => ((header(res) || [])[2] || {}).item_assembly_status;
+    const moved = (res) => res.calls.filter((c) => /INVENTORY/.test(c[0])).length;
+    let e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2, { ia_target_status: "Created" }) });
+    eq("ON, a new IA saved as Created: written Created, no stock moved, then marked RESERVING (its new id) after the write",
+      [e.returned.code, statusOf(e), moved(e), enrolOf(e), e.writes.map((w) => w[0] + " " + w[1]).slice(-1)[0]], ["200", "Created", 0, [[idOf(e), "RESERVING"]], "update Item Assembly"]);
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2) });
+    eq("ON, a new Draft: written Draft, never enrolled", [e.returned.code, statusOf(e), enrolOf(e)], ["200", "Draft", []]);
+    e = go(ON, { stored: "Completed", saveAs: "Draft", pageStatus: "Clone", allData: record("Clone", 2, { id: IA, item_assembly_status: "Completed", ia_target_status: "Created" }) });
+    eq("ON, a clone saved as Created: written Created, RESERVING (the clone, never the source)", [statusOf(e), enrolOf(e)], ["Created", [[idOf(e), "RESERVING"]]]);
+    e = go(ON, { stored: "Created", saveAs: "Draft", pageStatus: "Clone", allData: record("Clone", 2, { id: IA, item_assembly_status: "Created" }) });
+    eq("ON, a clone of a Created IA saved as Draft: written Draft, not enrolled (the source's status is not the clone's)", [statusOf(e), enrolOf(e)], ["Draft", []]);
+    e = go(ON, { stored: "Created", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2), scStored: {}, hold: "FULL" });
+    eq("ON, a Draft save of an IA stored Created (an older tab, mobile): stays Created, RESERVING again", [statusOf(e), enrolOf(e)], ["Created", [[IA, "RESERVING"]]]);
+    e = go(ON, { stored: "Created", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2, { ia_target_status: "Created" }), scStored: {}, hold: "FULL" });
+    eq("ON, a Created IA saved again as Created: Created, RESERVING again", [statusOf(e), enrolOf(e)], ["Created", [[IA, "RESERVING"]]]);
     e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2), scStored: {}, hold: "FULL" });
-    eq("ON, an Edit of an enrolled IA: RESERVING again", enrolOf(e), [[IA, "RESERVING"]]);
+    eq("ON, a Draft that reserved before Created existed, saved as Draft: Draft, not marked again (the form releases what it holds)", [statusOf(e), enrolOf(e)], ["Draft", []]);
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2), scStored: {}, hold: "" });
+    eq("ON, an Edit of a Draft that never reserved: Draft, not enrolled", [statusOf(e), enrolOf(e)], ["Draft", []]);
     e = go(ON, { stored: "Draft", saveAs: "Completed", pageStatus: "Add", allData: record("Add", 3) });
     eq("ON, a completion: never enrolled", [e.returned.code, enrolOf(e)], ["200", []]);
+    e = go(ON, { stored: "Created", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3, { ia_target_status: "Created" }), scStored: {}, hold: "FULL" });
+    eq("ON, completing a Created IA: Completed (the flag only counts on the Draft path), never enrolled", [e.returned.code, statusOf(e), enrolOf(e)], ["200", "Completed", []]);
+    // RES-01 Created numbering (user 10-22: "we are using Draft prefix for Created ... which is wrong"): a Created IA carries its real
+    // number, like a Created GD. The save that makes it Created issues it (a new IA, a clone, or a Draft becoming Created: a reverted
+    // Draft's number belongs to its completed cycle); a stored Created IA keeps it on every save and at its completion (the stored status
+    // read by the guard decides, not the form's); Manual Input keeps the typed number
+    const noOf = (res) => {
+      const w = res.writes.find((x) => x[1] === "Item Assembly" && x[2].stock_movement_no !== undefined);
+      return w ? w[2].stock_movement_no : "(no number written)";
+    };
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2, { ia_target_status: "Created" }) });
+    eq("number: a new IA saved as Created gets the real number (issued), not a Draft one", noOf(e), "IA-0001");
+    e = go(ON, { stored: "Completed", saveAs: "Draft", pageStatus: "Clone", allData: record("Clone", 2, { id: IA, item_assembly_status: "Completed", ia_target_status: "Created" }) });
+    eq("number: a clone saved as Created gets the real number", noOf(e), "IA-0001");
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2) });
+    eq("number: a new Draft keeps the Draft number (unchanged)", noOf(e), "Draft-0001");
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2, { stock_movement_no: "DRAFT-IA-0005", ia_target_status: "Created" }), scStored: {}, hold: "" });
+    eq("number: a stored Draft saved as Created is issued its real number (the Draft one dropped)", noOf(e), "issued");
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2, { stock_movement_no: "IA-0007", ia_target_status: "Created" }), scStored: {}, hold: "" });
+    eq("number: a reverted Draft saved as Created gets a new number (its old one belongs to the completed cycle)", noOf(e), "issued");
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2, { stock_movement_no: "DRAFT-IA-0005" }), scStored: {}, hold: "" });
+    eq("number: a stored Draft saved as Draft writes no number (the stored one stays, unchanged)", noOf(e), "(no number written)");
+    e = go(ON, { stored: "Created", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2, { stock_movement_no: "IA-0008", ia_target_status: "Created" }), scStored: {}, hold: "FULL" });
+    eq("number: a Created IA saved again as Created writes no number (its number stays)", noOf(e), "(no number written)");
+    e = go(ON, { stored: "Created", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2, { stock_movement_no: "IA-0008" }), scStored: {}, hold: "FULL" });
+    eq("number: a Created IA saved from an older tab or mobile (no flag) writes no number (its number stays)", noOf(e), "(no number written)");
+    e = go(ON, { stored: "Created", storedNo: "IA-0008", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3, { stock_movement_no: "IA-0008", item_assembly_status: "Created" }), scStored: {}, hold: "FULL" });
+    eq("number: completing a Created IA keeps the number it was issued at Created", noOf(e), "IA-0008");
+    e = go(ON, { stored: "Created", storedNo: "IA-0008", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3, { stock_movement_no: "IA-0008" }), scStored: {}, hold: "FULL" });
+    eq("number: completing a Created IA from a tab still showing Draft keeps its number (the stored status decides)", noOf(e), "IA-0008");
+    e = go(ON, { stored: "Created", storedNo: "IA-0008", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3, { item_assembly_status: "Created" }), scStored: {}, hold: "FULL" });
+    eq("number: completing a Created IA from a payload with no number (mobile) keeps the stored one", noOf(e), "IA-0008");
+    e = go(ON, { stored: "Created", storedNo: "MAN-77", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3, { stock_movement_no: "MAN-78", stock_movement_no_type: -9999 }), scStored: {}, hold: "FULL" });
+    eq("number: completing a Manual Input Created IA writes the typed number (as before)", noOf(e), "MAN-78");
+    e = go(ON, { stored: "Draft", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3, { stock_movement_no: "DRAFT-IA-0005" }), scStored: {}, hold: "" });
+    eq("number: completing a Draft is issued its real number (unchanged)", noOf(e), "issued");
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2, { stock_movement_no: "MAN-77", stock_movement_no_type: -9999, ia_target_status: "Created" }) });
+    eq("number: Manual Input keeps the typed number when saved as Created", noOf(e), "MAN-77");
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 2, { stock_movement_no: "MAN-55", stock_movement_no_type: -9999, ia_target_status: "Created" }),
+      scStored: {}, hold: "" });
+    eq("number: a Manual Input Draft becoming Created keeps its typed number (no number written)", noOf(e), "(no number written)");
+    // RES-01 Cancel (user 10-22): a Cancelled IA can no longer be changed - any save of it is refused before anything is written
+    for (const saveAs of ["Draft", "Completed"]) {
+      e = go(ON, { stored: "Cancelled", saveAs: saveAs, pageStatus: "Edit", allData: record("Edit", 2, { ia_target_status: saveAs === "Draft" ? "Created" : undefined }), scStored: {}, hold: "NONE" });
+      eq("ON, a save (" + saveAs + ") of a Cancelled IA: 409, nothing written, no stock moved", [e.returned.code, /cancelled: it can no longer be changed/.test(e.returned.message || ""),
+        e.writes.length, moved(e)], ["409", true, 0, 0]);
+    }
     e = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2) });
-    eq("OFF (the build): a new Draft is not enrolled", enrolOf(e), []);
+    eq("OFF: a new Draft is not enrolled", enrolOf(e), []);
+    e = go(V13, { stored: "Draft", saveAs: "Draft", pageStatus: "Add", allData: record("Add", 2, { ia_target_status: "Created" }) });
+    eq("OFF: a Created save is written Created (the status never depends on the switch), not enrolled", [statusOf(e), enrolOf(e)], ["Created", []]);
     // required_qty: kept for a line sent without it (mobile), defaulted when empty, written as q8 text
     // the desktop sends sc_ref_key on every line; line 5001 (as mobile would) leaves out required_qty
     const lines = [{ id: "5001", item_selection: COMP, item_name: "A", total_quantity: 4, requested_qty: 4, sc_ref_key: "", quantity_uom: UOM, temp_qty_data: picks(1), temp_hu_data: "", line_index: 1 },
@@ -377,6 +494,23 @@ for (const saveAs of ["Draft", "Completed"]) {
       storedReq: { 5001: "10.00000000", 5002: "10.00000000", 5003: "10.00000000", 5004: "7.00000000" }, storedRef: { 5001: "10.00000000", 5002: "10.00000000", 5003: "10.00000000", 5004: "10.00000000" } });
     eq("ON, required_qty follows a new reference while it was following (mobile, unchanged), not when typed or set apart", reqOf(e),
       ["20.00000000", "20.00000000", "12.00000000", "7.00000000"]);
+    // RF-09 (BA 10-22): a Required typed by hand (required_manual "1") is the user's: it never follows the reference, even when it equals
+    // the old one; a line sent without the flag (mobile) keeps the stored flag; a flag cleared (Required emptied) follows again
+    const manOf = (res) => ((header(res) || [])[2] || {}).stock_movement.map((l) => (Object.prototype.hasOwnProperty.call(l, "required_manual") ? l.required_manual : "<absent>"));
+    const storedFollow = { storedReq: { 5001: "10.00000000", 5002: "10.00000000", 5003: "10.00000000", 5004: "7.00000000" },
+      storedRef: { 5001: "10.00000000", 5002: "10.00000000", 5003: "10.00000000", 5004: "10.00000000" } };
+    const typed = follow.map((l) => (l.id === "5002" ? Object.assign({}, l, { required_manual: "1" }) : l));
+    e = go(ON, Object.assign({ stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: typed }), scStored: {}, hold: "FULL" }, storedFollow));
+    eq("RF-09: a Required typed by hand equal to the old reference stays on a re-scale (the flag written back)", [reqOf(e), manOf(e)],
+      [["20.00000000", "10.00000000", "12.00000000", "7.00000000"], ["", "1", "", ""]]);
+    yes("RF-09: the stored flag read with the stored keys", /'m', x\.required_manual/.test(e.sqls[0] || ""));
+    e = go(ON, Object.assign({ stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: follow }), scStored: {}, hold: "FULL",
+      storedManual: { 5002: "1" } }, storedFollow));
+    eq("RF-09: a line sent without the flag (mobile) keeps the stored one: Required stays, the flag written back", [reqOf(e)[1], manOf(e)[1]], ["10.00000000", "1"]);
+    const cleared = follow.map((l) => (l.id === "5002" ? Object.assign({}, l, { required_manual: "" }) : l));
+    e = go(ON, Object.assign({ stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: cleared }), scStored: {}, hold: "FULL",
+      storedManual: { 5002: "1" } }, storedFollow));
+    eq("RF-09: the flag cleared: Required follows the reference again", [reqOf(e)[1], manOf(e)[1]], ["20.00000000", ""]);
     // the screen's Reserved / Short figures are display only: never written
     const shownLines = lines.map((l) => Object.assign({}, l, { res_reserved: "20", res_short: "5" }));
     const dropped = (res) => ((header(res) || [])[2] || {}).stock_movement.every((l) => !("res_reserved" in l) && !("res_short" in l));
@@ -391,8 +525,7 @@ for (const saveAs of ["Draft", "Completed"]) {
   // ---------------------------------------------------------------- RES-01 R4: a completion issues the held part of each pick from Reserved
   {
     const os = require("os");
-    const ON = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "ia-res4-")), "IA_SAVE.json");
-    fs.writeFileSync(ON, fs.readFileSync(V13, "utf8").replace("const RES_ENABLED = false;", "const RES_ENABLED = true;"));
+    const ON = V13_ON;
     const pk = (qty, cat) => ({ material_id: COMP, location_id: BIN, batch_id: null, balance_id: "9001", sm_quantity: qty, category: cat || "Unrestricted" });
     const held = [{ id: "7001", status: "Allocated", doc_line_id: "5001", material_id: COMP, bin_location: BIN, batch_id: null, from_category: "Unrestricted", open_qty: "2", item_uom: UOM },
       { id: "7002", status: "Allocated", doc_line_id: "5001", material_id: COMP, bin_location: BIN, batch_id: null, from_category: "Blocked", open_qty: "1", item_uom: UOM }];
@@ -427,6 +560,112 @@ for (const saveAs of ["Draft", "Completed"]) {
     const offN = go(V13, { stored: "Draft", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: [completeLine] }), scStored: {}, hold: "", res: { rows: held, live: 0 } });
     eq("R4, switch off, an IA that never reserved: nothing read, issued as picked", [offN.sqls.some((s) => /on_reserved_gd/.test(s)), called(offN, "SUBTRACT_INVENTORY")],
       [false, [["Unrestricted", 3], ["Blocked", 2]]]);
+    // MIN-01 with bladexfunctions-9d (10-22): Reserved stock is never picked by hand - only the split's own held parts (made server-side,
+    // after this check) come from Reserved; a payload pick from Reserved (the picker shows Reserved rows) is refused before any write
+    const rsv = Object.assign({}, completeLine, { temp_qty_data: JSON.stringify([pk(3), pk(2, "Reserved")]) });
+    e = complete({ stock_movement: [rsv] });
+    eq("a pick from Reserved (a reserving IA): 400 before any write, nothing issued", [e.returned.code, /picked from Reserved stock/.test(e.returned.message || ""), e.writes.length,
+      called(e, "SUBTRACT_INVENTORY").length], ["400", true, 0, 0]);
+    e = complete({ stock_movement: [rsv] }, { hold: "" });
+    eq("a pick from Reserved (an IA that never reserved): 400 too", [e.returned.code, e.writes.length, called(e, "SUBTRACT_INVENTORY").length], ["400", 0, 0]);
+    e = go(ON, { stored: "Draft", saveAs: "Completed", pageStatus: "Add", allData: record("Add", 1, { stock_movement: [Object.assign({}, rsv, { id: undefined })] }) });
+    eq("a pick from Reserved (a new IA completed at once): 400", [e.returned.code, e.writes.length], ["400", 0]);
+    e = go(ON, { stored: "Draft", saveAs: "Draft", pageStatus: "Edit", allData: record("Edit", 1, { stock_movement: [rsv] }), scStored: {}, hold: "" });
+    eq("a Draft save with a pick from Reserved: saved (nothing moves; its completion is refused)", e.returned.code, "200");
+    e = complete({ stock_movement: [Object.assign({}, rsv, { total_quantity: 3, requested_qty: 3, required_qty: "3", temp_qty_data: JSON.stringify([pk(3), pk(0, "Reserved")]) })] });
+    eq("a zero pick on Reserved is no pick: completed", e.returned.code, "200");
+  }
+
+  // ---------------------------------------------------------------- MIN-02 (BA 10-22): one server-owned completion per Item Assembly
+  {
+    const base = { stored: "Draft", saveAs: "Completed", pageStatus: "Edit", allData: record("Edit", 3), scStored: {} };
+    const CL = (o) => go(V13_CL, Object.assign({}, base, o || {}));
+    const steps = (res) => res.writes.filter((w) => w[1] === "GD Publish Step").map((w) => [w[0], w[2].step_name || "", w[2].step_status]);
+    const iaWrites = (res) => res.writes.filter((w) => w[1] !== "GD Publish Step");
+    const issued = (res) => res.calls.filter((c) => c[0] === "SUBTRACT_INVENTORY").length;
+    const rival = (k, at, o) => Object.assign({ id: "900" + k, job_id: "IAS|" + IA, step_name: "CLAIM|" + k, step_status: "HELD", started_at: at, is_deleted: 0 }, o || {});
+    yes("MIN-02: the shipped IA_SAVE takes the claim (IA_CLAIM_ENABLED true)", /const IA_CLAIM_ENABLED = true;/.test(fs.readFileSync(SHIPPED, "utf8")));
+    // the same build with the claim off is the baseline (RES-01 on in both)
+    const a = go(V13_ON, base);
+    let c = CL();
+    eq("MIN-02 alone: the claim-off answer, IA writes and calls, plus our claim", [c.returned, strip(iaWrites(c)), c.calls], [a.returned, strip(a.writes), a.calls]);
+    eq("MIN-02 alone: IAS|<ia> / CLAIM|1 inserted HELD, freed at the end", [steps(c), c.writes.find((w) => w[1] === "GD Publish Step")[2].job_id], [[["insert", "CLAIM|1", "HELD"],
+      ["update", "", "FREE"]], "IAS|" + IA]);
+    yes("MIN-02 alone: the claim before the header write", c.writes.findIndex((w) => w[1] === "GD Publish Step") < c.writes.findIndex((w) => w[1] === "Item Assembly"));
+    c = CL({ steps: [rival(1, "2026-10-22 13:59:30")] });
+    eq("MIN-02 another completion holds it (a live claim, lower number): 409, no IA write, nothing issued, ours (CLAIM|2) freed",
+      [c.returned.code, /another window/.test(c.returned.message || ""), iaWrites(c).length, issued(c), steps(c)], ["409", true, 0, 0, [["insert", "CLAIM|2", "HELD"], ["update", "", "FREE"]]]);
+    c = CL({ steps: [rival(1, "2026-10-22 13:49:00")] });
+    eq("MIN-02 a dead run's claim (older than the 10-minute lease): ours wins, completed", [c.returned.code, issued(c), steps(c)], ["200", 3, [["insert", "CLAIM|2", "HELD"], ["update", "", "FREE"]]]);
+    c = CL({ steps: [rival(1, "2026-10-22 13:59:30", { step_status: "FREE" }), rival(2, "2026-10-22 13:59:40", { is_deleted: 1, step_status: "FREE" })] });
+    eq("MIN-02 earlier claims freed or deleted: ours is CLAIM|3 (the unique key counts deleted rows), completed", [c.returned.code, steps(c)[0]], ["200", ["insert", "CLAIM|3", "HELD"]]);
+    c = CL({ steps: [rival(9, "2026-10-22 13:59:30")] });
+    eq("MIN-02 claim numbers compared as numbers: a live CLAIM|9 beats ours (CLAIM|10)", [c.returned.code, steps(c)[0]], ["409", ["insert", "CLAIM|10", "HELD"]]);
+    c = CL({ statusNow: "Processing" });
+    eq("MIN-02 the IA moved after the guard read it (a background completion): 409 'changed', no IA write, nothing issued, ours freed",
+      [c.returned.code, /changed while it was being completed \(it is Processing now\)/.test(c.returned.message || ""), iaWrites(c).length, issued(c), steps(c).length], ["409", true, 0, 0, 2]);
+    c = CL({ statusNow: "Cancelled" });
+    eq("MIN-02 the IA cancelled after the guard read it: 409, nothing issued", [c.returned.code, issued(c)], ["409", 0]);
+    // a twin: its claim lands between our number read and our insert -> our insert fails on the unique key, the run fails before any effect
+    const twin = new Sim(V13_CL, Object.assign({ items: ITEMS, lines: LINES, headers: HEADERS }, base, { steps: [], beforeClaim: (rows) => rows.push(rival(1, "2026-10-22 14:00:00")) }));
+    let err = null;
+    try {
+      twin.run("IA_SAVE", { allData: base.allData, saveAs: base.saveAs, pageStatus: base.pageStatus });
+    } catch (x) {
+      err = x;
+    }
+    eq("MIN-02 a twin's claim with the same number: our run fails at the claim insert, nothing written or issued", [!!err && /Job Step/.test(String(err.message)), twin.writes.length,
+      twin.calls.filter((x) => x[0] === "SUBTRACT_INVENTORY").length], [true, 0, 0]);
+    // every exit after the claim frees it
+    const batchItems = [Object.assign({}, ITEMS[0], { item_batch_management: 1, batch_number_genaration: "According To System Settings" }), ITEMS[1]];
+    c = CL({ items: batchItems, stubs: { GENERATE_BATCH: {} } });
+    eq("MIN-02 a batch number that cannot be generated (before the claim): 400, no IA write, no claim taken", [c.returned.code, /batch number/.test(c.returned.message || ""),
+      iaWrites(c).length, steps(c)], ["400", true, 0, []]);
+    // GENERATE_BATCH refusing crashes the run: it runs before the claim, so no claim is left HELD to block the retry
+    const crash = new Sim(V13_CL, Object.assign({ items: batchItems, lines: LINES, headers: HEADERS }, base, { steps: [], stubs: { GENERATE_BATCH: new Error("Duplicate Batch Format found.") } }));
+    let crashed = null;
+    try {
+      crash.run("IA_SAVE", { allData: base.allData, saveAs: base.saveAs, pageStatus: base.pageStatus });
+    } catch (x) {
+      crashed = x;
+    }
+    eq("MIN-02 GENERATE_BATCH crashing the run: no claim left HELD (a retry is never blocked by it), nothing written", [!!crashed, crash.sc.steps.length, crash.writes.length],
+      [true, 0, 0]);
+    c = CL({ items: batchItems });
+    eq("MIN-02 a batch parent: the claim after GENERATE_BATCH, before the header", [c.returned.code, c.calls.findIndex((x) => x[0] === "GENERATE_BATCH") >= 0, steps(c)],
+      ["200", true, [["insert", "CLAIM|1", "HELD"], ["update", "", "FREE"]]]);
+    c = CL({ stubs: { SUBTRACT_INVENTORY: { code: "400", message: "short" } } });
+    eq("MIN-02 an issue refused mid-way: v12's 400, the claim freed", [c.returned.code, steps(c)], ["400", [["insert", "CLAIM|1", "HELD"], ["update", "", "FREE"]]]);
+    c = CL({ stubs: { ADD_INVENTORY: { code: "400", message: "no" } } });
+    eq("MIN-02 the receipt refused: v12's 400, the claim freed", [c.returned.code, steps(c)], ["400", [["insert", "CLAIM|1", "HELD"], ["update", "", "FREE"]]]);
+    // BA rev 1.2 C2: how the completion ended, on its claim (the effect identity a person reconciles from): DONE at the end;
+    // PARTIAL|SUBTRACT / PARTIAL|RECEIPT when an issue or the receipt is refused after the header was written; a crash leaves it HELD
+    const ended = (o) => {
+      const sc = Object.assign({}, base, o || {}, { steps: [] });
+      let threw = null;
+      try {
+        go(V13_CL, sc);
+      } catch (x) {
+        threw = x;
+      }
+      return { threw: !!threw, claims: sc.steps.filter((x) => /^CLAIM\|/.test(x.step_name)).map((x) => [x.step_status, x.result_ref || ""]) };
+    };
+    eq("C2: a completion that finished: its claim FREE / DONE", ended().claims, [["FREE", "DONE"]]);
+    eq("C2: a claim that lost to a live one: FREE / LOST (it did nothing), the live one untouched", ended({ steps: [] , beforeClaim: null }).claims.length, 1);
+    const lostSc = Object.assign({}, base, { steps: [rival(1, "2026-10-22 13:59:30")] });
+    go(V13_CL, lostSc);
+    eq("C2: the loser's claim FREE / LOST", lostSc.steps.filter((x) => x.step_name === "CLAIM|2").map((x) => [x.step_status, x.result_ref || ""]), [["FREE", "LOST"]]);
+    eq("C2: an issue refused after the header: FREE / PARTIAL|SUBTRACT", ended({ stubs: { SUBTRACT_INVENTORY: { code: "400", message: "short" } } }).claims, [["FREE", "PARTIAL|SUBTRACT"]]);
+    eq("C2: the receipt refused: FREE / PARTIAL|RECEIPT", ended({ stubs: { ADD_INVENTORY: { code: "400", message: "no" } } }).claims, [["FREE", "PARTIAL|RECEIPT"]]);
+    const interrupted = ended({ stubs: { SUBTRACT_INVENTORY: new Error("SUBTRACT_INVENTORY crashed") } });
+    eq("C2: a crash during the issues: the run fails, its claim left HELD (interrupted)", [interrupted.threw, interrupted.claims], [true, [["HELD", ""]]]);
+    // no claim: a new IA, a Clone (its source's id), a Draft save, the switch off
+    for (const [label, sc, file] of [["Add, Completed", { pageStatus: "Add", allData: record("Add", 3) }, V13_CL],
+      ["Clone, Completed", { pageStatus: "Clone", allData: record("Clone", 3, { id: IA }) }, V13_CL], ["Edit, Draft", { saveAs: "Draft" }, V13_CL],
+      ["switch off, Edit, Completed", {}, V13_ON]]) {
+      c = go(file, Object.assign({}, base, sc, { steps: [rival(1, "2026-10-22 13:59:30")] }));
+      eq("MIN-02 no claim (" + label + "): no claim read or written, the live claim ignored", [c.returned.code, steps(c).length, c.sqls.some((q) => /IAS\|/.test(q))], ["200", 0, false]);
+    }
   }
 
   console.log((fails ? "FAILED " + fails : "ok") + " - " + n + " checks");

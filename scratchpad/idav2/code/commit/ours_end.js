@@ -4,7 +4,8 @@
 const commitOursEnd = function commitOursEnd(entry, src, partRows, intentRows, oursRows) {
   const x = src || {};
   const out = { route: s(x.route), jobRows: list(x.jobRows), needJobUpd: s(x.needJobUpd), unlockRows: list(x.unlockRows), needUnlock: s(x.needUnlock), batchDelSlices: list(x.batchDelSlices),
-    needBatchDel: s(x.needBatchDel), result_code: s(x.result_code), result_message: s(x.result_message), job_status: s(x.job_status) };
+    needBatchDel: s(x.needBatchDel), intentDelSlices: list(x.intentDelSlices), needIntentDel: s(x.needIntentDel) || "NO", result_code: s(x.result_code), result_message: s(x.result_message),
+    job_status: s(x.job_status) };
   if (s(x.needOursRead) !== "YES" || s(x.job_status) !== "FAILED") return out;
   const part = idaJoinChunks(partRows, s(entry.partPrefix) + "BATCH|");
   const intent = idaJoinChunks(intentRows, "D1|I|");

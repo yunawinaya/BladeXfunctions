@@ -4,7 +4,8 @@ for an IA that reserves (its stored material_hold_status set); every other IA re
                               if_RESrvOpen > return_node_RESrvOpen (a copy of the classic's refusal, code "409": its holds still open)
   after code_node_iaRvBuild:  code_node_RESrvMap (a component issued from Reserved comes back to Unrestricted); loop_iaRvAdd reads its adds
   after update_node_iaRvIa:   if_RESrvMark > update_node_RESrvMark (material_hold_status RESERVING: the next open or save reserves again)
-Asserted: every v5 node byte-identical except loop_iaRvAdd's source.
+  in code_node_iaRvPrep:     a component pairs without its category (lift_revert.py PAIR_WAS / PAIR_NOW: R6 live 10-22)
+Asserted: every v5 node byte-identical except loop_iaRvAdd's source and that pairing key.
 
 usage: python3 revert/classic_v6.py   (prints a summary; build_revert.py BUILDERS["IA_REVERT"] calls build())"""
 import copy
@@ -28,6 +29,7 @@ def _load(path, name):
 
 V5 = _load(os.path.join(HERE, "classic_v5.py"), "iarv_classic_v5_for_v6")
 IASC_SQL = _load(os.path.join(IAV2, "..", "iasc", "code", "shared", "sql.py"), "iasc_sql_for_v6")
+LIFT = _load(os.path.join(HERE, "lift", "lift_revert.py"), "iarv_lift_for_v6")
 RES_CODE = os.environ.get("HD_CODE") or os.path.join(IAV2, "..", "iasc", "res01", "code")
 JS = os.path.join(IAV2, "code", "revert", "classic")
 DUE, OWN, OPEN, MAP, MARK = "code_node_RESrvDue", "sql_node_RESrvOwn", "code_node_RESrvOpen", "code_node_RESrvMap", "update_node_RESrvMark"
@@ -110,11 +112,15 @@ def build():
     lp = index(doc)["loop_iaRvAdd"]["data"]["loopSeletVar"]
     assert lp["code"] == LOOP_FROM, lp
     lp["code"] = LOOP_TO
+    prep = index(doc)["code_node_iaRvPrep"]["data"]["script"]
+    assert prep["code"].count(LIFT.PAIR_WAS) == 1, "the pairing key moved in v5"
+    prep["code"] = prep["code"].replace(LIFT.PAIR_WAS, LIFT.PAIR_NOW)
     got = index(doc)
     assert sorted(set(got) - set(old)) == sorted(RES_IDS), sorted(set(got) - set(old))
     canon = lambda x: json.dumps(x, ensure_ascii=False, separators=(",", ":"))
     rev = copy.deepcopy(doc)
     index(rev)["loop_iaRvAdd"]["data"]["loopSeletVar"]["code"] = LOOP_FROM
+    index(rev)["code_node_iaRvPrep"]["data"]["script"]["code"] = prep["code"].replace(LIFT.PAIR_NOW, LIFT.PAIR_WAS)
     ri = index(rev)
     for nid, n in old.items():
         assert canon(ri[nid]) == canon(n), "IA_REVERT v6: a v5 node changed " + nid

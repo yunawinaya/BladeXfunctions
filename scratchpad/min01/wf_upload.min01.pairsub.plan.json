@@ -1,0 +1,12 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SUBTRACT_INVENTORY (MIN-01: pair entry pair_add, switch OFF)",
+   "dataId": "2012096660219564034",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/p_SUBTRACT_INVENTORY.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/q_SUBTRACT_INVENTORY.json"
+  }
+ ]
+}

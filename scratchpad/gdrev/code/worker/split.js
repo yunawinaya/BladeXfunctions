@@ -11,7 +11,7 @@ const workerSplitResume = function workerSplitResume(guard, mid, rows) {
   if (!split) return Object.assign(base, { result_message: "job is " + s(job.job_status) + (s(job.lease_owner) ? " (lease " + s(job.lease_owner) + ")" : "") + ": no second publish call" });
   return Object.assign(base, { route: "PUBLISH", result_message: "split after the stock moved: the second GD_REVERT_COMMIT call of this tick" });
 };
-const guard = [{{node:code_node_RWguard2.data}}][0];
+const guard = [{{node:code_node_RWguard3.data}}][0];
 const mid = [{{node:code_node_RWmid.data}}][0];
 const res = workerSplitResume(guard, mid, [{{node:sql_node_RWsplit.data}}][0]);
 console.log("worker split", JSON.stringify(res));

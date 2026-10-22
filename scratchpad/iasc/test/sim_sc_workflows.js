@@ -175,6 +175,9 @@ let o = relink(done(), lines2(), { ia_id: "x" });
 eq("relink bad id -> 400, nothing written", [o.ret.code, o.writes.length], ["400", 0]);
 o = relink(Object.assign(done(), { status: "Draft" }), lines2());
 eq("relink a Draft -> 400 (edit it instead)", [o.ret.code, /Edit/.test(o.ret.message), o.writes.length], ["400", true, 0]);
+// RES-01 Created (BA, 10-22): a Created IA is not re-linked here either (only a completed one)
+o = relink(Object.assign(done(), { status: "Created" }), lines2(), { expect_status: "Created" });
+eq("relink a Created IA -> 400, nothing written", [o.ret.code, o.writes.length], ["400", 0]);
 o = relink(Object.assign(done(), { status: "Processing" }), lines2());
 eq("relink while Processing -> 400 'being processed'", [o.ret.code, /being processed/.test(o.ret.message), o.writes.length], ["400", true, 0]);
 o = relink(done(), world().lines);

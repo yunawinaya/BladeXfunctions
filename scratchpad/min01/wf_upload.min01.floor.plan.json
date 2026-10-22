@@ -1,0 +1,18 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SUBTRACT_INVENTORY (MIN-01 A1: IA floor guard, switch OFF)",
+   "dataId": "2012096660219564034",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/floor_SUBTRACT_INVENTORY.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/base/SUBTRACT_INVENTORY.live_v60.json"
+  },
+  {
+   "name": "SUBTRACT_INVENTORY_NEW (MIN-01 A2: IA floor guard, switch OFF)",
+   "dataId": "2031973476128071681",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/floor_SUBTRACT_INVENTORY_NEW.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/base/SUBTRACT_INVENTORY_NEW.live_v26.json"
+  }
+ ]
+}

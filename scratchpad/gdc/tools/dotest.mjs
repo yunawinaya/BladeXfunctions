@@ -18,8 +18,8 @@ if (!/^[0-9]{1,20}$/.test(wfId || '') || !scriptFile || !requestFile || !outFile
   process.exit(2);
 }
 const r = roots();
-const profile = resolveProfile(r, 'dev-write');
-if (!/\.dev\./.test(profile.endpoint)) throw new Error(`profile ${profile.name} is not a dev endpoint`);
+const profile = resolveProfile(r, 'dev-main-write');
+if (!/^https:\/\/([a-z0-9-]+\.)?dev\.mes\.sudu\.ai\/api$/.test(profile.endpoint.replace(/\/+$/, ''))) throw new Error(`profile ${profile.name} is not a dev endpoint`);
 if (!profile.allowWrites) throw new Error(`profile ${profile.name} is read-only`);
 const session = await ensureFresh(r, profile.name, { fetchImpl: fetch });
 // forms, Quartz and the designer run behind the browser's gateway; each gateway has its own runtime cache (bladexfunctions-fa,

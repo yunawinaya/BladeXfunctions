@@ -1,5 +1,5 @@
 // IA_V2_COMMIT - helpers every step node includes after code/shared/ia_common.js: tpl/sav2 commit/_common.js with the IA's
-// unlock (prevStatus Draft only, while the job owns the IA), this job's Batch rows soft-deleted on a clean failure, GD's
+// unlock (prevStatus Draft or Created only, while the job owns the IA), this job's Batch rows soft-deleted on a clean failure, GD's
 // lockWait and grv2's stepWait (not counted)
 const MAX_RETRIES = 3;
 const s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
@@ -62,7 +62,7 @@ const lockWait = function lockWait(entry, why) {
   result_message: "I2_ISSUE: the components' stock is locked by another operation - wait " + (n + 1) + " of " + IA_LOCK_WAIT_TRIES, job_status: "COMMITTING_IA" });
 };
 // before op 1 moved stock (phase A): FAILED, the IA back to its prevStatus while this job owns it, and this job's own Batch
-// rows (`ours`: the ids its I1 inserted) soft-deleted; an owned IA whose prevStatus is not Draft -> REQUIRES_REVIEW, nothing else written.
+// rows (`ours`: the ids its I1 inserted) soft-deleted; an owned IA whose prevStatus is not Draft / Created -> REQUIRES_REVIEW, nothing else written.
 // Op 1 already has engine rows (a run died after its APPLY, before I2 DONE) -> REQUIRES_REVIEW, nothing else written (ruling 10 R2)
 const failNoWrite = function failNoWrite(entry, code, message, why, ours) {
   if (entry.op1Wrote === "YES") {

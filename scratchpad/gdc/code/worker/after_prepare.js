@@ -26,7 +26,7 @@ const workerAfterPrepare = function workerAfterPrepare(guard, own, resp, rows) {
   const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));
   return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: "YES", result_code: "GDC_TRANSIENT", result_message: "GD_COMPLETE_PREPARE left the job " + status + " without a code: retry " + (n + 1) + " of " + PKC.retry.max_retries + " after " + delayMs + " ms" });
 };
-const guard = [{{node:code_node_GWguard2.data}}][0];
+const guard = [{{node:code_node_GWguard3.data}}][0];
 const own = [{{node:code_node_GWown.data}}][0];
 const res = workerAfterPrepare(guard, own, [{{node:code_node_GWprepResp.data}}][0], [{{node:sql_node_GWprepBack.data}}][0]);
 console.log("worker after prepare", JSON.stringify({ route: res.route, status: res.jobStatus, prepare: res.prepareResult, write: res.needJobUpd, unlock: res.needUnlock, result: res.result_code }));

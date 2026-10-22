@@ -1,0 +1,487 @@
+start-node start: Start Node
+code-node code_node_cW0Exw93: Guard: validate, normalize, recompute the hash, check the effect shapes (step 1) (56945 ch)
+if if_7fuBJNw1: IF request rejected
+  ifBlock ifBlock_XjTA6Old: true
+    code-node code_node_bjGtMafh: Evidence REJECTED_BY_VALIDATION (1815 ch)
+    return-node return_node_upqEQ2QH: Return REJECTED (validation)
+  ifBlock ifBlock_4U1bFbZU: false
+sql-node sql_node_U1SF0De4: Permission: organization, plant and requesting user (read-only) (876 ch)
+code-node code_node_zyCoUNH0: Permission check (8226 ch)
+if if_xdFED1H1: IF permission denied
+  ifBlock ifBlock_tUSNdlWJ: true
+    code-node code_node_fTMjlhRn: Evidence REJECTED_BY_PERMISSION (1888 ch)
+    return-node return_node_SJymQNDc: Return REJECTED (permission)
+  ifBlock ifBlock_tH8Xz3il: false
+sql-node sql_node_zTCi3kjm: Operation read: row, gate, DB clock, the original of a correction (step 2) (2311 ch)
+code-node code_node_tr2ByLFB: Repeat decision (contract decideOnRepeat + Q4) (34166 ch)
+if if_S5IEwKag: IF repeat answers from the stored row
+  ifBlock ifBlock_N4BVfSGw: true
+    code-node code_node_U7Mn9SIm: Evidence REPEAT_RETURN (2068 ch)
+    return-node return_node_Yx4PaBeI: Return stored / conflict / in-progress / under-review
+  ifBlock ifBlock_GTreDwHn: false
+if if_gljL6NbN: IF stale pre-mutation repeat: RECOVER (reject + release, Q4)
+  ifBlock ifBlock_CkZq9z21: true
+    sql-node sql_node_yHnaz08e: Recover: this operation's effect rows (+ DB clock, lease) (522 ch)
+    sql-node sql_node_JjJ9pSTu: Lock release: read rows owned by this operation (P15) (661 ch)
+    code-node code_node_4QAc4aBh: Recover: plan only what is missing (lease, REJECT gate, REJECTED, NOT_APPLIED, release) (10927 ch)
+    condition-or-node condition_or_node_TWmp3FMj: Any work? Refresh the lease first
+      condition-or-node-item condition_or_node_item_09fMaObx: YES
+        update-node update_node_EwzPm7zs: Recover: refresh the lease (before the gate: a second repeat waits) [Inventory Operation:Table:2105132166007918593]
+      condition-or-node-item condition_or_node_item_3WZzxIsI: NO
+    condition-or-node condition_or_node_AKSXxPMb: Gate needed? (none yet = stale operation)
+      condition-or-node-item condition_or_node_item_yowEYOsu: YES
+        add-node add_node_1f0rfUgo: Recover: insert GATE|<operation_id>, taker REJECT|<code>|<nonce> (Duplicate entry = already decided) [Inventory Balance Lock:Table:2105132021358956546]
+      condition-or-node-item condition_or_node_item_518DtIOJ: NO
+    condition-or-node condition_or_node_4Q3DW77F: Operation not yet REJECTED + completed_at?
+      condition-or-node-item condition_or_node_item_AEaFoii9: YES
+        update-node update_node_VmxooLhF: Recover: operation REJECTED (+ completed_at) [Inventory Operation:Table:2105132166007918593]
+      condition-or-node-item condition_or_node_item_wg4Gf2vC: NO
+    condition-or-node condition_or_node_sUDGCveN: Any PLANNED effects?
+      condition-or-node-item condition_or_node_item_oYqQRqnl: YES
+        code-node code_node_Msh0wqzO: Batches of xEffUpd: one loop pass per <= 250 rows of xPlan.effectRows (912 ch)
+        set-cache-node set_cache_node_seCxCI2b: Batch index of xEffUpd = 0 (per run: the key carries the run's nonce)
+        loop loop_rnTLW9qA: Write xEffUpd in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_Msh0wqzO.data.batches}}"}]
+          get-cache-node get_cache_node_UG7GDbuf: Batch index of xEffUpd
+          code-node code_node_QcEtzquP: Batch of xEffUpd: this pass's slice of xPlan.effectRows (1421 ch)
+          update-node update_node_EmRQKzQw: Recover: effects NOT_APPLIED [Inventory Operation Effect:Table:21051323023437701]
+          set-cache-node set_cache_node_ONeL2z7e: Next batch index of xEffUpd
+          condition-or-node condition_or_node_hjGaMVXu: Renew the operation lease after this slice of xEffUpd? (every 10 slices)
+            condition-or-node-item condition_or_node_item_gA3pfHq8: YES
+              sql-node sql_node_d7eVObHV: Lease read (IN_LOOP_xEffUpd): the DB clock and this operation's row (554 ch)
+              code-node code_node_P01Hr32Q: Lease renewal (IN_LOOP_xEffUpd): still this run's and live -> lease_expires_at = NOW + 10 min (1822 ch)
+              condition-or-node condition_or_node_3pGKzMrV: Renew the operation lease (IN_LOOP_xEffUpd)?
+                condition-or-node-item condition_or_node_item_SUeGsdWl: YES
+                  update-node update_node_JgV95VUB: Operation lease renewed (IN_LOOP_xEffUpd): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+                condition-or-node-item condition_or_node_item_5xtDiXGM: NO
+            condition-or-node-item condition_or_node_item_V5Nh10lu: NO
+      condition-or-node-item condition_or_node_item_KCAk6Zec: NO
+    sql-node sql_node_56xyfjyT: Lease read (RECOVERED_BEFORE_RELEASE): the DB clock and this operation's row (554 ch)
+    code-node code_node_ojWiBEFP: Lease renewal (RECOVERED_BEFORE_RELEASE): still this run's and live -> lease_expires_at = NOW + 10 min (1830 ch)
+    condition-or-node condition_or_node_H313cgO6: Renew the operation lease (RECOVERED_BEFORE_RELEASE)?
+      condition-or-node-item condition_or_node_item_EVKX7FU5: YES
+        update-node update_node_RT3xUjEW: Operation lease renewed (RECOVERED_BEFORE_RELEASE): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+      condition-or-node-item condition_or_node_item_hnv9FB29: NO
+    code-node code_node_QKCEIbTQ: Lock release: plan (P16) (2248 ch)
+    condition-or-node condition_or_node_WjOQlrOo: Anything to release? (P17)
+      condition-or-node-item condition_or_node_item_NlqJwkIj: RELEASE_NEEDED
+        code-node code_node_F6EV9aWI: Batches of xRlClear: one loop pass per <= 250 rows of xRlPlan.clearRows (914 ch)
+        set-cache-node set_cache_node_OfdhcneD: Batch index of xRlClear = 0 (per run: the key carries the run's nonce)
+        loop loop_qI2Dewq2: Write xRlClear in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_F6EV9aWI.data.batches}}"}]
+          get-cache-node get_cache_node_0vyt1LZ2: Batch index of xRlClear
+          code-node code_node_cwmWEL1O: Batch of xRlClear: this pass's slice of xRlPlan.clearRows (1423 ch)
+          update-node update_node_cNv2iJq1: Lock release step 1: clear owner fields by id (P18) [Inventory Balance Lock:Table:2105132021358956546]
+          set-cache-node set_cache_node_prgE7OB6: Next batch index of xRlClear
+          condition-or-node condition_or_node_IEQZNV1y: Renew the operation lease after this slice of xRlClear? (every 10 slices)
+            condition-or-node-item condition_or_node_item_EygBFuhO: YES
+              sql-node sql_node_vqRA6MRI: Lease read (IN_LOOP_xRlClear): the DB clock and this operation's row (554 ch)
+              code-node code_node_sBiwa76L: Lease renewal (IN_LOOP_xRlClear): still this run's and live -> lease_expires_at = NOW + 10 min (1826 ch)
+              condition-or-node condition_or_node_hiY4hKsF: Renew the operation lease (IN_LOOP_xRlClear)?
+                condition-or-node-item condition_or_node_item_r23qPMBd: YES
+                  update-node update_node_uAMbUrc7: Operation lease renewed (IN_LOOP_xRlClear): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+                condition-or-node-item condition_or_node_item_UCDMmOgA: NO
+            condition-or-node-item condition_or_node_item_XJsq49lw: NO
+        sql-node sql_node_sJI9RwSO: Lease read (RECOVERED_BEFORE_GIVE): the DB clock and this operation's row (554 ch)
+        code-node code_node_duvbRAOP: Lease renewal (RECOVERED_BEFORE_GIVE): still this run's and live -> lease_expires_at = NOW + 10 min (1824 ch)
+        condition-or-node condition_or_node_QacML5m2: Renew the operation lease (RECOVERED_BEFORE_GIVE)?
+          condition-or-node-item condition_or_node_item_uOVMlhCq: YES
+            update-node update_node_lMxjytnH: Operation lease renewed (RECOVERED_BEFORE_GIVE): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+          condition-or-node-item condition_or_node_item_8z4ENgaG: NO
+        workflow-node workflow_node_SeaBuGCH: Lock release step 2: INVENTORY_LOCK_TOKENS GIVE - re-read, then atomic plus(1) per cleared key in the child (P19/P20, se -> INVENTORY_LOCK_TOKENS
+      condition-or-node-item condition_or_node_item_KMGjpXNi: NOTHING_OWNED
+    sql-node sql_node_Wy0KIuXT: Lock release: check nothing is still owned (P21) (661 ch)
+    sql-node sql_node_pIDMqTob: Recover: read-back (operation, gate, effects, locks owned) (1550 ch)
+    code-node code_node_t8dYHnZj: Evidence RECOVERED_REJECTED (3005 ch)
+    return-node return_node_DjF3eZka: Return REJECTED (recovered)
+  ifBlock ifBlock_GtNLcEtB: false
+if if_PjMOrrHV: IF test barrier BEFORE_CREATE (organization 0 only)
+  ifBlock ifBlock_nqdNFQCX: true
+    sql-node sql_node_KHqG6xyF: Test barrier: wait for the next 20 s boundary (130 ch)
+  ifBlock ifBlock_mhYG5Soc: false
+sql-node sql_node_ZOjcC30c: Lock seed: read existing rows (P2) (567 ch)
+code-node code_node_28qGxGjn: Lock seed: plan missing rows (P3) (1524 ch)
+condition-or-node condition_or_node_Aj6J0hjE: Lock seed needed? (P4)
+  condition-or-node-item condition_or_node_item_ijtqvqHk: SEED_NEEDED
+    code-node code_node_ifQHBNHZ: Batches of sdAdd: one loop pass per <= 250 rows of sdPlan.rowsToAdd (907 ch)
+    set-cache-node set_cache_node_Oy9Xqhqh: Batch index of sdAdd = 0 (per run: the key carries the run's nonce)
+    loop loop_WxO9QXyr: Write sdAdd in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_ifQHBNHZ.data.batches}}"}]
+      get-cache-node get_cache_node_bujFn47k: Batch index of sdAdd
+      code-node code_node_gc0QcdjF: Batch of sdAdd: this pass's slice of sdPlan.rowsToAdd (1030 ch)
+      add-node add_node_nQCuuijq: Lock seed: insert missing rows, free_token 1 (P5) [Inventory Balance Lock:Table:2105132021358956546]
+      set-cache-node set_cache_node_w4CRLAGm: Next batch index of sdAdd
+  condition-or-node-item condition_or_node_item_DllIBfeE: SEED_NOT_NEEDED
+add-node add_node_4Ky9T2rD: Operation insert, VALIDATING (Duplicate entry = a twin run won) [Inventory Operation:Table:2105132166007918593]
+code-node code_node_iKHBGqbI: Batches of efAdd: one loop pass per <= 250 rows of guard.effectRows (908 ch)
+set-cache-node set_cache_node_qrXWba0g: Batch index of efAdd = 0 (per run: the key carries the run's nonce)
+loop loop_Tykqmuyj: Write efAdd in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_iKHBGqbI.data.batches}}"}]
+  get-cache-node get_cache_node_6CjcESae: Batch index of efAdd
+  code-node code_node_xiVOulsl: Batch of efAdd: this pass's slice of guard.effectRows (1417 ch)
+  add-node add_node_hjQ0VC1S: Effect rows insert, PLANNED (the persisted lock-key list, step 3) [Inventory Operation Effect:Table:21051323023437701]
+  set-cache-node set_cache_node_bOhNjThJ: Next batch index of efAdd
+  condition-or-node condition_or_node_CynUTEvW: Renew the operation lease after this slice of efAdd? (every 10 slices)
+    condition-or-node-item condition_or_node_item_rdL10RSK: YES
+      sql-node sql_node_YSK5KLDT: Lease read (IN_LOOP_efAdd): the DB clock and this operation's row (554 ch)
+      code-node code_node_d7QDjCtz: Lease renewal (IN_LOOP_efAdd): still this run's and live -> lease_expires_at = NOW + 10 min (1814 ch)
+      condition-or-node condition_or_node_G65RCddV: Renew the operation lease (IN_LOOP_efAdd)?
+        condition-or-node-item condition_or_node_item_Sjey6wNM: YES
+          update-node update_node_fKZS46Cc: Operation lease renewed (IN_LOOP_efAdd): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+        condition-or-node-item condition_or_node_item_yB0C5pvG: NO
+    condition-or-node-item condition_or_node_item_y4lZZhF2: NO
+sql-node sql_node_D927U5Fx: Lease read (EFFECTS_INSERTED): the DB clock and this operation's row (554 ch)
+code-node code_node_oT3BGF65: Lease renewal (EFFECTS_INSERTED): still this run's and live -> lease_expires_at = NOW + 10 min (1812 ch)
+condition-or-node condition_or_node_VnL5voto: Renew the operation lease (EFFECTS_INSERTED)?
+  condition-or-node-item condition_or_node_item_eCA31qSZ: YES
+    update-node update_node_nj9SgDk9: Operation lease renewed (EFFECTS_INSERTED): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_uRZ8QN2l: NO
+sql-node sql_node_MGfabkGB: Persisted read-back: operation + effect rows (790 ch)
+code-node code_node_ZVNjiTwt: Persist check (2027 ch)
+update-node update_node_cg8It1sD: Operation LOCKING (before the first claim) [Inventory Operation:Table:2105132166007918593]
+if if_4EcUNagb: IF test barrier BEFORE_CLAIM (organization 0 only)
+  ifBlock ifBlock_cszOHJzF: true
+    sql-node sql_node_bnnMitHH: Test barrier: wait for the next 20 s boundary (130 ch)
+  ifBlock ifBlock_tYqDhKuX: false
+sql-node sql_node_i9QBqwL2: Lock rows: re-read before the claim (P6) (567 ch)
+code-node code_node_J6YxjhQw: Lock claim list (P7) (2450 ch)
+sql-node sql_node_Otky4Lzb: Lease read (BEFORE_TAKE): the DB clock and this operation's row (554 ch)
+code-node code_node_AbCxKTsM: Lease renewal (BEFORE_TAKE): still this run's and live -> lease_expires_at = NOW + 10 min (1804 ch)
+condition-or-node condition_or_node_UCoVWAiR: Renew the operation lease (BEFORE_TAKE)?
+  condition-or-node-item condition_or_node_item_fSImjtTg: YES
+    update-node update_node_dQRVPsCY: Operation lease renewed (BEFORE_TAKE): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_DeZb1q9k: NO
+workflow-node workflow_node_cZhpZvUZ: Lock claim (P8/P9): INVENTORY_LOCK_TOKENS TAKE - one atomic-count take + owner + claimed_at per key, in lock order, in t -> INVENTORY_LOCK_TOKENS
+sql-node sql_node_oelU4GiG: Lock verify: re-read claimed rows (P11) (560 ch)
+code-node code_node_19zGnIId: Lock verify (P12) + LOCKED row (2091 ch)
+update-node update_node_XYBNJpbO: Operation LOCKED (+ locked_at) [Inventory Operation:Table:2105132166007918593]
+sql-node sql_node_pe2IAGdc: Lease read (LOCKED): the DB clock and this operation's row (554 ch)
+code-node code_node_gcorgdKQ: Lease renewal (LOCKED): still this run's and live -> lease_expires_at = NOW + 10 min (1792 ch)
+condition-or-node condition_or_node_63yapmG7: Renew the operation lease (LOCKED)?
+  condition-or-node-item condition_or_node_item_dxIv4Xrr: YES
+    update-node update_node_7pLRP5uu: Operation lease renewed (LOCKED): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_9TBaGxwA: NO
+sql-node sql_node_e7OzTOyD: Balance re-read under lock: item_balance (+ DB clock, lease) (1107 ch)
+sql-node sql_node_iUFF5k2o: Under lock: batch / serial rows at the keys and existing movement keys (1555 ch)
+sql-node sql_node_fkBvL3YG: Under lock: the item master of the operation's materials (costing method, batch / serial flags, stock control, base unit (726 ch)
+sql-node sql_node_WicASt1F: Under lock: the item_batch_balance rows of the BATCH effects (+ the batch dates) (1083 ch)
+sql-node sql_node_GfLGxjTi: Under lock: the reservation rows the RESERVATION effects name (verified, never written - D-4), with their unit conversio (1665 ch)
+sql-node sql_node_h1WAAE87: Under lock: the FIFO layers / Weighted Average rows that price the effects (read only - D-5: a move between buckets writ (1442 ch)
+code-node code_node_8rCPo75P: Revalidate (step 5): sufficiency + state under lock, the item master, the reservation check, the price, and the mutation (34933 ch)
+if if_siIDXjw9: IF insufficient / invalid / unsupported: gate, REJECTED, release
+  ifBlock ifBlock_nKPS6AEz: true
+    update-node update_node_iG6BYgqn: Reject: refresh the lease (before the gate: a repeat call waits) [Inventory Operation:Table:2105132166007918593]
+    add-node add_node_8LLzcOCD: Reject: insert GATE|<operation_id>, taker REJECT|<code>|<nonce> (Duplicate entry = someone else decided) [Inventory Balance Lock:Table:2105132021358956546]
+    update-node update_node_DMCDEWby: Reject: operation REJECTED (+ completed_at) [Inventory Operation:Table:2105132166007918593]
+    code-node code_node_xMqbAqYA: Batches of jEff: one loop pass per <= 250 rows of rv.effectRows (903 ch)
+    set-cache-node set_cache_node_d50HCKkb: Batch index of jEff = 0 (per run: the key carries the run's nonce)
+    loop loop_PHqde09k: Write jEff in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_xMqbAqYA.data.batches}}"}]
+      get-cache-node get_cache_node_snnKe6Qm: Batch index of jEff
+      code-node code_node_pD8DFmqO: Batch of jEff: this pass's slice of rv.effectRows (1412 ch)
+      update-node update_node_SMZ6YUwG: Reject: effects NOT_APPLIED (+ expected quantities) [Inventory Operation Effect:Table:21051323023437701]
+      set-cache-node set_cache_node_aCsyQVmJ: Next batch index of jEff
+      condition-or-node condition_or_node_VDs6J3Qj: Renew the operation lease after this slice of jEff? (every 10 slices)
+        condition-or-node-item condition_or_node_item_VHf3YczQ: YES
+          sql-node sql_node_VDO0lbB0: Lease read (IN_LOOP_jEff): the DB clock and this operation's row (554 ch)
+          code-node code_node_KYNecSvK: Lease renewal (IN_LOOP_jEff): still this run's and live -> lease_expires_at = NOW + 10 min (1810 ch)
+          condition-or-node condition_or_node_qZXaKzGE: Renew the operation lease (IN_LOOP_jEff)?
+            condition-or-node-item condition_or_node_item_683PRL4E: YES
+              update-node update_node_snoErSLh: Operation lease renewed (IN_LOOP_jEff): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+            condition-or-node-item condition_or_node_item_tNnGmINC: NO
+        condition-or-node-item condition_or_node_item_0Brg0kaI: NO
+    sql-node sql_node_XUTy5QRv: Lease read (REJECTED_BEFORE_RELEASE): the DB clock and this operation's row (554 ch)
+    code-node code_node_7bOypOcB: Lease renewal (REJECTED_BEFORE_RELEASE): still this run's and live -> lease_expires_at = NOW + 10 min (1828 ch)
+    condition-or-node condition_or_node_V0beAk98: Renew the operation lease (REJECTED_BEFORE_RELEASE)?
+      condition-or-node-item condition_or_node_item_OAYuGqTS: YES
+        update-node update_node_B4IdA7Mt: Operation lease renewed (REJECTED_BEFORE_RELEASE): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+      condition-or-node-item condition_or_node_item_tkmQLWmv: NO
+    sql-node sql_node_WcpulZ3D: Lock release: read rows owned by this operation (P15) (661 ch)
+    code-node code_node_aIESJNUX: Lock release: plan (P16) (2248 ch)
+    condition-or-node condition_or_node_aYlIE3mD: Anything to release? (P17)
+      condition-or-node-item condition_or_node_item_4uJEtknC: RELEASE_NEEDED
+        code-node code_node_Kz6xBhe0: Batches of jRlClear: one loop pass per <= 250 rows of jRlPlan.clearRows (914 ch)
+        set-cache-node set_cache_node_PQmQ3Bri: Batch index of jRlClear = 0 (per run: the key carries the run's nonce)
+        loop loop_kVkouZrZ: Write jRlClear in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_Kz6xBhe0.data.batches}}"}]
+          get-cache-node get_cache_node_HyqcZHoc: Batch index of jRlClear
+          code-node code_node_0LGB9RrL: Batch of jRlClear: this pass's slice of jRlPlan.clearRows (1423 ch)
+          update-node update_node_ojpRuMNT: Lock release step 1: clear owner fields by id (P18) [Inventory Balance Lock:Table:2105132021358956546]
+          set-cache-node set_cache_node_4ip3tdzW: Next batch index of jRlClear
+          condition-or-node condition_or_node_mioQMZy1: Renew the operation lease after this slice of jRlClear? (every 10 slices)
+            condition-or-node-item condition_or_node_item_AqInAwhB: YES
+              sql-node sql_node_uGkBBvtf: Lease read (IN_LOOP_jRlClear): the DB clock and this operation's row (554 ch)
+              code-node code_node_cfXAylaK: Lease renewal (IN_LOOP_jRlClear): still this run's and live -> lease_expires_at = NOW + 10 min (1826 ch)
+              condition-or-node condition_or_node_v2802ywt: Renew the operation lease (IN_LOOP_jRlClear)?
+                condition-or-node-item condition_or_node_item_mEQNBQrk: YES
+                  update-node update_node_GtAH6XwU: Operation lease renewed (IN_LOOP_jRlClear): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+                condition-or-node-item condition_or_node_item_w4sckLYL: NO
+            condition-or-node-item condition_or_node_item_MDUoGYay: NO
+        sql-node sql_node_Gt5lSa8y: Lease read (REJECTED_BEFORE_GIVE): the DB clock and this operation's row (554 ch)
+        code-node code_node_Nysmq6Lt: Lease renewal (REJECTED_BEFORE_GIVE): still this run's and live -> lease_expires_at = NOW + 10 min (1822 ch)
+        condition-or-node condition_or_node_KAboCEVT: Renew the operation lease (REJECTED_BEFORE_GIVE)?
+          condition-or-node-item condition_or_node_item_XtFAqnTk: YES
+            update-node update_node_OM6rxoiw: Operation lease renewed (REJECTED_BEFORE_GIVE): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+          condition-or-node-item condition_or_node_item_DtfX8Nbx: NO
+        workflow-node workflow_node_zHaHiS1i: Lock release step 2: INVENTORY_LOCK_TOKENS GIVE - re-read, then atomic plus(1) per cleared key in the child (P19/P20, se -> INVENTORY_LOCK_TOKENS
+      condition-or-node-item condition_or_node_item_TplzLYcB: NOTHING_OWNED
+    sql-node sql_node_xDvWmbMS: Lock release: check nothing is still owned (P21) (661 ch)
+    sql-node sql_node_xtHEN35R: Reject: read-back (operation, gate, effects, locks owned) (1550 ch)
+    code-node code_node_mR8LyTPT: Evidence REJECTED_UNDER_LOCK (4017 ch)
+    return-node return_node_rHeF7EiF: Return REJECTED (under lock, no mutation)
+  ifBlock ifBlock_zTwwvH5j: false
+code-node code_node_EAr8Yf1j: Batches of okEff: one loop pass per <= 250 rows of rv.effectRows (905 ch)
+set-cache-node set_cache_node_IGj1U6HM: Batch index of okEff = 0 (per run: the key carries the run's nonce)
+loop loop_YcyJwZsl: Write okEff in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_EAr8Yf1j.data.batches}}"}]
+  get-cache-node get_cache_node_FcC2ni31: Batch index of okEff
+  code-node code_node_alioMVd5: Batch of okEff: this pass's slice of rv.effectRows (1414 ch)
+  update-node update_node_kflQdIGV: Effects: expected before / after and observed-before quantities, target row (still PLANNED) [Inventory Operation Effect:Table:21051323023437701]
+  set-cache-node set_cache_node_5y2HMNzN: Next batch index of okEff
+  condition-or-node condition_or_node_AUgi2LeX: Renew the operation lease after this slice of okEff? (every 10 slices)
+    condition-or-node-item condition_or_node_item_UbQiGtAF: YES
+      sql-node sql_node_S7Uwv4rn: Lease read (IN_LOOP_okEff): the DB clock and this operation's row (554 ch)
+      code-node code_node_Cmi4e93Q: Lease renewal (IN_LOOP_okEff): still this run's and live -> lease_expires_at = NOW + 10 min (1814 ch)
+      condition-or-node condition_or_node_vDi0CVzu: Renew the operation lease (IN_LOOP_okEff)?
+        condition-or-node-item condition_or_node_item_pgFP6AzF: YES
+          update-node update_node_NymFFU6V: Operation lease renewed (IN_LOOP_okEff): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+        condition-or-node-item condition_or_node_item_DYponBoa: NO
+    condition-or-node-item condition_or_node_item_4gBcFZod: NO
+update-node update_node_xFyPddlh: Operation: the mutation plan (every target row's before and after values) in review_reason - still LOCKED [Inventory Operation:Table:2105132166007918593]
+add-node add_node_KDozU2wQ: Operation gate: insert GATE|<operation_id>, taker APPLY|<nonce> - decided to mutate (Duplicate entry = someone else deci [Inventory Balance Lock:Table:2105132021358956546]
+update-node update_node_bxZUEUaN: Operation MUTATING + mutation_started_at (+ a fresh lease): from here nothing is retried or inverted automatically [Inventory Operation:Table:2105132166007918593]
+sql-node sql_node_dlLkOZRe: Lease read (MUTATING): the DB clock and this operation's row (554 ch)
+code-node code_node_bCKhB6Hs: Lease renewal (MUTATING): still this run's and live -> lease_expires_at = NOW + 10 min (1796 ch)
+condition-or-node condition_or_node_VVVNtOvA: Renew the operation lease (MUTATING)?
+  condition-or-node-item condition_or_node_item_CYbEIM9L: YES
+    update-node update_node_xsHfYVlt: Operation lease renewed (MUTATING): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_iBCwwhMM: NO
+code-node code_node_QdDijq8T: Batches of mStart: one loop pass per <= 250 rows of rv.startedRows (909 ch)
+set-cache-node set_cache_node_A8DIXSAS: Batch index of mStart = 0 (per run: the key carries the run's nonce)
+loop loop_d0fEDWT4: Write mStart in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_QdDijq8T.data.batches}}"}]
+  get-cache-node get_cache_node_Lz9ujPMp: Batch index of mStart
+  code-node code_node_EmvXSLut: Batch of mStart: this pass's slice of rv.startedRows (1418 ch)
+  update-node update_node_zSQHCTfg: Effects STARTED (+ started_at): the group is about to execute [Inventory Operation Effect:Table:21051323023437701]
+  set-cache-node set_cache_node_s3Hi6woX: Next batch index of mStart
+  condition-or-node condition_or_node_CPsIMZ7G: Renew the operation lease after this slice of mStart? (every 10 slices)
+    condition-or-node-item condition_or_node_item_IKkWrtCA: YES
+      sql-node sql_node_BajsmIZG: Lease read (IN_LOOP_mStart): the DB clock and this operation's row (554 ch)
+      code-node code_node_n4sPuz57: Lease renewal (IN_LOOP_mStart): still this run's and live -> lease_expires_at = NOW + 10 min (1818 ch)
+      condition-or-node condition_or_node_hPH5yriy: Renew the operation lease (IN_LOOP_mStart)?
+        condition-or-node-item condition_or_node_item_0qepZUyQ: YES
+          update-node update_node_vGUJSN2J: Operation lease renewed (IN_LOOP_mStart): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+        condition-or-node-item condition_or_node_item_jZLsBAHE: NO
+    condition-or-node-item condition_or_node_item_Rju0Mr5s: NO
+sql-node sql_node_FTiYfHq0: Lease read (EFFECTS_STARTED): the DB clock and this operation's row (554 ch)
+code-node code_node_ciPWqmXr: Lease renewal (EFFECTS_STARTED): still this run's and live -> lease_expires_at = NOW + 10 min (1810 ch)
+condition-or-node condition_or_node_s9aZVUOz: Renew the operation lease (EFFECTS_STARTED)?
+  condition-or-node-item condition_or_node_item_c8cO43EE: YES
+    update-node update_node_HZai1Lup: Operation lease renewed (EFFECTS_STARTED): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_gNACGl1s: NO
+sql-node sql_node_d03ti5gw: Pre-write read: the run's standing AND the balance rows, immediately before the first business write (4459 ch)
+code-node code_node_FyT3zuFi: Pre-write check: still ours, and the rows still hold the values read under the lock (16714 ch)
+if if_yl2nyHsr: IF the run no longer holds the operation, or a balance row changed since the lock-time read: REQUIRES_REVIEW, nothing wr
+  ifBlock ifBlock_usnyBO5y: true
+    update-node update_node_fnBKNTLt: Review: operation REQUIRES_REVIEW (+ facts and plan in review_reason, completed_at) - locks are kept [Inventory Operation:Table:2105132166007918593]
+    code-node code_node_tZHKdks0: Batches of r0Eff: one loop pass per <= 250 rows of mPreChk.reviewEffectRows (922 ch)
+    set-cache-node set_cache_node_D9D3qgkM: Batch index of r0Eff = 0 (per run: the key carries the run's nonce)
+    loop loop_mmi2Cegl: Write r0Eff in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_tZHKdks0.data.batches}}"}]
+      get-cache-node get_cache_node_qYramnM6: Batch index of r0Eff
+      code-node code_node_ipp9tRtW: Batch of r0Eff: this pass's slice of mPreChk.reviewEffectRows (1045 ch)
+      update-node update_node_9luxlEcW: Review: effects UNCERTAIN (a started effect is never assumed not applied; the facts are in review_reason) [Inventory Operation Effect:Table:21051323023437701]
+      set-cache-node set_cache_node_01jsosj1: Next batch index of r0Eff
+    sql-node sql_node_kdYrAxZZ: Review: read-back (operation, gate, effects, locks owned) (1550 ch)
+    code-node code_node_suL1eyiU: Evidence REVIEW_BEFORE_FIRST_WRITE (4817 ch)
+    return-node return_node_aPgmHyOt: Return REQUIRES_REVIEW (REVIEW_BEFORE_FIRST_WRITE)
+  ifBlock ifBlock_3dI6lQFJ: false
+code-node code_node_IANI73ec: Batches of mBal: one loop pass per <= 250 rows of rv.balanceRows (905 ch)
+set-cache-node set_cache_node_gnVkefKQ: Batch index of mBal = 0 (per run: the key carries the run's nonce)
+loop loop_9j2yCxsv: Write mBal in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_IANI73ec.data.batches}}"}]
+  get-cache-node get_cache_node_EtIPPeEN: Batch index of mBal
+  code-node code_node_RMqP3tR5: Batch of mBal: this pass's slice of rv.balanceRows (1414 ch)
+  update-node update_node_A0NAKxeS: STOCK WRITE 1, ONCE: item_balance rows by row id (all six quantity columns = the planned after-values; for a batch, its  [Item Balance:Table:1902698977724317697]
+  set-cache-node set_cache_node_6DFVgQq5: Next batch index of mBal
+  condition-or-node condition_or_node_Kh8jIfwO: Renew the operation lease after this slice of mBal? (every 10 slices)
+    condition-or-node-item condition_or_node_item_FZiCTkM5: YES
+      sql-node sql_node_J2zpmwZ0: Lease read (IN_LOOP_mBal): the DB clock and this operation's row (554 ch)
+      code-node code_node_Ki8WtOGt: Lease renewal (IN_LOOP_mBal): still this run's and live -> lease_expires_at = NOW + 10 min (1810 ch)
+      condition-or-node condition_or_node_jXhAORRk: Renew the operation lease (IN_LOOP_mBal)?
+        condition-or-node-item condition_or_node_item_VimLyVi9: YES
+          update-node update_node_vb9VBvvZ: Operation lease renewed (IN_LOOP_mBal): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+        condition-or-node-item condition_or_node_item_x6DKDF0b: NO
+    condition-or-node-item condition_or_node_item_CxySmsr6: NO
+condition-or-node condition_or_node_yiUPEUNo: Any item_batch_balance rows (BATCH effects)?
+  condition-or-node-item condition_or_node_item_y0Zy7TMe: YES
+    code-node code_node_WQpPshlu: Batches of mBat: one loop pass per <= 250 rows of rv.batchRows (901 ch)
+    set-cache-node set_cache_node_fF7qbACA: Batch index of mBat = 0 (per run: the key carries the run's nonce)
+    loop loop_O1smNUSF: Write mBat in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_WQpPshlu.data.batches}}"}]
+      get-cache-node get_cache_node_DY3NHkMA: Batch index of mBat
+      code-node code_node_JcxGp8GG: Batch of mBat: this pass's slice of rv.batchRows (1410 ch)
+      update-node update_node_6P1fbkBq: STOCK WRITE 2, ONCE: item_batch_balance rows by row id (all six quantity columns = the planned after-values) - each plan [Item Batch Balance:Table:1902718803880558594]
+      set-cache-node set_cache_node_mjwEwBLp: Next batch index of mBat
+      condition-or-node condition_or_node_R3QXQEJE: Renew the operation lease after this slice of mBat? (every 10 slices)
+        condition-or-node-item condition_or_node_item_z0sgVr6i: YES
+          sql-node sql_node_rbMjXFu2: Lease read (IN_LOOP_mBat): the DB clock and this operation's row (554 ch)
+          code-node code_node_oB6VwacM: Lease renewal (IN_LOOP_mBat): still this run's and live -> lease_expires_at = NOW + 10 min (1810 ch)
+          condition-or-node condition_or_node_kPJgfBBY: Renew the operation lease (IN_LOOP_mBat)?
+            condition-or-node-item condition_or_node_item_1OSrCics: YES
+              update-node update_node_qPAHMi8C: Operation lease renewed (IN_LOOP_mBat): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+            condition-or-node-item condition_or_node_item_n2oqnH9o: NO
+        condition-or-node-item condition_or_node_item_OcbgWnje: NO
+  condition-or-node-item condition_or_node_item_oVHgicZk: NO
+sql-node sql_node_0CE8Ru5k: Read-back: the item_balance and item_batch_balance rows by id (+ the run's standing) (4459 ch)
+code-node code_node_p0sOD8ej: Balance check: stored values against the plan (17067 ch)
+if if_rGBB8Zux: IF the stored balances are not the planned ones: REQUIRES_REVIEW (no retry, no inverse)
+  ifBlock ifBlock_wGJcJgQp: true
+    update-node update_node_G0HZZDnm: Review: operation REQUIRES_REVIEW (+ facts and plan in review_reason, completed_at) - locks are kept [Inventory Operation:Table:2105132166007918593]
+    code-node code_node_P9SbEJVA: Batches of r1Eff: one loop pass per <= 250 rows of mBalChk.reviewEffectRows (922 ch)
+    set-cache-node set_cache_node_4DAFTJ5H: Batch index of r1Eff = 0 (per run: the key carries the run's nonce)
+    loop loop_gMpnzwJI: Write r1Eff in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_P9SbEJVA.data.batches}}"}]
+      get-cache-node get_cache_node_66Zr4BdA: Batch index of r1Eff
+      code-node code_node_WorKa8uM: Batch of r1Eff: this pass's slice of mBalChk.reviewEffectRows (1045 ch)
+      update-node update_node_AbblIioc: Review: effects UNCERTAIN (a started effect is never assumed not applied; the facts are in review_reason) [Inventory Operation Effect:Table:21051323023437701]
+      set-cache-node set_cache_node_yeqEfsXs: Next batch index of r1Eff
+    sql-node sql_node_5eicGzaT: Review: read-back (operation, gate, effects, locks owned) (1550 ch)
+    code-node code_node_6oAWQr6K: Evidence REVIEW_AFTER_BALANCE_WRITE (5090 ch)
+    return-node return_node_HBFcUoll: Return REQUIRES_REVIEW (REVIEW_AFTER_BALANCE_WRITE)
+  ifBlock ifBlock_bshz2jl2: false
+sql-node sql_node_DNxZHbw6: Lease read (BALANCES_CHECKED): the DB clock and this operation's row (554 ch)
+code-node code_node_WyY5fygf: Lease renewal (BALANCES_CHECKED): still this run's and live -> lease_expires_at = NOW + 10 min (1812 ch)
+condition-or-node condition_or_node_OCKyLswg: Renew the operation lease (BALANCES_CHECKED)?
+  condition-or-node-item condition_or_node_item_FiVLes9c: YES
+    update-node update_node_B4xhNBAo: Operation lease renewed (BALANCES_CHECKED): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_MMrBM2m8: NO
+code-node code_node_UP70yh3p: Batches of mMov: one loop pass per <= 250 rows of rv.movementRows (907 ch)
+set-cache-node set_cache_node_RmmWAdcD: Batch index of mMov = 0 (per run: the key carries the run's nonce)
+loop loop_8zxuJnXa: Write mMov in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_UP70yh3p.data.batches}}"}]
+  get-cache-node get_cache_node_z2UeRoRF: Batch index of mMov
+  code-node code_node_p5eRF7GZ: Batch of mMov: this pass's slice of rv.movementRows (1416 ch)
+  add-node add_node_WLc6O7i0: STOCK WRITE 3, ONCE: one inventory_movement row per stock effect, priced under the lock (operation_effect_key = <organiz [Inventory Movement:Table:1902259348776800257]
+  set-cache-node set_cache_node_v1R1kwf7: Next batch index of mMov
+  condition-or-node condition_or_node_ZCGkJcEH: Renew the operation lease after this slice of mMov? (every 10 slices)
+    condition-or-node-item condition_or_node_item_d6FI9bQJ: YES
+      sql-node sql_node_TKC98vip: Lease read (IN_LOOP_mMov): the DB clock and this operation's row (554 ch)
+      code-node code_node_P4KR7taW: Lease renewal (IN_LOOP_mMov): still this run's and live -> lease_expires_at = NOW + 10 min (1810 ch)
+      condition-or-node condition_or_node_DFUgITiu: Renew the operation lease (IN_LOOP_mMov)?
+        condition-or-node-item condition_or_node_item_pzRfhNFj: YES
+          update-node update_node_4d95ONJA: Operation lease renewed (IN_LOOP_mMov): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+        condition-or-node-item condition_or_node_item_NKiWV7Uq: NO
+    condition-or-node-item condition_or_node_item_UxB5E2BX: NO
+sql-node sql_node_gf5rUccM: Read-back: the inventory_movement rows by operation_effect_key (+ the run's standing) (2794 ch)
+code-node code_node_Pf6NFe7B: Movement check: exactly one matching row per effect (17179 ch)
+if if_FDeFLbDy: IF the stored movements are not the planned ones: REQUIRES_REVIEW (no retry, no inverse)
+  ifBlock ifBlock_O6JF5aRb: true
+    update-node update_node_qOC7bY0k: Review: operation REQUIRES_REVIEW (+ facts and plan in review_reason, completed_at) - locks are kept [Inventory Operation:Table:2105132166007918593]
+    code-node code_node_LjoRXqsq: Batches of r2Eff: one loop pass per <= 250 rows of mMovChk.reviewEffectRows (922 ch)
+    set-cache-node set_cache_node_gI9MW4u6: Batch index of r2Eff = 0 (per run: the key carries the run's nonce)
+    loop loop_dVKND5i2: Write r2Eff in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_LjoRXqsq.data.batches}}"}]
+      get-cache-node get_cache_node_Ij1onTwV: Batch index of r2Eff
+      code-node code_node_3lH7QjOO: Batch of r2Eff: this pass's slice of mMovChk.reviewEffectRows (1045 ch)
+      update-node update_node_fpwXGXXg: Review: effects UNCERTAIN (a started effect is never assumed not applied; the facts are in review_reason) [Inventory Operation Effect:Table:21051323023437701]
+      set-cache-node set_cache_node_msRYTlO5: Next batch index of r2Eff
+    sql-node sql_node_8zcrjw1q: Review: read-back (operation, gate, effects, locks owned) (1550 ch)
+    code-node code_node_qKSeRTyY: Evidence REVIEW_AFTER_MOVEMENT_INSERT (5560 ch)
+    return-node return_node_RjCxopGp: Return REQUIRES_REVIEW (REVIEW_AFTER_MOVEMENT_INSERT)
+  ifBlock ifBlock_PZzIIRC1: false
+sql-node sql_node_7IFk1mcr: Lease read (MOVEMENTS_CHECKED): the DB clock and this operation's row (554 ch)
+code-node code_node_Q9w4fybq: Lease renewal (MOVEMENTS_CHECKED): still this run's and live -> lease_expires_at = NOW + 10 min (1814 ch)
+condition-or-node condition_or_node_7atzVU30: Renew the operation lease (MOVEMENTS_CHECKED)?
+  condition-or-node-item condition_or_node_item_1ByP5rBp: YES
+    update-node update_node_zlZS14ga: Operation lease renewed (MOVEMENTS_CHECKED): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_kZOnISU9: NO
+code-node code_node_zndvUm1X: Batches of mApplied: one loop pass per <= 250 rows of mMovChk.appliedRows (918 ch)
+set-cache-node set_cache_node_75BHclCp: Batch index of mApplied = 0 (per run: the key carries the run's nonce)
+loop loop_5tptnC4d: Write mApplied in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_zndvUm1X.data.batches}}"}]
+  get-cache-node get_cache_node_17syZogB: Batch index of mApplied
+  code-node code_node_jlvBaaCN: Batch of mApplied: this pass's slice of mMovChk.appliedRows (1427 ch)
+  update-node update_node_C9Wv0Y8S: Effects APPLIED (+ applied_at, movement_id, observed_after_qty) [Inventory Operation Effect:Table:21051323023437701]
+  set-cache-node set_cache_node_GYxwPdLm: Next batch index of mApplied
+  condition-or-node condition_or_node_tGKmLEwM: Renew the operation lease after this slice of mApplied? (every 10 slices)
+    condition-or-node-item condition_or_node_item_GylWo0pS: YES
+      sql-node sql_node_Ek7bTFSC: Lease read (IN_LOOP_mApplied): the DB clock and this operation's row (554 ch)
+      code-node code_node_ugEGQxlx: Lease renewal (IN_LOOP_mApplied): still this run's and live -> lease_expires_at = NOW + 10 min (1826 ch)
+      condition-or-node condition_or_node_6xImzVTn: Renew the operation lease (IN_LOOP_mApplied)?
+        condition-or-node-item condition_or_node_item_GMzr5tYr: YES
+          update-node update_node_7yO789nd: Operation lease renewed (IN_LOOP_mApplied): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+        condition-or-node-item condition_or_node_item_LtTN4Ro3: NO
+    condition-or-node-item condition_or_node_item_fJURJ9Vg: NO
+sql-node sql_node_erJlFaex: Lease read (EFFECTS_APPLIED): the DB clock and this operation's row (554 ch)
+code-node code_node_8aIcS60T: Lease renewal (EFFECTS_APPLIED): still this run's and live -> lease_expires_at = NOW + 10 min (1810 ch)
+condition-or-node condition_or_node_Gp67V25E: Renew the operation lease (EFFECTS_APPLIED)?
+  condition-or-node-item condition_or_node_item_DVMAx3Z8: YES
+    update-node update_node_C2dVdbKh: Operation lease renewed (EFFECTS_APPLIED): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_5EUFnuR0: NO
+update-node update_node_RfqR09HE: Operation VERIFYING [Inventory Operation:Table:2105132166007918593]
+sql-node sql_node_ww2k7Nzm: Final read: the item_balance and item_batch_balance rows (+ the run's standing) (4459 ch)
+sql-node sql_node_CenWkK6U: Final read: the inventory_movement rows (2794 ch)
+sql-node sql_node_VsNjRtjZ: Final read: this operation's effect rows (396 ch)
+code-node code_node_ncZJyNmS: Final check: the effect matrix against the stored rows (19358 ch)
+if if_16VuhfOl: IF the final verification fails: REQUIRES_REVIEW (no retry, no inverse)
+  ifBlock ifBlock_gX0fh8Qx: true
+    update-node update_node_f5iaf4tv: Review: operation REQUIRES_REVIEW (+ facts and plan in review_reason, completed_at) - locks are kept [Inventory Operation:Table:2105132166007918593]
+    code-node code_node_qD8EbMpU: Batches of r3Eff: one loop pass per <= 250 rows of vChk.reviewEffectRows (919 ch)
+    set-cache-node set_cache_node_BfCwDWMh: Batch index of r3Eff = 0 (per run: the key carries the run's nonce)
+    loop loop_MMf9wO9f: Write r3Eff in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_qD8EbMpU.data.batches}}"}]
+      get-cache-node get_cache_node_jY27B9Vm: Batch index of r3Eff
+      code-node code_node_EzZqe1jN: Batch of r3Eff: this pass's slice of vChk.reviewEffectRows (1042 ch)
+      update-node update_node_ZT3FSrDv: Review: effects UNCERTAIN (a started effect is never assumed not applied; the facts are in review_reason) [Inventory Operation Effect:Table:21051323023437701]
+      set-cache-node set_cache_node_20KGfllY: Next batch index of r3Eff
+    sql-node sql_node_A2txGgH3: Review: read-back (operation, gate, effects, locks owned) (1550 ch)
+    code-node code_node_BwfB5Ixv: Evidence REVIEW_AT_FINAL_VERIFICATION (6222 ch)
+    return-node return_node_hvNpQrDE: Return REQUIRES_REVIEW (REVIEW_AT_FINAL_VERIFICATION)
+  ifBlock ifBlock_DG8po4Ax: false
+sql-node sql_node_OY7PimSQ: Lease read (VERIFIED): the DB clock and this operation's row (554 ch)
+code-node code_node_q8OsItRk: Lease renewal (VERIFIED): still this run's and live -> lease_expires_at = NOW + 10 min (1796 ch)
+condition-or-node condition_or_node_IDFrztia: Renew the operation lease (VERIFIED)?
+  condition-or-node-item condition_or_node_item_4bZmEmlC: YES
+    update-node update_node_Jypq0oG2: Operation lease renewed (VERIFIED): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_l1NC2Q9R: NO
+code-node code_node_9I8MU6bR: Batches of vEffUpd: one loop pass per <= 250 rows of vChk.verifiedRows (915 ch)
+set-cache-node set_cache_node_chgtUvdT: Batch index of vEffUpd = 0 (per run: the key carries the run's nonce)
+loop loop_1aYYImZ1: Write vEffUpd in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_9I8MU6bR.data.batches}}"}]
+  get-cache-node get_cache_node_oFpr7jQp: Batch index of vEffUpd
+  code-node code_node_4to8CChS: Batch of vEffUpd: this pass's slice of vChk.verifiedRows (1424 ch)
+  update-node update_node_NZ0uetKC: Effects VERIFIED (+ verified_at) [Inventory Operation Effect:Table:21051323023437701]
+  set-cache-node set_cache_node_NsjX4vBv: Next batch index of vEffUpd
+  condition-or-node condition_or_node_ey42O9Eo: Renew the operation lease after this slice of vEffUpd? (every 10 slices)
+    condition-or-node-item condition_or_node_item_RGZyA9mT: YES
+      sql-node sql_node_rWDZQcMb: Lease read (IN_LOOP_vEffUpd): the DB clock and this operation's row (554 ch)
+      code-node code_node_lvEpdO0G: Lease renewal (IN_LOOP_vEffUpd): still this run's and live -> lease_expires_at = NOW + 10 min (1822 ch)
+      condition-or-node condition_or_node_IiBQJqzD: Renew the operation lease (IN_LOOP_vEffUpd)?
+        condition-or-node-item condition_or_node_item_y8qQYYDV: YES
+          update-node update_node_XjUbUhFr: Operation lease renewed (IN_LOOP_vEffUpd): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+        condition-or-node-item condition_or_node_item_PsvJlZV4: NO
+    condition-or-node-item condition_or_node_item_oU8vFWcG: NO
+update-node update_node_euFq5Er1: Operation DONE (+ verified_at, completed_at, result OK, effect summary) [Inventory Operation:Table:2105132166007918593]
+sql-node sql_node_zcakGFnh: Lease read (DONE): the DB clock and this operation's row (554 ch)
+code-node code_node_MvyWuxk5: Lease renewal (DONE): still this run's and live -> lease_expires_at = NOW + 10 min (1788 ch)
+condition-or-node condition_or_node_WJXpcSKO: Renew the operation lease (DONE)?
+  condition-or-node-item condition_or_node_item_4JtUMyba: YES
+    update-node update_node_HwyK1Csi: Operation lease renewed (DONE): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+  condition-or-node-item condition_or_node_item_Id3fPgwq: NO
+sql-node sql_node_Icke6DLX: Lock release: read rows owned by this operation (P15) (661 ch)
+code-node code_node_mkkHs3G9: Lock release: plan (P16) (2248 ch)
+condition-or-node condition_or_node_tImVPuve: Anything to release? (P17)
+  condition-or-node-item condition_or_node_item_3HA2LjIz: RELEASE_NEEDED
+    code-node code_node_Gqs3l3zl: Batches of dRlClear: one loop pass per <= 250 rows of dRlPlan.clearRows (914 ch)
+    set-cache-node set_cache_node_8JBGlaw5: Batch index of dRlClear = 0 (per run: the key carries the run's nonce)
+    loop loop_LbUcqosU: Write dRlClear in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_Gqs3l3zl.data.batches}}"}]
+      get-cache-node get_cache_node_lL8FU9iW: Batch index of dRlClear
+      code-node code_node_gYkmV7OL: Batch of dRlClear: this pass's slice of dRlPlan.clearRows (1423 ch)
+      update-node update_node_2mMJtjso: Lock release step 1: clear owner fields by id (P18) [Inventory Balance Lock:Table:2105132021358956546]
+      set-cache-node set_cache_node_1t8EFcnv: Next batch index of dRlClear
+      condition-or-node condition_or_node_EPGALy7D: Renew the operation lease after this slice of dRlClear? (every 10 slices)
+        condition-or-node-item condition_or_node_item_c4PrZZPF: YES
+          sql-node sql_node_bEgthwzR: Lease read (IN_LOOP_dRlClear): the DB clock and this operation's row (554 ch)
+          code-node code_node_C2qmqArC: Lease renewal (IN_LOOP_dRlClear): still this run's and live -> lease_expires_at = NOW + 10 min (1826 ch)
+          condition-or-node condition_or_node_3f6GzAvq: Renew the operation lease (IN_LOOP_dRlClear)?
+            condition-or-node-item condition_or_node_item_zGqYU5zb: YES
+              update-node update_node_lkT39J2a: Operation lease renewed (IN_LOOP_dRlClear): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+            condition-or-node-item condition_or_node_item_oiDaJC2t: NO
+        condition-or-node-item condition_or_node_item_6GGmnrpX: NO
+    sql-node sql_node_XCFMZP6z: Lease read (DONE_BEFORE_GIVE): the DB clock and this operation's row (554 ch)
+    code-node code_node_JyonGwH4: Lease renewal (DONE_BEFORE_GIVE): still this run's and live -> lease_expires_at = NOW + 10 min (1814 ch)
+    condition-or-node condition_or_node_hbydtoET: Renew the operation lease (DONE_BEFORE_GIVE)?
+      condition-or-node-item condition_or_node_item_XRG98H2A: YES
+        update-node update_node_N39b8QQ7: Operation lease renewed (DONE_BEFORE_GIVE): lease_expires_at by id, nothing else [Inventory Operation:Table:2105132166007918593]
+      condition-or-node-item condition_or_node_item_aJnomSqF: NO
+    workflow-node workflow_node_LJuTyhJt: Lock release step 2: INVENTORY_LOCK_TOKENS GIVE - re-read, then atomic plus(1) per cleared key in the child (P19/P20, se -> INVENTORY_LOCK_TOKENS
+  condition-or-node-item condition_or_node_item_Bt9iAatx: NOTHING_OWNED
+sql-node sql_node_5FMKyfW3: Lock release: check nothing is still owned (P21) (661 ch)
+sql-node sql_node_nbhrfC7K: Read-back (operation, gate, effects, locks owned) (1550 ch)
+code-node code_node_yD4M33mY: Evidence DONE (6722 ch)
+return-node return_node_ilMWnjUG: Return DONE
+end-node end: End Node

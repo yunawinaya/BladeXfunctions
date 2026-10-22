@@ -89,7 +89,83 @@ const commitE5Run = function commitE5Run(entry, parts, lineRows, stepRows, pickR
     ? Object.assign({ mode: "NONE", writeRows: [], needWrite: "NO", addRows: [], needAdd: "NO", startRows: [], needStart: "NO", syncRows: [], needSync: "NO", intentRows: [], needIntent: "NO", sig: {} },
       stepEnd(entry, "E5_PICKING", "a placeholder is still unresolved (" + rz.left + "): the lines or the number are missing", true))
     : commitE5Plan(entry, rz.pick, stepRows, pickRows, itemRows, recRows);
-  return Object.assign(res, { writeRow: list(res.writeRows)[0] || {}, addRow: list(res.addRows)[0] || {}, syncRow: list(res.syncRows)[0] || {} });
+  // E5's add-node (add_node_GXe5add) maps every column below from addRow. A key the planned Picking lacks (the GD's
+// ref_doc was null) reached it as "undefined" and failed the commit ("数据转换Long类型失败，原值为: [undefined]", EDIT_GD job
+// 2112838980390039554, 2026-10-22): each missing column gets the empty value the planned row itself uses ('' ; [] for
+// a json column), never null (a null key is dropped between nodes, F50).
+// A value the plan rendered from a missing one is the text "undefined" (a reservation with no bin gave its Picking item
+// source_bin "undefined": a numeric column, the add-node failed, EDIT_GD job 2112838980390039554, 2026-10-22). It is never a
+// real value: each becomes '' (an empty value the columns take, as the planned row's own empties) - in the add, the update
+// (an unstarted Picking's rebuilt items) and the header sync alike.
+const geE5NoUndefined = (v) => (v === "undefined" ? "" : Array.isArray(v) ? v.map(geE5NoUndefined) : v && typeof v === "object"
+  ? Object.fromEntries(Object.keys(v).map((k) => [k, geE5NoUndefined(v[k])])) : v);
+const GE_E5_ADD_DEFAULTS = {
+  "to_status": "",
+  "plant_id": "",
+  "to_id": "",
+  "to_id_type": "",
+  "movement_type": "",
+  "ref_doc_type": "",
+  "gd_no": [],
+  "so_no": "",
+  "customer_id": [],
+  "assigned_to": [],
+  "created_at": "",
+  "created_by": "",
+  "organization_id": "",
+  "ref_doc": [],
+  "table_picking_items": [],
+  "delivery_no": "",
+  "delivery_method": "",
+  "delivery_method_text": "",
+  "area_id": "",
+  "driver_name": "",
+  "ic_no": "",
+  "driver_contact_no": "",
+  "sp_vehicle_no": "",
+  "pickup_date": "",
+  "validity_of_collection": "",
+  "courier_company": "",
+  "shipping_date": "",
+  "tracking_number": "",
+  "est_arrival_date": "",
+  "freight_charges": "",
+  "ct_driver_name": "",
+  "ct_driver_contact_no": "",
+  "ct_ic_no": "",
+  "vehicle_no": "",
+  "est_delivery_date": "",
+  "delivery_cost": "",
+  "shipping_company": "",
+  "ss_shipping_date": "",
+  "ss_freight_charges": "",
+  "shipping_method": "",
+  "ss_est_arrival_date": "",
+  "ss_tracking_number": "",
+  "tpt_vehicle_number": "",
+  "tpt_transport_name": "",
+  "tpt_ic_no": "",
+  "tpt_driver_contact_no": "",
+  "tpt_driver_name": "",
+  "di_shipping_method": "",
+  "di_driver_name": "",
+  "di_ic_no": "",
+  "di_driver_contact_no": "",
+  "di_shipping_company": "",
+  "di_transport_name": "",
+  "di_vehicle_number": "",
+  "di_est_delivery_date": "",
+  "di_est_arrival_date": "",
+  "di_pickup_date": "",
+  "di_validity_of_collection": "",
+  "di_tracking_number": "",
+  "di_freight_charges": "",
+  "project_id": "",
+  "remarks": "",
+  "remarks_2": "",
+  "remarks_3": ""
+};
+return Object.assign(res, { writeRow: geE5NoUndefined(list(res.writeRows)[0] || {}), addRow: geE5NoUndefined(Object.assign({}, GE_E5_ADD_DEFAULTS, list(res.addRows)[0] || {})), syncRow: geE5NoUndefined(list(res.syncRows)[0] || {}) });
 };
 const commitE5Check = function commitE5Check(entry, pick, plan, pickRows, itemRows, recRows) {
   const live = geObj(pickRows).filter((p) => String(p.is_deleted || 0) === "0" && p.to_status !== "Draft" && p.to_status !== "Cancelled");

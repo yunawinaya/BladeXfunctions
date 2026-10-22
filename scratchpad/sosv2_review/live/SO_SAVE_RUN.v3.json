@@ -1,0 +1,1209 @@
+{
+ "request_json": [
+  {
+   "key": "rcazwtmw",
+   "name": "job_id",
+   "title": "job_id",
+   "description": "the SAVE_SO job (digits)",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "06u8dyda",
+   "name": "route",
+   "title": "route",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "738ixycr",
+   "name": "code",
+   "title": "code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "g5ts425o",
+   "name": "message",
+   "title": "message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "qercw78p",
+   "name": "job_id",
+   "title": "job_id",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "otm2sakv",
+   "name": "job_status",
+   "title": "job_status",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "w46vzbe5",
+   "name": "progress_percent",
+   "title": "progress_percent",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "cirmvbt4",
+   "name": "progress_message",
+   "title": "progress_message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "va5hs9k5",
+   "name": "error_code",
+   "title": "error_code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "d4eij7q2",
+   "name": "error_message",
+   "title": "error_message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "z4mlfvfh",
+   "name": "result",
+   "title": "result",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "v4p7v4zk",
+   "name": "confirmation_token",
+   "title": "confirmation_token",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "qclwcoiy",
+   "name": "evidence",
+   "title": "evidence",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "bh1w4r5p",
+   "name": "calls",
+   "title": "calls",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "title": "Start Node",
+    "isValidator": true,
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_SRstart",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// SO Save V2 - shared helpers (included at the top of every code node by scripts/build-so-save-v2.mjs)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst soParse = (t) => {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return t ? JSON.parse(t) : null;\n  } catch (e) {\n    return null;\n  }\n};\n// \"YYYY-MM-DD HH:MM:SS\" (the DB clock, MYT on dev) + seconds\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// a request's fingerprint (not security): two FNV-1a lanes over the text, 16 hex\nconst soHash = function soHash(text) {\n  const t = String(text);\n  let a = 0x811c9dc5;\n  let b = 0x01000193 ^ 0x5bd1e995;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    a = Math.imul(a ^ c, 0x01000193) >>> 0;\n    b = Math.imul(b ^ c, 0x01000193 + 2 * (i & 7)) >>> 0;\n  }\n  const h = (n) => (\"0000000\" + n.toString(16)).slice(-8);\n  return h(a) + h(b);\n};\n// a SO's lines with their bundle children, as one list (children carry no `children` of their own here)\nconst soFlatLines = (rows) => list(rows).flatMap((r) => [r].concat(list(r.children)));\n// the SAVE_SO job statuses that hold a sales order\nconst SO_JOB_OPEN = [\"QUEUED\", \"PREPARING\", \"CASCADE_PREPARING\", \"AWAITING_CONFIRMATION\", \"READY_TO_COMMIT\", \"COMMITTING_SO\", \"RELEASING\", \"AFTER\", \"REQUIRES_REVIEW\"];\n\n// ---- SO_SAVE_RUN\n// SO_SAVE_RUN - several SO_SAVE_WORKER runs in one call (docs/lowcode/so-save-v2/PLAN.md, \"SO_SAVE_RUN\"): the form's\n// follow loop, server-side, so a small save ends in one or two calls from the form instead of one per stage. Each stage\n// is still a whole worker run with its own claim, lease and release (the worker's resume guarantees are unchanged); this\n// workflow only decides whether to start the next one.\n\nconst SO_RUN_MAX_CALLS = 6;\n// no new worker run is started after this long (the call answers well inside the gateway's timeout; the form calls again)\nconst SO_RUN_BUDGET_MS = 8000;\n\nconst soRunStart = function soRunStart(inp) {\n  return { jobId: digits(inp.jobId) ? s(inp.jobId) : \"0\", t0: String(num(inp.now)) };\n};\n\n// After worker run i: start run i + 1 only while the job moves on (MORE), under the call limit and the time budget.\n// WAIT (another run's lease, not due), DONE, STOP and REJECT go back to the form as they are.\nconst soRunNext = function soRunNext(start, res, i, now) {\n  const r = res || {};\n  const go = s(r.route) === \"MORE\" && i < SO_RUN_MAX_CALLS && num(now) - num(start.t0) < SO_RUN_BUDGET_MS;\n  return { go: go ? \"YES\" : \"NO\", calls: String(i) };\n};\n\n// The answer: the last worker run's answer (the runs after it did not start).\nconst soRunResult = function soRunResult(runs) {\n  const done = list(runs).filter((r) => r && s(r.route));\n  const last = done.length ? done[done.length - 1] : { route: \"MORE\", code: \"500\", message: \"no worker run answered\" };\n  const out = {};\n  for (const k of [\"route\", \"code\", \"message\", \"job_id\", \"job_status\", \"progress_percent\", \"progress_message\", \"error_code\", \"error_message\", \"result\", \"confirmation_token\", \"evidence\"]) {\n    out[k] = s(last[k]);\n  }\n  out.calls = String(done.length);\n  return out;\n};\n\n// ---- this node\nconst res = soRunStart({ jobId: [{{workflowparams:job_id}}][0], now: Date.now() });\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "iizigfpy",
+      "name": "jobId",
+      "title": "jobId",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "b615l2pp",
+      "name": "t0",
+      "title": "t0",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Start: job_id, the start time",
+    "isValidator": true,
+    "nodeName": "Start: job_id, the start time",
+    "name": "Start: job_id, the start time"
+   },
+   "blocks": []
+  },
+  {
+   "id": "wf_SR1",
+   "type": "workflow-node",
+   "data": {
+    "workflow_id": "",
+    "workflow_name": "",
+    "input_params": {},
+    "title": "SO_SAVE_WORKER (run 1)",
+    "isValidator": true,
+    "nodeName": "SO_SAVE_WORKER (run 1)",
+    "name": "SO_SAVE_WORKER (run 1)",
+    "workflow": {
+     "source": "SO_SAVE_WORKER:Workflow:2112758538274209793",
+     "rules": {
+      "collectionId": "2112758538274209793",
+      "list": [
+       {
+        "id": 1742456806001,
+        "parentId": 1742456806002,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "remote": true,
+    "remoteType": "innerdatasource",
+    "body_params": {
+     "list": [
+      {
+       "prop": "job_id",
+       "propLabel": "job_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRstart.data.jobId}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_SRn1",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// SO Save V2 - shared helpers (included at the top of every code node by scripts/build-so-save-v2.mjs)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst soParse = (t) => {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return t ? JSON.parse(t) : null;\n  } catch (e) {\n    return null;\n  }\n};\n// \"YYYY-MM-DD HH:MM:SS\" (the DB clock, MYT on dev) + seconds\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// a request's fingerprint (not security): two FNV-1a lanes over the text, 16 hex\nconst soHash = function soHash(text) {\n  const t = String(text);\n  let a = 0x811c9dc5;\n  let b = 0x01000193 ^ 0x5bd1e995;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    a = Math.imul(a ^ c, 0x01000193) >>> 0;\n    b = Math.imul(b ^ c, 0x01000193 + 2 * (i & 7)) >>> 0;\n  }\n  const h = (n) => (\"0000000\" + n.toString(16)).slice(-8);\n  return h(a) + h(b);\n};\n// a SO's lines with their bundle children, as one list (children carry no `children` of their own here)\nconst soFlatLines = (rows) => list(rows).flatMap((r) => [r].concat(list(r.children)));\n// the SAVE_SO job statuses that hold a sales order\nconst SO_JOB_OPEN = [\"QUEUED\", \"PREPARING\", \"CASCADE_PREPARING\", \"AWAITING_CONFIRMATION\", \"READY_TO_COMMIT\", \"COMMITTING_SO\", \"RELEASING\", \"AFTER\", \"REQUIRES_REVIEW\"];\n\n// ---- SO_SAVE_RUN\n// SO_SAVE_RUN - several SO_SAVE_WORKER runs in one call (docs/lowcode/so-save-v2/PLAN.md, \"SO_SAVE_RUN\"): the form's\n// follow loop, server-side, so a small save ends in one or two calls from the form instead of one per stage. Each stage\n// is still a whole worker run with its own claim, lease and release (the worker's resume guarantees are unchanged); this\n// workflow only decides whether to start the next one.\n\nconst SO_RUN_MAX_CALLS = 6;\n// no new worker run is started after this long (the call answers well inside the gateway's timeout; the form calls again)\nconst SO_RUN_BUDGET_MS = 8000;\n\nconst soRunStart = function soRunStart(inp) {\n  return { jobId: digits(inp.jobId) ? s(inp.jobId) : \"0\", t0: String(num(inp.now)) };\n};\n\n// After worker run i: start run i + 1 only while the job moves on (MORE), under the call limit and the time budget.\n// WAIT (another run's lease, not due), DONE, STOP and REJECT go back to the form as they are.\nconst soRunNext = function soRunNext(start, res, i, now) {\n  const r = res || {};\n  const go = s(r.route) === \"MORE\" && i < SO_RUN_MAX_CALLS && num(now) - num(start.t0) < SO_RUN_BUDGET_MS;\n  return { go: go ? \"YES\" : \"NO\", calls: String(i) };\n};\n\n// The answer: the last worker run's answer (the runs after it did not start).\nconst soRunResult = function soRunResult(runs) {\n  const done = list(runs).filter((r) => r && s(r.route));\n  const last = done.length ? done[done.length - 1] : { route: \"MORE\", code: \"500\", message: \"no worker run answered\" };\n  const out = {};\n  for (const k of [\"route\", \"code\", \"message\", \"job_id\", \"job_status\", \"progress_percent\", \"progress_message\", \"error_code\", \"error_message\", \"result\", \"confirmation_token\", \"evidence\"]) {\n    out[k] = s(last[k]);\n  }\n  out.calls = String(done.length);\n  return out;\n};\n\n// ---- this node\nconst res = soRunNext([{{node:code_node_SRstart.data}}][0], [{{node:wf_SR1.data}}][0], 1, Date.now());\nconsole.log(\"so run next\", 1, res.go);\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "6qaykp4v",
+      "name": "go",
+      "title": "go",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ydekow46",
+      "name": "calls",
+      "title": "calls",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Next: run 2 only while the job moves on (MORE), within the time budget",
+    "isValidator": true,
+    "nodeName": "Next: run 2 only while the job moves on (MORE), within the time budget",
+    "name": "Next: run 2 only while the job moves on (MORE), within the time budget"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_SRgo1",
+   "type": "if",
+   "data": {
+    "title": "IF run 2",
+    "isValidator": true,
+    "nodeName": "IF run 2",
+    "name": "IF run 2",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1742456806021,
+       "parentId": 1742456806022,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_SRn1.data.go}}' == 'YES'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TSRgo1",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "wf_SR2",
+       "type": "workflow-node",
+       "data": {
+        "workflow_id": "",
+        "workflow_name": "",
+        "input_params": {},
+        "title": "SO_SAVE_WORKER (run 2)",
+        "isValidator": true,
+        "nodeName": "SO_SAVE_WORKER (run 2)",
+        "name": "SO_SAVE_WORKER (run 2)",
+        "workflow": {
+         "source": "SO_SAVE_WORKER:Workflow:2112758538274209793",
+         "rules": {
+          "collectionId": "2112758538274209793",
+          "list": [
+           {
+            "id": 1742456806003,
+            "parentId": 1742456806004,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "body_params": {
+         "list": [
+          {
+           "prop": "job_id",
+           "propLabel": "job_id",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_SRstart.data.jobId}}",
+           "valueLabel": ""
+          }
+         ]
+        }
+       },
+       "blocks": []
+      },
+      {
+       "id": "code_node_SRn2",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+         "type": "javascript",
+         "code": "// SO Save V2 - shared helpers (included at the top of every code node by scripts/build-so-save-v2.mjs)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst soParse = (t) => {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return t ? JSON.parse(t) : null;\n  } catch (e) {\n    return null;\n  }\n};\n// \"YYYY-MM-DD HH:MM:SS\" (the DB clock, MYT on dev) + seconds\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// a request's fingerprint (not security): two FNV-1a lanes over the text, 16 hex\nconst soHash = function soHash(text) {\n  const t = String(text);\n  let a = 0x811c9dc5;\n  let b = 0x01000193 ^ 0x5bd1e995;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    a = Math.imul(a ^ c, 0x01000193) >>> 0;\n    b = Math.imul(b ^ c, 0x01000193 + 2 * (i & 7)) >>> 0;\n  }\n  const h = (n) => (\"0000000\" + n.toString(16)).slice(-8);\n  return h(a) + h(b);\n};\n// a SO's lines with their bundle children, as one list (children carry no `children` of their own here)\nconst soFlatLines = (rows) => list(rows).flatMap((r) => [r].concat(list(r.children)));\n// the SAVE_SO job statuses that hold a sales order\nconst SO_JOB_OPEN = [\"QUEUED\", \"PREPARING\", \"CASCADE_PREPARING\", \"AWAITING_CONFIRMATION\", \"READY_TO_COMMIT\", \"COMMITTING_SO\", \"RELEASING\", \"AFTER\", \"REQUIRES_REVIEW\"];\n\n// ---- SO_SAVE_RUN\n// SO_SAVE_RUN - several SO_SAVE_WORKER runs in one call (docs/lowcode/so-save-v2/PLAN.md, \"SO_SAVE_RUN\"): the form's\n// follow loop, server-side, so a small save ends in one or two calls from the form instead of one per stage. Each stage\n// is still a whole worker run with its own claim, lease and release (the worker's resume guarantees are unchanged); this\n// workflow only decides whether to start the next one.\n\nconst SO_RUN_MAX_CALLS = 6;\n// no new worker run is started after this long (the call answers well inside the gateway's timeout; the form calls again)\nconst SO_RUN_BUDGET_MS = 8000;\n\nconst soRunStart = function soRunStart(inp) {\n  return { jobId: digits(inp.jobId) ? s(inp.jobId) : \"0\", t0: String(num(inp.now)) };\n};\n\n// After worker run i: start run i + 1 only while the job moves on (MORE), under the call limit and the time budget.\n// WAIT (another run's lease, not due), DONE, STOP and REJECT go back to the form as they are.\nconst soRunNext = function soRunNext(start, res, i, now) {\n  const r = res || {};\n  const go = s(r.route) === \"MORE\" && i < SO_RUN_MAX_CALLS && num(now) - num(start.t0) < SO_RUN_BUDGET_MS;\n  return { go: go ? \"YES\" : \"NO\", calls: String(i) };\n};\n\n// The answer: the last worker run's answer (the runs after it did not start).\nconst soRunResult = function soRunResult(runs) {\n  const done = list(runs).filter((r) => r && s(r.route));\n  const last = done.length ? done[done.length - 1] : { route: \"MORE\", code: \"500\", message: \"no worker run answered\" };\n  const out = {};\n  for (const k of [\"route\", \"code\", \"message\", \"job_id\", \"job_status\", \"progress_percent\", \"progress_message\", \"error_code\", \"error_message\", \"result\", \"confirmation_token\", \"evidence\"]) {\n    out[k] = s(last[k]);\n  }\n  out.calls = String(done.length);\n  return out;\n};\n\n// ---- this node\nconst res = soRunNext([{{node:code_node_SRstart.data}}][0], [{{node:wf_SR2.data}}][0], 2, Date.now());\nconsole.log(\"so run next\", 2, res.go);\nreturn res;"
+        },
+        "response_json": [
+         {
+          "key": "gtno03o3",
+          "name": "go",
+          "title": "go",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "92uqal7g",
+          "name": "calls",
+          "title": "calls",
+          "description": "",
+          "bsonType": "any",
+          "isExpand": false,
+          "children": []
+         }
+        ],
+        "title": "Next: run 3 only while the job moves on (MORE), within the time budget",
+        "isValidator": true,
+        "nodeName": "Next: run 3 only while the job moves on (MORE), within the time budget",
+        "name": "Next: run 3 only while the job moves on (MORE), within the time budget"
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_SRgo2",
+       "type": "if",
+       "data": {
+        "title": "IF run 3",
+        "isValidator": true,
+        "nodeName": "IF run 3",
+        "name": "IF run 3",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1742456806019,
+           "parentId": 1742456806020,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_node_SRn2.data.go}}' == 'YES'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "ifBlock_TSRgo2",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "wf_SR3",
+           "type": "workflow-node",
+           "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "SO_SAVE_WORKER (run 3)",
+            "isValidator": true,
+            "nodeName": "SO_SAVE_WORKER (run 3)",
+            "name": "SO_SAVE_WORKER (run 3)",
+            "workflow": {
+             "source": "SO_SAVE_WORKER:Workflow:2112758538274209793",
+             "rules": {
+              "collectionId": "2112758538274209793",
+              "list": [
+               {
+                "id": 1742456806005,
+                "parentId": 1742456806006,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+             "list": [
+              {
+               "prop": "job_id",
+               "propLabel": "job_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_node_SRstart.data.jobId}}",
+               "valueLabel": ""
+              }
+             ]
+            }
+           },
+           "blocks": []
+          },
+          {
+           "id": "code_node_SRn3",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "script": {
+             "type": "javascript",
+             "code": "// SO Save V2 - shared helpers (included at the top of every code node by scripts/build-so-save-v2.mjs)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst soParse = (t) => {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return t ? JSON.parse(t) : null;\n  } catch (e) {\n    return null;\n  }\n};\n// \"YYYY-MM-DD HH:MM:SS\" (the DB clock, MYT on dev) + seconds\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// a request's fingerprint (not security): two FNV-1a lanes over the text, 16 hex\nconst soHash = function soHash(text) {\n  const t = String(text);\n  let a = 0x811c9dc5;\n  let b = 0x01000193 ^ 0x5bd1e995;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    a = Math.imul(a ^ c, 0x01000193) >>> 0;\n    b = Math.imul(b ^ c, 0x01000193 + 2 * (i & 7)) >>> 0;\n  }\n  const h = (n) => (\"0000000\" + n.toString(16)).slice(-8);\n  return h(a) + h(b);\n};\n// a SO's lines with their bundle children, as one list (children carry no `children` of their own here)\nconst soFlatLines = (rows) => list(rows).flatMap((r) => [r].concat(list(r.children)));\n// the SAVE_SO job statuses that hold a sales order\nconst SO_JOB_OPEN = [\"QUEUED\", \"PREPARING\", \"CASCADE_PREPARING\", \"AWAITING_CONFIRMATION\", \"READY_TO_COMMIT\", \"COMMITTING_SO\", \"RELEASING\", \"AFTER\", \"REQUIRES_REVIEW\"];\n\n// ---- SO_SAVE_RUN\n// SO_SAVE_RUN - several SO_SAVE_WORKER runs in one call (docs/lowcode/so-save-v2/PLAN.md, \"SO_SAVE_RUN\"): the form's\n// follow loop, server-side, so a small save ends in one or two calls from the form instead of one per stage. Each stage\n// is still a whole worker run with its own claim, lease and release (the worker's resume guarantees are unchanged); this\n// workflow only decides whether to start the next one.\n\nconst SO_RUN_MAX_CALLS = 6;\n// no new worker run is started after this long (the call answers well inside the gateway's timeout; the form calls again)\nconst SO_RUN_BUDGET_MS = 8000;\n\nconst soRunStart = function soRunStart(inp) {\n  return { jobId: digits(inp.jobId) ? s(inp.jobId) : \"0\", t0: String(num(inp.now)) };\n};\n\n// After worker run i: start run i + 1 only while the job moves on (MORE), under the call limit and the time budget.\n// WAIT (another run's lease, not due), DONE, STOP and REJECT go back to the form as they are.\nconst soRunNext = function soRunNext(start, res, i, now) {\n  const r = res || {};\n  const go = s(r.route) === \"MORE\" && i < SO_RUN_MAX_CALLS && num(now) - num(start.t0) < SO_RUN_BUDGET_MS;\n  return { go: go ? \"YES\" : \"NO\", calls: String(i) };\n};\n\n// The answer: the last worker run's answer (the runs after it did not start).\nconst soRunResult = function soRunResult(runs) {\n  const done = list(runs).filter((r) => r && s(r.route));\n  const last = done.length ? done[done.length - 1] : { route: \"MORE\", code: \"500\", message: \"no worker run answered\" };\n  const out = {};\n  for (const k of [\"route\", \"code\", \"message\", \"job_id\", \"job_status\", \"progress_percent\", \"progress_message\", \"error_code\", \"error_message\", \"result\", \"confirmation_token\", \"evidence\"]) {\n    out[k] = s(last[k]);\n  }\n  out.calls = String(done.length);\n  return out;\n};\n\n// ---- this node\nconst res = soRunNext([{{node:code_node_SRstart.data}}][0], [{{node:wf_SR3.data}}][0], 3, Date.now());\nconsole.log(\"so run next\", 3, res.go);\nreturn res;"
+            },
+            "response_json": [
+             {
+              "key": "btnkvizy",
+              "name": "go",
+              "title": "go",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "hmsharyr",
+              "name": "calls",
+              "title": "calls",
+              "description": "",
+              "bsonType": "any",
+              "isExpand": false,
+              "children": []
+             }
+            ],
+            "title": "Next: run 4 only while the job moves on (MORE), within the time budget",
+            "isValidator": true,
+            "nodeName": "Next: run 4 only while the job moves on (MORE), within the time budget",
+            "name": "Next: run 4 only while the job moves on (MORE), within the time budget"
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_SRgo3",
+           "type": "if",
+           "data": {
+            "title": "IF run 4",
+            "isValidator": true,
+            "nodeName": "IF run 4",
+            "name": "IF run 4",
+            "condition_type": "Expression",
+            "filter": {
+             "list": [
+              {
+               "id": 1742456806017,
+               "parentId": 1742456806018,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            },
+            "expression": {
+             "type": "javascript",
+             "code": "'{{node:code_node_SRn3.data.go}}' == 'YES'"
+            }
+           },
+           "blocks": [
+            {
+             "id": "ifBlock_TSRgo3",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "wf_SR4",
+               "type": "workflow-node",
+               "data": {
+                "workflow_id": "",
+                "workflow_name": "",
+                "input_params": {},
+                "title": "SO_SAVE_WORKER (run 4)",
+                "isValidator": true,
+                "nodeName": "SO_SAVE_WORKER (run 4)",
+                "name": "SO_SAVE_WORKER (run 4)",
+                "workflow": {
+                 "source": "SO_SAVE_WORKER:Workflow:2112758538274209793",
+                 "rules": {
+                  "collectionId": "2112758538274209793",
+                  "list": [
+                   {
+                    "id": 1742456806007,
+                    "parentId": 1742456806008,
+                    "isTop": true,
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
+                    "type": "leaf",
+                    "level": 1
+                   }
+                  ]
+                 }
+                },
+                "remote": true,
+                "remoteType": "innerdatasource",
+                "body_params": {
+                 "list": [
+                  {
+                   "prop": "job_id",
+                   "propLabel": "job_id",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "field",
+                   "valueTypeLabel": "",
+                   "value": "{{node:code_node_SRstart.data.jobId}}",
+                   "valueLabel": ""
+                  }
+                 ]
+                }
+               },
+               "blocks": []
+              },
+              {
+               "id": "code_node_SRn4",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                 "type": "javascript",
+                 "code": "// SO Save V2 - shared helpers (included at the top of every code node by scripts/build-so-save-v2.mjs)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst soParse = (t) => {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return t ? JSON.parse(t) : null;\n  } catch (e) {\n    return null;\n  }\n};\n// \"YYYY-MM-DD HH:MM:SS\" (the DB clock, MYT on dev) + seconds\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// a request's fingerprint (not security): two FNV-1a lanes over the text, 16 hex\nconst soHash = function soHash(text) {\n  const t = String(text);\n  let a = 0x811c9dc5;\n  let b = 0x01000193 ^ 0x5bd1e995;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    a = Math.imul(a ^ c, 0x01000193) >>> 0;\n    b = Math.imul(b ^ c, 0x01000193 + 2 * (i & 7)) >>> 0;\n  }\n  const h = (n) => (\"0000000\" + n.toString(16)).slice(-8);\n  return h(a) + h(b);\n};\n// a SO's lines with their bundle children, as one list (children carry no `children` of their own here)\nconst soFlatLines = (rows) => list(rows).flatMap((r) => [r].concat(list(r.children)));\n// the SAVE_SO job statuses that hold a sales order\nconst SO_JOB_OPEN = [\"QUEUED\", \"PREPARING\", \"CASCADE_PREPARING\", \"AWAITING_CONFIRMATION\", \"READY_TO_COMMIT\", \"COMMITTING_SO\", \"RELEASING\", \"AFTER\", \"REQUIRES_REVIEW\"];\n\n// ---- SO_SAVE_RUN\n// SO_SAVE_RUN - several SO_SAVE_WORKER runs in one call (docs/lowcode/so-save-v2/PLAN.md, \"SO_SAVE_RUN\"): the form's\n// follow loop, server-side, so a small save ends in one or two calls from the form instead of one per stage. Each stage\n// is still a whole worker run with its own claim, lease and release (the worker's resume guarantees are unchanged); this\n// workflow only decides whether to start the next one.\n\nconst SO_RUN_MAX_CALLS = 6;\n// no new worker run is started after this long (the call answers well inside the gateway's timeout; the form calls again)\nconst SO_RUN_BUDGET_MS = 8000;\n\nconst soRunStart = function soRunStart(inp) {\n  return { jobId: digits(inp.jobId) ? s(inp.jobId) : \"0\", t0: String(num(inp.now)) };\n};\n\n// After worker run i: start run i + 1 only while the job moves on (MORE), under the call limit and the time budget.\n// WAIT (another run's lease, not due), DONE, STOP and REJECT go back to the form as they are.\nconst soRunNext = function soRunNext(start, res, i, now) {\n  const r = res || {};\n  const go = s(r.route) === \"MORE\" && i < SO_RUN_MAX_CALLS && num(now) - num(start.t0) < SO_RUN_BUDGET_MS;\n  return { go: go ? \"YES\" : \"NO\", calls: String(i) };\n};\n\n// The answer: the last worker run's answer (the runs after it did not start).\nconst soRunResult = function soRunResult(runs) {\n  const done = list(runs).filter((r) => r && s(r.route));\n  const last = done.length ? done[done.length - 1] : { route: \"MORE\", code: \"500\", message: \"no worker run answered\" };\n  const out = {};\n  for (const k of [\"route\", \"code\", \"message\", \"job_id\", \"job_status\", \"progress_percent\", \"progress_message\", \"error_code\", \"error_message\", \"result\", \"confirmation_token\", \"evidence\"]) {\n    out[k] = s(last[k]);\n  }\n  out.calls = String(done.length);\n  return out;\n};\n\n// ---- this node\nconst res = soRunNext([{{node:code_node_SRstart.data}}][0], [{{node:wf_SR4.data}}][0], 4, Date.now());\nconsole.log(\"so run next\", 4, res.go);\nreturn res;"
+                },
+                "response_json": [
+                 {
+                  "key": "o9ilsxm5",
+                  "name": "go",
+                  "title": "go",
+                  "description": "",
+                  "bsonType": "any",
+                  "isExpand": false,
+                  "children": []
+                 },
+                 {
+                  "key": "uh91bwe4",
+                  "name": "calls",
+                  "title": "calls",
+                  "description": "",
+                  "bsonType": "any",
+                  "isExpand": false,
+                  "children": []
+                 }
+                ],
+                "title": "Next: run 5 only while the job moves on (MORE), within the time budget",
+                "isValidator": true,
+                "nodeName": "Next: run 5 only while the job moves on (MORE), within the time budget",
+                "name": "Next: run 5 only while the job moves on (MORE), within the time budget"
+               },
+               "blocks": []
+              },
+              {
+               "id": "if_SRgo4",
+               "type": "if",
+               "data": {
+                "title": "IF run 5",
+                "isValidator": true,
+                "nodeName": "IF run 5",
+                "name": "IF run 5",
+                "condition_type": "Expression",
+                "filter": {
+                 "list": [
+                  {
+                   "id": 1742456806015,
+                   "parentId": 1742456806016,
+                   "isTop": true,
+                   "prop": "",
+                   "operator": "",
+                   "valueType": "",
+                   "value": "",
+                   "type": "leaf",
+                   "level": 1
+                  }
+                 ]
+                },
+                "expression": {
+                 "type": "javascript",
+                 "code": "'{{node:code_node_SRn4.data.go}}' == 'YES'"
+                }
+               },
+               "blocks": [
+                {
+                 "id": "ifBlock_TSRgo4",
+                 "type": "ifBlock",
+                 "data": {
+                  "title": "true"
+                 },
+                 "blocks": [
+                  {
+                   "id": "wf_SR5",
+                   "type": "workflow-node",
+                   "data": {
+                    "workflow_id": "",
+                    "workflow_name": "",
+                    "input_params": {},
+                    "title": "SO_SAVE_WORKER (run 5)",
+                    "isValidator": true,
+                    "nodeName": "SO_SAVE_WORKER (run 5)",
+                    "name": "SO_SAVE_WORKER (run 5)",
+                    "workflow": {
+                     "source": "SO_SAVE_WORKER:Workflow:2112758538274209793",
+                     "rules": {
+                      "collectionId": "2112758538274209793",
+                      "list": [
+                       {
+                        "id": 1742456806009,
+                        "parentId": 1742456806010,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                       }
+                      ]
+                     }
+                    },
+                    "remote": true,
+                    "remoteType": "innerdatasource",
+                    "body_params": {
+                     "list": [
+                      {
+                       "prop": "job_id",
+                       "propLabel": "job_id",
+                       "operator": "",
+                       "operatorLabel": "",
+                       "valueType": "field",
+                       "valueTypeLabel": "",
+                       "value": "{{node:code_node_SRstart.data.jobId}}",
+                       "valueLabel": ""
+                      }
+                     ]
+                    }
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "code_node_SRn5",
+                   "type": "code-node",
+                   "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "script": {
+                     "type": "javascript",
+                     "code": "// SO Save V2 - shared helpers (included at the top of every code node by scripts/build-so-save-v2.mjs)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst soParse = (t) => {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return t ? JSON.parse(t) : null;\n  } catch (e) {\n    return null;\n  }\n};\n// \"YYYY-MM-DD HH:MM:SS\" (the DB clock, MYT on dev) + seconds\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// a request's fingerprint (not security): two FNV-1a lanes over the text, 16 hex\nconst soHash = function soHash(text) {\n  const t = String(text);\n  let a = 0x811c9dc5;\n  let b = 0x01000193 ^ 0x5bd1e995;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    a = Math.imul(a ^ c, 0x01000193) >>> 0;\n    b = Math.imul(b ^ c, 0x01000193 + 2 * (i & 7)) >>> 0;\n  }\n  const h = (n) => (\"0000000\" + n.toString(16)).slice(-8);\n  return h(a) + h(b);\n};\n// a SO's lines with their bundle children, as one list (children carry no `children` of their own here)\nconst soFlatLines = (rows) => list(rows).flatMap((r) => [r].concat(list(r.children)));\n// the SAVE_SO job statuses that hold a sales order\nconst SO_JOB_OPEN = [\"QUEUED\", \"PREPARING\", \"CASCADE_PREPARING\", \"AWAITING_CONFIRMATION\", \"READY_TO_COMMIT\", \"COMMITTING_SO\", \"RELEASING\", \"AFTER\", \"REQUIRES_REVIEW\"];\n\n// ---- SO_SAVE_RUN\n// SO_SAVE_RUN - several SO_SAVE_WORKER runs in one call (docs/lowcode/so-save-v2/PLAN.md, \"SO_SAVE_RUN\"): the form's\n// follow loop, server-side, so a small save ends in one or two calls from the form instead of one per stage. Each stage\n// is still a whole worker run with its own claim, lease and release (the worker's resume guarantees are unchanged); this\n// workflow only decides whether to start the next one.\n\nconst SO_RUN_MAX_CALLS = 6;\n// no new worker run is started after this long (the call answers well inside the gateway's timeout; the form calls again)\nconst SO_RUN_BUDGET_MS = 8000;\n\nconst soRunStart = function soRunStart(inp) {\n  return { jobId: digits(inp.jobId) ? s(inp.jobId) : \"0\", t0: String(num(inp.now)) };\n};\n\n// After worker run i: start run i + 1 only while the job moves on (MORE), under the call limit and the time budget.\n// WAIT (another run's lease, not due), DONE, STOP and REJECT go back to the form as they are.\nconst soRunNext = function soRunNext(start, res, i, now) {\n  const r = res || {};\n  const go = s(r.route) === \"MORE\" && i < SO_RUN_MAX_CALLS && num(now) - num(start.t0) < SO_RUN_BUDGET_MS;\n  return { go: go ? \"YES\" : \"NO\", calls: String(i) };\n};\n\n// The answer: the last worker run's answer (the runs after it did not start).\nconst soRunResult = function soRunResult(runs) {\n  const done = list(runs).filter((r) => r && s(r.route));\n  const last = done.length ? done[done.length - 1] : { route: \"MORE\", code: \"500\", message: \"no worker run answered\" };\n  const out = {};\n  for (const k of [\"route\", \"code\", \"message\", \"job_id\", \"job_status\", \"progress_percent\", \"progress_message\", \"error_code\", \"error_message\", \"result\", \"confirmation_token\", \"evidence\"]) {\n    out[k] = s(last[k]);\n  }\n  out.calls = String(done.length);\n  return out;\n};\n\n// ---- this node\nconst res = soRunNext([{{node:code_node_SRstart.data}}][0], [{{node:wf_SR5.data}}][0], 5, Date.now());\nconsole.log(\"so run next\", 5, res.go);\nreturn res;"
+                    },
+                    "response_json": [
+                     {
+                      "key": "9wcg5fi4",
+                      "name": "go",
+                      "title": "go",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                     },
+                     {
+                      "key": "y31xlbi4",
+                      "name": "calls",
+                      "title": "calls",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                     }
+                    ],
+                    "title": "Next: run 6 only while the job moves on (MORE), within the time budget",
+                    "isValidator": true,
+                    "nodeName": "Next: run 6 only while the job moves on (MORE), within the time budget",
+                    "name": "Next: run 6 only while the job moves on (MORE), within the time budget"
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "if_SRgo5",
+                   "type": "if",
+                   "data": {
+                    "title": "IF run 6",
+                    "isValidator": true,
+                    "nodeName": "IF run 6",
+                    "name": "IF run 6",
+                    "condition_type": "Expression",
+                    "filter": {
+                     "list": [
+                      {
+                       "id": 1742456806013,
+                       "parentId": 1742456806014,
+                       "isTop": true,
+                       "prop": "",
+                       "operator": "",
+                       "valueType": "",
+                       "value": "",
+                       "type": "leaf",
+                       "level": 1
+                      }
+                     ]
+                    },
+                    "expression": {
+                     "type": "javascript",
+                     "code": "'{{node:code_node_SRn5.data.go}}' == 'YES'"
+                    }
+                   },
+                   "blocks": [
+                    {
+                     "id": "ifBlock_TSRgo5",
+                     "type": "ifBlock",
+                     "data": {
+                      "title": "true"
+                     },
+                     "blocks": [
+                      {
+                       "id": "wf_SR6",
+                       "type": "workflow-node",
+                       "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "SO_SAVE_WORKER (run 6)",
+                        "isValidator": true,
+                        "nodeName": "SO_SAVE_WORKER (run 6)",
+                        "name": "SO_SAVE_WORKER (run 6)",
+                        "workflow": {
+                         "source": "SO_SAVE_WORKER:Workflow:2112758538274209793",
+                         "rules": {
+                          "collectionId": "2112758538274209793",
+                          "list": [
+                           {
+                            "id": 1742456806011,
+                            "parentId": 1742456806012,
+                            "isTop": true,
+                            "prop": "",
+                            "operator": "",
+                            "valueType": "",
+                            "value": "",
+                            "type": "leaf",
+                            "level": 1
+                           }
+                          ]
+                         }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                         "list": [
+                          {
+                           "prop": "job_id",
+                           "propLabel": "job_id",
+                           "operator": "",
+                           "operatorLabel": "",
+                           "valueType": "field",
+                           "valueTypeLabel": "",
+                           "value": "{{node:code_node_SRstart.data.jobId}}",
+                           "valueLabel": ""
+                          }
+                         ]
+                        }
+                       },
+                       "blocks": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "ifBlock_FSRgo5",
+                     "type": "ifBlock",
+                     "data": {
+                      "title": "false"
+                     },
+                     "blocks": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "ifBlock_FSRgo4",
+                 "type": "ifBlock",
+                 "data": {
+                  "title": "false"
+                 },
+                 "blocks": []
+                }
+               ]
+              }
+             ]
+            },
+            {
+             "id": "ifBlock_FSRgo3",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "id": "ifBlock_FSRgo2",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FSRgo1",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_SRres",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// SO Save V2 - shared helpers (included at the top of every code node by scripts/build-so-save-v2.mjs)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst answer = (route, code, message, extra) => Object.assign({ route: route, code: String(code), message: message || \"\" }, extra || {});\nconst soParse = (t) => {\n  if (t && typeof t === \"object\") return t;\n  try {\n    return t ? JSON.parse(t) : null;\n  } catch (e) {\n    return null;\n  }\n};\n// \"YYYY-MM-DD HH:MM:SS\" (the DB clock, MYT on dev) + seconds\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// a request's fingerprint (not security): two FNV-1a lanes over the text, 16 hex\nconst soHash = function soHash(text) {\n  const t = String(text);\n  let a = 0x811c9dc5;\n  let b = 0x01000193 ^ 0x5bd1e995;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    a = Math.imul(a ^ c, 0x01000193) >>> 0;\n    b = Math.imul(b ^ c, 0x01000193 + 2 * (i & 7)) >>> 0;\n  }\n  const h = (n) => (\"0000000\" + n.toString(16)).slice(-8);\n  return h(a) + h(b);\n};\n// a SO's lines with their bundle children, as one list (children carry no `children` of their own here)\nconst soFlatLines = (rows) => list(rows).flatMap((r) => [r].concat(list(r.children)));\n// the SAVE_SO job statuses that hold a sales order\nconst SO_JOB_OPEN = [\"QUEUED\", \"PREPARING\", \"CASCADE_PREPARING\", \"AWAITING_CONFIRMATION\", \"READY_TO_COMMIT\", \"COMMITTING_SO\", \"RELEASING\", \"AFTER\", \"REQUIRES_REVIEW\"];\n\n// ---- SO_SAVE_RUN\n// SO_SAVE_RUN - several SO_SAVE_WORKER runs in one call (docs/lowcode/so-save-v2/PLAN.md, \"SO_SAVE_RUN\"): the form's\n// follow loop, server-side, so a small save ends in one or two calls from the form instead of one per stage. Each stage\n// is still a whole worker run with its own claim, lease and release (the worker's resume guarantees are unchanged); this\n// workflow only decides whether to start the next one.\n\nconst SO_RUN_MAX_CALLS = 6;\n// no new worker run is started after this long (the call answers well inside the gateway's timeout; the form calls again)\nconst SO_RUN_BUDGET_MS = 8000;\n\nconst soRunStart = function soRunStart(inp) {\n  return { jobId: digits(inp.jobId) ? s(inp.jobId) : \"0\", t0: String(num(inp.now)) };\n};\n\n// After worker run i: start run i + 1 only while the job moves on (MORE), under the call limit and the time budget.\n// WAIT (another run's lease, not due), DONE, STOP and REJECT go back to the form as they are.\nconst soRunNext = function soRunNext(start, res, i, now) {\n  const r = res || {};\n  const go = s(r.route) === \"MORE\" && i < SO_RUN_MAX_CALLS && num(now) - num(start.t0) < SO_RUN_BUDGET_MS;\n  return { go: go ? \"YES\" : \"NO\", calls: String(i) };\n};\n\n// The answer: the last worker run's answer (the runs after it did not start).\nconst soRunResult = function soRunResult(runs) {\n  const done = list(runs).filter((r) => r && s(r.route));\n  const last = done.length ? done[done.length - 1] : { route: \"MORE\", code: \"500\", message: \"no worker run answered\" };\n  const out = {};\n  for (const k of [\"route\", \"code\", \"message\", \"job_id\", \"job_status\", \"progress_percent\", \"progress_message\", \"error_code\", \"error_message\", \"result\", \"confirmation_token\", \"evidence\"]) {\n    out[k] = s(last[k]);\n  }\n  out.calls = String(done.length);\n  return out;\n};\n\n// ---- this node\nconst res = soRunResult([[{{node:wf_SR1.data}}][0], [{{node:wf_SR2.data}}][0], [{{node:wf_SR3.data}}][0], [{{node:wf_SR4.data}}][0], [{{node:wf_SR5.data}}][0], [{{node:wf_SR6.data}}][0]]);\nconsole.log(\"so run result\", JSON.stringify({ route: res.route, status: res.job_status, calls: res.calls }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "yxd6rc3e",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "5d0l2yqm",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "y8ngyhs2",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2pursmcp",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "rhva4oz4",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "uwa6maph",
+      "name": "progress_percent",
+      "title": "progress_percent",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "gf45eyhm",
+      "name": "progress_message",
+      "title": "progress_message",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "27mhb9cv",
+      "name": "error_code",
+      "title": "error_code",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "d4ev6jnq",
+      "name": "error_message",
+      "title": "error_message",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "r9hs48og",
+      "name": "result",
+      "title": "result",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "1kxfaxkb",
+      "name": "confirmation_token",
+      "title": "confirmation_token",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "pg7b27nx",
+      "name": "evidence",
+      "title": "evidence",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "gp0guv9d",
+      "name": "calls",
+      "title": "calls",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Result: the last worker run's answer",
+    "isValidator": true,
+    "nodeName": "Result: the last worker run's answer",
+    "name": "Result: the last worker run's answer"
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_node_SRdone",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return",
+    "isValidator": true,
+    "nodeName": "Return",
+    "name": "Return",
+    "response_value": {
+     "list": [
+      {
+       "prop": "route",
+       "propLabel": "route",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.route}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "propLabel": "message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "job_id",
+       "propLabel": "job_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.job_id}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "job_status",
+       "propLabel": "job_status",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.job_status}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "progress_percent",
+       "propLabel": "progress_percent",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.progress_percent}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "progress_message",
+       "propLabel": "progress_message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.progress_message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "error_code",
+       "propLabel": "error_code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.error_code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "error_message",
+       "propLabel": "error_message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.error_message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "result",
+       "propLabel": "result",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.result}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "confirmation_token",
+       "propLabel": "confirmation_token",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.confirmation_token}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "evidence",
+       "propLabel": "evidence",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.evidence}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "calls",
+       "propLabel": "calls",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_SRres.data.calls}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "title": "End Node",
+    "isValidator": true,
+    "nodeName": "End Node",
+    "name": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

@@ -52,7 +52,7 @@ const jobRow = function jobRow(entry, patch) {
     attempt_count: num(entry.attempts), next_attempt_at: null, lease_owner: null, lease_expires_at: null, row_version: num(entry.rowVersion) + 2, error_code: null, error_message: null,
     error_details: null, finished_at: null }, patch);
 };
-const END_EMPTY = { stepRows: [], needStep: "NO", unlockRows: [], needUnlock: "NO", batchDelSlices: [], needBatchDel: "NO", needOursRead: "NO" };
+const END_EMPTY = { stepRows: [], needStep: "NO", unlockRows: [], needUnlock: "NO", batchDelSlices: [], needBatchDel: "NO", intentDelSlices: [], needIntentDel: "NO", needOursRead: "NO" };
 // REQUIRES_REVIEW: the Item Disassembly stays Processing, nothing else is written
 const reviewEnd = function reviewEnd(entry, step, code, why, extra) {
   const msg = step + ": " + why + "; the Item Disassembly stays Processing for review";

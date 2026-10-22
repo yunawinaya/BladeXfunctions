@@ -32,6 +32,12 @@ const BOUND = "2112800000000000100";
 eq("one return covering two holds: split by bucket, the extra part a new index after the last",
   cats(C.resRevertAdds([add("Reserved", { index: 3, quantity: 5 })], "CLOSED", [del("2112800000000000201", "Unrestricted", 2), del("2112800000000000202", "Blocked", 3)], BOUND, items)),
   [[3, 2, "Unrestricted"], [4, 3, "Blocked"]]);
+// R6 live 10-22: a key reserved in several saves has several Delivered rows; one return stays one movement per bucket
+eq("one return over several Delivered rows of one bucket: one part (no extra movement)",
+  cats(C.resRevertAdds([add("Reserved", { index: 3, quantity: 5 })], "CLOSED", [del("2112800000000000201", "Unrestricted", 2), del("2112800000000000202", "Unrestricted", 3)], BOUND, items)),
+  [[3, 5, "Unrestricted"]]);
+eq("several rows in two buckets: one part per bucket", cats(C.resRevertAdds([add("Reserved", { index: 3, quantity: 6 })], "CLOSED",
+  [del("2112800000000000201", "Unrestricted", 1), del("2112800000000000202", "Blocked", 2), del("2112800000000000203", "Unrestricted", 3)], BOUND, items)), [[3, 4, "Unrestricted"], [4, 2, "Blocked"]]);
 eq("more returned from Reserved than this cycle delivered: the rest back to Reserved, as it left",
   cats(C.resRevertAdds([add("Reserved", { index: 3, quantity: 4 })], "CLOSED", [del("2112800000000000201", "Unrestricted", 1)], BOUND, items)), [[3, 1, "Unrestricted"], [4, 3, "Reserved"]]);
 eq("an earlier cycle's Delivered rows (id not above the bound) are not this completion's",

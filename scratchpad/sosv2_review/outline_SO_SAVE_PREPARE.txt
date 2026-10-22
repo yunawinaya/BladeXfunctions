@@ -1,0 +1,119 @@
+start-node start: Start Node
+code-node code_node_SPguard: Guard: job_id, the worker's row_version, an optional phase (22552 chars)
+if if_SPrej: IF the input is refused: answer, write nothing
+  ifBlock ifBlock_TSPrej: true
+    code-node code_node_SPrejres: Result (rej) (22511 chars)
+    return-node return_node_SPrej: Return (rej)
+  ifBlock ifBlock_FSPrej: false
+sql-node sql_node_SPjob: Facts: the job (its stage), its SO (flag, latest lock), the stored request's part count (1483 chars)
+code-node code_node_SPgate: Gate: this worker's claim, the SO locked by this job, what the step reads present; the step from the job's sta (22530 chars)
+if if_SPgateEnd: IF not this claim (STOP, nothing written) or the request is unusable (FAILED, SO unlocked)
+  ifBlock ifBlock_TSPgateEnd: true
+    condition-or-node cor_SPgateJob: Job to fail?
+      condition-or-node-item cori_YSPgateJob: YES
+        update-node update_node_SPgateJob: Job FAILED []
+      condition-or-node-item cori_NSPgateJob: NO
+    condition-or-node cor_SPgateUnlock: SO to unlock?
+      condition-or-node-item cori_YSPgateUnlock: YES
+        update-node update_node_SPgateUnlock: Sales Order is_processing = 0 (nothing was written) []
+      condition-or-node-item cori_NSPgateUnlock: NO
+    code-node code_node_SPgateres: Result (gate) (22543 chars)
+    return-node return_node_SPgate: Return (gate)
+  ifBlock ifBlock_FSPgateEnd: false
+if if_SPstepCascade: IF step CASCADE (B1): the delivery plan
+  ifBlock ifBlock_TSPstepCascade: true
+    sql-node sql_node_SBparts: The request SUBMIT stored (as for the SO plan) (302 chars)
+    get-node get_node_SBso: The stored Sales Order []
+    sql-node sql_node_SBdocs: Linked documents (classic sql_node_CascadeDocs) (930 chars)
+    code-node code_node_SBdiff: Diff: classic SO_SAVE's chain to its CascadeGate, then SO_CASCADE's code_cd_diff (lifted) (77450 chars)
+    search-node search_node_SBgds: Get Linked GDs (classic search_cd_gds) []
+    search-node search_node_SBpps: Get Linked PPs (classic search_cd_pps) []
+    sql-node sql_node_SBitems: Get Items (classic sql_node_CdItems) (799 chars)
+    get-node get_node_SBsetup: Get Picking Setup (classic get_cd_setup) []
+    code-node code_node_SBplan: Plan: SO_CASCADE's code_cd_plan + code_cd_allocreq (lifted): 406 / 414, the allocation requests -> part C|000 (76907 chars)
+    condition-or-node cor_SBparts: Parts to write?
+      condition-or-node-item cori_YSBparts: YES
+        add-node add_node_SBparts: The step's parts: gd_publish_step SOC / SOX / SOG|<nonce> []
+      condition-or-node-item cori_NSBparts: NO
+    update-node update_node_SBjob: Job: the next stage, a question (414), READY_TO_COMMIT, CASCADE_PREPARING or FAILED []
+    condition-or-node cor_SBunlock: SO to unlock (FAILED)?
+      condition-or-node-item cori_YSBunlock: YES
+        update-node update_node_SBunlock: Sales Order is_processing = 0 (nothing was written, no GD held) []
+      condition-or-node-item cori_NSBunlock: NO
+    code-node code_node_SBres: Result (43018 chars)
+    return-node return_node_SB: Return
+  ifBlock ifBlock_FSPstepCascade: false
+if if_SPstepAlloc: IF step ALLOC (B2): the allocations
+  ifBlock ifBlock_TSPstepAlloc: true
+    sql-node sql_node_SAc: This save's delivery plan: part C|000 (302 chars)
+    code-node code_node_SAids: Ids: the requests' materials and plants, the diff's items (43092 chars)
+    search-node search_node_SAgds: Get Linked GDs (classic search_cd_gds) []
+    search-node search_node_SApps: Get Linked PPs (classic search_cd_pps) []
+    sql-node sql_node_SAitems: Get Items (classic sql_node_CdItems) (800 chars)
+    get-node get_node_SAsetup: Get Picking Setup (classic get_cd_setup) []
+    sql-node sql_node_SAaitem: GLOBAL_ALLOCATION's Get Item, for every requested material (955 chars)
+    search-node search_node_SAbal: Item Balance of the requested materials at their plants (GLOBAL_ALLOCATION's search, set-based) []
+    search-node search_node_SAbbal: Item Batch Balance of the requested materials at their plants (set-based) []
+    search-node search_node_SApend: On Reserved GD Pending of the requested materials at their plants (set-based) []
+    search-node search_node_SAhu: On Reserved GD Allocated with a handling unit (set-based) []
+    search-node search_node_SAloose: On Reserved GD Allocated without a handling unit (set-based) []
+    code-node code_node_SAalloc: Allocate: classic's plan again (requests unchanged), GLOBAL_ALLOCATION v34 in-process per request, code_cd_nam (112231 chars)
+    condition-or-node cor_SAparts: Parts to write?
+      condition-or-node-item cori_YSAparts: YES
+        add-node add_node_SAparts: The step's parts: gd_publish_step SOC / SOX / SOG|<nonce> []
+      condition-or-node-item cori_NSAparts: NO
+    update-node update_node_SAjob: Job: the next stage, a question (414), READY_TO_COMMIT, CASCADE_PREPARING or FAILED []
+    condition-or-node cor_SAunlock: SO to unlock (FAILED)?
+      condition-or-node-item cori_YSAunlock: YES
+        update-node update_node_SAunlock: Sales Order is_processing = 0 (nothing was written, no GD held) []
+      condition-or-node-item cori_NSAunlock: NO
+    code-node code_node_SAres: Result (43019 chars)
+    return-node return_node_SA: Return
+  ifBlock ifBlock_FSPstepAlloc: false
+if if_SPstepPayload: IF step PAYLOAD (B3): the delivery payloads
+  ifBlock ifBlock_TSPstepPayload: true
+    sql-node sql_node_SGc: This save's delivery plan and allocations: parts C|000, X|000 (302 chars)
+    code-node code_node_SGids: Ids: the diff's items, the bins / batches / UOMs code_cd_names_ids named (43010 chars)
+    search-node search_node_SGgds: Get Linked GDs (classic search_cd_gds) []
+    search-node search_node_SGpps: Get Linked PPs (classic search_cd_pps) []
+    sql-node sql_node_SGitems: Get Items (classic sql_node_CdItems) (796 chars)
+    get-node get_node_SGsetup: Get Picking Setup (classic get_cd_setup) []
+    search-node search_node_SGbins: Get Bin Names (classic search_cd_bins) []
+    search-node search_node_SGuoms: Get UOM Names (classic search_cd_uoms) []
+    search-node search_node_SGbatches: Get Batch Numbers (classic search_cd_batches) []
+    code-node code_node_SGpay: Payloads: classic's plan again (requests unchanged), SO_CASCADE's code_cd_payloads (lifted) -> one part per GD (88269 chars)
+    condition-or-node cor_SGparts: Parts to write?
+      condition-or-node-item cori_YSGparts: YES
+        add-node add_node_SGparts: The step's parts: gd_publish_step SOC / SOX / SOG|<nonce> []
+      condition-or-node-item cori_NSGparts: NO
+    update-node update_node_SGjob: Job: the next stage, a question (414), READY_TO_COMMIT, CASCADE_PREPARING or FAILED []
+    condition-or-node cor_SGunlock: SO to unlock (FAILED)?
+      condition-or-node-item cori_YSGunlock: YES
+        update-node update_node_SGunlock: Sales Order is_processing = 0 (nothing was written, no GD held) []
+      condition-or-node-item cori_NSGunlock: NO
+    code-node code_node_SGres: Result (43017 chars)
+    return-node return_node_SG: Return
+  ifBlock ifBlock_FSPstepPayload: false
+sql-node sql_node_SPparts: The request SUBMIT stored: SOR|<nonce> / R|000 header, R|001... lines (302 chars)
+if if_SPedit: IF an edit: the stored SO and its linked documents
+  ifBlock ifBlock_TSPedit: true
+    get-node get_node_SPso: The stored Sales Order (classic's shape: what its lifted nodes read) []
+    sql-node sql_node_SPdocs: Linked documents: a delivery or picking plan names this Sales Order (classic sql_node_CascadeDocs) (930 chars)
+  ifBlock ifBlock_FSPedit: false
+sql-node sql_node_SPpk: Packing item data for the request's items (classic PkItemIDs + PkItems) (2554 chars)
+code-node code_node_SPplan: Plan: classic SO_SAVE's line computation on the request (lifted), the cells that differ from the stored SO, as (50040 chars)
+if if_SPplanFail: IF the plan refuses (a stale line, the SO unreadable): FAILED, SO unlocked
+  ifBlock ifBlock_TSPplanFail: true
+    update-node update_node_SPfailJob: Job FAILED []
+    condition-or-node cor_SPfailUnlock: SO to unlock?
+      condition-or-node-item cori_YSPfailUnlock: YES
+        update-node update_node_SPfailUnlock: Sales Order is_processing = 0 (nothing was written) []
+      condition-or-node-item cori_NSPfailUnlock: NO
+    code-node code_node_SPfailres: Result (fail) (22543 chars)
+    return-node return_node_SPfail: Return (fail)
+  ifBlock ifBlock_FSPplanFail: false
+add-node add_node_SPplan: The plan in parts: gd_publish_step SOP|<nonce> / H|000, L|001..., A|000 []
+update-node update_node_SPjob: Job: READY_TO_COMMIT (or PREPARING, stage CASCADE), the plan summary []
+code-node code_node_SPdoneres: Result (done) (22543 chars)
+return-node return_node_SPdone: Return (done)
+end-node end: End Node

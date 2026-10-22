@@ -1,0 +1,109 @@
+[info] data.read.datetime_path: 本回执里的时间值（created_at/update_time/create_time 等）是**读回路**的显示值——平台读写两条路的时区口径可能不同（真机实测过整 15 小时的差）。**不要把它原样回写**：read-modify-write 每轮会再漂一次、跨日累加。要改时间就写你本意的那个值。
+{
+  "ok": true,
+  "data": {
+    "table": "transfer_order_putaway",
+    "count": 1,
+    "rows": [
+      {
+        "tenant_id": "000000",
+        "plant_id": "1123598813738675202",
+        "created_at": "2026-10-22 00:00:00.000",
+        "to_id": "TRF-PA-20261022-0022",
+        "update_time": "2026-10-22 16:04:37.240",
+        "is_deleted": 0,
+        "update_user": "1123598821738675201",
+        "to_status": "Created",
+        "is_processing": 0,
+        "id": "2113179704779276289",
+        "to_id_type": "2026900072371253250",
+        "assigned_to": [],
+        "receiving_no": "GR/202610220024",
+        "create_time": "2026-10-22 16:04:37.240",
+        "ref_doc_type": "Goods Receiving",
+        "create_dept": "1123598813738675201",
+        "table_putaway_records": [],
+        "table_putaway_item": [
+          {
+            "item_code": "2094626841323700261",
+            "storage_location": "2018912759311265793",
+            "parent_index": 0,
+            "line_status": "Open",
+            "source_inv_category": "In Transit",
+            "gr_line_id": "2113179700035518467",
+            "item_uom": "2018906563477008392",
+            "target_inv_category": "Unrestricted",
+            "id": "2113179704808636420",
+            "target_location": "2018912822846582786",
+            "po_no": "2096852506883461121",
+            "putaway_qty": 0,
+            "parent_or_child": "Parent",
+            "total_price": 0,
+            "received_qty": 5,
+            "source_bin": "2034476113458442241",
+            "is_split": "No",
+            "pending_process_qty": 5,
+            "item_name": "Differential with POM Gear",
+            "qty_to_putaway": 5,
+            "unit_price": 0,
+            "is_serialized_item": 0,
+            "line_index": "1"
+          },
+          {
+            "item_code": "2094626841323700262",
+            "storage_location": "2018912759311265793",
+            "parent_index": 1,
+            "line_status": "Open",
+            "source_inv_category": "In Transit",
+            "gr_line_id": "2113179700035518468",
+            "item_uom": "2018906563477008392",
+            "target_inv_category": "Unrestricted",
+            "id": "2113179704812830722",
+            "target_location": "2018912822846582786",
+            "po_no": "2096852506883461121",
+            "putaway_qty": 0,
+            "parent_or_child": "Parent",
+            "total_price": 0,
+            "received_qty": 5,
+            "source_bin": "2034476113458442241",
+            "is_split": "No",
+            "pending_process_qty": 5,
+            "item_name": "Transfer Case with Magnesium Alloy",
+            "qty_to_putaway": 5,
+            "unit_price": 0,
+            "is_serialized_item": 0,
+            "line_index": "2"
+          }
+        ],
+        "created_by": "admin",
+        "movement_type": "Putaway",
+        "gr_no": "2113179700010352642",
+        "organization_id": "1123598813738675201",
+        "create_user": "1123598821738675201",
+        "supplier_id": "2018905967793565706"
+      }
+    ]
+  },
+  "error": null,
+  "_notice": [
+    {
+      "level": "info",
+      "code": "data.read.datetime_path",
+      "message": "本回执里的时间值（created_at/update_time/create_time 等）是**读回路**的显示值——平台读写两条路的时区口径可能不同（真机实测过整 15 小时的差）。**不要把它原样回写**：read-modify-write 每轮会再漂一次、跨日累加。要改时间就写你本意的那个值。"
+    }
+  ],
+  "runtime": {
+    "kind": "unknown",
+    "version": "0.9.3",
+    "buildHash": "d6ec49f3e179",
+    "builtAt": "2026-10-12T08:00:31.022Z",
+    "payloadHash12": "e0bf26ec6b7e"
+  },
+  "_meta": {
+    "schemaVersion": 1,
+    "projection": "full",
+    "bytes": 3783,
+    "fields": 3,
+    "warningsDeduped": 0
+  }
+}

@@ -39,7 +39,8 @@ const scNames = async (collection, ids, field) => {
 };
 const ROLE = { produced: "Produced", open: "Open", excluded: "Excluded", none: "Not counted" };
 const MODE = { STANDARD: "Standard", FLAT: "Flat" };
-const OPEN_ST = { Draft: 1, Processing: 1 };
+// a Created IA (RES-01, BA 10-22) is open production like a Draft (review 3)
+const OPEN_ST = { Draft: 1, Created: 1, Processing: 1 };
 const DONE_ST = { Completed: 1, "Fully Posted": 1 };
 // the summary: one fact per row (the line left, the production right, the warnings below); a row without a fact is hidden
 const SUMMARY = ["sli_summary_so", "sli_summary_customer", "sli_summary_item", "sli_summary_ordered", "sli_summary_delivered", "sli_summary_planned", "sli_summary_produced",

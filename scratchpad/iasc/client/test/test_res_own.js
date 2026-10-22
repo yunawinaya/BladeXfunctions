@@ -6,8 +6,10 @@ const H = require("./harness");
 const F = require("./fixture");
 const { check, same } = H;
 
-const BUILT = H.scVariant(H.readJSON(H.FILES.formOn), true, H.SC_TEST_IDS);
-const ON = H.resVariant(BUILT, true);
+// the shipped build (RES-01 ON on DEV since 10-22) and its two switch variants
+const SHIPPED = H.scVariant(H.readJSON(H.FILES.formOn), true, H.SC_TEST_IDS);
+const BUILT = H.resVariant(SHIPPED, false);
+const ON = H.resVariant(SHIPPED, true);
 const V36 = H.readJSON(H.FILES.formBase);
 // SC-SCREW at L0: 30 free; this IA (4001) holds 20 more there, another IA 5, a GD 7 (all already out of unrestricted_qty)
 const hold = (id, docType, docId, qty, o) => Object.assign({ id: id, doc_type: docType, doc_id: docId, status: "Allocated", material_id: "C2", bin_location: "L0", batch_id: null,
@@ -64,6 +66,13 @@ const picked = (values) => {
       hold("R6", "Item Assembly", "4001", 4, { handling_unit_id: "H1" }), hold("R7", "Good Delivery", "4001", 9)]);
     check("typed 70: a carton held (12 EA) counts 12: 30 + 20 + 12 = 62 picked (a handling-unit row, or another type's row with the same id, never)",
       same(picked(ctn.values), [62, [["L0", 62]]]), picked(ctn.values));
+    // the mobile session's find (10-22): a sibling line of the same material picks out of the same pool (free + this IA's own holds). 30 free
+    // + 20 own at L0, a sibling line already holding 40 there: typing 50 leaves 10 to pick, not 20 (20 would stage 60 against 50)
+    const sib = line({ id: "5002", requested_qty: 40, total_quantity: 40, temp_qty_data: JSON.stringify([{ material_id: "C2", location_id: "L0", batch_id: null,
+      sm_quantity: 40, category: "Unrestricted" }]) });
+    const two = await run(ON, "onChange_componentQty", draft({ stock_movement: [line(), sib] }), args);
+    check("typed 50 next to a sibling holding 40 of the same 50 (30 free + 20 own): 10 picked, never past the pool", same(picked(two.values), [10, [["L0", 10]]]),
+      picked(two.values));
   }
   // ---- the Transfer Stock picker: this IA's holds shown as its free stock
   {

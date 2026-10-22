@@ -1,6 +1,8 @@
 const showStatusHTML = (status) => {
   const statusMap = {
     Draft: "draft_status",
+    Created: "created_status",
+    Cancelled: "cancelled_status",
     Issued: "issued_status",
     Completed: "completed_status",
     "Fully Posted": "fullyposted_status",
@@ -271,7 +273,7 @@ const iaShowLastFailure = async (iaId, jobId, name) => {
 const iaBackgroundView = (pageStatus, status) => {
   if (pageStatus !== "Edit" && pageStatus !== "View") return;
   const on = iaBgOn() || iaBgRevertOn();
-  if (status !== "Processing" && (!on || (status !== "Draft" && status !== "Completed"))) return;
+  if (status !== "Processing" && (!on || (status !== "Draft" && status !== "Created" && status !== "Completed"))) return;
   const jobOnRecord = iaBgText(this.getValue("ia_v2_job_id"));
   if (status !== "Processing" && !/^[0-9]{1,20}$/.test(jobOnRecord)) return;
   const iaId = iaBgText(this.getValue("id"));
@@ -354,7 +356,7 @@ const scMount = (pageStatus, status) => {
 
         // A draft is still being written, so the header stays editable; every
         // later status locks it. Same rule as Handling Unit and Misc Issue.
-        if (status !== "Draft") {
+        if (status !== "Draft" && status !== "Created") {
           this.disabled(EDIT_DISABLED_FIELDS, true);
         }
 
@@ -367,6 +369,12 @@ const scMount = (pageStatus, status) => {
             "button_completed",
             "comp_post_button",
           ]);
+        } else if (status === "Created") {
+          // RES-01 Created (BA, 10-22): saved and reserving; an edit is saved as Created again (it never goes back to Draft)
+          this.display(["button_created", "button_completed", "comp_post_button"]);
+        } else if (status === "Cancelled") {
+          // RES-01 Cancel (user 10-22): cancelled, its reservation released: read-only, no button
+          lockComponentsTable();
         } else if (status === "Processing") {
           // a background job holds it: read-only, no save or post button
           this.hide(["button_draft", "button_completed", "comp_post_button", "button_post"]);
@@ -378,7 +386,7 @@ const scMount = (pageStatus, status) => {
           lockComponentsTable();
         }
 
-        if (status === "Draft") await showBatchFields(this.getValue("item_id"));
+        if (status === "Draft" || status === "Created") await showBatchFields(this.getValue("item_id"));
         else showFilledBatchFields();
         break;
 

@@ -12,9 +12,13 @@ before publishing. **It has no prod profile** — prod stays `.dbtools --prod` +
 
 ## Safety — non-negotiable
 
-- Profile `dev` (default) is read-only; writes exit 3. Profile `dev-write` publishes. Only pass
-  `--profile dev-write` after showing the user the change and the dry-run result and getting a
-  yes. The engine's own SKILL.md says "a dev request = publish authorization" — **not here**.
+- Profile `dev-main` (default) is read-only; writes exit 3. Profile `dev-main-write` publishes: pass
+  `--profile dev-main-write` only on the command that publishes, after showing the user the change
+  and the dry-run result and getting a yes. The engine's own SKILL.md says "a dev request = publish
+  authorization" — **not here**.
+- **Never use the old `dev` / `dev-write` profiles.** They point at `sumes-cli.dev.mes.sudu.ai`, the
+  CN team's own test environment since 2026-10-22; both environments share the database but keep
+  separate caches, so publishing from both gives stale results.
 - Writes besides compile: `workflow test`, `workflow simulate --diff-live`, `data add|update|del`,
   `run`, `workflow approve` — they change real dev rows. Same rule.
 - Secrets live in the mirror (workflow sources), in run logs and in `data query` results (e.g.
@@ -26,10 +30,10 @@ before publishing. **It has no prod profile** — prod stays `.dbtools --prod` +
 | What | Where / how |
 |---|---|
 | ERP app | "Test APP" `1901532458164277249` (419 workflows). MES = `1985200806948585474` |
-| Deployed dev source (read-only reference) | `~/Documents/ASC-dev/sudu-lowcode-apps/dev/1901532458164277249/` — `workflow/**/*.ts`, `table/*.form.vue`, `page/**/*.vue`, `model/*.sql` (DDL), `sqlview/`, `quartz/`, `permission/` |
+| Deployed dev source (read-only reference) | `~/Documents/ASC-dev/sudu-lowcode-apps/dev-main/1901532458164277249/` (the old `dev/` folder is the retired profile's: don't use it) — `workflow/**/*.ts`, `table/*.form.vue`, `page/**/*.vue`, `model/*.sql` (DDL), `sqlview/`, `quartz/`, `permission/` |
 | Name ↔ id ↔ identifier maps | `<app>/.su-code/types/workflows.map.json` (`"ITEM_SAVE:Workflow:<id>"`), `tables.map.json`, `columns.map.json` (DSL ident ↔ display ↔ physical) |
 | Per-workflow sidecar | `<app>/.su-code/meta/workflow/<folder>/<NAME>.meta.json` → `workflow.script` (`js`), `workflow.condition` (`mvel`) |
-| Freshness | `.mirror.json` → `pulledAt` (UTC — run `create_time` is MYT) and `result` (`incomplete` = see receipt); `git -C ~/Documents/ASC-dev/sudu-lowcode-apps log -- dev/<appId>` = server-side change history between pulls |
+| Freshness | `.mirror.json` → `pulledAt` (UTC — run `create_time` is MYT) and `result` (`incomplete` = see receipt); `git -C ~/Documents/ASC-dev/sudu-lowcode-apps log -- dev-main/<appId>` = server-side change history between pulls |
 | Refresh | `sudu-lowcode mirror 1901532458164277249` — slow (11 min first, ~7 min after); run in background, then read its one-line result. Don't run other `sudu-lowcode` commands meanwhile |
 | Last pull's gaps | `<app>/.su-code/recovery/receipts/app-pull-*.json` → `full.completeness.missingLocal` (not on disk), `full.notPushable.items` (on disk, compile refuses) |
 | Engine docs (authoring manual) | `<app>/.su-code/docs/` — grep `*.md` only; `workflow/sdk/<fn>.md`, `errors.md` |
@@ -83,14 +87,13 @@ sudu-lowcode --full data query goods_delivery --where '{"delivery_no":"GD-..."}'
    one escaped 1,000-char line) plus that node list, and get a yes. **Back up the live version
    first** (user's rule): `.dbtools/wf --dev backup "<NAME>"` → `~/Documents/ASC-dev/workflow-backups/dev/<NAME>/v<N>_<stamp>.enabled.json`
    (exact stored JSON; restore = paste it in the designer). Then publish:
-   `sudu-lowcode --profile dev-write --full compile "workflow/<path>.ts" --dir . --format json > $SCRATCH/pub.json`
+   `sudu-lowcode --profile dev-main-write --full compile "workflow/<path>.ts" --dir . --format json > $SCRATCH/pub.json`
    Success = `ok:true` and `published[].receipt.onlineReadback` → `status: enabled`,
    `versionNumber: <N>` (first done 2026-10-13: CUST_ITEM_BINDING v5 — opens normally in the
    platform designer).
-   **The compile publish reaches only the CLI gateway's runtime** — forms, Quartz and the designer run
-   behind `https://dev.mes.sudu.ai/api` and keep the old version. In the same yes, sync it:
-   `.dbtools/wf_upload.plan.json` items `[{ "name": "<NAME>", "dataId": "<id>", "republish": true }]`,
-   then `node .dbtools/wf_upload.mjs --dry-run` and `--publish` (message the other session first; the plan is shared).
+   Since 2026-10-22 the CLI publishes through `https://dev.mes.sudu.ai/api`, the gateway forms, Quartz
+   and the designer run behind, so the old wf_upload `republish` sync step is no longer needed. Until the
+   first compile publish confirms it, check the change with a run through that gateway.
 5. Commit the mirror — the publish also rewrites the sidecar, `sync-lock.json` and types:
    `git -C <root> -c user.name=sudu-lowcode -c user.email=sudu-lowcode@localhost -c core.hooksPath=/dev/null commit -qam "publish <NAME> v<N>"`
    A re-run of the dry-run should now say `unchanged`.
@@ -117,5 +120,5 @@ sudu-lowcode --full data query goods_delivery --where '{"delivery_no":"GD-..."}'
 | Mirror refuses: uncommitted changes (exit 7) | Commit or `git checkout --` the file first |
 | Workflow in `notPushable` | Server copy has a dangling reference or a loop with no source — a real bug; compile refuses it |
 | Untracked `.su-code/` appears in BladeXfunctions | The engine writes `.su-code/metrics/` into its cwd. Run it from the app root or the scratchpad; delete a stray `.su-code/` you created |
-| Auth error | `sudu-lowcode status`; the user re-runs `sudu-lowcode login` (browser SSO). Never ask for tokens |
-| A form / Quartz run after a CLI publish → 400 `Cannot invoke ... getJSONArray(String) because "rootNode" is null`, or the old version still runs | Two gateways, two runtime caches (verified 2026-10-13): the CLI's `sumes-cli.dev.mes.sudu.ai` and the browser's `dev.mes.sudu.ai` each refresh only on a publish through themselves. Re-publish through dev.mes (`wf_upload` `republish: true`, or a designer publish) and check with a run through `https://dev.mes.sudu.ai/api` — a run through the CLI gateway tests the other runtime |
+| Auth error | `sudu-lowcode status`; the user re-runs `sudu-lowcode login --private` (and `sudu-lowcode --profile dev-main-write login --private`) and signs in with their own Xanto account, not admin. If login or status fails, give the user the exact error output for the CN team; never fall back to the old profiles. Never ask for tokens |
+| A form / Quartz run after a CLI publish → 400 `Cannot invoke ... getJSONArray(String) because "rootNode" is null`, or the old version still runs | Two gateways, two runtime caches (verified 2026-10-13): the CLI's `sumes-cli.dev.mes.sudu.ai` and the browser's `dev.mes.sudu.ai` each refresh only on a publish through themselves. Only a publish from the old profiles (before 10-22) does this now. Re-publish through dev.mes (`wf_upload` `republish: true`, or a designer publish) and check with a run through `https://dev.mes.sudu.ai/api` — a run through the CLI gateway tests the other runtime |

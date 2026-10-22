@@ -1,0 +1,18 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SUBTRACT_INVENTORY (MIN-01 RF-01: classic lock, switch OFF, MIN01-TEST hook)",
+   "dataId": "2012096660219564034",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/SUBTRACT_INVENTORY.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/base/SUBTRACT_INVENTORY.live_v59.json"
+  },
+  {
+   "name": "ADD_INVENTORY (MIN-01 RF-01: classic lock, switch OFF, MIN01-TEST hook)",
+   "dataId": "2012005532688723970",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/ADD_INVENTORY.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/base/ADD_INVENTORY.live_v65.json"
+  }
+ ]
+}

@@ -11,6 +11,17 @@ const { Engine } = require(path.join(IAV2, "lib", "sim", "engine.js"));
 const F = require(path.join(IAV2, "code", "shared", "fingerprint.js"));
 const C = require(path.join(IAV2, "code", "shared", "ia_common.js"));
 const BUILT = process.env.IA_V4 || path.join(__dirname, "..", "..", "..", "Item Assembly & BOM", "SmallCycle", "IA_V2_SUBMIT.json");
+// MIN-02 (BA 10-22): the completion claim has its own switch (shipped ON); the v3 / Small Cycle cases pin write orders with it off, its own
+// cases run with it on
+const CLAIM_SWITCH = /const IA_CLAIM_ENABLED = (true|false);/g;
+const claimFile = (on) => {
+  const f = path.join(fs.mkdtempSync(path.join(require("os").tmpdir(), "ia-v4-")), "IA_V2_SUBMIT.json");
+  fs.writeFileSync(f, fs.readFileSync(BUILT, "utf8").replace(CLAIM_SWITCH, "const IA_CLAIM_ENABLED = " + (on ? "true" : "false") + ";"));
+  return f;
+};
+const BUILT_OFF = claimFile(false);
+const BUILT_ON = claimFile(true);
+let CURRENT = BUILT_OFF;
 const T = "000000";
 const ORG = "1123598813738675201";
 const PLANT = "1123598813738675202";
@@ -95,6 +106,9 @@ class Model {
       if (table === "GD Async Job") {
         const j = this.jobs.find((x) => x.id === id);
         if (j) Object.assign(j, set);
+      } else if (table === "GD Publish Step") {
+        const s = this.steps.find((x) => x.id === id);
+        if (s) Object.assign(s, set);
       } else if (table === "Item Assembly") {
         const h = this.ia[id];
         if (!h) continue;
@@ -196,13 +210,27 @@ class Sim extends Engine {
       sql_node_ISlines: (q) => model.byJob(q).slice(0, 1).reduce((a, id) => a.concat(model.lineRows(id)), []),
       sql_node_ISback: (q) => model.back(q),
       sql_node_ISsc: (q) => model.scSource(q, sc),
+      // MIN-02: the claim number before our insert, the HELD claims and the IA's status after it
+      sql_node_ISclaimState: (q) => {
+        const ia = (q.match(/p\.job_id = 'IAS\|([0-9]+)'/) || [])[1];
+        if (!ia || q.indexOf("p.tenant_id = '" + T + "'") < 0 || /is_deleted/.test(q)) throw new Error("claim state SQL: " + q);
+        const mine = model.steps.filter((x) => x.job_id === "IAS|" + ia && /^CLAIM\|/.test(x.step_name));
+        return [{ j: JSON.stringify({ max: mine.reduce((mx, x) => Math.max(mx, Number(x.step_name.slice(6))), 0), now: model.now }) }];
+      },
+      sql_node_ISclaims: (q) => {
+        const ia = (q.match(/p\.job_id = 'IAS\|([0-9]+)'/) || [])[1];
+        if (!ia || q.indexOf("h.tenant_id = '" + T + "' AND h.id = '" + ia + "' AND h.is_deleted = 0") < 0) throw new Error("claims SQL: " + q);
+        const held = model.steps.filter((x) => x.job_id === "IAS|" + ia && /^CLAIM\|/.test(x.step_name) && x.step_status === "HELD" && !Number(x.is_deleted));
+        return [{ j: JSON.stringify({ claims: held.length ? held.map((x) => ({ id: x.id, name: x.step_name, started_at: x.started_at })) : null,
+          status: model.statusNow !== undefined ? model.statusNow : model.ia[ia] ? model.ia[ia].item_assembly_status : null, now: model.now }) }];
+      },
     } } });
     this.model = model;
     this.sc = sc;
     this.batchCalls = [];
   }
   load(name) {
-    if (name === "IA_V2_SUBMIT") return JSON.parse(fs.readFileSync(BUILT, "utf8"));
+    if (name === "IA_V2_SUBMIT") return JSON.parse(fs.readFileSync(CURRENT, "utf8"));
     throw new Error("no workflow " + name);
   }
   run(name, params) {
@@ -358,8 +386,10 @@ eq("two keys on one Draft: the loser fails at its LOCK insert, writes nothing el
 m = new Model({ dropJobLink: true });
 m.ia[ID] = Object.assign(record([], { item_assembly_status: "Draft", stock_movement_no: "IA-2610-0007" }), { lines: [] });
 r = go(m, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID), form: formD });
-eq("a document write that did not read back: STOP 500, the job not made due", [r.out.route, r.out.code, r.out.error_code, m.jobs[0].next_attempt_at],
-  ["STOP", "500", "IA_QUEUE_FAILED", "2026-10-19 10:02:00"]);
+// peer -8c (IDA's fix): a job left without its final due write falls due in 600 s, so a submit stalled before its document write is
+// never claimed (and failed with nothing to unlock) before the write lands
+eq("a document write that did not read back: STOP 500, the job not made due (it falls due in 600 s)", [r.out.route, r.out.code, r.out.error_code, m.jobs[0].next_attempt_at],
+  ["STOP", "500", "IA_QUEUE_FAILED", "2026-10-19 10:10:00"]);
 m = new Model();
 r = go(m, { pageStatus: "Clone", ia_id: "", idempotency_key: keyOf("new-c1"),
   form: Object.assign(record(lines60().map((l, i) => Object.assign(l, { id: String(2112073133161845000n + BigInt(i)) }))), { id: ID, item_assembly_status: "Completed", page_status: "Clone" }) });
@@ -439,6 +469,80 @@ eq("SC reference drift on the completion: STOP 400, nothing written", [r.out.rou
 m = new Model();
 r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-s5"), form: record(refLines(1), linked({ source_bom_id: "77", bom_snapshot_json: snap })) }, SCL);
 eq("SC matching snapshot: QUEUED with the snapshot written", [r.out.route, m.ia[Object.keys(m.ia)[0]].bom_snapshot_json === snap], ["QUEUED", true]);
+
+// 7. RES-01 Created (BA, 10-22): a Created IA completes in the background like a Draft; its job records prevStatus Created, so a failed
+// job puts it back to Created (its holds stand)
+const prevOf = (model) => (C.iaParseJ((model.jobs[0] || {}).request_payload) || {}).prevStatus;
+m = new Model();
+m.ia[ID] = Object.assign(record([], { item_assembly_status: "Created", stock_movement_no: "IA-2610-0007" }), { lines: [] });
+r = go(m, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 9), form: Object.assign(record(lines60()), { id: ID, item_assembly_status: "Created" }) });
+eq("Created: QUEUED, the IA Processing, the job's prevStatus Created", [r.out.route, m.ia[ID].item_assembly_status, prevOf(m)], ["QUEUED", "Processing", "Created"]);
+// RES-01 Created numbering (user 10-22): a Created IA completes under the number it was issued at Created: no number props, nothing issued
+m = new Model();
+m.ia[ID] = Object.assign(record([], { item_assembly_status: "Created", stock_movement_no: "IA-2610-0031" }), { lines: [] });
+r = go(m, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 12), form: Object.assign(record(lines60()), { id: ID, item_assembly_status: "Created",
+  stock_movement_no: "IA-2610-0031" }) });
+eq("number: a Created IA completes in the background under its Created number (nothing issued)", [r.out.route, m.ia[ID].stock_movement_no,
+  C.iaParseJ(m.jobs[0].request_payload).issuedNo], ["QUEUED", "IA-2610-0031", ""]);
+m = new Model();
+m.ia[ID] = Object.assign(record([], { item_assembly_status: "Draft", stock_movement_no: "IA-2610-0007" }), { lines: [] });
+r = go(m, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 10), form: formD });
+eq("a Draft still records prevStatus Draft", [r.out.route, prevOf(m)], ["QUEUED", "Draft"]);
+m = new Model();
+m.ia[ID] = Object.assign(record([], { item_assembly_status: "Created", stock_movement_no: "IA-2610-0007" }), { lines: [] });
+r = go(m, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 11), form: formD });
+eq("a tab that still shows Draft for a Created IA: STALE 409, nothing written", [r.out.route, r.out.code, m.writes.length], ["STALE", "409", 0]);
+
+// ---- MIN-02 (BA 10-22): the background completion takes the normal save's completion claim right before its first write
+{
+  CURRENT = BUILT_ON;
+  eq("MIN-02: the shipped IA_V2_SUBMIT takes the claim (IA_CLAIM_ENABLED true)", /const IA_CLAIM_ENABLED = true;/.test(fs.readFileSync(BUILT, "utf8")), true);
+  const fresh = (status) => {
+    const mm = new Model();
+    mm.ia[ID] = Object.assign(record(lines60(), { page_status: "Edit", item_assembly_status: status, stock_movement_no: "IA-2610-0007" }), { lines: [] });
+    mm.writeLines(mm.ia[ID], lines60().map((l, i) => Object.assign(l, { line_index: i + 1 })));
+    return mm;
+  };
+  const formOf = (mm, status) => Object.assign(record(mm.ia[ID].lines.map((l) => Object.assign({}, l)), { id: ID, page_status: "Edit", item_assembly_status: status,
+    stock_movement_no: "IA-2610-0007" }));
+  const order = (mm) => mm.writes.map((w) => w[0] + " " + w[1] + (w[1] === "GD Publish Step" ? " " + (w[2].step_name || w[2].step_status) : ""));
+  const claims = (mm) => mm.steps.filter((x) => /^IAS\|/.test(x.job_id)).map((x) => [x.step_name, x.step_status]);
+  const rival = (k, at) => ({ id: "800" + k, job_id: "IAS|" + ID, step_name: "CLAIM|" + k, step_status: "HELD", started_at: at, is_deleted: 0 });
+  let mm = fresh("Draft");
+  let rr = go(mm, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 21), form: formOf(mm, "Draft") });
+  eq("MIN-02 alone: QUEUED; the claim first, freed right after the IA is written Processing", [rr.error || rr.out.route, order(mm)],
+    ["QUEUED", ["insert GD Publish Step CLAIM|1", "insert GD Publish Step LOCK|1", "insert GD Async Job", "update Item Assembly", "update GD Publish Step FREE", "update GD Async Job"]]);
+  eq("MIN-02 alone: IAS|<ia> / CLAIM|1 FREE at the end", claims(mm), [["CLAIM|1", "FREE"]]);
+  eq("C2: the submit's claim ends V2 (the background completion owns the effects from Processing on)", mm.steps.filter((x) => /^IAS\|/.test(x.job_id)).map((x) => x.result_ref), ["V2"]);
+  mm = fresh("Draft");
+  mm.steps.push(rival(1, "2026-10-19 09:59:30"));
+  rr = go(mm, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 22), form: formOf(mm, "Draft") });
+  eq("MIN-02 the normal save holds the IA (a live claim): BUSY 409 IA_BUSY, no lock, no job, no IA write; ours freed", [rr.out.route, rr.out.code, rr.out.error_code,
+    /another window/.test(rr.out.message || ""), order(mm)], ["BUSY", "409", "IA_BUSY", true, ["insert GD Publish Step CLAIM|2", "update GD Publish Step FREE"]]);
+  eq("C2: the losing submit's claim ends LOST", mm.steps.filter((x) => x.step_name === "CLAIM|2").map((x) => [x.step_status, x.result_ref]), [["FREE", "LOST"]]);
+  mm = fresh("Draft");
+  mm.steps.push(rival(1, "2026-10-19 09:49:00"));
+  rr = go(mm, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 23), form: formOf(mm, "Draft") });
+  eq("MIN-02 a dead run's claim (older than the 10-minute lease): ours wins, QUEUED", [rr.out.route, claims(mm)], ["QUEUED", [["CLAIM|1", "HELD"], ["CLAIM|2", "FREE"]]]);
+  mm = fresh("Draft");
+  mm.statusNow = "Completed";
+  rr = go(mm, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 24), form: formOf(mm, "Draft") });
+  eq("MIN-02 the normal save completed it after the entry read it: BUSY 409 'changed', no lock, no job, no IA write", [rr.out.route, rr.out.code,
+    /changed while it was being completed \(it is Completed now\)/.test(rr.out.message || ""), order(mm)], ["BUSY", "409", true,
+    ["insert GD Publish Step CLAIM|1", "update GD Publish Step FREE"]]);
+  mm = fresh("Created");
+  rr = go(mm, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 25), form: formOf(mm, "Created") });
+  eq("MIN-02 a Created IA: the claim too", [rr.out.route, claims(mm)], ["QUEUED", [["CLAIM|1", "FREE"]]]);
+  mm = new Model();
+  rr = go(mm, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-c1"), form: record(lines60()) });
+  eq("MIN-02 a new IA (Add): no claim", [rr.out.route, mm.steps.filter((x) => /^IAS\|/.test(x.job_id)).length], ["QUEUED", 0]);
+  mm = fresh("Draft");
+  mm.steps.push(rival(1, "2026-10-19 09:59:30"));
+  CURRENT = BUILT_OFF;
+  rr = go(mm, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 26), form: formOf(mm, "Draft") });
+  eq("MIN-02 switch off: no claim read or written, the live claim ignored", [rr.out.route, mm.steps.filter((x) => /^IAS\|/.test(x.job_id) && x.step_name !== "CLAIM|1").length],
+    ["QUEUED", 0]);
+}
 
 console.log((fails ? "FAILED " + fails : "OK") + " - " + n + " checks");
 process.exit(fails ? 1 : 0);

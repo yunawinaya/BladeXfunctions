@@ -34,6 +34,7 @@ FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = @IA"""
 
 # the IA's items: stock / serial flags, base unit and conversions, costing method
 ITEMS = """SELECT JSON_OBJECT('id', CAST(i.id AS CHAR), 'stock_control', i.stock_control, 'serial_number_management', i.serial_number_management,
+       'material_code', i.material_code, 'material_name', i.material_name, 'material_desc', i.material_desc,
        'based_uom', CAST(i.based_uom AS CHAR), 'material_costing_method', i.material_costing_method,
        'table_uom_conversion', COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('alt_uom_id', CAST(u.alt_uom_id AS CHAR), 'alt_qty', CAST(u.alt_qty AS CHAR),
          'base_qty', CAST(u.base_qty AS CHAR))) FROM item_mji552rc_sub u WHERE u.Item_id = i.id AND u.is_deleted = 0), JSON_ARRAY())) AS j
@@ -82,14 +83,16 @@ OPS = """SELECT JSON_OBJECT('op', p.job_id, 'done', SUM(p.step_name = 'IBA|DONE'
 # CLOSE: this cycle = after the IA was created and after its last revert ('IA-R') under this number. kind OUT = what its completion
 # issued from Reserved per (item, bin, batch) in base units (inventory_movement: bin_location_id / batch_number_id, no index but the
 # PK: the id bound keeps it a range scan); kind DELIVERED = this cycle's own Delivered rows (a re-run never delivers twice).
-# '@NOQ' = the IA number, checked against a strict pattern before it gets here
+# '@NOHEX' = the IA number as the upper-case hex of its UTF-8 bytes (hold/plan.js): only hex digits reach the SQL text (review M6).
+# trx_no / doc_no are utf8mb4_general_ci and the connection utf8mb4_0900_ai_ci: without the COLLATE, MySQL 8.4 refuses the '='
+NO = "CONVERT(UNHEX('@NOHEX') USING utf8mb4) COLLATE utf8mb4_general_ci"
 CYCLE = """(SELECT GREATEST(@IA, COALESCE(MAX(r.id), 0)) AS lo FROM inventory_movement r
-         WHERE r.tenant_id = '@T' AND r.is_deleted = 0 AND r.id > @IA AND r.trx_no = '@NOQ' AND r.transaction_type = 'IA-R')"""
+         WHERE r.tenant_id = '@T' AND r.is_deleted = 0 AND r.id > @IA AND r.trx_no = """ + NO + """ AND r.transaction_type = 'IA-R')"""
 CONSUMED = """SELECT JSON_OBJECT('kind', 'OUT', 'key', CONCAT(CAST(m.item_id AS CHAR), '|', CAST(m.bin_location_id AS CHAR), '|', COALESCE(CAST(m.batch_number_id AS CHAR), '')),
        'base', CAST(SUM(m.base_qty) AS CHAR)) AS j
   FROM inventory_movement m
   JOIN """ + CYCLE + """ b ON m.id > b.lo
- WHERE m.tenant_id = '@T' AND m.is_deleted = 0 AND m.organization_id = '@ORG' AND m.trx_no = '@NOQ'
+ WHERE m.tenant_id = '@T' AND m.is_deleted = 0 AND m.organization_id = '@ORG' AND m.trx_no = """ + NO + """
    AND m.transaction_type = 'IA' AND m.movement = 'OUT' AND m.inventory_category = 'Reserved'
  GROUP BY m.item_id, m.bin_location_id, m.batch_number_id
 UNION ALL
@@ -98,7 +101,7 @@ SELECT JSON_OBJECT('kind', 'DELIVERED', 'id', CAST(d.id AS CHAR), 'material_id',
   FROM on_reserved_gd d
   JOIN """ + CYCLE + """ b ON d.id > b.lo
  WHERE d.tenant_id = '@T' AND d.organization_id = '@ORG' AND d.is_deleted = 0 AND d.doc_type = 'Item Assembly' AND d.doc_id = '@IAQ' AND d.status = 'Delivered'
-   AND d.doc_no = '@NOQ'"""
+   AND d.doc_no = """ + NO
 
 # the HELD tickets after ours was written (the mutex: the lowest live one wins)
 TICKETS = """SELECT JSON_OBJECT('id', CAST(p.id AS CHAR), 'n', CAST(SUBSTRING(p.step_name, 8) AS UNSIGNED), 'started_at', DATE_FORMAT(p.started_at, '%Y-%m-%d %H:%i:%s'),
@@ -106,3 +109,19 @@ TICKETS = """SELECT JSON_OBJECT('id', CAST(p.id AS CHAR), 'n', CAST(SUBSTRING(p.
   FROM gd_publish_step p
  WHERE p.tenant_id = '@T' AND p.job_id = 'IAH|@IAQ' AND p.step_name LIKE 'TICKET|%' AND p.step_status = 'HELD' AND p.is_deleted = 0
  ORDER BY p.id"""
+
+# MIN-05 (BA 10-22): SWEEP - the IAs deleted while still marked as holding (a list delete writes the header first, then releases: one
+# interrupted in between leaves its mark), at most 20, tenant-wide (each release is a RELEASE_ALL that checks the user's organisation)
+SWEEP = """SELECT JSON_OBJECT('ias', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(x.id AS CHAR), 'org', CAST(x.organization_id AS CHAR), 'no', x.stock_movement_no))
+                FROM (SELECT h.id, h.organization_id, h.stock_movement_no FROM sm_item_assembly h
+                       WHERE h.tenant_id = '@T' AND h.is_deleted = 1 AND h.material_hold_status IS NOT NULL
+                         AND h.material_hold_status NOT IN ('', 'NONE', 'CLOSED') ORDER BY h.id LIMIT 20) x)) AS j"""
+
+# BA rev 1.2 C2: CHECK - the IA's completion claims (IAS|<ia> / CLAIM|<n>: HELD, or FREE with how it ended) and its status, organisation, the clock
+CHECK = """SELECT JSON_OBJECT(
+       'claims', (SELECT JSON_ARRAYAGG(JSON_OBJECT('n', CAST(SUBSTRING(p.step_name, 7) AS UNSIGNED), 'status', p.step_status, 'ref', p.result_ref,
+                'at', DATE_FORMAT(p.started_at, '%Y-%m-%d %H:%i:%s')))
+                FROM gd_publish_step p WHERE p.tenant_id = '@T' AND p.job_id = 'IAS|@IAQ' AND p.step_name LIKE 'CLAIM|%' AND p.is_deleted = 0),
+       'status', (SELECT h.item_assembly_status FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = '@IAQ' AND h.is_deleted = 0),
+       'org', (SELECT CAST(h.organization_id AS CHAR) FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = '@IAQ' AND h.is_deleted = 0),
+       'now', DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'), '%Y-%m-%d %H:%i:%s')) AS j"""

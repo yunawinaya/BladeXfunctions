@@ -281,15 +281,33 @@ def step_done(ids, tag, src, step):
         K.add(ids, "add_node_RC%sstep" % tag, "%s DONE (unique job / step)" % step, STEP, [(p, N(src, "data.stepRows." + p)) for p in STEP_PROPS], labels=ORG)])
 
 
+LANES = 12
+LANE_IDS = K.Ids(1799660000000)  # its own range: the published nodes keep their filter ids
+
+
 def slice_loop(ids, tag, src, field, title, table, props):
+    # update-nodes write row by row (~46 ms a row on dev): the first LANES slices go to parallel lanes, the rest to the loop (10-22)
     loop_id = "loop_RC%s" % tag
     sl = "code_node_RC%sslice" % tag
+    ln = "code_node_RC%slanes" % tag
     body = mine("commit/slice.js").replace("__LOOP__", loop_id)
-    return K.loop(ids, loop_id, title, N(src, "data." + field), [
-        K.code(sl, "This slice (the loop item: <= 250 rows)", body, ["n", "rows"], arrays=("rows",), objects=("n",)),
-        K.update(ids, "update_node_RC%swrite" % tag, title + " (<= 250 per call)", table, ("id", "in", N(sl, "data.rows.id")), [(p, N(sl, "data.rows." + p)) for p in ["id"] + props],
-                 {p: LABELS[p] for p in props}),
-    ])
+    lanes = mine("commit/lanes.js").replace("__SRC__", "%s.data.%s" % (src, field)).replace("__LANES__", str(LANES))
+    lane_names = ["lane%d" % k for k in range(LANES)]
+    labels = {p: LABELS[p] for p in props}
+    lane = lambda k: K.update(LANE_IDS, "update_node_RC%sl%d" % (tag, k), "%s (lane %d)" % (title, k), table, ("id", "in", N(ln, "data.lane%d.id" % k)),
+                              [(p, N(ln, "data.lane%d.%s" % (k, p))) for p in ["id"] + props], labels)
+    return [
+        K.code(ln, "Lanes of %s: the first %d slices in parallel, the rest in the loop" % (tag, LANES), lanes,
+               ["rest", "hasRest", "count"] + lane_names + ["has%d" % k for k in range(LANES)], arrays=tuple(["rest"] + lane_names)),
+        K.parallel("cond_all_RC%sl" % tag, "%s: %d parallel lanes" % (title, LANES),
+                   [("cai_RC%sl%d" % (tag, k), "Lane %d" % k, [K.when_yes(LANE_IDS, "cor_RC%sl%d" % (tag, k), "Lane %d has rows?" % k, "node.%s.data.has%d" % (ln, k), "has%d" % k, [lane(k)])])
+                    for k in range(LANES)]),
+        K.when_yes(LANE_IDS, "cor_RC%slrest" % tag, "Slices past lane %d?" % (LANES - 1), "node.%s.data.hasRest" % ln, "hasRest", [
+            K.loop(ids, loop_id, title, N(ln, "data.rest"), [
+                K.code(sl, "This slice (the loop item: <= 250 rows)", body, ["n", "rows"], arrays=("rows",), objects=("n",)),
+                K.update(ids, "update_node_RC%swrite" % tag, title + " (<= 250 per call)", table, ("id", "in", N(sl, "data.rows.id")), [(p, N(sl, "data.rows." + p)) for p in ["id"] + props], labels),
+            ])]),
+    ]
 
 
 def upd(ids, nid, title, table, src, field, props):
@@ -417,9 +435,9 @@ def build_commit():
                    rv("rvPlan(%s, [%s][0], [%s][0], %s, \"R2_RESERVATIONS\")" % (E_, N("sql_node_RCr2part", "data"), N("sql_node_RCr2rows", "data"), json.dumps(R2G)), "commit R2 plan"),
                    plan_head + ["resSlices", "fragSlices", "pendSlices"], arrays=("jobRows", "resSlices", "fragSlices", "pendSlices")),
             end_block(ids, "r2pl", "code_node_RCr2plan", "IF the reservations cannot be written"),
-            slice_loop(ids, "r2r", "code_node_RCr2plan", "resSlices", "R2 WRITE: reservations back to Allocated (update_node_inReservedRevert)", RESV, GROUPS["res"][3]),
-            slice_loop(ids, "r2f", "code_node_RCr2plan", "fragSlices", "R2 WRITE: fragments soft-deleted (update_node_inFragSoftDel)", RESV, GROUPS["frag"][3]),
-            slice_loop(ids, "r2p", "code_node_RCr2plan", "pendSlices", "R2 WRITE: pending rows restored (update_node_inPendingRestore)", RESV, GROUPS["pend"][3]),
+            *slice_loop(ids, "r2r", "code_node_RCr2plan", "resSlices", "R2 WRITE: reservations back to Allocated (update_node_inReservedRevert)", RESV, GROUPS["res"][3]),
+            *slice_loop(ids, "r2f", "code_node_RCr2plan", "fragSlices", "R2 WRITE: fragments soft-deleted (update_node_inFragSoftDel)", RESV, GROUPS["frag"][3]),
+            *slice_loop(ids, "r2p", "code_node_RCr2plan", "pendSlices", "R2 WRITE: pending rows restored (update_node_inPendingRestore)", RESV, GROUPS["pend"][3]),
             sqlj("sql_node_RCr2back", "R2 read-back", grp_sql(R2G, "code_node_RCr2ids")),
             K.code("code_node_RCr2check", "R2 check: every row at its after-values -> DONE",
                    rv("rvCheck(%s, [%s][0], [%s][0], %s, \"R2_RESERVATIONS\")" % (E_, N("sql_node_RCr2part", "data"), N("sql_node_RCr2back", "data"), json.dumps(R2G)), "commit R2 check"),
@@ -443,7 +461,7 @@ def build_commit():
                    arrays=("intentRows", "lineSlices", "headerRows", "jobRows"), objects=("lineCount",)),
             end_block(ids, "r3pl", "code_node_RCr3plan", "IF the sales orders cannot be written"),
             gate(ids, "cor_RCr3intent", "Intent to record?", "code_node_RCr3plan", "needIntent", [step_add(ids, "add_node_RCr3intent", "R3 INTENT: R3|I|<nnn> (before + after of every row)", "code_node_RCr3plan", "intentRows")]),
-            slice_loop(ids, "r3", "code_node_RCr3plan", "lineSlices", "R3 WRITE: SO lines (update_node_hrRestoreSoLines)", SOL, ["planned_qty", "delivered_qty", "outstanding_quantity", "line_status"]),
+            *slice_loop(ids, "r3", "code_node_RCr3plan", "lineSlices", "R3 WRITE: SO lines (update_node_hrRestoreSoLines)", SOL, ["planned_qty", "delivered_qty", "outstanding_quantity", "line_status"]),
             gate(ids, "cor_RCr3hdr", "Sales Orders to write?", "code_node_RCr3plan", "needHeaders", [
                 upd(ids, "update_node_RCr3hdr", "R3 WRITE: Sales Order status (update_node_hrRestoreSoHeaders)", SOH, "code_node_RCr3plan", "headerRows", ["so_status", "gd_status", "partially_delivered", "fully_delivered"])]),
             K.parallel("condition_all_RCr3back", "R3 read-back in parallel", [
@@ -466,7 +484,7 @@ def build_commit():
                    rv("rvPlan(%s, [%s][0], [%s][0], %s, \"R4_GD\")" % (E_, N("sql_node_RCr4part", "data"), N("sql_node_RCr4rows", "data"), json.dumps(R4G)), "commit R4 plan"),
                    plan_head + ["gdlSlices", "snapRows", "needSnap", "gdhRows", "needGdh"], arrays=("jobRows", "gdlSlices", "snapRows", "gdhRows")),
             end_block(ids, "r4pl", "code_node_RCr4plan", "IF the delivery cannot be written"),
-            slice_loop(ids, "r4", "code_node_RCr4plan", "gdlSlices", "R4 WRITE: GD lines' picking status (update_node_hrRestorePickLines)", GDL, ["picking_status"]),
+            *slice_loop(ids, "r4", "code_node_RCr4plan", "gdlSlices", "R4 WRITE: GD lines' picking status (update_node_hrRestorePickLines)", GDL, ["picking_status"]),
             gate(ids, "cor_RCr4snap", "Snapshot to mark?", "code_node_RCr4plan", "needSnap", [
                 upd(ids, "update_node_RCr4snap", "R4 WRITE: the snapshot Reverted (update_node_hrMarkSnapReverted)", SNAP, "code_node_RCr4plan", "snapRows", ["snapshot_status"])]),
             gate(ids, "cor_RCr4gdh", "The GD to write (last: the unlock)?", "code_node_RCr4plan", "needGdh", [
@@ -542,7 +560,7 @@ WJOB_COLS = ["db_now", "id", "job_status", "progress_percent", "progress_message
 def build_worker():
     """GD Completed V2's worker (build_gdc.py build_worker, verbatim) with GD Revert's names: polls REVERT_GD only"""
     ids = K.Ids(1799700000000)
-    G = "code_node_RWguard2"
+    G = "code_node_RWguard3"
     T = N(G, "data.tenantId")
     prep = ("GD_REVERT_PREPARE", wf_id("GD_REVERT_PREPARE"))
     comm = ("GD_REVERT_COMMIT", wf_id("GD_REVERT_COMMIT"))

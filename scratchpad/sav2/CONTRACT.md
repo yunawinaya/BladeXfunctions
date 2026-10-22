@@ -297,7 +297,7 @@ this Stock Count is being processed in the background - please wait for it to fi
 `SA_NOT_ELIGIBLE` (300) · `SA_TOO_BIG` (400: "<n> entries … at most 500") · `SA_CLASSIC_TOO_BIG` (classic guards: "This Stock Adjustment
 has <n> entries. Adjust at most 500 at a time." / "This review has <n> approved lines with a variance. Review at most 500 lines at a time.")
 · `SA_SPLIT_REQUIRED` (> 5,000 entries) · `SA_LINE_TOO_LARGE` ("Line <n> holds too many bins (<bytes> bytes); split it into several lines.")
-· `SA_REQUIRED_FIELDS` · `SA_INVALID_MOVEMENT_TYPE` · `SA_LINES_WITHOUT_STOCK` · `SA_NO_WA_RECORD` · `SA_REVIEW_BUILD_FAILED` ·
+· `SA_RESERVED` (classic guard, 2026-10-22: "Line <n>: Reserved stock belongs to another document. Release it there first.") · `SA_STOCK_LOCKED` (classic guard, 2026-10-22: "Some of this stock is being moved by another background operation (<owner>). Please try again in a minute.") · `SA_REQUIRED_FIELDS` · `SA_INVALID_MOVEMENT_TYPE` · `SA_LINES_WITHOUT_STOCK` · `SA_NO_WA_RECORD` · `SA_REVIEW_BUILD_FAILED` ·
 `SA_QUEUE_FAILED` (500) · `SA_NOT_LOCKED` · `SA_LINES_CHANGED` · `SA_SC_CHANGED` · `SA_PLAN_FAILED` / `SA_PLAN_BROKEN` ·
 `SA_INVENTORY_<engine code>` · `SA_INVENTORY_LOCK_BUSY` · transient `SA_LOCK_WAIT`, `SA_STEP_RETRY`, `SA_WAIT`, `SA_TRANSIENT` ·
 `SA_TRANSIENT_RETRIES_EXHAUSTED` · `SA_RECONCILIATION_MISMATCH` · `SA_PREV_STATUS_UNKNOWN` · `SA_INVALID_DATA`.
@@ -314,6 +314,13 @@ else: every other node byte-identical to the base (B proves it with a node-by-no
   2. Entries in the PAYLOAD (lines × `balance_index` entries with `sa_quantity > 0`; parse failures count as 0) > 500 →
      `SA_CLASSIC_TOO_BIG` text. Only when `saveAs` ≠ Draft (the Draft branch moves nothing).
   3. Any payload line's `balance_index` > 60,000 UTF-8 bytes → `SA_LINE_TOO_LARGE` text (prod would truncate it silently).
+  4. (2026-10-22, RF-03 with bladexfunctions-9d, user's call) a moving entry (`sa_quantity > 0`) whose category is Reserved (trimmed,
+     any case) → `SA_RESERVED` text, saveAs ≠ Draft only; checked after the entry cap, before the line size. V2 never moves Reserved
+     (SUBMIT's allow-list sends it here as NOT_ELIGIBLE); this stops it before the classic writes the header Completed.
+  5. (2026-10-22, 9d's proposal, user's call) a non-Draft save whose movements' engine lock keys (ITEM|mat|bin, BATCH|mat|bin|batch,
+     COST|mat|plant - as INVENTORY_BULK_APPLY builds them) include one HELD by a background operation (free_token 0, owner set, not
+     9d's classic `CL|`) → `SA_STOCK_LOCKED` text naming the owner; read in the same SQL as the stored status (UNION ALL). Checked
+     last (after Processing and the payload refusals). Leaked locks with no owner never refuse.
 - **`Stock Count/AsyncV2/STOCK_COUNT.json`** = base v10 + guard before `cond_save_as`. Refusals answer like the classic's own failures:
   an **end node** `back_data_type Default, code 400, msg` → envelope `{code 400, success false, data null, msg}` — the web handlers'
   error path and mobile's `normalizeWorkflowResult` both show `msg` (Putaway V2 Mobile / Packing V2 confirmed; tell Packing V2 before

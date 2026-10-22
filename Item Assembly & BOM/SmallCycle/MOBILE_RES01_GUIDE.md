@@ -7,10 +7,12 @@ This guide is a **delta** on the existing mobile IA integration. It assumes the 
 `runWorkflow("2098335576774463489" /* IA_SAVE */, { allData, saveAs, pageStatus })`, has a stock picker for component lines,
 and deletes Draft IAs from its list.
 
-> Status (21 October 2026): RES-01 is built behind a switch that is **OFF**. Nothing is needed on mobile until the switch is
-> turned on. The switch only decides whether new holds are made; an IA that already holds stock (a stored `material_hold_status`)
+> Status (22 October 2026): the reservation starts at the **Created** status (the BA's request, 22 October), no longer at a
+> Draft save: a Draft never reserves. The switch is **ON** on DEV and ships ON with tonight's promotion. Mobile has no Created
+> button yet, so mobile Drafts never reserve; sections 2, 5 and 7 say what mobile must do for a Created IA. The switch only decides whether new holds are made; an IA that already holds stock (a stored `material_hold_status`)
 > is completed, closed, released and reverted from its holds whatever the switch says, so sections 3 to 5 apply to it always. Even then mobile keeps working without these changes (section 7 says what it costs); the changes make it match
-> desktop. Design: `RES01_DESIGN.md` (this folder). Desktop reference handlers: `iaForm_onClick_saveAsDraft.js`,
+> desktop. Live on DEV since 17:07 on 22 October (IA_HOLD v11, IA_SAVE v24, IA_V2_SUBMIT v12, IA form v54); the additions of that
+> day are in sections 2, 5, 6 and 8. Design: `RES01_DESIGN.md` (this folder). Desktop reference handlers: `iaForm_onClick_saveAsCreated.js`, `iaForm_onClick_saveAsDraft.js`,
 > `iaForm_onClick_saveAsCompleted*.js`, `iaForm_onClick_select_stock.js`, `sc_main.js` (RES-01 block),
 > `../AsyncV2/iaList_delete.js`.
 
@@ -18,7 +20,7 @@ and deletes Draft IAs from its list.
 
 ## 1. Mental model
 
-- A **hold** is component stock of a Draft IA moved from its category (Unrestricted, or Blocked) into **Reserved**, plus one
+- A **hold** is component stock of a **Created** IA moved from its category (Unrestricted, or Blocked) into **Reserved**, plus one
   `on_reserved_gd` row: `doc_type = "Item Assembly"`, `doc_id` = the IA id, `doc_line_id` = the component line id,
   `material_id`, `bin_location`, `batch_id`, `from_category`, `open_qty` in `item_uom`, `status = "Allocated"`.
 - Holds belong to the IA. Other documents cannot take them; **this** IA may use them (section 4).
@@ -28,16 +30,25 @@ and deletes Draft IAs from its list.
 
 | Value | Meaning |
 |---|---|
-| `""` | not enrolled: the IA never reserves (every IA created before the switch, and IAs completed at once) |
-| `RESERVING` | saved, reservation not made yet (IA_SAVE sets it) |
+| `""` | not enrolled: the IA never reserves (every Draft, every IA created before the switch, and IAs completed at once) |
+| `RESERVING` | saved as Created, reservation not made yet (IA_SAVE sets it) |
 | `FULL` / `PARTIAL` / `SHORT` / `NONE` | the last reservation's result (all / some / none of the required stock held / nothing to hold) |
 | `REVIEW` | the last reservation did not finish: save again to retry |
 | `CLOSED` | completed: what was used is delivered, the rest released |
 
-## 2. After a Draft save: start the reservation
+## 2. Created: the save that reserves
 
-When IA_SAVE answers `code` `"200"` for `saveAs: "Draft"`, and the IA is **new** (`pageStatus` Add or Clone) **or** its
-`material_hold_status` is not empty, call:
+**A Created save goes through the Draft path.** Send `saveAs: "Draft"` with `allData.ia_target_status = "Created"`:
+
+```js
+runWorkflow("2098335576774463489" /* IA_SAVE */, { allData: Object.assign({}, allData, { ia_target_status: "Created" }), saveAs: "Draft", pageStatus });
+```
+
+**Never send `saveAs: "Created"`**: IA_SAVE treats any saveAs other than "Draft" as a completion and would issue the stock.
+IA_SAVE writes `item_assembly_status = "Created"` and marks the IA `RESERVING`. A Draft save (no flag) is written Draft and never
+reserves. A Created IA saved again (with or without the flag, on an Edit) stays Created: it never goes back to Draft.
+
+When IA_SAVE answers `code` `"200"` for a Created save, **or** for any save of an IA whose `material_hold_status` is not empty, call:
 
 ```js
 runWorkflow("2112752274794217473", {
@@ -48,13 +59,19 @@ runWorkflow("2112752274794217473", {
 });
 ```
 
+- On a Created IA it reserves what the saved lines need and releases the surplus; on a Draft that still holds something (an IA
+  reverted, or saved before Created existed) it gives everything back. A plain Draft: no call.
 - Up to 50 picks with a quantity: wait for it and show its `message`. Above 50: start it and do not wait (it can take a while).
 - Answer: `code` `"200"` with `message` and `result_json` (a JSON string: `{ status, lines, notHeld, short, held, released,
   checkedAt, message }`). An empty `result_json` means there was nothing to reserve (the server did not enrol the IA): show
   nothing.
 - `code` `"409"`: another reservation of this IA is running. Do not retry in a loop: the IA is reconciled again when it is next
   opened on desktop, or saved again.
+- The reservation can be switched off on the server (IA_HOLD's own switch, ON today). Off, RECONCILE makes no new hold from any caller
+  and its `message` ends with "Reservation is switched off: no new stock is reserved (...)"; releasing, closing and cancelling work as
+  usual. Show the message as it is.
 - Keep ids as **strings**. Never `Number()` an id: 19-digit ids lose their last digits.
+- Show the status `Created` with the shared status dictionary's label; a Created IA is edited like a Draft (no Draft button).
 
 ## 3. After a completion: close the holds
 
@@ -87,18 +104,41 @@ without a change the IA cannot pick its own reserved stock. For an IA with a non
 The user picks this stock as **Unrestricted** (or Blocked) as usual. At completion the server splits each pick: the held part
 is issued from Reserved, the rest from the pick's category.
 
-## 5. Deleting a Draft: release first
+## 5. Cancel and delete (22 October)
 
-Before deleting a Draft whose stored `material_hold_status` is not empty (re-read it; the list can be stale):
+**Cancel** (desktop): a Created IA is cancelled from the Item Assembly list (bulk Cancel; the form has no Cancel button since 22 October evening): IA_HOLD `operation: "CANCEL"` releases everything it
+holds and only then sets `item_assembly_status = "Cancelled"`; a release that cannot finish leaves it Created (Needs review). A
+Cancelled IA is read-only: IA_SAVE refuses any save of it (`409`, "This Item Assembly is cancelled: it can no longer be changed.").
+Mobile: show Cancelled read-only (no save / complete).
+
+Mobile matches desktop (user 22 October evening): **no Cancel on the IA's own view**; Cancel is a bulk action on the IA list (selected
+Created IAs, one at a time, as `../AsyncV2/IAlistPage.json`'s `onItemAssemblyCancel`), with source `"LIST"`. Each call, after one confirm:
+
+```js
+const res = await runWorkflow("2112752274794217473", { ia_id, organization_id, operation: "CANCEL", source: "LIST" });
+// cancelled only when res.data.code === "200" and JSON.parse(res.data.result_json).cancelled === true; anything else: show
+// res.data.message, the IA stays Created ("Already cancelled." = 200 with no result_json: reload)
+```
+
+**Refuse a delete** of `Created` ("Item Assembly <no> is Created: cancel it first (Cancel releases its reserved materials).") and of
+`Completed`, `Fully Posted` and `Processing` ("Item Assembly <no> is <status> and cannot be deleted."), from the **stored** status read
+right before the delete (the list on screen can be stale: a background completion may hold the IA now).
+
+**Delete** is for **Draft and Cancelled** IAs only. A Created IA cannot be deleted: refuse with "cancel it first" (cancel it on
+desktop). Deleting a Draft or Cancelled IA whose `material_hold_status` is not empty releases first, as the desktop list does:
+
+
+The desktop list does it in this order (22 October): re-read the stored `material_hold_status` (the list can be stale); if it is
+not empty, **delete the header first** (`is_deleted = 1`, so no new reservation can start for it), then call:
 
 ```js
 const res = await runWorkflow("2112752274794217473", { ia_id, organization_id, operation: "RELEASE_ALL", source: "LIST" });
 ```
 
-Delete only if `res.data.code === "200"` **and** `JSON.parse(res.data.result_json).status === "NONE"`. Anything else (409
-busy, `REVIEW`, a failed call): refuse the delete and show "The materials reserved for Item Assembly <no> could not be
-released, so it was not deleted." plus the answer's `message`. A deleted IA that still held stock would leave it in Reserved
-with no owner.
+retrying up to 3 times, 2 s apart, while it answers `code` `"409"` (another run is busy). It is released only if
+`res.data.code === "200"` **and** `JSON.parse(res.data.result_json).status === "NONE"`. Anything else: **restore the header**
+(`is_deleted = 0`), keep the lines, and show "The materials reserved for Item Assembly <no> could not be released, so it was not
+deleted." plus the answer's `message`. A deleted IA that still held stock would leave it in Reserved with no owner.
 
 ## 6. Saving: what changed in IA_SAVE
 
@@ -107,23 +147,49 @@ with no owner.
 - Do not send `res_reserved` / `res_short`: they are screen figures (IA_SAVE drops them).
 - A completion while a reservation of the same IA is running answers `code` `"409"`, "The materials of this Item Assembly are
   being reserved right now: try again in a moment." Nothing was written: retry after a moment.
+- One completion per IA (22 October): every completion of a stored IA takes a server claim. A second completion of the same IA
+  (another device, tab or user) answers `code` `"409"`, "This Item Assembly is being completed in another window or by another
+  user: refresh it to see the result." Nothing was written: reload the IA, never retry in a loop.
+- A component picked from **Reserved** stock is refused at completion (`400`, "A component is picked from Reserved stock, which
+  belongs to another document's reservation: pick it from Unrestricted or Blocked stock instead."). Never offer Reserved in the picker.
+- **Manual Required (RF-09):** each component line carries `required_manual` (text). Send `"1"` when the user typed the line's
+  Required, `""` when the user cleared it (the line then follows the BOM again). A line sent **without** the property keeps its stored
+  flag, so an app that does not show Required changes nothing by leaving it out.
 
 ## 7. If mobile does nothing
 
-The switch-on is still safe: IA_SAVE marks an enrolled IA saved on mobile `RESERVING`, and the desktop form makes the
-reservation (or the close) when the IA is next opened there. Until then:
+Mobile Drafts never reserve, so a mobile-only flow is unchanged. For a Created IA (made on desktop), IA_SAVE keeps it Created and
+marks it `RESERVING` when mobile saves it, and the desktop form makes the reservation (or the close) when the IA is next opened
+there. Until then:
 
-- a Draft saved on mobile holds what it held before the save (or nothing, if new);
-- a Draft edited on mobile shows its own held stock as taken in the mobile picker;
+- a Created IA saved on mobile holds what it held before the save;
+- a Created IA edited on mobile shows its own held stock as taken in the mobile picker;
 - a completed IA keeps its unused holds in Reserved until it is opened on desktop, and cannot be reverted before that
   (the revert refuses while holds are open);
 - a mobile delete without the release leaves the holds without an owner (section 5 is the one change that matters most).
 
-## 8. Checklist
+## 8. Completion check (optional display, 22 October)
 
-- [ ] After a Draft save (new IA, or `material_hold_status` set): IA_HOLD RECONCILE, source SAVE.
+A completed IA can say when its completion did not finish (an issue or the output receipt was refused after the header was written,
+or the run stopped). When a stored `Completed` / `Fully Posted` IA is opened, the desktop form calls (in the background, read-only):
+
+```js
+const res = await runWorkflow("2112752274794217473", { ia_id, organization_id, operation: "CHECK", source: "FORM" });
+const r = res.data.code === "200" && res.data.result_json ? JSON.parse(res.data.result_json) : null;
+// show r.message (a warning) only when r.outcome is "PARTIAL", "INTERRUPTED" or "RUNNING"; DONE / NONE / UNKNOWN / NOT_COMPLETED: nothing
+```
+
+## 9. Checklist
+
+- [ ] A Created save = `saveAs: "Draft"` + `allData.ia_target_status: "Created"`; never `saveAs: "Created"`.
+- [ ] After a Created save, or any save of an IA with `material_hold_status` set: IA_HOLD RECONCILE, source SAVE.
 - [ ] After a completion of a stored IA with `material_hold_status` set: IA_HOLD CLOSE, source COMPLETE.
 - [ ] Picker: add this IA's own Allocated holds back (base units, by material + bin + batch + from_category; no HU).
-- [ ] Delete: RELEASE_ALL first; delete only on 200 + `NONE`.
+- [ ] Never delete a Created IA (it is cancelled on desktop first); a Cancelled IA is read-only.
+- [ ] Delete an IA with `material_hold_status` set: header deleted, RELEASE_ALL (409 retried), released only on 200 + `NONE`, else the header restored and the delete refused.
+- [ ] Refuse a delete of Created / Completed / Fully Posted / Processing from the stored status.
+- [ ] A 409 "being completed in another window" on a completion: reload, no retry loop. No Reserved category in the picker.
+- [ ] `required_manual` "1" / "" only when the app lets the user type Required; otherwise leave the property out.
+- [ ] Cancel only from the IA list (bulk, IA_HOLD CANCEL, source LIST), never on the IA's own view; optional: the completion check on a completed IA.
 - [ ] Ids as strings everywhere; `organization_id` sent with every IA_HOLD call.
 - [ ] Optional display: `material_hold_status` label; per line Required / Reserved / Short.

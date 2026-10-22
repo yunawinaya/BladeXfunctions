@@ -1,6 +1,8 @@
 == OFF build (switches {'ASYNC_IDA_ENABLED': 'false', 'IDA_V2_COMPLETE': 'true', 'IDA_V2_COMPLETE_POST': 'true'}, ids {'IDA_V2_SUBMIT': '2112748971830149121', 'IDA_V2_WORKER': '2112749010379997186'})
 -- IDAform.json vs base ida_form_v35
+    /config/eventScript/[key=aymq6q8z]/func
     /config/eventScript/[key=e9ib2r8i]/func
+    /config/eventScript/[key=iasvcomp]/func
     /config/eventScript/[key=ida_src_item]/func
     /config/eventScript/[key=jhdhdqkw] (added at 39: idaV2_onClick_completed_post)
     /config/eventScript/[key=mounted]/func
@@ -21,7 +23,9 @@
 -- new keys: events [('zzaobddh', 'idaV2_onClick_completed', 'button_completed'), ('jhdhdqkw', 'idaV2_onClick_completed_post', 'comp_post_button')], badge ('a9xr7gjg', 'processing_status'), fields [('t3fgnzgy', 'ida_v2_job_id', 'V2 Job ID'), ('eq7puqul', 'ida_idem_key', 'Idempotency Key')]
 == ON build (switches {'ASYNC_IDA_ENABLED': 'true', 'IDA_V2_COMPLETE': 'true', 'IDA_V2_COMPLETE_POST': 'false'}, ids {'IDA_V2_SUBMIT': '2112748971830149121', 'IDA_V2_WORKER': '2112749010379997186'})
 -- IDAform.json vs base ida_form_v35
+    /config/eventScript/[key=aymq6q8z]/func
     /config/eventScript/[key=e9ib2r8i]/func
+    /config/eventScript/[key=iasvcomp]/func
     /config/eventScript/[key=ida_src_item]/func
     /config/eventScript/[key=jhdhdqkw] (added at 39: idaV2_onClick_completed_post)
     /config/eventScript/[key=mounted]/func

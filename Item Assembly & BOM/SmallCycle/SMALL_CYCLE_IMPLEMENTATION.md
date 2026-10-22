@@ -1,7 +1,7 @@
 # Small Cycle Item Assembly: what was implemented
 
 For validation against the "Small Cycle IA implementation Contract" (19 October 2026, ENH-20261015-010 / 011).
-Date: 20 October 2026, updated 21 October 14:05. Status: built and live on DEV; the PROD date is not set yet.
+Date: 20 October 2026, updated 22 October 10:50. Status: built and live on DEV; the PROD date is not set yet.
 Testing in a real browser and the acceptance scenarios SC01-SC26 are **still to run** (section 7).
 
 Please confirm two things: that the behaviour in sections 2-5 is what was asked for, and that the decisions in section 6
@@ -20,7 +20,7 @@ This copy answers the BA's consolidated developer handoff of 20 October. Status 
 | FIX-03 Server permissions | Done (DEV, 21 October 11:29): the server checks that the user belongs to the record's organisation | section 4 |
 | FIX-05 Change history | Done (DEV, 21 October 11:29): the platform's own field history, switched on for the IA | section 6 (D11) |
 | FIX-06 Re-link safety | Done (DEV, 21 October 11:29): a Re-link on an IA that changed in the meantime is refused | section 5 |
-| RES-01 Raw-material reservation | Design approved 21 October; being built behind a switch that stays off. On DEV: the hold and release workflow (tested live 12:14) and the close after completion (14:00). Built and tested offline, not on DEV yet: the save wiring and the screen, completion from the holds, revert and delete; independent review done and its findings fixed (21 October). Next: publish switched off, then the live tests with the switch on | RES01_DESIGN.md |
+| RES-01 Raw-material reservation | Done (DEV, 22 October 09:34; switched ON, as you decided): a saved Draft reserves its picked stock; completion uses the reserved stock, then the rest is released; delete releases first; revert returns the stock to the bucket it came from. Live tests U09-U16 passed on 22 October; a revert fault they found was fixed the same morning. Not yet checked in a real browser (section 7) | RES01_DESIGN.md |
 
 - **FIX-01 (sections 2-4).** The remaining quantity is given only when it does not depend on how the line's deliveries and its
   linked production overlap: nothing delivered, nothing produced, or the line covered either way. Otherwise the form shows

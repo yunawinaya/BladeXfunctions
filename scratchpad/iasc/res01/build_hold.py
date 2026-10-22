@@ -28,7 +28,9 @@ ONRES = "On Reserved Goods Delivery:Table:1935880014687440897"
 IA_TABLE = "Item Assembly:Table:2098256587713404929"
 N = V.N
 ROW_COLS = ["doc_type", "status", "doc_id", "doc_no", "doc_line_id", "material_id", "bin_location", "batch_id", "item_uom", "reserved_qty", "open_qty", "delivered_qty",
-            "from_category", "plant_id", "organization_id", "reserved_date", "job_line_key", "parent_id", "parent_no", "parent_line_id", "target_gd_id", "source_reserved_id"]
+            "from_category", "plant_id", "organization_id", "reserved_date", "job_line_key", "parent_id", "parent_no", "parent_line_id", "target_gd_id", "source_reserved_id",
+            # the item master's code / name / description, as a Goods Delivery's rows carry them (user 10-22)
+            "item_code", "item_name", "item_desc"]
 
 
 def node(nid, title, path, names, arrays=(), objects=(), extra=()):
@@ -99,10 +101,13 @@ def build():
             K.sql("sql_node_HDops2", "The engine's record of our operation (DONE / intents)", V.sub(S.OPS, T=t, OPSQ=N(A, "data.opsJson")), j)]),
         K.sql("sql_node_HDhead", "The IA header now (a save while this run worked marked it RESERVING again)", V.sub(S.HEAD, T=t, IA=ia), j),
         node(F, "Finish: our rows by outcome, the label from required versus held, the header, the ticket", "hold/finish.js",
-             ["outcome", "publish", "close", "drop", "restore", "needPublish", "needClose", "needDrop", "needRestore", "headRows", "freeRows", "needFree", "code", "message", "result_json"],
-             arrays=("publish", "close", "drop", "restore", "headRows", "freeRows")),
+             ["outcome", "publish", "close", "drop", "restore", "needPublish", "needClose", "needDrop", "needRestore", "headRows", "cancelRows", "needCancel", "freeRows", "needFree",
+              "code", "message", "result_json"],
+             arrays=("publish", "close", "drop", "restore", "headRows", "cancelRows", "freeRows")),
     ] + fixes(ids, "", F) + [
         upd(ids, "update_node_HDhead", "Item Assembly: material_hold_status / material_hold_at", F, "headRows", ["material_hold_status", "material_hold_at"], table=IA_TABLE),
+        V.gate(ids, "cor_HDcancel", "CANCEL with everything released: the IA Cancelled", F, "needCancel", [
+            upd(ids, "update_node_HDcancel", "Item Assembly: item_assembly_status Cancelled", F, "cancelRows", ["item_assembly_status"], table=IA_TABLE)]),
         V.gate(ids, "cor_HDfree", "Our ticket to free?", F, "needFree", [
             upd(ids, "update_node_HDfree", "GD Publish Step: our ticket FREE", F, "freeRows", ["step_status", "finished_at"], table=V.STEP)]),
         ret("return_node_HDdone", "Return the reservation result", F),
@@ -112,10 +117,10 @@ def build():
             K.sql("sql_node_HDops", "The engine's record of the unfinished operations (DONE / intents)", V.sub(S.OPS, T=t, OPSQ=N(P, "data.opsJson")), j)]),
         V.gate(ids, "cor_HDconsumed", "CLOSE: what the completion issued from Reserved, and this cycle's deliveries?", P, "needConsumed", [
             K.sql("sql_node_HDconsumed", "This cycle's IA OUT movements from Reserved (by item, bin, batch) and its Delivered rows",
-                  V.sub(S.CONSUMED, T=t, IA=ia, IAQ=ia, NOQ=N(P, "data.noq"), ORG=org), j)]),
+                  V.sub(S.CONSUMED, T=t, IA=ia, IAQ=ia, NOHEX=N(P, "data.noHex"), ORG=org), j)]),
         node(D, "Delta: an unfinished run resolved, then wanted versus held: holds, releases, the keys to read", "hold/delta.js",
              ["route", "fix", "needPublish", "needClose", "needDrop", "needRestore", "rowsAfter", "holds", "releases", "notHeld", "keysJson", "mats", "needBal", "plant",
-              "deliver", "over", "under", "why"], arrays=("rowsAfter", "holds", "releases", "notHeld", "deliver", "over", "under"), objects=("fix",),
+              "deliver", "over", "under", "why", "acquireOff"], arrays=("rowsAfter", "holds", "releases", "notHeld", "deliver", "over", "under"), objects=("fix",),
              extra=("shared/split.js",)),
     ] + fixes(ids, "fix", D) + [
         K.if_(ids, "if_HDreview", "IF an earlier move did not report back: Needs review, no new move", V.is_(D, "route", "REVIEW"), [
@@ -128,17 +133,27 @@ def build():
              ["route", "code", "tenantId", "uid", "ia", "org", "op", "source", "result_message", "result_json"]),
         K.if_(ids, "if_HDreject", "IF the request is invalid", V.is_(G, "route", "REJECT"),
               [K.ret("return_node_HDreject", "Return 400", [("code", N(G, "data.code")), ("message", N(G, "data.result_message")), ("result_json", N(G, "data.result_json"))])]),
+        # BA rev 1.2 C2: CHECK, read-only, before any IA read: how a completed IA's completion ended
+        K.if_(ids, "if_HDcheck", "IF CHECK: how a completed IA's completion ended", V.is_(G, "route", "CHECK"), [
+            K.sql("sql_node_HDcheck", "The IA's completion claims, its status and organisation, the clock", V.sub(S.CHECK, T=t, IAQ=ia), j),
+            node("code_node_HDcheck", "Check: the latest claim that did not lose decides", "hold/check.js", ["code", "message", "result_json"]),
+            ret("return_node_HDcheck", "Return how the completion ended", "code_node_HDcheck")]),
+        # MIN-05 (BA 10-22): SWEEP, read-only, before any IA read
+        K.if_(ids, "if_HDsweep", "IF SWEEP: the IAs deleted while still holding", V.is_(G, "route", "SWEEP"), [
+            K.sql("sql_node_HDsweep", "The IAs deleted while still marked as holding (at most 20)", V.sub(S.SWEEP, T=t), j),
+            node("code_node_HDsweep", "Sweep: their ids and organisations", "hold/sweep.js", ["code", "message", "result_json"]),
+            ret("return_node_HDsweep", "Return the IAs to release", "code_node_HDsweep")]),
         K.parallel("condition_all_HDread", "Reads (independent, one join)", [
             ("cai_HDstate", "IA", [K.sql("sql_node_HDstate", "The IA: header, lines, its own hold rows, its tickets, the clock", V.sub(S.STATE, T=t, IA=ia, IAQ=ia, ORG=org), j)]),
             ("cai_HDitems", "Items", [K.sql("sql_node_HDitems", "The IA's items: flags, units, costing method", V.sub(S.ITEMS, T=t, IA=ia), j)]),
             ("cai_HDmember", "Member", [K.sql("sql_node_HDmember", "Is the session user assigned to the organisation (FIX-03)", V.sub(SC.MEMBER, T=t, ORG=org, UID=uid), j)]),
         ]),
         node(P, "Plan: refusals, enrolment, the mutex, an unfinished run's operations, CLOSE's read", "hold/plan.js",
-             ["route", "code", "message", "needOps", "opsJson", "now", "needConsumed", "noq", "badNo"]),
+             ["route", "code", "message", "needOps", "opsJson", "now", "needConsumed", "noHex", "badNo"]),
         K.if_(ids, "if_HDstop", "IF there is nothing to do or it is refused", V.is_(P, "route", "STOP"),
               [K.ret("return_node_HDstop", "Return", [("code", N(P, "data.code")), ("message", N(P, "data.message")), ("result_json", "")])]),
     ] + after_plan
-    request = [(n, "string", d) for n, d in [("ia_id", "the Item Assembly"), ("organization_id", "its organisation"), ("operation", "RECONCILE | RELEASE_ALL | CLOSE"),
+    request = [(n, "string", d) for n, d in [("ia_id", "the Item Assembly"), ("organization_id", "its organisation"), ("operation", "RECONCILE | RELEASE_ALL | CLOSE | CANCEL | SWEEP | CHECK"),
                                               ("source", "SAVE | FORM | LIST | REVERT | COMPLETE")]]
     return K.workflow(request, ["code", "message", "result_json"], nodes)
 

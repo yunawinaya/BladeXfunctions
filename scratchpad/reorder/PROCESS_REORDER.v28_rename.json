@@ -1,0 +1,2325 @@
+{
+ "request_json": [
+  {
+   "key": "k97pnzdi",
+   "name": "organization_id",
+   "title": "Organization ID",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "response_json": [],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "Start Node",
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "condition_all_IYJki9Xt",
+   "type": "condition-all-node",
+   "data": {
+    "title": "Parallel Branch",
+    "filter": {
+     "list": []
+    },
+    "expression": {
+     "code": ""
+    },
+    "displayContent": "sdk.form.setCondition"
+   },
+   "blocks": [
+    {
+     "id": "condition_all_node_item_CMS1eLY1",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Hour redis",
+      "filter": {
+       "list": [
+        {
+         "id": 1781504351829,
+         "parentId": 1781504351828,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Hour redis",
+      "name": "Hour redis",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "code_node_X1DJxbjM2",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Get hour redis key",
+        "isValidator": true,
+        "nodeName": "Get hour redis key",
+        "name": "Get hour redis key",
+        "script": {
+         "type": "javascript",
+         "code": "const date = new Date({{system:now}});\nconst orgID = {{workflowparams:organization_id}};\nconst tenantID = {{system:tenantId}};\n\nconst oneHourAgo = new Date(date.getTime() - 3600000);\n\nconst yyyyMMddHH = `${oneHourAgo.getFullYear()}${String(oneHourAgo.getMonth() + 1).padStart(2, '0')}${String(oneHourAgo.getDate()).padStart(2, '0')}${String(oneHourAgo.getHours()).padStart(2, '0')}`;\n\nreturn {\n  hour_redis_key: `auto_reorder:${tenantID}:${orgID}:${yyyyMMddHH}`,\n  one_hour_ago: yyyyMMddHH\n}"
+        },
+        "response_json": [
+         {
+          "key": "drzn5gxb",
+          "name": "hour_redis_key",
+          "title": "Hour Redis Key",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         },
+         {
+          "key": "qwlrphzm",
+          "name": "one_hour_ago",
+          "title": "One Hour Ago",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "get_cache_node_PlehNpGh",
+       "type": "get-cache-node",
+       "data": {
+        "cache_key": "",
+        "title": "Get hour redis data",
+        "isValidator": true,
+        "nodeName": "Get hour redis data",
+        "name": "Get hour redis data",
+        "redis_key": "{{node:code_node_X1DJxbjM2.data.hour_redis_key}}"
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "condition_all_node_item_n9DVG8Nd",
+     "type": "condition-all-node-item",
+     "data": {
+      "title": "Summary redis",
+      "filter": {
+       "list": [
+        {
+         "id": 1781504352599,
+         "parentId": 1781504352598,
+         "isTop": true,
+         "prop": "",
+         "operator": "",
+         "valueType": "",
+         "value": "",
+         "type": "leaf",
+         "level": 1
+        }
+       ]
+      },
+      "expression": {
+       "code": "true",
+       "type": "javascript"
+      },
+      "displayContent": "sdk.form.setCondition",
+      "isValidator": true,
+      "nodeName": "Summary redis",
+      "name": "Summary redis",
+      "condition_type": "Expression"
+     },
+     "blocks": [
+      {
+       "id": "code_node_JgpClNBP",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Get summary redis key",
+        "isValidator": true,
+        "nodeName": "Get summary redis key",
+        "name": "Get summary redis key",
+        "script": {
+         "type": "javascript",
+         "code": "const date = new Date({{system:now}});\nconst orgID = {{workflowparams:organization_id}};\nconst tenantID = {{system:tenantId}};\n\nconst yyyyMMdd = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`;\n\nreturn {\n  summary_redis_key: `auto_reorder:today_summary:${tenantID}:${orgID}:${yyyyMMdd}`\n}"
+        },
+        "response_json": [
+         {
+          "key": "drzn5gxb",
+          "name": "summary_redis_key",
+          "title": "Summary Redis Key",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "get_cache_node_F6MiiP8x",
+       "type": "get-cache-node",
+       "data": {
+        "cache_key": "",
+        "title": "Get summary redis data",
+        "isValidator": true,
+        "nodeName": "Get summary redis data",
+        "name": "Get summary redis data",
+        "redis_key": "{{node:code_node_JgpClNBP.data.summary_redis_key}}"
+       },
+       "blocks": []
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "code_node_17z9qiYW",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Check hour redis data",
+    "isValidator": true,
+    "nodeName": "Check hour redis data",
+    "name": "Check hour redis data",
+    "script": {
+     "type": "javascript",
+     "code": "const hourRedisDataRaw = {{node:get_cache_node_PlehNpGh.data}};\n\nconst hourRedisData =\n  hourRedisDataRaw === \"\" ||\n  hourRedisDataRaw === null ||\n  hourRedisDataRaw === undefined\n    ? []\n    : JSON.parse(hourRedisDataRaw);\n\nif(hourRedisData.length === 0) {\n  return {\n    status: 'Failed',\n    message: 'No transaction within this hour.'\n  }\n} else {\n  return {\n    status: 'Success',\n    message: ''\n  }\n}"
+    },
+    "response_json": [
+     {
+      "key": "8qzz1zrf",
+      "name": "status",
+      "title": "Status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+     },
+     {
+      "key": "drj7p29x",
+      "name": "message",
+      "title": "Message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_-PygOWnI",
+   "type": "if",
+   "data": {
+    "title": "IF no hour redis data",
+    "isValidator": true,
+    "nodeName": "IF no hour redis data",
+    "name": "IF no hour redis data",
+    "condition_type": "Expression",
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_17z9qiYW.data.status}}' == 'Failed'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_block_LZjaJn2O",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "end_V7ACe7Jb",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 200,
+        "msg": {
+         "type": "javascript",
+         "code": "{{node:code_node_17z9qiYW.data.message}}"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_block_gpqXeLzw",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_JMLkDiBo",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Process Today Summary",
+    "isValidator": true,
+    "nodeName": "Process Today Summary",
+    "name": "Process Today Summary",
+    "script": {
+     "type": "javascript",
+     "code": "const summaryRedisDataRaw = {{node:get_cache_node_F6MiiP8x.data}};\nconst hourRedisDataRaw = {{node:get_cache_node_PlehNpGh.data}};\nconst previousHour = {{node:code_node_X1DJxbjM2.data.one_hour_ago}};\nconst summaryRedisData =\n  summaryRedisDataRaw === \"\" ||\n  summaryRedisDataRaw === null ||\n  summaryRedisDataRaw === undefined\n    ? { processed_hours: [], items: [] }\n    : JSON.parse(summaryRedisDataRaw);\nconst hourRedisData =\n  hourRedisDataRaw === \"\" ||\n  hourRedisDataRaw === null ||\n  hourRedisDataRaw === undefined\n    ? []\n    : JSON.parse(hourRedisDataRaw);\nlet latestSummaryRedisData = {};\n\nconst needCalculate = !(\n  Object.keys(summaryRedisData).length > 0 &&\n  summaryRedisData.processed_hours &&\n  summaryRedisData.processed_hours.find((hours) => hours === previousHour)\n);\n\n// Helper function to create composite key\nconst getCompositeKey = (item) => {\n  return `${item.organization_id}|${item.plant_id}|${item.storage_location_id}|${item.item_id}`;\n};\n\n// Helper function to aggregate hourRedisData\nconst aggregateHourData = (data) => {\n  if (!data || data.length === 0) return {};\n\n  const aggregatedMap = new Map();\n\n  data.forEach((item) => {\n    const key = getCompositeKey(item);\n    const quantity = parseFloat(item.quantity) || 0;\n    const triggerSource = item.trigger_source;\n\n    if (!aggregatedMap.has(key)) {\n      aggregatedMap.set(key, {\n        organization_id: item.organization_id,\n        plant_id: item.plant_id,\n        storage_location_id: item.storage_location_id,\n        item_id: item.item_id,\n        sales_demand_qty: 0,\n        actual_consumption_qty: 0,\n        abnormal_flag: 0,\n        abnormal_reason: ''\n      });\n    }\n\n    const entry = aggregatedMap.get(key);\n\n    // Check trigger_source and add to appropriate field\n    if (triggerSource === \"SO_ISSUED\" || triggerSource === \"SO_CANCELLED\") {\n      entry.sales_demand_qty += quantity;\n    } else if (\n      [\"DO_COMPLETED\", \"PT_ISSUED\", \"MSI_COMPLETED\"].includes(triggerSource)\n    ) {\n      entry.actual_consumption_qty += quantity;\n    }\n  });\n\n  return aggregatedMap; // Return Map instead of Object\n};\n\nif (needCalculate) {\n  // Process hourRedisData if it exists\n  let processedHourDataMap = new Map();\n  if (hourRedisData && hourRedisData.length > 0) {\n    processedHourDataMap = aggregateHourData(hourRedisData);\n  }\n\n  // Start with existing summary data\n  latestSummaryRedisData = {\n    processed_hours: [...(summaryRedisData.processed_hours || [])],\n    items: [...(summaryRedisData.items || [])],\n  };\n\n  // Create a Map from existing items for easy lookup\n  const existingItemsMap = new Map();\n  latestSummaryRedisData.items.forEach((item) => {\n    const key = getCompositeKey(item);\n    existingItemsMap.set(key, item);\n  });\n\n  // Merge hour data into summary\n  processedHourDataMap.forEach((hourEntry, key) => {\n    if (existingItemsMap.has(key)) {\n      // Update existing entry\n      const existingEntry = existingItemsMap.get(key);\n      existingEntry.sales_demand_qty += hourEntry.sales_demand_qty;\n      existingEntry.actual_consumption_qty +=\n        hourEntry.actual_consumption_qty;\n    } else {\n      // Add new entry\n      existingItemsMap.set(key, { ...hourEntry });\n    }\n  });\n\n  // Convert Map back to array\n  latestSummaryRedisData.items = Array.from(existingItemsMap.values());\n\n  // Update processed_hours\n  if (!latestSummaryRedisData.processed_hours.includes(previousHour)) {\n    latestSummaryRedisData.processed_hours.push(previousHour);\n  }\n\n  return {\n    latestSummaryRedisData,\n  };\n} else {\n  return {\n    latestSummaryRedisData: summaryRedisData,\n  };\n}\n"
+    },
+    "response_json": [
+     {
+      "key": "ikzxp06e",
+      "name": "latestSummaryRedisData",
+      "title": "latestSummaryRedisData",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_hIXVyqhk",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Get Hour Redis Item",
+    "isValidator": true,
+    "nodeName": "Get Hour Redis Item",
+    "name": "Get Hour Redis Item",
+    "script": {
+     "type": "javascript",
+     "code": "const hourRedisDataRaw = {{node:get_cache_node_PlehNpGh.data}};\n\nconst hourRedisData =\n  hourRedisDataRaw === \"\" ||\n  hourRedisDataRaw === null ||\n  hourRedisDataRaw === undefined\n    ? []\n    : JSON.parse(hourRedisDataRaw);\n\n// Get unique item IDs, filtering out any undefined/null values\nconst itemList = [...new Set(\n  hourRedisData\n    .map(data => data.item_id)\n    .filter(item_id => item_id && item_id.trim() !== \"\")\n)];\n\nreturn { itemList };"
+    },
+    "response_json": [
+     {
+      "key": "h4xmybts",
+      "name": "itemList",
+      "title": "itemList",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "search_node_HaAXzKGV",
+   "type": "search-node",
+   "data": {
+    "table_id": {
+     "source": "Item:Table:1901546842240438273",
+     "rules": {
+      "collectionId": "1901546842240438273",
+      "list": [
+       {
+        "id": 1781507260057,
+        "parentId": 1781507260056,
+        "isTop": true,
+        "prop": "id",
+        "operator": "in",
+        "valueType": "field",
+        "value": "{{node:code_node_hIXVyqhk.data.itemList}}",
+        "type": "leaf",
+        "level": 1,
+        "propLabel": "Primary Key ID",
+        "valueLabel": "",
+        "operatorLabel": "In"
+       }
+      ]
+     }
+    },
+    "condition": {},
+    "limit": 100,
+    "title": "Get Item List",
+    "isValidator": true,
+    "nodeName": "Get Item List",
+    "name": "Get Item List"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_g0562EV2",
+   "type": "if",
+   "data": {
+    "title": "IF no item data",
+    "isValidator": true,
+    "nodeName": "IF no item data",
+    "name": "IF no item data",
+    "condition_type": "Expression",
+    "expression": {
+     "type": "javascript",
+     "code": "{{node:search_node_HaAXzKGV.data.total}} == 0"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_block_b1knyU8w",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "code_node_racAAXG7",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "No item found msg",
+        "isValidator": true,
+        "nodeName": "No item found msg",
+        "name": "No item found msg",
+        "script": {
+         "type": "javascript",
+         "code": "return {\n  message: 'No item found.'\n}"
+        },
+        "response_json": [
+         {
+          "key": "5d92564d",
+          "name": "message",
+          "title": "Message",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "end_4SIbdqEE",
+       "type": "end-node",
+       "data": {
+        "title": "结束节点",
+        "outputs": {
+         "type": "object",
+         "properties": {
+          "result": {
+           "type": "string"
+          }
+         }
+        },
+        "isValidator": true,
+        "nodeName": "结束节点",
+        "name": "结束节点",
+        "back_data_type": "Default",
+        "code": 401,
+        "msg": {
+         "type": "javascript",
+         "code": "{{node:code_node_racAAXG7.data.message}}"
+        }
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_block_deNUzoz-",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": [
+      {
+       "id": "code_node_ZXSYIh0e",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Temp Today Redis",
+        "isValidator": true,
+        "nodeName": "Temp Today Redis",
+        "name": "Temp Today Redis",
+        "script": {
+         "type": "javascript",
+         "code": "const date = new Date({{system:now}});\nconst orgID = {{workflowparams:organization_id}};\nconst tenantID = {{system:tenantId}};\n\nconst yyyyMMddHH = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}${String(date.getHours()).padStart(2, '0')}`;\n\n\nreturn {\n  temp_summary_redis_key: `auto_reorder:today_summary_temp:${tenantID}:${orgID}:${yyyyMMddHH}`\n}"
+        },
+        "response_json": [
+         {
+          "key": "z263a4do",
+          "name": "temp_summary_redis_key",
+          "title": "temp_summary_redis_key",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "set_cache_node_mLAnjaFo",
+       "type": "set-cache-node",
+       "data": {
+        "cache_key": "",
+        "cache_value": "",
+        "expire_time": 3600,
+        "title": "Set Redis Cache",
+        "isValidator": true,
+        "nodeName": "Set Redis Cache",
+        "name": "Set Redis Cache",
+        "custom_wkbocgni": {
+         "type": "javascript",
+         "code": "{{node:code_node_JMLkDiBo.data.latestSummaryRedisData}}"
+        },
+        "redis_key": "{{node:code_node_ZXSYIh0e.data.temp_summary_redis_key}}",
+        "limit_time": 172800000
+       },
+       "blocks": []
+      },
+      {
+       "id": "loop_GvW0LO0l",
+       "type": "loop",
+       "data": {
+        "title": "Loop Item",
+        "isValidator": true,
+        "nodeName": "Loop",
+        "name": "Loop",
+        "loopType": "Var",
+        "loopSeletVar": {
+         "type": "markdown",
+         "code": "{{node:search_node_HaAXzKGV.data.data}}"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_WPzdd7jU",
+         "type": "if",
+         "data": {
+          "title": "IF stock_control = 1",
+          "isValidator": true,
+          "nodeName": "IF stock_control = 0",
+          "name": "IF stock_control = 0",
+          "condition_type": "Expression",
+          "expression": {
+           "type": "javascript",
+           "code": "{{node:loop_GvW0LO0l.stock_control}} == 1"
+          },
+          "filter": {
+           "list": [
+            {
+             "id": 1736695973613,
+             "parentId": 1736695973612,
+             "isTop": true,
+             "prop": "",
+             "operator": "",
+             "valueType": "value",
+             "value": "",
+             "type": "leaf",
+             "level": 1
+            }
+           ]
+          }
+         },
+         "blocks": [
+          {
+           "id": "if_block_x3byBjHP",
+           "type": "ifBlock",
+           "data": {
+            "title": "true"
+           },
+           "blocks": [
+            {
+             "id": "get_cache_node_LjCr5tpM",
+             "type": "get-cache-node",
+             "data": {
+              "cache_key": "",
+              "title": "Get Temp Redis",
+              "isValidator": true,
+              "nodeName": "Get Redis Cache",
+              "name": "Get Redis Cache",
+              "redis_key": "{{node:code_node_ZXSYIh0e.data.temp_summary_redis_key}}"
+             },
+             "blocks": []
+            },
+            {
+             "id": "get_node_lx8BhzFr",
+             "type": "get-node",
+             "data": {
+              "table_id": {
+               "source": "Reorder Config:Table:1988789510897762305",
+               "rules": {
+                "collectionId": "1988789510897762305",
+                "list": [
+                 {
+                  "id": 1781507466664,
+                  "parentId": 1781507466665,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "all",
+                  "valueType": "",
+                  "value": "",
+                  "type": "branch",
+                  "level": 1,
+                  "children": [
+                   {
+                    "id": 1781507466665,
+                    "parentId": 1781507466664,
+                    "isTop": false,
+                    "prop": "enabled",
+                    "operator": "numberEqual",
+                    "valueType": "value",
+                    "value": 1,
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Enabled",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                   },
+                   {
+                    "id": 1781507466666,
+                    "parentId": 1781507466664,
+                    "isTop": false,
+                    "prop": "item_id",
+                    "operator": "numberEqual",
+                    "valueType": "field",
+                    "value": "{{node:loop_GvW0LO0l.id}}",
+                    "type": "leaf",
+                    "level": 2,
+                    "propLabel": "Item",
+                    "valueLabel": "",
+                    "operatorLabel": "Equal"
+                   }
+                  ]
+                 }
+                ]
+               }
+              },
+              "condition": {},
+              "title": "Get Reorder Config",
+              "isValidator": true,
+              "nodeName": "Get Reorder Config",
+              "name": "Get Reorder Config"
+             },
+             "blocks": []
+            },
+            {
+             "id": "if_OI5RdBnb",
+             "type": "if",
+             "data": {
+              "title": "IF no reorder config",
+              "isValidator": true,
+              "nodeName": "IF no reorder config",
+              "name": "IF no reorder config",
+              "condition_type": "Expression",
+              "expression": {
+               "type": "javascript",
+               "code": "{{node:get_node_lx8BhzFr.data.count}} == 0"
+              }
+             },
+             "blocks": [
+              {
+               "id": "if_block_MkxLkuw4",
+               "type": "ifBlock",
+               "data": {
+                "title": "true"
+               },
+               "blocks": [
+                {
+                 "id": "code_node_fXhCwHDc",
+                 "type": "code-node",
+                 "data": {
+                  "language": "javascript",
+                  "code": "",
+                  "timeout": 30000,
+                  "title": "No config found msg",
+                  "isValidator": true,
+                  "nodeName": "No config found msg",
+                  "name": "No config found msg",
+                  "script": {
+                   "type": "javascript",
+                   "code": "return {\n  message: 'No reorder config found.'\n}"
+                  },
+                  "response_json": [
+                   {
+                    "key": "5d92564d",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                   }
+                  ]
+                 },
+                 "blocks": []
+                }
+               ]
+              },
+              {
+               "id": "if_block_S7cR4Tzv",
+               "type": "ifBlock",
+               "data": {
+                "title": "false"
+               },
+               "blocks": [
+                {
+                 "id": "condition_all_YA6aGmH0",
+                 "type": "condition-all-node",
+                 "data": {
+                  "title": "Parallel Branch",
+                  "filter": {
+                   "list": []
+                  },
+                  "expression": {
+                   "code": ""
+                  },
+                  "displayContent": "sdk.form.setCondition"
+                 },
+                 "blocks": [
+                  {
+                   "id": "condition_all_node_item_HAaadMCe",
+                   "type": "condition-all-node-item",
+                   "data": {
+                    "title": "Fetch Balance data",
+                    "filter": {
+                     "list": [
+                      {
+                       "id": 1781507548874,
+                       "parentId": 1781507548873,
+                       "isTop": true,
+                       "prop": "",
+                       "operator": "",
+                       "valueType": "value",
+                       "value": "",
+                       "type": "leaf",
+                       "level": 1
+                      }
+                     ]
+                    },
+                    "expression": {
+                     "code": "true",
+                     "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Fetch Balance data",
+                    "name": "Fetch Balance data",
+                    "condition_type": "Expression"
+                   },
+                   "blocks": [
+                    {
+                     "id": "search_node_be4AYvbU",
+                     "type": "search-node",
+                     "data": {
+                      "table_id": {
+                       "source": "Item Balance:Table:1902698977724317697",
+                       "rules": {
+                        "collectionId": "1902698977724317697",
+                        "list": [
+                         {
+                          "id": 1781507605218,
+                          "parentId": 1781507605219,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "all",
+                          "valueType": "",
+                          "value": "",
+                          "type": "branch",
+                          "level": 1,
+                          "children": [
+                           {
+                            "id": 1781507605219,
+                            "parentId": 1781507605218,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:loop_GvW0LO0l.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Item Code",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                           },
+                           {
+                            "id": 1781507605220,
+                            "parentId": 1781507605218,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                           }
+                          ]
+                         }
+                        ]
+                       }
+                      },
+                      "condition": {},
+                      "limit": 100,
+                      "title": "Get Balance data",
+                      "isValidator": true,
+                      "nodeName": "Get Balance data",
+                      "name": "Get Balance data"
+                     },
+                     "blocks": []
+                    }
+                   ]
+                  },
+                  {
+                   "id": "condition_all_node_item_3foF00Cb",
+                   "type": "condition-all-node-item",
+                   "data": {
+                    "title": "Fetch ON PO data",
+                    "filter": {
+                     "list": [
+                      {
+                       "id": 1781507549047,
+                       "parentId": 1781507549046,
+                       "isTop": true,
+                       "prop": "",
+                       "operator": "",
+                       "valueType": "",
+                       "value": "",
+                       "type": "leaf",
+                       "level": 1
+                      }
+                     ]
+                    },
+                    "expression": {
+                     "code": "true",
+                     "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Fetch ON PO data",
+                    "name": "Fetch ON PO data",
+                    "condition_type": "Expression"
+                   },
+                   "blocks": [
+                    {
+                     "id": "search_node_gnzEqmQw",
+                     "type": "search-node",
+                     "data": {
+                      "table_id": {
+                       "source": "On Order Purchase Order:Table:1902627276974047233",
+                       "rules": {
+                        "collectionId": "1902627276974047233",
+                        "list": [
+                         {
+                          "id": 1781507654326,
+                          "parentId": 1781507654327,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "all",
+                          "valueType": "",
+                          "value": "",
+                          "type": "branch",
+                          "level": 1,
+                          "children": [
+                           {
+                            "id": 1781507654326,
+                            "parentId": 1781507654326,
+                            "isTop": false,
+                            "prop": "material_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{node:loop_GvW0LO0l.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Item Name",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                           },
+                           {
+                            "id": 1781507654328,
+                            "parentId": 1781507654326,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization_ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                           },
+                           {
+                            "id": 1781507654330,
+                            "parentId": 1781507654326,
+                            "isTop": false,
+                            "prop": "open_qty",
+                            "operator": "numberNotEqual",
+                            "valueType": "value",
+                            "value": 0,
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Open Quantity",
+                            "valueLabel": "",
+                            "operatorLabel": "Not Equal"
+                           }
+                          ]
+                         }
+                        ]
+                       }
+                      },
+                      "condition": {},
+                      "limit": 100,
+                      "title": "Get ON PO data",
+                      "isValidator": true,
+                      "nodeName": "Get ON PO data",
+                      "name": "Get ON PO data"
+                     },
+                     "blocks": []
+                    }
+                   ]
+                  },
+                  {
+                   "id": "condition_all_item_SHYFzGHZ",
+                   "type": "condition-all-node-item",
+                   "data": {
+                    "title": "Fetch SO Outstanding data",
+                    "filter": {
+                     "list": [
+                      {
+                       "id": 1781507564223,
+                       "parentId": 1781507564222,
+                       "isTop": true,
+                       "prop": "",
+                       "operator": "",
+                       "valueType": "",
+                       "value": "",
+                       "type": "leaf",
+                       "level": 1
+                      }
+                     ]
+                    },
+                    "expression": {
+                     "code": "true",
+                     "type": "javascript"
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "__index": 3,
+                    "isValidator": true,
+                    "nodeName": "Fetch SO Outstanding data",
+                    "name": "Fetch SO Outstanding data",
+                    "condition_type": "Expression"
+                   },
+                   "blocks": [
+                    {
+                     "id": "search_node_2zY1Njyc",
+                     "type": "search-node",
+                     "data": {
+                      "table_id": {
+                       "source": "Sales Order Table(Sales Order):Table:1939903359943024642",
+                       "rules": {
+                        "collectionId": "1939903359943024642",
+                        "list": [
+                         {
+                          "id": 1781507806703,
+                          "parentId": 1781507806704,
+                          "isTop": true,
+                          "prop": "",
+                          "operator": "all",
+                          "valueType": "",
+                          "value": "",
+                          "type": "branch",
+                          "level": 1,
+                          "children": [
+                           {
+                            "id": 1781507806704,
+                            "parentId": 1781507806703,
+                            "isTop": false,
+                            "prop": "item_name",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{node:loop_GvW0LO0l.id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Item Code",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                           },
+                           {
+                            "id": 1781507806705,
+                            "parentId": 1781507806703,
+                            "isTop": false,
+                            "prop": "organization_id",
+                            "operator": "equal",
+                            "valueType": "field",
+                            "value": "{{workflowparams:organization_id}}",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Organization ID",
+                            "valueLabel": "",
+                            "operatorLabel": "Equal"
+                           },
+                           {
+                            "id": 1781507806706,
+                            "parentId": 1781507806703,
+                            "isTop": false,
+                            "prop": "outstanding_quantity",
+                            "operator": "numberNotEqual",
+                            "valueType": "value",
+                            "value": "0.000",
+                            "type": "leaf",
+                            "level": 2,
+                            "propLabel": "Outstanding Quantity",
+                            "valueLabel": "",
+                            "operatorLabel": "Not Equal"
+                           },
+                           {
+                            "id": 1783933194102,
+                            "isTop": false,
+                            "parentId": 1781507806703,
+                            "type": "branch",
+                            "operator": "any",
+                            "level": 2,
+                            "children": [
+                             {
+                              "id": 1783933194101,
+                              "parentId": 1783933194102,
+                              "isTop": false,
+                              "prop": "line_status",
+                              "operator": "equal",
+                              "valueType": "value",
+                              "value": "Processing",
+                              "type": "leaf",
+                              "level": 3,
+                              "propLabel": "Line Status",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                             },
+                             {
+                              "id": 1783933194103,
+                              "parentId": 1783933194102,
+                              "isTop": false,
+                              "prop": "line_status",
+                              "operator": "equal",
+                              "valueType": "value",
+                              "value": "Issued",
+                              "type": "leaf",
+                              "level": 3,
+                              "propLabel": "Line Status",
+                              "valueLabel": "",
+                              "operatorLabel": "Equal"
+                             }
+                            ]
+                           }
+                          ]
+                         }
+                        ]
+                       }
+                      },
+                      "condition": {},
+                      "limit": 100,
+                      "title": "Get SO Outstanding Data",
+                      "isValidator": true,
+                      "nodeName": "Get SO Outstanding Data",
+                      "name": "Get SO Outstanding Data"
+                     },
+                     "blocks": []
+                    }
+                   ]
+                  }
+                 ]
+                },
+                {
+                 "id": "if_tCHLrJns",
+                 "type": "if",
+                 "data": {
+                  "title": "IF mrp level is plant",
+                  "isValidator": true,
+                  "nodeName": "IF mrp level is plant",
+                  "name": "IF mrp level is plant",
+                  "condition_type": "Expression",
+                  "expression": {
+                   "type": "javascript",
+                   "code": "'{{node:get_node_lx8BhzFr.data.data.mrp_level}}' == 'By Plant'"
+                  }
+                 },
+                 "blocks": [
+                  {
+                   "id": "if_block_cvj-w16D",
+                   "type": "ifBlock",
+                   "data": {
+                    "title": "true"
+                   },
+                   "blocks": [
+                    {
+                     "id": "search_node_xc43Yk1f",
+                     "type": "search-node",
+                     "data": {
+                      "table_id": {
+                       "source": "组织机构(勿删勿改):Table:1789995126399348747",
+                       "rules": {
+                        "collectionId": "1789995126399348747",
+                        "list": [
+                         {
+                          "id": 1781576134578,
+                          "parentId": 1781576134577,
+                          "isTop": true,
+                          "prop": "parent_id",
+                          "operator": "numberEqual",
+                          "valueType": "field",
+                          "value": "{{workflowparams:organization_id}}",
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "Parent Primary Key",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                         }
+                        ]
+                       }
+                      },
+                      "condition": {},
+                      "limit": 100,
+                      "title": "Get Plant ID",
+                      "isValidator": true,
+                      "nodeName": "Get Plant ID",
+                      "name": "Get Plant ID"
+                     },
+                     "blocks": []
+                    }
+                   ]
+                  },
+                  {
+                   "id": "if_block_8KFFTTZw",
+                   "type": "ifBlock",
+                   "data": {
+                    "title": "false"
+                   },
+                   "blocks": []
+                  }
+                 ]
+                },
+                {
+                 "id": "code_node_WBYeWkql",
+                 "type": "code-node",
+                 "data": {
+                  "language": "javascript",
+                  "code": "",
+                  "timeout": 30000,
+                  "title": "Map plant/org ID array",
+                  "isValidator": true,
+                  "nodeName": "Map plant/org ID array",
+                  "name": "Map plant/org ID array",
+                  "script": {
+                   "type": "javascript",
+                   "code": "const organizationID = {{workflowparams:organization_id}};\nconst plantData = {{node:search_node_xc43Yk1f.data.data}} || [];\nconst reorderConfig = {{node:get_node_lx8BhzFr.data.data}};\n\nif(reorderConfig.mrp_level === 'By Plant') {\n  const plantIDList = plantData.map(plant => plant.id) || [];\n  return { deptIDList: plantIDList }\n} else if (reorderConfig.mrp_level === 'By Organization') {\n  return { deptIDList: [organizationID] }\n}\n"
+                  },
+                  "response_json": [
+                   {
+                    "key": "omymcgkb",
+                    "name": "deptIDList",
+                    "title": "ORG/Plant ID list",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                   }
+                  ]
+                 },
+                 "blocks": []
+                },
+                {
+                 "id": "loop_l6wx6B3F",
+                 "type": "loop",
+                 "data": {
+                  "title": "Loop Dept ID",
+                  "isValidator": true,
+                  "nodeName": "Loop Dept ID",
+                  "name": "Loop Dept ID",
+                  "loopType": "Var",
+                  "loopSeletVar": {
+                   "type": "markdown",
+                   "code": "{{node:code_node_WBYeWkql.data.deptIDList}}"
+                  }
+                 },
+                 "blocks": [
+                  {
+                   "id": "code_node_kqZAAWbi",
+                   "type": "code-node",
+                   "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Calculate available stock",
+                    "isValidator": true,
+                    "nodeName": "Calculate available stock",
+                    "name": "Calculate available stock",
+                    "script": {
+                     "type": "javascript",
+                     "code": "const deptID = {{node:loop_l6wx6B3F}}; // This can be either organization_id or plant_id\nconst balanceData = {{node:search_node_be4AYvbU.data.data}};\nconst onOrderPOData = {{node:search_node_gnzEqmQw.data.data}};\nconst soOutstandingData = {{node:search_node_2zY1Njyc.data.data}};\nconst reorderConfig = {{node:get_node_lx8BhzFr.data.data}};\nconst itemData = {{node:loop_GvW0LO0l}};\n\n// Helper function to filter data by the department ID (either organization_id or plant_id)\nconst filterByDept = (data, config, deptID) => {\n  if (!data || data.length === 0) return [];\n\n  const mrpLevel = config?.mrp_level;\n\n  if (mrpLevel === \"By Organization\") {\n    // Filter by organization_id\n    return data.filter((item) => item.organization_id === deptID);\n  } else if (mrpLevel === \"By Plant\") {\n    // Filter by plant_id\n    return data.filter((item) => item.plant_id === deptID);\n  }\n\n  return [];\n};\n\n// Helper function to sum values from filtered data\nconst sumField = (data, field) => {\n  if (!data || data.length === 0) return 0;\n  return data.reduce(\n    (total, item) => total + (parseFloat(item[field]) || 0),\n    0,\n  );\n};\n\n// Helper function to get conversion rate from alt_uom_id to base_uom\nconst getConversionRate = (uomConversions, altUomId) => {\n  if (\n    !uomConversions ||\n    !Array.isArray(uomConversions) ||\n    uomConversions.length === 0\n  ) {\n    return 1; // Default to 1 if no conversion found\n  }\n\n  // Find the conversion for the given alt_uom_id\n  const conversion = uomConversions.find(\n    (conv) => conv.alt_uom_id === altUomId,\n  );\n\n  if (conversion) {\n    return conversion.base_qty;\n  }\n\n  return 1; // Default to 1 if no conversion found\n};\n\n// Filter data based on reorder config level using the mapped deptID\nconst balanceDataFiltered = filterByDept(balanceData, reorderConfig, deptID);\nconst onOrderPODataFiltered = filterByDept(\n  onOrderPOData,\n  reorderConfig,\n  deptID,\n);\nconst soOutstandingDataFiltered = filterByDept(\n  soOutstandingData,\n  reorderConfig,\n  deptID,\n);\n\n// Calculate totals based on filtered data\nconst unrestrictedQty = sumField(balanceDataFiltered, \"unrestricted_qty\");\nconst qualityinspQty = sumField(balanceDataFiltered, \"qualityinsp_qty\");\nconst intransitQty = sumField(balanceDataFiltered, \"intransit_qty\");\nconst openQty = sumField(onOrderPODataFiltered, \"open_qty\");\n\n// Calculate SO outstanding quantity with UOM conversion\nconst uomConversions = itemData?.table_uom_conversion || [];\nlet totalOutstandingInBaseUOM = 0;\n\nif (soOutstandingDataFiltered && soOutstandingDataFiltered.length > 0) {\n  soOutstandingDataFiltered.forEach((soItem) => {\n    const outstandingQty = parseFloat(soItem.outstanding_quantity) || 0;\n    const soUom = soItem.so_item_uom;\n\n    if (soUom) {\n      // Get conversion rate from SO UOM to base UOM\n      const conversionRate = getConversionRate(uomConversions, soUom);\n      // Convert to base UOM\n      const convertedQty = outstandingQty * conversionRate;\n      totalOutstandingInBaseUOM += convertedQty;\n    } else {\n      // If no UOM specified, assume it's already in base UOM\n      totalOutstandingInBaseUOM += outstandingQty;\n    }\n  });\n}\n\n// Calculate available stock\nconst availableStock =\n  unrestrictedQty +\n  qualityinspQty +\n  (intransitQty + openQty) -\n  totalOutstandingInBaseUOM;\n\n// Format to 3 decimal places\nconst formattedAvailableStock = Math.round(availableStock * 1000) / 1000;\n\nreturn {\n  available_stock: formattedAvailableStock,\n};\n"
+                    },
+                    "response_json": [
+                     {
+                      "key": "yulxa0n9",
+                      "name": "available_stock",
+                      "title": "available_stock",
+                      "description": "",
+                      "bsonType": "decimal",
+                      "isExpand": false,
+                      "children": []
+                     }
+                    ]
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "code_node_a11930AV",
+                   "type": "code-node",
+                   "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Find Reorder Supplier",
+                    "isValidator": true,
+                    "nodeName": "Find Reorder Supplier",
+                    "name": "Find Reorder Supplier",
+                    "script": {
+                     "type": "javascript",
+                     "code": "const reorderSupplier = {{node:loop_GvW0LO0l.table_reorder_supplier}} || [];\nlet selectedSupplier = null;\n\n// Check if reorderSupplier is empty\nif (reorderSupplier.length === 0) {\n  return {\n    supplier: null,\n    message: \"No suppliers configured.\",\n    has_supplier: 'No'\n  };\n}\n\n// Filter active suppliers\nconst activeSuppliers = reorderSupplier.filter(supplier => supplier.active === 1);\n\nif (activeSuppliers.length === 0) {\n  return {\n    supplier: null,\n    message: \"No active suppliers found.\",\n    has_supplier: 'No'\n  };\n}\n\n// Find supplier with the smallest supplier_level (highest priority)\nselectedSupplier = activeSuppliers.reduce((min, supplier) => \n  supplier.supplier_level < min.supplier_level ? supplier : min\n);\n\n// Return supplier data only\nreturn {\n  supplier: selectedSupplier,\n  has_supplier: 'Yes',\n  message: \"Supplier found successfully.\"\n};"
+                    },
+                    "response_json": [
+                     {
+                      "key": "izkov5ib",
+                      "name": "supplier",
+                      "title": "Supplier",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "children": []
+                     },
+                     {
+                      "key": "930547zt",
+                      "name": "has_supplier",
+                      "title": "Has Supplier",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                     },
+                     {
+                      "key": "exp6orks",
+                      "name": "message",
+                      "title": "Message",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                     }
+                    ]
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "if_dGjfACDB",
+                   "type": "if",
+                   "data": {
+                    "title": "IF fixed method?",
+                    "isValidator": true,
+                    "nodeName": "IF fixed method?",
+                    "name": "IF fixed method?",
+                    "condition_type": "Expression",
+                    "expression": {
+                     "type": "javascript",
+                     "code": "'{{node:get_node_lx8BhzFr.data.data.reorder_method}}' == 'Fixed'"
+                    }
+                   },
+                   "blocks": [
+                    {
+                     "id": "if_block_Ki9EzF7m",
+                     "type": "ifBlock",
+                     "data": {
+                      "title": "true"
+                     },
+                     "blocks": [
+                      {
+                       "id": "code_node_3F3PwM8W",
+                       "type": "code-node",
+                       "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Compare available stock and safety stock",
+                        "isValidator": true,
+                        "nodeName": "Compare available stock and safety stock",
+                        "name": "Compare available stock and safety stock",
+                        "script": {
+                         "type": "javascript",
+                         "code": "const availableStock = parseFloat({{node:code_node_kqZAAWbi.data.available_stock}} || 0);\nconst reorderConfig = {{node:get_node_lx8BhzFr.data.data}};\nconst safetyStock = parseFloat(reorderConfig.safety_stock_qty || 0) ;\n\nif(availableStock < safetyStock) {\n  return {\n    create_pr: 'Yes'\n  }\n} else {\n  return {\n    create_pr: 'No'\n  }\n}"
+                        },
+                        "response_json": [
+                         {
+                          "key": "prkob5rq",
+                          "name": "create_pr",
+                          "title": "create_pr",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         }
+                        ]
+                       },
+                       "blocks": []
+                      },
+                      {
+                       "id": "code_node_RIThqVEI",
+                       "type": "code-node",
+                       "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Calculate fixed suggested stock",
+                        "isValidator": true,
+                        "nodeName": "Calculate fixed suggested stock",
+                        "name": "Calculate fixed suggested stock",
+                        "script": {
+                         "type": "javascript",
+                         "code": "const availableStock = parseFloat({{node:code_node_kqZAAWbi.data.available_stock}} || 0);\nconst reorderConfig = {{node:get_node_lx8BhzFr.data.data}};\nlet suggestedStock = 0;\n\nconst maxStockQty = parseFloat(reorderConfig?.max_stock_qty) || 0;\nsuggestedStock = Math.max(0, maxStockQty - availableStock);\n\nreturn {\n  suggested_stock: suggestedStock\n};"
+                        },
+                        "response_json": [
+                         {
+                          "key": "6wmt0246",
+                          "name": "suggested_stock",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         }
+                        ]
+                       },
+                       "blocks": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "if_block_kv3BvT8g",
+                     "type": "ifBlock",
+                     "data": {
+                      "title": "false"
+                     },
+                     "blocks": [
+                      {
+                       "id": "sql_node_jb8h7s93",
+                       "type": "sql-node",
+                       "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "Fetch summary SQL",
+                        "isValidator": true,
+                        "nodeName": "Fetch summary SQL",
+                        "name": "Fetch summary SQL",
+                        "script": {
+                         "type": "sql",
+                         "code": "SELECT\n  id,\n  item_id,\n  organization_id,\n  plant_id,\n  storage_location_id,\n  sales_demand_qty,\n  actual_consumption_qty,\n  summary_date,\n  abnormal_flag,\n  abnormal_reason,\n  exclude_from_dynamic\nFROM item_daily_summary\nWHERE item_id = '{{node:loop_GvW0LO0l.id}}'\n  AND summary_date >= DATE_SUB(CURDATE(), INTERVAL ({{node:get_node_lx8BhzFr.data.data.usage_window_days}} - 1) DAY)\nORDER BY summary_date DESC;"
+                        },
+                        "response_json": [
+                         {
+                          "key": "5xr59yds",
+                          "name": "id",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "mipj30kf",
+                          "name": "summary_date",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "ndo395sn",
+                          "name": "item_id",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "hyd5rtza",
+                          "name": "organization_id",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "y2u96u8d",
+                          "name": "plant_id",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "ahjkdfmf",
+                          "name": "storage_location_id",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "bzokx6sv",
+                          "name": "actual_consumption_qty",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "m2mljsho",
+                          "name": "sales_demand_qty",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "88vyz119",
+                          "name": "abnormal_flag",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "int",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "kzsfii5h",
+                          "name": "abnormal_reason",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "1k1ckfcq",
+                          "name": "exclude_from_dynamic",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "int",
+                          "isExpand": false,
+                          "children": []
+                         }
+                        ]
+                       },
+                       "blocks": []
+                      },
+                      {
+                       "id": "code_node_p5MkOw90",
+                       "type": "code-node",
+                       "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Calculate dynamic suggested stock",
+                        "isValidator": true,
+                        "nodeName": "Calculate dynamic suggested stock",
+                        "name": "Calculate dynamic suggested stock",
+                        "script": {
+                         "type": "javascript",
+                         "code": "const pastSummaryList = {{node:sql_node_jb8h7s93.data}};\nconst todaySummaryRaw = {{node:get_cache_node_LjCr5tpM.data}} || '';\nconst todaySummary = todaySummaryRaw && todaySummaryRaw !== '' ? JSON.parse(todaySummaryRaw) : []\nconst reorderConfig = {{node:get_node_lx8BhzFr.data.data}};\nconst availableStock = parseFloat({{node:code_node_kqZAAWbi.data.available_stock}} || 0);\nconst deptID = {{node:loop_l6wx6B3F}};\nconst supplierData = {{node:code_node_a11930AV.data.supplier}} || {};\nconst itemData = {{node:loop_GvW0LO0l}}; // Current item data for filtering\n// Helper function to filter by MRP level\nconst filterByMrpLevel = (data, reorderConfig, deptID) => {\n  if (!data || data.length === 0) return [];\n\n  const mrpLevel = reorderConfig?.mrp_level;\n\n  if (mrpLevel === \"By Organization\") {\n    return data.filter((item) => item.organization_id === deptID);\n  } else if (mrpLevel === \"By Plant\") {\n    return data.filter((item) => item.plant_id === deptID);\n  }\n\n  return data;\n};\n\n// Helper function to filter by material/item ID\nconst filterByMaterial = (data, materialId) => {\n  if (!data || data.length === 0) return [];\n  return data.filter((item) => item.item_id === materialId);\n};\n\n// Helper function to sum field\nconst sumField = (data, field) => {\n  if (!data || data.length === 0) return 0;\n  return data.reduce(\n    (total, item) => total + (parseFloat(item[field]) || 0),\n    0,\n  );\n};\n\n// Helper function to get unique dates\nconst getUniqueDates = (data) => {\n  if (!data || data.length === 0) return [];\n  const dateSet = new Set();\n  data.forEach((item) => {\n    if (item.summary_date) {\n      dateSet.add(item.summary_date);\n    }\n  });\n  return Array.from(dateSet);\n};\n\n// STEP 1: Filter out exclude_from_dynamic = 1\nconst filteredPastSummary = pastSummaryList.filter(\n  (item) => item.exclude_from_dynamic !== 1,\n);\n\n// STEP 2: Filter by MRP level\nconst filteredPastByLevel = filterByMrpLevel(\n  filteredPastSummary,\n  reorderConfig,\n  deptID,\n);\n\n// STEP 2b: Filter by current material/item\nconst itemId = itemData?.id;\nconst pastSummaryByItem = filterByMaterial(filteredPastByLevel, itemId);\n\n// Convert todaySummary to array if it's an object and filter by material\nlet todaySummaryArray = [];\nlet todaySummaryByItem = [];\nif (todaySummary && todaySummary.items && todaySummary.items.length > 0) {\n  todaySummaryArray = filterByMrpLevel(\n    todaySummary.items,\n    reorderConfig,\n    deptID,\n  );\n  // Filter today summary by current material\n  todaySummaryByItem = filterByMaterial(todaySummaryArray, itemId);\n}\n\n// STEP 3: Calculate sales demand and actual consumption (filtered by item)\nconst totalSalesDemand =\n  sumField(pastSummaryByItem, \"sales_demand_qty\") +\n  sumField(todaySummaryByItem, \"sales_demand_qty\");\nconst totalActualConsumption =\n  sumField(pastSummaryByItem, \"actual_consumption_qty\") +\n  sumField(todaySummaryByItem, \"actual_consumption_qty\");\n\n// STEP 4: Calculate effective days (filtered by item)\nconst pastExcludeFromDynamic = pastSummaryList.filter(\n  (item) => item.exclude_from_dynamic === 1,\n);\nconst pastExcludeByItem = filterByMaterial(pastExcludeFromDynamic, itemId);\nconst uniqueExcludePastDates = getUniqueDates(pastExcludeByItem);\n\nconst usageWindowDays = parseInt(reorderConfig?.usage_window_days) || 0;\nconst excludedDaysCount = uniqueExcludePastDates.length;\nconst effectiveDays = usageWindowDays - excludedDaysCount;\n\n// STEP 5: Calculate daily averages\nconst salesDemandDaily =\n  effectiveDays > 0 ? totalSalesDemand / effectiveDays : 0;\nconst actualConsumptionDaily =\n  effectiveDays > 0 ? totalActualConsumption / effectiveDays : 0;\n\n// STEP 6: Dynamic daily demand = max(sales demand daily, actual consumption daily)\nconst dynamicDailyDemand = Math.max(salesDemandDaily, actualConsumptionDaily);\n\n// STEP 7: Get supplier lead time (from supplier)\nconst supplierLeadTime = parseFloat(supplierData?.lead_time_days) || 0;\nconst safetyStock = parseFloat(reorderConfig?.safety_stock_qty) || 0;\n\n// STEP 8: Calculate dynamic target inventory\nconst dynamicTargetInventory =\n  dynamicDailyDemand * supplierLeadTime + safetyStock;\n\n// STEP 9: Calculate suggested replenishment quantity\nconst suggestedStock = Math.max(0, dynamicTargetInventory - availableStock);\n\n// STEP 10: Check for abnormal sales demand in today's summary\n// If today's sales demand > 3x total past sales demand, mark as abnormal\n\nconst totalPastSalesDemand = sumField(pastSummaryByItem, \"sales_demand_qty\");\nconst totalTodaySalesDemand = sumField(todaySummaryByItem, \"sales_demand_qty\");\nconst totalPastActualConsumption = sumField(\n  pastSummaryByItem,\n  \"actual_consumption_qty\",\n);\nconst totalTodayActualConsumption = sumField(\n  todaySummaryByItem,\n  \"actual_consumption_qty\",\n);\n\nlet latestTodaySummary = [];\nlet abnormalFlagCount = 0;\nlet abnormalReason = \"\";\nif (totalTodaySalesDemand > 3 * totalPastSalesDemand) {\n  abnormalFlagCount = 1;\n  abnormalReason = \"Sales demand is 3x higher than past sales demand\";\n} else if (totalTodayActualConsumption > 3 * totalPastActualConsumption) {\n  abnormalFlagCount = 1;\n  abnormalReason =\n    \"Actual consumption is 3x higher than past actual consumption\";\n}\n\nconst todayItems = todaySummary?.items || [];\nlatestTodaySummary = todayItems.map((item) => {\n  return {\n    ...item,\n    abnormal_flag:\n      item.item_id === itemId ? abnormalFlagCount : item.abnormal_flag,\n    abnormal_reason:\n      item.item_id === itemId ? abnormalReason : item.abnormal_reason,\n  };\n});\n\n// Format to 3 decimal places\nconst formattedSuggestedStock = Math.round(suggestedStock * 1000) / 1000;\nconst formattedDynamicDailyDemand =\n  Math.round(dynamicDailyDemand * 1000) / 1000;\nconst formattedDynamicTargetInventory =\n  Math.round(dynamicTargetInventory * 1000) / 1000;\n\nreturn {\n  suggested_stock: formattedSuggestedStock,\n  dynamic_daily_demand: formattedDynamicDailyDemand,\n  dynamic_target_inventory: formattedDynamicTargetInventory,\n  today_summary: latestTodaySummary,\n  abnormal_flag: abnormalFlagCount,\n  abnormal_reason: abnormalReason\n};\n"
+                        },
+                        "response_json": [
+                         {
+                          "key": "12o6hp3z",
+                          "name": "suggested_stock",
+                          "title": "suggested_stock",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "9g92kr9c",
+                          "name": "dynamic_daily_demand",
+                          "title": "dynamic_daily_demand",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "qdt17yes",
+                          "name": "dynamic_target_inventory",
+                          "title": "dynamic_target_inventory",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "iqytodbh",
+                          "name": "today_summary",
+                          "title": "today_summary",
+                          "description": "",
+                          "bsonType": "any",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "hbu9qv6i",
+                          "name": "abnormal_flag",
+                          "title": "abnormal_flag",
+                          "description": "",
+                          "bsonType": "int",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "xun5qxo5",
+                          "name": "abnormal_reason",
+                          "title": "abnormal_reason",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         }
+                        ]
+                       },
+                       "blocks": []
+                      }
+                     ]
+                    }
+                   ]
+                  },
+                  {
+                   "id": "code_node_rmgpWXK5",
+                   "type": "code-node",
+                   "data": {
+                    "language": "javascript",
+                    "code": "",
+                    "timeout": 30000,
+                    "title": "Define create PR",
+                    "isValidator": true,
+                    "nodeName": "Define create PR",
+                    "name": "Define create PR",
+                    "script": {
+                     "type": "javascript",
+                     "code": "const reorderMethod = {{node:get_node_lx8BhzFr.data.data.reorder_method}};\n\nif(reorderMethod === 'Fixed') {\n  return {\n    createPR: {{node:code_node_3F3PwM8W.data.create_pr}}\n  }\n} else {\n  return {\n    createPR: \"Yes\"\n  }\n}"
+                    },
+                    "response_json": [
+                     {
+                      "key": "8atu5whp",
+                      "name": "createPR",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "string",
+                      "isExpand": false
+                     }
+                    ]
+                   },
+                   "blocks": []
+                  },
+                  {
+                   "id": "if_PLq8YrEw",
+                   "type": "if",
+                   "data": {
+                    "title": "IF not create PR?",
+                    "isValidator": true,
+                    "nodeName": "IF not create PR?",
+                    "name": "IF not create PR?",
+                    "condition_type": "Expression",
+                    "expression": {
+                     "type": "javascript",
+                     "code": "'{{node:code_node_rmgpWXK5.data.createPR}}' == 'No'"
+                    }
+                   },
+                   "blocks": [
+                    {
+                     "id": "if_block_-0xIn0S7",
+                     "type": "ifBlock",
+                     "data": {
+                      "title": "true"
+                     },
+                     "blocks": [
+                      {
+                       "id": "code_node_2xJorPd4",
+                       "type": "code-node",
+                       "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "No PR",
+                        "isValidator": true,
+                        "nodeName": "No PR",
+                        "name": "No PR",
+                        "script": {
+                         "type": "javascript",
+                         "code": "return {\n  message: 'Not creating PR for this item.'\n}"
+                        },
+                        "response_json": [
+                         {
+                          "key": "5d92564d",
+                          "name": "message",
+                          "title": "Message",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         }
+                        ]
+                       },
+                       "blocks": []
+                      }
+                     ]
+                    },
+                    {
+                     "id": "if_block_ZPqg_nIK",
+                     "type": "ifBlock",
+                     "data": {
+                      "title": "false"
+                     },
+                     "blocks": [
+                      {
+                       "id": "code_node_0fuejsDC",
+                       "type": "code-node",
+                       "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "title": "Map suggested stock",
+                        "isValidator": true,
+                        "nodeName": "Map suggested stock",
+                        "name": "Map suggested stock",
+                        "script": {
+                         "type": "javascript",
+                         "code": "const reorderConfig = {{node:get_node_lx8BhzFr.data.data}};\nconst deptID = {{node:loop_l6wx6B3F}};\n\nif(reorderConfig.reorder_method === 'Fixed') {\n  return {\n    reorder_method: reorderConfig.reorder_method,\n    available_qty: {{node:code_node_kqZAAWbi.data.available_stock}},\n    daily_demand_qty: 0,\n    suggest_stock: {{node:code_node_RIThqVEI.data.suggested_stock}},\n    mrp_level: reorderConfig.mrp_level,\n    abnormal_flag: 0,\n    abnormal_reason: '',\n    dept_id: deptID\n  }\n} else {\n  return {\n    reorder_method: reorderConfig.reorder_method,\n    daily_demand_qty: {{node:code_node_p5MkOw90.data.dynamic_daily_demand}},\n    available_qty: {{node:code_node_kqZAAWbi.data.available_stock}},\n    suggest_stock: {{node:code_node_p5MkOw90.data.suggested_stock}},\n    mrp_level: reorderConfig.mrp_level,\n    abnormal_flag: {{node:code_node_p5MkOw90.data.abnormal_flag}},\n    abnormal_reason: {{node:code_node_p5MkOw90.data.abnormal_reason}},\n    dept_id: deptID\n  }\n}"
+                        },
+                        "response_json": [
+                         {
+                          "key": "ctyl1m89",
+                          "name": "reorder_method",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "x5gzhefr",
+                          "name": "suggest_stock",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "su96w3x9",
+                          "name": "mrp_level",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "a7xf2rji",
+                          "name": "dept_id",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         },
+                         {
+                          "key": "r8hzftqn",
+                          "name": "available_qty",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "porld13q",
+                          "name": "daily_demand_qty",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "decimal",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "26ryozwl",
+                          "name": "abnormal_flag",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "int",
+                          "isExpand": false,
+                          "children": []
+                         },
+                         {
+                          "key": "dueke8mh",
+                          "name": "abnormal_reason",
+                          "title": "",
+                          "description": "",
+                          "bsonType": "string",
+                          "isExpand": false
+                         }
+                        ]
+                       },
+                       "blocks": []
+                      },
+                      {
+                       "id": "if_lCuVUwXf",
+                       "type": "if",
+                       "data": {
+                        "title": "IF suggest stock = 0",
+                        "isValidator": true,
+                        "nodeName": "IF suggest stock = 0",
+                        "name": "IF suggest stock = 0",
+                        "condition_type": "Expression",
+                        "expression": {
+                         "type": "javascript",
+                         "code": "{{node:code_node_0fuejsDC.data.suggest_stock}} <= 0"
+                        }
+                       },
+                       "blocks": [
+                        {
+                         "id": "if_block_wmvFq45a",
+                         "type": "ifBlock",
+                         "data": {
+                          "title": "true"
+                         },
+                         "blocks": [
+                          {
+                           "id": "code_node_reJmNE3M",
+                           "type": "code-node",
+                           "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "0 Suggest stock",
+                            "isValidator": true,
+                            "nodeName": "0 Suggest stock",
+                            "name": "0 Suggest stock",
+                            "script": {
+                             "type": "javascript",
+                             "code": "return {\n  message: 'Suggested stock 0.'\n}"
+                            },
+                            "response_json": [
+                             {
+                              "key": "5d92564d",
+                              "name": "message",
+                              "title": "Message",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                             }
+                            ]
+                           },
+                           "blocks": []
+                          }
+                         ]
+                        },
+                        {
+                         "id": "if_block_5b3J2AZk",
+                         "type": "ifBlock",
+                         "data": {
+                          "title": "false"
+                         },
+                         "blocks": [
+                          {
+                           "id": "code_node_MWnfeGoq",
+                           "type": "code-node",
+                           "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "Define PR Quantity",
+                            "isValidator": true,
+                            "nodeName": "Define PR Quantity",
+                            "name": "Define PR Quantity",
+                            "script": {
+                             "type": "javascript",
+                             "code": "const suggestedStock = {{node:code_node_0fuejsDC.data.suggest_stock}} || 0;\nconst supplierData = {{node:code_node_a11930AV.data.supplier}} || {};\nconst itemData = {{node:loop_GvW0LO0l}};\nconst dailyDemandQty = {{node:code_node_0fuejsDC.data.daily_demand_qty}} || 0;\nconst availableQty = {{node:code_node_0fuejsDC.data.available_qty}} || 0;\nconst tableUOMConversion = itemData.table_uom_conversion;\nlet orderUOM = \"\";\nconst getConversionRate = (uomConversions, altUomId) => {\n  if (\n    !uomConversions ||\n    !Array.isArray(uomConversions) ||\n    uomConversions.length === 0\n  ) {\n    return 1; // Default to 1 if no conversion found\n  }\n\n  // Find the conversion for the given alt_uom_id\n  const conversion = uomConversions.find(\n    (conv) => conv.alt_uom_id === altUomId,\n  );\n\n  if (conversion) {\n    return conversion.base_qty;\n  }\n\n  return 1; // Default to 1 if no conversion found\n};\n\nif (supplierData?.reorder_uom) {\n  orderUOM = supplierData.reorder_uom;\n} else {\n  const purchaseDefaultUOM =\n    tableUOMConversion.find((uom) => uom.purchase_default_uom === 1) || null;\n\n  if (purchaseDefaultUOM) {\n    orderUOM = purchaseDefaultUOM.alt_uom_id;\n  } else {\n    orderUOM = itemData.based_uom;\n  }\n}\n// Get Order UOM\nconst conversionRate = getConversionRate(\n  itemData.table_uom_conversion,\n  orderUOM,\n);\n\nconst convertedSuggestedStock = suggestedStock / conversionRate;\nconst convertedDailyDemand = dailyDemandQty / conversionRate;\nconst convertedAvailable = availableQty / conversionRate;\n// Get MOQ from supplier\nconst moq = parseFloat(supplierData?.moq_qty) || 0;\n\n// Replenishment quantity = max(MOQ, suggested stock)\nconst prQty = Math.max(moq, convertedSuggestedStock);\n\n// Format to 3 decimal places\nconst formattedprQty = Math.round(prQty * 1000) / 1000;\n\nreturn {\n  pr_qty: formattedprQty,\n  pr_uom: orderUOM,\n  converted_daily_demand: convertedDailyDemand,\n  converted_available: convertedAvailable,\n};\n"
+                            },
+                            "response_json": [
+                             {
+                              "key": "2yo1dm3n",
+                              "name": "pr_qty",
+                              "title": "pr_qty",
+                              "description": "",
+                              "bsonType": "decimal",
+                              "isExpand": false,
+                              "children": []
+                             },
+                             {
+                              "key": "56urwdaq",
+                              "name": "pr_uom",
+                              "title": "pr_uom",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                             },
+                             {
+                              "key": "fsyxepox",
+                              "name": "converted_available",
+                              "title": "converted_available",
+                              "description": "",
+                              "bsonType": "decimal",
+                              "isExpand": false,
+                              "children": []
+                             },
+                             {
+                              "key": "px0ierv4",
+                              "name": "converted_daily_demand",
+                              "title": "converted_daily_demand",
+                              "description": "",
+                              "bsonType": "decimal",
+                              "isExpand": false,
+                              "children": []
+                             }
+                            ]
+                           },
+                           "blocks": []
+                          },
+                          {
+                           "id": "if_sMcC8H4S",
+                           "type": "if",
+                           "data": {
+                            "title": "no reorder supplier",
+                            "isValidator": true,
+                            "nodeName": "no reorder supplier",
+                            "name": "no reorder supplier",
+                            "condition_type": "Expression",
+                            "expression": {
+                             "type": "javascript",
+                             "code": "'{{node:code_node_a11930AV.data.has_supplier}}' == 'No'"
+                            }
+                           },
+                           "blocks": [
+                            {
+                             "id": "if_block_OcJ81uG9",
+                             "type": "ifBlock",
+                             "data": {
+                              "title": "true"
+                             },
+                             "blocks": [
+                              {
+                               "id": "sql_node_fib9rj2q",
+                               "type": "sql-node",
+                               "data": {
+                                "database_id": "",
+                                "sql": "",
+                                "params": {},
+                                "title": "Fetch PO Item",
+                                "isValidator": true,
+                                "nodeName": "Fetch PO Item",
+                                "name": "Fetch PO Item",
+                                "script": {
+                                 "type": "sql",
+                                 "code": "SELECT \n  id,\n  item_id,\n  plant_id,\n  create_time AS latest_create_date,\n  line_status,\n  supplier_id\nFROM purchase_order_2ukyuanr_sub\nWHERE item_id = '{{node:loop_GvW0LO0l.id}}'\n  AND plant_id = '{{node:loop_l6wx6B3F}}'\n  AND line_status NOT IN ('Cancelled', 'Draft')\n  AND is_deleted = 0\nORDER BY create_time DESC\nLIMIT 1;"
+                                },
+                                "response_json": [
+                                 {
+                                  "key": "7w2jdx29",
+                                  "name": "id",
+                                  "title": "",
+                                  "description": "",
+                                  "bsonType": "string",
+                                  "isExpand": false
+                                 },
+                                 {
+                                  "key": "zajufnxp",
+                                  "name": "item_id",
+                                  "title": "",
+                                  "description": "",
+                                  "bsonType": "string",
+                                  "isExpand": false
+                                 },
+                                 {
+                                  "key": "totc99qv",
+                                  "name": "plant_id",
+                                  "title": "",
+                                  "description": "",
+                                  "bsonType": "string",
+                                  "isExpand": false
+                                 },
+                                 {
+                                  "key": "yxwyjouq",
+                                  "name": "create_time",
+                                  "title": "",
+                                  "description": "",
+                                  "bsonType": "string",
+                                  "isExpand": false
+                                 },
+                                 {
+                                  "key": "m4ddao2i",
+                                  "name": "line_status",
+                                  "title": "",
+                                  "description": "",
+                                  "bsonType": "string",
+                                  "isExpand": false
+                                 },
+                                 {
+                                  "key": "63xa5d2e",
+                                  "name": "supplier_id",
+                                  "title": "",
+                                  "description": "",
+                                  "bsonType": "string",
+                                  "isExpand": false
+                                 }
+                                ]
+                               },
+                               "blocks": []
+                              }
+                             ]
+                            },
+                            {
+                             "id": "if_block_NNeFj_sa",
+                             "type": "ifBlock",
+                             "data": {
+                              "title": "false"
+                             },
+                             "blocks": []
+                            }
+                           ]
+                          },
+                          {
+                           "id": "code_node_xYb7tCot",
+                           "type": "code-node",
+                           "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "Get latest PR supplier",
+                            "isValidator": true,
+                            "nodeName": "Get latest PR supplier",
+                            "name": "Get latest PR supplier",
+                            "script": {
+                             "type": "javascript",
+                             "code": "const hasReorderSupplier = {{node:code_node_a11930AV.data.has_supplier}};\nlet prSupplier = null;\n\nif(hasReorderSupplier === 'Yes') {\n  prSupplier = {{node:code_node_a11930AV.data.supplier.supplier_id}};\n} else {\n  const latestPOSupplier = {{node:sql_node_fib9rj2q.data.supplier_id}};\n\n  prSupplier = latestPOSupplier && latestPOSupplier.length > 0 ? latestPOSupplier[0] : null\n}\n\nreturn { prSupplier }"
+                            },
+                            "response_json": [
+                             {
+                              "key": "nodc47ak",
+                              "name": "prSupplier",
+                              "title": "PR Supplier",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                             }
+                            ]
+                           },
+                           "blocks": []
+                          },
+                          {
+                           "id": "get_node_qkqyq2vY",
+                           "type": "get-node",
+                           "data": {
+                            "table_id": {
+                             "source": "Purchase Requisition:Table:1902776660860715009",
+                             "rules": {
+                              "collectionId": "1902776660860715009",
+                              "list": [
+                               {
+                                "id": 1781750390567,
+                                "parentId": 1781750390568,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "all",
+                                "valueType": "",
+                                "value": "",
+                                "type": "branch",
+                                "level": 1,
+                                "children": [
+                                 {
+                                  "id": 1781750390568,
+                                  "parentId": 1781750390567,
+                                  "isTop": false,
+                                  "prop": "preq_status",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Issued",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Preq Status",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                 },
+                                 {
+                                  "id": 1781750390569,
+                                  "parentId": 1781750390567,
+                                  "isTop": false,
+                                  "prop": "preq_type",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "Planning",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "PREQ Type",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                 },
+                                 {
+                                  "id": 1781750390572,
+                                  "parentId": 1781750390567,
+                                  "isTop": false,
+                                  "prop": "pr_supplier_name",
+                                  "operator": "equal",
+                                  "valueType": "field",
+                                  "value": "{{node:code_node_xYb7tCot.data.prSupplier}}",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Supplier Name",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                 },
+                                 {
+                                  "id": 1781750390573,
+                                  "parentId": 1781750390567,
+                                  "isTop": false,
+                                  "prop": "plant_id",
+                                  "operator": "numberEqual",
+                                  "valueType": "field",
+                                  "value": "{{node:loop_l6wx6B3F}}",
+                                  "type": "leaf",
+                                  "level": 2,
+                                  "propLabel": "Plant",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                 }
+                                ]
+                               }
+                              ]
+                             }
+                            },
+                            "condition": {},
+                            "title": "Get PR Data",
+                            "isValidator": true,
+                            "nodeName": "Get PR Data",
+                            "name": "Get PR Data"
+                           },
+                           "blocks": []
+                          },
+                          {
+                           "id": "code_node_ud35Tek9",
+                           "type": "code-node",
+                           "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "Map PR data",
+                            "isValidator": true,
+                            "nodeName": "Map PR data",
+                            "name": "Map PR data",
+                            "script": {
+                             "type": "javascript",
+                             "code": "const hasExistingPR = {{node:get_node_qkqyq2vY.data.count}};\nconst prSupplier = {{node:code_node_xYb7tCot.data.prSupplier}};\nif(hasExistingPR === 0) {\n  return {\n    pr_id: null,\n    pr_supplier: prSupplier,\n    action: 'Add'\n  }\n} else {\n  const prID = {{node:get_node_qkqyq2vY.data.data.id}};\n  return {\n    pr_id: prID,\n    pr_supplier: prSupplier,\n    action: 'Edit'\n  }\n}"
+                            },
+                            "response_json": [
+                             {
+                              "key": "raphof5r",
+                              "name": "pr_id",
+                              "title": "",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                             },
+                             {
+                              "key": "iq96jujp",
+                              "name": "action",
+                              "title": "",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                             },
+                             {
+                              "key": "qqrqs9ik",
+                              "name": "pr_supplier",
+                              "title": "",
+                              "description": "",
+                              "bsonType": "string",
+                              "isExpand": false
+                             }
+                            ]
+                           },
+                           "blocks": []
+                          },
+                          {
+                           "id": "workflow_node_MB0iX1FI",
+                           "type": "workflow-node",
+                           "data": {
+                            "workflow_id": "",
+                            "workflow_name": "",
+                            "input_params": {},
+                            "title": "Create / update PR",
+                            "isValidator": true,
+                            "nodeName": "Create / update PR",
+                            "name": "Create / update PR",
+                            "workflow": {
+                             "source": "CREATE_PLANNING_PR:Workflow:2067439074266775553",
+                             "rules": {
+                              "collectionId": "2067439074266775553",
+                              "list": [
+                               {
+                                "id": 1723795236686,
+                                "parentId": 1723795236685,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                               }
+                              ]
+                             }
+                            },
+                            "remote": true,
+                            "remoteType": "innerdatasource",
+                            "body_params": {
+                             "list": [
+                              {
+                               "prop": "pr_id",
+                               "propLabel": "pr_id",
+                               "operator": "",
+                               "operatorLabel": "",
+                               "valueType": "field",
+                               "valueTypeLabel": "",
+                               "value": "{{node:code_node_ud35Tek9.data.pr_id}}",
+                               "valueLabel": ""
+                              },
+                              {
+                               "prop": "action",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_ud35Tek9.data.action}}",
+                               "valueLabel": "",
+                               "propLabel": "action"
+                              },
+                              {
+                               "prop": "supplier_id",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_ud35Tek9.data.pr_supplier}}",
+                               "valueLabel": "",
+                               "propLabel": "supplier_id"
+                              },
+                              {
+                               "prop": "plant_id",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:loop_l6wx6B3F}}",
+                               "valueLabel": "",
+                               "propLabel": "plant_id"
+                              },
+                              {
+                               "prop": "item_id",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:loop_GvW0LO0l.id}}",
+                               "valueLabel": "",
+                               "propLabel": "item_id"
+                              },
+                              {
+                               "prop": "pr_qty",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_MWnfeGoq.data.pr_qty}}",
+                               "valueLabel": "",
+                               "propLabel": "pr_qty"
+                              },
+                              {
+                               "prop": "uom_id",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_MWnfeGoq.data.pr_uom}}",
+                               "valueLabel": "",
+                               "propLabel": "uom_id"
+                              },
+                              {
+                               "prop": "daily_demand_qty",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_MWnfeGoq.data.converted_daily_demand}}",
+                               "valueLabel": "",
+                               "propLabel": "daily_demand_qty"
+                              },
+                              {
+                               "prop": "available_qty",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_MWnfeGoq.data.converted_available}}",
+                               "valueLabel": "",
+                               "propLabel": "available_qty"
+                              },
+                              {
+                               "prop": "reorder_method",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_0fuejsDC.data.reorder_method}}",
+                               "valueLabel": "",
+                               "propLabel": "reorder_method"
+                              },
+                              {
+                               "prop": "abnormal_flag",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_0fuejsDC.data.abnormal_flag}}",
+                               "valueLabel": "",
+                               "propLabel": "abnormal_flag"
+                              },
+                              {
+                               "prop": "abnormal_reason",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{node:code_node_0fuejsDC.data.abnormal_reason}}",
+                               "valueLabel": "",
+                               "propLabel": "abnormal_reason"
+                              },
+                              {
+                               "prop": "organization_id",
+                               "operator": "",
+                               "valueType": "field",
+                               "value": "{{workflowparams:organization_id}}",
+                               "valueLabel": "",
+                               "propLabel": "organization_id"
+                              }
+                             ]
+                            }
+                           },
+                           "blocks": []
+                          },
+                          {
+                           "id": "code_node_BNKTSVT3",
+                           "type": "code-node",
+                           "data": {
+                            "language": "javascript",
+                            "code": "",
+                            "timeout": 30000,
+                            "title": "Latest Today Temp Summary",
+                            "isValidator": true,
+                            "nodeName": "Latest Today Temp Summary",
+                            "name": "Latest Today Temp Summary",
+                            "script": {
+                             "type": "javascript",
+                             "code": "const reorderMethod = {{node:get_node_lx8BhzFr.data.data.reorder_method}};\nlet latestTodaySummary = [];\n\nif(reorderMethod == 'Fixed') {\n  latestTodaySummary = {{node:code_node_JMLkDiBo.data.latestSummaryRedisData}};\n}\n\nif(reorderMethod == 'Dynamic') {\n  latestTodaySummary = {{node:code_node_p5MkOw90.data.today_summary}}\n}\n\n\nreturn {latestTodaySummary}"
+                            },
+                            "response_json": [
+                             {
+                              "key": "3x40u7mv",
+                              "name": "latestTodaySummary",
+                              "title": "",
+                              "description": "",
+                              "bsonType": "any",
+                              "isExpand": false,
+                              "children": []
+                             }
+                            ]
+                           },
+                           "blocks": []
+                          },
+                          {
+                           "id": "set_cache_node_Bk982rCj",
+                           "type": "set-cache-node",
+                           "data": {
+                            "cache_key": "",
+                            "cache_value": "",
+                            "expire_time": 3600,
+                            "title": "Set Redis Cache",
+                            "isValidator": true,
+                            "nodeName": "Set Redis Cache",
+                            "name": "Set Redis Cache",
+                            "custom_wkbocgni": {
+                             "type": "javascript",
+                             "code": "{{node:code_node_BNKTSVT3.data.latestTodaySummary}}"
+                            },
+                            "redis_key": "{{node:code_node_JgpClNBP.data.summary_redis_key}}",
+                            "limit_time": 172800000
+                           },
+                           "blocks": []
+                          }
+                         ]
+                        }
+                       ]
+                      }
+                     ]
+                    }
+                   ]
+                  }
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "id": "if_block_9UW-9wq2",
+           "type": "ifBlock",
+           "data": {
+            "title": "false"
+           },
+           "blocks": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

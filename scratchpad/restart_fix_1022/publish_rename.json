@@ -1,0 +1,30 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_ASYNC_WORKER",
+   "dataId": "2104840667119411201",
+   "file": "scratchpad/restart_fix_1022/GD_ASYNC_WORKER.v9_rename.json",
+   "base": "scratchpad/restart_fix_1022/base/GD_ASYNC_WORKER.live_v9.json"
+  },
+  {
+   "name": "GD_COMPLETE_WORKER",
+   "dataId": "2110182645714518018",
+   "file": "scratchpad/restart_fix_1022/GD_COMPLETE_WORKER.v4_rename.json",
+   "base": "scratchpad/restart_fix_1022/base/GD_COMPLETE_WORKER.live_v4.json"
+  },
+  {
+   "name": "GD_REVERT_WORKER",
+   "dataId": "2112758130420088833",
+   "file": "scratchpad/restart_fix_1022/GD_REVERT_WORKER.v4_rename.json",
+   "base": "scratchpad/restart_fix_1022/base/GD_REVERT_WORKER.live_v4.json"
+  },
+  {
+   "name": "GD_PICKING_OUTBOX_CONSUMER",
+   "dataId": "2105134245397041153",
+   "file": "scratchpad/restart_fix_1022/GD_PICKING_OUTBOX_CONSUMER.v11_rename.json",
+   "base": "scratchpad/restart_fix_1022/base/GD_PICKING_OUTBOX_CONSUMER.live_v11.json"
+  }
+ ]
+}

@@ -34,7 +34,10 @@ const compare = async (what, name, values, args, o, docs) => {
   const a = await run(V36, name, values, args, o);
   for (const [label, doc, exact] of docs || [["ON", ON, false], ["SC_ENABLED false", OFF_SWITCH, true], ["workflow ids 0", OFF_IDS, true]]) {
     const b = await run(doc, name, values, args, o);
-    const tb = exact ? b.trace : H.legacyTrace(b.trace);
+    // RES-01 Created review 1 (10-22): a new IA whose background save did not answer hides the Created button with the Draft one; the one
+    // call where the build differs from v36 on purpose (a superset: the extra button is hidden by default)
+    const t0 = b.trace.map((t) => (t[0] === "hide" && JSON.stringify(t[1]) === '["button_draft","button_created"]' ? ["hide", ["button_draft"]] : t));
+    const tb = exact ? t0 : H.legacyTrace(t0);
     const firstDiff = tb.findIndex((t, i) => JSON.stringify(t) !== JSON.stringify(a.trace[i]));
     check(what + " [" + label + "]: v36 call for call" + (exact ? " (nothing removed)" : ""), same(tb, a.trace), { at: firstDiff, v36: a.trace[firstDiff], built: tb[firstDiff], lengths: [a.trace.length, tb.length] });
     const bv = H.clone(b.values);
@@ -71,12 +74,13 @@ const compare = async (what, name, values, args, o, docs) => {
   await compare("plant changed", "onChange_Plant", F.header({ stock_movement: rows }), { value: F.PLANT });
   await compare("plant cleared", "onChange_Plant", F.header({ stock_movement: rows }), { value: "" });
 
-  // ---- mounted, every page and status
+  // ---- mounted, every page and status (MIN-06, BA 10-22: a new IA or a Draft shows its display-only Draft row, RES-01 being on)
+  const DRAFT_ROW = { res_summary: "Raw material reservation: No stock reserved (Draft). Save as Created to reserve the materials." };
   const pages = [
-    ["Add, plant-level login", { isAdd: true }, F.header()],
-    ["Add, org-level login", { isAdd: true, system: { deptIds: "1001", uid: "77" } }, F.header()],
-    ["Clone", { isCopy: true }, F.header({ id: "4001", stock_movement: rows, batch_no: "X" })],
-    ["Edit, Draft", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", stock_movement: rows })],
+    ["Add, plant-level login", { isAdd: true }, F.header(), DRAFT_ROW],
+    ["Add, org-level login", { isAdd: true, system: { deptIds: "1001", uid: "77" } }, F.header(), DRAFT_ROW],
+    ["Clone", { isCopy: true }, F.header({ id: "4001", stock_movement: rows, batch_no: "X" }), DRAFT_ROW],
+    ["Edit, Draft", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", stock_movement: rows }), DRAFT_ROW],
     ["Edit, Completed", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Completed", stock_movement: rows }), { sc_actual: "10" }],
     ["Edit, Fully Posted", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Fully Posted", stock_movement: rows }), { sc_actual: "10" }],
     ["Edit, Processing", { isEdit: true }, F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Processing", ia_v2_job_id: "7001", stock_movement: rows })],
@@ -89,15 +93,18 @@ const compare = async (what, name, values, args, o, docs) => {
   {
     const b = await run(ON, "mounted", F.header(), undefined, { this: { isAdd: true } });
     const sc = b.trace.filter((t) => /^sc:/.test(t[0]));
-    check("mounted ON, legacy Add: Small Cycle shows its section with the radio and Select SO Line only, reads / writes / calls nothing", sc.length > 0 &&
-      sc.every((t) => ["sc:getValues", "sc:getParamsVariables", "sc:display", "sc:hide", "sc:disabled"].indexOf(t[0]) >= 0) &&
+    check("mounted ON, legacy Add: Small Cycle shows its section with the radio and Select SO Line only, and the Draft row; reads / writes / calls nothing", sc.length > 0 &&
+      sc.every((t) => ["sc:getValues", "sc:getParamsVariables", "sc:display", "sc:hide", "sc:disabled"].indexOf(t[0]) >= 0 ||
+        (t[0] === "sc:setData" && same(Object.keys(t[1]), ["res_summary"]))) &&
       sc.some((t) => t[0] === "sc:display" && same(t[1], ["sc_section", "bom_consumption_mode", "sc_actions", "sc_btn_line"])), sc);
     const c = await run(ON, "mounted", F.header({ id: "4001", page_status: "Edit", item_assembly_status: "Completed", stock_movement: rows }), undefined, { this: { isEdit: true } });
     const sc2 = c.trace.filter((t) => /^sc:/.test(t[0]));
-    // UI-01: only the read-only Actual Received row in place of the quantity; no read, no workflow
+    // UI-01: only the read-only Actual Received row in place of the quantity; no read; BA rev 1.2 C2: one read-only IA_HOLD CHECK, no other workflow
+    const calls = c.trace.filter((t) => /runWorkflow$/.test(t[0]));
     check("mounted ON, legacy Completed: only Actual Received shown, in place of the quantity", same(sc2.filter((t) => t[0] === "sc:display").map((t) => t[1]), [["sc_actual"]]) &&
       same(sc2.filter((t) => t[0] === "sc:setData").map((t) => t[1]), [{ sc_actual: "10" }]) && sc2.some((t) => t[0] === "sc:hide" && same(t[1], ["item_qty"])) &&
-      sc2.every((t) => ["sc:getValues", "sc:getParamsVariables", "sc:hide", "sc:disabled", "sc:display", "sc:setData"].indexOf(t[0]) >= 0), sc2);
+      sc2.every((t) => ["sc:getValues", "sc:getParamsVariables", "sc:hide", "sc:disabled", "sc:display", "sc:setData", "sc:runWorkflow"].indexOf(t[0]) >= 0) &&
+      calls.length === 1 && calls[0][1] === H.SC_TEST_IDS.IA_HOLD && same(calls[0][2], { ia_id: "4001", organization_id: F.ORG, operation: "CHECK", source: "FORM" }), [sc2, calls]);
   }
 
   // ---- completion: the four BOM-variance copies, classic and V2, and Draft

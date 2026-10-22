@@ -330,6 +330,13 @@ const failed = (w, code, label) => {
     ok(wp.job.job_status === "REQUIRES_REVIEW" && wp.job.error_code === "IA_PREV_STATUS_UNKNOWN" && wp.ia.item_assembly_status === "Processing" && wp.batchDeletes.length === 0,
       "prevStatus " + J(prev) + " + I2 400 -> REQUIRES_REVIEW, no unlock, nothing else written", wp.job);
   }
+  // RES-01 Created (BA, 10-22): a Created IA's job (prevStatus Created) + an I2 refusal -> FAILED, the IA back to Created
+  {
+    const wcr = world(X.makeCase({ batch: true }), { request: { prevStatus: "Created" }, faults: { ["IAC|" + JOB + "|I|APPLY"]: ["400"] } });
+    drive(wcr);
+    ok(wcr.job.job_status === "FAILED" && wcr.ia.item_assembly_status === "Created" && wcr.mv.length === 0, "prevStatus Created + I2 400 -> FAILED, back to Created, nothing moved",
+      { job: wcr.job.job_status, ia: wcr.ia.item_assembly_status });
+  }
   // I0: the lines changed after PREPARE -> FAILED IA_LINES_CHANGED + Draft before any write
   const wl = world(X.makeCase({}));
   wl.lines[0].temp_qty_data = JSON.stringify([{ balance_id: X.balId(1), location_id: X.binOf(1), batch_id: "", category: "Unrestricted", sm_quantity: 9 }]);

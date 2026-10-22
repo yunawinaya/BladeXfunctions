@@ -1,0 +1,60 @@
+  GD_BULK_COMMIT  status=Complete  exit=return_node_LskpTOET
+  Complete code-node     code_node_WaEyJtlE                     2ms  {  "route": "CONTINUE",  "jobId": "2113189363888857090",  "tenantId": 
+  Complete sql-node      sql_node_Dr0E2zih                      2ms  [  {   "db_now": "2026-10-22 16:43:09",   "lease_until": "2026-10-22 1
+  Complete sql-node      sql_node_5gzIeuYh                      1ms  [  {   "id": "2113189378891882498",   "step_name": "P0_REVALIDATE",   
+  Complete sql-node      sql_node_yKMipHAL                     48ms  [  {   "kind": "GD",   "id": "2113189380032733185",   "k": "GD/2026102
+  Complete sql-node      sql_node_hSfouTOr                      3ms  [  {   "prepared_payload": "{\"allocation_count\":60,\"allocation_mode
+  Complete code-node     code_node_rZGbQJid                    13ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_osegb8TO                      1ms  [  {   "id": "2113189363888857090",   "job_status": "COMMITTING_GD",  
+  Complete sql-node      sql_node_GvvtDPr2                      1ms  [  {   "id": "2113189378891882498",   "step_name": "P0_REVALIDATE",   
+  Complete sql-node      sql_node_uGDRA3dm                      4ms  [  {   "id": "2105180911051378690",   "material_id": "2100429166509625
+  Complete sql-node      sql_node_Acs6w1I0                     38ms  [  {   "kind": "SOL",   "id": "2108023946647371780",   "k": "210802394
+  Complete code-node     code_node_MgeRWMzD                     3ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_Tt1hn1xZ                      1ms  [  {   "db_now": "2026-10-22 16:43:09",   "gate_taken": 0  } ]
+  Complete sql-node      sql_node_avZOXVA8                      2ms  [  {   "kind": "GD",   "id": "2113189380032733185",   "k": "GD/2026102
+  Complete code-node     code_node_KBrubvGI                     2ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_nzQQp4px                     61ms  [  {   "kind": "GD",   "id": "2113189380032733185",   "k": "GD/2026102
+  Complete code-node     code_node_3n1ATbZu                     3ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_f3LpIRE1                      1ms  [  {   "db_now": "2026-10-22 16:43:09",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_XOMbyKcx                     2ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_ze4Sy4Dv                     33ms  [  {   "kind": "RES",   "id": "2113189383115546625",   "k": "211318936
+  Complete code-node     code_node_JvwJVYCY                     4ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_vrt3iLbY                     31ms  [  {   "kind": "RES",   "id": "2113189383115546625",   "k": "211318936
+  Complete sql-node      sql_node_j8dnqMTc                      3ms  [  {   "id": "2113189373762248705",   "stable_line_key": "L1",   "allo
+  Complete code-node     code_node_HGbnLhvZ                     4ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete code-node     code_node_NKccNgfL                     2ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_0sTV0Yjr                      1ms  [  {   "db_now": "2026-10-22 16:43:09",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_z32qicpP                     4ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete code-node     code_node_WTwPKXXA                   609ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_kY5OLfvj                      2ms  [  {   "db_now": "2026-10-22 16:43:10",   "p3_id": "211318940550893568
+  Complete code-node     code_node_a4HIjyaU                     7ms  {  "route": "CALL",  "publish_route": "CALL",  "result_code": "",  "re
+  Complete workflow-node workflow_node_q2vFSyDT             47219ms  {  "operation_id": "GD|2113189363888857090|1",  "operation_status": "D
+  Complete code-node     code_node_rhoiDSOp                     4ms  {  "called": "YES",  "operation_id": "GD|2113189363888857090|1",  "ope
+  Complete sql-node      sql_node_Iof1pODg                      3ms  [  {   "db_now": "2026-10-22 16:43:57",   "id": "2113189410449825794",
+  Complete code-node     code_node_7NQFbpmU                    18ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_52nC0iJp                      1ms  [  {   "db_now": "2026-10-22 16:43:57",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_UPoC0nTI                    35ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_cMhmvc3F                     50ms  [  {   "kind": "OP",   "id": "2113189410449825794",   "k": "GD|2113189
+  Complete code-node     code_node_DEj4DPIt                    17ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_JGbmcdtD                     25ms  [  {   "kind": "OUTBOX",   "id": "2113189604801290242",   "k": "211318
+  Complete code-node     code_node_SlxWSQ0R                    10ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_86X59BlU                      2ms  [  {   "db_now": "2026-10-22 16:43:57",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_7SkbPDCs                     6ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete code-node     code_node_LNresFlip                    3ms  {  "rest": [],  "hasRest": "NO",  "count": "60",  "lane0": [   {    "i
+  Complete sql-node      sql_node_waiZkAvW                     23ms  [  {   "kind": "OUTBOX",   "id": "2113189604801290242",   "k": "211318
+  Complete code-node     code_node_w5PAtzWc                     8ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_Ep8U0a1T                      4ms  [  {   "kind": "SOL",   "id": "2108023946647371780",   "k": "210802394
+  Complete code-node     code_node_vCoSlH6A                    14ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete code-node     code_node_LNsoLines                    4ms  {  "rest": [],  "hasRest": "NO",  "count": "60",  "lane0": [   {    "i
+  Complete sql-node      sql_node_HzUjNJgO                      4ms  [  {   "kind": "SOL",   "id": "2108023946647371780",   "k": "210802394
+  Complete code-node     code_node_EdveBZL9                    11ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_DVda7Bk0                      1ms  [  {   "db_now": "2026-10-22 16:44:03",   "lease_until": "2026-10-22 1
+  Complete code-node     code_node_ZmLG8Rkz                     4ms  {  "route": "CONTINUE",  "publish_route": "CONTINUE",  "result_code": 
+  Complete sql-node      sql_node_J4lgM5hB                     25ms  [  {   "kind": "OUTBOX",   "id": "2113189604801290242",   "k": "211318
+  Complete code-node     code_node_Tbpchorx                    10ms  {  "route": "CONTINUE",  "publish_route": "GD_COMMITTED",  "result_cod
+  Complete code-node     code_node_P7Eplan0                     5ms  {  "publish_route": "CALL",  "needP7E": "YES",  "stepAddRows": [   {  
+  Complete sql-node      sql_node_P7Eback0                      2ms  [  {   "kind": "STEP",   "id": "2113189631317680129",   "k": "P7E_REOR
+  Complete code-node     code_node_P7Echk00                     4ms  {  "publish_route": "DONE",  "needStepUpd": "YES",  "stepDoneRows": [ 
+  Complete sql-node      sql_node_3ZePlQKE                      3ms  [  {   "kind": "JOB",   "id": "2113189363888857090",   "v": "GD_COMMIT
+  Complete code-node     code_node_wH4TdrnR                     4ms  {  "publish_route": "GD_COMMITTED",  "job_id": "2113189363888857090", 
+  Start    return-node   return_node_LskpTOET                   ?ms  {  "publish_route": "GD_COMMITTED",  "job_id": "2113189363888857090", 

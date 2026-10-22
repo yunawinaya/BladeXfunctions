@@ -41,9 +41,20 @@ CLASSIC_SAVE = os.path.join(BASE, "IA_SAVE.v11.json")
 SHARED = os.path.join(IAV2, "code", "shared", "ia_common.js")
 PAYLOADS = os.path.join(HERE, "fixtures", "payload_keys.json")
 ACTIONS = ("COMPLETE", "COMPLETE_POST", "REVERT")
-# RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): the list Delete releases them first; shipped off, as build_client_sc.py
-RES_ENABLED = False
+# RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): the list Delete releases them first (by the stored hold status)
 IASC_IDS = os.path.join(IAV2, "..", "iasc", "ids.json")
+# RES-01 MIN-03 (BA 10-22): the list's reservation worklist - its Reservation column (the IA form's material_hold_status, key wsldpopa),
+# Retry Reservation (toolbar, after Revert Completed; the Edit permission), the pending ones finished on open (shipped ON)
+RES_ENABLED = "true"
+RES_KEY = "wsldpopa"
+RETRY_EVENT = ("iarsrv01", "onItemAssemblyRetryReservation")
+# RES-01 Cancel from the list (user 10-22, like the GD list): the selected Created IAs cancelled (toolbar, after Retry Reservation, the
+# form Cancel's permission)
+CANCEL_EVENT = ("iacncl01", "onItemAssemblyCancel")
+RES_BADGES = [("RESERVING", "Pending", "#FFBB00", "#FFFCDD", "#8F6A04"), ("FULL", "Fully reserved", "#00AE00", "#C5F5C5", "#016701"),
+              ("PARTIAL", "Partially reserved", "#ea580c", "#ffedd5", "#9a3412"), ("SHORT", "Nothing reserved", "#ea580c", "#ffedd5", "#9a3412"),
+              ("NONE", "None", "#8C95A4", "#D0D5DD", "#4D5A74"), ("REVIEW", "Needs review", "#F90A0A", "#FDC4C4", "#A30505"),
+              ("CLOSED", "Closed", "#8C95A4", "#D0D5DD", "#4D5A74")]
 
 # the classic handlers this build replaces in place, pinned to their base v34 / v20 text (the build stops if dev moved)
 FORM_PATCHED = {  # event key -> (name, patched source, sha256 of the base func)
@@ -71,7 +82,7 @@ STATUS_LEAF = (1792170000001, "Processing")
 BADGE = ("processing_status", "Processing Status", "Processing", "processing-button", "#FFBB00", "#FFFCDD", "#8F6A04")
 SHARED_NAMES = ["iaS", "iaParseJ", "iaList", "iaJsonList", "iaPicks", "iaPickCount", "iaLineHasHu", "IA_V2_MIN_PICKS", "IA_TEXT"]
 EDIT_HIDDEN_OLD = "{{arguments[0].row.posted_status.dict_key == 'Pending Post'}}"
-EDIT_HIDDEN_NEW = "{{arguments[0].row.posted_status.dict_key == 'Pending Post' || arguments[0].row.item_assembly_status === 'Processing'}}"
+EDIT_HIDDEN_NEW = "{{arguments[0].row.posted_status.dict_key == 'Pending Post' || arguments[0].row.item_assembly_status === 'Processing' || arguments[0].row.item_assembly_status === 'Cancelled'}}"
 GUARD_ANCHOR = "    if (!itemData) return;\n"
 GUARD = (
     "    // a non-stock (labour / overhead) line takes its quantity as typed: nothing to pick\n"
@@ -381,6 +392,41 @@ def build_list(c):
     assert status["name"] == "item_assembly_status"
     # the status column already renders a Processing badge in v20: asserted, not changed
     assert re.findall(r"scope\.value==='([^']+)'", status["configCustom"]["content"]) == ["Pending Approval", "Fully Posted", "Issued", "Draft", "Completed", "Processing", "Cancelled"]
+    # RES-01 Created (BA, 10-22): a Created badge right after the Draft one, in the Purchase Order's Created colours
+    content = status["configCustom"]["content"]
+    draft = re.findall(r"<div v-if=\"scope\.value==='Draft'\"[^>]*>\{\{scope\.value\}\}</div>", content)
+    assert len(draft) == 1 and content.count(draft[0]) == 1, draft
+    created = draft[0].replace("scope.value==='Draft'", "scope.value==='Created'").replace("border: 2px solid #8C95A4;", "border: 2px solid #036DF8;") \
+        .replace("background-color: #D0D5DD;", "background-color: #C6DFFF;")
+    assert created.count("#036DF8") == 1 and created.count("#C6DFFF") == 1, created
+    status["configCustom"]["content"] = content.replace(draft[0], draft[0] + " " + created)
+    # RES-01 MIN-03 (BA 10-22): the Reservation column right after Status, a copy of it on the hold status with its own badges
+    assert all(col["name"] != "material_hold_status" and col["key"] != RES_KEY for col in cp["columns"])
+    res = copy.deepcopy(status)
+    res.update({"name": "material_hold_status", "key": RES_KEY, "title": "Reservation", "description": "Reservation"})
+    res["configCustom"] = {"content": "".join(
+        '<div v-if="scope.value===\'%s\'" style=" padding: 0 10px; border: 2px solid %s; background-color: %s; color: %s; font-size: 14px; font-family: Arial, sans-serif; '
+        'border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;">%s</div>'
+        % (code, border, bg, color, label) for code, label, border, bg, color in RES_BADGES)}
+    cp["columns"].insert(2, res)
+    # Retry Reservation: a toolbar button after Revert Completed (its copy, the Edit permission), its handler added at the end
+    tb = cp["toolbar"]
+    at = [x.get("title") for x in tb].index("Revert Completed")
+    retry = copy.deepcopy(tb[at])
+    retry.update({"title": "Retry Reservation", "permission": "ia_edit", "icon": "arrow-repeat", "events": [{"key": RETRY_EVENT[0], "name": RETRY_EVENT[1]}]})
+    tb.insert(at + 1, retry)
+    events = page["config"]["eventScript"]
+    assert RETRY_EVENT[0] not in [x["key"] for x in events]
+    func = fill(src("ia_list_retryReservation.js", c), {})
+    events.append({"key": RETRY_EVENT[0], "name": RETRY_EVENT[1], "func": func, "type": "js"})
+    mirrors["iaList_%s.js" % RETRY_EVENT[1]] = func
+    cancel = copy.deepcopy(tb[at])
+    cancel.update({"title": "Cancel", "permission": "ia_save_draft", "icon": "x-circle", "events": [{"key": CANCEL_EVENT[0], "name": CANCEL_EVENT[1]}]})
+    tb.insert(at + 2, cancel)
+    assert CANCEL_EVENT[0] not in [x["key"] for x in events]
+    func = fill(src("ia_list_cancel.js", c), {})
+    events.append({"key": CANCEL_EVENT[0], "name": CANCEL_EVENT[1], "func": func, "type": "js"})
+    mirrors["iaList_%s.js" % CANCEL_EVENT[1]] = func
     return base, page, mirrors
 
 
@@ -465,8 +511,16 @@ def expected_paths(fa, fb, la, lb, added):
     for k, model, _label in added["fields"]:
         e_form.add("/list/[key=%s] (added at %d: %s)" % (k, top.index(k), model))
     e_list = {"/config/eventScript/[key=mounted]/func", "/config/eventScript/[key=mounted]/type (added)",
-              "/list/[key=s6wz5vvo]/options/customProps/rowActions/1/hidden"}
+              "/list/[key=s6wz5vvo]/options/customProps/rowActions/1/hidden",
+              "/list/[key=s6wz5vvo]/options/customProps/columns/[key=%s]/configCustom/content" % lb["list"][0]["options"]["customProps"]["columns"][1]["key"]}
     e_list |= {"/config/eventScript/[key=%s]/func" % key for key in LIST_PATCHED}
+    # RES-01 MIN-03: the Reservation column, the Retry Reservation button and its handler
+    cpb = lb["list"][0]["options"]["customProps"]
+    e_list.add("/list/[key=s6wz5vvo]/options/customProps/columns/[key=%s] (added at %d: material_hold_status)" % (RES_KEY, [x["key"] for x in cpb["columns"]].index(RES_KEY)))
+    e_list.add("/list/[key=s6wz5vvo]/options/customProps/toolbar (length %d -> %d)" % (len(la["list"][0]["options"]["customProps"]["toolbar"]), len(cpb["toolbar"])))
+    kb_list = [x["key"] for x in lb["config"]["eventScript"]]
+    e_list.add("/config/eventScript/[key=%s] (added at %d: %s)" % (RETRY_EVENT[0], kb_list.index(RETRY_EVENT[0]), RETRY_EVENT[1]))
+    e_list.add("/config/eventScript/[key=%s] (added at %d: %s)" % (CANCEL_EVENT[0], kb_list.index(CANCEL_EVENT[0]), CANCEL_EVENT[1]))
     return e_form, e_list
 
 
@@ -493,8 +547,8 @@ def build(on):
     wf = ids()
     c = dict(switches(on), **wf)
     c["IA_RV_MIN_ROWS"] = re.search(r"^const IA_RV_MIN_ROWS = (\d+);", read(SHARED), re.M).group(1)
-    c["RES_ENABLED"] = "true" if RES_ENABLED else "false"
     c["IA_HOLD"] = str(load(IASC_IDS)["IA_HOLD"])
+    c["RES_ENABLED"] = RES_ENABLED
     taken = set()
     for p in (BASE_FORM, BASE_LIST):
         taken |= set(re.findall(r"[a-z0-9]{8}", read(p)))

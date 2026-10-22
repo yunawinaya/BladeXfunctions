@@ -1,0 +1,18 @@
+{
+ "why": "The classic save handlers (Complete / Complete & Post at 50 picks or fewer, Draft; 10-22): a double click saved twice (two completions issue the stock twice, two new Drafts reserve it twice); the click is claimed before its first await with the IA V2 handler's flag",
+ "handlers": [
+  "iasvcomp",
+  "aymq6q8z",
+  "iasvdrft"
+ ],
+ "patch": [
+  {
+   "was": "(async () => {\n  try {\n    await this.validate();",
+   "now": "(async () => {\n  // one save per click: a second click while this one validates, checks the BOM or saves is refused (the IA V2 handler's form flag,\n  // which it clears before it hands a small IA over to this handler)\n  const iaClaimDone = () => (this.models[\"_data\"] = { ...this.models[\"_data\"], ia_submitting: 0 });\n  if ((this.models[\"_data\"] || {}).ia_submitting === 1) {\n    this.$message.warning(\"Workflow is already in progress. Please wait.\");\n    return;\n  }\n  this.models[\"_data\"] = { ...this.models[\"_data\"], ia_submitting: 1 };\n  try {\n    await this.validate();"
+  },
+  {
+   "was": "    this.$message.error(errorMessage);\n  }\n})();",
+   "now": "    this.$message.error(errorMessage);\n  } finally {\n    iaClaimDone();\n  }\n})();"
+  }
+ ]
+}

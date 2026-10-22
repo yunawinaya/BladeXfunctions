@@ -1,0 +1,427 @@
+start-node start: Start Node
+code-node code_node_WaEyJtlE: Guard: job_id (digits), session tenant, this run's lease owner PUB|<nonce> (2072 ch)
+if if_KJUEg8aI: IF the input is invalid: answer, write nothing
+  ifBlock ifBlock_vz8XFvrQ: true
+    code-node code_node_fwKJNrYB: Evidence REJECTED_INPUT (1783 ch)
+    return-node return_node_qIFAKsth: Return (invalid input)
+  ifBlock ifBlock_rP7Z8AUR: false
+sql-node sql_node_Dr0E2zih: Facts 1: the job (+ DB clock, lease flag, lease_until) (1113 ch)
+sql-node sql_node_5gzIeuYh: Facts 2: this job's publish step rows (381 ch)
+sql-node sql_node_yKMipHAL: Facts 3: the headers carrying the marker gd_dockey = JOB|<job> (every is_deleted state), line / reservation counts by jo (1472 ch)
+sql-node sql_node_hSfouTOr: Facts 4: the job's prepared_payload (read here and at P1 / P2 only) (185 ch)
+code-node code_node_rZGbQJid: Entry: what this run may do; the current operation id (P3 row or GD|<job>|1); the lease claim; the P0 row (15030 ch)
+if if_WNiZCbGL: IF the job is not publishable by this run (state, lease held, prepared payload): answer, write nothing
+  ifBlock ifBlock_4b2YowOQ: true
+    code-node code_node_WS3QgzRY: Evidence NO_WRITE (1889 ch)
+    return-node return_node_lkXOP53J: Return (no write)
+  ifBlock ifBlock_D2v3LfkB: false
+if if_yfA4YZHf: IF cancel requested while READY_TO_COMMIT: job CANCELLED (nothing published)
+  ifBlock ifBlock_5AsxvNIA: true
+    update-node update_node_RNwYSHCf: Job CANCELLED (+ finished_at) [GD Async Job:Table:2104845286495150081]
+    sql-node sql_node_YQX0f1eq: Read-back: job, steps, header, operation, outbox (1283 ch)
+    code-node code_node_KtkBPx92: Evidence CANCELLED (1925 ch)
+    return-node return_node_QZQibx3U: Return CANCELLED
+  ifBlock ifBlock_5SGYheAv: false
+if if_Mq7zkXSJ: IF a clean failure was decided earlier (a FAILED step row / a deleted marker header): finish it - soft-delete what is st
+  ifBlock ifBlock_S9GAmXth: true
+    sql-node sql_node_WPTqyjIq: Finish: headers by marker + line rows by job_line_key prefix (1881 ch)
+    sql-node sql_node_ofpYmIPL: Finish: reservation rows and packing shell by the marker (1632 ch)
+    code-node code_node_tiylKMKw: Finish: the live hidden rows to soft-delete, the job FAILED row with the recorded reason (3158 ch)
+    condition-or-node condition_or_node_5aHND5rR: Hidden header to soft-delete?
+      condition-or-node-item condition_or_node_item_PEqSfmRW: YES
+        update-node update_node_Ody6Ckov: Finish: hidden header is_deleted = 1 [Goods Delivery:Table:1902054888473481218]
+      condition-or-node-item condition_or_node_item_3RkGSg1P: NO
+    condition-or-node condition_or_node_ruxU9tbX: Hidden lines to soft-delete?
+      condition-or-node-item condition_or_node_item_s4RBACzz: YES
+        code-node code_node_P3bp1PSb: Batches of zDelL: one loop pass per <= 250 rows of zPlan.lineIds (1034 ch)
+        set-cache-node set_cache_node_MvVzcYXl: Batch index of zDelL = 0 (per run: the key carries the run's nonce)
+        loop loop_l424wv4i: Write zDelL in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_P3bp1PSb.data.batches}}"}]
+          get-cache-node get_cache_node_pQ4C76LI: Batch index of zDelL
+          code-node code_node_Ms5yj4NJ: Batch of zDelL: this pass's slice of zPlan.lineIds (1157 ch)
+          update-node update_node_O2UgGKBL: Finish: hidden lines is_deleted = 1, <= 250 rows per call [goods_delivery_fwii8mvb_sub:Table:1939904186426433]
+          set-cache-node set_cache_node_mAtQmZfY: Next batch index of zDelL
+      condition-or-node-item condition_or_node_item_7SlqDKTk: NO
+    condition-or-node condition_or_node_uqrD6Bl6: Hidden reservation rows to soft-delete?
+      condition-or-node-item condition_or_node_item_NE12o6WH: YES
+        code-node code_node_ClGJ8TYY: Batches of zDelR: one loop pass per <= 250 rows of zPlan.resIds (1032 ch)
+        set-cache-node set_cache_node_zmIHZ5jY: Batch index of zDelR = 0 (per run: the key carries the run's nonce)
+        loop loop_tHqbxUWI: Write zDelR in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_ClGJ8TYY.data.batches}}"}]
+          get-cache-node get_cache_node_vA96lPhV: Batch index of zDelR
+          code-node code_node_d6qkdJFH: Batch of zDelR: this pass's slice of zPlan.resIds (1155 ch)
+          update-node update_node_mDFfdR3d: Finish: hidden reservation rows is_deleted = 1 [On Reserved Goods Delivery:Table:19358800146874408]
+          set-cache-node set_cache_node_MFEvnT8P: Next batch index of zDelR
+      condition-or-node-item condition_or_node_item_UbIsmnkP: NO
+    condition-or-node condition_or_node_OaF1lpw8: Hidden packing shell to soft-delete?
+      condition-or-node-item condition_or_node_item_Bk1EtFQw: YES
+        update-node update_node_jw2JE10D: Finish: hidden packing shell is_deleted = 1 [Packing:Table:1993515601863524353]
+      condition-or-node-item condition_or_node_item_iLXL8j5i: NO
+    update-node update_node_lclNYhng: Job FAILED with the recorded reason (lease released) [GD Async Job:Table:2104845286495150081]
+    sql-node sql_node_zAnsO20L: Read-back: job, steps, header, operation, outbox (1283 ch)
+    code-node code_node_pnGejUes: Evidence FINISH_FAILED (2003 ch)
+    return-node return_node_0fMMrN9u: Return FINISH_FAILED
+  ifBlock ifBlock_RxidJttX: false
+condition-or-node condition_or_node_RKPzt44z: P0 row to insert?
+  condition-or-node-item condition_or_node_item_8unSLq3K: YES
+    add-node add_node_A0Lq2JcN: P0_REVALIDATE STARTED (unique job/step: a twin run fails here) [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_BRlN771E: NO
+update-node update_node_FpPGkiqt: Lease claim: job COMMITTING_GD, lease_owner = this run, lease_expires_at = now + 10 min [GD Async Job:Table:2104845286495150081]
+sql-node sql_node_osegb8TO: Read-back: the job after the claim (lease_owner must be ours: F14, single worker) (356 ch)
+sql-node sql_node_GvvtDPr2: Read-back: the step rows (381 ch)
+sql-node sql_node_uGDRA3dm: P0: the item_balance rows of the reservations' (material, bin) tuples, read-only (529 ch)
+sql-node sql_node_Acs6w1I0: P0: the linked sales order lines + the quantity other hidden deliveries commit against them (over-delivery, fail-closed) (2034 ch)
+code-node code_node_MgeRWMzD: P0 REVALIDATE: lease ours + job COMMITTING_GD + one balance row per tuple -> P0 DONE; a lost lease -> REJECT (carried, n (15085 ch)
+condition-or-node condition_or_node_uR7rngkC: P0 to mark DONE?
+  condition-or-node-item condition_or_node_item_ZztEiGuG: YES
+    update-node update_node_sYWcoV62: P0_REVALIDATE DONE [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_GjwEC9xP: NO
+sql-node sql_node_Tt1hn1xZ: The inventory operation by operation_id (+ gate, lease flag): from here on every check knows whether the operation may h (1437 ch)
+sql-node sql_node_avZOXVA8: Immediately before the header insert: headers carrying the marker (any state) and headers with this delivery_no (1008 ch)
+code-node code_node_KBrubvGI: P1 plan: hidden header + lines only when no header carries JOB|<job> and no row carries this delivery_no (17777 ch)
+condition-or-node condition_or_node_tBF2ExU2: P1 row to insert?
+  condition-or-node-item condition_or_node_item_E9S03P44: YES
+    add-node add_node_1GlpjnYp: P1_GD_HEADER STARTED - recorded BEFORE the header write [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_aAXbwZXJ: NO
+condition-or-node condition_or_node_mtWXY6Gd: Hidden header to write?
+  condition-or-node-item condition_or_node_item_VlCn7Z8b: YES
+    add-node add_node_7uwrPwCt: HIDDEN GD: header (gd_status Processing, gd_dockey JOB|<job>, unique organization/delivery_no) + lines as table_gd (job_ [Goods Delivery:Table:1902054888473481218]
+  condition-or-node-item condition_or_node_item_0kHn42kI: NO
+sql-node sql_node_nzQQp4px: Read-back: headers by marker + line rows by job_line_key prefix (1881 ch)
+code-node code_node_3n1ATbZu: P1 check: one header, every line once -> gd_id / gd_no, P1 DONE (15990 ch)
+condition-or-node condition_or_node_zXjIBFkQ: P1 to mark DONE?
+  condition-or-node-item condition_or_node_item_bWF26amp: YES
+    update-node update_node_QWVMtv8a: P1_GD_HEADER DONE (result_ref = gd_id) [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_F5VtEAtb: NO
+condition-or-node condition_or_node_ccu7UKkX: gd_id / gd_no to record on the job?
+  condition-or-node-item condition_or_node_item_MtQ9geJT: YES
+    update-node update_node_385FL6V4: Job: gd_id, gd_no [GD Async Job:Table:2104845286495150081]
+  condition-or-node-item condition_or_node_item_rI2kZv9F: NO
+sql-node sql_node_f3LpIRE1: Job lease read (BEFORE_P2): the DB clock and the job row (411 ch)
+code-node code_node_XOMbyKcx: Job lease renewal (BEFORE_P2): still COMMITTING_GD under this run's lease -> lease_expires_at = NOW + 10 min (5240 ch)
+condition-or-node condition_or_node_0LX2roYG: Renew the job lease (BEFORE_P2)?
+  condition-or-node-item condition_or_node_item_Gv9jvHTe: YES
+    update-node update_node_qweGuu8p: Job lease renewed (BEFORE_P2): lease_expires_at by id, nothing else [GD Async Job:Table:2104845286495150081]
+  condition-or-node-item condition_or_node_item_zwF30uBI: NO
+sql-node sql_node_ze4Sy4Dv: Immediately before the structure insert: reservation rows and packing shell by the marker (I4) (1632 ch)
+code-node code_node_JvwJVYCY: P2 plan: the missing reservation rows (bodies from the prepared payload) and the packing shell; the P2 step row (15350 ch)
+condition-or-node condition_or_node_4tDrWlxN: P2 row to insert?
+  condition-or-node-item condition_or_node_item_Q6JBvn5V: YES
+    add-node add_node_4DOpulsr: P2_GD_STRUCTURE STARTED - recorded BEFORE the reservation rows [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_ck7LBsco: NO
+condition-or-node condition_or_node_mAkAlnGH: Reservation rows to write (missing ones only, by job_line_key)?
+  condition-or-node-item condition_or_node_item_0c0kXxT0: YES
+    code-node code_node_9esF8njJ: Batches of resAdd: one loop pass per <= 250 rows of p2Plan.resAddRows (1043 ch)
+    set-cache-node set_cache_node_Io4PYQBi: Batch index of resAdd = 0 (per run: the key carries the run's nonce)
+    loop loop_HPuVOgDi: Write resAdd in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_9esF8njJ.data.batches}}"}]
+      get-cache-node get_cache_node_L2ZlpNYy: Batch index of resAdd
+      code-node code_node_ZJlGqxcW: Batch of resAdd: this pass's slice of p2Plan.resAddRows (1166 ch)
+      add-node add_node_sHg3g3FK: HIDDEN GD: on_reserved_gd rows (status Processing, target_gd_id = hidden GD, job_line_key <job>|<line>|<seq>), <= 250 ro [On Reserved Goods Delivery:Table:19358800146874408]
+      set-cache-node set_cache_node_qKXocP2R: Next batch index of resAdd
+  condition-or-node-item condition_or_node_item_vFylegBH: NO
+condition-or-node condition_or_node_hgyH0H7a: Packing shell to write (packing required by the setup, none yet)?
+  condition-or-node-item condition_or_node_item_3Ba8CklS: YES
+    add-node add_node_F7x7HxQ2: HIDDEN GD: packing shell (packing_status Processing, idempotency_key PKG|<gd_id>, packing_no issued + the Packing serial [Packing:Table:1993515601863524353]
+  condition-or-node-item condition_or_node_item_2lEEZpWI: NO
+sql-node sql_node_vrt3iLbY: Read-back: the hidden structure by the job marker (reservation rows, packing shell) (1632 ch)
+sql-node sql_node_j8dnqMTc: This job's stage rows (the effects' source; one per allocation, no line maximum) (513 ch)
+code-node code_node_HGbnLhvZ: P2 check: every reservation row once -> stage gd_line_id, P2 DONE, the P3 row (15757 ch)
+condition-or-node condition_or_node_orBZl0Ez: P2 to mark DONE?
+  condition-or-node-item condition_or_node_item_e3gf2NFC: YES
+    update-node update_node_4ogpKyuz: P2_GD_STRUCTURE DONE [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_blEctN1O: NO
+condition-or-node condition_or_node_FViHlxek: Stage rows to stamp with their GD line id?
+  condition-or-node-item condition_or_node_item_I93rAUtS: YES
+    code-node code_node_dh9N3emR: Batches of stageUpd: one loop pass per <= 250 rows of p2Chk.stageUpdRows (1050 ch)
+    set-cache-node set_cache_node_rV2uyjad: Batch index of stageUpd = 0 (per run: the key carries the run's nonce)
+    loop loop_wGKD6GoQ: Write stageUpd in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_dh9N3emR.data.batches}}"}]
+      get-cache-node get_cache_node_uyw7yl7Y: Batch index of stageUpd
+      code-node code_node_h8b9aMiT: Batch of stageUpd: this pass's slice of p2Chk.stageUpdRows (1173 ch)
+      update-node update_node_s5Rw5trw: Stage rows: gd_line_id [GD Bulk Line Stage:Table:2105131311674331138]
+      set-cache-node set_cache_node_y574HjG2: Next batch index of stageUpd
+  condition-or-node-item condition_or_node_item_ndt43v9W: NO
+code-node code_node_NKccNgfL: P2 split: this run wrote the hidden structure -> SPLIT (handed over under a live SPLIT| lease; P3 in the next run); a re (6319 ch)
+if if_NK1NhjKI: IF this run wrote P1 / P2 (or an earlier check ended it): the split tail - the conditions after the inventory call must 
+  ifBlock ifBlock_rJTg66rw: true
+    condition-or-node condition_or_node_ad4MJ6Zn: Ended step row to insert (FAILED / REQUIRES_REVIEW / P7D DONE)?
+      condition-or-node-item condition_or_node_item_tBTgbt4F: YES
+        add-node add_node_LudULk2h: Step row of the ended step (the step had no row yet): FAILED / REQUIRES_REVIEW - the recorded decision, before any delet [GD Publish Step:Table:2105131615547461634]
+      condition-or-node-item condition_or_node_item_eBgBb0fh: NO
+    condition-or-node condition_or_node_Ewc6GcXE: Ended step row to update?
+      condition-or-node-item condition_or_node_item_cDP4qoHo: YES
+        update-node update_node_EAxg6nJd: Step row of the ended step: FAILED (no inventory mutation) / REQUIRES_REVIEW (result_ref = review reference) / P3 STARTE [GD Publish Step:Table:2105131615547461634]
+      condition-or-node-item condition_or_node_item_9wjwRf5k: NO
+    condition-or-node condition_or_node_m5ASdsSa: Hidden header to soft-delete (clean failure only)?
+      condition-or-node-item condition_or_node_item_Nf0Oq4wS: YES
+        update-node update_node_KB3FQvxv: Clean failure: hidden header is_deleted = 1 (never Created; nothing else touched) [Goods Delivery:Table:1902054888473481218]
+      condition-or-node-item condition_or_node_item_CCIQRRAC: NO
+    condition-or-node condition_or_node_U0E5Y79K: Hidden lines to soft-delete (clean failure only)?
+      condition-or-node-item condition_or_node_item_bkIqaxUh: YES
+        code-node code_node_6lDaAWjb: Batches of sDelL: one loop pass per <= 250 rows of p2Split.tLineIds (1038 ch)
+        set-cache-node set_cache_node_WRGKcxaK: Batch index of sDelL = 0 (per run: the key carries the run's nonce)
+        loop loop_mjxpCjsC: Write sDelL in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_6lDaAWjb.data.batches}}"}]
+          get-cache-node get_cache_node_kByCr89I: Batch index of sDelL
+          code-node code_node_wnvm6zWu: Batch of sDelL: this pass's slice of p2Split.tLineIds (1161 ch)
+          update-node update_node_nOCoBCPX: Clean failure: hidden lines is_deleted = 1, <= 250 rows per call [goods_delivery_fwii8mvb_sub:Table:1939904186426433]
+          set-cache-node set_cache_node_KvGcbt5q: Next batch index of sDelL
+      condition-or-node-item condition_or_node_item_nykQ4494: NO
+    condition-or-node condition_or_node_A3HCNxRf: Hidden reservation rows to soft-delete (clean failure only)?
+      condition-or-node-item condition_or_node_item_2V0pacmP: YES
+        code-node code_node_f5VIKHPG: Batches of sDelR: one loop pass per <= 250 rows of p2Split.tResIds (1036 ch)
+        set-cache-node set_cache_node_DBjbHXOB: Batch index of sDelR = 0 (per run: the key carries the run's nonce)
+        loop loop_BbywFeT0: Write sDelR in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_f5VIKHPG.data.batches}}"}]
+          get-cache-node get_cache_node_IgljZ98U: Batch index of sDelR
+          code-node code_node_6VmjaEei: Batch of sDelR: this pass's slice of p2Split.tResIds (1159 ch)
+          update-node update_node_F93Rh797: Clean failure: hidden reservation rows is_deleted = 1 [On Reserved Goods Delivery:Table:19358800146874408]
+          set-cache-node set_cache_node_agYFXSbm: Next batch index of sDelR
+      condition-or-node-item condition_or_node_item_rsY0Ggp3: NO
+    condition-or-node condition_or_node_oG0pFTUS: Hidden packing shell to soft-delete (clean failure only)?
+      condition-or-node-item condition_or_node_item_PIc9uPav: YES
+        update-node update_node_j08ie71m: Clean failure: hidden packing shell is_deleted = 1 [Packing:Table:1993515601863524353]
+      condition-or-node-item condition_or_node_item_HskHjwDX: NO
+    condition-or-node condition_or_node_ZlxEATjA: Job row to update?
+      condition-or-node-item condition_or_node_item_DlRwsYDC: YES
+        update-node update_node_r5P4TBA2: Job: FAILED (+ error_code, error_details, finished_at) / REQUIRES_REVIEW (+ review reference) / RETRY (attempt_count + 1 [GD Async Job:Table:2104845286495150081]
+      condition-or-node-item condition_or_node_item_um8xjQ5L: NO
+    sql-node sql_node_ZJqe0gkW: Read-back: job, steps, header, operation, outbox (1283 ch)
+    code-node code_node_mAEIwD4B: Evidence P2_SPLIT (2416 ch)
+    return-node return_node_GJExcFZk: Return the merged decision
+  ifBlock ifBlock_mhCMUb0S: false
+sql-node sql_node_0sTV0Yjr: Job lease read (BEFORE_P3_CALL): the DB clock and the job row (411 ch)
+code-node code_node_z32qicpP: Job lease renewal (BEFORE_P3_CALL): still COMMITTING_GD under this run's lease -> lease_expires_at = NOW + 10 min (5255 ch)
+condition-or-node condition_or_node_DaOnGMk1: Renew the job lease (BEFORE_P3_CALL)?
+  condition-or-node-item condition_or_node_item_GGLN0cKH: YES
+    update-node update_node_CNILmv1N: Job lease renewed (BEFORE_P3_CALL): lease_expires_at by id, nothing else [GD Async Job:Table:2104845286495150081]
+  condition-or-node-item condition_or_node_item_LSeZbQI5: NO
+code-node code_node_WTwPKXXA: P3 request: effects from the stage rows, source_document_id = hidden gd_id, request_hash (contract) (45891 ch)
+condition-or-node condition_or_node_PKo4IO7f: P3 row to insert?
+  condition-or-node-item condition_or_node_item_eZMPsSdq: YES
+    add-node add_node_VNtP9ok2: P3_INVENTORY_APPLY STARTED with inventory_operation_id - recorded BEFORE the call (after the request is known to be buil [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_r4BYkiPs: NO
+sql-node sql_node_kY5OLfvj: P3 facts: the inventory operation by operation_id (+ gate, lease flag, DB clock) (1437 ch)
+code-node code_node_a4HIjyaU: P3 decision (before any call): resume rule on the stored row -> call / continue / retry / clean failure / review / wait (27060 ch)
+if if_iqEzF49O: IF the operation must be called (absent, or stale pre-mutation): the ONE INVENTORY_APPLY_OPERATION call of this attempt
+  ifBlock ifBlock_XzDwQdw0: true
+    workflow-node workflow_node_q2vFSyDT: INVENTORY_APPLY_OPERATION (once per attempt; all normalized effects) -> INVENTORY_APPLY_OPERATION
+    code-node code_node_rhoiDSOp: The inventory response, normalized (1504 ch)
+    sql-node sql_node_Iof1pODg: P3 facts after the call: the operation row (the stored row is the truth; the response only names codes that store no row (1437 ch)
+    code-node code_node_7NQFbpmU: P3 decision (after the call): stored row + response -> continue / retry / clean failure / review / wait (27116 ch)
+    if if_c17DJPVz: IF the post-call decision ends the run (clean failure / review / retry / wait): the P3 tail (this decision cannot leave 
+      ifBlock ifBlock_7XOYm1ZP: true
+        condition-or-node condition_or_node_t2oAyG65: Ended step row to insert (FAILED / REQUIRES_REVIEW / P7D DONE)?
+          condition-or-node-item condition_or_node_item_XHxdHS4k: YES
+            add-node add_node_8sBUHJEQ: Step row of the ended step (the step had no row yet): FAILED / REQUIRES_REVIEW - the recorded decision, before any delet [GD Publish Step:Table:2105131615547461634]
+          condition-or-node-item condition_or_node_item_1nnXNQIN: NO
+        condition-or-node condition_or_node_XHyDSyUb: Ended step row to update?
+          condition-or-node-item condition_or_node_item_LXzcl3Qw: YES
+            update-node update_node_JMsMoYaR: Step row of the ended step: FAILED (no inventory mutation) / REQUIRES_REVIEW (result_ref = review reference) / P3 STARTE [GD Publish Step:Table:2105131615547461634]
+          condition-or-node-item condition_or_node_item_EC8bxut6: NO
+        condition-or-node condition_or_node_Vz1V5fDR: Hidden header to soft-delete (clean failure only)?
+          condition-or-node-item condition_or_node_item_VVc7zEUR: YES
+            update-node update_node_E4FFtJ8M: Clean failure: hidden header is_deleted = 1 (never Created; nothing else touched) [Goods Delivery:Table:1902054888473481218]
+          condition-or-node-item condition_or_node_item_E2RFLizj: NO
+        condition-or-node condition_or_node_p5656LiV: Hidden lines to soft-delete (clean failure only)?
+          condition-or-node-item condition_or_node_item_4GKbcrk3: YES
+            code-node code_node_vYlQMwKI: Batches of qDelL: one loop pass per <= 250 rows of p3Post.tLineIds (1037 ch)
+            set-cache-node set_cache_node_QfgiPmcY: Batch index of qDelL = 0 (per run: the key carries the run's nonce)
+            loop loop_DzFEyLKU: Write qDelL in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_vYlQMwKI.data.batches}}"}]
+              get-cache-node get_cache_node_I1uxFGsf: Batch index of qDelL
+              code-node code_node_Lrk32nv2: Batch of qDelL: this pass's slice of p3Post.tLineIds (1160 ch)
+              update-node update_node_tDcHzGnS: Clean failure: hidden lines is_deleted = 1, <= 250 rows per call [goods_delivery_fwii8mvb_sub:Table:1939904186426433]
+              set-cache-node set_cache_node_pMDBtd3m: Next batch index of qDelL
+          condition-or-node-item condition_or_node_item_pKvDjOp9: NO
+        condition-or-node condition_or_node_sRUu04vN: Hidden reservation rows to soft-delete (clean failure only)?
+          condition-or-node-item condition_or_node_item_wEzH7JvH: YES
+            code-node code_node_Vqiz0fxy: Batches of qDelR: one loop pass per <= 250 rows of p3Post.tResIds (1035 ch)
+            set-cache-node set_cache_node_qCbMePDg: Batch index of qDelR = 0 (per run: the key carries the run's nonce)
+            loop loop_WywQ0dMV: Write qDelR in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_Vqiz0fxy.data.batches}}"}]
+              get-cache-node get_cache_node_oFytnWGW: Batch index of qDelR
+              code-node code_node_KgEhpDY2: Batch of qDelR: this pass's slice of p3Post.tResIds (1158 ch)
+              update-node update_node_QkUzLFED: Clean failure: hidden reservation rows is_deleted = 1 [On Reserved Goods Delivery:Table:19358800146874408]
+              set-cache-node set_cache_node_Cen6JvyR: Next batch index of qDelR
+          condition-or-node-item condition_or_node_item_Tjrz1H45: NO
+        condition-or-node condition_or_node_A2HCeXHz: Hidden packing shell to soft-delete (clean failure only)?
+          condition-or-node-item condition_or_node_item_zxFAyirP: YES
+            update-node update_node_SNMpOmK4: Clean failure: hidden packing shell is_deleted = 1 [Packing:Table:1993515601863524353]
+          condition-or-node-item condition_or_node_item_c2oQgjyR: NO
+        condition-or-node condition_or_node_xKV418jy: Job row to update?
+          condition-or-node-item condition_or_node_item_0mxFmmzU: YES
+            update-node update_node_lelJgeRU: Job: FAILED (+ error_code, error_details, finished_at) / REQUIRES_REVIEW (+ review reference) / RETRY (attempt_count + 1 [GD Async Job:Table:2104845286495150081]
+          condition-or-node-item condition_or_node_item_YrkPhHSZ: NO
+        sql-node sql_node_8mPIK05k: Read-back: job, steps, header, operation, outbox (1283 ch)
+        code-node code_node_7mTwvjWR: Evidence P3_AFTER_CALL (2778 ch)
+        return-node return_node_sqyHzB25: Return the merged decision
+      ifBlock ifBlock_DkQu9AGa: false
+    condition-or-node condition_or_node_gCYYk5Tc: P3 to mark DONE (after the call)?
+      condition-or-node-item condition_or_node_item_rAA9VFKi: YES
+        update-node update_node_GCgABkzw: P3_INVENTORY_APPLY DONE (result_ref = result code) [GD Publish Step:Table:2105131615547461634]
+      condition-or-node-item condition_or_node_item_tF5GUDlf: NO
+  ifBlock ifBlock_HA66LGMV: false
+condition-or-node condition_or_node_KPmIFsFq: P3 to mark DONE (stored DONE found)?
+  condition-or-node-item condition_or_node_item_0AEZHQAz: YES
+    update-node update_node_7BfdGBWW: P3_INVENTORY_APPLY DONE (stored operation DONE) [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_EFKSn05G: NO
+sql-node sql_node_52nC0iJp: Job lease read (AFTER_P3_CALL): the DB clock and the job row (411 ch)
+code-node code_node_UPoC0nTI: Job lease renewal (AFTER_P3_CALL): still COMMITTING_GD under this run's lease -> lease_expires_at = NOW + 10 min (5252 ch)
+condition-or-node condition_or_node_OOjFcRKz: Renew the job lease (AFTER_P3_CALL)?
+  condition-or-node-item condition_or_node_item_T9CKzjOO: YES
+    update-node update_node_qVv3FwxN: Job lease renewed (AFTER_P3_CALL): lease_expires_at by id, nothing else [GD Async Job:Table:2104845286495150081]
+  condition-or-node-item condition_or_node_item_puEBktHF: NO
+sql-node sql_node_cMhmvc3F: P6 facts: the operation, its effects by status, the header, line / reservation counts, the outbox row (3341 ch)
+code-node code_node_DEj4DPIt: P6 publication barrier -> P6 DONE, the BLOCKED event row, the P7A row (19386 ch)
+condition-or-node condition_or_node_0G7cccag: P6 row to insert (DONE)?
+  condition-or-node-item condition_or_node_item_bPA4IYXv: YES
+    add-node add_node_oVHgVmjP: P6_PUBLICATION_BARRIER DONE (read-only step) [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_iSDxxzWu: NO
+condition-or-node condition_or_node_nzTK9Q8Q: P6 row to update?
+  condition-or-node-item condition_or_node_item_zyknqOVg: YES
+    update-node update_node_t7BkrQU6: P6_PUBLICATION_BARRIER DONE [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_vHpGpv6F: NO
+condition-or-node condition_or_node_jUvzt2Vm: P7A row to insert?
+  condition-or-node-item condition_or_node_item_YxBUp7D6: YES
+    add-node add_node_nFSyKNPl: P7A_OUTBOX_BLOCKED STARTED - recorded BEFORE the event insert [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_dw2kObNJ: NO
+condition-or-node condition_or_node_iQSD2dmC: Outbox event to insert?
+  condition-or-node-item condition_or_node_item_V9bNe0L6: YES
+    add-node add_node_Hw9NVC8y: Outbox: GD_COMMITTED|<gd_id>|1 as BLOCKED (unique event_id) [GD Outbox:Table:2104845698245779457]
+  condition-or-node-item condition_or_node_item_MWthZnFT: NO
+sql-node sql_node_JGbmcdtD: Read-back: the event by event_id, the header, the reservation rows, the packing shell (2251 ch)
+code-node code_node_SlxWSQ0R: P7A check -> P7A DONE, P7B plan (12767 ch)
+condition-or-node condition_or_node_FBJH2NGl: P7A to mark DONE?
+  condition-or-node-item condition_or_node_item_371CFwCK: YES
+    update-node update_node_E5qF2pOp: P7A_OUTBOX_BLOCKED DONE [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_lL17UCba: NO
+sql-node sql_node_86X59BlU: Job lease read (BEFORE_P7B): the DB clock and the job row (411 ch)
+code-node code_node_7SkbPDCs: Job lease renewal (BEFORE_P7B): still COMMITTING_GD under this run's lease -> lease_expires_at = NOW + 10 min (5243 ch)
+condition-or-node condition_or_node_aSDHGKVp: Renew the job lease (BEFORE_P7B)?
+  condition-or-node-item condition_or_node_item_BlrH4Bl2: YES
+    update-node update_node_S4vYOBsf: Job lease renewed (BEFORE_P7B): lease_expires_at by id, nothing else [GD Async Job:Table:2104845286495150081]
+  condition-or-node-item condition_or_node_item_Aw7ghSe3: NO
+condition-or-node condition_or_node_oq3vupaV: P7B row to insert?
+  condition-or-node-item condition_or_node_item_hVHheWOH: YES
+    add-node add_node_xvj7sa6u: P7B_GD_CREATED STARTED - recorded BEFORE the Created write [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_u0YJSbNN: NO
+condition-or-node condition_or_node_TGO4S0dz: Header to flip Processing -> Created?
+  condition-or-node-item condition_or_node_item_ERuCiAvK: YES
+    update-node update_node_Qc4nDp0H: POINT OF NO RETURN: goods_delivery.gd_status Processing -> Created (one update by id) [Goods Delivery:Table:1902054888473481218]
+  condition-or-node-item condition_or_node_item_l6ZL6M74: NO
+condition-or-node condition_or_node_iuSyvlyY: Reservation rows still Processing to flip?
+  condition-or-node-item condition_or_node_item_5xsiLjWH: YES
+    code-node code_node_5RbVs3ta: Batches of resFlip: one loop pass per <= 250 rows of p7a.resFlipRows (1044 ch)
+    set-cache-node set_cache_node_piN8WxQf: Batch index of resFlip = 0 (per run: the key carries the run's nonce)
+    loop loop_Rv9ZaSBx: Write resFlip in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_5RbVs3ta.data.batches}}"}]
+      get-cache-node get_cache_node_O16jbrmW: Batch index of resFlip
+      code-node code_node_3jcD1qlA: Batch of resFlip: this pass's slice of p7a.resFlipRows (1167 ch)
+      update-node update_node_wrLMUmAK: P7B: on_reserved_gd.status Processing -> Allocated (rows still hidden only) [On Reserved Goods Delivery:Table:19358800146874408]
+      set-cache-node set_cache_node_FeHhHT3Q: Next batch index of resFlip
+  condition-or-node-item condition_or_node_item_s2EUmkGI: NO
+condition-or-node condition_or_node_rsbBBtRP: Packing shell still Processing to flip?
+  condition-or-node-item condition_or_node_item_i9QwmF3B: YES
+    update-node update_node_PV0oFLij: P7B: packing.packing_status Processing -> Created [Packing:Table:1993515601863524353]
+  condition-or-node-item condition_or_node_item_3q6oukuD: NO
+sql-node sql_node_waiZkAvW: Read-back: the header, the reservation rows, the packing shell, the event (2251 ch)
+code-node code_node_w5PAtzWc: P7B check -> P7B DONE, P7C plan (12426 ch)
+condition-or-node condition_or_node_3uDabEHK: P7B to mark DONE?
+  condition-or-node-item condition_or_node_item_N3ThB8TX: YES
+    update-node update_node_alN9jOAm: P7B_GD_CREATED DONE [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_TDg4HNGo: NO
+sql-node sql_node_Ep8U0a1T: P7B_SO_PROJECTION facts: the linked sales order lines and headers (+ the step rows) (1373 ch)
+code-node code_node_vCoSlH6A: P7B_SO_PROJECTION plan: before / after values (stored on the step row before the write); on re-entry the rows decide (15120 ch)
+condition-or-node condition_or_node_C0B7D7dS: P7B_SO_PROJECTION already written (re-entry): mark DONE?
+  condition-or-node-item condition_or_node_item_zdb6v3Cx: YES
+    update-node update_node_iCpFrE8D: P7B_SO_PROJECTION DONE (rows already at their after-values) [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_5NvC6GlV: NO
+condition-or-node condition_or_node_THHxHHjp: P7B_SO_PROJECTION row to insert (with the plan)?
+  condition-or-node-item condition_or_node_item_1M8V1tiE: YES
+    add-node add_node_GsnlIWlh: P7B_SO_PROJECTION STARTED with the plan in result_ref - recorded BEFORE the sales order write [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_sIVQM0Ys: NO
+condition-or-node condition_or_node_2yRDESCL: Sales order lines to project?
+  condition-or-node-item condition_or_node_item_Ld0BuAvC: YES
+    code-node code_node_rqSP2fxm: Batches of soLines: one loop pass per <= 250 rows of soPlan.lineRows (1041 ch)
+    set-cache-node set_cache_node_1xX4JLYE: Batch index of soLines = 0 (per run: the key carries the run's nonce)
+    loop loop_cxeKGXaA: Write soLines in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_rqSP2fxm.data.batches}}"}]
+      get-cache-node get_cache_node_rWRchtYY: Batch index of soLines
+      code-node code_node_8wH1WBLu: Batch of soLines: this pass's slice of soPlan.lineRows (1164 ch)
+      update-node update_node_FBhvvoZ6: SO PROJECTION: sales order lines planned_qty + gd_qty (only the changed column; gd_workflow update_node_wEJC3qKB semanti [sales_order_axszx8cj_sub:Table:1939903359943024642]
+      set-cache-node set_cache_node_NVLHUv30: Next batch index of soLines
+  condition-or-node-item condition_or_node_item_x4CU2fHt: NO
+condition-or-node condition_or_node_Rf56bErR: Sales order headers to project?
+  condition-or-node-item condition_or_node_item_0Uo77E5x: YES
+    update-node update_node_Yj1Tp7zh: SO PROJECTION: sales order gd_status Created when it was empty / Cancelled (only the changed column; gd_workflow update_ [Sales Order:Table:1902773735979597826]
+  condition-or-node-item condition_or_node_item_gaUdbM4w: NO
+sql-node sql_node_HzUjNJgO: Read-back: the sales order rows (+ the step rows) (1373 ch)
+code-node code_node_EdveBZL9: P7B_SO_PROJECTION check -> DONE (12145 ch)
+condition-or-node condition_or_node_bb03wPqH: P7B_SO_PROJECTION to mark DONE?
+  condition-or-node-item condition_or_node_item_jBYcoB9c: YES
+    update-node update_node_TzH5KOIT: P7B_SO_PROJECTION DONE [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_3aLd2D9M: NO
+sql-node sql_node_DVda7Bk0: Job lease read (BEFORE_P7C): the DB clock and the job row (411 ch)
+code-node code_node_ZmLG8Rkz: Job lease renewal (BEFORE_P7C): still COMMITTING_GD under this run's lease -> lease_expires_at = NOW + 10 min (5243 ch)
+condition-or-node condition_or_node_0WtOOiqO: Renew the job lease (BEFORE_P7C)?
+  condition-or-node-item condition_or_node_item_3WYMyuOw: YES
+    update-node update_node_PyfVYlh2: Job lease renewed (BEFORE_P7C): lease_expires_at by id, nothing else [GD Async Job:Table:2104845286495150081]
+  condition-or-node-item condition_or_node_item_tzbqhn1o: NO
+condition-or-node condition_or_node_4ofWiHpA: P7C row to insert?
+  condition-or-node-item condition_or_node_item_RBNdwtZC: YES
+    add-node add_node_lcsuhf8R: P7C_OUTBOX_READY STARTED - recorded BEFORE the release [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_vMYUwMrb: NO
+condition-or-node condition_or_node_FHVe7j6v: Event to release (BLOCKED -> READY)?
+  condition-or-node-item condition_or_node_item_vkLqdIGE: YES
+    update-node update_node_c3fBsZMG: Outbox: BLOCKED -> READY (the GD is Created) [GD Outbox:Table:2104845698245779457]
+  condition-or-node-item condition_or_node_item_NwxUfNQE: NO
+sql-node sql_node_J4lgM5hB: Read-back: the event, the header, the reservation rows, the packing shell (2251 ch)
+code-node code_node_Tbpchorx: P7C check -> P7C DONE; P7D: job GD_COMMITTED - the last node of the chain: its t* fields are what the tail acts on (12889 ch)
+condition-or-node condition_or_node_qezWMvVU: Ended step row to insert (FAILED / REQUIRES_REVIEW / P7D DONE)?
+  condition-or-node-item condition_or_node_item_Zc1TnRTO: YES
+    add-node add_node_c2c6Cxrc: Step row of the ended step (the step had no row yet): FAILED / REQUIRES_REVIEW - the recorded decision, before any delet [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_CwgPF6K8: NO
+condition-or-node condition_or_node_T6c6585p: Ended step row to update?
+  condition-or-node-item condition_or_node_item_Uje9Osmx: YES
+    update-node update_node_9iKlVEvy: Step row of the ended step: FAILED (no inventory mutation) / REQUIRES_REVIEW (result_ref = review reference) / P3 STARTE [GD Publish Step:Table:2105131615547461634]
+  condition-or-node-item condition_or_node_item_iCspxHBt: NO
+condition-or-node condition_or_node_STfrsUuw: Hidden header to soft-delete (clean failure only)?
+  condition-or-node-item condition_or_node_item_oktjGgNW: YES
+    update-node update_node_CqyBauWL: Clean failure: hidden header is_deleted = 1 (never Created; nothing else touched) [Goods Delivery:Table:1902054888473481218]
+  condition-or-node-item condition_or_node_item_tn7orAMJ: NO
+condition-or-node condition_or_node_qpKJwzV6: Hidden lines to soft-delete (clean failure only)?
+  condition-or-node-item condition_or_node_item_D99Ej5HQ: YES
+    code-node code_node_hJ9zLEnS: Batches of tDelL: one loop pass per <= 250 rows of p7c.tLineIds (1034 ch)
+    set-cache-node set_cache_node_nh5UC4kK: Batch index of tDelL = 0 (per run: the key carries the run's nonce)
+    loop loop_FbJJKXW1: Write tDelL in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_hJ9zLEnS.data.batches}}"}]
+      get-cache-node get_cache_node_76NxfYJY: Batch index of tDelL
+      code-node code_node_IJExnlBn: Batch of tDelL: this pass's slice of p7c.tLineIds (1157 ch)
+      update-node update_node_Fi4kmXnJ: Clean failure: hidden lines is_deleted = 1, <= 250 rows per call [goods_delivery_fwii8mvb_sub:Table:1939904186426433]
+      set-cache-node set_cache_node_QcGkBArR: Next batch index of tDelL
+  condition-or-node-item condition_or_node_item_Htp4Po1A: NO
+condition-or-node condition_or_node_DYRoNk1S: Hidden reservation rows to soft-delete (clean failure only)?
+  condition-or-node-item condition_or_node_item_0d2Ozr1D: YES
+    code-node code_node_eGZpUg7j: Batches of tDelR: one loop pass per <= 250 rows of p7c.tResIds (1032 ch)
+    set-cache-node set_cache_node_5PefYj7D: Batch index of tDelR = 0 (per run: the key carries the run's nonce)
+    loop loop_yoafJUx0: Write tDelR in slices of <= 250 rows [loop over {"type": "markdown", "code": "{{node:code_node_eGZpUg7j.data.batches}}"}]
+      get-cache-node get_cache_node_OawoCGAT: Batch index of tDelR
+      code-node code_node_lIvniRdH: Batch of tDelR: this pass's slice of p7c.tResIds (1155 ch)
+      update-node update_node_9l5YSfc9: Clean failure: hidden reservation rows is_deleted = 1 [On Reserved Goods Delivery:Table:19358800146874408]
+      set-cache-node set_cache_node_4VZVyVut: Next batch index of tDelR
+  condition-or-node-item condition_or_node_item_MFMEq1bs: NO
+condition-or-node condition_or_node_LBaiqQTE: Hidden packing shell to soft-delete (clean failure only)?
+  condition-or-node-item condition_or_node_item_OGQbEq4s: YES
+    update-node update_node_OM4HruVf: Clean failure: hidden packing shell is_deleted = 1 [Packing:Table:1993515601863524353]
+  condition-or-node-item condition_or_node_item_JH6cYlUt: NO
+condition-or-node condition_or_node_hFq0BsLP: Job row to update?
+  condition-or-node-item condition_or_node_item_mq0GFaxb: YES
+    update-node update_node_xZUZa3Ap: Job: FAILED (+ error_code, error_details, finished_at) / REQUIRES_REVIEW (+ review reference) / RETRY (attempt_count + 1 [GD Async Job:Table:2104845286495150081]
+  condition-or-node-item condition_or_node_item_rDpSwqs8: NO
+code-node code_node_P7Eplan0: P7E_REORDER plan: GD_CREATED reorder signal once per job (after the job is committed) (2606 ch)
+condition-or-node condition_or_node_P7Ecall: P7E_REORDER to run (job committed by this run, no P7E row yet)?
+  condition-or-node-item condition_or_node_item_P7Ecyes: YES
+    add-node add_node_P7Estrt0: P7E_REORDER STARTED - recorded BEFORE the REORDER call [GD Publish Step:Table:2105131615547461634]
+    workflow-node workflow_node_P7Ereor0: REORDER_SET_REDIS (GD_CREATED, the delivery's lines) -> REORDER_SET_REDIS
+    sql-node sql_node_P7Eback0: Read-back: the P7E_REORDER step row (486 ch)
+    code-node code_node_P7Echk00: P7E_REORDER check -> DONE (1696 ch)
+    condition-or-node condition_or_node_P7Edone: P7E_REORDER to mark DONE?
+      condition-or-node-item condition_or_node_item_P7Edyes: YES
+        update-node update_node_P7Edone: P7E_REORDER DONE [GD Publish Step:Table:2105131615547461634]
+      condition-or-node-item condition_or_node_item_P7Edno0: NO
+  condition-or-node-item condition_or_node_item_P7Ecno0: NO
+sql-node sql_node_3ZePlQKE: Read-back: job, steps, header, operation, outbox (1283 ch)
+code-node code_node_wH4TdrnR: Evidence MERGED (3255 ch)
+return-node return_node_LskpTOET: Return the merged decision
+end-node end: End Node

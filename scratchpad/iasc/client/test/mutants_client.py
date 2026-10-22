@@ -7,15 +7,19 @@ import json, os, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLIENT = os.path.dirname(HERE)
-TESTS = ["test_sc_legacy.js", "test_sc_link.js", "test_sc_prepare.js", "test_sc_qty.js", "test_sc_variance.js", "test_sc_panel.js", "test_v2_double.js", "test_res_draft.js", "test_res_own.js", "test_res_mount.js", "test_res_close.js"]
+TESTS = ["test_sc_legacy.js", "test_sc_link.js", "test_sc_prepare.js", "test_sc_qty.js", "test_sc_variance.js", "test_sc_panel.js", "test_v2_double.js", "test_res_draft.js", "test_res_own.js", "test_res_mount.js", "test_res_close.js", "test_classic_double.js", "test_created.js", "test_cancel.js", "test_res_dirty.js", "test_res_manual.js"]
 # the double-click patch is JSON (src/v2_double_patch.json): its anchors are written as JSON string text
 J = lambda s: json.dumps(s)[1:-1]
 D = "v2_double_patch.json"
 O = "sc_res_own.js"
 OP = "res_own_patch.json"
+CD = "classic_double_patch.json"
+CP = "created_patch.json"
 M = "sc_main.js"
 V = "sc_variance.js"
 MUTANTS = [
+    ("classic double click: the claim never checked", CD, J('if ((this.models["_data"] || {}).ia_submitting === 1) {'), J("if (false) {")),
+    ("classic double click: the claim never released", CD, J("  } finally {\n    iaClaimDone();\n  }\n})();"), J("  }\n})();")),
     # RES-01 R4: the holds closed after a completion
     ("close: an IA that never reserved closed", "sc_close_after.js", 'if (s(data.page_status) !== "Edit" || !s(data.material_hold_status)) return;', 'if (s(data.page_status) !== "Edit") return;'),
     ("close: an IA that never reserved closed", "sc_close_after.js", ' || !s(data.material_hold_status)) return;', ") return;"),
@@ -27,14 +31,26 @@ MUTANTS = [
     # RES-01 R3: an enrolled IA opened
     ("mount: the reservation on open ignores the switch (review I4)", M, 'if (hold === "RESERVING" && resOn()) resKick', 'if (hold === "RESERVING") resKick'),
     ("mount: Reserving not started again", M, '    if (hold === "RESERVING" && resOn()) resKick(v, "RECONCILE", true);\n', ""),
-    ("mount: a completed IA in review told to save (review M10)", M, 'status === "REVIEW" && !draft ?', "false ?"),
+    ("mount: a completed IA in review told to save (review M10)", M, 'status === "REVIEW" && !open ?', "false ?"),
     ("mount: a completed IA's holds never closed", M, '  } else if ((status === "Completed" || status === "Fully Posted") && RES_CLOSING.indexOf(hold) >= 0) resKick(v, "CLOSE", false);',
      "  }"),
     ("mount: a closed IA closed again", M, "RES_CLOSING.indexOf(hold) >= 0) resKick(", "true) resKick("),
+    # the mobile session's find (10-22): the typed-quantity re-pick takes a sibling line's picks off the free + own pool
+    ("re-pick: a sibling's picks ignored", "res_own_patch.json", J('"Unrestricted", item) -\n              (siblingStaged.get(key) || 0)'), J('"Unrestricted", item)')),
+    # BA rev 1.2 C2: a stored completed IA asks IA_HOLD CHECK how its completion ended
+    ("C2: a completed IA's completion never checked", M, '  if (stored && (status === "Completed" || status === "Fully Posted")) resCheck(v);\n', ""),
+    ("C2: Fully Posted not checked", M, 'if (stored && (status === "Completed" || status === "Fully Posted")) resCheck(v);', 'if (stored && status === "Completed") resCheck(v);'),
+    ("C2: an unsaved IA checked", M, 'if (stored && (status === "Completed" || status === "Fully Posted")) resCheck(v);', 'if (status === "Completed" || status === "Fully Posted") resCheck(v);'),
+    ("C2: any outcome shown", M, 'if (!r || RES_CHECK_SHOW[scS(r.outcome)] !== 1 || !scS(r.message)) return;', 'if (!r || !scS(r.message)) return;'),
+    ("C2: a refused check shown", M, '    const r = d && scS(d.code) === "200" ? scParseJ(d.result_json) : null;\n    if (!r || RES_CHECK_SHOW',
+     '    const r = d ? scParseJ(d.result_json) : null;\n    if (!r || RES_CHECK_SHOW'),
+    ("C2: the row never shown", M, '    this.display(["completion_check"]);\n', ""),
+    ("C2: the message not written", M, "await this.setData({ completion_check: scS(r.message) });", 'await this.setData({ completion_check: "" });'),
+    ("C2: checked as the save", M, 'operation: "CHECK", source: "FORM"', 'operation: "CHECK", source: "SAVE"'),
     ("mount: another IA's holds counted", M, 'scReadMany("on_reserved_gd", "doc_id", [scS(v.id)], [', 'scReadMany("on_reserved_gd", "doc_type", ["Item Assembly"], ['),
     ("mount: holds in flight counted", M, '{ prop: "status", operator: "equal", value: "Allocated" },', ""),
     ("mount: a clone keeps its hold status", M, '    if (scS(v.material_hold_status) || scS(v.material_hold_at)) Object.assign(clear, { material_hold_status: "", material_hold_at: "" });\n', ""),
-    ("mount: not-reservable lines figured", M, ': notHeld ? "not reserved" : scNumText(reserved);', ": scNumText(reserved);"),
+    ("mount: not-reservable lines figured", M, '  if (why.length) return [', '  if (false) return ['),
     ("mount: the required ignores the reference", M, ": scNum(l.requested_qty) > 0 ? scNum(l.requested_qty) : scNum(l.total_quantity);", ": scNum(l.total_quantity);"),
     ("mount: the answer not kept in the form", M, "    await this.setData({ material_hold_status: scS(r.status), material_hold_at: scS(r.checkedAt) });\n", ""),
     # RES-01 R3: the IA's own holds added back where it reads free stock
@@ -54,7 +70,63 @@ MUTANTS = [
     ("picker: the reserved not reduced", OP, J("            row.reserved_qty = Math.max(0, (parseFloat(row.reserved_qty) || 0) - own);\n"), ""),
     # RES-01 R3: the reservation started after a Draft save
     ("draft hold: the switch ignored", "sc_draft_hold.js", "if (!RES_ENABLED || !/^[1-9]", "if (!/^[1-9]"),
-    ("draft hold: an IA that never reserved is reserved", "sc_draft_hold.js", '!(isNew || s(data.material_hold_status) !== "")', "false"),
+    ("draft hold: a Draft that never reserved is reserved", "sc_draft_hold.js", '!(created || s(data.material_hold_status) !== "")', "false"),
+    # RES-01 Created (BA, 10-22)
+    ("draft hold: a Created save not reserved", "sc_draft_hold.js", 'const created = s(data.ia_target_status) === "Created";', "const created = false;"),
+    ("draft hold: a Draft's release made loud (review 4)", "sc_draft_hold.js", '    if (mark !== "NONE" && mark !== "CLOSED") run().catch((e) => console.error("RES-01: a Draft\'s holds could not be given back now", e));\n    return;\n', ""),
+    ("draft hold: a Draft marked NONE released again (review 4)", "sc_draft_hold.js", 'if (mark !== "NONE" && mark !== "CLOSED") run()', "if (true) run()"),
+    ("Cancel: a Created IA shows a Cancel button again (the list has it; user 10-22)", CP,
+     J('this.display(["button_created", "button_completed", "comp_post_button"]);\n        } else if (status === "Cancelled") {'),
+     J('this.display(["button_created", "button_completed", "comp_post_button", "button_cancel"]);\n        } else if (status === "Cancelled") {')),
+    ("Cancel: a Cancelled IA left with the Complete buttons", CP, J('        } else if (status === "Cancelled") {\n          // RES-01 Cancel (user 10-22): cancelled, its reservation released: read-only, no button\n          lockComponentsTable();\n'), ""),
+    ("Cancel: a Cancelled IA shows a reservation row", "sc_main.js", '  if (status === "Cancelled") return;\n', ""),
+    ("Created: the handler sends no flag", CP, J('    data.ia_target_status = "Created";\n'), ""),
+    ("Created: a stored Created IA locked like a Completed one", CP, J('if (status !== "Draft" && status !== "Created") {'), J('if (status !== "Draft") {')),
+    ("Created: a stored Created IA without its buttons", CP, J('this.display(["button_created", "button_completed", "comp_post_button"]);\n        } else if (status === "Cancelled") {'),
+     J('this.display([]);\n        } else if (status === "Cancelled") {')),
+    ("Created: the IA V2 Complete handler sends a stored Created IA to the classic save", CP, J(' && s(v.item_assembly_status) !== "Created") return { why:'), J(') return { why:')),
+    ("Created: a lost background answer leaves the Created button (review 1)", CP, J('this.hide(["button_draft", "button_created"]);'), J('this.hide(["button_draft"]);')),
+    ("Created: the Small Cycle actions of a Created IA locked", "sc_main.js", 'const scOpenStatus = (status) => scS(status) === "Draft" || scS(status) === "Created";',
+     'const scOpenStatus = (status) => scS(status) === "Draft";'),
+    ("Created: a Draft's leftovers kept", "sc_main.js", '    if (stored && hold && hold !== "NONE" && hold !== "CLOSED") resReleaseDraft(v, page);\n    else ', "    "),
+    # RF-09 (BA 10-22): the manual-Required flag
+    ("RF-09: a typed Required not flagged", "sc_required_manual.js", ': "1";\n', ': "";\n'),
+    ("RF-09: an emptied Required stays flagged", "sc_required_manual.js", 'String(v).trim() === "" ? "" : "1"', 'String(v).trim() === "" ? "1" : "1"'),
+    ("RF-09: written even when unchanged", "sc_required_manual.js", "=== flag) return;", "=== null) return;"),
+    ("RF-09: another row flagged", "sc_required_manual.js", "[`stock_movement.${i}.required_manual`]", "[`stock_movement.0.required_manual`]"),
+    # MIN-06 (BA 10-22): truthful coverage on the form
+    ("MIN-06 marker: no fingerprint on open", M, "  if (open) scStore({ res_fp: resFp(v), res_dirty: false });\n", ""),
+    ("MIN-06 marker: the row's text not kept", M, "  if (open) scStore({ res_row: text });\n", ""),
+    ("MIN-06 marker: a re-rendered row loses it", M, ' + (open && scState().res_dirty === true ? RES_DIRTY : "")', ""),
+    ("MIN-06 marker: the picks not compared", "res_fp.js", ' + "|" +\n    resHash(l && l.temp_qty_data) + "|" + resHash(l && l.temp_hu_data))', ")"),
+    ("MIN-06 marker: the plant not compared", "res_fp.js", '.join(";") + "#" + String((v && v.issuing_operation_faci) || "");', '.join(";");'),
+    ("MIN-06 marker: every change checked (no debounce)", "sc_res_dirty.js", "    if (now.res_seq !== seq || !now.res_fp) return;", "    if (!now.res_fp) return;"),
+    ("MIN-06 marker: never cleared", "sc_res_dirty.js", "    if (dirty === (now.res_dirty === true)) return;", "    if (!dirty) return;"),
+    ("MIN-06: a Draft without its row", M, "    else if (resOn()) await resDraftRow(page);\n", ""),
+    ("MIN-06: a new IA without its row", M, '  if (page === "Add") {\n    if (resOn()) await resDraftRow(page);\n', '  if (page === "Add") {\n'),
+    ("MIN-06: a clone without its row", M, "    if (Object.keys(clear).length) await this.setData(clear);\n    if (resOn()) await resDraftRow(page);\n",
+     "    if (Object.keys(clear).length) await this.setData(clear);\n"),
+    ("MIN-06: a failed give-back said released", M, '    if (r && scS(r.status) === "NONE") await resDraftRow(page);', "    if (true) await resDraftRow(page);"),
+    ("MIN-06: the Draft row with the switch off", M, "    if (!resOn()) return;\n    if (r && scS(r.status)", "    if (r && scS(r.status)"),
+    ("MIN-06: View offers the Created button", M, '(page === "View" ? "" : " Save as Created to reserve the materials.")', '" Save as Created to reserve the materials."'),
+    ("MIN-06: serial not named", M, '  if (serial) why.push("serial");', '  if (false) why.push("serial");'),
+    ("MIN-06: a handling unit not named", M, '    if ((Array.isArray(hu) && hu.length > 0) || picks.some((p) => scS(p.handling_unit_id))) why.push("handling unit");\n', ""),
+    ("MIN-06: a unit with no conversion not named", M, '    if (picks.length && resFactor(item, l.quantity_uom) === null) why.push("unit with no conversion");\n    else ', "    "),
+    ("MIN-06: a converting unit taken as none", M, "  return c && scNum(c.base_qty) > 0 ? scNum(c.base_qty) : null;", "  return null;"),
+    ("MIN-06: the base unit taken as needing a conversion", M, "  if (!uom || uom === scS(item.based_uom)) return 1;", "  if (!uom) return 1;"),
+    ("MIN-06: another category not named", M, ".filter((c) => !RES_CATS[c])", ".filter((c) => false)"),
+    ("MIN-06: pending shown as a shortage", M, '  if (hold === "RESERVING") return [', "  if (false) return ["),
+    ("MIN-06: review shown as a shortage", M, '  if (hold === "REVIEW") return [', "  if (false) return ["),
+    ("MIN-06: allocated beyond required counted not free", M, "Math.min(required, picked) - reserved", "picked - reserved"),
+    ("MIN-06: not free counted as not allocated too", M, "Math.max(0, scQ8(rest - notFree))", "Math.max(0, scQ8(rest))"),
+    ("MIN-06: the row not pointing at the lines", M, '(open && (status === "PARTIAL" || status === "SHORT") ? ": see Unreserved on the lines" : "")', '""'),
+    ("MIN-06: no last-save note", M, '(open ? " · Shown for the last save: changes not saved yet are not reserved." : "")', '""'),
+    ("MIN-06: the items read without their units", M, 'const RES_ITEM_FIELDS = "stock_control,serial_number_management,based_uom,table_uom_conversion";',
+     'const RES_ITEM_FIELDS = "stock_control,serial_number_management";'),
+    ("Created: a Created IA's holds not shown", "sc_main.js", 'const open = status === "Created";', "const open = false;"),
+    ("Created: no Created button on a new IA or a Draft", "sc_main.js", '(page === "Add" || page === "Clone" || (page === "Edit" && status === "Draft"))) this.display(["button_created"]);',
+     '(false)) this.display(["button_created"]);'),
+    ("Created: the Created button whatever the switch", "sc_main.js", '  if (resOn() && (page === "Add" || page === "Clone"', '  if ((page === "Add" || page === "Clone"'),
     ("draft hold: a big IA waited for", "sc_draft_hold.js", "if (picks > RES_WAIT_PICKS) {", "if (false) {"),
     ("draft hold: the result never shown", "sc_draft_hold.js", '    if (status === "FULL" || status === "NONE") this.$message.success(s(d.message));\n    else this.$message.warning(s(d.message));\n', ""),
     ("draft hold: a partial result shown as a success", "sc_draft_hold.js", "    else this.$message.warning(s(d.message));", "    else this.$message.success(s(d.message));"),
@@ -192,6 +264,8 @@ MUTANTS = [
     ("Select SO Line: the refusal's reason not shown", M, 'scAlert(scHtml(scWhyNot("The Sales Order lines could not be read.', 'scAlert(scHtml(("The Sales Order lines could not be read.'),
 ]
 
+# MUT_ONLY=<prefix>: only the mutants whose name starts with it
+MUTANTS = [m for m in MUTANTS if m[0].startswith(os.environ.get("MUT_ONLY", ""))]
 survived = 0
 for m in MUTANTS:
     name, rel, old = m[0], m[1], m[2]

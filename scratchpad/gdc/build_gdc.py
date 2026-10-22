@@ -248,14 +248,32 @@ def step_add(ids, nid, title, src, field):
     return K.add(ids, nid, title, STEP, [(p, N(src, "data.%s.%s" % (field, p))) for p in STEP_PROPS], labels={"organization_id": "Organization"})
 
 
+LANES = 12
+LANE_IDS = K.Ids(1797260000000)  # its own range: the published nodes keep their filter ids
+
+
 def slice_loop(ids, tag, src, field, title, table, props, labels=None):
+    # update-nodes write row by row (~46 ms a row on dev): the first LANES slices go to parallel lanes, the rest to the loop (10-22)
     loop_id = "loop_CC%s" % tag
     sl = "code_node_CC%sslice" % tag
+    ln = "code_node_CC%slanes" % tag
     body = code("commit/slice.js").replace("__LOOP__", loop_id)
-    return K.loop(ids, loop_id, title, N(src, "data." + field), [
-        K.code(sl, "This slice (the loop item: <= 250 rows)", body, ["n", "rows"], arrays=("rows",), objects=("n",)),
-        K.update(ids, "update_node_CC%swrite" % tag, title + " (<= 250 per call)", table, ("id", "in", N(sl, "data.rows.id")), [(p, N(sl, "data.rows." + p)) for p in ["id"] + props], labels),
-    ])
+    lanes = code("commit/lanes.js").replace("__SRC__", "%s.data.%s" % (src, field)).replace("__LANES__", str(LANES))
+    lane_names = ["lane%d" % k for k in range(LANES)]
+    lane = lambda k: K.update(LANE_IDS, "update_node_CC%sl%d" % (tag, k), "%s (lane %d)" % (title, k), table, ("id", "in", N(ln, "data.lane%d.id" % k)),
+                              [(p, N(ln, "data.lane%d.%s" % (k, p))) for p in ["id"] + props], labels)
+    return [
+        K.code(ln, "Lanes of %s: the first %d slices in parallel, the rest in the loop" % (tag, LANES), lanes,
+               ["rest", "hasRest", "count"] + lane_names + ["has%d" % k for k in range(LANES)], arrays=tuple(["rest"] + lane_names)),
+        K.parallel("cond_all_CC%sl" % tag, "%s: %d parallel lanes" % (title, LANES),
+                   [("cai_CC%sl%d" % (tag, k), "Lane %d" % k, [K.when_yes(LANE_IDS, "cor_CC%sl%d" % (tag, k), "Lane %d has rows?" % k, "node.%s.data.has%d" % (ln, k), "has%d" % k, [lane(k)])])
+                    for k in range(LANES)]),
+        K.when_yes(LANE_IDS, "cor_CC%slrest" % tag, "Slices past lane %d?" % (LANES - 1), "node.%s.data.hasRest" % ln, "hasRest", [
+            K.loop(ids, loop_id, title, N(ln, "data.rest"), [
+                K.code(sl, "This slice (the loop item: <= 250 rows)", body, ["n", "rows"], arrays=("rows",), objects=("n",)),
+                K.update(ids, "update_node_CC%swrite" % tag, title + " (<= 250 per call)", table, ("id", "in", N(sl, "data.rows.id")), [(p, N(sl, "data.rows." + p)) for p in ["id"] + props], labels),
+            ])]),
+    ]
 
 
 def tail_js(fn_call, log):
@@ -435,7 +453,7 @@ SELECT 'P' AS k, CAST(t.id AS CHAR) AS id, CAST(t.id AS CHAR) AS picking_id, '' 
             K.code("code_node_CCc3plan", "C3 plan: write a row only while it holds what PREPARE read; each create once", ccode("c3_plan.js"),
                    ["route", "slices", "writeCount", "createRows", "needCreates", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"], arrays=("slices", "createRows", "jobRows"), objects=("writeCount",)),
             end_block(ids, "c3pl", "code_node_CCc3plan", "IF the reservations cannot be written"),
-            slice_loop(ids, "c3", "code_node_CCc3plan", "slices", "C3 WRITE: on_reserved_gd", RESV, RES_COLS),
+            *slice_loop(ids, "c3", "code_node_CCc3plan", "slices", "C3 WRITE: on_reserved_gd", RESV, RES_COLS),
             gate(ids, "cor_CCc3add", "Reservations to create?", "code_node_CCc3plan", "needCreates", [
                 K.add(ids, "add_node_CCc3add", "C3 WRITE: new on_reserved_gd rows (job_line_key <job>|C|<n>)", RESV, [(p, N("code_node_CCc3plan", "data.createRows." + p)) for p in CREATE_COLS])]),
             K.sql("sql_node_CCc3back", "C3 read-back", resrows(N("code_node_CCc3ids", "data.idsJson"), N("code_node_CCc3ids", "data.createLike")), ["k", "j"]),
@@ -459,8 +477,8 @@ SELECT 'P' AS k, CAST(t.id AS CHAR) AS id, CAST(t.id AS CHAR) AS picking_id, '' 
                    arrays=("intentRows", "huSlices", "itemSlices", "jobRows"), objects=("huCount", "itemCount")),
             end_block(ids, "c3hpl", "code_node_CCc3hplan", "IF the handling units cannot be written"),
             gate(ids, "cor_CCc3hintent", "Intent to record?", "code_node_CCc3hplan", "needIntent", [step_add(ids, "add_node_CCc3hintent", "C3H INTENT: C3H|I|<nnn> (before + after of every row)", "code_node_CCc3hplan", "intentRows")]),
-            slice_loop(ids, "c3hh", "code_node_CCc3hplan", "huSlices", "C3H WRITE: Handling Unit total_quantity", HU, ["total_quantity"], {"total_quantity": "Total Item Quantity"}),
-            slice_loop(ids, "c3hi", "code_node_CCc3hplan", "itemSlices", "C3H WRITE: HU item quantity", HUI, ["quantity"], {"quantity": "Quantity"}),
+            *slice_loop(ids, "c3hh", "code_node_CCc3hplan", "huSlices", "C3H WRITE: Handling Unit total_quantity", HU, ["total_quantity"], {"total_quantity": "Total Item Quantity"}),
+            *slice_loop(ids, "c3hi", "code_node_CCc3hplan", "itemSlices", "C3H WRITE: HU item quantity", HUI, ["quantity"], {"quantity": "Quantity"}),
             K.parallel("condition_all_CCc3hback", "C3H read-back in parallel", [
                 ("cai_CCc3hhusB", "Handling units", [K.sql("sql_node_CCc3hhusB", "C3H read-back: handling units", hurows(N("code_node_CCc3hids", "data.idsJson")), ["j"])]),
                 ("cai_CCc3hitemsB", "HU items", [K.sql("sql_node_CCc3hitemsB", "C3H read-back: item rows", huitems(N("code_node_CCc3hids", "data.idsJson")), ["j"])]),
@@ -484,7 +502,7 @@ SELECT 'P' AS k, CAST(t.id AS CHAR) AS id, CAST(t.id AS CHAR) AS picking_id, '' 
                    arrays=("intentRows", "lineSlices", "headerRows", "jobRows"), objects=("lineCount",)),
             end_block(ids, "c4pl", "code_node_CCc4plan", "IF the sales orders cannot be written"),
             gate(ids, "cor_CCc4intent", "Intent to record?", "code_node_CCc4plan", "needIntent", [step_add(ids, "add_node_CCc4intent", "C4 INTENT: C4|I|<nnn> (before + after of every row)", "code_node_CCc4plan", "intentRows")]),
-            slice_loop(ids, "c4", "code_node_CCc4plan", "lineSlices", "C4 WRITE: SO lines", SOL, ["delivered_qty", "planned_qty", "outstanding_quantity", "line_status"]),
+            *slice_loop(ids, "c4", "code_node_CCc4plan", "lineSlices", "C4 WRITE: SO lines", SOL, ["delivered_qty", "planned_qty", "outstanding_quantity", "line_status"]),
             gate(ids, "cor_CCc4hdr", "Sales Orders to write?", "code_node_CCc4plan", "needHeaders", [
                 K.update(ids, "update_node_CCc4hdr", "C4 WRITE: Sales Order status", SOH, ("id", "in", N("code_node_CCc4plan", "data.headerRows.id")),
                          [(p, N("code_node_CCc4plan", "data.headerRows." + p)) for p in ["id", "so_status", "gd_status", "partially_delivered", "fully_delivered"]])]),
@@ -512,7 +530,7 @@ SELECT 'P' AS k, CAST(t.id AS CHAR) AS id, CAST(t.id AS CHAR) AS picking_id, '' 
             end_block(ids4p, "c4ppl", "code_node_CCc4pplan", "IF the Picking cannot be closed"),
             gate(ids4p, "cor_CCc4pintent", "Intent to record?", "code_node_CCc4pplan", "needIntent", [
                 step_add(ids4p, "add_node_CCc4pintent", "C4P INTENT: C4P|I|<nnn> (before + after of every row)", "code_node_CCc4pplan", "intentRows")]),
-            slice_loop(ids4p, "c4p", "code_node_CCc4pplan", "lineSlices", "C4P WRITE: Picking rows Completed, nothing pending", PKL, ["line_status", "pending_process_qty"],
+            *slice_loop(ids4p, "c4p", "code_node_CCc4pplan", "lineSlices", "C4P WRITE: Picking rows Completed, nothing pending", PKL, ["line_status", "pending_process_qty"],
                        {"line_status": "Line Status", "pending_process_qty": "Pending Process Quantity"}),
             gate(ids4p, "cor_CCc4phdr", "Picking headers to close?", "code_node_CCc4pplan", "needHeaders", [
                 K.update(ids4p, "update_node_CCc4phdr", "C4P WRITE: Picking Completed (to_status)", PKH, ("id", "in", N("code_node_CCc4pplan", "data.headerRows.id")),
@@ -535,7 +553,7 @@ SELECT 'P' AS k, CAST(t.id AS CHAR) AS id, CAST(t.id AS CHAR) AS picking_id, '' 
                    ["route", "headerRows", "soRows", "needSoHead", "lineSlices", "lineCount", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"],
                    arrays=("headerRows", "soRows", "lineSlices", "jobRows"), objects=("lineCount",)),
             end_block(ids, "c5pl", "code_node_CCc5plan", "IF the delivery cannot be written"),
-            slice_loop(ids, "c5", "code_node_CCc5plan", "lineSlices", "C5 WRITE: GD lines", GDL, GC_LINE_COLS),
+            *slice_loop(ids, "c5", "code_node_CCc5plan", "lineSlices", "C5 WRITE: GD lines", GDL, GC_LINE_COLS),
             gate(ids, "cor_CCc5so", "Order list to write?", "code_node_CCc5plan", "needSoHead", [
                 K.update(ids, "update_node_CCc5so", "C5 WRITE: the GD's order list", GD, ("id", "in", N("code_node_CCc5plan", "data.soRows.id")),
                          [(p, N("code_node_CCc5plan", "data.soRows." + p)) for p in ["id", "so_id", "so_no"]])]),
@@ -553,7 +571,7 @@ SELECT 'P' AS k, CAST(t.id AS CHAR) AS id, CAST(t.id AS CHAR) AS picking_id, '' 
                    ["route", "itemSlices", "reorderRows", "needReorder", "reorderPrevious", "reorderLatest", "siRows", "needSi", "gdIds", "stepRows", "needStep", "jobRows", "needJobUpd"],
                    arrays=("itemSlices", "reorderRows", "reorderPrevious", "reorderLatest", "siRows", "gdIds", "stepRows", "jobRows")),
             end_block(ids, "c6", "code_node_CCc6", "IF the after part cannot be read"),
-            slice_loop(ids, "c6", "code_node_CCc6", "itemSlices", "C6 WRITE: Item last_transaction_date", ITEM, ["last_transaction_date"]),
+            *slice_loop(ids, "c6", "code_node_CCc6", "itemSlices", "C6 WRITE: Item last_transaction_date", ITEM, ["last_transaction_date"]),
             gate(ids, "cor_CCc6reorder", "Reorder tracking to run?", "code_node_CCc6", "needReorder", [
                 step_add(ids, "add_node_CCc6reorder", "C6_REORDER marker (written before the call: at most once)", "code_node_CCc6", "reorderRows"),
                 call(ids, "workflow_node_CCc6reorder", "REORDER_SET_REDIS GD_COMPLETED", REORDER, [
@@ -634,7 +652,7 @@ WJOB_COLS = ["db_now", "id", "job_status", "progress_percent", "progress_message
 
 def build_worker():
     ids = K.Ids(1797300000000)
-    G = "code_node_GWguard2"
+    G = "code_node_GWguard3"
     T = N(G, "data.tenantId")
     prep = ("GD_COMPLETE_PREPARE", GD_IDS.get("GD_COMPLETE_PREPARE", "0"))
     comm = ("GD_COMPLETE_COMMIT", GD_IDS.get("GD_COMPLETE_COMMIT", "0"))

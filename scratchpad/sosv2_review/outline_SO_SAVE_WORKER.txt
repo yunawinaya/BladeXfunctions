@@ -1,0 +1,92 @@
+start-node start: Start Node
+code-node code_node_SWguard: Guard: job_id, session tenant, this run's lease owner WRK|<nonce> (14670 chars)
+if if_SWrej: IF the input is refused: answer, write nothing
+  ifBlock ifBlock_TSWrej: true
+    code-node code_node_SWrejres: Result (rejected input) (14595 chars)
+    return-node return_node_SWrej: Return (rejected input)
+  ifBlock ifBlock_FSWrej: false
+sql-node sql_node_SWjob: The job: status, row version, lease, due, its claim row at this version (1067 chars)
+code-node code_node_SWpick: Pick: finished / waiting / not due / a live lease -> answer; too many attempts -> end; else the claim and the  (14846 chars)
+if if_SWanswer: IF nothing to run (finished, waiting for an answer, not due, another run's lease)
+  ifBlock ifBlock_TSWanswer: true
+    sql-node sql_node_SWansend: The job as it now is (the truth) (336 chars)
+    code-node code_node_SWansres: Result (ans) (14778 chars)
+    return-node return_node_SWans: Return (ans)
+  ifBlock ifBlock_FSWanswer: false
+if if_SWend: IF the job ends here (too many attempts, a cancel request)
+  ifBlock ifBlock_TSWend: true
+    condition-or-node cor_SWxjob: Job row to write?
+      condition-or-node-item cori_YSWxjob: YES
+        update-node update_node_SWxjob: Job: the next GD / READY_TO_COMMIT / a question / FAILED / REQUIRES_REVIEW []
+      condition-or-node-item cori_NSWxjob: NO
+    condition-or-node cor_SWxunlock: SO to unlock?
+      condition-or-node-item cori_YSWxunlock: YES
+        update-node update_node_SWxunlock: Sales Order is_processing = 0 (nothing was written) []
+      condition-or-node-item cori_NSWxunlock: NO
+    condition-or-node cor_SWxcancel: Holds to cancel?
+      condition-or-node-item cori_YSWxcancel: YES
+        loop loop_SWxcancel: Loop the cascade's held GD edits
+          workflow-node wf_SWxcancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+          if if_SWxcancelling: IF the hold ended (CANCELLING)
+            ifBlock ifBlock_TSWxcancelling: true
+              workflow-node wf_SWxunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+            ifBlock ifBlock_FSWxcancelling: false
+      condition-or-node-item cori_NSWxcancel: NO
+    sql-node sql_node_SWxend: The job as it now is (the truth) (336 chars)
+    code-node code_node_SWxres: Result (x) (14776 chars)
+    return-node return_node_SWx: Return (x)
+  ifBlock ifBlock_FSWend: false
+add-node add_node_SWclaim: CLAIM GATE: gd_publish_step SOW|<job> / W0_CLAIM_<row_version> (unique: a twin's insert fails and its run ends []
+update-node update_node_SWclaim: Claim: row_version + 1, the lease (5 min), the status the stage runs under []
+sql-node sql_node_SWown: Read-back: the job after the claim (207 chars)
+code-node code_node_SWown: Own: the claim as written, else another run took it (14631 chars)
+if if_SWlost: IF another run took the job: stop
+  ifBlock ifBlock_TSWlost: true
+    sql-node sql_node_SWlostend: The job as it now is (the truth) (336 chars)
+    code-node code_node_SWlostres: Result (lost) (14778 chars)
+    return-node return_node_SWlost: Return (lost)
+  ifBlock ifBlock_FSWlost: false
+if if_SWprep: IF the stage is PREPARE: SO_SAVE_PREPARE (the step from the job's stage)
+  ifBlock ifBlock_TSWprep: true
+    workflow-node wf_SWprep: SO_SAVE_PREPARE -> SO_SAVE_PREPARE
+  ifBlock ifBlock_FSWprep: false
+if if_SWcommit: IF the stage is COMMIT: SO_SAVE_COMMIT (one phase)
+  ifBlock ifBlock_TSWcommit: true
+    workflow-node wf_SWcommit: SO_SAVE_COMMIT -> SO_SAVE_COMMIT
+  ifBlock ifBlock_FSWcommit: false
+if if_SWhold: IF the stage is HOLD: one GD of the cascade through GD Edit V2 (submit, or its worker)
+  ifBlock ifBlock_TSWhold: true
+    sql-node sql_node_SWg: The cascade's next GD payload: part G|<n> (298 chars)
+    code-node code_node_SWh1: Hold: submit the next GD, or run GD_EDIT_WORKER on the one submitted (14733 chars)
+    if if_SWsubmit: IF a GD to submit
+      ifBlock ifBlock_TSWsubmit: true
+        workflow-node wf_SWgdsubmit: GD Edit V2: GD_EDIT_SUBMIT CASCADE (held for this save: cascade_ref SOV2|<job>) -> GD_EDIT_SUBMIT
+      ifBlock ifBlock_FSWsubmit: false
+    if if_SWgdworker: IF a GD submitted: its prepare (GD_EDIT_WORKER on its job: HELD or FAILED)
+      ifBlock ifBlock_TSWgdworker: true
+        workflow-node wf_SWgdworker: GD Edit V2: GD_EDIT_WORKER on the job -> GD_EDIT_WORKER
+      ifBlock ifBlock_FSWgdworker: false
+    code-node code_node_SWh2: Hold: GD Edit V2's answer -> the next GD / READY_TO_COMMIT / a question (413) / an end (14764 chars)
+    condition-or-node cor_SWhjob: Job row to write?
+      condition-or-node-item cori_YSWhjob: YES
+        update-node update_node_SWhjob: Job: the next GD / READY_TO_COMMIT / a question / FAILED / REQUIRES_REVIEW []
+      condition-or-node-item cori_NSWhjob: NO
+    condition-or-node cor_SWhunlock: SO to unlock?
+      condition-or-node-item cori_YSWhunlock: YES
+        update-node update_node_SWhunlock: Sales Order is_processing = 0 (nothing was written) []
+      condition-or-node-item cori_NSWhunlock: NO
+    condition-or-node cor_SWhcancel: Holds to cancel?
+      condition-or-node-item cori_YSWhcancel: YES
+        loop loop_SWhcancel: Loop the cascade's held GD edits
+          workflow-node wf_SWhcancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+          if if_SWhcancelling: IF the hold ended (CANCELLING)
+            ifBlock ifBlock_TSWhcancelling: true
+              workflow-node wf_SWhunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+            ifBlock ifBlock_FSWhcancelling: false
+      condition-or-node-item cori_NSWhcancel: NO
+  ifBlock ifBlock_FSWhold: false
+update-node update_node_SWrelease: Lease released (the job is due again at once) []
+sql-node sql_node_SWdoneend: The job as it now is (the truth) (336 chars)
+code-node code_node_SWdoneres: Result (done) (14778 chars)
+return-node return_node_SWdone: Return (done)
+end-node end: End Node

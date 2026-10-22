@@ -1,0 +1,32 @@
+{
+  "saveAs": "Completed",
+  "pageStatus": "Add",
+  "allData": {
+    "stock_movement_no": "",
+    "stock_movement_no_type": "",
+    "stock_movement_status": "",
+    "movement_type": "Disposal/Scrap",
+    "issue_date": "2026-10-22",
+    "issuing_operation_faci": "9000000000000000001",
+    "organization_id": "9000000000000000002",
+    "acc_integration_type": "No Accounting Integration",
+    "stock_movement": [
+      {
+        "item_selection": "9000000000000000003",
+        "total_quantity": 1,
+        "requested_qty": 1,
+        "unit_price": 0,
+        "location_id": "9000000000000000004",
+        "temp_qty_data": "[{\"sm_quantity\":1,\"category\":\"Reserved\",\"location_id\":\"9000000000000000004\"}]"
+      },
+      {
+        "item_selection": "9000000000000000003",
+        "total_quantity": 0,
+        "requested_qty": 0,
+        "unit_price": 0,
+        "location_id": "9000000000000000004",
+        "temp_qty_data": "[]"
+      }
+    ]
+  }
+}

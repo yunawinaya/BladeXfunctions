@@ -145,7 +145,8 @@ CLASSIC_SC_SOURCE_KEYS = CLASSIC_SC_SOURCE.replace(
     "'organization_id', s.organization_id, 'customer_id', CAST(s.customer_name AS CHAR), 'is_deleted', s.is_deleted))) AS j",
     "'organization_id', s.organization_id, 'customer_id', CAST(s.customer_name AS CHAR), 'is_deleted', s.is_deleted)),\n"
     "       'hold', h.material_hold_status,\n"
-    "       'keys', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(x.id AS CHAR), 'k', x.sc_ref_key, 'r', CAST(x.required_qty AS CHAR), 'q', CAST(x.requested_qty AS CHAR))) FROM sm_item_assembly_tlm8ve69_sub x\n"
+    "       'keys', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(x.id AS CHAR), 'k', x.sc_ref_key, 'r', CAST(x.required_qty AS CHAR), 'q', CAST(x.requested_qty AS CHAR),\n"
+    "                'm', x.required_manual)) FROM sm_item_assembly_tlm8ve69_sub x\n"
     "         WHERE x.tenant_id = '@T' AND x.id IN (@IDS) AND x.sm_item_assembly_id = @IA AND x.is_deleted = 0)) AS j", 1)
 assert CLASSIC_SC_SOURCE_KEYS != CLASSIC_SC_SOURCE
 
@@ -194,3 +195,16 @@ def res_hold(sql):
 # RES-01 R4 (IA_V2_PREPARE) and R5 (IA_REVERT_V2_PREPARE): with the hold status, read only for an IA that reserves
 RES_OWN_HOLD = res_gate(res_hold(RES_OWN), "JSON_OBJECT('hold', '', 'rows', NULL, 'live', 0)")
 RES_REVERT_OWN_HOLD = res_gate(res_hold(RES_REVERT_OWN), "JSON_OBJECT('hold', '', 'rows', NULL, 'delivered', NULL, 'live', 0)")
+
+# MIN-02 (BA 10-22): the classic completion's claim (IAS|<ia> / CLAIM|<n>, HELD): the highest claim number ever (the unique key counts
+# soft-deleted rows too) and the server clock; after our insert, the HELD claims of the IA and its status now
+CLAIM_STATE = """SELECT JSON_OBJECT(
+       'max', (SELECT COALESCE(MAX(CAST(SUBSTRING(p.step_name, 7) AS UNSIGNED)), 0) FROM gd_publish_step p
+                WHERE p.tenant_id = '@T' AND p.job_id = 'IAS|@IAQ' AND p.step_name LIKE 'CLAIM|%'),
+       'now', DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'), '%Y-%m-%d %H:%i:%s')) AS j"""
+CLAIM_READ = """SELECT JSON_OBJECT(
+       'claims', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(p.id AS CHAR), 'name', p.step_name, 'started_at', DATE_FORMAT(p.started_at, '%Y-%m-%d %H:%i:%s')))
+                FROM gd_publish_step p WHERE p.tenant_id = '@T' AND p.job_id = 'IAS|@IAQ' AND p.step_name LIKE 'CLAIM|%' AND p.step_status = 'HELD'
+                 AND p.is_deleted = 0),
+       'status', (SELECT h.item_assembly_status FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = '@IAQ' AND h.is_deleted = 0),
+       'now', DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'), '%Y-%m-%d %H:%i:%s')) AS j"""

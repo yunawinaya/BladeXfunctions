@@ -27,10 +27,14 @@ const eq = (label, got, want) => {
 
 const ITEMS = [
   { id: "2105488759446736918", stock_control: 1, serial_number_management: 0, based_uom: EA, material_costing_method: "First In First Out",
-    table_uom_conversion: [{ alt_uom_id: CTN, base_qty: "12", alt_qty: "1" }] },
-  { id: "2105488759446736919", stock_control: 1, serial_number_management: 0, based_uom: EA, material_costing_method: "First In First Out", table_uom_conversion: [] },
-  { id: "2105488759446736921", stock_control: 1, serial_number_management: 1, based_uom: EA, material_costing_method: "First In First Out", table_uom_conversion: [] },
+    table_uom_conversion: [{ alt_uom_id: CTN, base_qty: "12", alt_qty: "1" }], material_code: "SC-SCREW", material_name: "Screw M4", material_desc: "M4 x 10 'zinc'" },
+  { id: "2105488759446736919", stock_control: 1, serial_number_management: 0, based_uom: EA, material_costing_method: "First In First Out", table_uom_conversion: [],
+    material_code: "SC-FRAME", material_name: "Frame", material_desc: "" },
+  { id: "2105488759446736921", stock_control: 1, serial_number_management: 1, based_uom: EA, material_costing_method: "First In First Out", table_uom_conversion: [],
+    material_code: "SC-SN", material_name: "Serial part", material_desc: null },
 ];
+// the item master's code / name / description, read only when the items SQL selects them
+const ITEM_TEXT = /^material_(code|name|desc)$/;
 const B1 = "2106278340907413505";
 const B2 = "2106278340907413507";
 const pick = (bin, qty, extra) => Object.assign({ location_id: bin, batch_id: null, sm_quantity: qty, category: "Unrestricted" }, extra || {});
@@ -40,7 +44,7 @@ const line = (id, item, picks, extra) => Object.assign({ id: id, item_selection:
 class World {
   constructor(o) {
     o = o || {};
-    this.ia = Object.assign({ id: IA, no: "IA-0001", status: "Draft", organization_id: ORG, plant_id: PLANT, hold: "RESERVING", hold_at: null, is_deleted: 0,
+    this.ia = Object.assign({ id: IA, no: "IA-0001", status: "Created", organization_id: ORG, plant_id: PLANT, hold: "RESERVING", hold_at: null, is_deleted: 0,
       ut: "2026-10-21 11:59:00.000000" }, o.ia || {});
     this.lines = o.lines || [line("3001", "2105488759446736918", [pick(B1, 6)])];
     this.items = o.items || ITEMS;
@@ -94,7 +98,7 @@ class Sim extends Engine {
           if (!target) throw new Error("update of " + table + " " + id + ": no such row");
           Object.keys(r).forEach((k) => {
             if (k === "__id" || k === "id") return;
-            if (table === "Item Assembly") target[k === "material_hold_status" ? "hold" : k === "material_hold_at" ? "hold_at" : k] = r[k];
+            if (table === "Item Assembly") target[k === "material_hold_status" ? "hold" : k === "material_hold_at" ? "hold_at" : k === "item_assembly_status" ? "status" : k] = r[k];
             else target[k] = r[k];
           });
           if (table === "Item Assembly") target.ut = "2026-10-21 12:00:09.000000";
@@ -117,6 +121,24 @@ class Sim extends Engine {
         return [J({ now: w.now, ia: w.ia, lines: w.lines, rows: rowOrg === ORG ? w.live() : [], ticket_max: tickets.reduce((m, t) => Math.max(m, Number(t.step_name.slice(7))), 0),
           held: tickets.filter((t) => t.step_status === "HELD").map((t) => ({ id: t.id, n: Number(t.step_name.slice(7)), started_at: t.started_at, op: t.result_ref })) })];
       },
+      // MIN-05 (BA 10-22): the deleted IAs still marked as holding (an interrupted list delete), at most 20, tenant-wide
+      // BA rev 1.2 C2: the IA's completion claims and its status (w.claims: [{ n, status, ref, at }])
+      sql_node_HDcheck: (q) => {
+        w.sqls.check = q;
+        const s = q.replace(/\s+/g, " ");
+        if (s.indexOf("p.tenant_id = '" + T + "' AND p.job_id = 'IAS|" + w.ia.id + "' AND p.step_name LIKE 'CLAIM|%'") < 0 ||
+          s.split("h.tenant_id = '" + T + "' AND h.id = '" + w.ia.id + "'").length !== 3 || s.indexOf("CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')") < 0)
+          throw new Error("check SQL: " + s);
+        return [J({ claims: (w.claims || []).length ? w.claims : null, status: w.ia.status, org: w.ia.organization_id, now: w.now })];
+      },
+      sql_node_HDsweep: (q) => {
+        w.sqls.sweep = q;
+        const s = q.replace(/\s+/g, " ");
+        if (s.indexOf("h.tenant_id = '" + T + "' AND h.is_deleted = 1") < 0 || s.indexOf("h.material_hold_status NOT IN ('', 'NONE', 'CLOSED')") < 0 || !/LIMIT 20\b/.test(s))
+          throw new Error("sweep SQL: " + s);
+        const rows = (w.deleted || []).slice(0, 20);
+        return [J({ ias: rows.length ? rows.map((x) => ({ id: x.id, org: x.org, no: x.no })) : null })];
+      },
       sql_node_HDhead: (q) => {
         w.sqls.head = q;
         has(w, "head", q, "h.tenant_id = '" + T + "' AND h.id = " + w.ia.id);
@@ -124,7 +146,9 @@ class Sim extends Engine {
       },
       sql_node_HDitems: (q) => {
         has(w, "items", q, "l.sm_item_assembly_id = " + w.ia.id);
-        return w.items.filter((i) => w.lines.some((l) => l.item_selection === i.id)).map(J);
+        const text = /'material_code', i\.material_code, 'material_name', i\.material_name, 'material_desc', i\.material_desc/.test(q.replace(/\s+/g, " "));
+        return w.items.filter((i) => w.lines.some((l) => l.item_selection === i.id))
+          .map((i) => J(text ? i : Object.keys(i).filter((k) => !ITEM_TEXT.test(k)).reduce((o, k) => Object.assign(o, { [k]: i[k] }), {})));
       },
       sql_node_HDmember: (q) => {
         w.sqls.member = q;
@@ -153,10 +177,13 @@ class Sim extends Engine {
       sql_node_HDconsumed: (q) => {
         w.sqls.consumed = q;
         const s = q.replace(/\s+/g, " ");
-        has(w, "consumed", q, "m.trx_no = '" + w.ia.no + "'");
+        // the number reaches SQL only as the hex of its UTF-8 bytes, compared the way the columns compare (review M6)
+        const no = "CONVERT(UNHEX('" + Buffer.from(w.ia.no, "utf8").toString("hex").toUpperCase() + "') USING utf8mb4) COLLATE utf8mb4_general_ci";
+        if (s.indexOf(w.ia.no) >= 0) throw new Error("consumed: the number itself is in the SQL text:\n" + s);
+        has(w, "consumed", q, "m.trx_no = " + no);
         has(w, "consumed", q, "m.organization_id = '" + ORG + "'");
-        has(w, "consumed", q, "r.id > " + w.ia.id + " AND r.trx_no = '" + w.ia.no + "' AND r.transaction_type = 'IA-R'");
-        has(w, "consumed", q, "d.doc_id = '" + w.ia.id + "' AND d.status = 'Delivered' AND d.doc_no = '" + w.ia.no + "'");
+        has(w, "consumed", q, "r.id > " + w.ia.id + " AND r.trx_no = " + no + " AND r.transaction_type = 'IA-R'");
+        has(w, "consumed", q, "d.doc_id = '" + w.ia.id + "' AND d.status = 'Delivered' AND d.doc_no = " + no);
         has(w, "consumed", q, "d.organization_id = '" + ORG + "'");
         if (!/m\.transaction_type = 'IA' AND m\.movement = 'OUT' AND m\.inventory_category = 'Reserved'/.test(s)) throw new Error("consumed: not the IA's Reserved issues:\n" + s);
         // the cycle: after the IA was created and after its last revert ('IA-R') under this number
@@ -181,7 +208,8 @@ class Sim extends Engine {
     this.w = w;
   }
   load(name) {
-    if (name === "IA_HOLD") return JSON.parse(fs.readFileSync(BUILT, "utf8"));
+    // a world may run another build of the same workflow (w.file: a switch variant)
+    if (name === "IA_HOLD") return JSON.parse(fs.readFileSync(this.w.file || BUILT, "utf8"));
     throw new Error("no workflow " + name);
   }
   run(name, params) {
@@ -219,6 +247,17 @@ const hold = (w, params) => {
 const allocated = (w) => w.live().filter((r) => r.status === "Allocated").map((r) => [r.doc_line_id, r.material_id, r.bin_location, r.from_category, q8(r.open_qty)]);
 const k1 = "2105488759446736918|" + B1 + "|";
 
+// ---- on_reserved_gd rows carry the item's code, name and description, as a Goods Delivery's do (the item master's material_code /
+// material_name / material_desc; user 10-22)
+{
+  const w = new World();
+  hold(w);
+  const held = w.live().filter((r) => r.status === "Allocated");
+  eq("a new hold row carries its item's code, name and description (as a GD's)", [held.length > 0, held.map((r) => {
+    const it = ITEMS.find((i) => i.id === r.material_id) || {};
+    return [r.item_code === it.material_code, r.item_name === it.material_name, r.item_desc === (it.material_desc || "")];
+  }).every((x) => x.every(Boolean))], [true, true]);
+}
 // ---- refusals and no-ops
 {
   let w = new World({ ia: { hold: "" } });
@@ -236,6 +275,29 @@ const k1 = "2105488759446736918|" + B1 + "|";
   w = new World({ ia: { status: "Completed" } });
   r = hold(w);
   eq("a completed IA: 200 nothing to reserve", [r.code, /Nothing to reserve/.test(r.message), w.calls.length], ["200", true, 0]);
+  // RES-01 Created (BA, 10-22): only a Created IA reserves; a Draft never holds - one still holding (reverted, or saved before Created
+  // existed) gives everything back on its next reconcile
+  w = new World({ ia: { status: "Draft" } });
+  r = hold(w);
+  eq("a Draft with picks and free stock, marked RESERVING: nothing reserved, no move, NONE (not SHORT)", [r.code, w.calls.length, w.rows.length, w.ia.hold, r.result && r.result.status],
+    ["200", 0, 0, "NONE", "NONE"]);
+  w = new World({ ia: { status: "Draft", hold: "FULL" }, rows: [{ id: "2112800000000000901", status: "Allocated", doc_no: "IA-0001", doc_line_id: "3001",
+    material_id: "2105488759446736918", bin_location: B1, open_qty: "6", reserved_qty: "6", delivered_qty: "0" }], bal: { [k1]: { Unrestricted: 4, Reserved: 6, Blocked: 0 } } });
+  r = hold(w);
+  eq("a Draft still holding 6: all of it released (Reserved -> Unrestricted), the row Cancelled, NONE", [r.code, w.calls.length,
+    w.calls[0] && w.calls[0].movements.map((m) => [m.direction, m.inventory_category, m.quantity]), w.rows.map((x) => x.status), w.bal[k1], w.ia.hold, /Released/.test(r.message)],
+    ["200", 1, [["SUBTRACT", "Reserved", 6], ["ADD", "Unrestricted", 6]], ["Cancelled"], { Unrestricted: 10, Reserved: 0, Blocked: 0 }, "NONE", true]);
+  // review 2: the Draft's release still running when the IA is saved as Created (IA_SAVE marks it RESERVING): the mark survives, so the
+  // next open reserves the Created IA's lines; this run's release stands
+  w = new World({ ia: { status: "Draft", hold: "FULL" }, rows: [{ id: "2112800000000000902", status: "Allocated", doc_no: "IA-0001", doc_line_id: "3001",
+    material_id: "2105488759446736918", bin_location: B1, open_qty: "6", reserved_qty: "6", delivered_qty: "0" }], bal: { [k1]: { Unrestricted: 4, Reserved: 6, Blocked: 0 } },
+    afterBal: (x) => Object.assign(x.ia, { status: "Created", hold: "RESERVING", ut: "2026-10-21 12:00:05.200000" }) });
+  r = hold(w);
+  eq("a Draft's release overtaken by a Created save: released, the header left RESERVING (saved again while reserving)", [w.rows.map((x) => x.status), w.ia.hold, /Saved again/.test(r.message)],
+    [["Cancelled"], "RESERVING", true]);
+  w = new World({ ia: { status: "Draft", hold: "" } });
+  r = hold(w);
+  eq("a Draft never marked: not enrolled, nothing read or moved", [r.code, /Not enrolled/.test(r.message), w.calls.length, w.rows.length], ["200", true, 0, 0]);
   w = new World({ uid: "" });
   r = hold(w);
   eq("no session user: 400, nothing read or moved", [r.code, /session user/.test(r.message), w.calls.length], ["400", true, 0]);
@@ -277,15 +339,46 @@ eq("pick lowered to 4: the two rows released (Cancelled), one row of 4 kept, rel
   allocated(w), w.rows.filter((x) => x.status === "Cancelled").map((x) => [q8(x.reserved_qty), q8(x.open_qty)]), w.bal[k1]],
   [[["X1", "SUBTRACT", "Reserved", 5], ["X1.2", "ADD", "Unrestricted", 5]], [["3001", "2105488759446736918", B1, "Unrestricted", 4]], [[6, 0], [3, 0]], { Unrestricted: 6, Reserved: 4, Blocked: 0 }]);
 eq("the kept row points at the first released one", w.live().filter((x) => x.status === "Allocated")[0].source_reserved_id, w.rows.find((x) => x.status === "Cancelled").id);
+// ---- A5 (BA 10-22): a save that re-creates the line ids (a mobile edit): the old line's hold released and the new line held in ONE
+// operation (releases first), Reserved stays at the one quantity, never both holds at once
+{
+  const wr = new World({ lines: [line("3001", "2105488759446736918", [pick(B1, 6)])] });
+  hold(wr);
+  wr.lines = [line("3009", "2105488759446736918", [pick(B1, 6)])];
+  const before = wr.calls.length;
+  r = hold(wr);
+  eq("re-created line ids: 3001's hold released, 3009 held, Reserved stays 6, one engine operation (release, then hold)",
+    [allocated(wr), wr.bal[k1], wr.calls.length - before, wr.calls[wr.calls.length - 1].movements.map((m) => [m.direction, m.inventory_category, m.quantity])],
+    [[["3009", "2105488759446736918", B1, "Unrestricted", 6]], { Unrestricted: 4, Reserved: 6, Blocked: 0 }, 1,
+      [["SUBTRACT", "Reserved", 6], ["ADD", "Unrestricted", 6], ["SUBTRACT", "Unrestricted", 6], ["ADD", "Reserved", 6]]]);
+}
 // ---- short of stock: hold what is free, the rest short; never a negative balance
 {
   const ws = new World({ lines: [line("3001", "2105488759446736918", [pick(B1, 12)], { required_qty: "12" })], bal: { [k1]: { Unrestricted: 7, Reserved: 0, Blocked: 0 } } });
   r = hold(ws);
   eq("12 wanted, 7 free: 7 held, 5 short, PARTIAL", [allocated(ws), r.result.lines.map((x) => [x.required, x.reserved, x.short]), ws.ia.hold, ws.bal[k1].Unrestricted],
     [[["3001", "2105488759446736918", B1, "Unrestricted", 7]], [[12, 7, 5]], "PARTIAL", 0]);
+  // MIN-06 (BA 10-22): the message says why the rest is not reserved, never a shortage it does not know of
+  eq("PARTIAL: the message names the line short of free stock where allocated", r.message,
+    "Some materials are reserved. Not reserved: 1 line short of free stock where allocated.");
   const wz = new World({ bal: { [k1]: { Unrestricted: 0, Reserved: 0, Blocked: 0 } } });
   r = hold(wz);
   eq("nothing free: no move, SHORT", [wz.calls.length, wz.ia.hold, r.result.short.map((x) => x.short)], [0, "SHORT", [6]]);
+  eq("SHORT: the message names why", r.message, "Nothing is reserved. Not reserved: 1 line short of free stock where allocated.");
+  const wa = new World({ lines: [line("3001", "2105488759446736918", [pick(B1, 4)], { required_qty: "10" })], bal: { [k1]: { Unrestricted: 20, Reserved: 0, Blocked: 0 } } });
+  r = hold(wa);
+  eq("10 required, 4 allocated, free stock plenty: 4 held, PARTIAL, the rest named not allocated (not a shortage)", [allocated(wa).map((x) => x[4]), wa.ia.hold, r.message],
+    [[4], "PARTIAL", "Some materials are reserved. Not reserved: 1 line allocated for less than required."]);
+  const wn = new World({ lines: [line("3001", "2105488759446736918", [pick(B1, 6)]), line("3002", "2105488759446736921", [pick(B1, 1)]),
+    line("3003", "2105488759446736919", [pick(B1, 2)], { quantity_uom: CTN })] });
+  r = hold(wn);
+  eq("a serial line and a carton line with no conversion next to a fully held line: PARTIAL (never Fully reserved), both named not supported",
+    [allocated(wn).map((x) => x[4]), wn.ia.hold, r.message], [[6], "PARTIAL",
+      "Some materials are reserved. Not reserved: 1 line with serial, 1 line with a unit with no conversion (not supported by the reservation)."]);
+  const ws2 = new World({ lines: [line("3002", "2105488759446736921", [pick(B1, 1)])] });
+  r = hold(ws2);
+  eq("only a serial line: SHORT, nothing moved, not 'Nothing to reserve'", [ws2.calls.length, ws2.ia.hold, r.message],
+    [0, "SHORT", "Nothing is reserved. Not reserved: 1 line with serial (not supported by the reservation)."]);
 }
 // ---- a carton line: the free stock converted (30 EA = 2.5 CTN)
 {
@@ -393,6 +486,87 @@ eq("the kept row points at the first released one", w.live().filter((x) => x.sta
     allocated(wm).sort(), wm.bal[k1], wm.ia.hold], [1, [["SUBTRACT", "Reserved", 5], ["ADD", "Unrestricted", 5], ["SUBTRACT", "Unrestricted", 5], ["ADD", "Reserved", 5]],
     [["3001", "2105488759446736918", B1, "Unrestricted", 1], ["3002", "2105488759446736918", B1, "Unrestricted", 5]], { Unrestricted: 0, Reserved: 6, Blocked: 0 }, "FULL"]);
 }
+// ---- MIN-05 (BA 10-22): SWEEP lists the IAs deleted while still holding (a list delete interrupted between its header write and its
+// release); the list then releases each with RELEASE_ALL. Read-only: no IA read, no ticket, no move
+{
+  const ws = new World({});
+  ws.deleted = [{ id: "2112800000000000009", org: ORG, no: "IA-0009" }, { id: "1) OR 1=1", org: ORG, no: "X" }, { id: "2112800000000000011", org: "1123598813738675299", no: "IA-0011" }];
+  r = hold(ws, { ia_id: "0", organization_id: "0", operation: "SWEEP", source: "LIST" });
+  eq("SWEEP (LIST): 200, the deleted IAs still holding with their organisations (a malformed id dropped), nothing else read, nothing moved or written",
+    [r.code, r.result && r.result.ias, ws.calls.length, ws.tickets.length, !!ws.sqls.state, !!ws.sqls.member],
+    ["200", [{ id: "2112800000000000009", org: ORG, no: "IA-0009" }, { id: "2112800000000000011", org: "1123598813738675299", no: "IA-0011" }], 0, 0, false, false]);
+  const we = new World({});
+  r = hold(we, { ia_id: "0", organization_id: "0", operation: "SWEEP", source: "LIST" });
+  eq("SWEEP with nothing stranded: 200, an empty list", [r.code, r.result && r.result.ias], ["200", []]);
+  r = hold(new World({}), { ia_id: "0", organization_id: "0", operation: "SWEEP", source: "FORM" });
+  eq("SWEEP from another caller than the list: 400", [r.code, /SWEEP only from the list/.test(r.message || "")], ["400", true]);
+}
+// ---- BA rev 1.2 C5: the reservation switch, server-side (IA_HOLD itself): off, no new or extra hold on any route; releases, closes,
+// cancels and the sweep go on (finishing holds is never switched off)
+{
+  const shipped = fs.readFileSync(BUILT, "utf8");
+  eq("C5: IA_HOLD ships with its reservation switch ON", (shipped.match(/const HD_ACQUIRE_ENABLED = true;/g) || []).length, 1);
+  const off = path.join(fs.mkdtempSync(path.join(require("os").tmpdir(), "hd-off-")), "IA_HOLD.json");
+  fs.writeFileSync(off, shipped.replace("const HD_ACQUIRE_ENABLED = true;", "const HD_ACQUIRE_ENABLED = false;"));
+  const w0 = new World({});
+  w0.file = off;
+  r = hold(w0);
+  eq("C5 off: a Created IA with free stock, nothing held: no move, no hold row, the message says the reservation is switched off",
+    [r.code, w0.calls.length, w0.rows.length, /Reservation is switched off: no new stock is reserved/.test(r.message || ""), r.result && r.result.acquireOff], ["200", 0, 0, true, true]);
+  const w1 = new World({ lines: [line("3001", "2105488759446736918", [pick(B1, 6)])] });
+  hold(w1);
+  w1.file = off;
+  w1.lines = [line("3001", "2105488759446736918", [pick(B1, 2)])];
+  r = hold(w1);
+  eq("C5 off: a lowered pick still releases its surplus (4 back to Unrestricted), nothing new held", [allocated(w1).map((x) => x[4]), w1.bal[k1]], [[2], { Unrestricted: 8, Reserved: 2, Blocked: 0 }]);
+  w1.lines = [line("3001", "2105488759446736918", [pick(B1, 5)])];
+  r = hold(w1);
+  eq("C5 off: a raised pick is not reserved further (still 2 held)", [allocated(w1).map((x) => x[4]), w1.bal[k1].Reserved, /switched off/.test(r.message || "")], [[2], 2, true]);
+  r = hold(w1, { operation: "CANCEL", source: "FORM" });
+  eq("C5 off: CANCEL still releases everything", [r.code, allocated(w1).length, w1.bal[k1], r.result && r.result.cancelled], ["200", 0, { Unrestricted: 10, Reserved: 0, Blocked: 0 }, true]);
+}
+// ---- BA rev 1.2 C2: CHECK reads how a completed IA's completion ended, from its claims (the latest one that did not lose): DONE / V2 fine;
+// PARTIAL|<step> stopped after the header; HELD past the 10-minute lease interrupted, within it still running; read-only
+{
+  const chk = (status, claims, o) => {
+    const wc = new World({ ia: Object.assign({ status: status }, (o && o.ia) || {}) });
+    wc.claims = claims;
+    const r = hold(wc, Object.assign({ operation: "CHECK", source: "FORM" }, (o && o.params) || {}));
+    return { r: r, w: wc };
+  };
+  const c = (n, status, ref, at) => ({ n: n, status: status, ref: ref || "", at: at || "2026-10-21 11:00:00" });
+  let x = chk("Completed", [c(1, "FREE", "DONE")]);
+  eq("CHECK: a completion that finished -> DONE, nothing read or moved besides the claims", [x.r.code, x.r.result.outcome, x.w.calls.length, !!x.w.sqls.state], ["200", "DONE", 0, false]);
+  x = chk("Completed", [c(1, "FREE", "PARTIAL|SUBTRACT")]);
+  eq("CHECK: stopped while issuing -> PARTIAL, step SUBTRACT, Needs review said", [x.r.result.outcome, x.r.result.step, /issuing its components/.test(x.r.message), /Needs review/.test(x.r.message)],
+    ["PARTIAL", "SUBTRACT", true, true]);
+  x = chk("Completed", [c(1, "FREE", "PARTIAL|RECEIPT")]);
+  eq("CHECK: stopped at the receipt -> PARTIAL, step RECEIPT", [x.r.result.outcome, /output receipt/.test(x.r.message)], ["PARTIAL", true]);
+  x = chk("Completed", [c(1, "HELD", "", "2026-10-21 11:40:00")]);
+  eq("CHECK: a claim still HELD past the lease -> INTERRUPTED", [x.r.result.outcome, /interrupted/.test(x.r.message)], ["INTERRUPTED", true]);
+  x = chk("Completed", [c(1, "HELD", "", "2026-10-21 11:58:00")]);
+  eq("CHECK: a claim HELD within the lease -> RUNNING", x.r.result.outcome, "RUNNING");
+  x = chk("Completed", [c(1, "FREE", "DONE"), c(2, "FREE", "LOST")]);
+  eq("CHECK: a losing claim never counts (the winner's DONE does)", x.r.result.outcome, "DONE");
+  x = chk("Completed", [c(1, "HELD", "", "2026-10-20 09:00:00"), c(2, "FREE", "V2")]);
+  eq("CHECK: an old interrupted attempt before a background completion (V2, newer) -> DONE", x.r.result.outcome, "DONE");
+  x = chk("Completed", [c(9, "FREE", "DONE"), c(10, "FREE", "PARTIAL|SUBTRACT")]);
+  eq("CHECK: the latest claim by number (10 after 9)", x.r.result.outcome, "PARTIAL");
+  x = chk("Completed", [c(1, "FREE", "PARTIAL|SUBTRACT"), c(2, "FREE", "LOST")]);
+  eq("CHECK: a later refused attempt (LOST) never hides a partial completion", x.r.result.outcome, "PARTIAL");
+  x = chk("Fully Posted", [c(1, "FREE", "PARTIAL|RECEIPT")]);
+  eq("CHECK: a Fully Posted IA is checked too", x.r.result.outcome, "PARTIAL");
+  x = chk("Completed", [c(1, "FREE", "")]);
+  eq("CHECK: a claim freed without an outcome (before the markers) -> UNKNOWN, never DONE", [x.r.result.outcome, x.r.message], ["UNKNOWN", ""]);
+  x = chk("Completed", []);
+  eq("CHECK: no claim (completed before the claim existed, or a new IA completed at once) -> NONE", x.r.result.outcome, "NONE");
+  x = chk("Draft", [c(1, "HELD", "", "2026-10-21 11:40:00")]);
+  eq("CHECK: not completed -> NOT_COMPLETED (nothing to check)", x.r.result.outcome, "NOT_COMPLETED");
+  x = chk("Completed", [c(1, "FREE", "DONE")], { ia: { organization_id: "1123598813738675299" } });
+  eq("CHECK: another organisation's IA -> 400", x.r.code, "400");
+  x = chk("Completed", [c(1, "FREE", "DONE")], { params: { source: "SAVE" } });
+  eq("CHECK from the save -> 400 (the form and the list only)", x.r.code, "400");
+}
 // ---- RELEASE_ALL (a Draft deleted)
 {
   const wa = new World({ rows: [{ id: "61", status: "Allocated", doc_line_id: "3001", material_id: "2105488759446736918", bin_location: B1, open_qty: "6", reserved_qty: "6" }],
@@ -402,6 +576,55 @@ eq("the kept row points at the first released one", w.live().filter((x) => x.sta
     ["200", [["61", "Cancelled"]], { Unrestricted: 10, Reserved: 0, Blocked: 0 }, 2]);
   // live run 10-21 12:20 said "Nothing could be reserved" (SHORT) after releasing everything
   eq("RELEASE_ALL: says the holds are released, label NONE", [r.message, wa.ia.hold, r.result.status], ["Released: this Item Assembly holds no material now.", "NONE", "NONE"]);
+}
+// review M4 (10-22): the list deletes the header first, then releases: a deleted IA can still be released (and only released), so a
+// reservation can never start for it once it is deleted, and what an earlier one held still comes back
+{
+  const row = () => [{ id: "62", status: "Allocated", doc_line_id: "3001", material_id: "2105488759446736918", bin_location: B1, open_qty: "6", reserved_qty: "6" }];
+  const wd = new World({ ia: { is_deleted: 1 }, rows: row(), bal: { [k1]: { Unrestricted: 4, Reserved: 6, Blocked: 0 } } });
+  r = hold(wd, { operation: "RELEASE_ALL", source: "LIST" });
+  eq("RELEASE_ALL on a deleted IA: its holds released (stock back), NONE", [r.code, wd.rows.map((x) => [x.id, x.status]), wd.bal[k1], r.result && r.result.status],
+    ["200", [["62", "Cancelled"]], { Unrestricted: 10, Reserved: 0, Blocked: 0 }, "NONE"]);
+  const wr = new World({ ia: { is_deleted: 1 }, bal: { [k1]: { Unrestricted: 10, Reserved: 0, Blocked: 0 } } });
+  r = hold(wr, { operation: "RECONCILE", source: "FORM" });
+  eq("RECONCILE on a deleted IA: not found, nothing held or moved", [r.code, r.message, wr.calls.length, wr.rows.length], ["400", "Item Assembly not found.", 0, 0]);
+  const wc = new World({ ia: { is_deleted: 1, status: "Completed" }, rows: row() });
+  r = hold(wc, { operation: "CLOSE", source: "COMPLETE" });
+  eq("CLOSE on a deleted IA: not found", [r.code, wc.calls.length], ["400", 0]);
+}
+// ---- CANCEL (user 10-22, like Goods Delivery): a Created IA only; everything it holds released first, then status Cancelled; a release
+// that does not finish leaves it Created (Needs review); Delete is for Draft and Cancelled IAs (the list releases a Cancelled IA: nothing)
+{
+  const held6 = () => [{ id: "2112800000000000903", status: "Allocated", doc_no: "IA-0001", doc_line_id: "3001", material_id: "2105488759446736918", bin_location: B1,
+    open_qty: "6", reserved_qty: "6", delivered_qty: "0" }];
+  const cancel = (w) => hold(w, { operation: "CANCEL", source: "FORM" });
+  let w = new World({ ia: { status: "Created", hold: "FULL" }, rows: held6(), bal: { [k1]: { Unrestricted: 4, Reserved: 6, Blocked: 0 } } });
+  let r = cancel(w);
+  eq("CANCEL a Created IA holding 6: all released (Reserved -> Unrestricted), the row Cancelled, the header NONE, the status Cancelled", [r.code, w.calls.length,
+    w.calls[0] && w.calls[0].movements.map((m) => [m.direction, m.inventory_category, m.quantity]), w.rows.map((x) => x.status), w.bal[k1], w.ia.hold, w.ia.status,
+    /^Cancelled/.test(r.message), r.result && r.result.cancelled], ["200", 1, [["SUBTRACT", "Reserved", 6], ["ADD", "Unrestricted", 6]], ["Cancelled"],
+    { Unrestricted: 10, Reserved: 0, Blocked: 0 }, "NONE", "Cancelled", true, true]);
+  w = new World({ ia: { status: "Created", hold: "" } });
+  r = cancel(w);
+  eq("CANCEL a Created IA that holds nothing (never enrolled): no move, the status Cancelled", [r.code, w.calls.length, w.ia.status], ["200", 0, "Cancelled"]);
+  w = new World({ ia: { status: "Created", hold: "FULL" }, rows: held6(), bal: { [k1]: { Unrestricted: 4, Reserved: 2, Blocked: 0 } } });
+  r = cancel(w);
+  eq("CANCEL whose release is refused (only 2 still Reserved): Needs review, the IA stays Created, its hold stays, said so", [w.ia.status, w.ia.hold, w.rows.map((x) => x.status),
+    /not cancelled/.test(r.message), r.result && r.result.cancelled], ["Created", "REVIEW", ["Allocated"], true, false]);
+  for (const [status, code, re] of [["Draft", "400", /A Draft is deleted, not cancelled/], ["Completed", "400", /Only a Created Item Assembly can be cancelled/],
+    ["Fully Posted", "400", /Only a Created Item Assembly can be cancelled/], ["Cancelled", "200", /Already cancelled/], ["Processing", "409", /background/]]) {
+    w = new World({ ia: { status: status, hold: "FULL" }, rows: held6() });
+    r = cancel(w);
+    eq("CANCEL a " + status + " IA: " + code + ", nothing moved, the status unchanged", [r.code, re.test(r.message), w.calls.length, w.ia.status], [code, true, 0, status]);
+  }
+  w = new World({ ia: { status: "Cancelled", hold: "NONE" } });
+  r = hold(w, { operation: "RELEASE_ALL", source: "LIST" });
+  eq("RELEASE_ALL on a Cancelled IA (the list deletes it): nothing held, NONE (the delete goes on)", [r.code, w.calls.length, r.result && r.result.status], ["200", 0, "NONE"]);
+  w = new World({ ia: { status: "Cancelled", hold: "NONE" } });
+  r = hold(w);
+  eq("RECONCILE on a Cancelled IA: nothing to reserve", [r.code, /Nothing to reserve/.test(r.message), w.calls.length], ["200", true, 0]);
+  r = new Sim(new World()).run("IA_HOLD", { ia_id: IA, organization_id: ORG, operation: "BOOK", source: "FORM" }).returned;
+  eq("an unknown operation still refused (CANCEL and SWEEP added to the list)", [r.code, /RECONCILE, RELEASE_ALL, CLOSE, CANCEL, SWEEP or CHECK/.test(r.message)], ["400", true]);
 }
 // ---- CLOSE (after completion): what the completion issued from Reserved delivers the own holds, the rest is released
 {
@@ -434,6 +657,9 @@ eq("the kept row points at the first released one", w.live().filter((x) => x.sta
   eq("CLOSE: R1 Delivered 6, R2 Cancelled, R3 Delivered 1 (its unused 3 a Cancelled remainder); the stock back", [rowsOf(wc), wc.bal[kB], wc.bal[kC], wc.bal[kA]],
     [[["R1", "Delivered", 6, 0, 6], ["R2", "Cancelled", 5, 0, 0], ["R3", "Delivered", 1, 0, 1], ["new", "Cancelled", 3, 0, 0]], { Unrestricted: 5, Reserved: 0, Blocked: 0 },
       { Unrestricted: 3, Reserved: 0, Blocked: 0 }, { Unrestricted: 4, Reserved: 0, Blocked: 0 }]);
+  const rem = wc.rows.find((x) => x.id !== id("01") && x.id !== id("02") && x.id !== id("03")) || {};
+  eq("CLOSE: the released remainder row carries its item's code, name and description", [rem.item_code, rem.item_name],
+    [(ITEMS.find((i) => i.id === rem.material_id) || {}).material_code, (ITEMS.find((i) => i.id === rem.material_id) || {}).material_name]);
   eq("CLOSE: the delivered rows carry the completed number; the remainder points at its row", [wc.rows.filter((x) => x.status === "Delivered").map((x) => x.doc_no),
     wc.rows.find((x) => x.id !== id("01") && x.id !== id("02") && x.id !== id("03")).source_reserved_id], [[NO, NO], id("03")]);
   eq("CLOSE: the header CLOSED, the ticket FREE, the result says closed", [wc.ia.hold, wc.tickets.map((x) => [x.step_name, x.step_status]), r.message, r.result.status],
@@ -482,10 +708,19 @@ eq("the kept row points at the first released one", w.live().filter((x) => x.sta
   const wd = new World({ rows: [own("01", "3001", I1, B1, 6)] });
   r = close(wd);
   eq("CLOSE on a Draft: 200 nothing to close, nothing read or moved", [r.code, /Nothing to close/.test(r.message), wd.calls.length, !!wd.sqls.consumed], ["200", true, 0, false]);
-  const wq = completed({ ia: { status: "Completed", no: "IA'1 OR '1", hold: "FULL" } });
-  r = close(wq);
-  eq("CLOSE with a number that cannot go into SQL text: Needs review, the number never read, nothing moved", [wq.ia.hold, !!wq.sqls.consumed, wq.calls.length, /number/.test(r.message)],
-    ["REVIEW", false, 0, true]);
+  // review M6: any number is read (a quote, LIKE wildcards and a backslash, an accent, CJK, an emoji): it reaches SQL only as hex
+  for (const no of ["IA'1 OR '1", "IA-50%_x\\y", "IA-Ä-2610", "装配-2610-001", "IA-🔧-1"]) {
+    const wq = completed({ ia: { status: "Completed", no: no, hold: "FULL" }, moves: [mv("01", I1, B1, "6", { trx_no: no }), mv("02", I1, B2, "1", { trx_no: no })] });
+    r = close(wq);
+    eq("CLOSE with the number " + no + ": closed like any other, the delivered rows carry it", [rowsOf(wq), wq.ia.hold, wq.rows.filter((x) => x.status === "Delivered").map((x) => x.doc_no)],
+      [[["R1", "Delivered", 6, 0, 6], ["R2", "Cancelled", 5, 0, 0], ["R3", "Delivered", 1, 0, 1], ["new", "Cancelled", 3, 0, 0]], "CLOSED", [no, no]]);
+  }
+  for (const no of ["", "IA-\uD800"]) {
+    const wq = completed({ ia: { status: "Completed", no: no, hold: "FULL" } });
+    r = close(wq);
+    eq("CLOSE with " + (no ? "a number that has no UTF-8 form" : "no number") + ": Needs review, nothing read, nothing moved", [wq.ia.hold, !!wq.sqls.consumed, wq.calls.length,
+      /number/.test(r.message)], ["REVIEW", false, 0, true]);
+  }
   const wh = completed();
   hold(wh);
   eq("RECONCILE on a Completed IA: nothing to reserve, the CLOSE read not made", [!!wh.sqls.consumed, wh.calls.length], [false, 0]);

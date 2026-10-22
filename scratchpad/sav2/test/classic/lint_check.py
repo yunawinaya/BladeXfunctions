@@ -2,7 +2,7 @@
 CONDITIONAL, pre-existing) and nothing about a guard node; scratchpad/check_wf_js.py (node --check of every script / msg / if
 expression) must be clean; plus the platform rules validate.py does not check, on the guard nodes: response_json declares
 exactly the returned keys, no quoted placeholder in a code node, MVEL-only if expressions, non-empty true block, SQL starts with
-SELECT / no SET / lines <= 160 / quoted tenant + bare digit ids, reads only stock_adjustment, refusal codes 400 (never 401).
+SELECT / no SET / lines <= 160 / quoted tenant + bare digit ids, reads only stock_adjustment (+ inventory_balance_lock for the SA guard), refusal codes 400 (never 401).
 usage: python3 test/classic/lint_check.py"""
 import contextlib
 import io
@@ -65,11 +65,15 @@ for name in ("STOCK_ADJUSTMENT", "STOCK_COUNT"):
             ok("%s %s: SELECT, no SET, lines <= 160" % (name, nid), re.match(r"\s*SELECT\b", sql) and not re.search(r"(?i)\bset\b", sql)
                and max(len(l) for l in sql.split("\n")) <= 160)
             phs = re.findall(r"('?)\{\{node:([^}]+)\}\}('?)", sql)
-            ok("%s %s: tenantId hand-quoted, ids bare (digits from the guard node)" % (name, nid),
-               all((q1, q2) == ("'", "'") if p.endswith(".tenantId") else (q1, q2) == ("", "") and re.search(r"\.(saId|scId)$", p) for q1, p, q2 in phs))
-            tables = set(re.findall(r"(?i)\b(?:from|join)\s+([a-z0-9_]+)", sql))
-            ok("%s %s: reads only stock_adjustment (never gd_async_job)" % (name, nid), tables == {"stock_adjustment"}, tables)
-            ok("%s %s: tenant-scoped + is_deleted = 0" % (name, nid), "g.tenant_id = '" in sql and "g.is_deleted = 0" in sql)
+            quoted = (".tenantId", ".lockTenantId", ".orgId", ".lockKeysJson")
+            ok("%s %s: tenant / org / key list hand-quoted, ids bare (digits from the guard node)" % (name, nid),
+               all((q1, q2) == ("'", "'") if p.endswith(quoted) else (q1, q2) == ("", "") and re.search(r"\.(saId|scId)$", p) for q1, p, q2 in phs))
+            tables = set(re.findall(r"(?i)\b(?:from|join)\s+([a-z0-9_]+)", sql)) - {"JSON_TABLE"}
+            # SA guard (2026-10-22): also the engine's lock rows - inventory_balance_lock ships with the V2 foundation in the same full deployment
+            allowed = {"stock_adjustment", "inventory_balance_lock"} if nid == "sql_node_SAguard" else {"stock_adjustment"}
+            ok("%s %s: reads only %s (never gd_async_job)" % (name, nid, sorted(allowed)), tables <= allowed and "stock_adjustment" in tables, tables)
+            ok("%s %s: tenant-scoped + is_deleted = 0" % (name, nid), "g.tenant_id = '" in sql and "g.is_deleted = 0" in sql
+               and ("inventory_balance_lock" not in tables or ("l.tenant_id = '" in sql and "l.organization_id = '" in sql and "l.is_deleted = 0" in sql)))
         elif n["type"] == "if":
             expr = (d.get("expression") or {}).get("code") or ""
             ok("%s %s: MVEL only (no === / !==)" % (name, nid), "===" not in expr and "!==" not in expr)

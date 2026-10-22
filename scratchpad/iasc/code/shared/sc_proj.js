@@ -34,8 +34,11 @@ const spToBase = (fg, uom) => {
   const b = spNum(c.base_qty);
   return a > 0 && b > 0 ? b / a : null;
 };
-const SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };
+// a Created IA (RES-01, BA 10-22) is open production like a Draft
+const SP_OPEN = { Draft: 1, Created: 1, Processing: 1, Issued: 1 };
 const SP_DONE = { Completed: 1, "Fully Posted": 1 };
+// a Cancelled IA (user 10-22) is no production at all: not counted, nothing to warn about
+const SP_VOID = { Cancelled: 1 };
 
 const scProject = (input) => {
   const inp = input || {};
@@ -68,7 +71,7 @@ const scProject = (input) => {
     const id = spS(x.id);
     const row = { id: id, no: spS(x.no), status: status, role: "none", qty: null, itemQty: spQ8(x.item_qty), uomId: spS(x.item_uom),
       planned: spQ8(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty), mode: spS(x.mode) };
-    if (Number(x.is_deleted) === 1) return row;
+    if (Number(x.is_deleted) === 1 || SP_VOID[status]) return row;
     if (!SP_OPEN[status] && !SP_DONE[status]) {
       warn("IA_STATUS_UNKNOWN", "Item Assembly " + row.no + " has status " + (status || "(blank)") + ", so it is not counted.");
       return row;

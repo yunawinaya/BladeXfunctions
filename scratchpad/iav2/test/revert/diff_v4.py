@@ -44,6 +44,11 @@ lp = B.index(out)["loop_iaRvAdd"]["data"]["loopSeletVar"]
 if lp["code"] != B6.LOOP_TO:
     problems.append("loop_iaRvAdd does not read code_node_RESrvMap's adds: " + lp["code"])
 lp["code"] = B6.LOOP_FROM
+# and code_node_iaRvPrep's pairing key as the base has it (v6's one other declared change: a component pairs without its category)
+prep = B.index(out)["code_node_iaRvPrep"]["data"]["script"]
+if prep["code"].count(B6.LIFT.PAIR_NOW) != 1:
+    problems.append("code_node_iaRvPrep does not pair a component without its category")
+prep["code"] = prep["code"].replace(B6.LIFT.PAIR_NOW, B6.LIFT.PAIR_WAS)
 if list(out) != list(base):
     problems.append("top-level keys / order differ: %s vs %s" % (list(out), list(base)))
 for k in ("request_json", "response_json", "config", "edges"):

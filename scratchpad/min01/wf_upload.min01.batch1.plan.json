@@ -1,0 +1,18 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "CANCEL_PENDING (MIN-01 T1: release only Pending rows)",
+   "dataId": "2021394283638693889",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/CANCEL_PENDING.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/base/CANCEL_PENDING.live_v4.json"
+  },
+  {
+   "name": "SM_DISPOSAL_SCRAP (MIN-01 T2: refuse Reserved picks)",
+   "dataId": "2031319688329498625",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/out/SM_DISPOSAL_SCRAP.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/min01/base/SM_DISPOSAL_SCRAP.live_v17.json"
+  }
+ ]
+}

@@ -48,6 +48,8 @@ const TXT = {
   SA_TOO_BIG: pick("This Stock Adjustment has <n> entries."),
   SC_TOO_BIG: pick("This review has <n> approved lines"),
   LINE: pick("Line <n> holds too many bins"),
+  RESERVED: pick("Line <n>: Reserved stock"),
+  LOCKED: pick("Some of this stock is being moved"),
 };
 const fill = (t, n, bytes) => t.replace("<n>", String(n)).replace("<bytes>", String(bytes));
 
@@ -177,9 +179,20 @@ const guardSql = (state) => ({
     state.sql.push(sql);
     const t = (sql.match(/g\.tenant_id = '([^']*)'/) || [])[1];
     const id = (sql.match(/g\.id = (\S+)/) || [])[1];
-    if (!/^[0-9]+$/.test(t) || !/^[0-9]+$/.test(id)) throw new Error("a non-digit value reached sql_node_SAguard: " + sql);
-    if (sql !== SA_SQL.replace("{{node:code_node_SAguard.data.tenantId}}", t).replace("{{node:code_node_SAguard.data.saId}}", id)) throw new Error("unexpected SQL " + sql);
-    return state.sa.filter((r) => r.tenant_id === t && r.id === id && r.is_deleted === 0).map((r) => ({ stock_adjustment_status: r.stock_adjustment_status }));
+    const lt = (sql.match(/l\.tenant_id = '([^']*)'/) || [])[1];
+    const org = (sql.match(/l\.organization_id = '([^']*)'/) || [])[1];
+    const kj = (sql.match(/JSON_TABLE\('([^']*)'/) || [])[1];
+    if (![t, id, lt, org].every((v) => /^[0-9]+$/.test(v || ""))) throw new Error("a non-digit value reached sql_node_SAguard: " + sql.slice(0, 400));
+    const keys = JSON.parse(kj);
+    if (!Array.isArray(keys) || !keys.every((k) => /^(ITEM|COST)\|[0-9]+\|[0-9]+$|^BATCH\|[0-9]+\|[0-9]+\|[0-9]+$/.test(k))) throw new Error("bad lock keys " + kj);
+    const want = SA_SQL.replace("{{node:code_node_SAguard.data.tenantId}}", t).replace("{{node:code_node_SAguard.data.saId}}", id)
+      .replace("{{node:code_node_SAguard.data.lockTenantId}}", lt).replace("{{node:code_node_SAguard.data.orgId}}", org).replace("{{node:code_node_SAguard.data.lockKeysJson}}", kj);
+    if (sql !== want) throw new Error("unexpected SQL " + sql.slice(0, 400));
+    (state.keys || (state.keys = [])).push(keys);
+    const stored = state.sa.filter((r) => r.tenant_id === t && r.id === id && r.is_deleted === 0).map((r) => ({ stock_adjustment_status: r.stock_adjustment_status, lock_key: null, owner_operation_id: null }));
+    const held = (state.locks || []).filter((l) => l.tenant_id === lt && l.organization_id === org && keys.indexOf(l.lock_key) >= 0 && l.free_token === 0 && l.owner_operation_id &&
+      !/^CL\|/.test(l.owner_operation_id) && l.is_deleted === 0).map((l) => ({ stock_adjustment_status: null, lock_key: l.lock_key, owner_operation_id: l.owner_operation_id }));
+    return stored.concat(held);
   },
   sql_node_SCguard: (sql) => {
     state.sql.push(sql);
@@ -199,7 +212,7 @@ function scenario(wf, req, rows, opt) {
   const o = opt || {};
   const results = [];
   for (const mode of ["json", "ref"]) {
-    const state = { sa: rows || [], sql: [] };
+    const state = { sa: rows || [], sql: [], locks: o.locks || [], keys: [] };
     const r0 = clone(req);
     const params = mode === "ref" ? deepFreeze(clone(req)) : clone(req);
     const e = new GuardEngine({ files: BUILT, db: { tenantId: o.tenant === undefined ? T : o.tenant }, sql: guardSql(state), stopAt: ANCHOR[wf], inject: mode,
@@ -210,7 +223,7 @@ function scenario(wf, req, rows, opt) {
     } catch (err) {
       r = { returned: { crashed: err.message }, ctx: { out: {} } };
     }
-    results.push({ mode, returned: r.returned, out: r.ctx.out, trace: e.trace.map((x) => x.split(" ")[1]), sql: state.sql, params: r.ctx.params, before: r0 });
+    results.push({ mode, returned: r.returned, out: r.ctx.out, trace: e.trace.map((x) => x.split(" ")[1]), sql: state.sql, keys: state.keys, params: r.ctx.params, before: r0 });
   }
   const [a, b] = results;
   const same = JSON.stringify([a.returned, a.trace, a.sql, a.out]) === JSON.stringify([b.returned, b.trace, b.sql, b.out]);
@@ -307,6 +320,40 @@ both.saveAs = "Draft";
 sa("the same saved as Draft -> the too-large line", both, [row({})], refusedSA(fill(TXT.LINE, 12, 60001)));
 sa("an unparseable 70,000-byte balance_index -> refused (0 entries, still too large)", saReq(saDoc([line("x".repeat(70000))]), "Completed"), [row({})], refusedSA(fill(TXT.LINE, 1, 70000)));
 
+// 4b. a moving entry in Reserved (RF-03, 2026-10-22): refused before anything is written; Draft and zero quantities pass
+const resv = (cat, q, saveAs) => saReq(saDoc([line([entry(1)]), line([entry(1), entry(q === undefined ? 2 : q, undefined, { category: cat })])]), saveAs || "Completed");
+sa("line 2 moves Reserved -> SA_RESERVED", resv("Reserved"), [row({})], refusedSA(fill(TXT.RESERVED, 2)));
+sa("' RESERVED ' (case / spaces) -> SA_RESERVED", resv(" RESERVED "), [row({})], refusedSA(fill(TXT.RESERVED, 2)));
+sa("a Reserved entry with sa_quantity 0 -> passes (nothing moves)", resv("Reserved", 0), [row({})], STOP);
+sa("Reserved saved as Draft -> passes (the Draft moves nothing)", resv("Reserved", 2, "Draft"), [row({})], STOP);
+sa("Blocked / Quality Inspection entries -> pass", resv("Quality Inspection"), [row({})], STOP);
+sa("a Processing SA with a Reserved entry -> SA_BUSY first", resv("Reserved"), [row({ stock_adjustment_status: "Processing" })], refusedSA(TXT.SA_BUSY));
+
+// 4c. a lock key of this save's stock held by a background (engine) operation (9d's proposal, 2026-10-22): refused, nothing written
+const lk = (key, owner, o) => Object.assign({ tenant_id: T, organization_id: ORG, lock_key: key, free_token: 0, owner_operation_id: owner, is_deleted: 0 }, o || {});
+const lockedMsg = (owner) => TXT.LOCKED.replace("<owner>", owner);
+const one = () => saReq(saDoc([line([entry(2, "Out")])]), "Completed");
+const ITEM_KEY = "ITEM|" + MAT + "|" + LOC;
+const COST_KEY = "COST|" + MAT + "|" + PLANT;
+const k1 = scenario("STOCK_ADJUSTMENT", one(), [row({})], {});
+eq("SA a completion lists exactly its ITEM + COST keys (as the engine builds them)", k1.keys, [[COST_KEY, ITEM_KEY]]);
+sa("ITEM key held by an engine operation -> SA_STOCK_LOCKED naming it", one(), [row({})], refusedSA(lockedMsg("GDC|2113000000000000001")), { locks: [lk(ITEM_KEY, "GDC|2113000000000000001")] });
+sa("COST key (item cost at the plant) held -> SA_STOCK_LOCKED", one(), [row({})], refusedSA(lockedMsg("SAC|2113000000000000002")), { locks: [lk(COST_KEY, "SAC|2113000000000000002")] });
+const bat = saReq(saDoc([line([entry(2, "Out", { batch_id: "2111092232557072386" })])]), "Completed");
+const k2 = scenario("STOCK_ADJUSTMENT", bat, [row({})], {});
+eq("SA a batch entry adds its BATCH key", k2.keys, [[ "BATCH|" + MAT + "|" + LOC + "|2111092232557072386", COST_KEY, ITEM_KEY]]);
+sa("BATCH key held -> SA_STOCK_LOCKED", bat, [row({})], refusedSA(lockedMsg("PWC|2113000000000000003")), { locks: [lk("BATCH|" + MAT + "|" + LOC + "|2111092232557072386", "PWC|2113000000000000003")] });
+sa("held by 9d's classic lock (CL|) -> passes", one(), [row({})], STOP, { locks: [lk(ITEM_KEY, "CL|x")] });
+sa("a free key (free_token 1) -> passes", one(), [row({})], STOP, { locks: [lk(ITEM_KEY, "", { free_token: 1 })] });
+sa("a leaked key with no owner -> passes", one(), [row({})], STOP, { locks: [lk(ITEM_KEY, "")] });
+sa("another organization's key -> passes", one(), [row({})], STOP, { locks: [lk(ITEM_KEY, "GDC|9", { organization_id: "999" })] });
+const dft = one();
+dft.saveAs = "Draft";
+const k3 = scenario("STOCK_ADJUSTMENT", dft, [row({})], { locks: [lk(ITEM_KEY, "GDC|9")] });
+eq("SA a Draft lists no keys and passes", [k3.keys, k3.returned], [[[]], STOP]);
+sa("Processing + a held key -> SA_BUSY first", one(), [row({ stock_adjustment_status: "Processing" })], refusedSA(TXT.SA_BUSY), { locks: [lk(ITEM_KEY, "GDC|9")] });
+sa("501 entries + a held key -> the entry cap first", saReq(saDoc(manyLines(501)), "Completed"), [row({})], refusedSA(fill(TXT.SA_TOO_BIG, 501)), { locks: [lk(ITEM_KEY, "GDC|9")] });
+
 // 5. a new Add: no stored read hits a row
 r = sa("a new Add (no id) -> passes", saReq(saDoc(threeLines(), { id: undefined, page_status: "Add" }), "Completed", "Add"), [row({ id: "0", stock_adjustment_status: "Processing" })], STOP);
 truthy("SA   ... its stored read used id 0 (no row)", r.sql.length === 1 && / g\.id = 0\n/.test(r.sql[0]), r.sql);
@@ -316,7 +363,12 @@ sa("a Clone (id \"\") -> passes", saReq(saDoc(threeLines(), { id: "" }), "Comple
 const normal = saReq(saDoc(threeLines()), "Completed");
 r = sa("normal 3-line Completed (stored Draft) -> reaches code_node_O4tWJ5JH", normal, [row({})], STOP);
 eq("SA   ... with allData / saveAs / pageStatus exactly as sent", r.params, normal);
-eq("SA   ... guard outputs", [r.out.code_node_SAguard, r.out.code_node_SAguardVerdict], [{ saId: SA_ID, tenantId: T, entries: "4", reason: "", message: "" }, { refuse: "NO", reason: "", message: "" }]);
+const gOut = r.out.code_node_SAguard || {};
+eq("SA   ... guard outputs", [{ saId: gOut.saId, tenantId: gOut.tenantId, entries: gOut.entries, reason: gOut.reason, message: gOut.message }, r.out.code_node_SAguardVerdict],
+  [{ saId: SA_ID, tenantId: T, entries: "4", reason: "", message: "" }, { refuse: "NO", reason: "", message: "" }]);
+const gKeys = JSON.parse(gOut.lockKeysJson || "null");
+truthy("SA   ... lock fields: tenant + org, the moving entries' keys sorted and unique", gOut.lockTenantId === T && gOut.orgId === ORG && Array.isArray(gKeys) && gKeys.length > 0 &&
+  JSON.stringify(gKeys) === JSON.stringify(Array.from(new Set(gKeys)).sort()) && gKeys.every((k) => /^(ITEM|COST|BATCH)\|/.test(k)), gOut);
 truthy("SA   ... the stored read was tenant + id scoped", r.sql.length === 1 && r.sql[0].includes("g.tenant_id = '" + T + "'") && r.sql[0].includes("g.id = " + SA_ID), r.sql);
 
 // 7. odd shapes never crash (pass through to the classic, which fails or not exactly as before)

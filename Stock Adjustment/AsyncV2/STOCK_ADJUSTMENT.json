@@ -77,7 +77,7 @@
     "name": "SA V2 Guard: payload entries / line sizes, stored SA id",
     "script": {
      "type": "javascript",
-     "code": "// SA V2 / SC Review V2 - helpers every package uses (SUBMIT, PREPARE, COMMIT, WORKER, client). Copied from smv2\n// code/shared/lot_common.js (with f8's lotParseJ fix) and renamed sa / SA_. Included into a code node by the builders\n// (v2build.include_js drops the \"if (typeof module\" line); every top-level name carries the sa / SA_ prefix so the file\n// concatenates with a step's own helpers (s, q8, list, digits, parseJ) without a redeclaration.\nconst saS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// q8: the 8-dp rounding of COMPUTED quantities (STOCK_ADJUSTMENT code_node_O4tWJ5JH's q8); a NUMBER\nconst saQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// a decimal as the 8-dp text the platform stores, never negative; a STRING\nconst saQtyStr = (v) => Math.max(0, saQ8(v)).toFixed(8);\nconst saDigits = (v) => /^[0-9]{1,20}$/.test(saS(v));\n// a bigint id as a digit string: a digit string as is, a SAFE non-negative integer number as its digits; anything else\n// (a 19-digit id that already went through a JS number, \"\", null, text) -> \"\"\nconst saIdStr = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"\";\n  const t = saS(v);\n  return /^[0-9]{1,20}$/.test(t) ? t : \"\";\n};\n// JSON text with every bare 16+ digit integer TOKEN read as a STRING (snowflake ids survive); only whole integer tokens -\n// never the fraction digits of a float such as 0.30000000000000004; null when it does not parse\nconst saParseJ = (t) => {\n  if (t === undefined || t === null) return null;\n  if (typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst saList = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r !== undefined && r !== null);\n// a JSON-text-or-array column (balance_index, reference_documents): the array, [] when empty / not a list\nconst saJsonList = (v) => {\n  if (Array.isArray(v)) return v;\n  const t = saS(v);\n  if (!t) return [];\n  const p = saParseJ(t);\n  return Array.isArray(p) ? p : [];\n};\n// sql-node rows: JSON_OBJECT rows ({ j: \"<json>\" }) or already-plain objects -> plain objects (ids of 16+ digits as strings)\nconst saRows = (rows) => saList(rows).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? saParseJ(r.j) : r)).filter((r) => r && typeof r === \"object\");\n// STOCK_ADJUSTMENT code_node_GmKmvMGe: balance.category || \"Unrestricted\"\nconst saCategory = (c) => saS(c) || \"Unrestricted\";\n// an entry's movement_type -> \"ADD\" (in) / \"SUBTRACT\" (out) / \"\" (invalid); readers are case-insensitive (prod holds\n// In / IN / Out / OUT); the STORED casing is never rewritten (AutoCount V2 posting compares it exactly)\nconst saDirection = (mt) => {\n  const t = saS(mt).toLowerCase();\n  return t === \"in\" ? \"ADD\" : t === \"out\" ? \"SUBTRACT\" : \"\";\n};\n// UTF-8 byte length of a balance_index value (the column is TEXT, 65,535 bytes; prod's non-strict sql_mode truncates)\nconst saUtf8Bytes = (v) => {\n  const t = Array.isArray(v) || (v && typeof v === \"object\") ? JSON.stringify(v) : saS(v);\n  let n = 0;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    if (c < 0x80) n += 1;\n    else if (c < 0x800) n += 2;\n    else if (c >= 0xd800 && c <= 0xdbff) { n += 4; i++; }\n    else n += 3;\n  }\n  return n;\n};\nconst SA_LINE_MAX_BYTES = 60000;\nconst SA_MAX_ENTRIES = 5000;\nconst SA_CLASSIC_MAX_ENTRIES = 500;\nconst SA_REVIEW_LINE_MAX_ENTRIES = 50;\nconst saDbAddSeconds = function saDbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// the bounded statuses a COMPLETE_SA job may restore (CONTRACT.md §2): FORM -> Draft, REVIEW -> Cancelled; anything else =\n// unknown = no unlock, REQUIRES_REVIEW SA_PREV_STATUS_UNKNOWN\nconst SA_PREV_STATUSES = [\"Draft\", \"Cancelled\"];\nconst saPrevStatusOk = (v) => SA_PREV_STATUSES.indexOf(saS(v)) >= 0;\n// the payload part rows of one value: step_name <prefix><nnn>, 400,000 characters each (GR / Putaway / LOT V2's chunking)\nconst SA_CHUNK = 400000;\nconst saPartRows = function saPartRows(jobId, organizationId, prefix, value, status) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += SA_CHUNK, n++) {\n    out.push({ job_id: saS(jobId), organization_id: saS(organizationId), step_name: prefix + String(n).padStart(3, \"0\"), step_status: status || \"PAYLOAD\", attempt_count: 0,\n      result_ref: text.slice(at, at + SA_CHUNK) });\n  }\n  return out;\n};\n// a part's chunk rows (step_name <prefix>nnn) joined in step-name order -> the value; null when there is no row, undefined\n// when the joined text does not parse (GR's joinChunks)\nconst saJoinChunks = function saJoinChunks(rows, prefix) {\n  const mine = saList(rows).filter((r) => saS(r.step_name).indexOf(prefix) === 0).sort((a, b) => (saS(a.step_name) < saS(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  const p = saParseJ(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  return p === null ? undefined : p;\n};\n// SA V2 guard (CONTRACT §11): payload only - a completion of > 500 entries (sa_quantity > 0, as code_node_qrsgEz2F), or any\n// balance_index > 60,000 UTF-8 bytes (prod truncates the TEXT column silently), is refused; odd shapes pass through.\nconst saGuardIn = { allData: [{{workflowparams:allData}}][0], saveAs: [{{workflowparams:saveAs}}][0], tenantId: [{{system:tenantId}}][0] };\nlet saGuardDoc = saGuardIn.allData;\nif (typeof saGuardDoc === \"string\") saGuardDoc = saParseJ(saGuardDoc);\nif (!saGuardDoc || typeof saGuardDoc !== \"object\" || Array.isArray(saGuardDoc)) saGuardDoc = {};\nlet saId = \"0\";\nlet tenantId = \"0\";\ntry {\n  const t = saS(saGuardIn.tenantId);\n  const id = saIdStr(saGuardDoc.id);\n  if (saDigits(t) && saDigits(id)) {\n    saId = id;\n    tenantId = t;\n  }\n} catch (e) {\n  saId = \"0\";\n  tenantId = \"0\";\n}\nlet entries = 0;\nlet reason = \"\";\nlet message = \"\";\ntry {\n  let large = null;\n  const lines = Array.isArray(saGuardDoc.stock_adjustment) ? saGuardDoc.stock_adjustment : [];\n  for (let i = 0; i < lines.length; i++) {\n    const line = lines[i];\n    if (!line || typeof line !== \"object\") continue;\n    const bytes = saUtf8Bytes(line.balance_index);\n    if (!large && bytes > SA_LINE_MAX_BYTES) large = { line: i + 1, bytes: bytes };\n    for (const e of saJsonList(line.balance_index)) if (e && typeof e === \"object\" && e.sa_quantity > 0) entries++;\n  }\n  const saveAs = saGuardIn.saveAs === undefined || saGuardIn.saveAs === null ? \"\" : String(saGuardIn.saveAs);\n  if (saveAs !== \"Draft\" && entries > SA_CLASSIC_MAX_ENTRIES) {\n    reason = \"SA_CLASSIC_TOO_BIG\";\n    message = \"This Stock Adjustment has \" + entries + \" entries. Adjust at most \" + SA_CLASSIC_MAX_ENTRIES + \" at a time.\";\n  } else if (large) {\n    reason = \"SA_LINE_TOO_LARGE\";\n    message = \"Line \" + large.line + \" holds too many bins (\" + large.bytes + \" bytes); split it into several lines.\";\n  }\n} catch (e) {\n  reason = \"\";\n  message = \"\";\n}\nreturn { saId: saId, tenantId: tenantId, entries: String(entries), reason: reason, message: message };"
+     "code": "// SA V2 / SC Review V2 - helpers every package uses (SUBMIT, PREPARE, COMMIT, WORKER, client). Copied from smv2\n// code/shared/lot_common.js (with f8's lotParseJ fix) and renamed sa / SA_. Included into a code node by the builders\n// (v2build.include_js drops the \"if (typeof module\" line); every top-level name carries the sa / SA_ prefix so the file\n// concatenates with a step's own helpers (s, q8, list, digits, parseJ) without a redeclaration.\nconst saS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// q8: the 8-dp rounding of COMPUTED quantities (STOCK_ADJUSTMENT code_node_O4tWJ5JH's q8); a NUMBER\nconst saQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// a decimal as the 8-dp text the platform stores, never negative; a STRING\nconst saQtyStr = (v) => Math.max(0, saQ8(v)).toFixed(8);\nconst saDigits = (v) => /^[0-9]{1,20}$/.test(saS(v));\n// a bigint id as a digit string: a digit string as is, a SAFE non-negative integer number as its digits; anything else\n// (a 19-digit id that already went through a JS number, \"\", null, text) -> \"\"\nconst saIdStr = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"\";\n  const t = saS(v);\n  return /^[0-9]{1,20}$/.test(t) ? t : \"\";\n};\n// JSON text with every bare 16+ digit integer TOKEN read as a STRING (snowflake ids survive); only whole integer tokens -\n// never the fraction digits of a float such as 0.30000000000000004; null when it does not parse\nconst saParseJ = (t) => {\n  if (t === undefined || t === null) return null;\n  if (typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst saList = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r !== undefined && r !== null);\n// a JSON-text-or-array column (balance_index, reference_documents): the array, [] when empty / not a list\nconst saJsonList = (v) => {\n  if (Array.isArray(v)) return v;\n  const t = saS(v);\n  if (!t) return [];\n  const p = saParseJ(t);\n  return Array.isArray(p) ? p : [];\n};\n// sql-node rows: JSON_OBJECT rows ({ j: \"<json>\" }) or already-plain objects -> plain objects (ids of 16+ digits as strings)\nconst saRows = (rows) => saList(rows).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? saParseJ(r.j) : r)).filter((r) => r && typeof r === \"object\");\n// STOCK_ADJUSTMENT code_node_GmKmvMGe: balance.category || \"Unrestricted\"\nconst saCategory = (c) => saS(c) || \"Unrestricted\";\n// an entry's movement_type -> \"ADD\" (in) / \"SUBTRACT\" (out) / \"\" (invalid); readers are case-insensitive (prod holds\n// In / IN / Out / OUT); the STORED casing is never rewritten (AutoCount V2 posting compares it exactly)\nconst saDirection = (mt) => {\n  const t = saS(mt).toLowerCase();\n  return t === \"in\" ? \"ADD\" : t === \"out\" ? \"SUBTRACT\" : \"\";\n};\n// UTF-8 byte length of a balance_index value (the column is TEXT, 65,535 bytes; prod's non-strict sql_mode truncates)\nconst saUtf8Bytes = (v) => {\n  const t = Array.isArray(v) || (v && typeof v === \"object\") ? JSON.stringify(v) : saS(v);\n  let n = 0;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    if (c < 0x80) n += 1;\n    else if (c < 0x800) n += 2;\n    else if (c >= 0xd800 && c <= 0xdbff) { n += 4; i++; }\n    else n += 3;\n  }\n  return n;\n};\nconst SA_LINE_MAX_BYTES = 60000;\nconst SA_MAX_ENTRIES = 5000;\nconst SA_CLASSIC_MAX_ENTRIES = 500;\nconst SA_REVIEW_LINE_MAX_ENTRIES = 50;\nconst saDbAddSeconds = function saDbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// the bounded statuses a COMPLETE_SA job may restore (CONTRACT.md §2): FORM -> Draft, REVIEW -> Cancelled; anything else =\n// unknown = no unlock, REQUIRES_REVIEW SA_PREV_STATUS_UNKNOWN\nconst SA_PREV_STATUSES = [\"Draft\", \"Cancelled\"];\nconst saPrevStatusOk = (v) => SA_PREV_STATUSES.indexOf(saS(v)) >= 0;\n// the payload part rows of one value: step_name <prefix><nnn>, 400,000 characters each (GR / Putaway / LOT V2's chunking)\nconst SA_CHUNK = 400000;\nconst saPartRows = function saPartRows(jobId, organizationId, prefix, value, status) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += SA_CHUNK, n++) {\n    out.push({ job_id: saS(jobId), organization_id: saS(organizationId), step_name: prefix + String(n).padStart(3, \"0\"), step_status: status || \"PAYLOAD\", attempt_count: 0,\n      result_ref: text.slice(at, at + SA_CHUNK) });\n  }\n  return out;\n};\n// a part's chunk rows (step_name <prefix>nnn) joined in step-name order -> the value; null when there is no row, undefined\n// when the joined text does not parse (GR's joinChunks)\nconst saJoinChunks = function saJoinChunks(rows, prefix) {\n  const mine = saList(rows).filter((r) => saS(r.step_name).indexOf(prefix) === 0).sort((a, b) => (saS(a.step_name) < saS(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  const p = saParseJ(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  return p === null ? undefined : p;\n};\n// SA V2 guard (CONTRACT §11): payload only - a completion of > 500 entries (sa_quantity > 0, as code_node_qrsgEz2F), or any\n// balance_index > 60,000 UTF-8 bytes (prod truncates the TEXT column silently), or a moving entry in Reserved (another document holds\n// that stock: an Item Assembly hold, a GD / SO reservation), is refused; odd shapes pass through. A non-Draft save also lists the\n// engine lock keys its movements would touch (ITEM / BATCH / COST, as INVENTORY_BULK_APPLY builds them) for the verdict's held-lock check.\nconst saGuardIn = { allData: [{{workflowparams:allData}}][0], saveAs: [{{workflowparams:saveAs}}][0], tenantId: [{{system:tenantId}}][0] };\nlet saGuardDoc = saGuardIn.allData;\nif (typeof saGuardDoc === \"string\") saGuardDoc = saParseJ(saGuardDoc);\nif (!saGuardDoc || typeof saGuardDoc !== \"object\" || Array.isArray(saGuardDoc)) saGuardDoc = {};\nlet saId = \"0\";\nlet tenantId = \"0\";\nlet lockTenantId = \"0\";\ntry {\n  const t = saS(saGuardIn.tenantId);\n  const id = saIdStr(saGuardDoc.id);\n  if (saDigits(t)) lockTenantId = t;\n  if (saDigits(t) && saDigits(id)) {\n    saId = id;\n    tenantId = t;\n  }\n} catch (e) {\n  saId = \"0\";\n  tenantId = \"0\";\n}\nlet entries = 0;\nlet reason = \"\";\nlet message = \"\";\nconst lockKeys = {};\ntry {\n  let large = null;\n  let reserved = 0;\n  const saveAs = saGuardIn.saveAs === undefined || saGuardIn.saveAs === null ? \"\" : String(saGuardIn.saveAs);\n  const headerPlant = saIdStr(saGuardDoc.plant_id);\n  const lines = Array.isArray(saGuardDoc.stock_adjustment) ? saGuardDoc.stock_adjustment : [];\n  for (let i = 0; i < lines.length; i++) {\n    const line = lines[i];\n    if (!line || typeof line !== \"object\") continue;\n    const bytes = saUtf8Bytes(line.balance_index);\n    if (!large && bytes > SA_LINE_MAX_BYTES) large = { line: i + 1, bytes: bytes };\n    for (const e of saJsonList(line.balance_index)) {\n      if (!e || typeof e !== \"object\" || !(e.sa_quantity > 0)) continue;\n      entries++;\n      if (!reserved && saS(e.category).trim().toLowerCase() === \"reserved\") reserved = i + 1;\n      const mat = saIdStr(line.material_id);\n      const loc = saIdStr(e.location_id);\n      if (saveAs === \"Draft\" || !mat || !loc) continue;\n      const plant = saIdStr(e.plant_id) || headerPlant;\n      const batch = saIdStr(e.batch_id);\n      lockKeys[\"ITEM|\" + mat + \"|\" + loc] = true;\n      if (plant) lockKeys[\"COST|\" + mat + \"|\" + plant] = true;\n      if (batch) lockKeys[\"BATCH|\" + mat + \"|\" + loc + \"|\" + batch] = true;\n    }\n  }\n  if (saveAs !== \"Draft\" && entries > SA_CLASSIC_MAX_ENTRIES) {\n    reason = \"SA_CLASSIC_TOO_BIG\";\n    message = \"This Stock Adjustment has \" + entries + \" entries. Adjust at most \" + SA_CLASSIC_MAX_ENTRIES + \" at a time.\";\n  } else if (saveAs !== \"Draft\" && reserved) {\n    reason = \"SA_RESERVED\";\n    message = \"Line \" + reserved + \": Reserved stock belongs to another document. Release it there first.\";\n  } else if (large) {\n    reason = \"SA_LINE_TOO_LARGE\";\n    message = \"Line \" + large.line + \" holds too many bins (\" + large.bytes + \" bytes); split it into several lines.\";\n  }\n} catch (e) {\n  reason = \"\";\n  message = \"\";\n}\nconst orgId = saIdStr(saGuardDoc.organization_id) || \"0\";\nconst keyList = lockTenantId !== \"0\" && orgId !== \"0\" ? Object.keys(lockKeys).sort() : [];\nreturn { saId: saId, tenantId: tenantId, lockTenantId: lockTenantId, orgId: orgId, lockKeysJson: JSON.stringify(keyList), entries: String(entries), reason: reason,\n  message: message };"
     },
     "response_json": [
      {
@@ -100,6 +100,33 @@
      },
      {
       "key": "a4w0xz3h",
+      "name": "lockTenantId",
+      "title": "lockTenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "10wd6ob4",
+      "name": "orgId",
+      "title": "orgId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "o96ujiq7",
+      "name": "lockKeysJson",
+      "title": "lockKeysJson",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "8jfz24es",
       "name": "entries",
       "title": "entries",
       "description": "",
@@ -108,7 +135,7 @@
       "children": []
      },
      {
-      "key": "10wd6ob4",
+      "key": "ihktvh3w",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -117,7 +144,7 @@
       "children": []
      },
      {
-      "key": "o96ujiq7",
+      "key": "deufwe9e",
       "name": "message",
       "title": "message",
       "description": "",
@@ -136,19 +163,37 @@
     "database_id": "",
     "sql": "",
     "params": {},
-    "title": "SA V2 Guard: stored status (id 0 = no stored SA)",
+    "title": "SA V2 Guard: stored status (id 0 = no stored SA) + this save's lock keys held by a background operation",
     "isValidator": true,
-    "nodeName": "SA V2 Guard: stored status (id 0 = no stored SA)",
-    "name": "SA V2 Guard: stored status (id 0 = no stored SA)",
+    "nodeName": "SA V2 Guard: stored status (id 0 = no stored SA) + this save's lock keys held by a background operation",
+    "name": "SA V2 Guard: stored status (id 0 = no stored SA) + this save's lock keys held by a background operation",
     "script": {
      "type": "sql",
-     "code": "SELECT g.stock_adjustment_status\n  FROM stock_adjustment g\n WHERE g.tenant_id = '{{node:code_node_SAguard.data.tenantId}}'\n   AND g.id = {{node:code_node_SAguard.data.saId}}\n   AND g.is_deleted = 0"
+     "code": "SELECT g.stock_adjustment_status, NULL AS lock_key, NULL AS owner_operation_id\n  FROM stock_adjustment g\n WHERE g.tenant_id = '{{node:code_node_SAguard.data.tenantId}}'\n   AND g.id = {{node:code_node_SAguard.data.saId}}\n   AND g.is_deleted = 0\nUNION ALL\nSELECT NULL, l.lock_key, l.owner_operation_id\n  FROM inventory_balance_lock l\n WHERE l.tenant_id = '{{node:code_node_SAguard.data.lockTenantId}}'\n   AND l.organization_id = '{{node:code_node_SAguard.data.orgId}}'\n   AND l.lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_SAguard.data.lockKeysJson}}', '$[*]'\n                      COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND l.free_token = 0\n   AND COALESCE(l.owner_operation_id, '') <> ''\n   AND l.owner_operation_id NOT LIKE 'CL|%'\n   AND l.is_deleted = 0"
     },
     "response_json": [
      {
-      "key": "8jfz24es",
+      "key": "yei06hlt",
       "name": "stock_adjustment_status",
       "title": "stock_adjustment_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "puu2ei62",
+      "name": "lock_key",
+      "title": "lock_key",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "vn4b25ez",
+      "name": "owner_operation_id",
+      "title": "owner_operation_id",
       "description": "",
       "bsonType": "string",
       "isExpand": false,
@@ -165,17 +210,17 @@
     "language": "javascript",
     "code": "",
     "timeout": 30000,
-    "title": "SA V2 Guard: Processing? too many entries? line too large?",
+    "title": "SA V2 Guard: Processing? too many entries? Reserved? line too large? stock locked?",
     "isValidator": true,
-    "nodeName": "SA V2 Guard: Processing? too many entries? line too large?",
-    "name": "SA V2 Guard: Processing? too many entries? line too large?",
+    "nodeName": "SA V2 Guard: Processing? too many entries? Reserved? line too large? stock locked?",
+    "name": "SA V2 Guard: Processing? too many entries? Reserved? line too large? stock locked?",
     "script": {
      "type": "javascript",
-     "code": "// The STORED status decides first: a Processing SA belongs to a background save (any classic save would overwrite it).\nconst saGuardRows = [{{node:sql_node_SAguard.data}}][0];\nconst saGuardOut = [{{node:code_node_SAguard.data}}][0] || {};\nlet busy = false;\ntry {\n  const rows = Array.isArray(saGuardRows) ? saGuardRows : saGuardRows && typeof saGuardRows === \"object\" ? [saGuardRows] : [];\n  busy = rows.some((r) => r && typeof r === \"object\" && String(r.stock_adjustment_status) === \"Processing\");\n} catch (e) {\n  busy = false;\n}\nconst reason = busy ? \"SA_BUSY\" : String(saGuardOut.reason || \"\");\nconst message = busy ? \"This Stock Adjustment is being processed in the background - please wait for it to finish.\" : String(saGuardOut.message || \"\");\nreturn { refuse: reason && message ? \"YES\" : \"NO\", reason: reason, message: message };"
+     "code": "// The STORED status decides first: a Processing SA belongs to a background save (any classic save would overwrite it). Then the\n// payload's own refusals; last, a lock key of this save's stock held by a background (engine) operation - the classic would write\n// under that operation's feet (its absolute writes could undo ours, or ours its).\nconst saGuardRows = [{{node:sql_node_SAguard.data}}][0];\nconst saGuardOut = [{{node:code_node_SAguard.data}}][0] || {};\nlet busy = false;\nlet held = null;\ntry {\n  const rows = Array.isArray(saGuardRows) ? saGuardRows : saGuardRows && typeof saGuardRows === \"object\" ? [saGuardRows] : [];\n  busy = rows.some((r) => r && typeof r === \"object\" && String(r.stock_adjustment_status) === \"Processing\");\n  held = rows.find((r) => r && typeof r === \"object\" && r.lock_key && r.owner_operation_id) || null;\n} catch (e) {\n  busy = false;\n  held = null;\n}\nlet reason = busy ? \"SA_BUSY\" : String(saGuardOut.reason || \"\");\nlet message = busy ? \"This Stock Adjustment is being processed in the background - please wait for it to finish.\" : String(saGuardOut.message || \"\");\nif (!reason && held) {\n  reason = \"SA_STOCK_LOCKED\";\n  message = \"Some of this stock is being moved by another background operation (\" + String(held.owner_operation_id) + \"). Please try again in a minute.\";\n}\nreturn { refuse: reason && message ? \"YES\" : \"NO\", reason: reason, message: message };"
     },
     "response_json": [
      {
-      "key": "ihktvh3w",
+      "key": "1ct0f4zz",
       "name": "refuse",
       "title": "refuse",
       "description": "",
@@ -184,7 +229,7 @@
       "children": []
      },
      {
-      "key": "deufwe9e",
+      "key": "87umbpnx",
       "name": "reason",
       "title": "reason",
       "description": "",
@@ -193,7 +238,7 @@
       "children": []
      },
      {
-      "key": "yei06hlt",
+      "key": "wab0dn7p",
       "name": "message",
       "title": "message",
       "description": "",
@@ -209,10 +254,10 @@
    "id": "if_SAguardRefuse",
    "type": "if",
    "data": {
-    "title": "IF refused (Processing / more than 500 entries / a line over 60,000 bytes)",
+    "title": "IF refused (Processing / more than 500 entries / Reserved stock / a line over 60,000 bytes / stock locked)",
     "isValidator": true,
-    "nodeName": "IF refused (Processing / more than 500 entries / a line over 60,000 bytes)",
-    "name": "IF refused (Processing / more than 500 entries / a line over 60,000 bytes)",
+    "nodeName": "IF refused (Processing / more than 500 entries / Reserved stock / a line over 60,000 bytes / stock locked)",
+    "name": "IF refused (Processing / more than 500 entries / Reserved stock / a line over 60,000 bytes / stock locked)",
     "condition_type": "Expression",
     "filter": {
      "list": [

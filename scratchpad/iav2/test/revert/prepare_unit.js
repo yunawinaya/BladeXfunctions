@@ -87,4 +87,18 @@ function plan(z, extra, track) {
   r = plan(synth({ reverted: true }));
   H.ok(r.pr.route === "GO" && r.pr.liveRows === 0 && r.P.route === "READY" && r.P.needPlan === "NO" && r.P.movementCount === 0, "every row already reverted (header only) -> READY, no PLAN call", r.P);
 }
+// ---------------------------------------------------------------- RES-01 (R6 live 10-22): a held component's reversal lands in another
+// bucket (Reserved OUT, Unrestricted IN), so a component pairs without its category: after a re-completion a second revert returns only
+// the second cycle, never the first one again
+{
+  const z = synth({ reverted: true });
+  const big = (r) => BigInt(String(r.id));
+  const comp = (r) => (r.transaction_type === "IA" && r.movement === "OUT") || (r.transaction_type === "IA-R" && r.movement === "IN");
+  for (const r of z.S.moves) if (r.transaction_type === "IA" && r.movement === "OUT") r.inventory_category = "Reserved";
+  let next = z.S.moves.reduce((m, r) => (big(r) > m ? big(r) : m), 0n);
+  const cycle2 = z.S.moves.filter((r) => r.transaction_type === "IA").map((r) => Object.assign({}, r, { id: String(++next) }));
+  z.S.moves = z.S.moves.concat(cycle2);
+  const r = plan(z);
+  H.ok(r.pr.route === "GO" && r.pr.liveRows === cycle2.length && r.pr.liveOut === cycle2.filter(comp).length, "RES-01: cycle 1 reverted into another bucket, cycle 2 completed -> only cycle 2 is live", r.pr);
+}
 H.done("prepare unit");

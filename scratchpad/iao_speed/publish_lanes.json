@@ -1,0 +1,18 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "INVENTORY_APPLY_OPERATION",
+   "dataId": "2105133980371554305",
+   "file": "scratchpad/iao_speed/INVENTORY_APPLY_OPERATION.lanes.json",
+   "base": "scratchpad/iao_speed/base/INVENTORY_APPLY_OPERATION.live_v10.json"
+  },
+  {
+   "name": "GD_BULK_COMMIT",
+   "dataId": "2104840402446245890",
+   "file": "scratchpad/iao_speed/GD_BULK_COMMIT.lanes.json",
+   "base": "scratchpad/iao_speed/base/GD_BULK_COMMIT.live_v17.json"
+  }
+ ]
+}

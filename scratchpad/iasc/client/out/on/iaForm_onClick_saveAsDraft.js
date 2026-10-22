@@ -1,16 +1,16 @@
-// Small Cycle (scratchpad/iasc): RES-01 - a saved Draft's raw-material reservation (IA_HOLD), started here once IA_SAVE answered:
-// IA_SAVE never runs it (a failure inside the save would fail it after the Draft was written; user 10-21). A new IA or one that
-// already reserves; up to 50 hold picks it is waited for and its result shown, above it runs in the background.
-const RES_ENABLED = false;
+// Small Cycle (scratchpad/iasc): RES-01 - a saved IA's raw-material reservation (IA_HOLD), started here once IA_SAVE answered:
+// IA_SAVE never runs it (a failure inside the save would fail it after the IA was written; user 10-21). An IA saved as Created (BA,
+// 10-22), or one still marked (a Draft gives back what it holds); up to 50 hold picks it is waited for and its result shown, above it
+// runs in the background.
+const RES_ENABLED = true;
 const RES_HOLD = "2112752274794217473"; // IA_HOLD
 const RES_WAIT_PICKS = 50;
 const resHoldAfterSave = async (saved, data) => {
   const s = (v) => (v === undefined || v === null ? "" : String(v));
   if (!RES_ENABLED || !/^[1-9][0-9]{0,19}$/.test(RES_HOLD)) return;
   const id = s(saved && saved.id) || s(data.id);
-  const page = s(data.page_status);
-  const isNew = page === "Add" || page === "Clone" || page === "Copy";
-  if (!/^[0-9]{1,20}$/.test(id) || !/^[0-9]{1,20}$/.test(s(data.organization_id)) || !(isNew || s(data.material_hold_status) !== "")) return;
+  const created = s(data.ia_target_status) === "Created";
+  if (!/^[0-9]{1,20}$/.test(id) || !/^[0-9]{1,20}$/.test(s(data.organization_id)) || !(created || s(data.material_hold_status) !== "")) return;
   let picks = 0;
   (Array.isArray(data.stock_movement) ? data.stock_movement : []).forEach((l) => {
     let t = [];
@@ -29,6 +29,13 @@ const resHoldAfterSave = async (saved, data) => {
       const p = this.runWorkflow(RES_HOLD, params, (res) => resolve(res), (err) => reject(err));
       if (p && typeof p.then === "function") p.then((res) => resolve(res), (err) => reject(err));
     });
+  // a Draft never reserves (RES-01 Created, BA 10-22): one still marked gives back what it holds, quietly; NONE / CLOSED hold nothing
+  // (review 4)
+  if (!created) {
+    const mark = s(data.material_hold_status);
+    if (mark !== "NONE" && mark !== "CLOSED") run().catch((e) => console.error("RES-01: a Draft's holds could not be given back now", e));
+    return;
+  }
   if (picks > RES_WAIT_PICKS) {
     run().catch((e) => console.error("RES-01: the background reservation failed", e));
     this.$message.info("The materials are being reserved in the background.");
@@ -43,7 +50,7 @@ const resHoldAfterSave = async (saved, data) => {
     console.error("RES-01: the reservation failed", e);
   }
   if (d && s(d.code) === "200") {
-    // nothing to reserve (not enrolled, not a Draft): no result to show
+    // nothing to reserve (not enrolled, not Created or Draft): no result to show
     if (!s(d.result_json)) return;
     let status = "";
     try {
@@ -93,6 +100,14 @@ const findFieldMessage = (obj) => {
 };
 
 (async () => {
+  // one save per click: a second click while this one validates, checks the BOM or saves is refused (the IA V2 handler's form flag,
+  // which it clears before it hands a small IA over to this handler)
+  const iaClaimDone = () => (this.models["_data"] = { ...this.models["_data"], ia_submitting: 0 });
+  if ((this.models["_data"] || {}).ia_submitting === 1) {
+    this.$message.warning("Workflow is already in progress. Please wait.");
+    return;
+  }
+  this.models["_data"] = { ...this.models["_data"], ia_submitting: 1 };
   try {
     await this.validate();
 
@@ -158,5 +173,7 @@ const findFieldMessage = (obj) => {
     }
 
     this.$message.error(errorMessage);
+  } finally {
+    iaClaimDone();
   }
 })();

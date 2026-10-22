@@ -29,7 +29,7 @@ const hdMovesStep = function hdMovesStep(g, st, items, delta, balRows) {
     ticketRows: [], needTicket: "NO", needCall: "NO", needAdd: "NO", needMark: "NO", why: "", deliver: deliver, needDeliver: deliver.length ? "YES" : "NO" };
   if (!moves.length && !deliver.length) return out;
   if (moves.length > HD_MAX_MOVES) return Object.assign(out, { route: "REVIEW", why: "more than " + (HD_MAX_MOVES / 2) + " pick fragments to reserve at once" });
-  const iaRef = { id: ia.id, no: ia.no, plantId: ia.plant_id, orgId: ia.organization_id };
+  const iaRef = { id: ia.id, no: ia.no, plantId: ia.plant_id, orgId: ia.organization_id, items: items };
   const r = !moves.length ? { add: [], mark: [] } : hdS(g.op) === "CLOSE" ? hdCloseRows({ releases: releases }, iaRef, opKey, st.now) : hdRows(cap.holds, releases, iaRef, opKey, st.now);
   out.add = r.add;
   out.mark = r.mark;

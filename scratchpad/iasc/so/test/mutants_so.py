@@ -41,7 +41,9 @@ MUTANTS = [
     ("page: the customer not shown", L, "      sli_summary_customer: scS(h.customer_name),\n", ""),
     ("page: rows without a fact stay shown", L, "  if (off.length) this.hide(off);\n};", "};"),
     ("page: units by id", L, "  const u = (id) => uoms[scS(id)] || scS(id);", "  const u = (id) => scS(id);"),
-    ("open: a Draft only viewed", O, 'type: draft ? "edit" : "view"', 'type: "view"'),
+    ("open: a Draft only viewed", O, 'type: edit ? "edit" : "view"', 'type: "view"'),
+    ("orphans: a Created IA's quantity to receive dropped (review 3)", "sli_load.js", "const OPEN_ST = { Draft: 1, Created: 1, Processing: 1 };", "const OPEN_ST = { Draft: 1, Processing: 1 };"),
+    ("open: a Created IA only viewed (Created, BA 10-22)", O, '["Draft", "Created"].indexOf(String(scRow.status', '["Draft"].indexOf(String(scRow.status'),
     ("page: an unavailable figure shown as one", L, 'sli_summary_suggest: t.unavailable === "OVERLAP" ?', "sli_summary_suggest: false ?"),
 ]
 survived = 0

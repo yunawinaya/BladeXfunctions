@@ -32,7 +32,8 @@ const unhex = (h) => Buffer.from(h, "hex").toString("utf8");
 function world(c, opts) {
   const o = opts || {};
   const w = { c, now: Date.UTC(2026, 9, 21, 2, 0, 0), seq: 2113000000000000000n, steps: [], writes: [], crashAfter: o.crashAfter || 0, crashed: null, failedRuns: [], violations: [],
-    engine: { faults: {}, calls: [], applied: {} }, itemDates: {}, idaWrites: [], batchDeletes: [], lineWrites: [], cfgWrites: [], sizes: [], runs: 0, precision: o.precision === undefined ? null : o.precision };
+    engine: { faults: {}, calls: [], applied: {} }, itemDates: {}, idaWrites: [], batchDeletes: [], intentRetires: [], lineWrites: [], cfgWrites: [], sizes: [], runs: 0,
+    precision: o.precision === undefined ? null : o.precision };
   w.id = () => (w.seq += 1n).toString();
   const req = Object.assign({}, c.request, o.request || {});
   w.job = { id: JOB, organization_id: ORG, command: "COMPLETE_IDA", job_status: "READY_TO_COMMIT", progress_percent: 60, progress_message: "Ready to commit", attempt_count: 0, next_attempt_at: null,
@@ -93,7 +94,7 @@ const ours = (w, text) => {
     .sort((a, b) => (BigInt(a.id) < BigInt(b.id) ? -1 : 1)).map(batchJ);
 };
 const intentRows = (w) => w.steps.filter((r) => !r.is_deleted && r.job_id === JOB && r.step_name.indexOf("D1|I|") === 0).sort((a, b) => (a.step_name < b.step_name ? -1 : 1))
-  .map((r) => ({ step_name: r.step_name, result_ref: r.result_ref }));
+  .map((r) => ({ id: r.id, step_name: r.step_name, result_ref: r.result_ref }));
 const opState = (w, text, side) => {
   const m = text.match(/p\.job_id = 'IDC\|([0-9]+)\|([IR])'/);
   assert.ok(m && m[1] === JOB && m[2] === side, "OP_STATE text (" + side + ")");
@@ -108,6 +109,8 @@ function sqlMocks(w) {
     get: (_, id) => (text) => {
       const j = w.job;
       const name = String(id).replace(/^sql_node_DC/, "");
+      // a test may act between two reads (another writer between D1's config read and its holders read)
+      if (w.beforeSql) w.beforeSql(name, w);
       w.sqlTexts = (w.sqlTexts || 0) + text.length;
       if (name === "job") {
         const q = JSON.parse(j.request_payload);
@@ -231,6 +234,16 @@ function dbOf(w) {
           if (Number(r.running_number) < Number(b.running_number)) w.violations.push("a running number went back: " + b.running_number + " -> " + r.running_number);
           Object.assign(b, { running_number: r.running_number, last_reset_date: r.last_reset_date });
           w.cfgWrites.push(J(r));
+        } else if (table === "GD Publish Step") {
+          // D1's renumber retires its intent: renamed (the unique Job Step index keeps deleted rows) and soft-deleted
+          assert.deepStrictEqual(Object.keys(r).sort(), ["id", "is_deleted", "step_name"]);
+          const st = w.steps.find((x) => x.id === id);
+          if (!st) throw new Error("step update of unknown id " + id);
+          if (st.job_id !== JOB || st.step_name.indexOf("D1|I|") !== 0 || st.is_deleted) w.violations.push("retired a step row that is not this job's live D1 intent: " + st.job_id + " " + st.step_name);
+          if (w.steps.some((x) => x !== st && x.job_id === st.job_id && x.step_name === r.step_name)) throw new Error("Duplicate entry '" + st.job_id + "-" + r.step_name + "' for key 'Job Step'");
+          assert.ok(String(r.step_name).length <= 32, "step_name varchar(32)");
+          Object.assign(st, { step_name: r.step_name, is_deleted: r.is_deleted });
+          w.intentRetires.push(id);
         } else if (table === "Stock movement(Item Disassembly)") {
           assert.deepStrictEqual(Object.keys(r).sort(), ["batch_number", "id"]);
           const l = w.lines.find((x) => x.id === id && !x.is_deleted);

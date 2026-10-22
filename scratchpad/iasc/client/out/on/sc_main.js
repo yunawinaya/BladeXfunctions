@@ -398,8 +398,11 @@ const spToBase = (fg, uom) => {
   const b = spNum(c.base_qty);
   return a > 0 && b > 0 ? b / a : null;
 };
-const SP_OPEN = { Draft: 1, Processing: 1, Issued: 1 };
+// a Created IA (RES-01, BA 10-22) is open production like a Draft
+const SP_OPEN = { Draft: 1, Created: 1, Processing: 1, Issued: 1 };
 const SP_DONE = { Completed: 1, "Fully Posted": 1 };
+// a Cancelled IA (user 10-22) is no production at all: not counted, nothing to warn about
+const SP_VOID = { Cancelled: 1 };
 
 const scProject = (input) => {
   const inp = input || {};
@@ -432,7 +435,7 @@ const scProject = (input) => {
     const id = spS(x.id);
     const row = { id: id, no: spS(x.no), status: status, role: "none", qty: null, itemQty: spQ8(x.item_qty), uomId: spS(x.item_uom),
       planned: spQ8(spS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty), mode: spS(x.mode) };
-    if (Number(x.is_deleted) === 1) return row;
+    if (Number(x.is_deleted) === 1 || SP_VOID[status]) return row;
     if (!SP_OPEN[status] && !SP_DONE[status]) {
       warn("IA_STATUS_UNKNOWN", "Item Assembly " + row.no + " has status " + (status || "(blank)") + ", so it is not counted.");
       return row;
@@ -1077,13 +1080,15 @@ const scProjection = async (params) => {
   }
 };
 const scWhyNot = (fallback) => scS(scState().sc_refused) || fallback;
-// an Add / Clone (unsaved) or an Edit of a Draft (excluded from the totals): its own quantity is proposed once
+// an Add / Clone (unsaved) or an Edit of a Draft or a Created IA (excluded from the totals): its own quantity is proposed once
+// a Draft or a Created IA (RES-01, BA 10-22) is still being written
+const scOpenStatus = (status) => scS(status) === "Draft" || scS(status) === "Created";
 const scEditable = (v) => {
   const page = scS(v.page_status);
-  return page === "Add" || page === "Clone" || (page === "Edit" && scS(v.item_assembly_status) === "Draft");
+  return page === "Add" || page === "Clone" || (page === "Edit" && scOpenStatus(v.item_assembly_status));
 };
 const scSummary = (v) => {
-  const editDraft = scS(v.page_status) === "Edit" && scS(v.item_assembly_status) === "Draft" && scDigits(v.id);
+  const editDraft = scS(v.page_status) === "Edit" && scOpenStatus(v.item_assembly_status) && scDigits(v.id);
   const propose = scEditable(v) && scQ8(v.item_qty) > 0;
   return scProjection({ operation: "SUMMARY", so_id: scS(v.source_so_id), so_line_id: scS(v.source_so_line_id), item_id: scS(v.item_id),
     exclude_ia_id: editDraft ? scS(v.id) : "", organization_id: scOrg(v), proposal_qty: propose ? scQ8(v.item_qty).toFixed(8) : "",
@@ -1324,7 +1329,7 @@ const scRefresh = async (v) => {
 
 // --- which Small Cycle widgets this page shows ---
 const scDisplay = (v, page, status) => {
-  const editable = page === "Add" || page === "Clone" || (page === "Edit" && status === "Draft");
+  const editable = page === "Add" || page === "Clone" || (page === "Edit" && scOpenStatus(status));
   const linked = scLinked(v);
   const smallCycle = linked || scModeOf(v) === "FLAT" || scEnhanced(v);
   const show = [];
@@ -2023,22 +2028,85 @@ const scEntry = async (v) => {
   await scPrepare({ mode: "STANDARD", itemId: v.item_id, newItem: false, expand: [], prev: null });
 };
 // --- RES-01 raw-material holds (scratchpad/iasc/res01/RES01_PLAN.md): the Materials row,
-// each Draft line's Required / Reserved / Short, and IA_HOLD started again while a Draft is still Reserving or a completed IA still holds
+// each Created line's Required / Reserved / Short, and IA_HOLD started again while a Created IA is still Reserving, a Draft still holds
+// (it gives it back) or a completed IA still holds
 const RES_WF_HOLD = "2112752274794217473"; // IA_HOLD
 // the switch makes holds (a reservation started on open); what an IA holds is shown and closed whatever it says (review I4)
-const RES_ENABLED = false;
-const RES_LABEL = { RESERVING: "Reserving...", FULL: "Fully reserved", PARTIAL: "Partially reserved", SHORT: "Shortage: nothing could be reserved", NONE: "Nothing to reserve",
-  REVIEW: "Needs review: the last reservation did not finish. Save the Item Assembly again to retry.", CLOSED: "Closed at completion" };
+const RES_ENABLED = true;
+// MIN-06 (BA 10-22): each label says what is known, never a shortage or a protection it does not know of
+const RES_LABEL = { RESERVING: "Pending: the saved materials are being reserved...", FULL: "Fully reserved", PARTIAL: "Partially reserved", SHORT: "Nothing reserved",
+  NONE: "Nothing to reserve: no stock-controlled materials", REVIEW: "Needs review: the last reservation did not finish. Save the Item Assembly again to retry.",
+  CLOSED: "Closed at completion" };
+const RES_DRAFT = "No stock reserved (Draft).";
 const RES_LINE_COLS = ["stock_movement.required_qty", "stock_movement.res_reserved", "stock_movement.res_short"];
 const RES_CLOSING = ["RESERVING", "FULL", "PARTIAL", "SHORT", "REVIEW"];
+// IA_HOLD's own rules (hdWanted): the categories it holds from, the item fields its line reasons need
+const RES_CATS = { Unrestricted: 1, Blocked: 1 };
+const RES_ITEM_FIELDS = "stock_control,serial_number_management,based_uom,table_uom_conversion";
+// RES-01 MIN-06 (BA 10-22): what the reservation reads from the form as one cheap string - each line's id, item, unit and picks (hashed),
+// and the plant; Required and the display columns are left out (the open itself fills them)
+const RES_DIRTY = " · Unsaved changes: not reserved until saved.";
+const resHash = (t) => {
+  const text = t === undefined || t === null ? "" : typeof t === "string" ? t : JSON.stringify(t);
+  let x = 2166136261;
+  for (let i = 0; i < text.length; i++) x = Math.imul(x ^ text.charCodeAt(i), 16777619) >>> 0;
+  return x.toString(36);
+};
+const resFp = (v) => (Array.isArray(v && v.stock_movement) ? v.stock_movement : [])
+  .map((l) => [l && l.id, l && l.item_selection, l && l.quantity_uom].map((x) => (x === undefined || x === null ? "" : String(x))).join("|") + "|" +
+    resHash(l && l.temp_qty_data) + "|" + resHash(l && l.temp_hu_data))
+  .join(";") + "#" + String((v && v.issuing_operation_faci) || "");
 const resHoldId = () => /^[1-9][0-9]{0,19}$/.test(RES_WF_HOLD);
 const resOn = () => RES_ENABLED === true && resHoldId();
-const resRow = async (status, at, draft) => {
+const resRow = async (status, at, open) => {
   // a completed IA cannot be saved again: its review says to open it again (review M10)
-  const label = status === "REVIEW" && !draft ? "Needs review: the last close did not finish. Open this Item Assembly again to retry." : RES_LABEL[status] || status;
-  await this.setData({ res_summary: "Raw material reservation: " + label + (at ? " · checked " + at : "") +
-    (draft ? " · Reservations update when this Item Assembly is saved." : "") });
+  const label = status === "REVIEW" && !open ? "Needs review: the last close did not finish. Open this Item Assembly again to retry."
+    : (RES_LABEL[status] || status) + (open && (status === "PARTIAL" || status === "SHORT") ? ": see Unreserved on the lines" : "");
+  const text = "Raw material reservation: " + label + (at ? " · checked " + at : "") + (open ? " · Shown for the last save: changes not saved yet are not reserved." : "");
+  // MIN-06: the row as rendered, for onFormChange's unsaved-changes marker (kept when the row is rendered again)
+  if (open) scStore({ res_row: text });
+  await this.setData({ res_summary: text + (open && scState().res_dirty === true ? RES_DIRTY : "") });
   this.display(["res_summary"]);
+};
+// MIN-06: a new IA or a Draft reserves nothing and says so; the Created hint where its button is
+const resDraftRow = async (page, text) => {
+  await this.setData({ res_summary: "Raw material reservation: " + (text || RES_DRAFT + (page === "View" ? "" : " Save as Created to reserve the materials.")) });
+  this.display(["res_summary"]);
+};
+const resFactor = (item, uomId) => {
+  const uom = scS(uomId);
+  if (!uom || uom === scS(item.based_uom)) return 1;
+  const convs = Array.isArray(item.table_uom_conversion) ? item.table_uom_conversion : scParseJ(item.table_uom_conversion) || [];
+  const c = convs.find((x) => x && scS(x.alt_uom_id) === uom);
+  return c && scNum(c.base_qty) > 0 ? scNum(c.base_qty) : null;
+};
+// MIN-06: a Created line's Reserved and Unreserved in its unit, with why, by IA_HOLD's rules: serial, a handling unit, a category other
+// than Unrestricted / Blocked, a unit with no conversion are not supported; a supported line's rest is allocated stock that was not free,
+// then what was never allocated, unless its run has not answered (pending) or did not finish (needs review)
+const resCells = (l, item, held, hold) => {
+  const required = scS(l.required_qty) !== "" ? scNum(l.required_qty) : scNum(l.requested_qty) > 0 ? scNum(l.requested_qty) : scNum(l.total_quantity);
+  const serial = Number(item.serial_number_management) === 1;
+  const reserved = serial ? 0 : held;
+  const rest = Math.max(0, scQ8(required - reserved));
+  const parsed = scParseJ(l.temp_qty_data);
+  const picks = (Array.isArray(parsed) ? parsed : []).filter((p) => p && scNum(p.sm_quantity) > 0);
+  const hu = scParseJ(l.temp_hu_data);
+  const why = [];
+  if (serial) why.push("serial");
+  else {
+    if ((Array.isArray(hu) && hu.length > 0) || picks.some((p) => scS(p.handling_unit_id))) why.push("handling unit");
+    if (picks.length && resFactor(item, l.quantity_uom) === null) why.push("unit with no conversion");
+    else scUniq(picks.map((p) => scS(p.category) || "Unrestricted").filter((c) => !RES_CATS[c])).forEach((c) => why.push(c + " stock"));
+  }
+  if (why.length) return [scNumText(reserved), (rest > 0 ? scNumText(rest) + " " : "") + why.join(", ") + ": not supported"];
+  if (rest <= 0) return [scNumText(reserved), "0"];
+  if (hold === "RESERVING") return [scNumText(reserved), scNumText(rest) + " pending"];
+  if (hold === "REVIEW") return [scNumText(reserved), scNumText(rest) + " needs review"];
+  const picked = picks.reduce((sum, p) => scQ8(sum + scNum(p.sm_quantity)), 0);
+  const notFree = Math.max(0, scQ8(Math.min(required, picked) - reserved));
+  const notAllocated = Math.max(0, scQ8(rest - notFree));
+  const parts = [notFree > 0 ? scNumText(notFree) + " allocated stock not free" : "", notAllocated > 0 ? scNumText(notAllocated) + " not allocated" : ""].filter((x) => x);
+  return [scNumText(reserved), parts.length > 1 ? scNumText(rest) + ": " + parts.join(", ") : parts[0]];
 };
 // required: the line's own, else its reference, else its quantity; reserved: its own Allocated holds; a failed read shows nothing
 const resLines = async (v) => {
@@ -2051,7 +2119,7 @@ const resLines = async (v) => {
     const [rows, itemRows] = await Promise.all([
       scReadMany("on_reserved_gd", "doc_id", [scS(v.id)], [{ prop: "doc_type", operator: "equal", value: "Item Assembly" }, { prop: "status", operator: "equal", value: "Allocated" },
         { prop: "is_deleted", operator: "equal", value: 0 }]),
-      ids.length ? scReadIds("item", ids, "stock_control,serial_number_management") : Promise.resolve([]),
+      ids.length ? scReadIds("item", ids, RES_ITEM_FIELDS) : Promise.resolve([]),
     ]);
     held = {};
     rows.forEach((r) => (held[scS(r.doc_line_id)] = scQ8((held[scS(r.doc_line_id)] || 0) + scNum(r.open_qty))));
@@ -2062,20 +2130,17 @@ const resLines = async (v) => {
     return;
   }
   const updates = {};
+  const hold = scS(v.material_hold_status);
   lines.forEach((l, i) => {
     const item = items[scS(l.item_selection)];
-    const nonStock = !item || iaIsNonStock(item);
-    const hu = scParseJ(l.temp_hu_data);
-    const notHeld = !nonStock && (Number(item.serial_number_management) === 1 || (Array.isArray(hu) && hu.length > 0));
-    const required = scS(l.required_qty) !== "" ? scNum(l.required_qty) : scNum(l.requested_qty) > 0 ? scNum(l.requested_qty) : scNum(l.total_quantity);
-    const reserved = held[scS(l.id)] || 0;
-    updates[`stock_movement.${i}.res_reserved`] = nonStock ? "" : notHeld ? "not reserved" : scNumText(reserved);
-    updates[`stock_movement.${i}.res_short`] = nonStock || notHeld ? "" : scNumText(Math.max(0, scQ8(required - reserved)));
+    const cells = !item || iaIsNonStock(item) ? ["", ""] : resCells(l, item, held[scS(l.id)] || 0, hold);
+    updates[`stock_movement.${i}.res_reserved`] = cells[0];
+    updates[`stock_movement.${i}.res_short`] = cells[1];
   });
   if (Object.keys(updates).length) await this.setData(updates);
 };
 // in the background: the form stays usable; the row and the header fields follow the answer
-const resKick = (v, operation, draft) => {
+const resKick = (v, operation, open) => {
   (async () => {
     let d = null;
     try {
@@ -2087,12 +2152,53 @@ const resKick = (v, operation, draft) => {
     const r = d && scS(d.code) === "200" ? scParseJ(d.result_json) : null;
     if (!r || !scS(r.status)) return;
     await this.setData({ material_hold_status: scS(r.status), material_hold_at: scS(r.checkedAt) });
-    await resRow(scS(r.status), scS(r.checkedAt), draft);
-    if (draft) await resLines(this.getValues());
+    await resRow(scS(r.status), scS(r.checkedAt), open);
+    if (open) await resLines(this.getValues());
+  })();
+};
+// a Draft that still holds: RECONCILE gives it all back (IA_HOLD wants nothing held for a Draft); with the switch on its row says so
+// (MIN-06), and "No stock reserved" only once it is given back
+const resReleaseDraft = (v, page) => {
+  (async () => {
+    if (resOn()) await resDraftRow(page, "Releasing the earlier reservation (Draft)...");
+    let d = null;
+    try {
+      const res = await scRun(RES_WF_HOLD, { ia_id: scS(v.id), organization_id: scS(v.organization_id), operation: "RECONCILE", source: "FORM" });
+      d = (res && res.data) || null;
+    } catch (e) {
+      console.error("RES-01: a Draft's holds could not be given back now", e);
+    }
+    const r = d && scS(d.code) === "200" ? scParseJ(d.result_json) : null;
+    if (r && scS(r.status)) await this.setData({ material_hold_status: scS(r.status), material_hold_at: scS(r.checkedAt) });
+    if (!resOn()) return;
+    if (r && scS(r.status) === "NONE") await resDraftRow(page);
+    else await resDraftRow(page, "The earlier reservation could not be released now (Draft): open or save it again to retry.");
+  })();
+};
+// BA rev 1.2 C2: a stored completed IA says when its completion did not finish, was interrupted or is still running (IA_HOLD CHECK reads
+// its completion claims, read-only), in the background and whatever the reservation switch
+const RES_CHECK_SHOW = { PARTIAL: 1, INTERRUPTED: 1, RUNNING: 1 };
+const resCheck = (v) => {
+  (async () => {
+    let d = null;
+    try {
+      const res = await scRun(RES_WF_HOLD, { ia_id: scS(v.id), organization_id: scS(v.organization_id), operation: "CHECK", source: "FORM" });
+      d = (res && res.data) || null;
+    } catch (e) {
+      console.error("C2: the completion check failed", e);
+    }
+    const r = d && scS(d.code) === "200" ? scParseJ(d.result_json) : null;
+    if (!r || RES_CHECK_SHOW[scS(r.outcome)] !== 1 || !scS(r.message)) return;
+    await this.setData({ completion_check: scS(r.message) });
+    this.display(["completion_check"]);
   })();
 };
 const resMount = async (v, page, status) => {
   if (!resHoldId()) return;
+  // RES-01 Created (BA, 10-22): the Created button (save and reserve) next to Draft on a new IA or a Draft, while the switch is on
+  if (resOn() && (page === "Add" || page === "Clone" || (page === "Edit" && status === "Draft"))) this.display(["button_created"]);
+  // RES-01 Cancel (user 10-22): a Cancelled IA holds nothing: no reservation row
+  if (status === "Cancelled") return;
   if (page === "Clone") {
     // the clone is a new IA: unreserved until its first save
     const clear = {};
@@ -2101,13 +2207,30 @@ const resMount = async (v, page, status) => {
       if (scS(l.res_reserved) || scS(l.res_short)) Object.assign(clear, { [`stock_movement.${i}.res_reserved`]: "", [`stock_movement.${i}.res_short`]: "" });
     });
     if (Object.keys(clear).length) await this.setData(clear);
+    if (resOn()) await resDraftRow(page);
     return;
   }
   const hold = scS(v.material_hold_status);
-  if (page === "Add" || !hold || !/^[0-9]{1,20}$/.test(scS(v.id))) return;
-  const draft = status === "Draft";
-  await resRow(hold, scS(v.material_hold_at), draft);
-  if (draft) {
+  const stored = /^[0-9]{1,20}$/.test(scS(v.id));
+  if (page === "Add") {
+    if (resOn()) await resDraftRow(page);
+    return;
+  }
+  // RES-01 Created (BA, 10-22): a Created IA reserves; a Draft never holds - one still marked (reverted, or saved before Created
+  // existed) gives back what it holds, whatever the switch (finishing holds is never switched off); MIN-06: with the switch on a Draft's
+  // row says it reserves nothing
+  if (status === "Draft") {
+    if (stored && hold && hold !== "NONE" && hold !== "CLOSED") resReleaseDraft(v, page);
+    else if (resOn()) await resDraftRow(page);
+    return;
+  }
+  if (stored && (status === "Completed" || status === "Fully Posted")) resCheck(v);
+  if (!hold || !stored) return;
+  const open = status === "Created";
+  // MIN-06: what the reservation reads as opened (onFormChange compares the form with it)
+  if (open) scStore({ res_fp: resFp(v), res_dirty: false });
+  await resRow(hold, scS(v.material_hold_at), open);
+  if (open) {
     this.display(RES_LINE_COLS);
     await resLines(v);
     if (hold === "RESERVING" && resOn()) resKick(v, "RECONCILE", true);

@@ -6,10 +6,12 @@ const rows = [{{node:sql_node_SCsource.data}}][0];
 const kept = {};
 const storedReq = {};
 const storedRef = {};
+const storedManual = {};
 ((spRows(rows)[0] || {}).keys || []).forEach((x) => {
   if (x && x.k) kept[String(x.id)] = String(x.k);
   if (x && x.r !== null && x.r !== undefined && String(x.r) !== "") storedReq[String(x.id)] = String(x.r);
   if (x && x.q !== null && x.q !== undefined && String(x.q) !== "") storedRef[String(x.id)] = String(x.q);
+  if (x && x.m !== null && x.m !== undefined && String(x.m) !== "") storedManual[String(x.id)] = String(x.m);
 });
 const sent = Array.isArray(all.stock_movement);
 const holdsOn = ([{{node:code_node_SCin.data}}][0] || {}).res === "YES";
@@ -17,12 +19,16 @@ const has = (l, k) => Object.prototype.hasOwnProperty.call(l, k);
 // RES-01 required_qty (holds on): a line sent without it keeps its stored value (mobile); one that was following the BOM reference
 // (stored required = stored reference) and comes back unchanged follows the new reference (a re-scale, mobile); empty -> the
 // reference, else the quantity
+// RF-09 (BA 10-22): a Required typed by hand (the form's required_manual "1") is the user's: it never follows the reference, even when it
+// equals the old one; a line sent without the flag (mobile) keeps the stored one
+const manualOf = (l) => (has(l, "required_manual") ? String(l.required_manual === null || l.required_manual === undefined ? "" : l.required_manual)
+  : storedManual[String(l.id)] || "") === "1";
 const numOf = (v) => (v === null || v === undefined || String(v) === "" || !isFinite(parseFloat(v)) ? null : parseFloat(v));
 const reqOf = (l) => {
   const sr = numOf(storedReq[String(l.id)]);
   const sq = numOf(storedRef[String(l.id)]);
   let v = numOf(has(l, "required_qty") ? l.required_qty : storedReq[String(l.id)]);
-  if (v !== null && sr !== null && Math.abs(v - sr) < 1e-9 && sq !== null && sq > 0 && Math.abs(sr - sq) < 1e-9 && numOf(l.requested_qty) > 0) v = numOf(l.requested_qty);
+  if (!manualOf(l) && v !== null && sr !== null && Math.abs(v - sr) < 1e-9 && sq !== null && sq > 0 && Math.abs(sr - sq) < 1e-9 && numOf(l.requested_qty) > 0) v = numOf(l.requested_qty);
   const x = v !== null ? v : numOf(l.requested_qty) > 0 ? numOf(l.requested_qty) : numOf(l.total_quantity);
   return x === null ? null : x.toFixed(8);
 };
@@ -35,7 +41,7 @@ const lines = (sent ? all.stock_movement : []).map((l) => {
     delete out.res_reserved;
     delete out.res_short;
   }
-  return holdsOn ? Object.assign({}, out, { required_qty: reqOf(l) }) : out;
+  return holdsOn ? Object.assign({}, out, { required_qty: reqOf(l), required_manual: manualOf(l) ? "1" : "" }) : out;
 });
 const res = scClassicCheck({ allData: sent ? Object.assign({}, all, { stock_movement: lines }) : all, saveAs: [{{workflowparams:saveAs}}][0],
   scIn: [{{node:code_node_SCin.data}}][0], rows: rows, uid: [{{system:uid}}][0], nowIso: new Date().toISOString() });

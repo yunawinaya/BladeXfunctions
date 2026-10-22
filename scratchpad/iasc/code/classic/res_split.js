@@ -3,6 +3,22 @@
 const due = [{{node:code_node_RESdue.data.due}}][0] === "YES";
 const all = [{{node:code_fillback.data.allData}}][0] || {};
 const lines = Array.isArray(all.stock_movement) ? all.stock_movement : [];
+// MIN-01 (BA 10-22, with bladexfunctions-9d): Reserved stock is never picked by hand - it belongs to another document's reservation; only
+// this split's held parts (made below, server-side) come from Reserved. Every completion, reserving or not
+const pickedReserved = lines.some((l) => {
+  let picks = [];
+  try {
+    const x = typeof (l && l.temp_qty_data) === "string" ? JSON.parse(l.temp_qty_data || "[]") : (l && l.temp_qty_data) || [];
+    picks = Array.isArray(x) ? x : [];
+  } catch (e) {
+    picks = [];
+  }
+  return picks.some((p) => p && String(p.category || "") === "Reserved" && parseFloat(p.sm_quantity) > 0);
+});
+if (pickedReserved) {
+  return { route: "STOP", message: "A component is picked from Reserved stock, which belongs to another document's reservation: pick it from Unrestricted or Blocked stock instead.",
+    lines: [] };
+}
 if (!due) return { route: "GO", message: "", lines: lines };
 let st = null;
 try {

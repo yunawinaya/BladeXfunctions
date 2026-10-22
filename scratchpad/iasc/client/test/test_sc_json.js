@@ -48,8 +48,10 @@ const BOUND = {
 };
 const DIALOG_BOUND = { sc_line_dialog: { onCancel: "sc_onCancel_line" }, sc_expand_dialog: { onCancel: "sc_onCancel_expand", onConfirm: "sc_onConfirm_expand" } };
 const ROW_LINK = ["sc_line_table", "pick", "sc_onClick_pickLine"];
-const NEW_EVENTS = ["sc_main"].concat(Object.values(BOUND).map((b) => b[1]), ["sc_onClick_pickLine", "sc_onCancel_line", "sc_onCancel_expand", "sc_onConfirm_expand"]);
-const PATCHED = ["wv07g9xe", "iaqty01x", "fgivan7v", "mounted", "iasvcomp", "aymq6q8z", "uhn48srb", "wia8s2r9", "iasvdrft", "iacqty01", "evhzkk8e"];
+const NEW_EVENTS = ["sc_main"].concat(Object.values(BOUND).map((b) => b[1]), ["sc_onClick_pickLine", "sc_onCancel_line", "sc_onCancel_expand", "sc_onConfirm_expand",
+  "onClick_saveAsCreated", "onChange_requiredQty"]);
+// + onFormChange (empty in the base): RES-01 MIN-06's unsaved-changes marker (BA 10-22)
+const PATCHED = ["wv07g9xe", "iaqty01x", "fgivan7v", "mounted", "iasvcomp", "aymq6q8z", "uhn48srb", "wia8s2r9", "iasvdrft", "iacqty01", "evhzkk8e", "onFormChange"];
 const VARIANCE = ["iasvcomp", "aymq6q8z", "uhn48srb", "wia8s2r9"];
 
 // parent model of every widget
@@ -91,6 +93,21 @@ const remove = (doc, model) => {
   return walk(doc.list);
 };
 const table = (doc) => H.findModel(doc.list, "stock_movement", "tlm8ve69");
+// RES-01 Created (BA, 10-22): src/created_patch.json (the handler, mounted, IA V2 and badge pairs, the status option's leaf id)
+const CREATED = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/created_patch.json"), "utf8"));
+// (no Cancel button on the form: Cancel is the list's bulk action, user 10-22 evening)
+const CREATED_WIDGETS = ["button_created", "created_status", "cancelled_status"];
+const uncreateOption = (doc) => {
+  const leaves = H.findModel(doc.list, "item_assembly_status").options.datasource.rules.list[0].children[1].children;
+  const i = leaves.findIndex((x) => x.value === "Created" && x.id === CREATED.statusLeafId);
+  if (i < 0) return false;
+  leaves.splice(i, 1);
+  // RES-01 Cancel (user 10-22): the Cancelled option too
+  const j = leaves.findIndex((x) => x.value === "Cancelled" && x.id === CREATED.cancel.statusLeafId);
+  if (j < 0) return false;
+  leaves.splice(j, 1);
+  return true;
+};
 // UI-01 (BA handoff) regroups the ON build only: stacked sections Production / Sales Order / Output Location / Additional Details,
 // the BOM row and the Use Suggestion / Prepare BOM buttons in Production, Quantity relabelled. unregroup puts every widget back
 // where the OFF build has it, so the checks below prove the regroup moved widgets and changed only that label
@@ -123,9 +140,37 @@ const unregroup = (doc) => {
   return d;
 };
 const ONX = unregroup(ON);
+// the user's designer edits of 22 October (dev v55): Created primary, the BOM mode defaulting to Standard, the designer's own option
+// defaults on the title and the header grid. The hidden strip (v36's data fields and Small Cycle's) sits below the action bar: under the
+// title it left a gap (v55)
+const STRIP = ["organization_id", "sia_uuid", "item_assembly_status", "posted_status", "page_status", "ia_v2_job_id", "ia_idem_key", "source_so_id",
+  "source_so_line_id", "source_so_context_json", "source_bom_id", "bom_snapshot_json", "material_hold_status", "material_hold_at"];
+const TITLE_V55 = ["left", "right", "pad", "desensitization_pattern", "desensitization_replace", "select-card_n7ge7fmb"];
+const unsink = (doc) => {
+  const moved = STRIP.map((m) => doc.list.find((w) => w.model === m)).filter(Boolean);
+  doc.list = doc.list.filter((w) => STRIP.indexOf(w.model) < 0);
+  doc.list.splice(doc.list.findIndex((w) => w.model === "flex_2det1nd2") + 1, 0, ...moved);
+  return doc;
+};
+const unedit = (doc) => {
+  const t = H.findModel(doc.list, "item_assembly_tittle");
+  TITLE_V55.forEach((k) => delete t.options[k]);
+  delete H.findModel(doc.list, "grid_x46134mc").options.dataIdentifier;
+  const m = H.findModel(doc.list, "bom_consumption_mode");
+  if (m) m.options.defaultValue = "";
+  return doc;
+};
 
 for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
   const P = parents(B);
+  const order = B.list.map((w) => w.model);
+  check(label + ": the title row is followed by the header grid (no hidden field between them: the v55 gap)", order[0] === "flex_2det1nd2" && order[1] === "grid_x46134mc",
+    order.slice(0, 3));
+  const bar = order.indexOf("flex_t6y2yh5r");
+  check(label + ": the hidden data fields right after the action bar, in their old order, only dialogs after them", bar > 0 &&
+    same(order.slice(bar + 1, bar + 1 + STRIP.length), STRIP) && B.list.slice(bar + 1 + STRIP.length).every((w) => w.type === "dialog"), order.slice(bar));
+  check(label + ": the user's v55 edits kept (Created primary, the title and grid designer defaults)", H.findModel(B.list, "button_created").options.buttonType === "primary" &&
+    TITLE_V55.every((k) => k in H.findModel(B.list, "item_assembly_tittle").options) && H.findModel(B.list, "grid_x46134mc").options.dataIdentifier === false);
   for (const [m, [type, parent]] of Object.entries(DATA)) {
     const w = H.findModel(B.list, m);
     check(label + ": data widget " + m + " (" + type + ", under " + (parent || "top") + ", dataBind, hidden)", !!w && w.type === type && P[m] === parent && w.options.dataBind === true && w.options.hidden === true);
@@ -140,21 +185,31 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
   const req = (table(B).tableColumns || []).find((c) => c.model === "required_qty");
   const cols = table(B).tableColumns;
   const shownCols = cols.slice(-2);
-  check(label + ": stock_movement gains sc_ref_key (hidden input, dataBind), required_qty, then RES-01's Reserved / Short, its last four columns", !!ref && ref.type === "input" &&
-    ref.options.hidden === true && ref.options.dataBind === true && cols[cols.length - 4] === ref && cols[cols.length - 3] === req &&
-    same(shownCols.map((c) => c.model), ["res_reserved", "res_short"]));
+  check(label + ": stock_movement gains sc_ref_key (hidden input, dataBind), required_qty, required_manual (RF-09), then RES-01's Reserved / Short, its last five columns",
+    !!ref && ref.type === "input" && ref.options.hidden === true && ref.options.dataBind === true && cols[cols.length - 5] === ref && cols[cols.length - 4] === req &&
+    cols[cols.length - 3].model === "required_manual" && same(shownCols.map((c) => c.model), ["res_reserved", "res_short"]));
   // RES-01: a line's requirement (decision A), "Required", editable (empty = the BOM reference, filled by the save): hidden until
   // sc_main shows it for an enrolled IA, 8 decimals, no default, nothing bound
-  check(label + ": required_qty = a hidden editable number Required, dataBind, p8, no default, no rule, no event", !!req && req.type === "number" && req.name === "Required" &&
-    req.options.hidden === true && req.options.disabled === false && req.options.dataBind === true && req.options.precision === 8 && req.options.defaultValue === null &&
-    req.options.required === false && same(req.rules, []) && Object.values(req.events).every((v) => v === ""), req && req.options);
+  // RF-09 (BA 10-22): ON, its onChange flags a hand-typed value (onChange_requiredQty); OFF, no event
+  const rqKey = label === "ON" ? (H.byName(B, "onChange_requiredQty") || {}).key : "";
+  check(label + ": required_qty = a hidden editable number Required, dataBind, p8, no default, no rule; onChange " + (label === "ON" ? "= the RF-09 flag" : "none"),
+    !!req && req.type === "number" && req.name === "Required" && req.options.hidden === true && req.options.disabled === false && req.options.dataBind === true &&
+    req.options.precision === 8 && req.options.defaultValue === null && req.options.required === false && same(req.rules, []) &&
+    req.events.onChange === (rqKey || "") && (label !== "ON" || !!rqKey) && Object.keys(req.events).filter((k) => k !== "onChange").every((k) => req.events[k] === ""), req && req.events);
   // RES-01: Reserved / Short = the screen's figures (text, read-only, hidden, empty; IA_SAVE drops them) and the Materials row before bom_tab
   check(label + ": res_reserved / res_short = hidden read-only text inputs, empty, nothing bound", shownCols.every((c) => c.type === "input" && c.options.hidden === true &&
     c.options.disabled === true && c.options.defaultValue === "" && Object.values(c.events || {}).every((v) => v === "")), shownCols.map((c) => c.options));
+  // MIN-06 (BA 10-22): Required / Reserved for this IA / Unreserved (with its reason), not a "Short" that names a cause it does not know
+  check(label + ": the two columns are named Reserved for this IA / Unreserved", same(shownCols.map((c) => c.name), ["Reserved for this IA", "Unreserved"]), shownCols.map((c) => c.name));
   const resRow = H.findModel(B.list, "res_summary");
   const resTop = B.list.map((w) => w.model);
   check(label + ": res_summary = a hidden display text, no label, right before bom_tab", !!resRow && resRow.type === "text" && resRow.options.dataBind === false &&
     resRow.options.hidden === true && resRow.options.hideLabel === true && resTop.indexOf("res_summary") === resTop.indexOf("bom_tab") - 1, resRow && resRow.options);
+  // BA rev 1.2 C2: how a completed IA's completion ended, a hidden warning text right before the reservation row
+  const ccRow = H.findModel(B.list, "completion_check");
+  check(label + ": completion_check = a hidden display text, no label, error-msg, empty, right before res_summary", !!ccRow && ccRow.type === "text" &&
+    ccRow.options.dataBind === false && ccRow.options.hidden === true && ccRow.options.hideLabel === true && ccRow.options.customClass === "error-msg" &&
+    ccRow.options.defaultValue === "" && resTop.indexOf("completion_check") === resTop.indexOf("res_summary") - 1, ccRow && ccRow.options);
   const lt = H.findModel(B.list, "sc_line_table");
   const et = H.findModel(B.list, "sc_expand_table");
   check(label + ": sc_line_table columns", !!lt && same((lt.tableColumns || []).map((c) => c.model), LINE_COLS) && lt.options.isAdd === false && lt.options.isDelete === false);
@@ -163,7 +218,8 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
     pickCol.options.fixedColumnPosition === "right");
   check(label + ": sc_expand_table columns", !!et && same((et.tableColumns || []).map((c) => c.model), EXPAND_COLS) && et.options.isAdd === false && et.options.isDelete === false);
   const mode = H.findModel(B.list, "bom_consumption_mode");
-  check(label + ": bom_consumption_mode = STANDARD / FLAT, no default", !!mode && same(mode.options.options.map((o) => [o.value, o.label]), [["STANDARD", "Standard"], ["FLAT", "Flat"]]) && mode.options.defaultValue === "");
+  check(label + ": bom_consumption_mode = STANDARD / FLAT, default Standard (the user's designer edit, dev v55)", !!mode &&
+    same(mode.options.options.map((o) => [o.value, o.label]), [["STANDARD", "Standard"], ["FLAT", "Flat"]]) && mode.options.defaultValue === "STANDARD");
   const planned = H.findModel(B.list, "planned_output_qty");
   check(label + ": planned_output_qty = number p8, no default, not required", !!planned && planned.options.precision === 8 && planned.options.defaultValue === null && planned.options.required === false && same(planned.rules, []));
   const left = H.findModel(B.list, "grid_x46134mc").columns[0].list.map((w) => w.model);
@@ -214,10 +270,13 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
   check(label + ": every new widget has its own remote ids", W.length > 0 && W.every((w) => w.options.remoteFunc === "func_" + w.key && w.options.remoteOption === "option_" + w.key));
   // undo the widgets -> v36 list exactly
   const u = H.clone(B);
-  const models = Object.keys(DATA).concat(Object.keys(UI).filter((m) => UI[m][1] === "" || UI[m][1] === "grid_x46134mc")).concat(["res_summary"]);
+  const models = Object.keys(DATA).concat(Object.keys(UI).filter((m) => UI[m][1] === "" || UI[m][1] === "grid_x46134mc")).concat(["res_summary", "completion_check"]);
   check(label + ": every new widget exists once", models.every((m) => remove(u, m)) && models.every((m) => !H.findModel(u.list, m)));
+  check(label + ": the Created button and badge once each, the Created status option once", CREATED_WIDGETS.every((m) => remove(u, m)) && CREATED_WIDGETS.every((m) => !H.findModel(u.list, m)) &&
+    uncreateOption(u));
+  unedit(unsink(u));
   const ut = table(u);
-  ut.tableColumns = ut.tableColumns.filter((c) => ["sc_ref_key", "required_qty", "res_reserved", "res_short"].indexOf(c.model) < 0);
+  ut.tableColumns = ut.tableColumns.filter((c) => ["sc_ref_key", "required_qty", "required_manual", "res_reserved", "res_short"].indexOf(c.model) < 0);
   check(label + ": every other widget byte-identical to v36", JSON.stringify(u.list) === JSON.stringify(F0.list) &&
     JSON.stringify(Object.assign({}, u.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, F0.config, { eventScript: [] })));
 }
@@ -276,13 +335,21 @@ for (const e of F0.config.eventScript) {
   check("ON: v36 event " + e.name + " byte-identical", JSON.stringify(H.byKey(ON, e.key)) === JSON.stringify(e));
 }
 // each forwarder only hands its op to sc_main
-for (const e of added.filter((x) => x.name !== "sc_main")) {
+for (const e of added.filter((x) => x.name !== "sc_main" && x.name !== "onClick_saveAsCreated" && x.name !== "onClick_cancelIA" && x.name !== "onChange_requiredQty")) {
   check("ON: forwarder " + e.name + " is one triggerEvent of sc_main", /^\/\/ [^\n]+\nthis\.triggerEvent\("sc_main", \{ scOp: "[A-Z_]+"[^\n]*\}\);\n?$/.test(e.func), e.func);
 }
 
 // the patched handlers: undo the insertions -> v36 exactly
 const base = (key) => H.byKey(F0, key).func;
-const built = (key) => H.byKey(ON, key).func;
+// the classic save handlers' double-click guard (src/classic_double_patch.json, 10-22): undone here, checked on its own below
+const CLASSIC_DOUBLE = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/classic_double_patch.json"), "utf8"));
+const raw = (key) => H.byKey(ON, key).func;
+const built = (key) => {
+  let t = CLASSIC_DOUBLE.handlers.indexOf(key) >= 0 ? CLASSIC_DOUBLE.patch.reduce((x, d) => x.replace(d.now, d.was), raw(key)) : raw(key);
+  if (CREATED.v2Keys.indexOf(key) >= 0) t = CREATED.v2.reduce((x, d) => x.replace(d.now, d.was), t);
+  if (key === "mounted") t = CREATED.mount.slice().reverse().reduce((x, d) => x.replace(d.now, d.was), CREATED.cancel.mount.slice().reverse().reduce((x, d) => x.replace(d.now, d.was), t));
+  return t;
+};
 // the IA V2 click handlers' double-click patch (src/v2_double_patch.json, bladexfunctions-8c 10-21): each pair applied once
 const DOUBLE = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/v2_double_patch.json"), "utf8"));
 const undouble = (key, t) => (DOUBLE.handlers.indexOf(key) >= 0 ? DOUBLE.patch.reduce((x, d) => x.replace(d.now, d.was), t) : t);
@@ -354,6 +421,27 @@ for (const key of VARIANCE) {
   check("ON: " + key + ": the v36 confirmBomVariance renamed, verbatim, followed by the Small Cycle wrapper", !!block && t.indexOf(renamed + "\n\n" + block) >= 0 &&
     t.replace(renamed + "\n\n" + block, V36_VARIANCE).replace(/\nconst IA_NOT_RECORD = [\s\S]*?\];\n/, "\n@@\n") === base(key).replace(/\nconst IA_NOT_RECORD = [\s\S]*?\];\n/, "\n@@\n"));
 }
+// RES-01 Created (BA, 10-22): each pair applied once; the Created handler = the built Draft handler with the handler pairs, bound to its button
+check("ON: mounted: every Cancel pair applied once", CREATED.cancel.mount.every((d) => raw("mounted").split(d.now).length === 2));
+{
+  const uncancelled = CREATED.cancel.mount.slice().reverse().reduce((x, d) => x.replace(d.now, d.was), raw("mounted"));
+  check("ON: mounted: every Created pair applied once", CREATED.mount.every((d) => uncancelled.split(d.now).length === 2));
+}
+{
+  check("ON: no Cancel button and no Cancel handler on the form (Cancel is the list's bulk action, user 10-22)", !H.byName(ON, "onClick_cancelIA") &&
+    !H.findModel(ON.list, "button_cancel") && JSON.stringify(ON).indexOf("button_cancel") < 0);
+}
+for (const key of CREATED.v2Keys) check("ON: " + key + ": each Created pair applied once", CREATED.v2.every((d) => raw(key).split(d.now).length === 2 && raw(key).indexOf(d.was) < 0));
+{
+  const e = H.byName(ON, "onClick_saveAsCreated");
+  const want = CREATED.handler.reduce((x, d) => x.replace(d.was, d.now), raw("iasvdrft"));
+  const bt = H.findModel(ON.list, "button_created");
+  check("ON: onClick_saveAsCreated = the Draft handler with the Created pairs (saveAs Draft, ia_target_status Created), bound to button_created", !!e && e.type === "js" &&
+    e.func === want && CREATED.handler.every((d) => e.func.split(d.now).length === 2) && !!bt && bt.events.onClick === e.key);
+}
+for (const key of CLASSIC_DOUBLE.handlers) {
+  check("ON: " + key + ": the classic double-click guard applied once per pair", CLASSIC_DOUBLE.patch.every((d) => raw(key).split(d.now).length === 2 && raw(key).indexOf(d.was) < 0));
+}
 for (const key of DOUBLE.handlers) {
   check("ON: " + key + ": the double-click patch applied once per pair", DOUBLE.patch.every((d) => built(key).split(d.now).length === 2 && base(key).split(d.was).length === 2 &&
     (d.now.indexOf(d.was) >= 0 || built(key).indexOf(d.was) < 0)));
@@ -374,20 +462,29 @@ for (const key of ["uhn48srb", "wia8s2r9"]) {
   // the designer stores keys in its own order: compare with sorted keys
   const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => Object.assign(o, { [k]: canon(x[k]) }), {}) : x);
   // not published yet: RES-01 R3's widgets (Reserved / Short, the Materials row) and Required named and editable
-  const r3 = H.clone(ON);
+  const r3 = unedit(unsink(H.clone(ON)));
   remove(r3, "res_summary");
+  remove(r3, "completion_check");
+  CREATED_WIDGETS.forEach((m) => remove(r3, m));
+  uncreateOption(r3);
   const r3t = table(r3);
-  r3t.tableColumns = r3t.tableColumns.filter((c) => c.model !== "res_reserved" && c.model !== "res_short");
+  r3t.tableColumns = r3t.tableColumns.filter((c) => c.model !== "res_reserved" && c.model !== "res_short" && c.model !== "required_manual");
   const r3req = r3t.tableColumns.find((c) => c.model === "required_qty");
   Object.assign(r3req, { name: "Required Qty" });
   r3req.options.disabled = true;
+  r3req.events.onChange = "";
   check("ON vs v47: the widgets identical but RES-01 R3's (Reserved / Short, the Materials row, Required)", JSON.stringify(canon(r3.list)) === JSON.stringify(canon(LIVE.list)));
   const changed = ON.config.eventScript.filter((e) => JSON.stringify(H.byKey(LIVE, e.key)) !== JSON.stringify(e)).map((e) => e.name).sort();
   // not published yet: RES-01 R3 (switched off): the Draft handler, the add-back in the explode / component quantity / picker, and
   // sc_main (it carries the explode helpers)
-  check("ON vs v47: the same events, only the RES-01 R3 / R4 handlers changed (switched off)", same(ON.config.eventScript.map((e) => e.key), LIVE.config.eventScript.map((e) => e.key)) &&
-    same(changed, ["iaV2_onClick_completed", "iaV2_onClick_completed_post", "onChange_assembledItem", "onChange_componentQty", "onClick_saveAsCompleted", "onClick_saveAsCompletedPost",
-      "onClick_saveAsDraft", "onClick_select_stock", "sc_main"]), changed);
+  const createdKey = (H.byName(ON, "onClick_saveAsCreated") || {}).key;
+  const reqQtyKey = (H.byName(ON, "onChange_requiredQty") || {}).key;
+  check("ON vs v47: the same events but the Created handler (added at the end), only the RES-01 R3 / R4 and Created handlers changed",
+    same(ON.config.eventScript.map((e) => e.key).filter((k) => k !== createdKey && k !== reqQtyKey), LIVE.config.eventScript.map((e) => e.key)) &&
+    same(ON.config.eventScript.slice(-2).map((e) => e.key), [createdKey, reqQtyKey]) &&
+    same(changed, ["iaV2_onClick_completed", "iaV2_onClick_completed_post", "mounted", "onChange_assembledItem", "onChange_componentQty", "onChange_requiredQty",
+      "onClick_saveAsCompleted", "onClick_saveAsCompletedPost", "onClick_saveAsCreated", "onClick_saveAsDraft", "onClick_select_stock", "onFormChange",
+      "sc_main"]), changed);
   check("ON vs v47: the form config identical apart from the events", JSON.stringify(canon(Object.assign({}, ON.config, { eventScript: [] }))) ===
     JSON.stringify(canon(Object.assign({}, LIVE.config, { eventScript: [] }))));
   const expandTable = H.findModel(ON.list, "sc_expand_table");
@@ -491,5 +588,20 @@ for (const e of added.concat(PATCHED.map((k) => H.byKey(ON, k)))) {
   const f = path.join(mirrorDir, (e.name.indexOf("sc_") === 0 ? "" : "iaForm_") + e.name + ".js");
   // a rule event's mirror is its js action
   check("ON: mirror " + path.basename(f) + " = the embedded script", fs.existsSync(f) && read(f) === (e.type === "rule" ? ruleJs(ON, e.key) : e.func));
+}
+// ON vs the live dev v57 (base/ia_form_v57.json, published 2026-10-22 19:52): the same form but the Cancel button and its handler gone
+// (Cancel is the list's bulk action, user 10-22 evening) and mounted's Created branch without the button
+{
+  const LIVE = H.readJSON(path.join(H.IASC, "base/ia_form_v57.json"));
+  const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => Object.assign(o, { [k]: canon(x[k]) }), {}) : x);
+  const live = H.clone(LIVE);
+  const dropped = remove(live, "button_cancel");
+  check("ON vs v57: the widgets identical once v57's Cancel button is taken out", dropped && JSON.stringify(canon(ON.list)) === JSON.stringify(canon(live.list)));
+  check("ON vs v57: the form config identical apart from the events", JSON.stringify(canon(Object.assign({}, ON.config, { eventScript: [] }))) ===
+    JSON.stringify(canon(Object.assign({}, LIVE.config, { eventScript: [] }))));
+  const liveKeys = LIVE.config.eventScript.filter((e) => e.name !== "onClick_cancelIA").map((e) => e.key);
+  const diff = ON.config.eventScript.filter((e) => JSON.stringify(canon(H.byKey(LIVE, e.key))) !== JSON.stringify(canon(e))).map((e) => e.name);
+  check("ON vs v57: the same events less onClick_cancelIA, only mounted changed (its Created branch shows no Cancel)", same(ON.config.eventScript.map((e) => e.key), liveKeys) &&
+    same(diff, ["mounted"]) && !!H.byName(LIVE, "onClick_cancelIA"), diff);
 }
 H.done("test_sc_json");

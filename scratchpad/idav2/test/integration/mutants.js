@@ -30,6 +30,10 @@ const MUTANTS = [
   { id: "M10 SUBMIT stored-Draft lock always LOCK|1", wf: "IDA_V2_SUBMIT", from: 'step_name: "LOCK|" + num(entry.lockN)', to: 'step_name: "LOCK|1"', run: ["c"] },
   // COMMIT D3 -> the engine: the receipt's batch id (oursByKey) dropped
   { id: "M11 D3 sends no batch_id", wf: "IDA_V2_COMMIT", from: "if (s(a.batch_key)) o.batch_id = byKey[s(a.batch_key)];", to: "if (false) o.batch_id = byKey[s(a.batch_key)];", run: ["b"] },
+  // COMMIT D1 rows 6 / 10: no renumber (the live 10-21 race: both jobs FAILED IDA_BATCH_DUPLICATE)
+  { id: "M12 D1 renumber off", wf: "IDA_V2_COMMIT", from: "const IDA_BATCH_RENUMBER_TRIES = 5;", to: "const IDA_BATCH_RENUMBER_TRIES = 0;", run: ["i"] },
+  // COMMIT D1 row 4: a newer holder fails at once again (X FAILED although Y completed)
+  { id: "M13 D1 row 4 renumber off", wf: "IDA_V2_COMMIT", from: "if (d1CanRenumberNew(entry, taken, holders)) return", to: "if (false) return", run: ["i2"] },
 ];
 function present(mu) {
   const doc = JSON.parse(fs.readFileSync(path.join(OUT, mu.wf + ".json"), "utf8"));

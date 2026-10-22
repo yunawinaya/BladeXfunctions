@@ -1,0 +1,312 @@
+start-node start: Start Node
+code-node code_node_SCguard: Guard: job_id, the worker's row_version (39314 chars)
+if if_SCrej: IF the input is refused: answer, write nothing
+  ifBlock ifBlock_TSCrej: true
+    code-node code_node_SCrejres: Result (rej) (30279 chars)
+    return-node return_node_SCrej: Return (rej)
+  ifBlock ifBlock_FSCrej: false
+sql-node sql_node_SCjob: Facts: the job (its plan, holds), its SO's flag and lock, the steps done (1429 chars)
+code-node code_node_SCgate: Gate: this worker's claim, the lock -> the phase (A / B / C) (39333 chars)
+if if_SCgateEnd: IF not this claim (STOP: nothing written) or the job needs review
+  ifBlock ifBlock_TSCgateEnd: true
+    condition-or-node cor_SCgatejob: Job outcome to write?
+      condition-or-node-item cori_YSCgatejob: YES
+        update-node update_node_SCgatejob: Job FAILED / REQUIRES_REVIEW []
+      condition-or-node-item cori_NSCgatejob: NO
+    condition-or-node cor_SCgateunlock: SO to unlock (FAILED before any write)?
+      condition-or-node-item cori_YSCgateunlock: YES
+        update-node update_node_SCgateunlock: Sales Order is_processing = 0 []
+      condition-or-node-item cori_NSCgateunlock: NO
+    condition-or-node cor_SCgatecancel: Holds to cancel?
+      condition-or-node-item cori_YSCgatecancel: YES
+        loop loop_SCgatecancel: Loop the cascade's held GD edits
+          workflow-node wf_SCgatecancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+          if if_SCgatecancelling: IF the hold ended (CANCELLING)
+            ifBlock ifBlock_TSCgatecancelling: true
+              workflow-node wf_SCgateunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+            ifBlock ifBlock_FSCgatecancelling: false
+      condition-or-node-item cori_NSCgatecancel: NO
+    code-node code_node_SCgateres: Result (gate) (30278 chars)
+    return-node return_node_SCgate: Return (gate)
+  ifBlock ifBlock_FSCgateEnd: false
+if if_SCphaseA: IF phase A: S0 revalidate, S1 header / new SO, S0N number
+  ifBlock ifBlock_TSCphaseA: true
+    sql-node sql_node_SCaparts: The plan: H|000, A|000 (a new SO: its L parts too) (385 chars)
+    get-node get_node_SCaso: The Sales Order as stored now []
+    sql-node sql_node_SCholds: The cascade's held GD edits now (221 chars)
+    sql-node sql_node_SCfind: A new SO this job already inserted (its temporary number) (1047 chars)
+    sql-node sql_node_SCablanks: The header's text columns that hold '' now (the get-node leaves them out) (5775 chars)
+    code-node code_node_SCa: S0 revalidate, S1 header / the new SO, the S0N decision (39534 chars)
+    if if_SCastop: IF it stops here (FAILED / REQUIRES_REVIEW)
+      ifBlock ifBlock_TSCastop: true
+        condition-or-node cor_SCaSjob: Job outcome to write?
+          condition-or-node-item cori_YSCaSjob: YES
+            update-node update_node_SCaSjob: Job FAILED / REQUIRES_REVIEW []
+          condition-or-node-item cori_NSCaSjob: NO
+        condition-or-node cor_SCaSunlock: SO to unlock (FAILED before any write)?
+          condition-or-node-item cori_YSCaSunlock: YES
+            update-node update_node_SCaSunlock: Sales Order is_processing = 0 []
+          condition-or-node-item cori_NSCaSunlock: NO
+        condition-or-node cor_SCaScancel: Holds to cancel?
+          condition-or-node-item cori_YSCaScancel: YES
+            loop loop_SCaScancel: Loop the cascade's held GD edits
+              workflow-node wf_SCaScancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+              if if_SCaScancelling: IF the hold ended (CANCELLING)
+                ifBlock ifBlock_TSCaScancelling: true
+                  workflow-node wf_SCaSunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+                ifBlock ifBlock_FSCaScancelling: false
+          condition-or-node-item cori_NSCaScancel: NO
+        code-node code_node_SCaSres: Result (aS) (30275 chars)
+        return-node return_node_SCaS: Return (aS)
+      ifBlock ifBlock_FSCastop: false
+    condition-or-node cor_SCasteps: S0 DONE to record?
+      condition-or-node-item cori_YSCasteps: YES
+        add-node add_node_SCasteps: S0 DONE (unique job / step) []
+      condition-or-node-item cori_NSCasteps: NO
+    update-node update_node_SCajob: Job COMMITTING_SO []
+    condition-or-node cor_SCheader: Header cells to write (an edit)?
+      condition-or-node-item cori_YSCheader: YES
+        update-node update_node_SCheader: S1: the Sales Order header, the whole classic row (owned and number columns left out) []
+      condition-or-node-item cori_NSCheader: NO
+    condition-or-node cor_SCs1: S1 DONE (an edit, after its write)?
+      condition-or-node-item cori_YSCs1: YES
+        add-node add_node_SCs1: S1 DONE (unique job / step) []
+      condition-or-node-item cori_NSCs1: NO
+    condition-or-node cor_SCinsert: A new SO to insert?
+      condition-or-node-item cori_YSCinsert: YES
+        add-node add_node_SCinsert: S1: the new Sales Order, the whole document (classic add_node_ji9E0C1S's columns), temporary number []
+      condition-or-node-item cori_NSCinsert: NO
+    sql-node sql_node_SCfind2: Read-back: the new SO by its temporary number, or the Draft inserted since this job's intent (and its lock row (1044 chars)
+    code-node code_node_SCa2: The new SO's lock and job; the S0N write (39315 chars)
+    condition-or-node cor_SClock: A new SO's lock row?
+      condition-or-node-item cori_YSClock: YES
+        add-node add_node_SClock: LOCK: SOS|<so> / LOCK|1 (this job) []
+      condition-or-node-item cori_NSClock: NO
+    condition-or-node cor_SCcorr: The job to name the new SO?
+      condition-or-node-item cori_YSCcorr: YES
+        update-node update_node_SCcorr: Job: correlation SO|<so> []
+      condition-or-node-item cori_NSCcorr: NO
+    condition-or-node cor_SCa2steps: S1 DONE (a new SO)?
+      condition-or-node-item cori_YSCa2steps: YES
+        add-node add_node_SCa2steps: S1 DONE (unique job / step) []
+      condition-or-node-item cori_NSCa2steps: NO
+    condition-or-node cor_SCnumber: A number to issue?
+      condition-or-node-item cori_YSCnumber: YES
+        update-node update_node_SCnumber: S0N: so_no 'issued' / 'draft' + its rule (the platform issues the number), or the user's number []
+      condition-or-node-item cori_NSCnumber: NO
+    sql-node sql_node_SCnum: Read-back: the number (220 chars)
+    code-node code_node_SCa3: S0N check: a new number reads back -> DONE (39412 chars)
+    if if_SCa3stop: IF it stops here (FAILED / REQUIRES_REVIEW)
+      ifBlock ifBlock_TSCa3stop: true
+        condition-or-node cor_SCa3Sjob: Job outcome to write?
+          condition-or-node-item cori_YSCa3Sjob: YES
+            update-node update_node_SCa3Sjob: Job FAILED / REQUIRES_REVIEW []
+          condition-or-node-item cori_NSCa3Sjob: NO
+        condition-or-node cor_SCa3Sunlock: SO to unlock (FAILED before any write)?
+          condition-or-node-item cori_YSCa3Sunlock: YES
+            update-node update_node_SCa3Sunlock: Sales Order is_processing = 0 []
+          condition-or-node-item cori_NSCa3Sunlock: NO
+        condition-or-node cor_SCa3Scancel: Holds to cancel?
+          condition-or-node-item cori_YSCa3Scancel: YES
+            loop loop_SCa3Scancel: Loop the cascade's held GD edits
+              workflow-node wf_SCa3Scancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+              if if_SCa3Scancelling: IF the hold ended (CANCELLING)
+                ifBlock ifBlock_TSCa3Scancelling: true
+                  workflow-node wf_SCa3Sunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+                ifBlock ifBlock_FSCa3Scancelling: false
+          condition-or-node-item cori_NSCa3Scancel: NO
+        code-node code_node_SCa3Sres: Result (a3S) (30276 chars)
+        return-node return_node_SCa3S: Return (a3S)
+      ifBlock ifBlock_FSCa3stop: false
+    condition-or-node cor_SCa3steps: S0N DONE?
+      condition-or-node-item cori_YSCa3steps: YES
+        add-node add_node_SCa3steps: S0N DONE (unique job / step) []
+      condition-or-node-item cori_NSCa3steps: NO
+    update-node update_node_SCa3job: Job progress []
+    code-node code_node_SCares: Result (a) (30276 chars)
+    return-node return_node_SCa: Return (a)
+  ifBlock ifBlock_FSCphaseA: false
+if if_SCphaseB: IF phase B: S2 lines (one plan part)
+  ifBlock ifBlock_TSCphaseB: true
+    sql-node sql_node_SCbparts: The plan: H|000 and this call's line part (337 chars)
+    get-node get_node_SCbso: The Sales Order as stored now (its lines) []
+    sql-node sql_node_SCbblanks: The lines' text columns that hold '' now (the get-node leaves them out) (1219 chars)
+    code-node code_node_SCb: S2: updates (whole rows), removals, the parents to insert (39423 chars)
+    if if_SCbstop: IF it stops here (FAILED / REQUIRES_REVIEW)
+      ifBlock ifBlock_TSCbstop: true
+        condition-or-node cor_SCbSjob: Job outcome to write?
+          condition-or-node-item cori_YSCbSjob: YES
+            update-node update_node_SCbSjob: Job FAILED / REQUIRES_REVIEW []
+          condition-or-node-item cori_NSCbSjob: NO
+        condition-or-node cor_SCbSunlock: SO to unlock (FAILED before any write)?
+          condition-or-node-item cori_YSCbSunlock: YES
+            update-node update_node_SCbSunlock: Sales Order is_processing = 0 []
+          condition-or-node-item cori_NSCbSunlock: NO
+        condition-or-node cor_SCbScancel: Holds to cancel?
+          condition-or-node-item cori_YSCbScancel: YES
+            loop loop_SCbScancel: Loop the cascade's held GD edits
+              workflow-node wf_SCbScancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+              if if_SCbScancelling: IF the hold ended (CANCELLING)
+                ifBlock ifBlock_TSCbScancelling: true
+                  workflow-node wf_SCbSunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+                ifBlock ifBlock_FSCbScancelling: false
+          condition-or-node-item cori_NSCbScancel: NO
+        code-node code_node_SCbSres: Result (bS) (30275 chars)
+        return-node return_node_SCbS: Return (bS)
+      ifBlock ifBlock_FSCbstop: false
+    condition-or-node cor_SCupd: Lines to update?
+      condition-or-node-item cori_YSCupd: YES
+        update-node update_node_SCupd: S2: lines, whole rows (<= 250 per call; owned columns left out) []
+      condition-or-node-item cori_NSCupd: NO
+    condition-or-node cor_SCdel: Lines to remove?
+      condition-or-node-item cori_YSCdel: YES
+        update-node update_node_SCdel: S2: removed lines is_deleted = 1 (as the classic save) []
+      condition-or-node-item cori_NSCdel: NO
+    condition-or-node cor_SCparents: Lines to insert?
+      condition-or-node-item cori_YSCparents: YES
+        add-node add_node_SCparents: S2: new lines []
+      condition-or-node-item cori_NSCparents: NO
+    sql-node sql_node_SCbnew: Read-back: this SO's lines the plan did not know (this job's inserts) (348 chars)
+    code-node code_node_SCb2: S2: the bundle children to insert, under their parents' ids (39312 chars)
+    condition-or-node cor_SCchildren: Bundle children to insert?
+      condition-or-node-item cori_YSCchildren: YES
+        add-node add_node_SCchildren: S2: new bundle children (parent_id = the parent's id) []
+      condition-or-node-item cori_NSCchildren: NO
+    sql-node sql_node_SCbnew2: Read-back: this job's inserts (348 chars)
+    code-node code_node_SCb3: S2 check: every insert reads back -> this part DONE (39418 chars)
+    if if_SCb3stop: IF it stops here (FAILED / REQUIRES_REVIEW)
+      ifBlock ifBlock_TSCb3stop: true
+        condition-or-node cor_SCb3Sjob: Job outcome to write?
+          condition-or-node-item cori_YSCb3Sjob: YES
+            update-node update_node_SCb3Sjob: Job FAILED / REQUIRES_REVIEW []
+          condition-or-node-item cori_NSCb3Sjob: NO
+        condition-or-node cor_SCb3Sunlock: SO to unlock (FAILED before any write)?
+          condition-or-node-item cori_YSCb3Sunlock: YES
+            update-node update_node_SCb3Sunlock: Sales Order is_processing = 0 []
+          condition-or-node-item cori_NSCb3Sunlock: NO
+        condition-or-node cor_SCb3Scancel: Holds to cancel?
+          condition-or-node-item cori_YSCb3Scancel: YES
+            loop loop_SCb3Scancel: Loop the cascade's held GD edits
+              workflow-node wf_SCb3Scancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+              if if_SCb3Scancelling: IF the hold ended (CANCELLING)
+                ifBlock ifBlock_TSCb3Scancelling: true
+                  workflow-node wf_SCb3Sunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+                ifBlock ifBlock_FSCb3Scancelling: false
+          condition-or-node-item cori_NSCb3Scancel: NO
+        code-node code_node_SCb3Sres: Result (b3S) (30276 chars)
+        return-node return_node_SCb3S: Return (b3S)
+      ifBlock ifBlock_FSCb3stop: false
+    add-node add_node_SCb3steps: S2|<part> DONE (unique job / step) []
+    update-node update_node_SCb3job: Job progress []
+    code-node code_node_SCbres: Result (b) (30276 chars)
+    return-node return_node_SCb: Return (b)
+  ifBlock ifBlock_FSCphaseB: false
+if if_SCphaseC: IF phase C: S3 release, S4 unlock, S5 after-steps
+  ifBlock ifBlock_TSCphaseC: true
+    sql-node sql_node_SCcparts: The plan: A|000 (the after-steps' inputs) (294 chars)
+    get-node get_node_SCcso: The Sales Order as saved (classic code_node_9wKKlXUI) []
+    code-node code_node_SCc: S3 / S4 / S5: what is left, classic's after-steps' inputs (39403 chars)
+    set-cache-node set_cache_SCrel0: Release results: none yet
+    condition-or-node cor_SCrelease: Holds to release (S3)?
+      condition-or-node-item cori_YSCrelease: YES
+        loop loop_SCrelease: Loop the cascade's held GD edits
+          get-cache-node get_cache_SCrel: Release results so far
+          workflow-node wf_SCrelease: GD Edit V2: release this held edit (GD_EDIT_SUBMIT RELEASE; GD_EDIT_WORKER commits it in its own run) -> GD_EDIT_SUBMIT
+          code-node code_node_SCrelcol: Collect the release answer (532 chars)
+          set-cache-node set_cache_SCrel: Release results
+      condition-or-node-item cori_NSCrelease: NO
+    get-cache-node get_cache_SCrelAll: Release results
+    code-node code_node_SCrel: S3 check: every hold released (39751 chars)
+    if if_SCrelstop: IF it stops here (FAILED / REQUIRES_REVIEW)
+      ifBlock ifBlock_TSCrelstop: true
+        condition-or-node cor_SCrelSjob: Job outcome to write?
+          condition-or-node-item cori_YSCrelSjob: YES
+            update-node update_node_SCrelSjob: Job FAILED / REQUIRES_REVIEW []
+          condition-or-node-item cori_NSCrelSjob: NO
+        condition-or-node cor_SCrelSunlock: SO to unlock (FAILED before any write)?
+          condition-or-node-item cori_YSCrelSunlock: YES
+            update-node update_node_SCrelSunlock: Sales Order is_processing = 0 []
+          condition-or-node-item cori_NSCrelSunlock: NO
+        condition-or-node cor_SCrelScancel: Holds to cancel?
+          condition-or-node-item cori_YSCrelScancel: YES
+            loop loop_SCrelScancel: Loop the cascade's held GD edits
+              workflow-node wf_SCrelScancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+              if if_SCrelScancelling: IF the hold ended (CANCELLING)
+                ifBlock ifBlock_TSCrelScancelling: true
+                  workflow-node wf_SCrelSunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+                ifBlock ifBlock_FSCrelScancelling: false
+          condition-or-node-item cori_NSCrelScancel: NO
+        code-node code_node_SCrelSres: Result (relS) (30277 chars)
+        return-node return_node_SCrelS: Return (relS)
+      ifBlock ifBlock_FSCrelstop: false
+    condition-or-node cor_SCs3: S3 DONE?
+      condition-or-node-item cori_YSCs3: YES
+        add-node add_node_SCs3: S3 DONE []
+      condition-or-node-item cori_NSCs3: NO
+    condition-or-node cor_SCs4: S4 unlock?
+      condition-or-node-item cori_YSCs4: YES
+        update-node update_node_SCs4: S4: Sales Order is_processing = 0 []
+        add-node add_node_SCs4: S4 DONE []
+      condition-or-node-item cori_NSCs4: NO
+    condition-or-node cor_SCs5r: S5 reorder (Issued)?
+      condition-or-node-item cori_YSCs5r: YES
+        workflow-node wf_SCreorder: REORDER_SET_REDIS SO_ISSUED (classic workflow_node_CIDWG583; the changed lines only, the same deltas) -> REORDER_SET_REDIS
+        add-node add_node_SCs5r: S5R DONE []
+      condition-or-node-item cori_NSCs5r: NO
+    condition-or-node cor_SCs5i: S5 item transaction dates?
+      condition-or-node-item cori_YSCs5i: YES
+        workflow-node wf_SCitemdate: UPDATE_ITEM_TRANSACTION_DATE (classic workflow_node_AwbvqXUw) -> UPDATE_ITEM_TRANSACTION_DATE
+        add-node add_node_SCs5i: S5I DONE []
+      condition-or-node-item cori_NSCs5i: NO
+    condition-or-node cor_SCs5q: S5 quotation Completed?
+      condition-or-node-item cori_YSCs5q: YES
+        update-node update_node_SCsqt: Quotation sqt_status Completed (classic update_node_eBw6Xx2h) []
+        add-node add_node_SCs5q: S5Q DONE []
+      condition-or-node-item cori_NSCs5q: NO
+    condition-or-node cor_SCs5p: S5 accounting auto-post (Issued)?
+      condition-or-node-item cori_YSCs5p: YES
+        get-node SC5_get_node_6NZZfFj5: Get Accounting Integration []
+        code-node SC5_code_node_eaWWjOhx: Check auto post SO (267 chars)
+        if SC5_if__zXmoKQP: IF auto post SO?
+          ifBlock SC5_if_block_uiAKR_rY: true
+            condition-or-node SC5_condition_or_a9vsi49k: Condition
+              condition-or-node-item SC5_condition_or_node_item_NLAezJzs: SQL
+                workflow-node SC5_workflow_node_udSmhQDp: SQL Post SO -> SQL_ACC_POST_SALES_ORDER
+              condition-or-node-item SC5_condition_or_item_vDMr8M2B: SQL V2
+                code-node SC5_code_node_tY1kGMvR: Return SO IDs (84 chars)
+                workflow-node SC5_workflow_node_tdThYDnW: SQL V2 Post SO -> ACC_PRODUCER
+              condition-or-node-item SC5_condition_or_item_hSbVNPgm: AC
+                code-node SC5_code_node_yVhRC5mu: Return SO IDs (84 chars)
+                workflow-node SC5_workflow_node_xtVWBYc8: AC Post SO -> AC_V2_POST_SALES_ORDER
+              condition-or-node-item SC5_condition_or_node_item_cZ064bbY: Other
+          ifBlock SC5_if_block_S8Sr6iFf: false
+        add-node add_node_SCs5p: S5P DONE []
+      condition-or-node-item cori_NSCs5p: NO
+    code-node code_node_SCdone: COMPLETED: classic's answer (so_id, so_no, si_id, si_no, pickingReversalNote, gdEditJobs, gdEditNotes) (39391 chars)
+    if if_SCdonestop: IF it stops here (FAILED / REQUIRES_REVIEW)
+      ifBlock ifBlock_TSCdonestop: true
+        condition-or-node cor_SCdoneSjob: Job outcome to write?
+          condition-or-node-item cori_YSCdoneSjob: YES
+            update-node update_node_SCdoneSjob: Job FAILED / REQUIRES_REVIEW []
+          condition-or-node-item cori_NSCdoneSjob: NO
+        condition-or-node cor_SCdoneSunlock: SO to unlock (FAILED before any write)?
+          condition-or-node-item cori_YSCdoneSunlock: YES
+            update-node update_node_SCdoneSunlock: Sales Order is_processing = 0 []
+          condition-or-node-item cori_NSCdoneSunlock: NO
+        condition-or-node cor_SCdoneScancel: Holds to cancel?
+          condition-or-node-item cori_YSCdoneScancel: YES
+            loop loop_SCdoneScancel: Loop the cascade's held GD edits
+              workflow-node wf_SCdoneScancel: GD Edit V2: cancel this held edit (GD_EDIT_SUBMIT CANCEL_HELD) -> GD_EDIT_SUBMIT
+              if if_SCdoneScancelling: IF the hold ended (CANCELLING)
+                ifBlock ifBlock_TSCdoneScancelling: true
+                  workflow-node wf_SCdoneSunhold: GD Edit V2: GD_EDIT_WORKER on it (CANCELLED, the delivery unlocked) -> GD_EDIT_WORKER
+                ifBlock ifBlock_FSCdoneScancelling: false
+          condition-or-node-item cori_NSCdoneScancel: NO
+        code-node code_node_SCdoneSres: Result (doneS) (30278 chars)
+        return-node return_node_SCdoneS: Return (doneS)
+      ifBlock ifBlock_FSCdonestop: false
+    update-node update_node_SCdone: Job COMPLETED []
+    code-node code_node_SCcres: Result (c) (30278 chars)
+    return-node return_node_SCc: Return (c)
+  ifBlock ifBlock_FSCphaseC: false
+end-node end: End Node

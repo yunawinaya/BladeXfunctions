@@ -1,0 +1,76 @@
+start-node start: Start Node
+code-node code_node_SSguard: Guard: operation + input; SUBMIT: classic SO_SAVE's checks to 405 (lifted), the request in parts - the only no (35308 chars)
+if if_SSchk: IF the input or a classic check answered (REJECT / 400 / 401 / 405): answer, write nothing
+  ifBlock ifBlock_TSSchk: true
+    code-node code_node_SSchkres: Result (chk) (22366 chars)
+    return-node return_node_SSchk: Return (chk)
+  ifBlock ifBlock_FSSchk: false
+sql-node sql_node_SSfacts: Facts: the SO, its lock, open SAVE_SO jobs, the same request, GD work on it, Draft GD / SI, live Picking Plans (6125 chars)
+code-node code_node_SSentry: Entry: STATUS / CONFIRM from the job; SUBMIT: BUSY, the same request, NOT_ELIGIBLE (Picking Plan), 404 (22370 chars)
+if if_SSconfirm: IF CONFIRM: the answer to the job's question
+  ifBlock ifBlock_TSSconfirm: true
+    code-node code_node_SSconf: Confirm: PROCEED -> the job QUEUED again with the answers; CANCEL -> CANCELLED, the SO unlocked (22343 chars)
+    condition-or-node cor_SSconfJob: Job row to write?
+      condition-or-node-item cori_YSSconfJob: YES
+        update-node update_node_SSconfJob: Job: QUEUED with the answers / CANCELLED []
+      condition-or-node-item cori_NSSconfJob: NO
+    condition-or-node cor_SSconfUnlock: SO to unlock?
+      condition-or-node-item cori_YSSconfUnlock: YES
+        update-node update_node_SSconfUnlock: Sales Order is_processing = 0 (nothing was written) []
+      condition-or-node-item cori_NSSconfUnlock: NO
+    code-node code_node_SSconfres: Result (conf) (22399 chars)
+    return-node return_node_SSconf: Return (conf)
+  ifBlock ifBlock_FSSconfirm: false
+if if_SSentryEnd: IF answered here (STATUS / BUSY / the same request / NOT_ELIGIBLE / 404 / STOP): answer, write nothing
+  ifBlock ifBlock_TSSentryEnd: true
+    code-node code_node_SSentres: Result (ent) (22400 chars)
+    return-node return_node_SSent: Return (ent)
+  ifBlock ifBlock_FSSentryEnd: false
+if if_SScl: IF classic would check the credit limit (Issue, need_cl required, so_status Issued)
+  ifBlock ifBlock_TSScl: true
+    workflow-node workflow_node_SScl: CREDIT_LIMIT_CHECK (header only: customer, total) -> CREDIT_LIMIT_CHECK
+  ifBlock ifBlock_FSScl: false
+code-node code_node_SScredit: Credit: block -> 402; override -> cl_result for the approval check (34941 chars)
+if if_SScreditEnd: IF the credit limit blocks (402): answer, write nothing
+  ifBlock ifBlock_TSScreditEnd: true
+    code-node code_node_SScredres: Result (cred) (22401 chars)
+    return-node return_node_SScred: Return (cred)
+  ifBlock ifBlock_FSScreditEnd: false
+if if_SSappr: IF Issue: CHECK_APPROVAL (header only)
+  ifBlock ifBlock_TSSappr: true
+    workflow-node workflow_node_SSappr: CHECK_APPROVAL (the header: its rules read cl_result, min / max results, so_no, sqt_id) -> CHECK_APPROVAL
+  ifBlock ifBlock_FSSappr: false
+code-node code_node_SSdecide: Decide: approval -> NOT_ELIGIBLE (classic); 403 override; 402 min / max price (22343 chars)
+if if_SSdecideEnd: IF answered (NOT_ELIGIBLE / 403 / 402): answer, write nothing
+  ifBlock ifBlock_TSSdecideEnd: true
+    code-node code_node_SSdecres: Result (dec) (22401 chars)
+    return-node return_node_SSdec: Return (dec)
+  ifBlock ifBlock_FSSdecideEnd: false
+code-node code_node_SSpost: Post: the lock (edit), the job (due in 120 s), the SO flag (edit) (22314 chars)
+condition-or-node cor_SSlock: Lock row to insert (edit)?
+  condition-or-node-item cori_YSSlock: YES
+    add-node add_node_SSlock: LOCK: gd_publish_step SOS|<so> / LOCK|<n> (unique tenant / job / step: a concurrent save fails its run) []
+  condition-or-node-item cori_NSSlock: NO
+add-node add_node_SSparts: The request in parts: gd_publish_step SOR|<nonce> / R|<nnn> (header, then lines) []
+add-node add_node_SSjob: Job insert: SAVE_SO QUEUED, due in 120 s []
+condition-or-node cor_SSso: SO to flag (edit)?
+  condition-or-node-item cori_YSSso: YES
+    update-node update_node_SSso: Sales Order is_processing = 1 (every writer honours it) []
+  condition-or-node-item cori_NSSso: NO
+sql-node sql_node_SSback: Read-back: the job, the SO flag, its latest lock, GD work that slipped in (2177 chars)
+code-node code_node_SSdue: Due: ours and no racer -> due now; a racer -> job CANCELLED, flag 0 (22385 chars)
+condition-or-node cor_SSundo: A racer: job to cancel?
+  condition-or-node-item cori_YSSundo: YES
+    update-node update_node_SSundo: Job CANCELLED (a delivery save started first) []
+  condition-or-node-item cori_NSSundo: NO
+condition-or-node cor_SSunlock: A racer: SO to unlock?
+  condition-or-node-item cori_YSSunlock: YES
+    update-node update_node_SSunlock: Sales Order is_processing = 0 []
+  condition-or-node-item cori_NSSunlock: NO
+condition-or-node cor_SSdue: Job to make due?
+  condition-or-node-item cori_YSSdue: YES
+    update-node update_node_SSdue: Job due now []
+  condition-or-node-item cori_NSSdue: NO
+code-node code_node_SSdoneres: Result (done) (22430 chars)
+return-node return_node_SSdone: Return (done)
+end-node end: End Node

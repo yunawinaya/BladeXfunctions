@@ -8,7 +8,9 @@ then the SPLIT / PARK hand-over (progress 75, attempt_count 0; PARK when either 
 Phase B (never unlocks): D3 RECEIPT (op 1 DONE, its stored OUT rows counted and summed in SQL, idaAllocate, batch_id = ours, op 2 =
 APPLY IDC|<job>|R, transient answers wait 10 s up to 30 min after D3's first one), D4 FINISH (AUTO numbers into the lines, Item dates,
 the header Completed / Unposted LAST), COMPLETED. Every step reads its part and the rows now, writes only what is still at its
-before-value, reads back and records a <STEP> DONE row. A phase-A failure: unlock -> our Batch rows soft-deleted -> the job row.
+before-value, reads back and records a <STEP> DONE row. A phase-A failure: unlock -> our Batch rows soft-deleted -> the job row. D1's
+renumber (a number another writer took is only one this job generated): our Batch rows -> the D1|I| intent retired -> the job due in 5 s
+(its colliding row the oldest) or 20-30 s.
 
 usage: python3 build_commit.py [--write]      (or through the controller's build_ida.py)
 """
@@ -50,10 +52,11 @@ CG, CE = "code_node_DCguard", "code_node_DCentry"
 BATCH_COLS = ["batch_number", "material_id", "initial_quantity", "transaction_no", "plant_id", "organization_id", "remark", "remark2", "remark3", "manufacturing_date", "expired_date"]
 SHARED = {"common": "code/shared/ida_common.js", "fp": "code/shared/fingerprint.js", "movekey": "code/shared/movekey.js", "price": "code/shared/price.js",
           "batchnum": "code/shared/batchnum.js", "bnadapter": "code/shared/batchnum_adapter.js"}
-CHK = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "batchDelSlices", "needBatchDel", "needOursRead", "result_code", "result_message", "job_status"]
-CHK_ARR = ("stepRows", "jobRows", "unlockRows", "batchDelSlices")
-EXIT = ["route", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "batchDelSlices", "needBatchDel", "result_code", "result_message", "job_status"]
-EXIT_ARR = ("jobRows", "unlockRows", "batchDelSlices")
+CHK = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "batchDelSlices", "needBatchDel", "intentDelSlices", "needIntentDel", "needOursRead",
+       "result_code", "result_message", "job_status"]
+CHK_ARR = ("stepRows", "jobRows", "unlockRows", "batchDelSlices", "intentDelSlices")
+EXIT = ["route", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "batchDelSlices", "needBatchDel", "intentDelSlices", "needIntentDel", "result_code", "result_message", "job_status"]
+EXIT_ARR = ("jobRows", "unlockRows", "batchDelSlices", "intentDelSlices")
 
 
 def ccode(name, shared=(), extra=(), subs=None):
@@ -104,7 +107,8 @@ def build():
     E = "[%s][0]" % N(CE, "data")
 
     def end_a_nodes(tag, src, ours=None):
-        """the phase-A exit: [ours read + the exit rows], the unlock, our Batch rows soft-deleted in slices of 250, the job row (IA ruling 5)"""
+        """the phase-A exit: [ours read + the exit rows], the unlock, our Batch rows soft-deleted in slices of 250, D1's renumber: the D1|I| intent
+        rows retired (renamed D1|X|<id> + soft-deleted), the job row (IA ruling 5)"""
         nodes, fin = [], src
         if ours:
             intent_node = "sql_node_DCintent"
@@ -121,6 +125,9 @@ def build():
         nodes += [gate(ids, "cor_DC%sunlock" % tag, "Item Disassembly lock to release?", fin, "needUnlock", [
                       unlock(ids, "update_node_DC%sunlock" % tag, "Item Disassembly back to Draft (its status before the completion; nothing was moved)", fin)]),
                   V.slice_loop(ids, "DC", tag + "bd", fin, "batchDelSlices", "This job's Batch rows soft-deleted (nothing was moved)", BATCH, ["is_deleted"], slice_js),
+                  gate(ids, "cor_DC%six" % tag, "D1 renumber: the D1|I| intent rows to retire?", fin, "needIntentDel", [
+                      V.slice_loop(ids, "DC", tag + "ix", fin, "intentDelSlices", "The D1|I| intent rows renamed D1|X|<id> and soft-deleted (the next pass numbers afresh)", V.STEP,
+                                   ["step_name", "is_deleted"], slice_js)]),
                   gate(ids, "cor_DC%sjob" % tag, "Job row to write?", fin, "needJobUpd", [
                       job_update(ids, "update_node_DC%sjob" % tag, "Job: wait / retry with backoff / FAILED / REQUIRES_REVIEW (lease released)", fin, "jobRows")])]
         return nodes, fin
@@ -142,7 +149,8 @@ def build():
     entry_fields = ["route", "phase", "dbNow", "jsAt", "jobId", "tenantId", "organizationId", "plantId", "idaId", "idaNo", "prevStatus", "idempotencyKey", "jobStatus", "rowVersion",
                     "attempts", "leaseUntil", "progress", "progressMessage", "unlockOk", "partPrefix", "batchMode", "needBatchRead", "movementsI", "movementsR", "lineFingerprint",
                     "d2DoneAt", "op1Wrote", "op2Wrote", "opWrote", "waitFrom", "hasIntent", "skipNote", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "batchDelSlices", "needBatchDel",
-                    "needOursRead", "stepRows", "needStep", "needD0", "needD1", "needD2", "needD3", "needD4", "result_code", "result_message", "job_status"]
+                    "intentDelSlices", "needIntentDel", "needOursRead", "stepRows", "needStep", "needD0", "needD1", "needD2", "needD3", "needD4", "result_code", "result_message",
+                    "job_status"]
     rej_body = RESULT_JS + V.raw(HERE, "code/commit/result.js") + "\nconst res = commitResult([%s][0], {}, { job_status: \"\", result_code: [%s][0], result_message: [%s][0] }, \"REJECTED_INPUT\");\nreturn res;" % (
         N(CG, "data"), N(CG, "data.result_code"), N(CG, "data.result_message"))
     D0 = "code_node_DCd0"
@@ -168,7 +176,7 @@ def build():
             ("cai_DCop2", "Op 2", [K.sql("sql_node_DCop2", "Op 2's engine rows (IDC|<job>|R): no clean failure once it wrote", S["op2"], CSQL.SH.OP_STATE_COLS)]),
         ]),
         code(CE, "Entry: what this run does (phase A: D0 D1 D2, SPLIT / PARK; phase B: D3 D4, COMPLETED), the job-sized lease claim", ccode("entry.js"), entry_fields,
-             arrays=("jobRows", "unlockRows", "batchDelSlices", "stepRows"), objects=("rowVersion", "attempts", "progress", "movementsI", "movementsR")),
+             arrays=("jobRows", "unlockRows", "batchDelSlices", "intentDelSlices", "stepRows"), objects=("rowVersion", "attempts", "progress", "movementsI", "movementsR")),
         K.if_(ids, "if_DCnowrite", "IF this run may not write: answer only", is_(CE, "route", "NO_WRITE"), cres("nw", CE, "NO_WRITE")),
         K.if_(ids, "if_DCentryend", "IF the manifest is unusable or the Item Disassembly lost its lock: FAILED (+ back to Draft, + our Batch rows removed) or REQUIRES_REVIEW",
               "%s || %s" % (is_(CE, "route", "FAIL"), is_(CE, "route", "REVIEW")), ef_nodes + cres("ef", ef_fin, "ENTRY_END")),
@@ -219,9 +227,12 @@ def build():
             code(D1A, "D1: the re-PLAN's answer (every R 200? the LABELS part to word a refusal?)", ccode("d1_ans.js"),
                  ["code", "result_code", "message", "allOk", "refusedKey", "refusedCode", "refusedMessage", "needLabels"]),
             gate(ids, "cor_DCd1lab", "A refusal: the LABELS part to read?", D1A, "needLabels", [part("sql_node_DCd1labels", "D1: the LABELS part (movement_key -> line, item, bin)", "LABELS")]),
-            code(D1, "D1 BATCH: re-PLAN 200 + every R 200 -> DONE; a refusal -> FAILED + back to Draft + our Batch rows soft-deleted", ccode("d1.js", ("movekey",)), CHK, arrays=CHK_ARR),
+            code(D1, "D1 BATCH: re-PLAN 200 + every R 200 -> DONE; a refusal -> FAILED + back to Draft + our Batch rows soft-deleted", ccode("d1.js", ("movekey",)),
+                 CHK + ["resetRows", "needReset"], arrays=CHK_ARR + ("resetRows",)),
             end_a("d1", D1, "IF the receipts would be refused (FAILED)"),
             V.step_done(ids, "DC", "d1", D1, "D1_BATCH"),
+            gate(ids, "cor_DCd1reset", "D1 DONE after renumber tries / retries: the attempt count back to 0?", D1, "needReset", [
+                job_update(ids, "update_node_DCd1reset", "Job: attempt_count 0 (D2's lock waits start fresh; the lease kept)", D1, "resetRows", ["id", "attempt_count"])]),
         ]),
         # ---------------------------------------------------------------- D2
         K.if_(ids, "if_DCd2", "IF D2 ISSUE is due (phase A ends here: SPLIT / PARK)", is_(CE, "needD2", "YES"), [

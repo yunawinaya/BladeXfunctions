@@ -1,9 +1,10 @@
 // IDA_V2_COMMIT - D1 decide (rows 3-8) against the organization's live Batch rows holding a planned number (BATCH_HOLDERS, compared as
 // utf8mb4_general_ci). No intent: every holder is foreign - a generated number held -> FAILED IDA_BATCH_DUPLICATE (GENERATE_BATCH's
-// refusal: no config advanced), a TYPED one -> the same with code_validate's wording (the LABELS part words it). With an intent: a config
-// it names gone -> FAILED IDA_BATCH_CONFIG; a holder that is not ours -> FAILED IDA_BATCH_DUPLICATE; a planned row with two of ours ->
-// FAILED IDA_BATCH_FAILED (each with ours soft-deleted). Else: the intent (when none, BEFORE any write), the configs forward only, and
-// the planned rows with insert true and no ours (add_node_F9KqZLfd's columns, slices of 250)
+// refusal: no config advanced; every holder newer than the job: the renumber exit), a TYPED one -> the same with code_validate's
+// wording (the LABELS part words it). With an intent: a config it names gone -> FAILED IDA_BATCH_CONFIG; a holder that is not ours ->
+// FAILED IDA_BATCH_DUPLICATE (only generated numbers taken: the renumber exit); a planned row with two of ours -> FAILED
+// IDA_BATCH_FAILED (each with ours soft-deleted). Else: the intent (when none, BEFORE any write), the configs forward only, and the
+// planned rows with insert true and no ours (add_node_F9KqZLfd's columns, slices of 250)
 const commitD1Decide = function commitD1Decide(entry, plan, partRows, intentRows, bncRows, holderRows) {
   const base = Object.assign({ route: "GO", intentRows: [], needIntent: "NO", bncRows: [], needBnc: "NO", insertSlices: [], insertCount: 0, adoptCount: 0, needEngR: "NO", needLabels: "NO",
     labelLine: "", labelItem: "", labelNumber: "", jobRows: [], needJobUpd: "NO", result_code: "", result_message: "", job_status: "COMMITTING_IDA" }, END_EMPTY);
@@ -29,7 +30,11 @@ const commitD1Decide = function commitD1Decide(entry, plan, partRows, intentRows
     const gen = holders.find((o) => autoKeys[idaBatchKey(o.batch_number)] !== undefined || !typedRows[idaBatchKey(o.batch_number)]);
     if (gen) {
       const n = autoKeys[idaBatchKey(gen.batch_number)] || heldNumber(part.rows, numbers, gen).number;
-      return Object.assign(base, failNoWrite(entry, "IDA_BATCH_DUPLICATE", IDA_TEXT.batchDuplicate(n), "generated batch number " + n + " is held by " + where(gen) + ": nothing was moved", []));
+      const why = "generated batch number " + n + " is held by " + where(gen) + ": nothing was moved";
+      // a holder newer than this job is a concurrent writer: wait and number again; an older one is a configuration behind (F5)
+      const taken = d1Taken(part.rows, numbers, holders);
+      if (d1CanRenumberNew(entry, taken, holders)) return Object.assign(base, d1Renumber(entry, taken, why, [], [], d1Wait(holders, [], holders)));
+      return Object.assign(base, failNoWrite(entry, "IDA_BATCH_DUPLICATE", IDA_TEXT.batchDuplicate(n), why, []));
     }
     const typed = holders.find((o) => typedRows[idaBatchKey(o.batch_number)]);
     if (typed) {
@@ -48,7 +53,10 @@ const commitD1Decide = function commitD1Decide(entry, plan, partRows, intentRows
     const foreign = holders.filter((o) => !mine[s(o.id)]);
     if (foreign.length) {
       const n = heldNumber(part.rows, numbers, foreign[0]).number;
-      return Object.assign(base, failNoWrite(entry, "IDA_BATCH_DUPLICATE", IDA_TEXT.batchDuplicate(n), "batch number " + n + " is held by " + where(foreign[0]) + ", not this job's: nothing was moved", om.all));
+      const why = "batch number " + n + " is held by " + where(foreign[0]) + ", not this job's: nothing was moved";
+      const taken = d1Taken(part.rows, numbers, foreign);
+      if (d1CanRenumber(entry, taken, intentRows)) return Object.assign(base, d1Renumber(entry, taken, why, om.all, intentRows, d1Wait(holders, om.all, foreign)));
+      return Object.assign(base, failNoWrite(entry, "IDA_BATCH_DUPLICATE", IDA_TEXT.batchDuplicate(n), why, om.all));
     }
     if (om.extra.length) {
       return Object.assign(base, failNoWrite(entry, "IDA_BATCH_FAILED", IDA_TEXT.batchFailed("inserted twice"), om.extra.length + " Batch row(s) of this job beyond their planned rows (" + om.extra.slice(0, 5).join(", ")

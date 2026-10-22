@@ -136,6 +136,31 @@ const queued = (c, o) => {
     && w.batchDeletes.length === 3 && w.violations.length === 0, "D2 400 inside the tick: COMMIT wrote FAILED + Draft + our Batch rows removed; the worker wrote nothing more", { out: r.out, job: w.job });
   console.log("ok   e2e: a refused issue -> FAILED + Draft + Batch rows removed in one tick");
 }
+{
+  // D1's renumber (IDA_BATCH_RETRY): the worker needs no new code - the COMMITTING_IDA job waits out its 5-25 s like a retry backoff, then is resumed
+  const c = X.makeCase({ lines: MIX });
+  const w = queued(c);
+  w.batchInsertHook = (x) => {
+    if (!x.raced) {
+      x.raced = true;
+      x.batches.push({ id: x.id(), batch_number: "batch-00631", material_id: X.itemId(93), plant_id: X.PLANT, organization_id: ORG, transaction_no: "IDA-2610-0099", is_deleted: 0, initial_quantity: "1.00000000" });
+    }
+    return true;
+  };
+  let r = tick(w);
+  const due = parse(w.job.next_attempt_at);
+  ok(!r.err && w.commitRuns === 1 && w.job.job_status === "COMMITTING_IDA" && w.job.error_code === "IDA_BATCH_RETRY" && w.job.lease_owner === null && w.job.attempt_count === 1 && due - w.now >= 20000
+    && due - w.now <= 31000 && r.out.worker_route === "WORKED", "renumber inside the tick: COMMIT A ends COMMITTING_IDA IDA_BATCH_RETRY, due in 20-30 s (the other row is older: the long wait); the worker writes nothing more", { out: r.out, job: w.job });
+  w.now = due - 1000;
+  r = tick(w);
+  ok(!r.err && r.out.worker_route === "IDLE" && w.commitRuns === 1, "renumber: not due yet -> the next tick leaves it", r.out);
+  w.now = due + 1000;
+  r = tick(w);
+  ok(!r.err && w.commitRuns === 3 && w.prepares === 1 && w.job.job_status === "COMPLETED" && w.ida.item_disassembly_status === "Completed" && w.job.error_code === null
+    && J(w.lines.map((l) => l.batch_number)) === J(["-", "LOT-7", "LOT-7", "Batch-00634", "-", "Batch-00635", "Batch-00636"]) && w.engine.applied["IDC|" + JOB + "|I"] === 1,
+  "renumber: once due the worker resumes it (COMMIT A numbers afresh from 634, SPLIT, COMMIT B) -> COMPLETED", { out: r.out, job: w.job, lines: w.lines.map((l) => l.batch_number) });
+  console.log("ok   e2e: a D1 renumber inside the tick -> waits 5-25 s (the next tick skips it) -> resumed -> COMPLETED with fresh numbers");
+}
 // the chain budget (controller ruling 10-21): above 2,000 moves the tick ends right after PREPARE; COMMIT A and B take the next two ticks
 const mb = (b) => (b / 1048576).toFixed(1);
 for (const n of [2000, 4999]) {

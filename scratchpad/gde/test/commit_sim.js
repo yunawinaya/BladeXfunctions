@@ -266,7 +266,8 @@ function dbOf(w) {
 }
 let runNo = 0;
 function run(w, name, label) {
-  const e = new Engine({ dir: R + "Goods Delivery/EditV2", db: dbOf(w), mocks: { sql: mocks(w), read: {} } });
+  // GDE_DIR: another build of the four workflows (a before / after comparison)
+  const e = new Engine({ dir: process.env.GDE_DIR || R + "Goods Delivery/EditV2", db: dbOf(w), mocks: { sql: mocks(w), read: {} } });
   e.uuidN = ++runNo * 2 ** 48;
   const run0 = e.run.bind(e);
   e.run = (n, p) => {
@@ -285,6 +286,12 @@ function run(w, name, label) {
   if (process.env.SIZES && ctx) {
     const top = Object.entries(ctx.out).map(([k, v]) => [k, JSON.stringify(v === undefined ? null : v).length]).sort((a, b) => b[1] - a[1]).slice(0, 8);
     console.log("      biggest outputs: " + top.map(([k, n]) => k + " " + (n / 1e6).toFixed(2)).join(", "));
+  }
+  // LANES=1: which update-nodes of the six write passes ran (a lane's own node, or the loop's)
+  if (process.env.LANES) {
+    const by = {};
+    for (const t of e.trace) { const m = t.match(/ update_node_GX(e2pa|e2pb|e3|e4|e5s|e7)(l\d+|write)$/); if (m) by[m[1] + ":" + m[2]] = (by[m[1] + ":" + m[2]] || 0) + 1; }
+    if (Object.keys(by).length) console.log("      writes: " + Object.entries(by).map(([k, v]) => k + (v > 1 ? "x" + v : "")).join(" "));
   }
   const done = w.steps.filter((r) => r.step_status === "DONE").map((r) => r.step_name).sort();
   console.log(`  ${label}: ${err ? "CRASH " + err : JSON.stringify(out).slice(0, 200)}\n      job ${w.job.job_status} ${w.job.error_code || ""} lease ${w.job.lease_owner || "-"} | done ${done.join(",")} | ${(e.sizes[name] / 1e6).toFixed(2)} MB node data`);
@@ -367,7 +374,7 @@ const scenarios = {
     w.crash = null;
     commit(w, "resume while the crashed run's lease lives");
     assert.ok(!w.steps.some((r) => r.step_name === "E2_LINES"), "nothing done under a live lease");
-    w.now += 11 * 60000;
+    w.now += 31 * 60000;   // past the run's 30-minute lease (lease_until above)
     commit(w, "resume after the lease expired"); next(w);
     assert.ok(w.steps.some((r) => r.step_name === "E2_LINES" && r.step_status === "DONE") && !w.steps.some((r) => r.step_name === "E3_RESERVATIONS"), "the resumed phase B saved the lines only");
     for (const p of ["B2", "C"]) if (w.job.job_status === "COMMITTING_GD") { commit(w, "phase " + p); next(w); }
@@ -387,7 +394,7 @@ const scenarios = {
     assert.notStrictEqual(Object.values(w.picks)[0].update_time, v0, "the Picking was written");
     assert.ok(!w.steps.some((r) => r.step_name === "E5_PICKING"), "E5 not done");
     w.crash = null;
-    w.now += 11 * 60000;
+    w.now += 31 * 60000;   // past the run's 30-minute lease (lease_until above)
     commit(w, "resume: the Picking's version moved, the signature says the write landed");
     ok(w);
   },

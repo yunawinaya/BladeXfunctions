@@ -18,8 +18,8 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, intentRows, p
     prevStatus: "", idempotencyKey: "", jobStatus: job ? s(job.job_status) : "", rowVersion: job ? Number(job.row_version) || 0 : 0, attempts: job ? Number(job.attempt_count) || 0 : 0,
     leaseUntil: job ? s(job.lease_until) : "", progress: 0, progressMessage: "", unlockOk: "NO", partPrefix: "", batchMode: "", needBatchRead: "NO", movementsI: 0, movementsR: 0,
     lineFingerprint: "", d2DoneAt: "", op1Wrote: "NO", op2Wrote: "NO", opWrote: "NO", waitFrom: "", hasIntent: "NO", skipNote: "", jobRows: [], needJobUpd: "NO", unlockRows: [], needUnlock: "NO",
-    batchDelSlices: [], needBatchDel: "NO", needOursRead: "NO", stepRows: [], needStep: "NO", needD0: "NO", needD1: "NO", needD2: "NO", needD3: "NO", needD4: "NO", result_code: "",
-    result_message: "", job_status: job ? s(job.job_status) : "",
+    batchDelSlices: [], needBatchDel: "NO", intentDelSlices: [], needIntentDel: "NO", needOursRead: "NO", stepRows: [], needStep: "NO", needD0: "NO", needD1: "NO", needD2: "NO", needD3: "NO",
+    needD4: "NO", result_code: "", result_message: "", job_status: job ? s(job.job_status) : "",
   };
   const answer = (code, why) => Object.assign({}, base, { result_code: code, result_message: why });
   if (!job) return answer("IDA_INVALID_DATA", "job " + guard.jobId + " not found in tenant " + guard.tenantId);
