@@ -5,7 +5,7 @@ const code = fs.readFileSync(process.argv[2], "utf8");
 const line = (i, q) => ({ material_id: String(100000000000000000n + BigInt(i)), gd_qty: q });
 const values = (lines, extra) => Object.assign({ delivery_no_type: "2021056571405717508", delivery_no: "", plant_id: "1942795438353035266", table_gd: lines }, extra || {});
 async function run(s) {
-  const calls = { confirm: [], setData: [], error: [], trigger: [], submit: [] };
+  const calls = { confirm: [], setData: [], error: [], trigger: [], submit: [], params: [], alert: [], success: [] };
   const state = { values: s.values };
   const self = {
     models: { _data: {} }, isAdd: s.isAdd !== false, isCopy: false, parentGenerateForm: null,
@@ -13,16 +13,24 @@ async function run(s) {
     getValue: (k) => (k === "organization_id" ? "1901545950162329602" : state.values[k]),
     setData: async (o) => { calls.setData.push(Object.keys(o).includes("table_gd") ? o.table_gd.length : null); Object.assign(state.values, o); },
     $confirm: async (m) => { calls.confirm.push(m); if (!s.proceed) throw new Error("cancel"); },
-    $message: { error: (m) => calls.error.push(m), warning: () => {}, success: () => {} },
+    $alert: async (m) => { calls.alert.push(m); },
+    $message: { error: (m) => calls.error.push(m), warning: () => {}, success: (m) => calls.success.push(m) },
     triggerEvent: async (n) => { calls.trigger.push(n); },
     showLoading: () => {}, hideLoading: () => {}, hide: () => {}, getVarSystem: () => "", getVarGlobal: () => "",
-    runWorkflow: (id, p, ok) => { if (p && p.payload) { calls.submit.push(JSON.parse(p.payload).lines.length); ok({ data: { job_id: "J1", result_code: s.useClassic ? "GD_V2_USE_CLASSIC" : "" } }); } else ok({ data: {} }); },
+    runWorkflow: (id, p, ok) => {
+      if (!(p && p.payload)) return ok({ data: {} });
+      calls.submit.push(JSON.parse(p.payload).lines.length);
+      calls.params.push({ needCL: p.needCL, key: p.idempotency_key });
+      ok({ data: (s.answers && s.answers[calls.params.length - 1]) || { job_id: "J1", result_code: s.useClassic ? "GD_V2_USE_CLASSIC" : "" } });
+    },
   };
   const db = { collection: () => ({ filter: (f) => ({ get: async () => ({ data: f[0].children[0].value.map((id) => ({ id: id, stock_control: (s.nonStock || []).includes(id) ? 0 : 1, show_delivery: 1 })) }) }) }) };
   const quiet = console.log; console.log = () => {}; const qe = console.error; console.error = () => {};
   try { new Function("db", code).call(self, db); await new Promise((r) => setTimeout(r, 200)); } finally { console.log = quiet; console.error = qe; }
   return calls;
 }
+const QUEUED = { job_id: "J1", job_status: "QUEUED", created: "YES", result_code: "" };
+const OVERRIDE = { result_code: "GD_CREDIT_LIMIT_OVERRIDE", result_message: "Over the limit. Proceed?", job_id: "", created: "NO" };
 const L = (n, zeroAt = []) => Array.from({ length: n }, (_, i) => line(i, zeroAt.includes(i) ? 0 : 1));
 const cases = [
   ["2,004 lines, 5 at 0, Proceed -> rows removed, V2 with 1,999", { values: values(L(2004, [0, 1, 2, 3, 4])), proceed: true },
@@ -45,6 +53,17 @@ const cases = [
     (c) => c.submit[0] === 100 && c.trigger.length === 1 && !c.error.length],
   ["every line at 0 -> left to the frozen save (it asks)", { values: values(L(10, Array.from({ length: 10 }, (_, i) => i))), proceed: true },
     (c) => !c.confirm.length && c.trigger.length === 1],
+  // the credit limit at the click (10-23): GD_ASYNC_SUBMIT answers a Block or an Override before any job
+  ["credit: nothing in the way -> one submit asking (needCL required), queued", { values: values(L(10)), answers: [QUEUED] },
+    (c) => c.params.length === 1 && c.params[0].needCL === "required" && c.success.length === 1 && !c.alert.length && !c.confirm.length && !c.error.length],
+  ["credit: Block -> the message in an alert, nothing queued, no second submit", { values: values(L(10)), answers: [{ result_code: "GD_CREDIT_LIMIT_BLOCKED", result_message: "Credit limit exceeded. Limit 1,000.00", job_id: "", created: "NO" }] },
+    (c) => c.params.length === 1 && c.alert.length === 1 && c.alert[0] === "Credit limit exceeded. Limit 1,000.00" && !c.success.length && !c.confirm.length && !c.error.length],
+  ["credit: Override, Proceed -> asked once, resubmitted not required with the same key, queued", { values: values(L(10)), proceed: true, answers: [OVERRIDE, QUEUED] },
+    (c) => c.confirm.length === 1 && c.confirm[0] === "Over the limit. Proceed?" && c.params.length === 2 && c.params[0].needCL === "required" && c.params[1].needCL === "not required" && c.params[0].key === c.params[1].key && c.success.length === 1 && !c.error.length],
+  ["credit: Override, Cancel -> nothing queued, nothing else", { values: values(L(10)), proceed: false, answers: [OVERRIDE] },
+    (c) => c.confirm.length === 1 && c.params.length === 1 && !c.success.length && !c.error.length && !c.alert.length],
+  ["credit: Override again after Proceed (an older server) -> an error, no third submit", { values: values(L(10)), proceed: true, answers: [OVERRIDE, OVERRIDE] },
+    (c) => c.confirm.length === 1 && c.params.length === 2 && c.error.length === 1 && !c.success.length],
 ];
 (async () => {
   let fails = 0;

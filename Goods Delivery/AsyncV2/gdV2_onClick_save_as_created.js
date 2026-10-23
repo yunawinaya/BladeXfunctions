@@ -242,6 +242,8 @@ const gdV2SubmitOutcome = function gdV2SubmitOutcome(d) {
   const jobId = s(x.job_id);
   if (code === "IDEMPOTENCY_KEY_REUSED") return { action: "NEW_ATTEMPT", level: "", message: "" };
   if (code === "GD_V2_USE_CLASSIC") return { action: "FROZEN", level: "", message: s(x.result_message) };
+  if (code === "GD_CREDIT_LIMIT_BLOCKED") return { action: "CREDIT_BLOCK", level: "error", message: s(x.result_message) || "Credit limit exceeded" };
+  if (code === "GD_CREDIT_LIMIT_OVERRIDE") return { action: "CREDIT_OVERRIDE", level: "error", message: s(x.result_message) || "Credit limit warning" };
   if (code || !jobId) {
     let errs = [];
     try {
@@ -388,32 +390,45 @@ const closeDialog = () => {
     }
     let res = null;
     let outcome = null;
-    this.models["_data"] = { ...this.models["_data"], gd_v2_submitting: 1 };
-    this.showLoading("Submitting Goods Delivery...");
-    try {
-      // at most 3 attempts: an earlier save of the same content that ended without creating the delivery (or a key
-      // held by other content) is answered with the next attempt generation - a new key, a new job
-      for (let attempt = 0; attempt < 3 && !outcome; attempt++) {
-        const key = gdV2IdemKey(organizationId, keyNo, gen, payload);
-        const params = { organization_id: organizationId, plant_id: String(payload.header.plant_id || ""), idempotency_key: key, payload: JSON.stringify(payload) };
-        await this.setData({ gd_v2_idem_key: key, gd_v2_idem_gen: String(gen) });
-        console.log("GD V2 submit", { key: key, generation: gen, lines: payload.lines.length });
-        res = await gdV2Call(GD_V2_WF.SUBMIT, params);
-        if (!res.ok) {
-          // a failed instance (the losing twin of the unique insert, a dropped connection): the same submit once more,
-          // with the same key - the server returns the winner's job, or creates it now
-          console.log("GD V2: submit instance failed, repeating once with the same key", res.error);
+    // the credit limit at the click (GD_ASYNC_SUBMIT, full_cl_check = 1): a Block stops, an Override asks first (10-23)
+    let needCL = "required";
+    for (let pass = 0; pass < 2; pass++) {
+      res = null;
+      outcome = null;
+      this.models["_data"] = { ...this.models["_data"], gd_v2_submitting: 1 };
+      this.showLoading("Submitting Goods Delivery...");
+      try {
+        // at most 3 attempts: an earlier save of the same content that ended without creating the delivery (or a key
+        // held by other content) is answered with the next attempt generation - a new key, a new job
+        for (let attempt = 0; attempt < 3 && !outcome; attempt++) {
+          const key = gdV2IdemKey(organizationId, keyNo, gen, payload);
+          const params = { organization_id: organizationId, plant_id: String(payload.header.plant_id || ""), idempotency_key: key, payload: JSON.stringify(payload), needCL: needCL };
+          await this.setData({ gd_v2_idem_key: key, gd_v2_idem_gen: String(gen) });
+          console.log("GD V2 submit", { key: key, generation: gen, lines: payload.lines.length, needCL: needCL });
           res = await gdV2Call(GD_V2_WF.SUBMIT, params);
+          if (!res.ok) {
+            // a failed instance (the losing twin of the unique insert, a dropped connection): the same submit once more,
+            // with the same key - the server returns the winner's job, or creates it now
+            console.log("GD V2: submit instance failed, repeating once with the same key", res.error);
+            res = await gdV2Call(GD_V2_WF.SUBMIT, params);
+          }
+          if (!res.ok) break;
+          const o = gdV2SubmitOutcome(res.data);
+          console.log("GD V2 submit outcome", o.action, res.data);
+          if (o.action === "NEW_ATTEMPT") gen += 1;
+          else outcome = o;
         }
-        if (!res.ok) break;
-        const o = gdV2SubmitOutcome(res.data);
-        console.log("GD V2 submit outcome", o.action, res.data);
-        if (o.action === "NEW_ATTEMPT") gen += 1;
-        else outcome = o;
+      } finally {
+        this.models["_data"] = { ...this.models["_data"], gd_v2_submitting: 0 };
+        this.hideLoading();
       }
-    } finally {
-      this.models["_data"] = { ...this.models["_data"], gd_v2_submitting: 0 };
-      this.hideLoading();
+      if (!res || !res.ok || !outcome || outcome.action !== "CREDIT_OVERRIDE" || needCL !== "required") break;
+      try {
+        await this.$confirm(outcome.message, "", { confirmButtonText: "Proceed", cancelButtonText: "Cancel", type: "error", dangerouslyUseHTMLString: true });
+      } catch (e) {
+        return;
+      }
+      needCL = "not required";
     }
     if (!res || !res.ok) {
       this.$message.error("The save request did not complete (" + ((res && res.error) || "no answer") + "). Press Created again: the same delivery is never submitted twice.");
@@ -421,6 +436,10 @@ const closeDialog = () => {
     }
     if (!outcome) {
       this.$message.error("Not submitted: earlier saves of this delivery keep ending without creating it. Please contact support.");
+      return;
+    }
+    if (outcome.action === "CREDIT_BLOCK") {
+      await this.$alert(outcome.message, "", { confirmButtonText: "OK", type: "error", dangerouslyUseHTMLString: true });
       return;
     }
     if (outcome.action === "FROZEN") {

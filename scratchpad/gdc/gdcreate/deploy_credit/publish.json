@@ -1,0 +1,20 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_ASYNC_SUBMIT",
+   "dataId": "2105133540498116609",
+   "file": "Goods Delivery/AsyncV2/GD_ASYNC_SUBMIT.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_credit/GD_ASYNC_SUBMIT.live_base.json",
+   "smoke": { "request": {}, "expect": { "key": "result_code", "equals": "GD_INVALID_DATA" } }
+  },
+  {
+   "name": "GD form",
+   "kind": "form",
+   "dataId": "1902054888473481218",
+   "file": "scratchpad/gdc/gdcreate/deploy_credit/GD_form.v1486_credit.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_credit/GD_form.live_v1486.json"
+  }
+ ]
+}

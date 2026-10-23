@@ -62,6 +62,15 @@
       "bsonType": "string",
       "isExpand": false,
       "children": []
+    },
+    {
+      "key": "w8obr17t",
+      "name": "needCL",
+      "title": "needCL",
+      "description": "optional: required = check the credit limit now (the GD form's new save; picking_setup.full_cl_check = 1); not required = the user accepted the Override; empty (other callers) = PREPARE's background check only",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
     }
   ],
   "response_json": [
@@ -2195,6 +2204,599 @@
         },
         {
           "id": "ifBlock_FGSfit",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_GSclAsk",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// GD_ASYNC_SUBMIT - Credit check asked? Only the GD form asks (needCL \"required\", 10-23), and only for a new save\nconst asked = String([{{workflowparams:needCL}}][0] || \"\").trim() === \"required\";\nconst route = String([{{node:code_node_iJTFTwP3.data.route}}][0] || \"\").trim();\nreturn { ask: asked && route === \"CREATE\" ? \"YES\" : \"NO\" };"
+        },
+        "response_json": [
+          {
+            "key": "qqm8wpxb",
+            "name": "ask",
+            "title": "ask",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Credit check asked? The GD form's new save (needCL required)",
+        "isValidator": true,
+        "nodeName": "Credit check asked? The GD form's new save (needCL required)",
+        "name": "Credit check asked? The GD form's new save (needCL required)"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GSclAsk",
+      "type": "if",
+      "data": {
+        "title": "IF the GD form asks for the credit check on a new save",
+        "isValidator": true,
+        "nodeName": "IF the GD form asks for the credit check on a new save",
+        "name": "IF the GD form asks for the credit check on a new save",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798410000007,
+              "parentId": 1798410000008,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GSclAsk.data.ask}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGSclAsk",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_GSclSetup",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Credit check setup: picking_setup.full_cl_check of the organization (PREPARE's row: the first by id)",
+                "isValidator": true,
+                "nodeName": "Credit check setup: picking_setup.full_cl_check of the organization (PREPARE's row: the first by id)",
+                "name": "Credit check setup: picking_setup.full_cl_check of the organization (PREPARE's row: the first by id)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(IFNULL((SELECT p.full_cl_check FROM picking_setup p\n  WHERE p.tenant_id = '{{node:code_node_GSfitPlan.data.tenantSql}}'\n    AND p.organization_id = '{{node:code_node_GSfitPlan.data.orgSql}}'\n    AND p.is_deleted = 0\n  ORDER BY p.id LIMIT 1), 0) AS CHAR) AS full_cl_check"
+                },
+                "response_json": [
+                  {
+                    "key": "0ezntwsq",
+                    "name": "full_cl_check",
+                    "title": "full_cl_check",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_GSclPlan",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// GD_ASYNC_SUBMIT - Credit check plan: PREPARE's own rule (code_node_CLplan00) at the click - full_cl_check = 1, not No\n// Accounting, a customer; the total of the top-level lines (a bundle row carries its items' total)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst setupRows = [{{node:sql_node_GSclSetup.data}}][0];\nconst setup = (Array.isArray(setupRows) ? setupRows[0] : setupRows) || {};\nlet payload = {};\ntry {\n  payload = JSON.parse(s([{{node:code_node_EluyWNR5.data.payloadText}}][0]) || \"{}\") || {};\n} catch (e) {\n  payload = {};\n}\nconst header = payload.header || {};\nlet total = 0;\nfor (const line of Array.isArray(payload.lines) ? payload.lines : []) {\n  if (!line || s(line.stable_line_key).indexOf(\".\") !== -1) continue;\n  const oq = parseFloat(line.gd_order_quantity) || 0;\n  const gq = parseFloat(line.gd_qty) || 0;\n  if (oq > 0 && gq > 0) total += ((parseFloat(line.total_price) || 0) / oq) * gq;\n}\nconst customerId = s(Array.isArray(header.customer_name) ? header.customer_name[0] : header.customer_name);\nlet why = \"\";\nif (s(setup.full_cl_check) !== \"1\") why = \"full_cl_check is off\";\nelse if (s(header.acc_integration_type) === \"No Accounting\") why = \"No Accounting\";\nelse if (!customerId) why = \"no customer\";\nconsole.log(\"submit credit plan\", JSON.stringify({ need: !why, total: total, why: why }));\nreturn { needCL: why ? \"NO\" : \"YES\", customerId: customerId, total: Number(total.toFixed(8)), why: why };"
+                },
+                "response_json": [
+                  {
+                    "key": "wczbj3yj",
+                    "name": "needCL",
+                    "title": "needCL",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "sdso0qxv",
+                    "name": "customerId",
+                    "title": "customerId",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cbrqj76p",
+                    "name": "total",
+                    "title": "total",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "u7rtwbrj",
+                    "name": "why",
+                    "title": "why",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "Credit check plan: full_cl_check = 1, not No Accounting, a customer; the delivery total",
+                "isValidator": true,
+                "nodeName": "Credit check plan: full_cl_check = 1, not No Accounting, a customer; the delivery total",
+                "name": "Credit check plan: full_cl_check = 1, not No Accounting, a customer; the delivery total"
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_GSclNeed",
+              "type": "if",
+              "data": {
+                "title": "IF the credit limit is checked",
+                "isValidator": true,
+                "nodeName": "IF the credit limit is checked",
+                "name": "IF the credit limit is checked",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1798410000005,
+                      "parentId": 1798410000006,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_GSclPlan.data.needCL}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TGSclNeed",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "workflow_node_GScl",
+                      "type": "workflow-node",
+                      "data": {
+                        "workflow_id": "",
+                        "workflow_name": "",
+                        "input_params": {},
+                        "title": "CREDIT_LIMIT_CHECK (customer, the delivery total) - as PREPARE's workflow_node_CLchk000",
+                        "isValidator": true,
+                        "nodeName": "CREDIT_LIMIT_CHECK (customer, the delivery total) - as PREPARE's workflow_node_CLchk000",
+                        "name": "CREDIT_LIMIT_CHECK (customer, the delivery total) - as PREPARE's workflow_node_CLchk000",
+                        "workflow": {
+                          "source": "CREDIT_LIMIT_CHECK:Workflow:1990247316342333442",
+                          "rules": {
+                            "collectionId": "1990247316342333442",
+                            "list": [
+                              {
+                                "id": 1798410000001,
+                                "parentId": 1798410000002,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "remote": true,
+                        "remoteType": "innerdatasource",
+                        "body_params": {
+                          "list": [
+                            {
+                              "prop": "customer_id",
+                              "propLabel": "customer_id",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_GSclPlan.data.customerId}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "total",
+                              "propLabel": "total",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_GSclPlan.data.total}}",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "document_type",
+                              "propLabel": "document_type",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "Goods Delivery",
+                              "valueLabel": ""
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_GSclDec",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// GD_ASYNC_SUBMIT - Credit check decision: classic's 402 / 403 (result \"failed\": \"Block - \" blocks, else an Override the form\n// asks about); either one is answered before any job is made\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst cl = [{{node:workflow_node_GScl.data}}][0] || {};\nconst message = s(cl.message);\nconst failed = s(cl.result) === \"failed\";\nconst blocked = failed && message.indexOf(\"Block - \") !== -1;\nconst code = !failed ? \"\" : blocked ? \"GD_CREDIT_LIMIT_BLOCKED\" : \"GD_CREDIT_LIMIT_OVERRIDE\";\nconsole.log(\"submit credit decision\", JSON.stringify({ result: s(cl.result), code: code, message: message }));\nreturn {\n  route: code ? \"STOP\" : \"GO\",\n  result_code: code,\n  result_message: code ? message.replace(/^(Block|Override) - /, \"\") || (blocked ? \"Credit limit exceeded\" : \"Credit limit warning\") : \"\",\n  job_id: \"\",\n  job_status: \"\",\n  created: \"NO\",\n  idempotency_key: s([{{node:code_node_EluyWNR5.data.idempotencyKey}}][0]),\n  payload_hash: s([{{node:code_node_EluyWNR5.data.payloadHash}}][0]),\n  gd_id: \"\",\n  gd_no: \"\",\n  progress_message: \"\",\n  line_errors: \"[]\",\n  evidence: JSON.stringify({ v: 1, workflow: \"GD_ASYNC_SUBMIT\", path: code ? (blocked ? \"CREDIT_BLOCK\" : \"CREDIT_OVERRIDE\") : \"CREDIT_OK\", result: s(cl.result), total: [{{node:code_node_GSclPlan.data.total}}][0] }),\n};"
+                        },
+                        "response_json": [
+                          {
+                            "key": "romgcujc",
+                            "name": "route",
+                            "title": "route",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "9lapfiur",
+                            "name": "result_code",
+                            "title": "result_code",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "rc2z5z6y",
+                            "name": "result_message",
+                            "title": "result_message",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "flujm3q1",
+                            "name": "job_id",
+                            "title": "job_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "783bmh94",
+                            "name": "job_status",
+                            "title": "job_status",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "psbpku3k",
+                            "name": "created",
+                            "title": "created",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "w3e9oxkx",
+                            "name": "idempotency_key",
+                            "title": "idempotency_key",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "2cc04ch6",
+                            "name": "payload_hash",
+                            "title": "payload_hash",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "dq0vcspg",
+                            "name": "gd_id",
+                            "title": "gd_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "2qgtxheu",
+                            "name": "gd_no",
+                            "title": "gd_no",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "klrwofle",
+                            "name": "progress_message",
+                            "title": "progress_message",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "nqhlfyxb",
+                            "name": "line_errors",
+                            "title": "line_errors",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "dk7mn66d",
+                            "name": "evidence",
+                            "title": "evidence",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ],
+                        "title": "Credit check decision: Block -> GD_CREDIT_LIMIT_BLOCKED, Override -> GD_CREDIT_LIMIT_OVERRIDE (the form asks)",
+                        "isValidator": true,
+                        "nodeName": "Credit check decision: Block -> GD_CREDIT_LIMIT_BLOCKED, Override -> GD_CREDIT_LIMIT_OVERRIDE (the form asks)",
+                        "name": "Credit check decision: Block -> GD_CREDIT_LIMIT_BLOCKED, Override -> GD_CREDIT_LIMIT_OVERRIDE (the form asks)"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "if_GSclStop",
+                      "type": "if",
+                      "data": {
+                        "title": "IF the credit limit blocks or needs the user's override: answer, write nothing",
+                        "isValidator": true,
+                        "nodeName": "IF the credit limit blocks or needs the user's override: answer, write nothing",
+                        "name": "IF the credit limit blocks or needs the user's override: answer, write nothing",
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 1798410000003,
+                              "parentId": 1798410000004,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_GSclDec.data.route}}' == 'STOP'"
+                        }
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_TGSclStop",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "return_node_GScl",
+                              "type": "return-node",
+                              "data": {
+                                "return_data": {},
+                                "status_code": 200,
+                                "title": "Return (credit limit: blocked / override to confirm, nothing written)",
+                                "isValidator": true,
+                                "nodeName": "Return (credit limit: blocked / override to confirm, nothing written)",
+                                "name": "Return (credit limit: blocked / override to confirm, nothing written)",
+                                "response_value": {
+                                  "list": [
+                                    {
+                                      "prop": "result_code",
+                                      "propLabel": "result_code",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.result_code}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "result_message",
+                                      "propLabel": "result_message",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.result_message}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "job_id",
+                                      "propLabel": "job_id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.job_id}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "job_status",
+                                      "propLabel": "job_status",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.job_status}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "created",
+                                      "propLabel": "created",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.created}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "idempotency_key",
+                                      "propLabel": "idempotency_key",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.idempotency_key}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "payload_hash",
+                                      "propLabel": "payload_hash",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.payload_hash}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "gd_id",
+                                      "propLabel": "gd_id",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.gd_id}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "gd_no",
+                                      "propLabel": "gd_no",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.gd_no}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "progress_message",
+                                      "propLabel": "progress_message",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.progress_message}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "line_errors",
+                                      "propLabel": "line_errors",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.line_errors}}",
+                                      "valueLabel": ""
+                                    },
+                                    {
+                                      "prop": "evidence",
+                                      "propLabel": "evidence",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "field",
+                                      "valueTypeLabel": "",
+                                      "value": "{{node:code_node_GSclDec.data.evidence}}",
+                                      "valueLabel": ""
+                                    }
+                                  ]
+                                },
+                                "return_raw_data": 0
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_FGSclStop",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FGSclNeed",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGSclAsk",
           "type": "ifBlock",
           "data": { "title": "false" },
           "blocks": []
