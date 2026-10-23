@@ -37964,6 +37964,1943 @@
                   "blocks": []
                 }
               ]
+            },
+            {
+              "id": "code_node_P7Fitem0",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// GD_BULK_COMMIT - P7F: Item last_transaction_date = the save's time for every material of the delivery, as classic's\n// code_node_62FzZA2e (an ISO string), once per job with P7E; up to 12 parallel lanes (10-23)\nconst list = (v) => (Array.isArray(v) ? v : v ? [v] : []).filter((r) => r);\nconst date = new Date().toISOString();\nconst seen = new Set();\nfor (const r of list([{{node:code_node_P7Eplan0.data.latestRows}}][0])) {\n  const m = String(r.material_id === undefined || r.material_id === null ? \"\" : r.material_id).trim();\n  if (/^[0-9]{1,19}$/.test(m)) seen.add(m);\n}\nconst ids = Array.from(seen);\nconst per = Math.max(250, Math.ceil(ids.length / 12));\nconst out = { count: String(ids.length) };\nfor (let k = 0; k < 12; k++) {\n  const rows = ids.slice(k * per, (k + 1) * per).map((id) => ({ id: id, last_transaction_date: date }));\n  out[\"lane\" + k] = rows;\n  out[\"has\" + k] = rows.length ? \"YES\" : \"NO\";\n}\nconsole.log(\"publish P7F item dates\", JSON.stringify({ materials: ids.length, lanes: Math.ceil(ids.length / per) }));\nreturn out;"
+                },
+                "response_json": [
+                  {
+                    "key": "6zra8a7j",
+                    "name": "count",
+                    "title": "count",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "g74v4m05",
+                    "name": "lane0",
+                    "title": "lane0",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "htdaax5v",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "vzog39v5",
+                    "name": "lane1",
+                    "title": "lane1",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "79hw5et4",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "wyi407n6",
+                    "name": "lane2",
+                    "title": "lane2",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "cmfif58t",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "6e5h5ifo",
+                    "name": "lane3",
+                    "title": "lane3",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "k5y5tzbw",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "djxdedmv",
+                    "name": "lane4",
+                    "title": "lane4",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "k3pt3fvb",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "d4t5tp14",
+                    "name": "lane5",
+                    "title": "lane5",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "xltfdh4x",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "9ioiolkd",
+                    "name": "lane6",
+                    "title": "lane6",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "7xzjxavc",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "2wyh4x5s",
+                    "name": "lane7",
+                    "title": "lane7",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "o4tyykbp",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "tihvxi8n",
+                    "name": "lane8",
+                    "title": "lane8",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "mttqkyug",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "207zabx6",
+                    "name": "lane9",
+                    "title": "lane9",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "r65qez46",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "4kin88np",
+                    "name": "lane10",
+                    "title": "lane10",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "rydo7wxl",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "s5wp89ca",
+                    "name": "lane11",
+                    "title": "lane11",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "706fuutm",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "vtrbxb0o",
+                    "name": "has0",
+                    "title": "has0",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "u57vpksf",
+                    "name": "has1",
+                    "title": "has1",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "a104adh1",
+                    "name": "has2",
+                    "title": "has2",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "t5wrhs5z",
+                    "name": "has3",
+                    "title": "has3",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "98ofwofu",
+                    "name": "has4",
+                    "title": "has4",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kyok2yqs",
+                    "name": "has5",
+                    "title": "has5",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ac9ht7e8",
+                    "name": "has6",
+                    "title": "has6",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "j38h8zy0",
+                    "name": "has7",
+                    "title": "has7",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "lz6d43jp",
+                    "name": "has8",
+                    "title": "has8",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "6igb55mq",
+                    "name": "has9",
+                    "title": "has9",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "32ug8nya",
+                    "name": "has10",
+                    "title": "has10",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "978zamnz",
+                    "name": "has11",
+                    "title": "has11",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "P7F item dates: Item last_transaction_date for every material of the delivery (classic code_node_62FzZA2e)",
+                "isValidator": true,
+                "nodeName": "P7F item dates: Item last_transaction_date for every material of the delivery (classic code_node_62FzZA2e)",
+                "name": "P7F item dates: Item last_transaction_date for every material of the delivery (classic code_node_62FzZA2e)"
+              },
+              "blocks": []
+            },
+            {
+              "id": "cond_all_P7Fitem",
+              "type": "condition-all-node",
+              "data": {
+                "title": "P7F WRITE: Item last_transaction_date in 12 parallel lanes",
+                "filter": { "list": [] },
+                "expression": { "code": "" },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "cai_P7Fitem0",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 0",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 0",
+                    "name": "Lane 0",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem0",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 0 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem0",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002480,
+                                  "parentId": 1793000002481,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has0",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has0",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem0",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002478,
+                                        "parentId": 1793000002479,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane0.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 0)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 0)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 0)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane0.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane0.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem0",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem1",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 1",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 1",
+                    "name": "Lane 1",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem1",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 1 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem1",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002484,
+                                  "parentId": 1793000002485,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has1",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has1",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem1",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002482,
+                                        "parentId": 1793000002483,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane1.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 1)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 1)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 1)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane1.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane1.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem1",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem2",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 2",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 2",
+                    "name": "Lane 2",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem2",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 2 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem2",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002488,
+                                  "parentId": 1793000002489,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has2",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has2",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem2",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002486,
+                                        "parentId": 1793000002487,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane2.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 2)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 2)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 2)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane2.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane2.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem2",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem3",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 3",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 3",
+                    "name": "Lane 3",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem3",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 3 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem3",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002492,
+                                  "parentId": 1793000002493,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has3",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has3",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem3",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002490,
+                                        "parentId": 1793000002491,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane3.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 3)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 3)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 3)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane3.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane3.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem3",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem4",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 4",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 4",
+                    "name": "Lane 4",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem4",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 4 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem4",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002496,
+                                  "parentId": 1793000002497,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has4",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has4",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem4",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002494,
+                                        "parentId": 1793000002495,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane4.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 4)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 4)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 4)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane4.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane4.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem4",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem5",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 5",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 5",
+                    "name": "Lane 5",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem5",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 5 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem5",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002500,
+                                  "parentId": 1793000002501,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has5",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has5",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem5",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002498,
+                                        "parentId": 1793000002499,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane5.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 5)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 5)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 5)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane5.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane5.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem5",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem6",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 6",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 6",
+                    "name": "Lane 6",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem6",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 6 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem6",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002504,
+                                  "parentId": 1793000002505,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has6",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has6",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem6",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002502,
+                                        "parentId": 1793000002503,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane6.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 6)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 6)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 6)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane6.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane6.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem6",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem7",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 7",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 7",
+                    "name": "Lane 7",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem7",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 7 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem7",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002508,
+                                  "parentId": 1793000002509,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has7",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has7",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem7",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002506,
+                                        "parentId": 1793000002507,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane7.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 7)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 7)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 7)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane7.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane7.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem7",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem8",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 8",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 8",
+                    "name": "Lane 8",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem8",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 8 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem8",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002512,
+                                  "parentId": 1793000002513,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has8",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has8",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem8",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002510,
+                                        "parentId": 1793000002511,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane8.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 8)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 8)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 8)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane8.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane8.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem8",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem9",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 9",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 9",
+                    "name": "Lane 9",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem9",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 9 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem9",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002516,
+                                  "parentId": 1793000002517,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has9",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has9",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem9",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002514,
+                                        "parentId": 1793000002515,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane9.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 9)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 9)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 9)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane9.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane9.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem9",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem10",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 10",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 10",
+                    "name": "Lane 10",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem10",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 10 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem10",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002520,
+                                  "parentId": 1793000002521,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has10",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has10",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem10",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002518,
+                                        "parentId": 1793000002519,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane10.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 10)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 10)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 10)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane10.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane10.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem10",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "cai_P7Fitem11",
+                  "type": "condition-all-node-item",
+                  "data": {
+                    "title": "Lane 11",
+                    "filter": { "list": [] },
+                    "expression": { "code": "", "type": "javascript" },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "Lane 11",
+                    "name": "Lane 11",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "cor_P7Fitem11",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "Lane 11 has items?",
+                        "filter": { "list": [] },
+                        "expression": { "code": "" },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YP7Fitem11",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1793000002524,
+                                  "parentId": 1793000002525,
+                                  "isTop": true,
+                                  "prop": "node.code_node_P7Fitem0.data.has11",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "has11",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "update_node_P7Fitem11",
+                              "type": "update-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "Item:Table:1901546842240438273",
+                                  "rules": {
+                                    "collectionId": "1901546842240438273",
+                                    "list": [
+                                      {
+                                        "id": 1793000002522,
+                                        "parentId": 1793000002523,
+                                        "isTop": true,
+                                        "prop": "id",
+                                        "operator": "in",
+                                        "valueType": "field",
+                                        "value": "{{node:code_node_P7Fitem0.data.lane11.id}}",
+                                        "type": "leaf",
+                                        "level": 1,
+                                        "propLabel": "主键ID",
+                                        "valueLabel": "",
+                                        "operatorLabel": "In"
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "condition": {},
+                                "title": "P7F WRITE: Item last_transaction_date (lane 11)",
+                                "isValidator": true,
+                                "nodeName": "P7F WRITE: Item last_transaction_date (lane 11)",
+                                "name": "P7F WRITE: Item last_transaction_date (lane 11)",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane11.id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "主键ID"
+                                    },
+                                    {
+                                      "prop": "last_transaction_date",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_P7Fitem0.data.lane11.last_transaction_date}}",
+                                      "valueLabel": "",
+                                      "propLabel": "last_transaction_date"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NP7Fitem11",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": { "list": [] },
+                            "expression": { "code": "" },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
             }
           ]
         },

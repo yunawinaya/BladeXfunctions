@@ -1,0 +1,19 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_BULK_COMMIT",
+   "dataId": "2104840402446245890",
+   "file": "Goods Delivery/AsyncV2/GD_BULK_COMMIT.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_m1d1/GD_BULK_COMMIT.live_v18.json",
+   "smoke": { "request": { "job_id": "x" }, "expect": { "key": "result_code", "equals": "GD_INVALID_DATA" } }
+  },
+  {
+   "name": "GD_PICKING_OUTBOX_CONSUMER",
+   "dataId": "2105134245397041153",
+   "file": "Goods Delivery/AsyncV2/GD_PICKING_OUTBOX_CONSUMER.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_m1d1/GD_PICKING_OUTBOX_CONSUMER.live_base.json"
+  }
+ ]
+}
