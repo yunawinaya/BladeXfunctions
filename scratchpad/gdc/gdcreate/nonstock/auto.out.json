@@ -1,0 +1,1 @@
+{"code":200,"data":{"code":"200","message":"Created 0 goods deliveries, 1 not converted.","created":[],"blocked":[{"so_no":"SO/20261006-029","reason":"Insufficient stock for item 13025993. Available: 0, Requested: 5"}],"queued":[],"createdCount":0,"blockedCount":1,"queuedCount":0},"msg":"操作成功","success":true}

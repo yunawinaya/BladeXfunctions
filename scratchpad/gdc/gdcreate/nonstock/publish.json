@@ -1,0 +1,31 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_BULK_PREPARE",
+   "dataId": "2104840044642754561",
+   "file": "Goods Delivery/AsyncV2/GD_BULK_PREPARE.json",
+   "base": "scratchpad/gdc/gdcreate/nonstock/GD_BULK_PREPARE.v19_base.json"
+  },
+  {
+   "name": "GD_ASYNC_SUBMIT",
+   "dataId": "2105133540498116609",
+   "file": "Goods Delivery/AsyncV2/GD_ASYNC_SUBMIT.json",
+   "base": "scratchpad/gdc/gdcreate/nonstock/GD_ASYNC_SUBMIT.v13_base.json"
+  },
+  {
+   "name": "SO_AUTO_GD",
+   "dataId": "2076557490389835777",
+   "file": "Goods Delivery/SOconvertGDCreatedWorkflow.json",
+   "base": "scratchpad/gdc/gdcreate/nonstock/SO_AUTO_GD.v21_base.json"
+  },
+  {
+   "name": "GD form",
+   "kind": "form",
+   "dataId": "1902054888473481218",
+   "file": "scratchpad/gdc/gdcreate/nonstock/GD_form.v1489_nonstock.json",
+   "base": "scratchpad/gdc/gdcreate/nonstock/GD_form.live_v1489.json"
+  }
+ ]
+}

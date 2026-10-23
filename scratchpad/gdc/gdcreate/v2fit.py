@@ -26,7 +26,7 @@ def fit_sql(org, plant, materials, auto_materials, so_lines, tenant=None):
          LIMIT 1) ps
 UNION ALL
 SELECT 'ITEM' AS kind, CAST(i.id AS CHAR) AS id,
-       COALESCE(CAST(i.stock_control AS CHAR), '') AS f1,
+       CASE WHEN i.stock_control = 0 AND i.show_delivery = 0 THEN 'NS' ELSE COALESCE(CAST(i.stock_control AS CHAR), '') END AS f1,
        COALESCE(CAST(i.material_costing_method AS CHAR), '') AS f2,
        COALESCE(CAST(i.item_batch_management AS CHAR), '') AS f3,
        COALESCE(CAST(i.serial_number_management AS CHAR), '') AS f4,

@@ -21,6 +21,9 @@ const GD_V2_WF = {
 // click - error toast, the dialog stays open, nothing is submitted. Larger runs exceed the workflow engine's 64 MB
 // serialization cap (2,922 lines failed in GD_BULK_PREPARE; 1,948 passed end to end).
 const ASYNC_GD_ENABLED = true;
+// Switch: true = items neither stock-controlled nor shown in delivery (stock_control 0, show_delivery 0) go through GD Created
+// V2 as description-only lines (GD_BULK_PREPARE); false = a delivery with such an item stays on the old save
+const GD_V2_NONSTOCK_ENABLED = true;
 const GD_V2_MAX_LINES = 2000;
 // a NEW delivery past this size never falls back to the frozen save: its per-line fan-out took dev down (10-16, 10-20)
 const GD_V2_CLASSIC_MAX_LINES = 500;
@@ -116,6 +119,8 @@ const gdV2Route = function gdV2Route(values, ctx) {
     const check = (l, label) => {
       const f = flags[s(l.material_id)];
       if (!f) return "line " + label + ": the item master of material " + s(l.material_id) + " could not be read";
+      // a non-stock item (stock_control 0, show_delivery 0): GD_BULK_PREPARE delivers it as a description-only line (2026-10-23)
+      if (String(f.stock_control) === "0" && String(f.show_delivery) === "0" && (typeof GD_V2_NONSTOCK_ENABLED === "undefined" || GD_V2_NONSTOCK_ENABLED === true)) return "";
       if (String(f.stock_control) !== "1") return "line " + label + " is not a stock-controlled item (stock_control " + s(f.stock_control) + ", show_delivery " + s(f.show_delivery) + "): the frozen save delivers it" + (String(f.show_delivery) === "0" ? " as a description-only line" : "");
       return "";
     };

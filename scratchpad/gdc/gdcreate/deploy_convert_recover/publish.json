@@ -1,0 +1,30 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_SO_CONVERT_CHECK",
+   "dataId": "2112084100104495105",
+   "file": "Goods Delivery/AsyncV2/GD_SO_CONVERT_CHECK.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_convert_recover/GD_SO_CONVERT_CHECK.v7_base.json",
+   "smoke": {
+    "request": {
+     "job_ids": [
+      "2112387426529939457"
+     ]
+    },
+    "expect": {
+     "key": "jobs_json",
+     "equals": "[{\"job_id\":\"2112387426529939457\",\"job_status\":\"FAILED\",\"gd_no\":\"\",\"error_code\":\"GD_INSUFFICIENT_STOCK\",\"error_message\":\"auto allocation: Insufficient stock for item P-00002. Available: 15837, Requested: 100000\",\"error_details\":\"{\\\"line_errors\\\": [{\\\"code\\\": \\\"GD_INSUFFICIENT_STOCK\\\", \\\"field\\\": \\\"temp_qty_data\\\", \\\"line_no\\\": 1, \\\"message\\\": \\\"auto allocation: Insufficient stock for item P-00002. Available: 15837, Requested: 100000\\\", \\\"stable_line_key\\\": \\\"L1\\\"}], \\\"line_error_count\\\": 1}\",\"command\":\"CREATE_GD_FROM_FORM\",\"progress_message\":\"Not created; correct the highlighted lines\"}]"
+    }
+   }
+  },
+  {
+   "name": "SO list",
+   "kind": "page",
+   "dataId": "1901872125787099137",
+   "file": "scratchpad/gdc/gdcreate/deploy_convert_recover/SO_list.v538_recover.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_convert_recover/SO_list.v538_base.json"
+  }
+ ]
+}

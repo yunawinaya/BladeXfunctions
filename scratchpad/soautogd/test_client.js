@@ -6,9 +6,10 @@ const SRC = fs.readFileSync("/Users/yunawinaya/Developer/BladeXfunctions/Goods D
 const IDS = { AUTO: "2076557490389835777", CHECK: "2112084100104495105", WORKER: "2104840667119411201" };
 
 async function convert(opts) {
-  let code = SRC.replace("const FOLLOW_EVERY_MS = 3000;", "const FOLLOW_EVERY_MS = 1;").replace("const FOLLOW_MS = 120000;", "const FOLLOW_MS = " + (opts.followMs || 2000) + ";");
+  let code = SRC.replace("const FOLLOW_EVERY_MS = 3000;", "const FOLLOW_EVERY_MS = 1;").replace("const FOLLOW_MS = 120000;", "const FOLLOW_MS = " + (opts.followMs || 2000) + ";")
+    .replace("const RECOVER_EVERY_MS = 5000;", "const RECOVER_EVERY_MS = 1;").replace("const RECOVER_MS = 300000;", "const RECOVER_MS = " + (opts.recoverMs || 2000) + ";");
   if (opts.off) code = code.replace("const CONVERT_CREATED_V2 = true;", "const CONVERT_CREATED_V2 = false;");
-  const log = { autoCalls: [], kicks: [], checks: 0, alerts: [], loading: [] };
+  const log = { autoCalls: [], kicks: [], checks: 0, runChecks: [], alerts: [], loading: [] };
   const statusOf = opts.jobs || (() => "QUEUED");
   const ctx = {
     showLoading: (t) => log.loading.push(t), hideLoading: () => {}, refresh: async () => {}, getVarGlobal: () => "admin",
@@ -21,9 +22,16 @@ async function convert(opts) {
           // only the sales orders of this batch (the list sends 5 per call)
           const mine = (list) => (list || []).filter((x) => params.so_ids.indexOf(x.so_no.replace(/\D/g, "")) >= 0);
           const all = opts.auto(params.so_ids);
+          // a lost answer: the request gives up, the server's run goes on (its answer is read back through the check)
+          if (opts.lost) return err("timeout of 60000ms exceeded");
           return cb({ data: Object.assign({}, all, { created: mine(all.created), blocked: mine(all.blocked), queued: mine(all.queued) }) });
         }
         if (id === IDS.WORKER) { log.kicks.push(params.job_id); return cb({ data: {} }); }
+        if (id === IDS.CHECK && params.run_so_ids) {
+          log.runChecks.push(params);
+          const r = opts.run(params, log.runChecks.length);
+          return r === "ERR" ? err("gateway down") : cb({ data: { run_json: JSON.stringify(r) } });
+        }
         if (id === IDS.CHECK && params.so_ids) return cb({ data: { busy_json: "[]" } });
         if (id === IDS.CHECK && params.job_ids) {
           log.checks++;
@@ -86,5 +94,35 @@ const ok = (t) => { n++; console.log("ok", t); };
   log = await convert({ sos: ["SO-13", "SO-14"], auto: () => ({ code: "400", message: "Picking mode is Manual", created: [], blocked: [], queued: [] }) });
   assert.ok(/Picking mode is Manual/.test(log.alerts[0].msg) && log.autoCalls.length === 1);
   ok("setup gate still stops at the first batch with its message");
+
+  // a lost answer: the batch's run is read back - still running twice, then its own answer (one created, one queued)
+  const lostAnswer = { code: "200", message: "Created 1, 1 in the background", created: [{ so_no: "SO-21", delivery_no: "GD/21" }], blocked: [], queued: [{ so_no: "SO-22", job_id: "J22" }] };
+  log = await convert({ sos: ["SO-21", "SO-22"], lost: true, auto: () => lostAnswer,
+    run: (p, k) => (k < 3 ? null : { run_id: "R1", status: "Complete", result: lostAnswer, error: "" }),
+    jobs: () => ({ job_status: "COMPLETED", gd_no: "GD/22" }) });
+  assert.deepStrictEqual(log.runChecks.map((p) => p.run_so_ids), [["21", "22"], ["21", "22"], ["21", "22"]], "the batch's sales orders, until the run has ended");
+  assert.ok(log.runChecks.every((p) => /^[0-9]+$/.test(p.run_since_s) && Number(p.run_since_s) >= 10 && Number(p.run_since_s) <= 3600), JSON.stringify(log.runChecks));
+  assert.strictEqual(log.alerts[0].title, "Converted to Goods Deliveries");
+  assert.ok(/Created 2 goods deliveries/.test(log.alerts[0].msg) && /GD\/21/.test(log.alerts[0].msg) && /GD\/22/.test(log.alerts[0].msg) && !/No answer/.test(log.alerts[0].msg), log.alerts[0].msg);
+  assert.deepStrictEqual(log.kicks.slice(0, 1), ["J22"], "the recovered queued job is started and followed");
+  assert.ok(log.loading.some((t) => /the server is still working/.test(t)));
+  ok("lost answer: the run's own answer is read back, its queued job started and followed");
+
+  log = await convert({ sos: ["SO-23", "SO-28"], lost: true, auto: () => lostAnswer, run: () => ({ run_id: "R2", status: "Fail", result: null, error: "Lock wait timeout" }) });
+  assert.strictEqual(log.alerts[0].title, "Could Not Convert to Goods Delivery");
+  assert.ok(/SO-23<\/strong><br>The conversion stopped with an error on the server: Lock wait timeout\. Check whether/.test(log.alerts[0].msg), log.alerts[0].msg);
+  ok("lost answer, the run failed: its error, check before converting again");
+
+  log = await convert({ sos: ["SO-24", "SO-29"], lost: true, recoverMs: 60, auto: () => lostAnswer, run: () => null });
+  assert.ok(/SO-24<\/strong><br>No answer from the server/.test(log.alerts[0].msg) && log.runChecks.length >= 2, log.alerts[0].msg);
+  ok("lost answer, no run record in the wait: No answer, as before");
+
+  log = await convert({ sos: ["SO-25", "SO-30"], lost: true, auto: () => lostAnswer, run: () => "ERR" });
+  assert.ok(/No answer from the server/.test(log.alerts[0].msg) && log.runChecks.length === 3, String(log.runChecks.length));
+  ok("lost answer, the check itself fails 3 times running: stop waiting, No answer");
+
+  log = await convert({ sos: ["SO-26", "SO-27"], auto: () => ({ code: "200", created: [{ so_no: "SO-26", delivery_no: "GD/26" }, { so_no: "SO-27", delivery_no: "GD/27" }], blocked: [], queued: [] }), run: () => { throw new Error("no run check expected"); } });
+  assert.ok(log.runChecks.length === 0 && /Created 2 goods deliveries/.test(log.alerts[0].msg));
+  ok("an answer that arrives: no run check");
   console.log(n + " passed");
 })().catch((e) => { console.error(e); process.exit(1); });

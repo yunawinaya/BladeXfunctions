@@ -45,7 +45,7 @@ const gdV2FitLines = function gdV2FitLines(payload) {
   });
   return { rows: rows, materialIds: Object.keys(materials), autoMaterialIds: Object.keys(auto), soLineIds: Object.keys(soLines) };
 };
-// facts: rows of the fit read - SETUP (f1 picking_mode), ITEM (f1 stock_control, f2 costing method, f3 batch, f4 serial,
+// facts: rows of the fit read - SETUP (f1 picking_mode), ITEM (f1 stock_control or NS, f2 costing method, f3 batch, f4 serial,
 // f5 purchase price), HU (a material in an unpacked handling unit of the plant), PEND (a sales order line with a Pending
 // reservation). Returns the first reason the classic save must take the delivery, or "".
 const gdV2Fit = function gdV2Fit(rows, facts) {
@@ -77,7 +77,10 @@ const gdV2Fit = function gdV2Fit(rows, facts) {
     const at = "line " + s(r[0]);
     const material = s(r[1]);
     const it = item[material];
-    if (it) {
+    // a non-stock item (NS: stock_control 0, show_delivery 0): GD_BULK_PREPARE delivers it as a description-only line, as the
+    // old save does (2026-10-23); no stock check applies. Switch GD_V2_NONSTOCK_ENABLED, on unless a caller sets it false
+    const nonStock = !!it && s(it.f1) === "NS" && (typeof GD_V2_NONSTOCK_ENABLED === "undefined" || GD_V2_NONSTOCK_ENABLED === true);
+    if (it && !nonStock) {
       const what = at + ": material " + material + " ";
       if (s(it.f1) !== "1") return what + "is not stock-controlled";
       if (!METHOD[s(it.f2)]) return what + "has costing method '" + s(it.f2) + "'";

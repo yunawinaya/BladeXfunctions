@@ -278,6 +278,56 @@ const followBackground = async (queued, created, blocked) => {
   return pending;
 };
 
+// A batch whose answer was lost (its call outlived the request: 90 s seen on prod) is looked up in the record of its
+// SO_AUTO_GD run, which appears when the run ends; the list waits at most this long for it
+const RECOVER_MS = 300000;
+const RECOVER_EVERY_MS = 5000;
+
+const readConvertRun = (soIds, sinceSeconds) =>
+  new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        SO_CONVERT_CHECK_WORKFLOW_ID,
+        { run_so_ids: soIds, run_since_s: String(sinceSeconds) },
+        (res) => {
+          let run = null;
+          try {
+            run = JSON.parse((res && res.data && res.data.run_json) || "null");
+          } catch (error) {
+            run = null;
+          }
+          resolve({ run: run && typeof run === "object" ? run : null });
+        },
+        (err) => {
+          console.error("Convert run check failed:", err);
+          resolve({ checkFailed: true });
+        },
+      );
+    } catch (error) {
+      console.error("Convert run check could not run:", error);
+      resolve({ checkFailed: true });
+    }
+  });
+
+// Answers like runConvertBatch: the run's own answer once it has ended; failed when the run itself failed
+const recoverConvertBatch = async (batch, sentAt) => {
+  const soIds = batch.map((record) => String(record.id));
+  const until = Date.now() + RECOVER_MS;
+  let checkFailures = 0;
+  while (Date.now() < until && checkFailures < 3) {
+    const waited = Math.round((Date.now() - sentAt) / 1000);
+    this.hideLoading();
+    this.showLoading(`Converting to Goods Delivery: the server is still working (${waited} s)...`);
+    const read = await readConvertRun(soIds, Math.min(3600, waited + 10));
+    checkFailures = read.checkFailed ? checkFailures + 1 : 0;
+    const run = read.run;
+    if (run && run.status === "Complete" && run.result) return { ok: true, result: run.result };
+    if (run && run.status) return { ok: false, failed: true, error: run.error || "" };
+    await new Promise((resolve) => setTimeout(resolve, RECOVER_EVERY_MS));
+  }
+  return { ok: false };
+};
+
 const handleConvertGDCreated = async (
   selectedRecords,
   plantID,
@@ -312,12 +362,15 @@ const handleConvertGDCreated = async (
           : "Converting to Goods Delivery...",
       );
 
-      const reply = await runConvertBatch(
+      const sentAt = Date.now();
+      let reply = await runConvertBatch(
         batch.map((record) => record.id),
         plantID,
         organizationID,
         convertType,
       );
+      // A lost answer (the call outlived the request): the server's record of the batch's run tells what it did.
+      if (!reply.ok) reply = await recoverConvertBatch(batch, sentAt);
 
       if (!reply.ok) {
         // The server may still have converted some of these; converting again reports
@@ -325,8 +378,9 @@ const handleConvertGDCreated = async (
         for (const record of batch) {
           blocked.push({
             so_no: record.so_no || record.id,
-            reason:
-              "No answer from the server. Check whether it already has a goods delivery before converting it again.",
+            reason: reply.failed
+              ? `The conversion stopped with an error on the server${reply.error ? ": " + reply.error : ""}. Check whether it already has a goods delivery before converting it again.`
+              : "No answer from the server. Check whether it already has a goods delivery before converting it again.",
           });
         }
         continue;

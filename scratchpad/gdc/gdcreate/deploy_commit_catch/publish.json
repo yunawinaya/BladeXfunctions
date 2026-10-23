@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_BULK_COMMIT",
+   "dataId": "2104840402446245890",
+   "file": "Goods Delivery/AsyncV2/GD_BULK_COMMIT.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_commit_catch/GD_BULK_COMMIT.v20_base.json"
+  }
+ ]
+}
