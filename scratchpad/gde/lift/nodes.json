@@ -4,7 +4,7 @@
   {
    "name": "GOODS_DELIVERY",
    "workflow_id": "2017151544868491265",
-   "version": 245,
+   "version": 246,
    "repo_file": "Goods Delivery/GDheadWorkflow.json",
    "nodes": [
     "code_node_eOO3RTkR",
@@ -41,7 +41,9 @@
     "code_node_Htpcyp8t",
     "code_node_1Ya3sACY",
     "code_node_hifFKzmo",
-    "code_node_56IOJIBu"
+    "code_node_56IOJIBu",
+    "code_node_GdUomGuard",
+    "code_node_GdUomCheck"
    ]
   },
   {

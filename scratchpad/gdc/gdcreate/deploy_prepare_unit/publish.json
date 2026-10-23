@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_BULK_PREPARE",
+   "dataId": "2104840044642754561",
+   "file": "Goods Delivery/AsyncV2/GD_BULK_PREPARE.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_prepare_unit/GD_BULK_PREPARE.live_base.json"
+  }
+ ]
+}

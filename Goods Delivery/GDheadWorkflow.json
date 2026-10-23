@@ -718,6 +718,300 @@
       ]
     },
     {
+      "id": "code_node_GdUomGuard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Unit Guard: a new delivery with stock lines?",
+        "isValidator": true,
+        "nodeName": "Unit Guard: a new delivery with stock lines?",
+        "name": "Unit Guard: a new delivery with stock lines?",
+        "script": {
+          "type": "javascript",
+          "code": "// A new delivery (an Add, or a stored Draft saved as Created / Completed) may not carry a stock line in a unit its item does not have: classic would count it 1:1 (GD Created V2 refuses it as GD_INVALID_UOM)\nconst saveAs = String([{{workflowparams:saveAs}}][0] || \"\");\nconst allData = [{{workflowparams:allData}}][0] || {};\nconst idOf = (v) => { const s = String(v == null ? \"\" : v).trim(); return /^[0-9]{1,20}$/.test(s) ? s : \"\"; };\nconst mats = {};\nconst uoms = {};\nconst add = (row) => {\n  const m = idOf(row.material_id);\n  const u = idOf(row.gd_order_uom_id) || idOf(row.good_delivery_uom_id);\n  if (!m || !u || !(parseFloat(row.gd_qty) > 0)) return;\n  mats[m] = 1;\n  uoms[u] = 1;\n};\nfor (const row of Array.isArray(allData.table_gd) ? allData.table_gd : []) {\n  if (!row) continue;\n  add(row);\n  for (const child of Array.isArray(row.children) ? row.children : []) if (child) add(child);\n}\n// a Picking Plan delivery takes its units from to_order_uom_id / picking_plan_uom_id: not checked here\nconst fromPlan = Number(allData.is_select_picking || 0) === 1;\nconst materialIds = Object.keys(mats);\nreturn {\n  check: (saveAs === \"Created\" || saveAs === \"Completed\") && !fromPlan && materialIds.length > 0 ? \"YES\" : \"NO\",\n  gdId: idOf(allData.id) || \"0\",\n  materialIdsSql: materialIds.join(\",\") || \"0\",\n  uomIdsSql: Object.keys(uoms).join(\",\") || \"0\",\n};"
+        },
+        "response_json": [
+          {
+            "key": "gdum0000",
+            "name": "check",
+            "title": "check",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gdum0001",
+            "name": "gdId",
+            "title": "gdId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gdum0002",
+            "name": "materialIdsSql",
+            "title": "materialIdsSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gdum0003",
+            "name": "uomIdsSql",
+            "title": "uomIdsSql",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GdUomGuard",
+      "type": "if",
+      "data": {
+        "title": "IF a new delivery (Created / Completed) with stock lines",
+        "isValidator": true,
+        "nodeName": "IF a new delivery (Created / Completed) with stock lines",
+        "name": "IF a new delivery (Created / Completed) with stock lines",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 2113500000001,
+              "parentId": 2113500000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_GdUomGuard.data.check}}' == 'YES'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TGdUomGuard",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_GdUomGuard",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Unit Guard: stored status, the items' units, the unit names",
+                "isValidator": true,
+                "nodeName": "Unit Guard: stored status, the items' units, the unit names",
+                "name": "Unit Guard: stored status, the items' units, the unit names",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CONVERT('GD' USING utf8mb4) COLLATE utf8mb4_general_ci AS kind,\n       CONVERT(IFNULL((SELECT g.gd_status FROM goods_delivery g WHERE g.id = {{node:code_node_GdUomGuard.data.gdId}} AND g.is_deleted = 0), '') USING utf8mb4) COLLATE utf8mb4_general_ci AS k,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS base_uom,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS stock_control,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS conv,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS name\nUNION ALL\nSELECT CONVERT('ITEM' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(CAST(i.id AS CHAR) USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(CAST(i.based_uom AS CHAR), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(CAST(i.stock_control AS CHAR), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL((SELECT GROUP_CONCAT(CAST(c.alt_uom_id AS CHAR)) FROM item_mji552rc_sub c WHERE c.Item_id = i.id AND c.is_deleted = 0 AND c.base_qty > 0), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(i.material_name, '') USING utf8mb4) COLLATE utf8mb4_general_ci\n  FROM item i\n WHERE i.id IN ({{node:code_node_GdUomGuard.data.materialIdsSql}})\n   AND i.is_deleted = 0\nUNION ALL\nSELECT CONVERT('UNIT' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(CAST(u.id AS CHAR) USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(u.uom_name, '') USING utf8mb4) COLLATE utf8mb4_general_ci\n  FROM unit_of_measurement u\n WHERE u.id IN ({{node:code_node_GdUomGuard.data.uomIdsSql}})"
+                },
+                "response_json": [
+                  {
+                    "key": "gdum0004",
+                    "name": "kind",
+                    "title": "kind",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdum0005",
+                    "name": "k",
+                    "title": "k",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdum0006",
+                    "name": "base_uom",
+                    "title": "base_uom",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdum0007",
+                    "name": "stock_control",
+                    "title": "stock_control",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdum0008",
+                    "name": "conv",
+                    "title": "conv",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdum0009",
+                    "name": "name",
+                    "title": "name",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_GdUomCheck",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Unit Guard: refuse?",
+                "isValidator": true,
+                "nodeName": "Unit Guard: refuse?",
+                "name": "Unit Guard: refuse?",
+                "script": {
+                  "type": "javascript",
+                  "code": "// refused: a stock line whose unit is neither its item's base unit nor one of its conversions; a stored Created GD is never a new delivery\nconst allData = [{{workflowparams:allData}}][0] || {};\nconst raw = [{{node:sql_node_GdUomGuard.data}}][0];\nconst rows = Array.isArray(raw) ? raw : raw ? [raw] : [];\nconst idOf = (v) => { const s = String(v == null ? \"\" : v).trim(); return /^[0-9]{1,20}$/.test(s) ? s : \"\"; };\nconst txt = (v) => (v == null ? \"\" : String(v)).trim();\nlet stored = \"\";\nconst items = {};\nconst units = {};\nfor (const r of rows) {\n  if (!r) continue;\n  if (r.kind === \"GD\") stored = txt(r.k);\n  else if (r.kind === \"ITEM\") items[txt(r.k)] = { base: txt(r.base_uom), stock: txt(r.stock_control), conv: txt(r.conv).split(\",\"), name: txt(r.name) };\n  else if (r.kind === \"UNIT\") units[txt(r.k)] = txt(r.name);\n}\nconst fresh = txt([{{workflowparams:pageStatus}}][0]) !== \"Edit\" || stored === \"\" || stored === \"Draft\";\nconst bad = [];\nconst check = (row, label) => {\n  const m = idOf(row.material_id);\n  const u = idOf(row.gd_order_uom_id) || idOf(row.good_delivery_uom_id);\n  if (!m || !u || !(parseFloat(row.gd_qty) > 0)) return;\n  const it = items[m];\n  // an item not found is left to the save's own checks; a non-stock item moves no stock\n  if (!it || it.stock !== \"1\" || u === it.base || it.conv.indexOf(u) >= 0) return;\n  bad.push(\"line \" + label + \" (\" + (txt(row.material_name) || it.name || m) + \") is in \" + (units[u] || \"unit \" + u));\n};\n(Array.isArray(allData.table_gd) ? allData.table_gd : []).forEach((row, i) => {\n  if (!row) return;\n  check(row, String(i + 1));\n  (Array.isArray(row.children) ? row.children : []).forEach((child, j) => {\n    if (child) check(child, i + 1 + \".\" + (j + 1));\n  });\n});\nconst message = bad.length\n  ? \"Not saved: \" + bad.slice(0, 3).join(\"; \") + (bad.length > 3 ? \"; and \" + (bad.length - 3) + \" more line(s)\" : \"\") + \". \" +\n    (bad.length === 1 ? \"That unit is\" : \"Those units are\") + \" not one of the item's units, so the stock quantity cannot be worked out. Choose the item's own unit, or add the unit to the item's unit conversions, then save again.\"\n  : \"\";\nreturn { refuse: bad.length > 0 && fresh ? \"YES\" : \"NO\", message: message };"
+                },
+                "response_json": [
+                  {
+                    "key": "gdum0010",
+                    "name": "refuse",
+                    "title": "refuse",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "gdum0011",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_GdUomCheck",
+              "type": "if",
+              "data": {
+                "title": "IF a line's unit is not one of its item's units",
+                "isValidator": true,
+                "nodeName": "IF a line's unit is not one of its item's units",
+                "name": "IF a line's unit is not one of its item's units",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 2113500000003,
+                      "parentId": 2113500000004,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_GdUomCheck.data.refuse}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TGdUomCheck",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_GdUomCheck",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Unit not on the item",
+                        "isValidator": true,
+                        "nodeName": "Return Unit not on the item",
+                        "name": "Return Unit not on the item",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_GdUomCheck.data.message}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FGdUomCheck",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FGdUomGuard",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_gr_gate_completed",
       "type": "if",
       "data": {

@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "INVENTORY_APPLY_OPERATION",
+   "dataId": "2105133980371554305",
+   "file": "Goods Delivery/AsyncV2/INVENTORY_APPLY_OPERATION.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_engine_wait/INVENTORY_APPLY_OPERATION.v12_base.json"
+  }
+ ]
+}

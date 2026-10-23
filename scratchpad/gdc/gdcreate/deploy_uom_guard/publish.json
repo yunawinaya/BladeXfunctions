@@ -1,0 +1,16 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GOODS_DELIVERY",
+   "dataId": "2017151544868491265",
+   "file": "Goods Delivery/GDheadWorkflow.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_uom_guard/GOODS_DELIVERY.live_base.json",
+   "smoke": {
+    "request": { "saveAs": "Created", "pageStatus": "Add", "allData": { "table_gd": [ { "material_id": "2066341864143695874", "gd_order_uom_id": "2018906563477008386", "gd_qty": 1 } ] } },
+    "expect": { "key": "message", "equals": "Not saved: line 1 (POST 2) is in BOX. That unit is not one of the item's units, so the stock quantity cannot be worked out. Choose the item's own unit, or add the unit to the item's unit conversions, then save again." }
+   }
+  }
+ ]
+}

@@ -11,7 +11,7 @@ env, tenant, gd, org, out = sys.argv[1:6]
 dm, dsl, dso = (sys.argv[6:9] + ["0", "0", "0"])[:3]
 assert tenant.isdigit() and gd.isdigit() and org.isdigit() and all(x.replace(",", "").isdigit() for x in (dm, dsl, dso))
 sub = {"tenantId": tenant, "gdId": gd, "organizationId": org, "deltaMaterialIdsSql": dm, "deltaSoLineIdsSql": dsl, "deltaSoIdsSql": dso,
-       "deltaSoLineIdsQuoted": ",".join("'%s'" % x for x in dsl.split(",")), "deltaAllocMaterialIdsSql": "0", "deltaAllocLineIdsSql": "0"}
+       "deltaSoLineIdsQuoted": ",".join("'%s'" % x for x in dsl.split(",")), "deltaAllocMaterialIdsSql": "0", "deltaAllocLineIdsSql": "0", "deltaUomIdsSql": "0"}
 res = {"organizationId": org}
 for k, s in SQL.items():
     for name, v in sub.items():

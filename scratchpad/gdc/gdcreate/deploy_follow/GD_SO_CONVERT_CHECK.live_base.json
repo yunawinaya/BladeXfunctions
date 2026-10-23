@@ -1,0 +1,621 @@
+{
+  "request_json": [
+    {
+      "key": "7hpbxks1",
+      "name": "so_ids",
+      "title": "so_ids",
+      "description": "the sales order ids to convert (a list of digits, or comma-separated)",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "nof6tvwh",
+      "name": "job_ids",
+      "title": "job_ids",
+      "description": "GD Created V2 (CREATE_GD_FROM_FORM), GD Cancel V2 (CANCEL_GD) or GD Revert V2 (REVERT_GD) jobs to report on (a list of digits, or comma-separated)",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "qrhkehh2",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "9jw8066q",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "6re4u2z5",
+      "name": "busy_json",
+      "title": "busy_json",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "it0u33ll",
+      "name": "busy_count",
+      "title": "busy_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "492zsuj7",
+      "name": "jobs_json",
+      "title": "jobs_json",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "9k4ohgxp",
+      "name": "jobs_count",
+      "title": "jobs_count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "title": "Start Node",
+        "isValidator": true,
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_SCguard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// GD_SO_CONVERT_CHECK - Guard: the sales orders to convert (digits only, at most 500) as a JSON list for the read\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (raw) => Array.from(new Set((Array.isArray(raw) ? raw : s(raw).split(\",\")).map(s).filter((x) => x)));\nconst ids = list([{{workflowparams:so_ids}}][0]);\n// SO_AUTO_GD's V2 deliveries: the SO list follows its queued jobs by id\nconst jobIds = list([{{workflowparams:job_ids}}][0]);\nconst bad = ids.concat(jobIds).filter((x) => !/^[0-9]{1,20}$/.test(x));\nconst why = !ids.length && !jobIds.length ? \"no sales order ids or job ids\" : bad.length ? \"ids must be digits\" : ids.length > 500 ? \"at most 500 sales orders per check\" : jobIds.length > 200 ? \"at most 200 jobs per check\" : \"\";\nreturn { route: why ? \"REJECT\" : \"GO\", soIdsJson: JSON.stringify(why ? [] : ids), jobIdsJson: JSON.stringify(why ? [] : jobIds), count: String(ids.length), code: why ? \"400\" : \"200\", message: why };"
+        },
+        "response_json": [
+          {
+            "key": "0adac97e",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ozdko99o",
+            "name": "soIdsJson",
+            "title": "soIdsJson",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "e8u1h8if",
+            "name": "jobIdsJson",
+            "title": "jobIdsJson",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vr2esgfz",
+            "name": "count",
+            "title": "count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "39vescas",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "izu7j03e",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Guard: the sales order ids (at most 500) and job ids (at most 200), digits only",
+        "isValidator": true,
+        "nodeName": "Guard: the sales order ids (at most 500) and job ids (at most 200), digits only",
+        "name": "Guard: the sales order ids (at most 500) and job ids (at most 200), digits only"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_SCreject",
+      "type": "if",
+      "data": {
+        "title": "IF the input is invalid: answer, read nothing",
+        "isValidator": true,
+        "nodeName": "IF the input is invalid: answer, read nothing",
+        "name": "IF the input is invalid: answer, read nothing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1798400000001,
+              "parentId": 1798400000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_SCguard.data.route}}' == 'REJECT'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TSCreject",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_SCreject",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return (rejected input)",
+                "isValidator": true,
+                "nodeName": "Return (rejected input)",
+                "name": "Return (rejected input)",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SCguard.data.code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "propLabel": "message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_SCguard.data.message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "busy_json",
+                      "propLabel": "busy_json",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "[]",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "busy_count",
+                      "propLabel": "busy_count",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "0",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "jobs_json",
+                      "propLabel": "jobs_json",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "[]",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "jobs_count",
+                      "propLabel": "jobs_count",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "0",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FSCreject",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "condition_all_SCreads",
+      "type": "condition-all-node",
+      "data": {
+        "title": "Reads in parallel: busy sales orders, asked jobs",
+        "filter": { "list": [] },
+        "expression": { "code": "" },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cai_SCbusy",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Busy sales orders",
+            "filter": { "list": [] },
+            "expression": { "code": "", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Busy sales orders",
+            "name": "Busy sales orders",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_SCbusy",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Unfinished background saves (CREATE_GD_FROM_FORM) delivering one of the sales orders",
+                "isValidator": true,
+                "nodeName": "Unfinished background saves (CREATE_GD_FROM_FORM) delivering one of the sales orders",
+                "name": "Unfinished background saves (CREATE_GD_FROM_FORM) delivering one of the sales orders",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT t.sid AS so_id,\n       CAST(j.id AS CHAR) AS job_id,\n       j.job_status\n  FROM JSON_TABLE('{{node:code_node_SCguard.data.soIdsJson}}', '$[*]' COLUMNS (sid VARCHAR(20) PATH '$')) t\n  JOIN gd_async_job j\n    ON j.tenant_id = '{{system:tenantId}}'\n   AND j.command = 'CREATE_GD_FROM_FORM'\n   AND j.is_deleted = 0\n   AND j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')\n   AND j.source_so_ids LIKE CONCAT('%\"', t.sid, '\"%') COLLATE utf8mb4_general_ci\n ORDER BY t.sid, j.id\n LIMIT 500"
+                },
+                "response_json": [
+                  {
+                    "key": "s6cz7qfo",
+                    "name": "so_id",
+                    "title": "so_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "umdgx17c",
+                    "name": "job_id",
+                    "title": "job_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "4lv0k44m",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cai_SCjobs",
+          "type": "condition-all-node-item",
+          "data": {
+            "title": "Asked jobs",
+            "filter": { "list": [] },
+            "expression": { "code": "", "type": "javascript" },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "Asked jobs",
+            "name": "Asked jobs",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_SCjobs",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress",
+                "isValidator": true,
+                "nodeName": "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress",
+                "name": "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(j.id AS CHAR) AS job_id,\n       j.job_status,\n       IFNULL(j.gd_no, '') AS gd_no,\n       IFNULL(j.error_code, '') AS error_code,\n       LEFT(IFNULL(j.error_message, ''), 500) AS error_message,\n       j.command,\n       LEFT(IFNULL(j.progress_message, ''), 250) AS progress_message\n  FROM JSON_TABLE('{{node:code_node_SCguard.data.jobIdsJson}}', '$[*]' COLUMNS (jid VARCHAR(20) PATH '$')) t\n  JOIN gd_async_job j\n    ON j.id = CAST(t.jid AS UNSIGNED)\n   AND j.tenant_id = '{{system:tenantId}}'\n   AND j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD', 'REVERT_GD')\n   AND j.is_deleted = 0\n LIMIT 200"
+                },
+                "response_json": [
+                  {
+                    "key": "fyf6fbuk",
+                    "name": "job_id",
+                    "title": "job_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ojq43qbj",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "o1b3aohd",
+                    "name": "gd_no",
+                    "title": "gd_no",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kbim0l5a",
+                    "name": "error_code",
+                    "title": "error_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "m9tlo71q",
+                    "name": "error_message",
+                    "title": "error_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "x2j9vagm",
+                    "name": "command",
+                    "title": "command",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "bn182ku0",
+                    "name": "progress_message",
+                    "title": "progress_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "code_node_SCresult",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// GD_SO_CONVERT_CHECK - Result: the busy sales orders (busy_json: [{so_id, job_id, job_status}]) and the asked jobs (jobs_json)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst asList = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []);\nconst seen = {};\nconst busy = [];\nfor (const r of asList([{{node:sql_node_SCbusy.data}}][0]).filter((r) => r && s(r.so_id))) {\n  if (seen[s(r.so_id)]) continue;\n  seen[s(r.so_id)] = true;\n  busy.push({ so_id: s(r.so_id), job_id: s(r.job_id), job_status: s(r.job_status) });\n}\nconst jobs = asList([{{node:sql_node_SCjobs.data}}][0])\n  .filter((r) => r && s(r.job_id))\n  .map((r) => ({ job_id: s(r.job_id), job_status: s(r.job_status), gd_no: s(r.gd_no), error_code: s(r.error_code), error_message: s(r.error_message), command: s(r.command),\n    progress_message: s(r.progress_message) }));\nreturn { code: \"200\", message: busy.length ? busy.length + \" sales order(s) still have a delivery saving in the background\" : \"\", busy_json: JSON.stringify(busy), busy_count: String(busy.length),\n  jobs_json: JSON.stringify(jobs), jobs_count: String(jobs.length) };"
+        },
+        "response_json": [
+          {
+            "key": "32uzcvig",
+            "name": "code",
+            "title": "code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1ko3bh6z",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fzmgfpak",
+            "name": "busy_json",
+            "title": "busy_json",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ei3w5c6x",
+            "name": "busy_count",
+            "title": "busy_count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "nax09br6",
+            "name": "jobs_json",
+            "title": "jobs_json",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "2dv8kvi9",
+            "name": "jobs_count",
+            "title": "jobs_count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Result: the busy sales orders and the asked jobs",
+        "isValidator": true,
+        "nodeName": "Result: the busy sales orders and the asked jobs",
+        "name": "Result: the busy sales orders and the asked jobs"
+      },
+      "blocks": []
+    },
+    {
+      "id": "return_node_SCdone",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return",
+        "isValidator": true,
+        "nodeName": "Return",
+        "name": "Return",
+        "response_value": {
+          "list": [
+            {
+              "prop": "code",
+              "propLabel": "code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "message",
+              "propLabel": "message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "busy_json",
+              "propLabel": "busy_json",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.busy_json}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "busy_count",
+              "propLabel": "busy_count",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.busy_count}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "jobs_json",
+              "propLabel": "jobs_json",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.jobs_json}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "jobs_count",
+              "propLabel": "jobs_count",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_SCresult.data.jobs_count}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "title": "End Node",
+        "isValidator": true,
+        "nodeName": "End Node",
+        "name": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

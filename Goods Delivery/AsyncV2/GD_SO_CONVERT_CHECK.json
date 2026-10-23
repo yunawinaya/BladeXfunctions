@@ -379,7 +379,7 @@
                 "name": "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress",
                 "script": {
                   "type": "sql",
-                  "code": "SELECT CAST(j.id AS CHAR) AS job_id,\n       j.job_status,\n       IFNULL(j.gd_no, '') AS gd_no,\n       IFNULL(j.error_code, '') AS error_code,\n       LEFT(IFNULL(j.error_message, ''), 500) AS error_message,\n       j.command,\n       LEFT(IFNULL(j.progress_message, ''), 250) AS progress_message\n  FROM JSON_TABLE('{{node:code_node_SCguard.data.jobIdsJson}}', '$[*]' COLUMNS (jid VARCHAR(20) PATH '$')) t\n  JOIN gd_async_job j\n    ON j.id = CAST(t.jid AS UNSIGNED)\n   AND j.tenant_id = '{{system:tenantId}}'\n   AND j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD', 'REVERT_GD')\n   AND j.is_deleted = 0\n LIMIT 200"
+                  "code": "SELECT CAST(j.id AS CHAR) AS job_id,\n       j.job_status,\n       IFNULL(j.gd_no, '') AS gd_no,\n       IFNULL(j.error_code, '') AS error_code,\n       LEFT(IFNULL(j.error_message, ''), 500) AS error_message,\n       IF(JSON_VALID(j.error_details), CAST(JSON_OBJECT('line_errors', IFNULL(JSON_EXTRACT(j.error_details, '$.line_errors[0 to 9]'), JSON_ARRAY()), 'line_error_count', IFNULL(JSON_LENGTH(j.error_details, '$.line_errors'), 0)) AS CHAR), '') AS error_details,\n       j.command,\n       LEFT(IFNULL(j.progress_message, ''), 250) AS progress_message\n  FROM JSON_TABLE('{{node:code_node_SCguard.data.jobIdsJson}}', '$[*]' COLUMNS (jid VARCHAR(20) PATH '$')) t\n  JOIN gd_async_job j\n    ON j.id = CAST(t.jid AS UNSIGNED)\n   AND j.tenant_id = '{{system:tenantId}}'\n   AND j.command IN ('CREATE_GD_FROM_FORM', 'CANCEL_GD', 'REVERT_GD')\n   AND j.is_deleted = 0\n LIMIT 200"
                 },
                 "response_json": [
                   {
@@ -428,6 +428,15 @@
                     "children": []
                   },
                   {
+                    "key": "0kgqxugc",
+                    "name": "error_details",
+                    "title": "error_details",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
                     "key": "x2j9vagm",
                     "name": "command",
                     "title": "command",
@@ -462,7 +471,7 @@
         "timeout": 30000,
         "script": {
           "type": "javascript",
-          "code": "// GD_SO_CONVERT_CHECK - Result: the busy sales orders (busy_json: [{so_id, job_id, job_status}]) and the asked jobs (jobs_json)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst asList = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []);\nconst seen = {};\nconst busy = [];\nfor (const r of asList([{{node:sql_node_SCbusy.data}}][0]).filter((r) => r && s(r.so_id))) {\n  if (seen[s(r.so_id)]) continue;\n  seen[s(r.so_id)] = true;\n  busy.push({ so_id: s(r.so_id), job_id: s(r.job_id), job_status: s(r.job_status) });\n}\nconst jobs = asList([{{node:sql_node_SCjobs.data}}][0])\n  .filter((r) => r && s(r.job_id))\n  .map((r) => ({ job_id: s(r.job_id), job_status: s(r.job_status), gd_no: s(r.gd_no), error_code: s(r.error_code), error_message: s(r.error_message), command: s(r.command),\n    progress_message: s(r.progress_message) }));\nreturn { code: \"200\", message: busy.length ? busy.length + \" sales order(s) still have a delivery saving in the background\" : \"\", busy_json: JSON.stringify(busy), busy_count: String(busy.length),\n  jobs_json: JSON.stringify(jobs), jobs_count: String(jobs.length) };"
+          "code": "// GD_SO_CONVERT_CHECK - Result: the busy sales orders (busy_json: [{so_id, job_id, job_status}]) and the asked jobs (jobs_json)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst asList = (rows) => (Array.isArray(rows) ? rows : rows ? [rows] : []);\nconst seen = {};\nconst busy = [];\nfor (const r of asList([{{node:sql_node_SCbusy.data}}][0]).filter((r) => r && s(r.so_id))) {\n  if (seen[s(r.so_id)]) continue;\n  seen[s(r.so_id)] = true;\n  busy.push({ so_id: s(r.so_id), job_id: s(r.job_id), job_status: s(r.job_status) });\n}\nconst jobs = asList([{{node:sql_node_SCjobs.data}}][0])\n  .filter((r) => r && s(r.job_id))\n  .map((r) => ({ job_id: s(r.job_id), job_status: s(r.job_status), gd_no: s(r.gd_no), error_code: s(r.error_code), error_message: s(r.error_message), error_details: s(r.error_details), command: s(r.command),\n    progress_message: s(r.progress_message) }));\nreturn { code: \"200\", message: busy.length ? busy.length + \" sales order(s) still have a delivery saving in the background\" : \"\", busy_json: JSON.stringify(busy), busy_count: String(busy.length),\n  jobs_json: JSON.stringify(jobs), jobs_count: String(jobs.length) };"
         },
         "response_json": [
           {

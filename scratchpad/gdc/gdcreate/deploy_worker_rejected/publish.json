@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_ASYNC_WORKER",
+   "dataId": "2104840667119411201",
+   "file": "Goods Delivery/AsyncV2/GD_ASYNC_WORKER.json",
+   "base": "scratchpad/gdc/gdcreate/deploy_worker_rejected/GD_ASYNC_WORKER.live_base.json"
+  }
+ ]
+}

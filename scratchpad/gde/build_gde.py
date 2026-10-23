@@ -215,6 +215,7 @@ P_READS = [
     ("pick", "The Pickings naming it (headers)", ["j"]), ("picki", "Their item rows", ["j"]), ("pickr", "Their records", ["j"]),
     ("bins", "The bins their records name (the reversal message)", ["j"]), ("pfmt", "The organization's Picking serial rule", ["j"]),
     ("lock", "Its latest lock (shared with GD Completed V2)", ["step_name", "result_ref"]),
+    ("uoms", "The unit names of its lines and of the edit (the unit guard's message; SUBMIT only)", ["j"]),
     ("aitem", "Auto allocation: Get Item (GLOBAL_ALLOCATION's) of every material a row may need allocated for", ["j"]),
     ("abal", "Auto allocation: their item / batch balances at the plant (no row limit)", ["k", "j"]),
     ("ares", "Auto allocation: their reservations GLOBAL_ALLOCATION reads (SO Pending, HU-allocated, this GD's own)", ["k", "j"]),
@@ -259,7 +260,7 @@ def build_prepare():
  WHERE j.tenant_id = '@TEN'
    AND j.id = @JOBID""", TEN=TEN, JOBID=JOBID)
     res_fields = ["job_id", "job_status", "result_code", "result_message", "evidence"]
-    keys = [k for k, _, _ in P_READS]
+    keys = [k for k, _, _ in P_READS if k != "uoms"]   # the unit guard refuses in SUBMIT, before anything is written
     entry_small = "{ route: %s, jobId: %s, rowVersion: %s, dbNow: %s, jsAt: %s, result_code: %s, result_message: %s, request: { stored_status: %s, hold: %s } }" % tuple(
         d(E, "data." + f) for f in ["route", "jobId", "rowVersion", "dbNow", "jsAt", "result_code", "result_message", "request.stored_status", "request.hold"])
     plan_tail = tail("entry.route !== \"GO\" ? { route: \"FAIL\", code: entry.result_code, message: entry.result_message, operationKey: \"\", organizationId: entry.organizationId, "
@@ -1127,7 +1128,7 @@ def build_worker():
 
 
 # =============================================================================================== GD_EDIT_SUBMIT
-S_READS = ["hdr", "lines", "setup", "link", "items", "sohl", "soh", "pick", "picki", "pickr", "bins", "pfmt", "lock", "aitem", "abal", "ares", "aref"]  # the gates stop before the planner: no alloc / pend
+S_READS = ["hdr", "lines", "setup", "link", "items", "sohl", "soh", "pick", "picki", "pickr", "bins", "pfmt", "lock", "aitem", "abal", "ares", "aref", "uoms"]  # the gates stop before the planner: no alloc / pend
 SUB_RES = ["route", "code", "message", "reason", "command", "job_id", "job_status", "gd_id", "gd_no", "line_count", "progress_percent", "progress_message",
            "error_code", "error_message", "picking_reversal_note", "credit_limit_note", "cascade_ref", "evidence"]
 GATE_MODS = ["gdc/lift/runtime.js", "@lift", "gdc/code/prepare/chain.js", "gdc/code/prepare/adapter.js", "code/prepare/alloc_edit.js", "code/prepare/chain_edit.js", "code/submit/delta.js",
@@ -1292,7 +1293,7 @@ def build_submit():
     param = lambda name: "(() => { const v = [{{workflowparams:%s}}][0]; if (typeof v !== \"string\") return v; try { return JSON.parse(v); } catch (e) { return null; } })()" % name
     E_FIELDS = ["route", "code", "message", "reason", "tenantId", "gdId", "gdNo", "organizationId", "plantId", "lineCount", "dbNow", "lockN", "storedStatus", "command", "jobId",
                 "jobStatus", "progressPercent", "progressMessage", "errorCode", "errorMessage", "notes", "cascadeRef", "deltaMaterialIdsSql", "deltaSoLineIdsSql", "deltaSoLineIdsQuoted",
-                "deltaSoIdsSql", "deltaAllocMaterialIdsSql", "deltaAllocLineIdsSql"]
+                "deltaSoIdsSql", "deltaAllocMaterialIdsSql", "deltaAllocLineIdsSql", "deltaUomIdsSql"]
     E_SMALL = pick(E, ["route", "code", "message", "reason", "gdNo", "lineCount", "command", "jobId", "jobStatus", "progressPercent", "progressMessage", "errorCode",
                        "errorMessage", "notes", "cascadeRef"])
     gate_pre = ("const guard = %s;\nconst entry = %s;\nconst S = Object.assign({ organizationId: entry.organizationId, fcPartRows: " + d("sql_node_GSfcd") + " || [] }, %s);\n"

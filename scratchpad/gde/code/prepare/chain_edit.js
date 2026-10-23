@@ -6,6 +6,22 @@
 // IN.mint = { line(n) -> placeholder id, number -> placeholder delivery_no }; IN.gatesOnly stops after the gates (SUBMIT);
 // IN.lenient lets a parity test skip nodes its recording lacks.
 const GE_DRAFT_WRITE_EXTRA = ["delivery_no_type"];
+// sql_node_GdUomGuard's rows (GOODS_DELIVERY v246's unit guard) from reads the edit already has: the stored status (GD), each item's
+// base unit, stock control and conversions with base_qty > 0 (ITEM, as its GROUP_CONCAT), the unit names (UNIT: SUBMIT reads
+// them; without them the lifted message names "unit <id>")
+const geUomGuardRows = function geUomGuardRows(R, stored) {
+  const s = (v) => (v === undefined || v === null ? "" : String(v));
+  const rows = [{ kind: "GD", k: s((stored || {}).gd_status), base_uom: "", stock_control: "", conv: "", name: "" }];
+  for (const it of (R || {}).itemDatas || []) {
+    let conv = it.uom_conversion_json;
+    if (typeof conv === "string") { try { conv = JSON.parse(conv); } catch (e) { conv = []; } }
+    const ok = (Array.isArray(conv) ? conv : []).filter((c) => c && Number(c.base_qty) > 0).map((c) => s(c.alt_uom_id));
+    rows.push({ kind: "ITEM", k: s(it.id), base_uom: s(it.based_uom), stock_control: s(it.stock_control), conv: ok.join(","), name: s(it.material_name) });
+  }
+  for (const u of (R || {}).uomNames || []) rows.push({ kind: "UNIT", k: s(u.id), base_uom: "", stock_control: "", conv: "", name: s(u.uom_name) });
+  return rows;
+};
+
 const geChain = function geChain(IN) {
   const R = IN.reads;
   const out = { route: "PLANNED", code: "200", message: "", ran: [], gates: null, write: null, afterImage: null, minted: {} };
@@ -40,6 +56,17 @@ const geChain = function geChain(IN) {
   const chain = () => {
     // a parity test replaying an older recording seeds the read nodes that version had (e.g. search_node_w1NxF9TX)
     for (const [k, v] of Object.entries(IN.extraReads || {})) read(k, v);
+    // if_GdUomGuard (GOODS_DELIVERY v246, after its SO guard): a stored Draft saved as Created may not carry a stock line in a unit
+    // its item does not have; a stored Created GD is never refused
+    if (__N.code_node_GdUomGuard) {
+      const uomGate = run("code_node_GdUomGuard");
+      if (s(uomGate.check) === "YES") {
+        read("sql_node_GdUomGuard", geUomGuardRows(R, IN.stored));
+        const uomCheck = run("code_node_GdUomCheck");
+        // if_GdUomCheck
+        if (s(uomCheck.refuse) === "YES") return stop("400", s(uomCheck.message));
+      }
+    }
     // if_gr_gate_completed (saveAs Completed or Created): GR gate. Internal-trading linkage stays on the classic save
     run("code_gr_soids");
     read("search_gr_linkage", R.linkage || S0);

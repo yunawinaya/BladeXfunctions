@@ -42,11 +42,12 @@ const submitGuard = function submitGuard(inp) {
   for (const x of Array.isArray(hdrSo) ? hdrSo : s(hdrSo).split(",")) if (digits(s(x).trim())) soIds.add(s(x).trim());
   const sql = (arr) => (arr.length ? arr.join(",") : "0");
   const soLines = ids("so_line_item_id");
+  const uoms = [...new Set(ids("gd_order_uom_id").concat(ids("good_delivery_uom_id")))];
   return answer("CONTINUE", "", "", {
     soIdsSql: sql([...soIds]),
     fcdRef: source === "PICKING_FC" ? fcdRef : "", causationJobId: source === "PICKING_FC" ? causationJobId : "", pickingId: source === "PICKING_FC" ? pickingId : "",
     operation: op, gdId: gdId, tenantId: tenantId, source: source, cascadeRef: cascadeRef, uid: s(inp.uid), answers: { needCL: s(a.needCL) || "required", continueZero: s(a.continueZero), confirmPickReversal: s(a.confirmPickReversal) },
-    idLists: Object.assign({ deltaMaterialIdsSql: sql(ids("material_id")), deltaSoLineIdsSql: sql(soLines), deltaSoLineIdsQuoted: soLines.length ? soLines.map((x) => "'" + x + "'").join(",") : "'0'", deltaSoIdsSql: sql([...soIds]) },
+    idLists: Object.assign({ deltaMaterialIdsSql: sql(ids("material_id")), deltaUomIdsSql: sql(uoms), deltaSoLineIdsSql: sql(soLines), deltaSoLineIdsQuoted: soLines.length ? soLines.map((x) => "'" + x + "'").join(",") : "'0'", deltaSoIdsSql: sql([...soIds]) },
       useForm ? geAllocIds(rows, []) : geAllocIds((delta || {}).added, (delta || {}).lines)),
   });
 };

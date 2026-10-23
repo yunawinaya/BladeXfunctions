@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_PICKING_OUTBOX_CONSUMER",
+   "dataId": "2105134245397041153",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_PICKING_OUTBOX_CONSUMER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_PICKING_OUTBOX_CONSUMER/v13_20261023-113538.enabled.json"
+  }
+ ]
+}

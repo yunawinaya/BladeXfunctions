@@ -11,6 +11,7 @@ const GD_V2_WF = {
   CANCEL: "2105663419715063810", // GD_ASYNC_CANCEL
   STOCK_CHECK: "2105663605526925314", // GD_STOCK_CHECK
   WORKER: "2104840667119411201", // GD_ASYNC_WORKER: started once right after a job is queued (the scheduled Quartz worker is the safety net)
+  CHECK: "2112084100104495105", // GD_SO_CONVERT_CHECK: the job's status and errors while the form waits for PREPARE's verdict
 };
 
 // Switch: true = NEW deliveries of every organization saved as Created are submitted asynchronously (GD_ASYNC_SUBMIT;
@@ -302,6 +303,74 @@ const gdV2Call = (workflowId, params) =>
     }
   });
 
+// The form waits for PREPARE's verdict on a new save (10-23): a refusal (a unit without a conversion, short stock ...) is
+// shown here with its lines, as the classic save refuses at the click; READY_TO_COMMIT or later = accepted.
+const GD_V2_FOLLOW_MS = 90000;
+const gdV2FollowJob = async (jobId, kick) => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const deadline = Date.now() + GD_V2_FOLLOW_MS;
+  let kickedAt = Date.now();
+  while (Date.now() < deadline) {
+    await sleep(2000);
+    // a job waiting out a retry backoff moves only when kicked again
+    if (Date.now() - kickedAt >= 15000) {
+      kickedAt = Date.now();
+      kick();
+    }
+    const r = await gdV2Call(GD_V2_WF.CHECK, { job_ids: [jobId] });
+    if (!r.ok) continue;
+    let jobs = [];
+    try {
+      jobs = JSON.parse(String(r.data.jobs_json || "[]"));
+    } catch (e) {
+      jobs = [];
+    }
+    const j = (Array.isArray(jobs) ? jobs : []).find((x) => x && String(x.job_id) === String(jobId));
+    if (!j || ["QUEUED", "VALIDATING", "CALCULATING"].indexOf(String(j.job_status)) >= 0) continue;
+    return j;
+  }
+  return null;
+};
+// PREPARE names a unit by its id ("unit 2113... has no conversion"): one read on a refusal turns the ids into names
+const gdV2UnitNames = async (j) => {
+  const ids = Array.from(new Set((String(j.error_message || "") + " " + String(j.error_details || "")).match(/unit [0-9]{6,20}/g) || [])).map((t) => t.slice(5));
+  const names = {};
+  if (!ids.length) return names;
+  try {
+    const res = await db.collection("unit_of_measurement").filter([{ type: "branch", operator: "all", children: [{ prop: "id", operator: "in", value: ids }] }]).get();
+    for (const u of (res && res.data) || []) if (u && u.id !== undefined && u.id !== null && u.uom_name) names[String(u.id)] = String(u.uom_name);
+  } catch (e) {
+    console.error("GD V2: unit names could not be read - the refusal shows unit ids", e);
+  }
+  return names;
+};
+const gdV2RefusalText = (j, rows, units) => {
+  const esc = (t) => String(t === undefined || t === null ? "" : t).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const named = (t) => String(t).replace(/unit ([0-9]{6,20})/g, (m, id) => (units && units[id] ? "unit " + units[id] : m));
+  let errs = [];
+  let total = 0;
+  try {
+    // GD_SO_CONVERT_CHECK sends the first 10 line errors and line_error_count
+    const d = JSON.parse(String(j.error_details || "{}"));
+    errs = Array.isArray(d.line_errors) ? d.line_errors : [];
+    total = Number(d.line_error_count) || errs.length;
+  } catch (e) {
+    errs = [];
+  }
+  const lineText = (e) => {
+    const m = String(e.stable_line_key || "").match(/^L(\d+)(?:\.(\d+))?$/);
+    const top = m ? (rows || [])[Number(m[1]) - 1] : null;
+    const row = m && m[2] && top ? (Array.isArray(top.children) ? top.children : [])[Number(m[2]) - 1] : top;
+    const name = row && row.material_name ? " (" + row.material_name + ")" : "";
+    return (m ? "Line " + m[1] + (m[2] ? "." + m[2] : "") : "Header") + name + ": " + named(e.message || e.code || "");
+  };
+  // the job's own message is the first line's: with line errors, the lines alone
+  if (!errs.length) return esc(named(j.error_message || j.error_code || "The delivery could not be created."));
+  const shown = errs.slice(0, 10).map((e) => esc(lineText(e)));
+  const more = total > shown.length ? "<br>... and " + (total - shown.length) + " more" : "";
+  return esc(total + (total === 1 ? " line needs" : " lines need") + " correcting:") + "<br><br>" + shown.join("<br>") + more;
+};
+
 // Closes the dialog and refreshes the list behind it - the frozen save's closeDialog, verbatim.
 const closeDialog = () => {
   if (this.parentGenerateForm) {
@@ -456,29 +525,54 @@ const closeDialog = () => {
       this.$message.error(outcome.message);
       return;
     }
-    await this.setData({ gd_v2_job_id: res.data.job_id });
+    const jobId = String(res.data.job_id || "");
+    await this.setData({ gd_v2_job_id: jobId });
     this.models["_data"] = { ...this.models["_data"], gd_v2_page_token: null };
-    this.hide(["button_save_as_draft", "button_save_as_created", "button_save_as_completed"]);
-    this.$message.success(outcome.message);
-    closeDialog();
+    const saveButtons = ["button_save_as_draft", "button_save_as_created", "button_save_as_completed"];
+    this.hide(saveButtons);
     // start the worker now instead of at the next scheduled tick (2026-10-02 editor change, kept). The job is already
     // queued and the scheduled Quartz worker is the safety net: a failed start is logged only, never shown to the user.
-    try {
-      this.runWorkflow(
-        GD_V2_WF.WORKER,
-        {job_id: this.getValue('gd_v2_job_id')},
-        (r) => {
-          console.log("GD V2: worker started after the submit", r);
-          // the list behind the closed dialog shows the new delivery once the worker is done (2026-10-03 editor
-          // change, v1464). Refresh only - never closeDialog() again: the worker can take minutes and by then a new
-          // delivery may be open in the dialog; hiding it would lose that user's input.
-          if (this.parentGenerateForm) this.parentGenerateForm.refresh();
-        },
-        (e) => console.error("GD V2: worker start failed - the scheduled worker picks the job up", e),
-      );
-    } catch (e) {
-      console.error("GD V2: worker could not be started - the scheduled worker picks the job up", e);
+    const startWorker = () => {
+      try {
+        this.runWorkflow(
+          GD_V2_WF.WORKER,
+          { job_id: jobId },
+          (r) => {
+            console.log("GD V2: worker started after the submit", r);
+            // the list behind the closed dialog shows the new delivery once the worker is done (2026-10-03 editor
+            // change, v1464). Refresh only - never closeDialog() again: the worker can take minutes and by then a new
+            // delivery may be open in the dialog; hiding it would lose that user's input.
+            if (this.parentGenerateForm) this.parentGenerateForm.refresh();
+          },
+          (e) => console.error("GD V2: worker start failed - the scheduled worker picks the job up", e),
+        );
+      } catch (e) {
+        console.error("GD V2: worker could not be started - the scheduled worker picks the job up", e);
+      }
+    };
+    startWorker();
+    if (UXC.ux_of_job[String(res.data.job_status || "")] !== "CREATED") {
+      this.showLoading("Checking Goods Delivery...");
+      let verdict = null;
+      try {
+        verdict = await gdV2FollowJob(jobId, startWorker);
+      } finally {
+        this.hideLoading();
+      }
+      if (verdict && (verdict.job_status === "FAILED" || verdict.job_status === "CANCELLED")) {
+        this.display(saveButtons);
+        const units = await gdV2UnitNames(verdict);
+        await this.$alert(gdV2RefusalText(verdict, values.table_gd, units), "Goods Delivery not created", { confirmButtonText: "OK", type: "error", dangerouslyUseHTMLString: true });
+        return;
+      }
+      if (verdict && UXC.ux_of_job[String(verdict.job_status)] === "CREATED" && verdict.gd_no) {
+        this.$message.success("Goods Delivery " + verdict.gd_no + " created.");
+        closeDialog();
+        return;
+      }
     }
+    this.$message.success(outcome.message);
+    closeDialog();
   } catch (error) {
     this.models["_data"] = { ...this.models["_data"], gd_v2_submitting: 0 };
     this.hideLoading();

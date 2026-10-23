@@ -1,0 +1,9 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  { "name": "GD_BULK_COMMIT", "dataId": "2104840402446245890", "file": "Goods Delivery/AsyncV2/GD_BULK_COMMIT.json", "base": "scratchpad/gdc/gdcreate/deploy_max_retries/GD_BULK_COMMIT.live_base.json" },
+  { "name": "GD_JOB_RECONCILE", "dataId": "2105133877053263874", "file": "Goods Delivery/AsyncV2/GD_JOB_RECONCILE.json", "base": "scratchpad/gdc/gdcreate/deploy_max_retries/GD_JOB_RECONCILE.live_base.json" },
+  { "name": "GD_ASYNC_WORKER", "dataId": "2104840667119411201", "file": "Goods Delivery/AsyncV2/GD_ASYNC_WORKER.json", "base": "scratchpad/gdc/gdcreate/deploy_max_retries/GD_ASYNC_WORKER.live_base.json" }
+ ]
+}

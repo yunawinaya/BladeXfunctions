@@ -1,0 +1,7 @@
+[
+ {
+  "job_status": "FAILED",
+  "error_code": "GD_ITEM_NOT_SUPPORTED",
+  "error_details": "{\"line_errors\":[{\"allocation_sequence\":1,\"code\":\"GD_ITEM_NOT_SUPPORTED\",\"field\":\"temp_qty_data\",\"line_no\":1,\"message\":\"allocation 1: the stock balance at this bin is in unit 2018906563477008386, but the item's base unit is unit 2018906563477008389: the stock and the item must use the same unit\",\"stable_line_key\":\"L1\"}],\"staging_hash\":\"3c5b0ef396aa280e7547244995aa3ca5fcce4d9979cb6e84ec4536607676abaa\"}"
+ }
+]

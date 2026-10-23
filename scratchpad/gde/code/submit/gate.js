@@ -67,5 +67,7 @@ const gsUnstale = function gsUnstale(R, stale) {
 };
 const submitGate = function submitGate(guard, entry, S, form, K) {
   const g = guard.source === "PICKING_FC" ? Object.assign({}, guard, { fcParts: fcParts((S || {}).fcPartRows) }) : guard;
-  return submitGateOn(g, entry, gsUnstale(geAdapt(S), entry.staleLocks), form, K);
+  const R = gsUnstale(geAdapt(S), entry.staleLocks);
+  R.uomNames = gcRows((S || {}).uoms).map((r) => gcParse(r.j));
+  return submitGateOn(g, entry, R, form, K);
 };

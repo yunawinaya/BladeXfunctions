@@ -1,0 +1,1 @@
+{"code":200,"data":{"code":"400","message":"This transfer is still being saved as PT/202610230270. Wait a moment, then check the Plant Transfer list.","result_code":"PT_SAVE_IN_PROGRESS","id":"2113471744621322241","stock_movement_no":"PT/202610230270","stock_movement_status":"Issued","replayed":"0"},"msg":"操作成功","success":true}

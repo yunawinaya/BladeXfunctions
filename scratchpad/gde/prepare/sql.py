@@ -23,6 +23,7 @@ DM = "{{node:%s.data.deltaMaterialIdsSql}}" % E      # 1,2,3 | 0
 DSL = "{{node:%s.data.deltaSoLineIdsSql}}" % E       # 1,2,3 | 0 (bigint compare)
 DSLQ = "{{node:%s.data.deltaSoLineIdsQuoted}}" % E   # '1','2' | '0' (varchar compare: on_reserved_gd.parent_line_id)
 DSO = "{{node:%s.data.deltaSoIdsSql}}" % E           # 1,2,3 | 0
+DU = "{{node:%s.data.deltaUomIdsSql}}" % E           # 1,2,3 | 0 (the edit's line units: SUBMIT's unit guard)
 LINES = f"goods_delivery_fwii8mvb_sub gl WHERE gl.tenant_id = {T} AND gl.goods_delivery_id = {G} AND gl.is_deleted = 0"
 GD_SO = f"SELECT js.s FROM goods_delivery g, JSON_TABLE(g.so_id, '$[*]' COLUMNS (s BIGINT PATH '$')) js WHERE g.tenant_id = {T} AND g.id = {G}"
 PLANT = f"(SELECT g.plant_id FROM goods_delivery g WHERE g.tenant_id = {T} AND g.id = {G})"
@@ -76,6 +77,15 @@ SQL = {
     ),
     # SO lines: every line of the GD's SOs (stored + edited) and any line a GD line points at (stored + edited); projected to
     # the columns the SO nodes read; the chain filters the searches by the ids the deployed nodes search on
+    # the unit names of its lines (stored + edited) for GOODS_DELIVERY v246's unit guard message (sql_node_GdUomGuard's UNIT rows)
+    "uoms": (
+        "SELECT JSON_OBJECT('id', CAST(u.id AS CHAR), 'uom_name', u.uom_name) AS j\n"
+        "  FROM unit_of_measurement u\n"
+        f" WHERE u.tenant_id = {T} AND u.is_deleted = 0\n"
+        f"   AND (u.id IN (SELECT gl.gd_order_uom_id FROM {LINES} AND gl.gd_order_uom_id IS NOT NULL)\n"
+        f"        OR u.id IN (SELECT gl.good_delivery_uom_id FROM {LINES} AND gl.good_delivery_uom_id IS NOT NULL)\n"
+        f"        OR u.id IN ({DU}))\n ORDER BY u.id"
+    ),
     "sohl": (
         "SELECT JSON_OBJECT('id', CAST(sl.id AS CHAR), 'sales_order_id', CAST(sl.sales_order_id AS CHAR), 'parent_id', CAST(sl.parent_id AS CHAR),\n"
         "       'item_bundle_id', CAST(sl.item_bundle_id AS CHAR), 'item_name', sl.item_name, 'so_quantity', sl.so_quantity,\n"

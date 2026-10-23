@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_EDIT_PREPARE",
+   "dataId": "2110618832105033730",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_EDIT_PREPARE/v8_20261023-120203.enabled.json"
+  },
+  {
+   "name": "GD_EDIT_SUBMIT",
+   "dataId": "2110618741159940097",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_EDIT_SUBMIT/v11_20261023-120203.enabled.json"
+  }
+ ]
+}

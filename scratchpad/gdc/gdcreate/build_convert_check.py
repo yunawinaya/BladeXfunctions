@@ -44,6 +44,7 @@ SQL_JOBS = """SELECT CAST(j.id AS CHAR) AS job_id,
        IFNULL(j.gd_no, '') AS gd_no,
        IFNULL(j.error_code, '') AS error_code,
        LEFT(IFNULL(j.error_message, ''), 500) AS error_message,
+       IF(JSON_VALID(j.error_details), CAST(JSON_OBJECT('line_errors', IFNULL(JSON_EXTRACT(j.error_details, '$.line_errors[0 to 9]'), JSON_ARRAY()), 'line_error_count', IFNULL(JSON_LENGTH(j.error_details, '$.line_errors'), 0)) AS CHAR), '') AS error_details,
        j.command,
        LEFT(IFNULL(j.progress_message, ''), 250) AS progress_message
   FROM JSON_TABLE('{{node:code_node_SCguard.data.jobIdsJson}}', '$[*]' COLUMNS (jid VARCHAR(20) PATH '$')) t
@@ -66,7 +67,7 @@ for (const r of asList([{{node:sql_node_SCbusy.data}}][0]).filter((r) => r && s(
 }
 const jobs = asList([{{node:sql_node_SCjobs.data}}][0])
   .filter((r) => r && s(r.job_id))
-  .map((r) => ({ job_id: s(r.job_id), job_status: s(r.job_status), gd_no: s(r.gd_no), error_code: s(r.error_code), error_message: s(r.error_message), command: s(r.command),
+  .map((r) => ({ job_id: s(r.job_id), job_status: s(r.job_status), gd_no: s(r.gd_no), error_code: s(r.error_code), error_message: s(r.error_message), error_details: s(r.error_details), command: s(r.command),
     progress_message: s(r.progress_message) }));
 return { code: "200", message: busy.length ? busy.length + " sales order(s) still have a delivery saving in the background" : "", busy_json: JSON.stringify(busy), busy_count: String(busy.length),
   jobs_json: JSON.stringify(jobs), jobs_count: String(jobs.length) };"""
@@ -86,7 +87,7 @@ doc = K.workflow(
          ("cai_SCbusy", "Busy sales orders", [K.sql("sql_node_SCbusy", "Unfinished background saves (CREATE_GD_FROM_FORM) delivering one of the sales orders", SQL,
                                                     ["so_id", "job_id", "job_status"])]),
          ("cai_SCjobs", "Asked jobs", [K.sql("sql_node_SCjobs", "The asked GD Created V2 / GD Cancel V2 / GD Revert V2 jobs (tenant-scoped): status, delivery number, error, progress", SQL_JOBS,
-                                             ["job_id", "job_status", "gd_no", "error_code", "error_message", "command", "progress_message"])])]),
+                                             ["job_id", "job_status", "gd_no", "error_code", "error_message", "error_details", "command", "progress_message"])])]),
      K.code("code_node_SCresult", "Result: the busy sales orders and the asked jobs", RESULT, FIELDS),
      K.ret("return_node_SCdone", "Return", [(f, "{{node:code_node_SCresult.data.%s}}" % f) for f in FIELDS])])
 # a literal answer value on the reject return (not a field reference)

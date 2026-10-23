@@ -1,0 +1,539 @@
+if_8nnoEcce  [if]  IF Cancelled
+  ifBlock_UxTsliZf  [ifBlock]  true
+    get_node_ulAJ3pZj  [get-node]  Get PT Data
+  ifBlock_e3GxtGo3  [ifBlock]  false
+code_node_37LA0tgq  [code-node]  fillbackHeaderFields
+code_node_NU42FdSx  [code-node]  Required Fields
+workflow_node_ir64Efom  [workflow-node]  Check Required Workflow
+if_xt9ggNcS  [if]  IF Validation Failed
+  ifBlock_5OU9mIGR  [ifBlock]  true
+    return_node_3f4coAKs  [return-node]  Return Data
+  ifBlock_PcuRVFBf  [ifBlock]  false
+search_node_PTspLive  [search-node]  Get Stock Pickings
+code_node_PTspGuard  [code-node]  Stock Picking Guard
+if_PTspGuard  [if]  IF Picking Active
+  if_PTspGuard_t  [ifBlock]  true
+    return_node_PTspGuard  [return-node]  Return Data
+  if_PTspGuard_f  [ifBlock]  false
+if_ADfSBw9s  [if]  IF !Draft & !Cancelled
+  ifBlock_MH3rehUV  [ifBlock]  true
+    code_node_2KYYOugP  [code-node]  Validate Quantity
+    if_cTnyTJQJ  [if]  IF Val Quantity Failed
+      ifBlock_oE9L4On1  [ifBlock]  true
+        return_node_BPjx0PPx  [return-node]  Return Data
+      ifBlock_LC3exGbl  [ifBlock]  false
+    code_node_PTvldLns1  [code-node]  Validate Inventory Lines
+    if_PTvldLnsFail  [if]  IF Line Validation Failed
+      ifBlock_PTvldTrue  [ifBlock]  true
+        return_node_PTvldFail  [return-node]  Return Data
+      ifBlock_PTvldFalse  [ifBlock]  false
+    get_node_tt0natxw  [get-node]  Get Plant Transfer Setup
+    if_dZZCTYSc  [if]  IF No Plant Transfer Setup
+      if_block_3W6wzNAF  [ifBlock]  true
+        return_node_MTuVoYjU  [return-node]  Return Data
+      if_block_gD5sAwyf  [ifBlock]  false
+  ifBlock_qfyVvnau  [ifBlock]  false
+if_0YQ51d7X  [if]  IF Cancelled
+  ifBlock_3E3QDUdq  [ifBlock]  true
+    code_node_PtCancelItemIDs  [code-node]  Collect Item IDs (Cancel)
+    condition_all_PTcancelCtx  [condition-all-node]  Parallel Branch
+      condition_all_item_PTcancelItems  [condition-all-node-item]  Items
+        search_node_PtCancelItems  [search-node]  Get Items (Cancel)
+      condition_all_item_PTcancelSetup  [condition-all-node-item]  PT Setup
+        get_node_PTcancelSetup  [get-node]  Get Plant Transfer Setup (Cancel)
+      condition_all_item_PTcancelBin  [condition-all-node-item]  Receiving Default Bin
+        get_node_PTcancelStorLoc  [get-node]  Get Receiving Default Storage Location (Cancel)
+        get_node_PTcancelBin  [get-node]  Get Receiving Default Bin (Cancel)
+      condition_all_item_PTcancelChild  [condition-all-node-item]  Receiving Child
+        search_node_PTcancelChild  [search-node]  Get Receiving Child
+    code_node_PTcancelChildFlag  [code-node]  Child Flag & Cancel Guard
+    if_PTcancelGuard  [if]  IF Cancel Blocked
+      ifBlock_PTcancelGuardTrue  [ifBlock]  true
+        return_node_PTcancelGuard  [return-node]  Return Data
+      ifBlock_PTcancelGuardFalse  [ifBlock]  false
+    code_node_PTcancelCompute  [code-node]  Compute Cancel Movements
+    code_node_PTcancelKey  [code-node]  Create Cache Key
+    set_cache_node_PTcancelInit  [set-cache-node]  Set Movement Index
+    loop_PTcancelMove  [loop]  Loop Cancel Movements
+      get_cache_node_PTcancelIdx  [get-cache-node]  Get Movement Index
+      code_node_PTcancelPick  [code-node]  Pick Movement
+      workflow_node_PTcancelSub  [workflow-node]  Subtract Inventory Workflow
+      if_PTcancelSubErr  [if]  IF Error
+        if_PTcancelSubErr_t  [ifBlock]  true
+          return_node_PTcancelSubErr  [return-node]  Return Data
+        if_PTcancelSubErr_f  [ifBlock]  false
+      workflow_node_PTcancelAdd  [workflow-node]  Add Inventory Workflow
+      if_PTcancelAddErr  [if]  IF Error
+        if_PTcancelAddErr_t  [ifBlock]  true
+          return_node_PTcancelAddErr  [return-node]  Return Data
+        if_PTcancelAddErr_f  [ifBlock]  false
+      set_cache_node_PTcancelNext  [set-cache-node]  Set Movement nextIndex
+    search_node_PTcancelOpenTransit  [search-node]  Get Open In Transit
+    code_node_PTcancelClose  [code-node]  Close In Transit Ledger
+    if_PTcancelLedger  [if]  IF hasTransitUpdates
+      if_PTcancelLedger_t  [ifBlock]  true
+        update_node_PTcancelLedger  [update-node]  Close In Transit Rows
+      if_PTcancelLedger_f  [ifBlock]  false
+    if_PTcancelChild  [if]  IF hasChild
+      if_PTcancelChild_t  [ifBlock]  true
+        update_node_PTcancelChild  [update-node]  Cancel Sibling Child
+      if_PTcancelChild_f  [ifBlock]  false
+    search_node_JXM2g1CY  [search-node]  Get HUs at Receiving Default - Cancel
+    condition_or_node_nkWGjwko  [condition-or-node]  Condition
+      condition_or_node_item_t2A1fL68  [condition-or-node-item]  generate_new_batch === 0
+        code_node_LBQQpQnR  [code-node]  Aggregate Cancel HU Moves
+        if_bXGy3SUm  [if]  IF huMovesLength > 0
+          ifBlock_KFI8tFfP  [ifBlock]  true
+            loop_aKvWTpyi  [loop]  Loop Cancel HU Moves
+              code_node_dW6tJK1G  [code-node]  Pick Cancel HU Move
+              workflow_node_yklixJY7  [workflow-node]  Run HU Workflow - Cancel Move
+              if_nmdGdMHz  [if]  IF Error - Cancel Move
+                ifBlock_W7WE1MZf  [ifBlock]  true
+                  return_node_ASjyrB0B  [return-node]  Return Error - Cancel Move
+                ifBlock_c8KY2PMS  [ifBlock]  false
+          ifBlock_Hw5j0v4u  [ifBlock]  false
+      condition_or_node_item_VYHl1Leg  [condition-or-node-item]  generate_new_batch === 1
+        code_node_YzQzAhFb  [code-node]  Aggregate Cancel HU Unloads
+        if_aea1dpog  [if]  IF huUnloadsLength > 0
+          ifBlock_alLUgi4A  [ifBlock]  true
+            loop_J2OEHMwA  [loop]  Loop Cancel HU Unloads
+              code_node_zo5eCUgA  [code-node]  Pick Cancel HU Unload
+              workflow_node_4RoKbxSW  [workflow-node]  Run HU Workflow - Cancel Unload
+              if_H0mLYpBA  [if]  IF Error - Cancel Unload
+                ifBlock_6TAvHhlC  [ifBlock]  true
+                  return_node_qFlDXvWW  [return-node]  Return Error - Cancel Unload
+                ifBlock_sOq3PS7o  [ifBlock]  false
+          ifBlock_PxwqGxLU  [ifBlock]  false
+        code_node_C66a7Ymz  [code-node]  Aggregate Cancel HU Loads
+        if_eKDeyB2x  [if]  IF huLoadsLength > 0
+          ifBlock_xXDIGMDI  [ifBlock]  true
+            loop_hemznr9i  [loop]  Loop Cancel HU Loads
+              code_node_2pMBuMZ0  [code-node]  Pick Cancel HU Load
+              workflow_node_CjVBGLDG  [workflow-node]  Run HU Workflow - Cancel Load
+              if_MrPwi2ZG  [if]  IF Error - Cancel Load
+                ifBlock_NMvzZL0W  [ifBlock]  true
+                  return_node_cnrwxuGV  [return-node]  Return Error - Cancel Load
+                ifBlock_VG70cGSx  [ifBlock]  false
+          ifBlock_pNxUhDQc  [ifBlock]  false
+    update_node_b8q8hwYV  [update-node]  Update SM Cancelled
+    return_node_iXoBuyz2  [return-node]  Return Data
+  ifBlock_rYFKx0fT  [ifBlock]  false
+if_STqBEwA4  [if]  IF Issued
+  ifBlock_jtW6n8Tc  [ifBlock]  true
+    code_node_PTaggDmd1  [code-node]  Aggregate Demand
+    code_node_PTissChkKey  [code-node]  Create Cache Key
+    set_cache_node_PTissChkInit  [set-cache-node]  Set Check Index
+    loop_PTissChk  [loop]  Loop Aggregated Demand
+      get_cache_node_PTissChkIdx  [get-cache-node]  Get Check Index
+      code_node_PTissPrechkPick  [code-node]  Pick Balance
+      workflow_node_PTissChk  [workflow-node]  Check Inventory
+      if_PTissChkFail  [if]  IF Error
+        if_PTissChkFail_t  [ifBlock]  true
+          return_node_PTissChkFail  [return-node]  Return Data
+        if_PTissChkFail_f  [ifBlock]  false
+      set_cache_node_PTissChkNext  [set-cache-node]  Set Check nextIndex
+  ifBlock_IM0wUKsa  [ifBlock]  false
+if_VJJ4Zve9  [if]  IF !Draft
+  ifBlock_2qOyDsPv  [ifBlock]  true
+    set_cache_node_BGARRinit  [set-cache-node]  Init Generated Batches
+    if_GenNewBatch  [if]  IF Generate New Batch
+      if_GenNewBatch_t  [ifBlock]  true
+        loop_BatchGen  [loop]  Loop Generate Batch
+          code_node_BatchGenPrep  [code-node]  Batch Gen Prep
+          if_NeedsGen  [if]  IF needsGen
+            if_NeedsGen_t  [ifBlock]  true
+              workflow_node_GenBatch  [workflow-node]  Generate Batch
+              code_node_NormalizeBatch  [code-node]  Normalize Batch Result
+              if_BatchErr  [if]  IF Batch Error
+                if_BatchErr_t  [ifBlock]  true
+                  return_node_BatchErr  [return-node]  Return Data
+                if_BatchErr_f  [ifBlock]  false
+              get_cache_node_BGARRget  [get-cache-node]  Get Generated Batches
+              code_node_AppendBatch  [code-node]  Append Generated Batch
+              set_cache_node_BGARRset  [set-cache-node]  Set Generated Batches
+            if_NeedsGen_f  [ifBlock]  false
+      if_GenNewBatch_f  [ifBlock]  false
+    get_cache_node_BGARRfinal  [get-cache-node]  Get Generated Batches Final
+    code_node_ApplyBatches  [code-node]  Apply Generated Batches
+    get_node_unHMLYXN  [get-node]  Get Receiving Default Storage Location
+    get_node_WtFOLdKB  [get-node]  Get Receiving Default Bin
+    if_BZvAhHVQ  [if]  IF Edit Mode
+      ifBlock_vbo6GhX5  [ifBlock]  true
+        search_node_PTeditGuardCheck  [search-node]  Get Received Child
+        code_node_PTeditGuardFlag  [code-node]  Receipt Started Flag
+        if_PTeditGuard  [if]  IF Receipt Started
+          if_PTeditGuard_t  [ifBlock]  true
+            return_node_PTeditGuard  [return-node]  Return Data
+          if_PTeditGuard_f  [ifBlock]  false
+        get_node_1wi90Edk  [get-node]  Get initialData
+        code_node_PTstaleFlag  [code-node]  Stale Payload Flag
+        if_PTstale  [if]  IF Stale Payload
+          if_PTstale_t  [ifBlock]  true
+            return_node_PTstale  [return-node]  Return Data
+          if_PTstale_f  [ifBlock]  false
+        code_node_jRmthJue  [code-node]  Compare Data
+        condition_or_node_k59wK72C  [condition-or-node]  Condition
+          condition_or_node_item_z4Tv1Wn6  [condition-or-node-item]  isDifferent
+            code_node_A8hTl5B7  [code-node]  Readjustment Balance Data
+            condition_all_node_59vT2uh6  [condition-all-node]  Parallel Branch
+              condition_all_node_item_HDNKFXsx  [condition-all-node-item]  balanceToAdd
+                loop_yXqauA87  [loop]  Loop balanceToAdd
+                  code_node_7HzTnOCE  [code-node]  balanceToAdd Data
+                  workflow_node_dF7Cgngl  [workflow-node]  Subtract Inventory Workflow
+                  if_fFPPD4Ve  [if]  IF subtractInventory Failed
+                    ifBlock_RyKFo85Q  [ifBlock]  true
+                      return_node_fXqD3O9Z  [return-node]  Return Data
+                    ifBlock_PfHchNNz  [ifBlock]  false
+                  workflow_node_FOKiw0oQ  [workflow-node]  Add Inventory Workflow
+                  if_8EST0p32  [if]  IF addInventory Failed
+                    ifBlock_aKIzbhEb  [ifBlock]  true
+                      return_node_K0PTyy1H  [return-node]  Return Data
+                    ifBlock_YAuLk4bf  [ifBlock]  false
+              condition_all_node_item_0lkvHkdH  [condition-all-node-item]  balanceToSubtract
+                loop_lpu08U43  [loop]  Loop balanceToSubtract
+                  code_node_uRpuU37V  [code-node]  balanceToSubtract Data
+                  workflow_node_QNXCzw23  [workflow-node]  Subtract Inventory Workflow
+                  if_ZfmJ4Im7  [if]  IF subtractInventory Failed
+                    ifBlock_AQLCqFpS  [ifBlock]  true
+                      return_node_pwfwexoO  [return-node]  Return Data
+                    ifBlock_Cia5oDyr  [ifBlock]  false
+                  workflow_node_4LJrxRxS  [workflow-node]  Add Inventory Workflow
+                  if_74IJ03sY  [if]  IF addInventory Failed
+                    ifBlock_OyP9DJvN  [ifBlock]  true
+                      return_node_eASr6kUL  [return-node]  Return Data
+                    ifBlock_mFaqK82I  [ifBlock]  false
+            search_node_oB4E7S7n  [search-node]  Get HUs at Receiving Default - Edit
+            condition_or_node_vuShaCr0  [condition-or-node]  Condition - Edit Add HU
+              condition_or_node_item_hQZ2ASth  [condition-or-node-item]  generate_new_batch === 0
+                code_node_NVuL9Wdq  [code-node]  Aggregate Edit Add HU Moves
+                if_xzj0kDXH  [if]  IF huMovesLength > 0
+                  ifBlock_XsmEnVGp  [ifBlock]  true
+                    loop_bSdcSTiE  [loop]  Loop Edit Add HU Moves
+                      code_node_aIXnpwhU  [code-node]  Pick Edit Add HU Move
+                      workflow_node_TUVves2L  [workflow-node]  Run HU Workflow - Edit Add Move
+                      if_0T3RFSOe  [if]  IF Error - Edit Add Move
+                        ifBlock_Olkg2Vmi  [ifBlock]  true
+                          return_node_h59SfigL  [return-node]  Return Error - Edit Add Move
+                        ifBlock_OHkQDBUL  [ifBlock]  false
+                  ifBlock_IshbBQm1  [ifBlock]  false
+              condition_or_node_item_tuoducFO  [condition-or-node-item]  generate_new_batch === 1
+                code_node_xYO2Z1W5  [code-node]  Aggregate Edit Add HU Unloads
+                if_FboABoA4  [if]  IF huUnloadsLength > 0
+                  ifBlock_3luHilMd  [ifBlock]  true
+                    loop_OeFViuZR  [loop]  Loop Edit Add HU Unloads
+                      code_node_ueS8Dg28  [code-node]  Pick Edit Add HU Unload
+                      workflow_node_rTstGthA  [workflow-node]  Run HU Workflow - Edit Add Unload
+                      if_4aDXw1s2  [if]  IF Error - Edit Add Unload
+                        ifBlock_o8HCsghA  [ifBlock]  true
+                          return_node_1g8zTLiT  [return-node]  Return Error - Edit Add Unload
+                        ifBlock_J3oBdP8G  [ifBlock]  false
+                  ifBlock_yiscfjk5  [ifBlock]  false
+                code_node_rAJfVXGa  [code-node]  Aggregate Edit Add HU Loads
+                if_gYsOApkc  [if]  IF huLoadsLength > 0
+                  ifBlock_ogXHXTEg  [ifBlock]  true
+                    loop_fsBfhHpN  [loop]  Loop Edit Add HU Loads
+                      code_node_hO0izzhZ  [code-node]  Pick Edit Add HU Load
+                      workflow_node_0vXW1KLJ  [workflow-node]  Run HU Workflow - Edit Add Load
+                      if_7qFbOzon  [if]  IF Error - Edit Add Load
+                        ifBlock_NvWd77gH  [ifBlock]  true
+                          return_node_Gc6G3Anr  [return-node]  Return Error - Edit Add Load
+                        ifBlock_1VN0Uk2f  [ifBlock]  false
+                  ifBlock_KcislzCN  [ifBlock]  false
+            condition_or_node_AeXyDUZe  [condition-or-node]  Condition - Edit Sub HU
+              condition_or_node_item_EcPHjcFd  [condition-or-node-item]  generate_new_batch === 0
+                code_node_1rmvyvuJ  [code-node]  Aggregate Edit Sub HU Moves
+                if_Pv4Cud4Y  [if]  IF huMovesLength > 0
+                  ifBlock_W530OmeV  [ifBlock]  true
+                    loop_MJmOfDne  [loop]  Loop Edit Sub HU Moves
+                      code_node_PtIlvFeq  [code-node]  Pick Edit Sub HU Move
+                      workflow_node_e5RmAMma  [workflow-node]  Run HU Workflow - Edit Sub Move
+                      if_d6mqcWkH  [if]  IF Error - Edit Sub Move
+                        ifBlock_FubSa13Z  [ifBlock]  true
+                          return_node_I7WMi4dM  [return-node]  Return Error - Edit Sub Move
+                        ifBlock_c6iXaKVV  [ifBlock]  false
+                  ifBlock_EO5vF8zh  [ifBlock]  false
+              condition_or_node_item_bI6xUI5t  [condition-or-node-item]  generate_new_batch === 1
+                code_node_Et49hiDd  [code-node]  Aggregate Edit Sub HU Unloads
+                if_aMHEgjlA  [if]  IF huUnloadsLength > 0
+                  ifBlock_a3GV4WSW  [ifBlock]  true
+                    loop_OKm9mOn5  [loop]  Loop Edit Sub HU Unloads
+                      code_node_28XiNqT0  [code-node]  Pick Edit Sub HU Unload
+                      workflow_node_cqvKISP6  [workflow-node]  Run HU Workflow - Edit Sub Unload
+                      if_oTVO3HGl  [if]  IF Error - Edit Sub Unload
+                        ifBlock_tSazDUiv  [ifBlock]  true
+                          return_node_83H4tOWC  [return-node]  Return Error - Edit Sub Unload
+                        ifBlock_3ax06M90  [ifBlock]  false
+                  ifBlock_7i6a7h9u  [ifBlock]  false
+                code_node_NWQ5fOxc  [code-node]  Aggregate Edit Sub HU Loads
+                if_bUDkpfLE  [if]  IF huLoadsLength > 0
+                  ifBlock_IRPgnuO1  [ifBlock]  true
+                    loop_MMNhPvNH  [loop]  Loop Edit Sub HU Loads
+                      code_node_2TUNNT88  [code-node]  Pick Edit Sub HU Load
+                      workflow_node_b1982Bw7  [workflow-node]  Run HU Workflow - Edit Sub Load
+                      if_784Avsuk  [if]  IF Error - Edit Sub Load
+                        ifBlock_5OEYfiHC  [ifBlock]  true
+                          return_node_OLVvBy22  [return-node]  Return Error - Edit Sub Load
+                        ifBlock_9h6PN6iW  [ifBlock]  false
+                  ifBlock_8lJyeyFE  [ifBlock]  false
+            code_node_PTeditMats  [code-node]  Edit Reconcile Material IDs
+            search_node_PTeditOpenTransit  [search-node]  Get In Transit Rows
+            search_node_PTeditItems  [search-node]  Get Items
+            code_node_PTeditLedger  [code-node]  Reconcile In Transit Ledger
+            if_PTeditLedgerAdd  [if]  IF hasTransitCreates
+              if_PTeditLedgerAdd_t  [ifBlock]  true
+                add_node_PTeditLedger  [add-node]  Add In Transit Detail
+              if_PTeditLedgerAdd_f  [ifBlock]  false
+            if_PTeditLedgerUpd  [if]  IF hasTransitUpdates
+              if_PTeditLedgerUpd_t  [ifBlock]  true
+                update_node_PTeditLedger  [update-node]  Reduce In Transit Rows
+              if_PTeditLedgerUpd_f  [ifBlock]  false
+          condition_or_node_item_M8XF1jAC  [condition-or-node-item]  !isDifferent
+        if_HkQ99jhp  [if]  IF !Draft
+          ifBlock_4Erb4s4f  [ifBlock]  true
+            update_node_Zcjd67TS  [update-node]  Update SM Data
+            get_node_4dlFjR7S  [get-node]  Get Updated SM Data
+            if_qkJxWYey  [if]  IF Issued
+              ifBlock_4PkFwNjb  [ifBlock]  true
+                return_node_WMSDo6w6  [return-node]  Return Data
+              ifBlock_2Obm4wus  [ifBlock]  false
+          ifBlock_KRBFrRpY  [ifBlock]  false
+            update_node_4r4pCsZ9  [update-node]  Update SM Draft
+            get_node_hKyBHbyx  [get-node]  Get Updated SM Draft
+      ifBlock_z3jpUTa6  [ifBlock]  false
+        if_KsfbQBe2  [if]  IF Issued
+          if_block_NyTCq6-E  [ifBlock]  true
+            add_node_5Wstw9z2  [add-node]  Add SM Data
+          if_block_4xYdCsJk  [ifBlock]  false
+    search_node_oOEYwCue  [search-node]  Get HUs at Receiving Default
+    condition_or_952aTk8a  [condition-or-node]  Condition
+      condition_or_item_PTcreated  [condition-or-node-item]  Save As Created
+        code_node_PtIssuedRows_Res  [code-node]  Resolve Rows (Issued)
+        search_node_PtIssuedItems_Res  [search-node]  Get Items (Issued)
+        condition_all_PTspFetch  [condition-all-node]  Parallel Branch
+          condition_all_item_PTspRes  [condition-all-node-item]  Branch 1
+            search_node_PTresOpen  [search-node]  Get Open Reservations
+          condition_all_item_PTspRule  [condition-all-node-item]  Branch 2
+            get_node_PTspRule  [get-node]  Get Stock Picking Format
+          condition_all_item_PTspDoc  [condition-all-node-item]  Branch 3
+            code_node_PTspDocId  [code-node]  Resolve Persisted Doc ID
+            get_node_PTspDoc  [get-node]  Get Persisted SM Doc
+        code_node_PTresCompute  [code-node]  Compute Reserve Movements
+        code_node_PTissKey_Res  [code-node]  Create Cache Key
+        set_cache_node_PTissInit_Res  [set-cache-node]  Set Movement Index
+        loop_PTissMove_Res  [loop]  Loop Issued Movements
+          get_cache_node_PTissIdx_Res  [get-cache-node]  Get Movement Index
+          code_node_PTissPick_Res  [code-node]  Pick Movement
+          workflow_node_PTissSub_Res  [workflow-node]  Subtract Inventory Workflow
+          if_PTissSubErr_Res  [if]  IF Error
+            if_PTissSubErr_t_Res  [ifBlock]  true
+              return_node_PTissSubErr_Res  [return-node]  Return Data
+            if_PTissSubErr_f_Res  [ifBlock]  false
+          workflow_node_PTissAdd_Res  [workflow-node]  Add Inventory Workflow
+          if_PTissAddErr_Res  [if]  IF Error
+            if_PTissAddErr_t_Res  [ifBlock]  true
+              return_node_PTissAddErr_Res  [return-node]  Return Data
+            if_PTissAddErr_f_Res  [ifBlock]  false
+          set_cache_node_PTissNext_Res  [set-cache-node]  Set Movement nextIndex
+        condition_all_PTresLedger  [condition-all-node]  Parallel Branch
+          condition_all_item_PTresCreate  [condition-all-node-item]  Branch 1
+            if_PTresCreate  [if]  IF hasReserveCreates
+              if_PTresCreate_t  [ifBlock]  true
+                add_node_PTresCreate  [add-node]  Add Reservations
+              if_PTresCreate_f  [ifBlock]  false
+          condition_all_item_PTresClose  [condition-all-node-item]  Branch 2
+            if_PTresClose  [if]  IF hasReserveUpdates
+              if_PTresClose_t  [ifBlock]  true
+                update_node_PTresClose  [update-node]  Close Reservations
+              if_PTresClose_f  [ifBlock]  false
+        code_node_PTspBuild  [code-node]  Build Stock Picking
+        if_PTspCreate  [if]  IF needsCreate
+          if_PTspCreate_t  [ifBlock]  true
+            add_node_PTspCreate  [add-node]  Add Stock Picking
+            update_node_PTspHead  [update-node]  Update PT Picking Status
+            update_node_PTspLines  [update-node]  Update PT Line Picking Status
+          if_PTspCreate_f  [ifBlock]  false
+      condition_or_node_item_KJ3j77Vi  [condition-or-node-item]  Save As Issued
+        code_node_PtIssuedRows  [code-node]  Resolve Rows (Issued)
+        search_node_PtIssuedItems  [search-node]  Get Items (Issued)
+        search_node_PTresOpenIss  [search-node]  Get Open Reservations
+        code_node_PTissCompute  [code-node]  Compute Issued Movements
+        code_node_PTissKey  [code-node]  Create Cache Key
+        set_cache_node_PTissInit  [set-cache-node]  Set Movement Index
+        loop_PTissMove  [loop]  Loop Issued Movements
+          get_cache_node_PTissIdx  [get-cache-node]  Get Movement Index
+          code_node_PTissPick  [code-node]  Pick Movement
+          workflow_node_PTissSub  [workflow-node]  Subtract Inventory Workflow
+          if_PTissSubErr  [if]  IF Error
+            if_PTissSubErr_t  [ifBlock]  true
+              return_node_PTissSubErr  [return-node]  Return Data
+            if_PTissSubErr_f  [ifBlock]  false
+          workflow_node_PTissAdd  [workflow-node]  Add Inventory Workflow
+          if_PTissAddErr  [if]  IF Error
+            if_PTissAddErr_t  [ifBlock]  true
+              return_node_PTissAddErr  [return-node]  Return Data
+            if_PTissAddErr_f  [ifBlock]  false
+          set_cache_node_PTissNext  [set-cache-node]  Set Movement nextIndex
+        get_node_PTissLines  [get-node]  Get Persisted SM Lines
+        code_node_PTissLedger  [code-node]  Stage In Transit Ledger
+        if_PTissLedgerAdd  [if]  IF hasTransitCreates
+          if_PTissLedgerAdd_t  [ifBlock]  true
+            add_node_PTissLedger  [add-node]  Add In Transit Detail
+          if_PTissLedgerAdd_f  [ifBlock]  false
+        if_PTissResClose  [if]  IF hasReserveUpdates
+          if_PTissResClose_t  [ifBlock]  true
+            update_node_PTissResClose  [update-node]  Close Reservations
+          if_PTissResClose_f  [ifBlock]  false
+      condition_or_item_KBr1hk2L  [condition-or-node-item]  Save As In Progress
+        set_cache_node_kGHbHPgt  [set-cache-node]  Set Final SubForm Array
+        code_node_PtIpItemIDs  [code-node]  Collect Item IDs (In Progress)
+        search_node_PtIpItems  [search-node]  Get Items (In Progress)
+        loop_QuxHTmva  [loop]  Loop SubForm
+          code_node_oO9ISt7e  [code-node]  Subform Preparation
+          if__RbDzWQ0  [if]  IF Existing Batch Config
+            if_block_qgef4AOZ  [ifBlock]  true
+              code_node_rdyrD4Tx  [code-node]  BalanceIndex Preparation
+              set_cache_node_l6IBFxOV  [set-cache-node]  Set New SubForm Array
+              loop_qeaeOQHn  [loop]  Loop BalanceIndex
+                code_node_CdNEX3lE  [code-node]  Balance Data
+                workflow_node_a0efvb83  [workflow-node]  Calculate Cost Price
+                get_cache_node_I2KYKxnP  [get-cache-node]  Get New SubForm Array
+                code_node_9E4f9nuV  [code-node]  Create new subForm
+                set_cache_node_0jMjmb8v  [set-cache-node]  Set New SubForm Array
+              get_cache_node_3r4vvEU5  [get-cache-node]  Get Final New SubForm Array
+              get_cache_node_UUFBAW3M  [get-cache-node]  Get Final SubForm Array
+              code_node_xcJDRoPP  [code-node]  Update subForm
+              set_cache_node_PPmfXHmG  [set-cache-node]  Set Final SubForm Array
+            if_block_uwAbJyUq  [ifBlock]  false
+              workflow_node_ZUj84fhM  [workflow-node]  Calculate Cost Price
+              get_cache_node_q5H4wa4T  [get-cache-node]  Get Final SubForm Array
+              code_node_vRuaPu72  [code-node]  Update subForm
+              set_cache_node_gIoDcDby  [set-cache-node]  Set Final SubForm Array
+        get_cache_node_ZChs3u34  [get-cache-node]  Get Final SubForm Data
+        search_node_PTChild  [search-node]  Get Existing Receiving Child
+        code_node_PTChildFlag  [code-node]  Child Flag
+        if_PTChildBad  [if]  IF Child Not Created
+          ifBlock_PTChildBadTrue  [ifBlock]  true
+            return_node_PTChildBad  [return-node]  Return Data
+          ifBlock_PTChildBadFalse  [ifBlock]  false
+        search_node_d8bhuxPm  [search-node]  Get PT Number Rule
+        code_node_DuDWkVDG  [code-node]  Add SM Data Preparation
+        if_PTHasChild  [if]  IF hasChild
+          ifBlock_PTHasChildTrue  [ifBlock]  true
+            update_node_PTChildUpd  [update-node]  Update SM Child Data
+          ifBlock_PTHasChildFalse  [ifBlock]  false
+            add_node_u455hdU9  [add-node]  Add SM Data
+      condition_or_node_item_ahSKHVkZ  [condition-or-node-item]  Save As Completed
+        code_node_PtCompletedRows  [code-node]  Resolve Rows (Completed)
+        search_node_PtCompletedItems  [search-node]  Get Items (Completed)
+        search_node_PTcompOpenTransit  [search-node]  Get In Transit Rows
+        code_node_PTcompCompute  [code-node]  Compute Completed Movements
+        if_PTcompShort  [if]  IF In Transit Shortage
+          if_PTcompShort_t  [ifBlock]  true
+            code_node_PTcompRevert  [code-node]  Resolve Pre-Write Status
+            update_node_PTcompRevert  [update-node]  Revert Status On Shortage
+            return_node_PTcompShort  [return-node]  Return Data
+          if_PTcompShort_f  [ifBlock]  false
+        loop_PTcompSub  [loop]  Loop Completed Subtracts
+          code_node_PTcompSubPick  [code-node]  Pick Subtract
+          workflow_node_PTcompSub  [workflow-node]  Subtract Inventory Workflow
+          if_PTcompSubErr  [if]  IF Error
+            if_PTcompSubErr_t  [ifBlock]  true
+              return_node_PTcompSubErr  [return-node]  Return Data
+            if_PTcompSubErr_f  [ifBlock]  false
+        loop_PTcompAdd  [loop]  Loop Completed Adds
+          code_node_PTcompAddPick  [code-node]  Pick Add
+          if_PTcompNewBatch  [if]  IF Generate New Batch
+            if_PTcompNewBatch_t  [ifBlock]  true
+              workflow_node_PTcompAddA  [workflow-node]  Add Inventory Workflow
+              if_PTcompAddAErr  [if]  IF Error
+                if_PTcompAddAErr_t  [ifBlock]  true
+                  return_node_PTcompAddAErr  [return-node]  Return Data
+                if_PTcompAddAErr_f  [ifBlock]  false
+            if_PTcompNewBatch_f  [ifBlock]  false
+              workflow_node_PTcompAddB  [workflow-node]  Add Inventory Workflow
+              if_PTcompAddBErr  [if]  IF Error
+                if_PTcompAddBErr_t  [ifBlock]  true
+                  return_node_PTcompAddBErr  [return-node]  Return Data
+                if_PTcompAddBErr_f  [ifBlock]  false
+        if_PTcompLedger  [if]  IF hasTransitUpdates
+          if_PTcompLedger_t  [ifBlock]  true
+            update_node_PTcompLedger  [update-node]  Consume In Transit Rows
+          if_PTcompLedger_f  [ifBlock]  false
+        if_PTcompLeftover  [if]  IF hasLeftover
+          if_PTcompLeftover_t  [ifBlock]  true
+            search_node_PTcompRule  [search-node]  Get PT Number Rule
+            code_node_PTcompLeftoverPrep  [code-node]  Leftover Child Prep
+            add_node_PTcompLeftover  [add-node]  Add Leftover Child
+          if_PTcompLeftover_f  [ifBlock]  false
+        if_PTcompParentDone  [if]  IF Fully Received
+          if_PTcompParentDone_t  [ifBlock]  true
+            update_node_Z6Cf93rn  [update-node]  Update Issuing SM Data
+          if_PTcompParentDone_f  [ifBlock]  false
+    if_XDawY4DH  [if]  IF saveAs Issued
+      if_block_-fG4aOFF  [ifBlock]  true
+        condition_or_QLNZ42ir  [condition-or-node]  Condition
+          condition_or_node_item_sgzIBv9u  [condition-or-node-item]  generate_new_batch === 0
+            code_node_OZh6QgX1  [code-node]  Aggregate HU Moves
+            if_ECVIIrYS  [if]  IF huMovesLength > 0
+              if_block_-DxL8yij  [ifBlock]  true
+                loop_18CrDIZf  [loop]  Loop HU Moves
+                  code_node_A1Z9qIwd  [code-node]  Pick HU Move
+                  workflow_node_bTkGOXBp  [workflow-node]  Run HU Workflow - Move
+                  if_k8C8UBrv  [if]  IF Error - Move
+                    if_block_C5R010Xz  [ifBlock]  true
+                      return_node_qhlcHGG2  [return-node]  Return Error - Move
+                    if_block_NcNl7KFc  [ifBlock]  false
+              if_block_gFPr_eeT  [ifBlock]  false
+          condition_or_node_item_CdFH47YO  [condition-or-node-item]  generate_new_batch === 1
+            code_node_ZYuNYkNd  [code-node]  Aggregate HU Unloads
+            if_OvzKYyhi  [if]  IF huUnloadsLength > 0
+              if_block_9Wd2aMOH  [ifBlock]  true
+                loop_Ekw7Ly2h  [loop]  Loop HU Unloads
+                  code_node_ysb4m0z5  [code-node]  Pick HU Unload
+                  workflow_node_VCV62MGa  [workflow-node]  Run HU Workflow - Unload
+                  if_Pgzr8dFx  [if]  IF Error - Unload
+                    ifBlock_DVCA0TCi  [ifBlock]  true
+                      return_node_leEsw0IY  [return-node]  Return Error - Unload
+                    ifBlock_4UXdd62r  [ifBlock]  false
+              if_block_wAsLRxwb  [ifBlock]  false
+            code_node_r5aSEG0t  [code-node]  Extract Source HU IDs
+            search_node_tBwsc1WZ  [search-node]  Get Source HUs at Issuing
+            code_node_SDfzbJQw  [code-node]  Aggregate HU Loads
+            if_cLmPtJPY  [if]  IF huLoadsLength > 0
+              ifBlock_Fl0j6Che  [ifBlock]  true
+                loop_4kLP1ORi  [loop]  Loop HU Loads
+                  code_node_anTdo1md  [code-node]  Pick HU Load
+                  workflow_node_0BHN20ST  [workflow-node]  Run HU Workflow - Load
+                  if_Wdnka0rg  [if]  IF Error - Load
+                    ifBlock_xyNFUGsf  [ifBlock]  true
+                      return_node_5bU7Rqpo  [return-node]  Return Error - Load
+                    ifBlock_Fn9voFSY  [ifBlock]  false
+              ifBlock_74BGZSUR  [ifBlock]  false
+      if_block_KbFZ6WIK  [ifBlock]  false
+    if_ReorderPtIssued  [if]  IF Issued (Reorder)
+      if_block_ReorderPtTrue  [ifBlock]  true
+        workflow_node_ReorderPtIssued  [workflow-node]  Run Reorder Redis Workflow (PT Issued)
+      if_block_ReorderPtFalse  [ifBlock]  false
+    if_YQ7SsSK1  [if]  IF saveAs Completed
+      if_block_XAowe0eW  [ifBlock]  true
+        code_node_ItXi8Yt7  [code-node]  Aggregate HU Final Moves
+        if_CqxQPZiR  [if]  IF huMovesLength > 0
+          ifBlock_dVCkZcpt  [ifBlock]  true
+            loop_lkQzfXGR  [loop]  Loop HU Final Moves
+              code_node_Zhp3pnkN  [code-node]  Pick HU Final Move
+              workflow_node_Bzm7VOez  [workflow-node]  Run HU Workflow - Final Move
+              if_ScVfCqdq  [if]  IF Error - Final Move
+                ifBlock_Hc534ch0  [ifBlock]  true
+                  return_node_SVTQXH6z  [return-node]  Return Error - Final Move
+                ifBlock_fLEPfbsq  [ifBlock]  false
+          ifBlock_tQQviV9p  [ifBlock]  false
+      if_block_BWHlPlYP  [ifBlock]  false
+  ifBlock_FmiBl9d2  [ifBlock]  false
+    if_iMZznv5F  [if]  IF Edit Mode
+      ifBlock_JrMdH5AV  [ifBlock]  true
+        update_node_aY15G0bP  [update-node]  Update SM Draft
+      ifBlock_J0FOeHun  [ifBlock]  false
+        add_node_QyZ0Zyck  [add-node]  Add SM Draft
+code_node_ozYIFP2S  [code-node]  updateItemTransactionDate
+update_node_BHkVzxmD  [update-node]  Update Item Transaction
+return_node_tTXARceR  [return-node]  Return Data
