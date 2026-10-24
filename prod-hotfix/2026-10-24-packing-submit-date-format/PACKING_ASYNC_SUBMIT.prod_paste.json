@@ -1,0 +1,1924 @@
+{
+  "request_json": [
+    {
+      "key": "1rwvilxv",
+      "name": "packing_id",
+      "title": "packing_id",
+      "description": "packing.id (digits)",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "mzlw4mk5",
+      "name": "organization_id",
+      "title": "organization_id",
+      "description": "the Packing's organization (digits)",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "7xs5mhwe",
+      "name": "operation",
+      "title": "operation",
+      "description": "COMPLETE (Save as Completed) or STATUS (read only: the latest job)",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "yjlmbwa4",
+      "name": "idempotency_key",
+      "title": "idempotency_key",
+      "description": "16-128 of A-Z a-z 0-9 : _ | -, one per click (a retry of the same click reuses it)",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "ztsj1g51",
+      "name": "header_patch",
+      "title": "header_patch",
+      "description": "JSON text or object: the header fields of the form (remarks, remarks_2, remarks_3, di_shipping_method, di_driver_name, di_ic_no, di_driver_contact_no, di_shipping_company, di_transport_name, di_vehicle_number, di_est_delivery_date, di_est_arrival_date, di_pickup_date, di_validity_of_collection, di_tracking_number, di_freight_charges)",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+    },
+    {
+      "key": "qjjbvoeb",
+      "name": "submitted_name",
+      "title": "submitted_name",
+      "description": "the user's name, for messages",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+    }
+  ],
+  "response_json": [
+    {
+      "key": "vqk4d0xo",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ugfqpxx0",
+      "name": "result_code",
+      "title": "result_code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "7ao7bt5q",
+      "name": "result_message",
+      "title": "result_message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "o2kjbu2g",
+      "name": "job_id",
+      "title": "job_id",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "ppij9125",
+      "name": "job_status",
+      "title": "job_status",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    }
+  ],
+  "config": {},
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start-node",
+      "data": {
+        "title": "Start Node",
+        "isValidator": true,
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_KSguard",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// PACKING_ASYNC_SUBMIT - Guard: the inputs, the header fields the form sends (whitelisted), the session tenant and user\nconst submitGuard = function submitGuard(input, FIELDS) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const inp = input || {};\n  const tenantId = s(inp.systemTenantId);\n  const packingId = s(inp.packingId);\n  const org = s(inp.organizationId);\n  const op = s(inp.operation).toUpperCase() || \"COMPLETE\";\n  const key = s(inp.idempotencyKey);\n  const bad = (why) => ({ route: \"REJECT\", tenantId: \"0\", packingId: \"0\", organizationId: \"0\", operation: op, idempotencyKey: \"\", userName: \"\", patch: {}, result_code: \"400\", result_message: why });\n  if (!/^[0-9]{1,20}$/.test(tenantId)) return bad(\"no session tenant\");\n  if (!/^[0-9]{1,20}$/.test(packingId)) return bad(\"packing_id: digits only\");\n  if (!/^[0-9]{1,20}$/.test(org)) return bad(\"organization_id: digits only\");\n  const ok = { route: \"CONTINUE\", tenantId: tenantId, packingId: packingId, organizationId: org, operation: op, idempotencyKey: key, userName: s(inp.userName).slice(0, 100), patch: {}, result_code: \"\", result_message: \"\" };\n  // STATUS: read-only, the Packing's latest job for the form (the browser cannot read gd_async_job itself)\n  if (op === \"STATUS\") return Object.assign(ok, { route: \"STATUS\", idempotencyKey: \"\" });\n  if (op !== \"COMPLETE\") return bad(\"operation must be COMPLETE or STATUS\");\n  if (!/^[A-Za-z0-9:_|-]{16,128}$/.test(key)) return bad(\"idempotency_key: 16-128 of A-Z a-z 0-9 : _ | -\");\n  let patch = inp.headerPatch;\n  if (typeof patch === \"string\") {\n    try {\n      patch = patch ? JSON.parse(patch) : {};\n    } catch (e) {\n      return bad(\"header_patch is not valid JSON\");\n    }\n  }\n  patch = patch && typeof patch === \"object\" && !Array.isArray(patch) ? patch : {};\n  const out = {};\n  for (const k of FIELDS) {\n    if (!Object.prototype.hasOwnProperty.call(patch, k)) continue;\n    const v = patch[k];\n    if (v !== null && typeof v === \"object\") return bad(\"header_patch.\" + k + \" is not a value\");\n    // di_freight_charges is decimal and Packing has no format node: as code_node_7u6VSG8X writes it\n    if (k === \"di_freight_charges\") out[k] = v === null || v === undefined || s(v) === \"\" ? null : (parseFloat(v) || 0).toFixed(2);\n    else if (k === \"di_vehicle_number\") out[k] = /^[0-9]{1,20}$/.test(s(v)) ? s(v) : null;\n    else out[k] = v === undefined ? null : v;\n  }\n  return Object.assign(ok, { patch: out });\n};\nconst res = submitGuard({ packingId: [{{workflowparams:packing_id}}][0], organizationId: [{{workflowparams:organization_id}}][0], operation: [{{workflowparams:operation}}][0],\n  idempotencyKey: [{{workflowparams:idempotency_key}}][0], headerPatch: [{{workflowparams:header_patch}}][0], userName: [{{workflowparams:submitted_name}}][0],\n  systemTenantId: [{{system:tenantId}}][0] }, [\"remarks\", \"remarks_2\", \"remarks_3\", \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\"]);\nconsole.log(\"submit guard\", JSON.stringify({ route: res.route, packing: res.packingId, op: res.operation, fields: Object.keys(res.patch).length, message: res.result_message }));\nreturn res;"
+        },
+        "response_json": [
+          {
+            "key": "0adac97e",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ozdko99o",
+            "name": "tenantId",
+            "title": "tenantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "e8u1h8if",
+            "name": "packingId",
+            "title": "packingId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vr2esgfz",
+            "name": "organizationId",
+            "title": "organizationId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "39vescas",
+            "name": "operation",
+            "title": "operation",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "izu7j03e",
+            "name": "idempotencyKey",
+            "title": "idempotencyKey",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "umdgx17c",
+            "name": "userName",
+            "title": "userName",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "4lv0k44m",
+            "name": "patch",
+            "title": "patch",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fyf6fbuk",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ojq43qbj",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Guard: packing / organization / idempotency key / the header fields the form sends, session tenant and user",
+        "isValidator": true,
+        "nodeName": "Guard: packing / organization / idempotency key / the header fields the form sends, session tenant and user",
+        "name": "Guard: packing / organization / idempotency key / the header fields the form sends, session tenant and user"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_KSreject",
+      "type": "if",
+      "data": {
+        "title": "IF the input is invalid: answer 400, write nothing",
+        "isValidator": true,
+        "nodeName": "IF the input is invalid: answer 400, write nothing",
+        "name": "IF the input is invalid: answer 400, write nothing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1797100000001,
+              "parentId": 1797100000002,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_KSguard.data.route}}' == 'REJECT'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TKSreject",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "code_node_KSrej",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "return { route: \"REJECT\", result_code: \"400\", result_message: [{{node:code_node_KSguard.data.result_message}}][0], job_id: \"\", job_status: \"\" };"
+                },
+                "response_json": [
+                  {
+                    "key": "o1b3aohd",
+                    "name": "route",
+                    "title": "route",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "kbim0l5a",
+                    "name": "result_code",
+                    "title": "result_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "m9tlo71q",
+                    "name": "result_message",
+                    "title": "result_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "x2j9vagm",
+                    "name": "job_id",
+                    "title": "job_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "bn182ku0",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "Answer (rejected input)",
+                "isValidator": true,
+                "nodeName": "Answer (rejected input)",
+                "name": "Answer (rejected input)"
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_node_KSrej",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return (rejected, nothing written)",
+                "isValidator": true,
+                "nodeName": "Return (rejected, nothing written)",
+                "name": "Return (rejected, nothing written)",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "route",
+                      "propLabel": "route",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSrej.data.route}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_code",
+                      "propLabel": "result_code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSrej.data.result_code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_message",
+                      "propLabel": "result_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSrej.data.result_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_id",
+                      "propLabel": "job_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSrej.data.job_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_status",
+                      "propLabel": "job_status",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSrej.data.job_status}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FKSreject",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_KSstatus",
+      "type": "if",
+      "data": {
+        "title": "IF STATUS: the latest job of the Packing (read only)",
+        "isValidator": true,
+        "nodeName": "IF STATUS: the latest job of the Packing (read only)",
+        "name": "IF STATUS: the latest job of the Packing (read only)",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1797100000003,
+              "parentId": 1797100000004,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_KSguard.data.route}}' == 'STATUS'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TKSstatus",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_KSstatus",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Status: the Packing's latest COMPLETE_PACKING job",
+                "isValidator": true,
+                "nodeName": "Status: the Packing's latest COMPLETE_PACKING job",
+                "name": "Status: the Packing's latest COMPLETE_PACKING job",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_message,\n       j.error_code,\n       j.error_message\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n   AND j.organization_id = '{{node:code_node_KSguard.data.organizationId}}'\n   AND j.command = 'COMPLETE_PACKING'\n   AND j.causation_id = '{{node:code_node_KSguard.data.packingId}}'\n   AND j.is_deleted = 0\n ORDER BY j.id DESC\n LIMIT 1"
+                },
+                "response_json": [
+                  {
+                    "key": "32uzcvig",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "1ko3bh6z",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "fzmgfpak",
+                    "name": "progress_message",
+                    "title": "progress_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ei3w5c6x",
+                    "name": "error_code",
+                    "title": "error_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "nax09br6",
+                    "name": "error_message",
+                    "title": "error_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_KSstatusRes",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// PACKING_ASYNC_SUBMIT - Status: the Packing's latest COMPLETE_PACKING job (open -> the form shows \"being saved\"; FAILED /\n// REQUIRES_REVIEW -> the form reports it once)\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst rows = [{{node:sql_node_KSstatus.data}}][0];\nconst job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\nreturn job\n  ? { route: \"STATUS\", result_code: s(job.error_code), result_message: s(job.error_message) || s(job.progress_message), job_id: s(job.id), job_status: s(job.job_status) }\n  : { route: \"STATUS\", result_code: \"\", result_message: \"\", job_id: \"\", job_status: \"\" };"
+                },
+                "response_json": [
+                  {
+                    "key": "2dv8kvi9",
+                    "name": "route",
+                    "title": "route",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "7hpbxks1",
+                    "name": "result_code",
+                    "title": "result_code",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "nof6tvwh",
+                    "name": "result_message",
+                    "title": "result_message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "qrhkehh2",
+                    "name": "job_id",
+                    "title": "job_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "9jw8066q",
+                    "name": "job_status",
+                    "title": "job_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "Status answer",
+                "isValidator": true,
+                "nodeName": "Status answer",
+                "name": "Status answer"
+              },
+              "blocks": []
+            },
+            {
+              "id": "return_node_KSstatus",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return the status",
+                "isValidator": true,
+                "nodeName": "Return the status",
+                "name": "Return the status",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "route",
+                      "propLabel": "route",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSstatusRes.data.route}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_code",
+                      "propLabel": "result_code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSstatusRes.data.result_code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_message",
+                      "propLabel": "result_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSstatusRes.data.result_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_id",
+                      "propLabel": "job_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSstatusRes.data.job_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_status",
+                      "propLabel": "job_status",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSstatusRes.data.job_status}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FKSstatus",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_KSfacts",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Facts: the Packing (+ its mobile lock, its header fields), its delivery, the items the inventory operation cannot move, the job of this key, open jobs on the delivery, the Packing's last job",
+        "isValidator": true,
+        "nodeName": "Facts: the Packing (+ its mobile lock, its header fields), its delivery, the items the inventory operation cannot move, the job of this key, open jobs on the delivery, the Packing's last job",
+        "name": "Facts: the Packing (+ its mobile lock, its header fields), its delivery, the items the inventory operation cannot move, the job of this key, open jobs on the delivery, the Packing's last job",
+        "script": {
+          "type": "sql",
+          "code": "SELECT DATE_FORMAT(NOW(3), '%Y-%m-%d %H:%i:%s') AS db_now,\n       DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'), '%Y-%m-%d %H:%i:%s') AS myt_now,\n       DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00') + INTERVAL 30 MINUTE, '%Y-%m-%d %H:%i:%s') AS lock_until,\n       CAST('{{system:uid}}' AS CHAR) AS session_uid,\n       CAST(p.id AS CHAR) AS id,\n       p.packing_no,\n       p.packing_status,\n       p.is_deleted,\n       p.organization_id,\n       p.packing_lock_session_id AS lock_session,\n       p.packing_lock_user_id AS lock_user,\n       p.packing_lock_user_name AS lock_user_name,\n       DATE_FORMAT(p.packing_lock_expires_at, '%Y-%m-%d %H:%i:%s') AS lock_expires_at,\n       CAST(COALESCE(p.packing_lock_expires_at > CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'), 0) AS CHAR) AS lock_live,\n       CAST(g.id AS CHAR) AS gd_found,\n       g.gd_status,\n       g.delivery_no,\n       CAST(g.plant_id AS CHAR) AS gd_plant,\n       CAST(p.remarks AS CHAR) AS cur_remarks,\n       CAST(p.remarks_2 AS CHAR) AS cur_remarks_2,\n       CAST(p.remarks_3 AS CHAR) AS cur_remarks_3,\n       CAST(p.di_shipping_method AS CHAR) AS cur_di_shipping_method,\n       CAST(p.di_driver_name AS CHAR) AS cur_di_driver_name,\n       CAST(p.di_ic_no AS CHAR) AS cur_di_ic_no,\n       CAST(p.di_driver_contact_no AS CHAR) AS cur_di_driver_contact_no,\n       CAST(p.di_shipping_company AS CHAR) AS cur_di_shipping_company,\n       CAST(p.di_transport_name AS CHAR) AS cur_di_transport_name,\n       CAST(p.di_vehicle_number AS CHAR) AS cur_di_vehicle_number,\n       DATE_FORMAT(p.di_est_delivery_date, '%Y-%m-%d %H:%i:%s') AS cur_di_est_delivery_date,\n       DATE_FORMAT(p.di_est_arrival_date, '%Y-%m-%d %H:%i:%s') AS cur_di_est_arrival_date,\n       DATE_FORMAT(p.di_pickup_date, '%Y-%m-%d %H:%i:%s') AS cur_di_pickup_date,\n       DATE_FORMAT(p.di_validity_of_collection, '%Y-%m-%d %H:%i:%s') AS cur_di_validity_of_collection,\n       CAST(p.di_tracking_number AS CHAR) AS cur_di_tracking_number,\n       CAST(p.di_freight_charges AS CHAR) AS cur_di_freight_charges,\n       (SELECT COUNT(*)\n          FROM packing_jz8m9w3h_sub s\n         WHERE s.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND s.packing_id = {{node:code_node_KSguard.data.packingId}}\n           AND s.is_deleted = 0) AS item_rows,\n       (SELECT COUNT(*)\n          FROM goods_delivery_fwii8mvb_sub l\n         WHERE l.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND l.goods_delivery_id = g.id\n           AND l.is_deleted = 0\n           AND l.material_id IS NOT NULL\n           AND l.material_id <> ''\n           AND COALESCE(l.picking_status, '') <> 'Cancelled'\n           AND l.gd_qty > 0\n           AND COALESCE(l.picking_status, '') <> 'Completed') AS unpicked,\n       (SELECT SUBSTRING_INDEX(GROUP_CONCAT(CONCAT(COALESCE(l.material_name, l.material_id), ' (', COALESCE(NULLIF(l.picking_status, ''), 'Open'), ')') ORDER BY l.id SEPARATOR '; '), '; ', 3)\n          FROM goods_delivery_fwii8mvb_sub l\n         WHERE l.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND l.goods_delivery_id = g.id\n           AND l.is_deleted = 0\n           AND l.material_id IS NOT NULL\n           AND l.material_id <> ''\n           AND COALESCE(l.picking_status, '') <> 'Cancelled'\n           AND l.gd_qty > 0\n           AND COALESCE(l.picking_status, '') <> 'Completed') AS unpicked_names,\n       (SELECT COUNT(*)\n          FROM item i\n         WHERE i.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND i.is_deleted = 0\n           AND i.stock_control = 1\n           AND i.id IN (SELECT s.item_code\n                          FROM packing_jz8m9w3h_sub s\n                         WHERE s.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                           AND s.packing_id = {{node:code_node_KSguard.data.packingId}}\n                           AND s.is_deleted = 0)\n           AND (i.based_uom IS NULL\n             OR i.serial_number_management IS NULL OR i.serial_number_management <> 0\n             OR i.item_batch_management IS NULL\n             OR i.material_costing_method IS NULL OR i.material_costing_method NOT IN ('Fixed Cost', 'First In First Out', 'Weighted Average')\n             OR (i.material_costing_method = 'Fixed Cost' AND i.purchase_unit_price IS NULL))) AS bad_items,\n       (SELECT COUNT(*)\n          FROM item i\n         WHERE i.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND i.is_deleted = 0\n           AND i.stock_control = 1\n           AND i.id IN (SELECT s.item_code\n                          FROM packing_jz8m9w3h_sub s\n                         WHERE s.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                           AND s.packing_id = {{node:code_node_KSguard.data.packingId}}\n                           AND s.is_deleted = 0)\n           AND ((i.item_batch_management = 0\n                 AND EXISTS (SELECT 1\n                               FROM item_batch_balance b\n                              WHERE b.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                                AND b.organization_id = '{{node:code_node_KSguard.data.organizationId}}'\n                                AND b.plant_id = g.plant_id\n                                AND b.is_deleted = 0\n                                AND b.material_id = i.id\n                                AND (b.location_id IN (SELECT r.bin_location\n                                                         FROM on_reserved_gd r\n                                                        WHERE r.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                                                          AND r.doc_id = (CAST(g.id AS CHAR) COLLATE utf8mb4_general_ci)\n                                                          AND r.material_id = i.id\n                                                          AND r.status = 'Allocated'\n                                                          AND r.is_deleted = 0)\n                                  OR b.location_id IN (SELECT h.location_id\n                                                         FROM packing_hr4nq20g_sub h\n                                                        WHERE h.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                                                          AND h.packing_id = {{node:code_node_KSguard.data.packingId}}\n                                                          AND h.is_deleted = 0))))\n             OR EXISTS (SELECT 1\n                          FROM item_serial_balance sb\n                         WHERE sb.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                           AND sb.organization_id = '{{node:code_node_KSguard.data.organizationId}}'\n                           AND sb.plant_id = g.plant_id\n                           AND sb.is_deleted = 0\n                           AND sb.material_id = i.id\n                           AND (sb.location_id IN (SELECT r.bin_location\n                                                     FROM on_reserved_gd r\n                                                    WHERE r.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                                                      AND r.doc_id = (CAST(g.id AS CHAR) COLLATE utf8mb4_general_ci)\n                                                      AND r.material_id = i.id\n                                                      AND r.status = 'Allocated'\n                                                      AND r.is_deleted = 0)\n                             OR sb.location_id IN (SELECT h.location_id\n                                                     FROM packing_hr4nq20g_sub h\n                                                    WHERE h.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                                                      AND h.packing_id = {{node:code_node_KSguard.data.packingId}}\n                                                      AND h.is_deleted = 0))))) AS stray_items,\n       (SELECT CONCAT(CAST(j.id AS CHAR), '|', j.job_status)\n          FROM gd_async_job j\n         WHERE j.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND j.organization_id = '{{node:code_node_KSguard.data.organizationId}}'\n           AND j.idempotency_key = '{{node:code_node_KSguard.data.idempotencyKey}}'\n         LIMIT 1) AS key_job,\n       (SELECT CONCAT(CAST(j.id AS CHAR), '|', j.job_status)\n          FROM gd_async_job j\n         WHERE j.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND j.command = 'COMPLETE_PACKING'\n           AND j.correlation_id = (CONCAT('GD|', CAST(g.id AS CHAR)) COLLATE utf8mb4_general_ci)\n           AND j.is_deleted = 0\n           AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PACKING', 'REQUIRES_REVIEW')\n         ORDER BY j.id DESC\n         LIMIT 1) AS open_job,\n       (SELECT CONCAT(CAST(j.id AS CHAR), '|', j.command, '|', j.job_status)\n          FROM gd_async_job j\n         WHERE j.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND j.command <> 'COMPLETE_PACKING'\n           AND j.correlation_id = (CONCAT('GD|', CAST(g.id AS CHAR)) COLLATE utf8mb4_general_ci)\n           AND j.is_deleted = 0\n           AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n         ORDER BY j.id DESC\n         LIMIT 1) AS other_job,\n       (SELECT CONCAT(CAST(j.id AS CHAR), '|', j.job_status, '|',\n                      COALESCE((SELECT l.line_so_no\n                                  FROM goods_delivery_fwii8mvb_sub l\n                                 WHERE l.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                                   AND l.goods_delivery_id = g.id\n                                   AND (CONCAT('SO|', l.line_so_id) COLLATE utf8mb4_general_ci) = j.correlation_id\n                                 LIMIT 1), ''))\n          FROM gd_async_job j\n         WHERE j.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND j.command = 'SAVE_SO'\n           AND j.correlation_id IN (SELECT CONCAT('SO|', l.line_so_id) COLLATE utf8mb4_general_ci\n                                      FROM goods_delivery_fwii8mvb_sub l\n                                     WHERE l.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n                                       AND l.goods_delivery_id = g.id\n                                       AND l.is_deleted = 0\n                                       AND COALESCE(l.line_so_id, '') <> '')\n           AND j.is_deleted = 0\n           AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')\n         ORDER BY j.id DESC\n         LIMIT 1) AS so_job,\n       (SELECT CONCAT(CAST(j.id AS CHAR), '|', j.job_status, '|', COALESCE(j.error_code, ''))\n          FROM gd_async_job j\n         WHERE j.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n           AND j.command = 'COMPLETE_PACKING'\n           AND j.causation_id = '{{node:code_node_KSguard.data.packingId}}'\n           AND j.is_deleted = 0\n         ORDER BY j.id DESC\n         LIMIT 1) AS last_job\n  FROM (SELECT 1 AS one) o\n  LEFT JOIN packing p\n    ON p.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n   AND p.id = {{node:code_node_KSguard.data.packingId}}\n  LEFT JOIN goods_delivery g\n    ON g.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n   AND g.id = CAST(REGEXP_SUBSTR(p.gd_id, '[0-9]+') AS UNSIGNED)\n   AND g.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "6re4u2z5",
+            "name": "db_now",
+            "title": "db_now",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "it0u33ll",
+            "name": "myt_now",
+            "title": "myt_now",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "492zsuj7",
+            "name": "lock_until",
+            "title": "lock_until",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "1bhurln6",
+            "name": "session_uid",
+            "title": "session_uid",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "9k4ohgxp",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "zgdvvjxf",
+            "name": "packing_no",
+            "title": "packing_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "7iar4nfs",
+            "name": "packing_status",
+            "title": "packing_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "8269fkwi",
+            "name": "is_deleted",
+            "title": "is_deleted",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "h2yf8cpx",
+            "name": "organization_id",
+            "title": "organization_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6ina97ak",
+            "name": "lock_session",
+            "title": "lock_session",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "18k269dt",
+            "name": "lock_user",
+            "title": "lock_user",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "lngdnabr",
+            "name": "lock_user_name",
+            "title": "lock_user_name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "6kgd7kvo",
+            "name": "lock_expires_at",
+            "title": "lock_expires_at",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ocem3qof",
+            "name": "lock_live",
+            "title": "lock_live",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "emz84h0a",
+            "name": "gd_found",
+            "title": "gd_found",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "9t7cqxdk",
+            "name": "gd_status",
+            "title": "gd_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "fxgevexh",
+            "name": "delivery_no",
+            "title": "delivery_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ydwed2bd",
+            "name": "gd_plant",
+            "title": "gd_plant",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "oki2rvv8",
+            "name": "cur_remarks",
+            "title": "cur_remarks",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qja58pmr",
+            "name": "cur_remarks_2",
+            "title": "cur_remarks_2",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "n8ep3rdi",
+            "name": "cur_remarks_3",
+            "title": "cur_remarks_3",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "csq8r8s9",
+            "name": "cur_di_shipping_method",
+            "title": "cur_di_shipping_method",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ip0rwo28",
+            "name": "cur_di_driver_name",
+            "title": "cur_di_driver_name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "kznb8nhy",
+            "name": "cur_di_ic_no",
+            "title": "cur_di_ic_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "vo4acvw5",
+            "name": "cur_di_driver_contact_no",
+            "title": "cur_di_driver_contact_no",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "xzb6if0t",
+            "name": "cur_di_shipping_company",
+            "title": "cur_di_shipping_company",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "111ux8k4",
+            "name": "cur_di_transport_name",
+            "title": "cur_di_transport_name",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "qajicigi",
+            "name": "cur_di_vehicle_number",
+            "title": "cur_di_vehicle_number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "r79lsjza",
+            "name": "cur_di_est_delivery_date",
+            "title": "cur_di_est_delivery_date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "czq9fqm9",
+            "name": "cur_di_est_arrival_date",
+            "title": "cur_di_est_arrival_date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "h4xy59hn",
+            "name": "cur_di_pickup_date",
+            "title": "cur_di_pickup_date",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "y5oqdy2x",
+            "name": "cur_di_validity_of_collection",
+            "title": "cur_di_validity_of_collection",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "xy4dlsp0",
+            "name": "cur_di_tracking_number",
+            "title": "cur_di_tracking_number",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "78ky2yjp",
+            "name": "cur_di_freight_charges",
+            "title": "cur_di_freight_charges",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "a9ssee6i",
+            "name": "item_rows",
+            "title": "item_rows",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "w1zjtrad",
+            "name": "unpicked",
+            "title": "unpicked",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "3qh99g08",
+            "name": "unpicked_names",
+            "title": "unpicked_names",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ta7n37ig",
+            "name": "bad_items",
+            "title": "bad_items",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "maei6j98",
+            "name": "stray_items",
+            "title": "stray_items",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "0pvq0ke3",
+            "name": "key_job",
+            "title": "key_job",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "jrtbs0pu",
+            "name": "open_job",
+            "title": "open_job",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gtzrbjlk",
+            "name": "other_job",
+            "title": "other_job",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "sj7qv2nd",
+            "name": "so_job",
+            "title": "so_job",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "yppm3hgc",
+            "name": "last_job",
+            "title": "last_job",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_KSdecide",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// PACKING_ASYNC_SUBMIT - Decide: the Packing, its delivery, the jobs on them, the mobile lock -> CREATE the job, RETURN the job\n// this key already made, NOT_ELIGIBLE (the form runs the classic save instead) or REJECT (a message, nothing written)\nconst ASYNC_PACKING_ENABLED = true;\nconst submitDecide = function submitDecide(guard, rows, FIELDS) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const f = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r)[0] || {};\n  const base = { route: \"REJECT\", jobRows: [], needJob: \"NO\", result_code: \"400\", result_message: \"\", job_id: \"\", job_status: \"\", lockUntil: s(f.lock_until), mytNow: s(f.myt_now) };\n  const reject = (why) => Object.assign({}, base, { result_message: why });\n  const old = (why) => Object.assign({}, base, { route: \"NOT_ELIGIBLE\", result_code: \"NOT_ELIGIBLE\", result_message: why });\n  const keyJob = s(f.key_job).split(\"|\");\n  if (keyJob[0]) return Object.assign({}, base, { route: \"RETURN\", result_code: \"200\", result_message: \"already submitted\", job_id: keyJob[0], job_status: keyJob[1] || \"\" });\n  if (!ASYNC_PACKING_ENABLED) return old(\"the background save is switched off\");\n  if (!s(f.id) || String(f.is_deleted) === \"1\") return reject(\"Packing not found\");\n  if (s(f.organization_id) !== guard.organizationId) return reject(\"the Packing belongs to another organization\");\n  const status = s(f.packing_status);\n  if (status === \"Completed\") return reject(\"Packing is already completed\");\n  if (status === \"Cancelled\") return reject(\"Packing is cancelled\");\n  if (status === \"Draft\" || !status) return old(\"a Draft Packing is completed by the classic save\");\n  if (!s(f.gd_found)) return old(\"a Packing with no Goods Delivery is completed by the classic save\");\n  if (s(f.gd_status) === \"Cancelled\") return reject(\"Cannot complete packing: Goods Delivery \" + s(f.delivery_no) + \" is Cancelled.\");\n  if (s(f.gd_status) !== \"Created\") return reject(\"Goods Delivery \" + s(f.delivery_no) + \" is \" + (s(f.gd_status) || \"not Created\") + \": the Packing can only be completed while it is Created\");\n  // code_node_PkPickChk, answered here so the click gets it at once\n  if (Number(f.unpicked) > 0) {\n    return reject(\"Cannot complete packing: these Goods Delivery lines are not fully picked - \" + s(f.unpicked_names) + (Number(f.unpicked) > 3 ? \" (+\" + (Number(f.unpicked) - 3) + \" more)\" : \"\") + \". Pickings still pending.\");\n  }\n  const openJob = s(f.open_job).split(\"|\");\n  if (openJob[0]) {\n    if (openJob[1] === \"REQUIRES_REVIEW\") return reject(\"A previous completion of a Packing of this Goods Delivery stopped half-way and is under review (job \" + openJob[0] + \"). Please contact support before completing again.\");\n    return reject(\"A Packing of this Goods Delivery is still being completed in the background (job \" + openJob[0] + \"). Wait a moment, then reopen it.\");\n  }\n  const otherJob = s(f.other_job).split(\"|\");\n  if (otherJob[0]) return reject(\"Goods Delivery \" + s(f.delivery_no) + \" is being saved in the background (\" + (otherJob[1] || \"job\") + \" \" + otherJob[0] + \"). Wait a moment, then try again.\");\n  const soJob = s(f.so_job).split(\"|\");\n  if (soJob[0]) {\n    const soNo = soJob.slice(2).join(\"|\") || \"of this Goods Delivery\";\n    if (soJob[1] === \"REQUIRES_REVIEW\") return reject(\"The background save of Sales Order \" + soNo + \" stopped half-way and is under review (job \" + soJob[0] + \"). Please contact support before completing the Packing.\");\n    return reject(\"Sales Order \" + soNo + \" is being saved in the background (job \" + soJob[0] + \"). Wait a moment, then try again.\");\n  }\n  if (String(f.lock_live) === \"1\" && s(f.lock_session) && s(f.lock_user) !== s(f.session_uid)) {\n    return reject(\"This Packing is open on mobile by \" + (s(f.lock_user_name) || \"another user\") + \" (until \" + s(f.lock_expires_at) + \"). Complete it there, or wait until they leave it.\");\n  }\n  if (Number(f.bad_items) > 0) return old(f.bad_items + \" item(s) of this Packing cannot be moved by the background save (no base unit, serial-managed or unsupported costing)\");\n  // INVENTORY_APPLY_OPERATION's effect matrix: batch rows under an ITEM effect, serial rows under any effect\n  if (Number(f.stray_items) > 0) return old(f.stray_items + \" item(s) of this Packing have batch or serial balance rows the background save cannot move\");\n  const last = s(f.last_job).split(\"|\");\n  if (last[0] && last[1] === \"FAILED\" && last[2] === \"PK_NOT_SUPPORTED\") return old(\"job \" + last[0] + \" found this Packing unsupported by the background save\");\n  // the header fields: what the form sent, over what is stored now (P5 writes the whole set)\n  const patch = {};\n  for (const k of FIELDS) patch[k] = Object.prototype.hasOwnProperty.call(guard.patch || {}, k) ? guard.patch[k] : f[\"cur_\" + k] === undefined || f[\"cur_\" + k] === \"\" ? null : f[\"cur_\" + k];\n  const request = { v: 1, operation: \"COMPLETE\", packing_id: guard.packingId, packing_no: s(f.packing_no), gd_id: s(f.gd_found), plant_id: s(f.gd_plant), organization_id: guard.organizationId,\n    submitted_by: s(f.session_uid), submitted_name: guard.userName, header_patch: patch };\n  const dbNow = s(f.db_now);\n  return Object.assign({}, base, {\n    route: \"CREATE\",\n    jobRows: [{ organization_id: guard.organizationId, plant_id: s(f.gd_plant), command: \"COMPLETE_PACKING\", idempotency_key: guard.idempotencyKey, job_status: \"QUEUED\", progress_percent: 0,\n      progress_message: \"Queued for processing\", attempt_count: 0, row_version: 0, cancel_requested: 0, request_payload: JSON.stringify(request), causation_id: guard.packingId,\n      correlation_id: \"GD|\" + s(f.gd_found), line_count: Number(f.item_rows) || 0, queued_at: dbNow }],\n    needJob: \"YES\", result_code: \"200\", result_message: \"queued\", job_status: \"QUEUED\",\n  });\n};\nconst guard = [{{node:code_node_KSguard.data}}][0];\nconst res = submitDecide(guard, [{{node:sql_node_KSfacts.data}}][0], [\"remarks\", \"remarks_2\", \"remarks_3\", \"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\", \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\", \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\"]);\nconsole.log(\"submit decide\", JSON.stringify({ route: res.route, code: res.result_code, message: res.result_message, job: res.job_id }));\nreturn res;"
+        },
+        "response_json": [
+          {
+            "key": "lxkmmbox",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "t2nkbbqn",
+            "name": "jobRows",
+            "title": "jobRows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "e1err4su",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "djn19sw3",
+            "name": "needJob",
+            "title": "needJob",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "thv5dpgv",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "apgeoz09",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "wt528whc",
+            "name": "job_id",
+            "title": "job_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "a6fnzlmd",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "29du9i89",
+            "name": "lockUntil",
+            "title": "lockUntil",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "al30f667",
+            "name": "mytNow",
+            "title": "mytNow",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Decide: CREATE the job / RETURN this key's job / NOT_ELIGIBLE (the classic save) / REJECT",
+        "isValidator": true,
+        "nodeName": "Decide: CREATE the job / RETURN this key's job / NOT_ELIGIBLE (the classic save) / REJECT",
+        "name": "Decide: CREATE the job / RETURN this key's job / NOT_ELIGIBLE (the classic save) / REJECT"
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_KSstop",
+      "type": "if",
+      "data": {
+        "title": "IF rejected or not eligible: answer, write nothing",
+        "isValidator": true,
+        "nodeName": "IF rejected or not eligible: answer, write nothing",
+        "name": "IF rejected or not eligible: answer, write nothing",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1797100000005,
+              "parentId": 1797100000006,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_KSdecide.data.route}}' == 'REJECT' || '{{node:code_node_KSdecide.data.route}}' == 'NOT_ELIGIBLE'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TKSstop",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "return_node_KSstop",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return (rejected / not eligible: the form runs the classic save)",
+                "isValidator": true,
+                "nodeName": "Return (rejected / not eligible: the form runs the classic save)",
+                "name": "Return (rejected / not eligible: the form runs the classic save)",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "route",
+                      "propLabel": "route",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSdecide.data.route}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_code",
+                      "propLabel": "result_code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSdecide.data.result_code}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "result_message",
+                      "propLabel": "result_message",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSdecide.data.result_message}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_id",
+                      "propLabel": "job_id",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSdecide.data.job_id}}",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "job_status",
+                      "propLabel": "job_status",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "field",
+                      "valueTypeLabel": "",
+                      "value": "{{node:code_node_KSdecide.data.job_status}}",
+                      "valueLabel": ""
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FKSstop",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "cor_KSjob",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Job to create?",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cori_YKSjob",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "YES",
+            "filter": {
+              "list": [
+                {
+                  "id": 1797100000009,
+                  "parentId": 1797100000010,
+                  "isTop": true,
+                  "prop": "node.code_node_KSdecide.data.needJob",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "YES",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "needJob",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "YES",
+            "name": "YES",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "add_node_KSjob",
+              "type": "add-node",
+              "data": {
+                "table_id": {
+                  "source": "GD Async Job:Table:2104845286495150081",
+                  "rules": {
+                    "collectionId": "2104845286495150081",
+                    "list": [
+                      {
+                        "id": 1797100000007,
+                        "parentId": 1797100000008,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "title": "Job insert: COMPLETE_PACKING, QUEUED (unique tenant / organization / idempotency_key: a twin's insert fails)",
+                "isValidator": true,
+                "nodeName": "Job insert: COMPLETE_PACKING, QUEUED (unique tenant / organization / idempotency_key: a twin's insert fails)",
+                "name": "Job insert: COMPLETE_PACKING, QUEUED (unique tenant / organization / idempotency_key: a twin's insert fails)",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "organization_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.organization_id}}",
+                      "valueLabel": "",
+                      "propLabel": "Organization"
+                    },
+                    {
+                      "prop": "plant_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.plant_id}}",
+                      "valueLabel": "",
+                      "propLabel": "plant_id"
+                    },
+                    {
+                      "prop": "command",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.command}}",
+                      "valueLabel": "",
+                      "propLabel": "command"
+                    },
+                    {
+                      "prop": "idempotency_key",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.idempotency_key}}",
+                      "valueLabel": "",
+                      "propLabel": "idempotency_key"
+                    },
+                    {
+                      "prop": "job_status",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.job_status}}",
+                      "valueLabel": "",
+                      "propLabel": "job_status"
+                    },
+                    {
+                      "prop": "progress_percent",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.progress_percent}}",
+                      "valueLabel": "",
+                      "propLabel": "progress_percent"
+                    },
+                    {
+                      "prop": "progress_message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.progress_message}}",
+                      "valueLabel": "",
+                      "propLabel": "progress_message"
+                    },
+                    {
+                      "prop": "attempt_count",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.attempt_count}}",
+                      "valueLabel": "",
+                      "propLabel": "attempt_count"
+                    },
+                    {
+                      "prop": "row_version",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.row_version}}",
+                      "valueLabel": "",
+                      "propLabel": "row_version"
+                    },
+                    {
+                      "prop": "cancel_requested",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.cancel_requested}}",
+                      "valueLabel": "",
+                      "propLabel": "cancel_requested"
+                    },
+                    {
+                      "prop": "request_payload",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.request_payload}}",
+                      "valueLabel": "",
+                      "propLabel": "request_payload"
+                    },
+                    {
+                      "prop": "causation_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.causation_id}}",
+                      "valueLabel": "",
+                      "propLabel": "causation_id"
+                    },
+                    {
+                      "prop": "correlation_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.correlation_id}}",
+                      "valueLabel": "",
+                      "propLabel": "correlation_id"
+                    },
+                    {
+                      "prop": "line_count",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.line_count}}",
+                      "valueLabel": "",
+                      "propLabel": "line_count"
+                    },
+                    {
+                      "prop": "queued_at",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSdecide.data.jobRows.queued_at}}",
+                      "valueLabel": "",
+                      "propLabel": "queued_at"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cori_NKSjob",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "NO",
+            "isDefault": true,
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "sql_node_KSback",
+      "type": "sql-node",
+      "data": {
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "title": "Read-back: the job by its key",
+        "isValidator": true,
+        "nodeName": "Read-back: the job by its key",
+        "name": "Read-back: the job by its key",
+        "script": {
+          "type": "sql",
+          "code": "SELECT CAST(j.id AS CHAR) AS id,\n       j.job_status,\n       j.progress_message,\n       j.error_code,\n       j.error_message\n  FROM gd_async_job j\n WHERE j.tenant_id = '{{node:code_node_KSguard.data.tenantId}}'\n   AND j.organization_id = '{{node:code_node_KSguard.data.organizationId}}'\n   AND j.idempotency_key = '{{node:code_node_KSguard.data.idempotencyKey}}'\n LIMIT 1"
+        },
+        "response_json": [
+          {
+            "key": "n62v8vds",
+            "name": "id",
+            "title": "id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "uu0evi3s",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "u66kmj3f",
+            "name": "progress_message",
+            "title": "progress_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hoqs2hcx",
+            "name": "error_code",
+            "title": "error_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "zowzjga9",
+            "name": "error_message",
+            "title": "error_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_KSresult",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// PACKING_ASYNC_SUBMIT - Result: the job read back by its key is the answer (QUEUED / an earlier job of the same click); the\n// Packing lock this job holds while it runs (the mobile app cannot enter it meanwhile)\nconst submitResult = function submitResult(guard, decide, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const job = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r && s(r.id))[0] || null;\n  const none = { lockRows: [], needLock: \"NO\", packing_id: guard.packingId };\n  if (!job) return Object.assign(none, { route: \"REJECT\", result_code: \"400\", result_message: \"the request could not be queued; press the button again\", job_id: \"\", job_status: \"\" });\n  const failed = s(job.job_status) === \"FAILED\" || s(job.job_status) === \"REQUIRES_REVIEW\";\n  const created = decide.route === \"CREATE\";\n  const lock = created && [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_PACKING\"].indexOf(s(job.job_status)) >= 0 ? [{ id: guard.packingId, packing_lock_user_id: s(job.id), packing_lock_user_name: \"Background save\", packing_lock_session_id: \"PKGJOB-\" + s(job.id),\n    packing_lock_expires_at: s(decide.lockUntil) || null, packing_lock_updated_at: s(decide.mytNow) || null }] : [];\n  return Object.assign(none, { route: created ? \"QUEUED\" : \"EXISTING\", result_code: failed ? \"400\" : \"200\", result_message: failed ? s(job.error_message) || s(job.progress_message) : s(job.progress_message) || \"queued\",\n    job_id: s(job.id), job_status: s(job.job_status), lockRows: lock, needLock: lock.length ? \"YES\" : \"NO\" });\n};\nconst guard = [{{node:code_node_KSguard.data}}][0];\nconst decide = [{{node:code_node_KSdecide.data}}][0];\nconst res = submitResult(guard, decide, [{{node:sql_node_KSback.data}}][0]);\nconsole.log(\"submit result\", JSON.stringify(res));\nreturn res;"
+        },
+        "response_json": [
+          {
+            "key": "ff24z5x7",
+            "name": "route",
+            "title": "route",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hcr32eo3",
+            "name": "result_code",
+            "title": "result_code",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cdrl101f",
+            "name": "result_message",
+            "title": "result_message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "ryuz11ne",
+            "name": "job_id",
+            "title": "job_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "wukzgchr",
+            "name": "job_status",
+            "title": "job_status",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "jxeqrd4s",
+            "name": "packing_id",
+            "title": "packing_id",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "m7lahij6",
+            "name": "lockRows",
+            "title": "lockRows",
+            "description": "",
+            "bsonType": "array",
+            "isExpand": true,
+            "children": [
+              {
+                "key": "sj43mist",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+              }
+            ]
+          },
+          {
+            "key": "j0a3j3ch",
+            "name": "needLock",
+            "title": "needLock",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "title": "Result: QUEUED / EXISTING from the job row; the Packing lock of a new job",
+        "isValidator": true,
+        "nodeName": "Result: QUEUED / EXISTING from the job row; the Packing lock of a new job",
+        "name": "Result: QUEUED / EXISTING from the job row; the Packing lock of a new job"
+      },
+      "blocks": []
+    },
+    {
+      "id": "cor_KSlock",
+      "type": "condition-or-node",
+      "data": {
+        "title": "Packing lock to take?",
+        "filter": {
+          "list": []
+        },
+        "expression": {
+          "code": ""
+        },
+        "displayContent": "sdk.form.setCondition"
+      },
+      "blocks": [
+        {
+          "id": "cori_YKSlock",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "YES",
+            "filter": {
+              "list": [
+                {
+                  "id": 1797100000013,
+                  "parentId": 1797100000014,
+                  "isTop": true,
+                  "prop": "node.code_node_KSresult.data.needLock",
+                  "operator": "equal",
+                  "valueType": "value",
+                  "value": "YES",
+                  "type": "leaf",
+                  "level": 1,
+                  "propLabel": "needLock",
+                  "valueLabel": "",
+                  "operatorLabel": "Equal"
+                }
+              ]
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.setCondition",
+            "isValidator": true,
+            "nodeName": "YES",
+            "name": "YES",
+            "condition_type": "ConditionRule"
+          },
+          "blocks": [
+            {
+              "id": "update_node_KSlock",
+              "type": "update-node",
+              "data": {
+                "table_id": {
+                  "source": "Packing:Table:1993515601863524353",
+                  "rules": {
+                    "collectionId": "1993515601863524353",
+                    "list": [
+                      {
+                        "id": 1797100000011,
+                        "parentId": 1797100000012,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_KSresult.data.lockRows.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                      }
+                    ]
+                  }
+                },
+                "fields": [],
+                "condition": {},
+                "title": "Packing lock = this job (PKGJOB-<job>, 30 min): the mobile app cannot enter it while the job runs",
+                "isValidator": true,
+                "nodeName": "Packing lock = this job (PKGJOB-<job>, 30 min): the mobile app cannot enter it while the job runs",
+                "name": "Packing lock = this job (PKGJOB-<job>, 30 min): the mobile app cannot enter it while the job runs",
+                "props": {
+                  "modelName": "",
+                  "list": [
+                    {
+                      "prop": "id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSresult.data.lockRows.id}}",
+                      "valueLabel": "",
+                      "propLabel": "主键ID"
+                    },
+                    {
+                      "prop": "packing_lock_user_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSresult.data.lockRows.packing_lock_user_id}}",
+                      "valueLabel": "",
+                      "propLabel": "packing_lock_user_id"
+                    },
+                    {
+                      "prop": "packing_lock_user_name",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSresult.data.lockRows.packing_lock_user_name}}",
+                      "valueLabel": "",
+                      "propLabel": "packing_lock_user_name"
+                    },
+                    {
+                      "prop": "packing_lock_session_id",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSresult.data.lockRows.packing_lock_session_id}}",
+                      "valueLabel": "",
+                      "propLabel": "packing_lock_session_id"
+                    },
+                    {
+                      "prop": "packing_lock_expires_at",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSresult.data.lockRows.packing_lock_expires_at}}",
+                      "valueLabel": "",
+                      "propLabel": "packing_lock_expires_at"
+                    },
+                    {
+                      "prop": "packing_lock_updated_at",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_KSresult.data.lockRows.packing_lock_updated_at}}",
+                      "valueLabel": "",
+                      "propLabel": "packing_lock_updated_at"
+                    }
+                  ]
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "cori_NKSlock",
+          "type": "condition-or-node-item",
+          "data": {
+            "title": "NO",
+            "isDefault": true,
+            "filter": {
+              "list": []
+            },
+            "expression": {
+              "code": ""
+            },
+            "displayContent": "sdk.form.otherCondition"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "return_node_KSdone",
+      "type": "return-node",
+      "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return the job",
+        "isValidator": true,
+        "nodeName": "Return the job",
+        "name": "Return the job",
+        "response_value": {
+          "list": [
+            {
+              "prop": "route",
+              "propLabel": "route",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_KSresult.data.route}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "result_code",
+              "propLabel": "result_code",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_KSresult.data.result_code}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "result_message",
+              "propLabel": "result_message",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_KSresult.data.result_message}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "job_id",
+              "propLabel": "job_id",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_KSresult.data.job_id}}",
+              "valueLabel": ""
+            },
+            {
+              "prop": "job_status",
+              "propLabel": "job_status",
+              "operator": "",
+              "operatorLabel": "",
+              "valueType": "field",
+              "valueTypeLabel": "",
+              "value": "{{node:code_node_KSresult.data.job_status}}",
+              "valueLabel": ""
+            }
+          ]
+        },
+        "return_raw_data": 0
+      },
+      "blocks": []
+    },
+    {
+      "id": "end",
+      "type": "end-node",
+      "data": {
+        "title": "End Node",
+        "isValidator": true,
+        "nodeName": "End Node",
+        "name": "End Node"
+      },
+      "blocks": []
+    }
+  ],
+  "edges": []
+}

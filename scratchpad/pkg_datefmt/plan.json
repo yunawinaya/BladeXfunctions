@@ -1,0 +1,26 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PACKING_ASYNC_SUBMIT",
+   "dataId": "2109924558618333185",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_datefmt/out/PACKING_ASYNC_SUBMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_datefmt/base/PACKING_ASYNC_SUBMIT.dev_v6.json",
+   "smoke": {
+    "request": {
+     "operation": "COMPLETE",
+     "packing_id": "2109853777360162818",
+     "organization_id": "1123598813738675201",
+     "idempotency_key": "SMOKE:datefmt:2026-10-24",
+     "header_patch": "{}",
+     "submitted_name": "smoke"
+    },
+    "expect": {
+     "key": "result_message",
+     "equals": "Packing is already completed"
+    }
+   }
+  }
+ ]
+}
