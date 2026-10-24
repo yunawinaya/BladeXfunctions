@@ -18,6 +18,13 @@ Catches the bug classes that the platform fails silently on:
   SQLSTART     a sql-node whose statement does not begin with SELECT / WITH (e.g. a parenthesized
                UNION), or holds the keyword SET (e.g. CHARACTER SET) -> the platform refuses it at run time
                ("Only SELECT/WITH statements are allowed" / "SQL contains a disallowed construct: SET").
+  MULTIWHERE   an update / delete / get / search node whose filter has more than one top-level condition:
+               the platform does not AND them, so the node reaches rows the filter was meant to exclude
+               (LSH 2026-10-24: three such update-nodes in PACKING_SAVE rewrote 11,000 step rows).
+               Wrap them in ONE branch with operator "all"; for an update, pin the rows by id.
+  IDIGNORED    an update-node whose props carry `id` and whose filter also tests other columns: those
+               tests are ignored, every listed id is written (BUG-20261012-017). Compute the exact id
+               list in a code-node from fresh data and gate the update on its count.
 
 Usage:
     python3 scratchpad/validate.py <workflow.json> [<workflow.json> ...]
@@ -58,6 +65,9 @@ NODE_REF = re.compile(r"\{\{node:([A-Za-z0-9_\-]+)")
 PROP_REF = re.compile(r"^node\.([A-Za-z0-9_\-]+)\.")
 
 INFORMATIONAL = {"CONDITIONAL"}
+
+# Node types whose rows are chosen by data.table_id.rules.
+FILTER_TYPES = {"update-node", "delete-node", "get-node", "search-node"}
 
 
 def children_of(node):
@@ -319,6 +329,22 @@ def check(path, only=None):
             if re.search(r"(?i)\bset\b", sql):
                 findings.append(("SQLSTART", nid, "the platform refuses the keyword SET anywhere (e.g. CHARACTER SET) - use CONVERT(x USING utf8mb4)"))
 
+        if info["type"] in FILTER_TYPES:
+            data = node.get("data") or {}
+            rules = (((data.get("table_id") or {}).get("rules") or {}).get("list")) or []
+            top = [r for r in rules if str(r.get("parentId", 0)) in ("0", "")]
+            if len(top) > 1:
+                props = ", ".join(str(r.get("prop") or r.get("operator") or "?") for r in top)
+                findings.append(("MULTIWHERE", nid, f"{len(top)} top-level filter conditions ({props}) are not ANDed: wrap them in one 'all' branch"
+                                 + ("; pin an update's rows by id" if info["type"] == "update-node" else "")))
+            if info["type"] == "update-node":
+                prop_names = {p.get("prop") for p in ((data.get("props") or {}).get("list") or [])}
+                # a tenant / organization test on ids taken from that scope changes nothing; any other test was meant to skip rows
+                tested = sorted({str(r.get("prop")) for r in rules if r.get("type") == "leaf" and r.get("prop")
+                                 and r.get("prop") != "id" and not str(r.get("prop")).startswith(("tenant_id", "organization_id"))})
+                if "id" in prop_names and tested:
+                    findings.append(("IDIGNORED", nid, f"props carry id, so the filter on {', '.join(tested)} is ignored: every listed id is written"))
+
         if info["type"] == "code-node":
             script = ((node.get("data") or {}).get("script") or {}).get("code") or ""
             keys = returned_keys(script)
@@ -347,7 +373,7 @@ def check(path, only=None):
     print(f"\n=== {path}  ({len(index)} nodes)")
     if not findings:
         print("  clean")
-    order = ["SQLSTART", "MISSING", "FORWARD", "DIVERGENT", "UNDECLARED", "UNUSED", "CONDITIONAL"]
+    order = ["MULTIWHERE", "IDIGNORED", "SQLSTART", "MISSING", "FORWARD", "DIVERGENT", "UNDECLARED", "UNUSED", "CONDITIONAL"]
     findings.sort(key=lambda f: (order.index(f[0]) if f[0] in order else 99, f[1]))
     for kind, nid, message in findings:
         print(f"  {kind:<12} {nid:<28} {message}")

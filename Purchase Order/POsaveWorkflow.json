@@ -248,7 +248,9 @@
         {
           "id": "if_save_draft_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "wf_draft_check_required",
@@ -342,7 +344,9 @@
                 {
                   "id": "if_draft_failed_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_draft_400",
@@ -351,7 +355,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -370,7 +378,9 @@
                 {
                   "id": "if_draft_failed_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -380,7 +390,9 @@
         {
           "id": "if_save_draft_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "wf_check_required",
@@ -474,7 +486,9 @@
                 {
                   "id": "if_required_failed_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_required_400",
@@ -483,7 +497,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -502,7 +520,9 @@
                 {
                   "id": "if_required_failed_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": [
                     {
                       "id": "wf_validate_qty",
@@ -606,7 +626,9 @@
                         {
                           "id": "if_qty_passed_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "if_empty_lines",
@@ -641,7 +663,9 @@
                                 {
                                   "id": "if_empty_lines_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "end_empty_401",
@@ -651,7 +675,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -671,7 +697,9 @@
                                 {
                                   "id": "if_empty_lines_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -709,7 +737,9 @@
                                 {
                                   "id": "if_direct_pi_zero_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "end_direct_pi_zero",
@@ -719,7 +749,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -753,7 +785,9 @@
                                 {
                                   "id": "if_direct_pi_zero_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -791,7 +825,9 @@
                                 {
                                   "id": "if_edit_draftcheck_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "sql_draft_grpi",
@@ -900,7 +936,9 @@
                                         {
                                           "id": "if_draft_found_t",
                                           "type": "ifBlock",
-                                          "data": { "title": "true" },
+                                          "data": {
+                                            "title": "true"
+                                          },
                                           "blocks": [
                                             {
                                               "id": "end_draft_404",
@@ -932,7 +970,9 @@
                                         {
                                           "id": "if_draft_found_f",
                                           "type": "ifBlock",
-                                          "data": { "title": "false" },
+                                          "data": {
+                                            "title": "false"
+                                          },
                                           "blocks": []
                                         }
                                       ]
@@ -942,7 +982,9 @@
                                 {
                                   "id": "if_edit_draftcheck_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -1048,15 +1090,21 @@
                                 {
                                   "id": "if_no_approval_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "cond_price_check",
                                       "type": "condition-or-node",
                                       "data": {
                                         "title": "Condition",
-                                        "filter": { "list": [] },
-                                        "expression": { "code": "" },
+                                        "filter": {
+                                          "list": []
+                                        },
+                                        "expression": {
+                                          "code": ""
+                                        },
                                         "displayContent": "sdk.form.setCondition"
                                       },
                                       "blocks": [
@@ -1189,8 +1237,12 @@
                                           "data": {
                                             "title": "Other",
                                             "isDefault": true,
-                                            "filter": { "list": [] },
-                                            "expression": { "code": "" },
+                                            "filter": {
+                                              "list": []
+                                            },
+                                            "expression": {
+                                              "code": ""
+                                            },
                                             "displayContent": "sdk.form.otherCondition"
                                           },
                                           "blocks": []
@@ -1202,7 +1254,9 @@
                                 {
                                   "id": "if_no_approval_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -1212,7 +1266,9 @@
                         {
                           "id": "if_qty_passed_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": [
                             {
                               "id": "end_qty_401",
@@ -1222,7 +1278,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -1282,7 +1340,9 @@
         {
           "id": "if_pre_issued_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_its_pre",
@@ -1485,7 +1545,9 @@
                 {
                   "id": "if_it_size_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "end_it_size_400",
@@ -1494,7 +1556,11 @@
                         "title": "结束节点",
                         "outputs": {
                           "type": "object",
-                          "properties": { "result": { "type": "string" } }
+                          "properties": {
+                            "result": {
+                              "type": "string"
+                            }
+                          }
                         },
                         "isValidator": true,
                         "nodeName": "结束节点",
@@ -1513,7 +1579,9 @@
                 {
                   "id": "if_it_size_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1551,15 +1619,21 @@
                 {
                   "id": "if_internal_pre_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "po_par_pre_fetch",
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel Pre Fetch",
-                        "filter": { "list": [] },
-                        "expression": { "code": "" },
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -1568,8 +1642,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Alias",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Alias",
@@ -1660,8 +1739,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Customer+Currency",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Customer+Currency",
@@ -1744,8 +1828,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Linked SO",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Linked SO",
@@ -1863,7 +1952,9 @@
                         {
                           "id": "if_gate_confirm_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "end_gate_confirm",
@@ -1873,7 +1964,9 @@
                                 "outputs": {
                                   "type": "object",
                                   "properties": {
-                                    "result": { "type": "string" }
+                                    "result": {
+                                      "type": "string"
+                                    }
                                   }
                                 },
                                 "isValidator": true,
@@ -1881,7 +1974,10 @@
                                 "name": "结束节点",
                                 "back_data_type": "OutputParams",
                                 "code": "",
-                                "msg": { "type": "javascript", "code": "" },
+                                "msg": {
+                                  "type": "javascript",
+                                  "code": ""
+                                },
                                 "response_value": {
                                   "list": [
                                     {
@@ -1904,7 +2000,9 @@
                         {
                           "id": "if_gate_confirm_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -1914,7 +2012,9 @@
                 {
                   "id": "if_internal_pre_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -1924,7 +2024,9 @@
         {
           "id": "if_pre_issued_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -2034,7 +2136,7 @@
         "name": "Fillback Header Fields",
         "script": {
           "type": "javascript",
-          "code": "let updatedLineItem = [];\n// The record Add Data / Update Data write, built from the payload once. Draft: every row + the draft marker. Issued:\n// the rows Filter unnecessary line kept + the issued marker; when approval is needed, the header fields CHECK_APPROVAL\n// handed back (it may have knocked the PO back to Draft, and it carries approval_condition) overlay it.\nconst a = {{workflowparams:allData}} || {};\nconst pre = {{node:code_pre.data.approvalData}} || {};\nconst needApproval = {{node:wf_check_approval.data.needApproval}};\nconst approved = {{node:wf_check_approval.data.data}};\nlet entry;\nif (a.po_status == \"Draft\") {\n  entry = { ...a, purchase_order_no: {{node:code_pre.data.docNo}} };\n} else {\n  entry = {\n    ...a,\n    purchase_order_no: {{node:code_pre.data.docNo}},\n    table_po: (a.table_po || []).filter((item) => (item.item_name || item.item_desc || item.item_id) && item.quantity > 0),\n    min_price_result: pre.min_price_result,\n    max_price_result: pre.max_price_result,\n    amount_result: pre.amount_result,\n  };\n  if (needApproval == \"Yes\" && approved && typeof approved === \"object\") Object.assign(entry, approved);\n}\n\n// The form sends back whatever approval_condition it loaded. Only the copy CHECK_APPROVAL\n// just worked out is current; anything else (draft, no approval needed) is cleared.\nif (needApproval != \"Yes\") {\n  entry.approval_condition = {};\n}\n\n// table_po is written as one array, so the columns other flows own are taken from the stored line (read just now),\n// never from the form: received_qty / created_received_qty (Goods Receiving), invoice_qty (Purchase Invoice),\n// return_quantity / created_return_qty (Purchase Return). A line without a stored row (Add / Clone, a new line) keeps the\n// form's values.\nconst stored = {};\nlet storedPoStatus = \"\";\nconst ownedRows = [{{node:sql_po_owned.data}}][0];\nif (a.page_status == \"Edit\") {\n  for (const r of Array.isArray(ownedRows) ? ownedRows : ownedRows ? [ownedRows] : []) {\n    storedPoStatus = r.head_po_status || storedPoStatus;\n    if (r.id !== undefined && r.id !== null && r.id !== \"\") stored[String(r.id)] = r;\n  }\n}\nconst dbNum = (v) => (v === undefined || v === null || v === \"\" ? null : Number(v));\nconst storedOf = (line) => (line && line.id !== undefined && line.id !== null && line.id !== \"\" ? stored[String(line.id)] : null);\nconst ownedFromDb = (line) => {\n  const s = storedOf(line);\n  if (!s) return line;\n  return { ...line, received_qty: dbNum(s.received_qty), created_received_qty: dbNum(s.created_received_qty), invoice_qty: dbNum(s.invoice_qty),\n    return_quantity: dbNum(s.return_quantity), created_return_qty: dbNum(s.created_return_qty) };\n};\n// line_status of a stored line: Goods Receiving moves it to Processing / Completed and a revert back to Issued, so the stored\n// value decides (the form's copy may predate either); saved as Issued, a Draft / Issued line is Issued\nconst lineStatusOf = (line, fallback) => {\n  const s = storedOf(line);\n  if (!s) return fallback;\n  if (s.line_status === \"Processing\" || s.line_status === \"Completed\") return s.line_status;\n  if (entry.po_status === \"Issued\" && (!s.line_status || s.line_status === \"Draft\" || s.line_status === \"Issued\")) return \"Issued\";\n  return fallback;\n};\n\n// alt_uom is re-stringified on every form load, so it grows with each save; it is kept as one JSON layer with the\n// four keys Goods Receiving reads (alt_uom_id, alt_qty, base_qty, base_uom_id)\nconst altUom = (v) => {\n  if (v === undefined || v === null || v === \"\") return v;\n  try {\n    let x = v;\n    for (let i = 0; i < 64 && typeof x === \"string\"; i++) x = JSON.parse(x);\n    const keep = (c) => (c && typeof c === \"object\" ? { alt_uom_id: c.alt_uom_id, alt_qty: c.alt_qty, base_qty: c.base_qty, base_uom_id: c.base_uom_id } : c);\n    return JSON.stringify(Array.isArray(x) ? x.map(keep) : keep(x));\n  } catch (e) {\n    return v;\n  }\n};\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  supplier_id: entry.po_supplier_id || \"\",\n  plant_id: entry.po_plant || \"\",\n  payment_term_id: entry.po_payment_terms || \"\",\n  shipping_preference_id: entry.po_shipping_preference || \"\",\n  billing_state_id: entry.billing_address_state || \"\",\n  billing_country_id: entry.billing_address_country || \"\",\n  shipping_state_id: entry.shipping_address_state || \"\",\n  shipping_country_id: entry.shipping_address_country || \"\",\n  organization_id: entry.organization_id,\n  po_created_by: {{global:nickname}},\n};\n\nconst round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\nconst formatLine = (formLine) => {\n  const poLineItem = ownedFromDb(formLine);\n  const receivedQty = poLineItem.received_qty === null || poLineItem.received_qty === undefined || poLineItem.received_qty === '' ? 0 : parseFloat(poLineItem.received_qty);\n\n  const out = {\n    ...poLineItem,\n    quantity: round8(poLineItem.quantity),\n    unit_price: round8(poLineItem.unit_price),\n    gross: round8(poLineItem.gross),\n    discount: round8(poLineItem.discount),\n    discount_amount: round8(poLineItem.discount_amount),\n    tax_amount: round8(poLineItem.tax_amount),\n    po_amount: round8(poLineItem.po_amount),\n    min_price: round8(poLineItem.min_price),\n    max_price: round8(poLineItem.max_price),\n    received_qty: round8(receivedQty),\n    outstanding_quantity: Math.max(0, round8((parseFloat(poLineItem.quantity) || 0) - receivedQty)),\n    item_category_id: poLineItem.item_category_id || \"\",\n    po_expected_date: poLineItem.po_expected_date ?? entry.po_expected_date,\n  };\n  if (\"alt_uom\" in poLineItem) out.alt_uom = altUom(poLineItem.alt_uom);\n  return out;\n};\n\nfor (const [index, poLineItem] of entry.table_po.entries()) {\n  const lineStatus =\n    !poLineItem.line_status ||\n    poLineItem.line_status === \"\" ||\n    poLineItem.line_status === \"Draft\"\n      ? entry.po_status\n      : poLineItem.line_status;\n\n  const formattedItem = {\n    ...formatLine(poLineItem),\n    ...commonFields,\n    line_index: index + 1,\n    line_status: lineStatusOf(poLineItem, lineStatus),\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(poLineItem.children) && {\n      children: poLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n        line_status: lineStatusOf(child, lineStatus),\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.partially_received = !entry.partially_received || entry.partially_received === '' ? `0 / ${updatedLineItem.length}` : entry.partially_received;\nentry.fully_received = !entry.fully_received || entry.fully_received === '' ? `0 / ${updatedLineItem.length}` : entry.fully_received;\nentry.po_total_gross = round8(entry.po_total_gross);\nentry.po_total_discount = round8(entry.po_total_discount);\nentry.po_total_tax = round8(entry.po_total_tax);\nentry.po_total = round8(entry.po_total);\nentry.myr_total_amount = round8(entry.myr_total_amount);\n\nentry.table_po = updatedLineItem;\n\n// Goods Receiving moves an Issued PO to Processing / Completed: saving it as Issued (the form always asks for Issued) keeps\n// that status. Lines above already took the requested status, so a new line still starts as Issued.\nif (entry.po_status === \"Issued\" && (storedPoStatus === \"Processing\" || storedPoStatus === \"Completed\")) entry.po_status = storedPoStatus;\n\n// Update Transaction Date: the items of the top-level lines (was Map Item IDs)\nconst itemIDs = [...new Set(updatedLineItem.filter((item) => item.item_id).map((item) => item.item_id))];\n\nreturn { entry, itemIDs };"
+          "code": "let updatedLineItem = [];\n// The record Add Data / Update Data write, built from the payload once. Draft: every row + the draft marker. Issued:\n// the rows Filter unnecessary line kept + the issued marker; when approval is needed, the header fields CHECK_APPROVAL\n// handed back (it may have knocked the PO back to Draft, and it carries approval_condition) overlay it.\nconst a = {{workflowparams:allData}} || {};\nconst pre = {{node:code_pre.data.approvalData}} || {};\nconst needApproval = {{node:wf_check_approval.data.needApproval}};\nconst approved = {{node:wf_check_approval.data.data}};\nlet entry;\nif (a.po_status == \"Draft\") {\n  entry = { ...a, purchase_order_no: {{node:code_pre.data.docNo}} };\n} else {\n  entry = {\n    ...a,\n    purchase_order_no: {{node:code_pre.data.docNo}},\n    table_po: (a.table_po || []).filter((item) => (item.item_name || item.item_desc || item.item_id) && item.quantity > 0),\n    min_price_result: pre.min_price_result,\n    max_price_result: pre.max_price_result,\n    amount_result: pre.amount_result,\n  };\n  if (needApproval == \"Yes\" && approved && typeof approved === \"object\") Object.assign(entry, approved);\n}\n\n// The form sends back whatever approval_condition it loaded. Only the copy CHECK_APPROVAL\n// just worked out is current; anything else (draft, no approval needed) is cleared.\nif (needApproval != \"Yes\") {\n  entry.approval_condition = {};\n}\n\n// table_po is written as one array, so the columns other flows own are taken from the stored line (read just now),\n// never from the form: received_qty / created_received_qty (Goods Receiving), invoice_qty (Purchase Invoice),\n// return_quantity / created_return_qty (Purchase Return). A line without a stored row (Add / Clone, a new line) keeps the\n// form's values.\nconst stored = {};\nlet storedPoStatus = \"\";\nconst ownedRows = [{{node:sql_po_owned.data}}][0];\nif (a.page_status == \"Edit\") {\n  for (const r of Array.isArray(ownedRows) ? ownedRows : ownedRows ? [ownedRows] : []) {\n    storedPoStatus = r.head_po_status || storedPoStatus;\n    if (r.id !== undefined && r.id !== null && r.id !== \"\") stored[String(r.id)] = r;\n  }\n}\nconst dbNum = (v) => (v === undefined || v === null || v === \"\" ? null : Number(v));\nconst storedOf = (line) => (line && line.id !== undefined && line.id !== null && line.id !== \"\" ? stored[String(line.id)] : null);\nconst ownedFromDb = (line) => {\n  const s = storedOf(line);\n  if (!s) return line;\n  return { ...line, received_qty: dbNum(s.received_qty), created_received_qty: dbNum(s.created_received_qty), invoice_qty: dbNum(s.invoice_qty),\n    return_quantity: dbNum(s.return_quantity), created_return_qty: dbNum(s.created_return_qty) };\n};\n// line_status of a stored line: Goods Receiving moves it to Processing / Completed and a revert back to Issued, so the stored\n// value decides (the form's copy may predate either); saved as Issued, a Draft / Issued line is Issued\nconst lineStatusOf = (line, fallback) => {\n  const s = storedOf(line);\n  if (!s) return fallback;\n  if (s.line_status === \"Processing\" || s.line_status === \"Completed\") return s.line_status;\n  if (entry.po_status === \"Issued\" && (!s.line_status || s.line_status === \"Draft\" || s.line_status === \"Issued\")) return \"Issued\";\n  return fallback;\n};\n\n// alt_uom is re-stringified on every form load, so it grows with each save; it is kept as one JSON layer with the\n// four keys Goods Receiving reads (alt_uom_id, alt_qty, base_qty, base_uom_id)\nconst altUom = (v) => {\n  if (v === undefined || v === null || v === \"\") return v;\n  try {\n    let x = v;\n    for (let i = 0; i < 64 && typeof x === \"string\"; i++) x = JSON.parse(x);\n    const keep = (c) => (c && typeof c === \"object\" ? { alt_uom_id: c.alt_uom_id, alt_qty: c.alt_qty, base_qty: c.base_qty, base_uom_id: c.base_uom_id } : c);\n    return JSON.stringify(Array.isArray(x) ? x.map(keep) : keep(x));\n  } catch (e) {\n    return v;\n  }\n};\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  supplier_id: entry.po_supplier_id || \"\",\n  plant_id: entry.po_plant || \"\",\n  payment_term_id: entry.po_payment_terms || \"\",\n  shipping_preference_id: entry.po_shipping_preference || \"\",\n  billing_state_id: entry.billing_address_state || \"\",\n  billing_country_id: entry.billing_address_country || \"\",\n  shipping_state_id: entry.shipping_address_state || \"\",\n  shipping_country_id: entry.shipping_address_country || \"\",\n  organization_id: entry.organization_id,\n  po_created_by: {{global:nickname}},\n};\n\nconst round8 = (value) => Math.round((parseFloat(value) || 0) * 100000000) / 100000000;\n\nconst formatLine = (formLine) => {\n  const poLineItem = ownedFromDb(formLine);\n  const receivedQty = poLineItem.received_qty === null || poLineItem.received_qty === undefined || poLineItem.received_qty === '' ? 0 : parseFloat(poLineItem.received_qty);\n\n  const out = {\n    ...poLineItem,\n    quantity: round8(poLineItem.quantity),\n    unit_price: round8(poLineItem.unit_price),\n    gross: round8(poLineItem.gross),\n    discount: round8(poLineItem.discount),\n    discount_amount: round8(poLineItem.discount_amount),\n    tax_amount: round8(poLineItem.tax_amount),\n    po_amount: round8(poLineItem.po_amount),\n    min_price: round8(poLineItem.min_price),\n    max_price: round8(poLineItem.max_price),\n    received_qty: round8(receivedQty),\n    outstanding_quantity: Math.max(0, round8((parseFloat(poLineItem.quantity) || 0) - receivedQty)),\n    item_category_id: poLineItem.item_category_id || \"\",\n    po_expected_date: poLineItem.po_expected_date || entry.po_expected_date,\n  };\n  if (\"alt_uom\" in poLineItem) out.alt_uom = altUom(poLineItem.alt_uom);\n  return out;\n};\n\nfor (const [index, poLineItem] of entry.table_po.entries()) {\n  const lineStatus =\n    !poLineItem.line_status ||\n    poLineItem.line_status === \"\" ||\n    poLineItem.line_status === \"Draft\"\n      ? entry.po_status\n      : poLineItem.line_status;\n\n  const formattedItem = {\n    ...formatLine(poLineItem),\n    ...commonFields,\n    line_index: index + 1,\n    line_status: lineStatusOf(poLineItem, lineStatus),\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(poLineItem.children) && {\n      children: poLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n        line_status: lineStatusOf(child, lineStatus),\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\nentry.partially_received = !entry.partially_received || entry.partially_received === '' ? `0 / ${updatedLineItem.length}` : entry.partially_received;\nentry.fully_received = !entry.fully_received || entry.fully_received === '' ? `0 / ${updatedLineItem.length}` : entry.fully_received;\nentry.po_total_gross = round8(entry.po_total_gross);\nentry.po_total_discount = round8(entry.po_total_discount);\nentry.po_total_tax = round8(entry.po_total_tax);\nentry.po_total = round8(entry.po_total);\nentry.myr_total_amount = round8(entry.myr_total_amount);\n\nentry.table_po = updatedLineItem;\n\n// Goods Receiving moves an Issued PO to Processing / Completed: saving it as Issued (the form always asks for Issued) keeps\n// that status. Lines above already took the requested status, so a new line still starts as Issued.\nif (entry.po_status === \"Issued\" && (storedPoStatus === \"Processing\" || storedPoStatus === \"Completed\")) entry.po_status = storedPoStatus;\n\n// Update Transaction Date: the items of the top-level lines (was Map Item IDs)\nconst itemIDs = [...new Set(updatedLineItem.filter((item) => item.item_id).map((item) => item.item_id))];\n\nreturn { entry, itemIDs };"
         },
         "response_json": [
           {
@@ -2102,16 +2204,14 @@
         {
           "id": "if_edit_persist_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "code_node_CfNeed1",
               "type": "code-node",
               "data": {
-                "title": "Custom fields this edit leaves out? (header + lines)",
-                "isValidator": true,
-                "nodeName": "Custom fields this edit leaves out? (header + lines)",
-                "name": "Custom fields this edit leaves out? (header + lines)",
                 "language": "javascript",
                 "code": "",
                 "timeout": 30000,
@@ -2138,7 +2238,11 @@
                     "isExpand": false,
                     "children": []
                   }
-                ]
+                ],
+                "title": "Custom fields this edit leaves out? (header + lines)",
+                "isValidator": true,
+                "nodeName": "Custom fields this edit leaves out? (header + lines)",
+                "name": "Custom fields this edit leaves out? (header + lines)"
               },
               "blocks": []
             },
@@ -2175,7 +2279,9 @@
                 {
                   "id": "ifBlock_TCfNeed1",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_node_CfStored1",
@@ -2274,7 +2380,9 @@
                 {
                   "id": "ifBlock_FCfNeed1",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -2369,7 +2477,8 @@
                       "value": "{{node:code_fillback.data.entry.id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "id"
+                      "propLabel": "id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "purchase_order_no",
@@ -2377,7 +2486,8 @@
                       "value": "{{node:code_fillback.data.entry.purchase_order_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "purchase_order_no"
+                      "propLabel": "purchase_order_no",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "purchase_order_no_type",
@@ -2385,7 +2495,8 @@
                       "value": "{{node:code_fillback.data.entry.purchase_order_no_type}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "purchase_order_no_type"
+                      "propLabel": "purchase_order_no_type",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_status",
@@ -2393,7 +2504,8 @@
                       "value": "{{node:code_fillback.data.entry.po_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_status"
+                      "propLabel": "po_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "previous_status",
@@ -2401,7 +2513,8 @@
                       "value": "{{node:code_fillback.data.entry.previous_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "previous_status"
+                      "propLabel": "previous_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_date",
@@ -2409,7 +2522,8 @@
                       "value": "{{node:code_fillback.data.entry.po_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_date"
+                      "propLabel": "po_date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_expected_date",
@@ -2417,7 +2531,8 @@
                       "value": "{{node:code_fillback.data.entry.po_expected_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_expected_date"
+                      "propLabel": "po_expected_date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_supplier_id",
@@ -2425,7 +2540,8 @@
                       "value": "{{node:code_fillback.data.entry.po_supplier_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_supplier_id"
+                      "propLabel": "po_supplier_id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_plant",
@@ -2433,7 +2549,8 @@
                       "value": "{{node:code_fillback.data.entry.po_plant}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_plant"
+                      "propLabel": "po_plant",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "organization_id",
@@ -2441,7 +2558,8 @@
                       "value": "{{node:code_fillback.data.entry.organization_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "organization_id"
+                      "propLabel": "organization_id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_currency",
@@ -2449,7 +2567,8 @@
                       "value": "{{node:code_fillback.data.entry.po_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_currency"
+                      "propLabel": "po_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_delivery_address",
@@ -2457,7 +2576,8 @@
                       "value": "{{node:code_fillback.data.entry.po_delivery_address}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_delivery_address"
+                      "propLabel": "po_delivery_address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_receiving_supplier",
@@ -2465,7 +2585,8 @@
                       "value": "{{node:code_fillback.data.entry.po_receiving_supplier}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_receiving_supplier"
+                      "propLabel": "po_receiving_supplier",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_billing_address",
@@ -2473,7 +2594,8 @@
                       "value": "{{node:code_fillback.data.entry.po_billing_address}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_billing_address"
+                      "propLabel": "po_billing_address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_shipping_address",
@@ -2481,7 +2603,8 @@
                       "value": "{{node:code_fillback.data.entry.po_shipping_address}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_shipping_address"
+                      "propLabel": "po_shipping_address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "preq_no",
@@ -2489,7 +2612,8 @@
                       "value": "{{node:code_fillback.data.entry.preq_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "preq_no"
+                      "propLabel": "preq_no",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "preq_id",
@@ -2497,7 +2621,8 @@
                       "value": "{{node:code_fillback.data.entry.preq_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "preq_id"
+                      "propLabel": "preq_id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_payment_terms",
@@ -2505,7 +2630,8 @@
                       "value": "{{node:code_fillback.data.entry.po_payment_terms}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_payment_terms"
+                      "propLabel": "po_payment_terms",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_shipping_preference",
@@ -2513,7 +2639,8 @@
                       "value": "{{node:code_fillback.data.entry.po_shipping_preference}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_shipping_preference"
+                      "propLabel": "po_shipping_preference",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate_currency",
@@ -2521,7 +2648,8 @@
                       "value": "{{node:code_fillback.data.entry.exchange_rate_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "exchange_rate_currency"
+                      "propLabel": "exchange_rate_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate",
@@ -2529,7 +2657,8 @@
                       "value": "{{node:code_fillback.data.entry.exchange_rate}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "exchange_rate"
+                      "propLabel": "exchange_rate",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate_myr",
@@ -2537,7 +2666,8 @@
                       "value": "{{node:code_fillback.data.entry.exchange_rate_myr}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "exchange_rate_myr"
+                      "propLabel": "exchange_rate_myr",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "reference_number",
@@ -2545,7 +2675,8 @@
                       "value": "{{node:code_fillback.data.entry.reference_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "reference_number"
+                      "propLabel": "reference_number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_ref_doc",
@@ -2553,7 +2684,8 @@
                       "value": "{{node:code_fillback.data.entry.po_ref_doc}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_ref_doc"
+                      "propLabel": "po_ref_doc",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_dockey",
@@ -2561,7 +2693,8 @@
                       "value": "{{node:code_fillback.data.entry.po_dockey}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_dockey"
+                      "propLabel": "po_dockey",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_docno",
@@ -2569,7 +2702,8 @@
                       "value": "{{node:code_fillback.data.entry.po_docno}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_docno"
+                      "propLabel": "po_docno",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "price_tag_id",
@@ -2577,7 +2711,8 @@
                       "value": "{{node:code_fillback.data.entry.price_tag_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "price_tag_id"
+                      "propLabel": "price_tag_id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "acc_integration_type",
@@ -2585,7 +2720,8 @@
                       "value": "{{node:code_fillback.data.entry.acc_integration_type}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "acc_integration_type"
+                      "propLabel": "acc_integration_type",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "project_id",
@@ -2593,7 +2729,8 @@
                       "value": "{{node:code_fillback.data.entry.project_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Project"
+                      "propLabel": "Project",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "return_status",
@@ -2601,7 +2738,8 @@
                       "value": "{{node:code_fillback.data.entry.return_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "return_status"
+                      "propLabel": "return_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "table_po",
@@ -2609,7 +2747,8 @@
                       "value": "{{node:code_node_CfOut1.data.lines}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "table_po"
+                      "propLabel": "table_po",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_gross_currency",
@@ -2617,7 +2756,8 @@
                       "value": "{{node:code_fillback.data.entry.total_gross_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_gross_currency"
+                      "propLabel": "total_gross_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_discount_currency",
@@ -2625,7 +2765,8 @@
                       "value": "{{node:code_fillback.data.entry.total_discount_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_discount_currency"
+                      "propLabel": "total_discount_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_tax_currency",
@@ -2633,7 +2774,8 @@
                       "value": "{{node:code_fillback.data.entry.total_tax_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_tax_currency"
+                      "propLabel": "total_tax_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_amount_currency",
@@ -2641,7 +2783,8 @@
                       "value": "{{node:code_fillback.data.entry.total_amount_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_amount_currency"
+                      "propLabel": "total_amount_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_amount_myr",
@@ -2649,7 +2792,8 @@
                       "value": "{{node:code_fillback.data.entry.total_amount_myr}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_amount_myr"
+                      "propLabel": "total_amount_myr",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_total_gross",
@@ -2657,7 +2801,8 @@
                       "value": "{{node:code_fillback.data.entry.po_total_gross}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_total_gross"
+                      "propLabel": "po_total_gross",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_total_discount",
@@ -2665,7 +2810,8 @@
                       "value": "{{node:code_fillback.data.entry.po_total_discount}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_total_discount"
+                      "propLabel": "po_total_discount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_total_tax",
@@ -2673,7 +2819,8 @@
                       "value": "{{node:code_fillback.data.entry.po_total_tax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_total_tax"
+                      "propLabel": "po_total_tax",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_total",
@@ -2681,7 +2828,8 @@
                       "value": "{{node:code_fillback.data.entry.po_total}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_total"
+                      "propLabel": "po_total",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "myr_total_amount",
@@ -2689,7 +2837,8 @@
                       "value": "{{node:code_fillback.data.entry.myr_total_amount}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "myr_total_amount"
+                      "propLabel": "myr_total_amount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_tnc",
@@ -2697,7 +2846,8 @@
                       "value": "{{node:code_fillback.data.entry.po_tnc}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_tnc"
+                      "propLabel": "po_tnc",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark",
@@ -2705,7 +2855,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark"
+                      "propLabel": "po_remark",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_description",
@@ -2713,7 +2864,8 @@
                       "value": "{{node:code_fillback.data.entry.po_description}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_description"
+                      "propLabel": "po_description",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "created_source",
@@ -2721,7 +2873,8 @@
                       "value": "{{node:code_fillback.data.entry.created_source}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "created_source"
+                      "propLabel": "created_source",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "wa_number",
@@ -2729,7 +2882,8 @@
                       "value": "{{node:code_fillback.data.entry.wa_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "wa_number"
+                      "propLabel": "wa_number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "wa_group",
@@ -2737,7 +2891,8 @@
                       "value": "{{node:code_fillback.data.entry.wa_group}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "wa_group"
+                      "propLabel": "wa_group",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark2",
@@ -2745,7 +2900,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark2"
+                      "propLabel": "po_remark2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark3",
@@ -2753,7 +2909,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark3"
+                      "propLabel": "po_remark3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark4",
@@ -2761,7 +2918,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark4"
+                      "propLabel": "po_remark4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark5",
@@ -2769,7 +2927,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark5}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark5"
+                      "propLabel": "po_remark5",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_name",
@@ -2777,7 +2936,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_name"
+                      "propLabel": "billing_address_name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_phone",
@@ -2785,7 +2945,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_phone"
+                      "propLabel": "billing_address_phone",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_fax",
@@ -2793,7 +2954,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_fax"
+                      "propLabel": "billing_address_fax",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_1",
@@ -2801,7 +2963,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_1"
+                      "propLabel": "billing_address_line_1",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_2",
@@ -2809,7 +2972,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_2"
+                      "propLabel": "billing_address_line_2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_3",
@@ -2817,7 +2981,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_3"
+                      "propLabel": "billing_address_line_3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_4",
@@ -2825,7 +2990,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_4"
+                      "propLabel": "billing_address_line_4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_city",
@@ -2833,7 +2999,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_city}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_city"
+                      "propLabel": "billing_address_city",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_postal_code",
@@ -2841,7 +3008,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_postal_code"
+                      "propLabel": "billing_postal_code",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_country",
@@ -2849,7 +3017,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_country}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_country"
+                      "propLabel": "billing_address_country",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_state",
@@ -2857,7 +3026,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_state}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_state"
+                      "propLabel": "billing_address_state",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_attention",
@@ -2865,7 +3035,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_attention}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_attention"
+                      "propLabel": "billing_attention",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_name",
@@ -2873,7 +3044,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_name"
+                      "propLabel": "shipping_address_name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_phone",
@@ -2881,7 +3053,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_phone"
+                      "propLabel": "shipping_address_phone",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_fax",
@@ -2889,7 +3062,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_fax"
+                      "propLabel": "shipping_address_fax",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_1",
@@ -2897,7 +3071,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_line_1"
+                      "propLabel": "shipping_address_line_1",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_2",
@@ -2905,7 +3080,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_line_2"
+                      "propLabel": "shipping_address_line_2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_3",
@@ -2913,7 +3089,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_line_3"
+                      "propLabel": "shipping_address_line_3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_4",
@@ -2921,7 +3098,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_line_4"
+                      "propLabel": "shipping_address_line_4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_city",
@@ -2929,7 +3107,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_city}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_city"
+                      "propLabel": "shipping_address_city",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_postal_code",
@@ -2937,7 +3116,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_postal_code"
+                      "propLabel": "shipping_postal_code",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_state",
@@ -2945,7 +3125,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_state}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_state"
+                      "propLabel": "shipping_address_state",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_country",
@@ -2953,7 +3134,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_country}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_country"
+                      "propLabel": "shipping_address_country",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_attention",
@@ -2961,7 +3143,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_attention}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_attention"
+                      "propLabel": "shipping_attention",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "approval_condition",
@@ -2969,7 +3152,8 @@
                       "value": "{{node:code_fillback.data.entry.approval_condition}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Approval Condition"
+                      "propLabel": "Approval Condition",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "auto_pi",
@@ -2977,7 +3161,8 @@
                       "value": "{{node:code_fillback.data.entry.auto_pi}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "auto_pi"
+                      "propLabel": "auto_pi",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "create_pi",
@@ -2985,7 +3170,8 @@
                       "value": "{{node:code_fillback.data.entry.create_pi}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "create_pi"
+                      "propLabel": "create_pi",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "custom_fields_b3w85tmv",
@@ -2993,7 +3179,17 @@
                       "value": "{{node:code_node_CfOut1.data.cf}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "custom_fields_b3w85tmv"
+                      "propLabel": "custom_fields_b3w85tmv",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "issued_to_sup",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.issued_to_sup}}",
+                      "is_negative_number": false,
+                      "valueLabel": "",
+                      "propLabel": "Issued to Supplier ?"
                     }
                   ]
                 }
@@ -3005,7 +3201,9 @@
         {
           "id": "if_edit_persist_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": [
             {
               "id": "add_po",
@@ -3044,7 +3242,8 @@
                       "value": "{{node:code_fillback.data.entry.purchase_order_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "purchase_order_no"
+                      "propLabel": "purchase_order_no",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "purchase_order_no_type",
@@ -3052,7 +3251,8 @@
                       "value": "{{node:code_fillback.data.entry.purchase_order_no_type}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "purchase_order_no_type"
+                      "propLabel": "purchase_order_no_type",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_status",
@@ -3060,7 +3260,8 @@
                       "value": "{{node:code_fillback.data.entry.po_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_status"
+                      "propLabel": "po_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "previous_status",
@@ -3068,7 +3269,8 @@
                       "value": "{{node:code_fillback.data.entry.previous_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "previous_status"
+                      "propLabel": "previous_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_date",
@@ -3076,7 +3278,8 @@
                       "value": "{{node:code_fillback.data.entry.po_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_date"
+                      "propLabel": "po_date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_expected_date",
@@ -3084,7 +3287,8 @@
                       "value": "{{node:code_fillback.data.entry.po_expected_date}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_expected_date"
+                      "propLabel": "po_expected_date",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_supplier_id",
@@ -3092,7 +3296,8 @@
                       "value": "{{node:code_fillback.data.entry.po_supplier_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_supplier_id"
+                      "propLabel": "po_supplier_id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_plant",
@@ -3100,7 +3305,8 @@
                       "value": "{{node:code_fillback.data.entry.po_plant}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_plant"
+                      "propLabel": "po_plant",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "organization_id",
@@ -3108,7 +3314,8 @@
                       "value": "{{node:code_fillback.data.entry.organization_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "organization_id"
+                      "propLabel": "organization_id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_currency",
@@ -3116,7 +3323,8 @@
                       "value": "{{node:code_fillback.data.entry.po_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_currency"
+                      "propLabel": "po_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_delivery_address",
@@ -3124,7 +3332,8 @@
                       "value": "{{node:code_fillback.data.entry.po_delivery_address}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_delivery_address"
+                      "propLabel": "po_delivery_address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_receiving_supplier",
@@ -3132,7 +3341,8 @@
                       "value": "{{node:code_fillback.data.entry.po_receiving_supplier}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_receiving_supplier"
+                      "propLabel": "po_receiving_supplier",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "partially_received",
@@ -3140,7 +3350,8 @@
                       "value": "{{node:code_fillback.data.entry.partially_received}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "partially_received"
+                      "propLabel": "partially_received",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "fully_received",
@@ -3148,7 +3359,8 @@
                       "value": "{{node:code_fillback.data.entry.fully_received}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "fully_received"
+                      "propLabel": "fully_received",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_billing_address",
@@ -3156,7 +3368,8 @@
                       "value": "{{node:code_fillback.data.entry.po_billing_address}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_billing_address"
+                      "propLabel": "po_billing_address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_shipping_address",
@@ -3164,7 +3377,8 @@
                       "value": "{{node:code_fillback.data.entry.po_shipping_address}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_shipping_address"
+                      "propLabel": "po_shipping_address",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "preq_no",
@@ -3172,7 +3386,8 @@
                       "value": "{{node:code_fillback.data.entry.preq_no}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "preq_no"
+                      "propLabel": "preq_no",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "preq_id",
@@ -3180,7 +3395,8 @@
                       "value": "{{node:code_fillback.data.entry.preq_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "preq_id"
+                      "propLabel": "preq_id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_payment_terms",
@@ -3188,7 +3404,8 @@
                       "value": "{{node:code_fillback.data.entry.po_payment_terms}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_payment_terms"
+                      "propLabel": "po_payment_terms",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_shipping_preference",
@@ -3196,7 +3413,8 @@
                       "value": "{{node:code_fillback.data.entry.po_shipping_preference}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_shipping_preference"
+                      "propLabel": "po_shipping_preference",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate_currency",
@@ -3204,7 +3422,8 @@
                       "value": "{{node:code_fillback.data.entry.exchange_rate_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "exchange_rate_currency"
+                      "propLabel": "exchange_rate_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate",
@@ -3212,7 +3431,8 @@
                       "value": "{{node:code_fillback.data.entry.exchange_rate}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "exchange_rate"
+                      "propLabel": "exchange_rate",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "exchange_rate_myr",
@@ -3220,7 +3440,8 @@
                       "value": "{{node:code_fillback.data.entry.exchange_rate_myr}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "exchange_rate_myr"
+                      "propLabel": "exchange_rate_myr",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "reference_number",
@@ -3228,7 +3449,8 @@
                       "value": "{{node:code_fillback.data.entry.reference_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "reference_number"
+                      "propLabel": "reference_number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_ref_doc",
@@ -3236,7 +3458,8 @@
                       "value": "{{node:code_fillback.data.entry.po_ref_doc}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_ref_doc"
+                      "propLabel": "po_ref_doc",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_dockey",
@@ -3244,7 +3467,8 @@
                       "value": "{{node:code_fillback.data.entry.po_dockey}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_dockey"
+                      "propLabel": "po_dockey",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_docno",
@@ -3252,7 +3476,8 @@
                       "value": "{{node:code_fillback.data.entry.po_docno}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_docno"
+                      "propLabel": "po_docno",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "price_tag_id",
@@ -3260,7 +3485,8 @@
                       "value": "{{node:code_fillback.data.entry.price_tag_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "price_tag_id"
+                      "propLabel": "price_tag_id",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "acc_integration_type",
@@ -3268,7 +3494,8 @@
                       "value": "{{node:code_fillback.data.entry.acc_integration_type}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "acc_integration_type"
+                      "propLabel": "acc_integration_type",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "project_id",
@@ -3276,7 +3503,8 @@
                       "value": "{{node:code_fillback.data.entry.project_id}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Project"
+                      "propLabel": "Project",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "gr_status",
@@ -3284,7 +3512,8 @@
                       "value": "{{node:code_fillback.data.entry.gr_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "gr_status"
+                      "propLabel": "gr_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "pi_posted_status",
@@ -3292,7 +3521,8 @@
                       "value": "{{node:code_fillback.data.entry.pi_posted_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "pi_posted_status"
+                      "propLabel": "pi_posted_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "pi_status",
@@ -3300,7 +3530,8 @@
                       "value": "{{node:code_fillback.data.entry.pi_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "pi_status"
+                      "propLabel": "pi_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "return_status",
@@ -3308,7 +3539,8 @@
                       "value": "{{node:code_fillback.data.entry.return_status}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "return_status"
+                      "propLabel": "return_status",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "table_po",
@@ -3316,7 +3548,8 @@
                       "value": "{{node:code_fillback.data.entry.table_po}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "table_po"
+                      "propLabel": "table_po",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_gross_currency",
@@ -3324,7 +3557,8 @@
                       "value": "{{node:code_fillback.data.entry.total_gross_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_gross_currency"
+                      "propLabel": "total_gross_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_discount_currency",
@@ -3332,7 +3566,8 @@
                       "value": "{{node:code_fillback.data.entry.total_discount_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_discount_currency"
+                      "propLabel": "total_discount_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_tax_currency",
@@ -3340,7 +3575,8 @@
                       "value": "{{node:code_fillback.data.entry.total_tax_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_tax_currency"
+                      "propLabel": "total_tax_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_amount_currency",
@@ -3348,7 +3584,8 @@
                       "value": "{{node:code_fillback.data.entry.total_amount_currency}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_amount_currency"
+                      "propLabel": "total_amount_currency",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "total_amount_myr",
@@ -3356,7 +3593,8 @@
                       "value": "{{node:code_fillback.data.entry.total_amount_myr}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "total_amount_myr"
+                      "propLabel": "total_amount_myr",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_total_gross",
@@ -3364,7 +3602,8 @@
                       "value": "{{node:code_fillback.data.entry.po_total_gross}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_total_gross"
+                      "propLabel": "po_total_gross",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_total_discount",
@@ -3372,7 +3611,8 @@
                       "value": "{{node:code_fillback.data.entry.po_total_discount}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_total_discount"
+                      "propLabel": "po_total_discount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_total_tax",
@@ -3380,7 +3620,8 @@
                       "value": "{{node:code_fillback.data.entry.po_total_tax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_total_tax"
+                      "propLabel": "po_total_tax",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_total",
@@ -3388,7 +3629,8 @@
                       "value": "{{node:code_fillback.data.entry.po_total}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_total"
+                      "propLabel": "po_total",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "myr_total_amount",
@@ -3396,7 +3638,8 @@
                       "value": "{{node:code_fillback.data.entry.myr_total_amount}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "myr_total_amount"
+                      "propLabel": "myr_total_amount",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_tnc",
@@ -3404,7 +3647,8 @@
                       "value": "{{node:code_fillback.data.entry.po_tnc}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_tnc"
+                      "propLabel": "po_tnc",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark",
@@ -3412,7 +3656,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark"
+                      "propLabel": "po_remark",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_description",
@@ -3420,7 +3665,8 @@
                       "value": "{{node:code_fillback.data.entry.po_description}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_description"
+                      "propLabel": "po_description",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "created_source",
@@ -3428,7 +3674,8 @@
                       "value": "{{node:code_fillback.data.entry.created_source}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "created_source"
+                      "propLabel": "created_source",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "wa_number",
@@ -3436,7 +3683,8 @@
                       "value": "{{node:code_fillback.data.entry.wa_number}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "wa_number"
+                      "propLabel": "wa_number",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "wa_group",
@@ -3444,7 +3692,8 @@
                       "value": "{{node:code_fillback.data.entry.wa_group}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "wa_group"
+                      "propLabel": "wa_group",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark2",
@@ -3452,7 +3701,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark2"
+                      "propLabel": "po_remark2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark3",
@@ -3460,7 +3710,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark3"
+                      "propLabel": "po_remark3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark4",
@@ -3468,7 +3719,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark4"
+                      "propLabel": "po_remark4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "po_remark5",
@@ -3476,7 +3728,8 @@
                       "value": "{{node:code_fillback.data.entry.po_remark5}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "po_remark5"
+                      "propLabel": "po_remark5",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_name",
@@ -3484,7 +3737,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_name"
+                      "propLabel": "billing_address_name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_phone",
@@ -3492,7 +3746,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_phone"
+                      "propLabel": "billing_address_phone",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_fax",
@@ -3500,7 +3755,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_fax"
+                      "propLabel": "billing_address_fax",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_1",
@@ -3508,7 +3764,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_1"
+                      "propLabel": "billing_address_line_1",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_2",
@@ -3516,7 +3773,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_2"
+                      "propLabel": "billing_address_line_2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_3",
@@ -3524,7 +3782,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_3"
+                      "propLabel": "billing_address_line_3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_line_4",
@@ -3532,7 +3791,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_line_4"
+                      "propLabel": "billing_address_line_4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_city",
@@ -3540,7 +3800,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_city}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_city"
+                      "propLabel": "billing_address_city",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_postal_code",
@@ -3548,7 +3809,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_postal_code"
+                      "propLabel": "billing_postal_code",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_country",
@@ -3556,7 +3818,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_country}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_country"
+                      "propLabel": "billing_address_country",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_address_state",
@@ -3564,7 +3827,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_address_state}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_address_state"
+                      "propLabel": "billing_address_state",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "billing_attention",
@@ -3572,7 +3836,8 @@
                       "value": "{{node:code_fillback.data.entry.billing_attention}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "billing_attention"
+                      "propLabel": "billing_attention",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_name",
@@ -3580,7 +3845,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_name}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_name"
+                      "propLabel": "shipping_address_name",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_phone",
@@ -3588,7 +3854,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_phone}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_phone"
+                      "propLabel": "shipping_address_phone",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_fax",
@@ -3596,7 +3863,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_fax}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_fax"
+                      "propLabel": "shipping_address_fax",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_1",
@@ -3604,7 +3872,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_line_1}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_line_1"
+                      "propLabel": "shipping_address_line_1",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_2",
@@ -3612,7 +3881,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_line_2}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_line_2"
+                      "propLabel": "shipping_address_line_2",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_3",
@@ -3620,7 +3890,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_line_3}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_line_3"
+                      "propLabel": "shipping_address_line_3",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_line_4",
@@ -3628,7 +3899,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_line_4}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_line_4"
+                      "propLabel": "shipping_address_line_4",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_city",
@@ -3636,7 +3908,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_city}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_city"
+                      "propLabel": "shipping_address_city",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_postal_code",
@@ -3644,7 +3917,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_postal_code}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_postal_code"
+                      "propLabel": "shipping_postal_code",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_state",
@@ -3652,7 +3926,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_state}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_state"
+                      "propLabel": "shipping_address_state",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_address_country",
@@ -3660,7 +3935,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_address_country}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_address_country"
+                      "propLabel": "shipping_address_country",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "shipping_attention",
@@ -3668,7 +3944,8 @@
                       "value": "{{node:code_fillback.data.entry.shipping_attention}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "shipping_attention"
+                      "propLabel": "shipping_attention",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "approval_condition",
@@ -3676,7 +3953,8 @@
                       "value": "{{node:code_fillback.data.entry.approval_condition}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "Approval Condition"
+                      "propLabel": "Approval Condition",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "auto_pi",
@@ -3684,7 +3962,8 @@
                       "value": "{{node:code_fillback.data.entry.auto_pi}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "auto_pi"
+                      "propLabel": "auto_pi",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "create_pi",
@@ -3692,7 +3971,8 @@
                       "value": "{{node:code_fillback.data.entry.create_pi}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "create_pi"
+                      "propLabel": "create_pi",
+                      "is_negative_number": false
                     },
                     {
                       "prop": "custom_fields_b3w85tmv",
@@ -3700,7 +3980,17 @@
                       "value": "{{node:code_fillback.data.entry.custom_fields_b3w85tmv}}",
                       "operator": "",
                       "valueLabel": "",
-                      "propLabel": "custom_fields_b3w85tmv"
+                      "propLabel": "custom_fields_b3w85tmv",
+                      "is_negative_number": false
+                    },
+                    {
+                      "prop": "issued_to_sup",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_fillback.data.entry.issued_to_sup}}",
+                      "is_negative_number": false,
+                      "valueLabel": "",
+                      "propLabel": "Issued to Supplier ?"
                     }
                   ]
                 }
@@ -3825,13 +4115,18 @@
             }
           ]
         },
-        "expression": { "type": "javascript", "code": "" }
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        }
       },
       "blocks": [
         {
           "id": "if_need_approval_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "if_po_snap",
@@ -3866,7 +4161,9 @@
                 {
                   "id": "if_po_snap_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_po_snap",
@@ -3907,7 +4204,9 @@
                 {
                   "id": "if_po_snap_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -3916,6 +4215,9 @@
               "id": "slot_po_approval",
               "type": "slot-node",
               "data": {
+                "slot_id": "",
+                "slot_name": "",
+                "slot_params": {},
                 "table_id": {
                   "source": "Purchase Order:Table:1902776039445217282",
                   "rules": {
@@ -3939,15 +4241,14 @@
                 "isValidator": true,
                 "nodeName": "PO Approval",
                 "name": "PO Approval",
-                "slot_id": "",
-                "slot_name": "",
-                "slot_params": {},
                 "name_k": "PO Approval",
                 "primary_key": {
                   "type": "javascript",
                   "code": "{{node:code_get_latest.data.poData.id}}"
                 },
-                "display_fields": { "list": [] },
+                "display_fields": {
+                  "list": []
+                },
                 "des": ""
               },
               "blocks": []
@@ -3987,7 +4288,9 @@
                 {
                   "id": "if_po_approved_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "code_map_updated_po",
@@ -4087,7 +4390,9 @@
                 {
                   "id": "if_po_approved_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -4097,7 +4402,9 @@
         {
           "id": "if_need_approval_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -4301,15 +4608,21 @@
         {
           "id": "if_issued_downstream_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "po_par_oo",
               "type": "condition-all-node",
               "data": {
                 "title": "On Order Reads",
-                "filter": { "list": [] },
-                "expression": { "code": "" },
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
                 "displayContent": "sdk.form.setCondition"
               },
               "blocks": [
@@ -4318,8 +4631,13 @@
                   "type": "condition-all-node-item",
                   "data": {
                     "title": "PO Lines",
-                    "filter": { "list": [] },
-                    "expression": { "code": "", "type": "javascript" },
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "PO Lines",
@@ -4417,8 +4735,13 @@
                   "type": "condition-all-node-item",
                   "data": {
                     "title": "Items",
-                    "filter": { "list": [] },
-                    "expression": { "code": "", "type": "javascript" },
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "Items",
@@ -4471,8 +4794,13 @@
                   "type": "condition-all-node-item",
                   "data": {
                     "title": "On Order",
-                    "filter": { "list": [] },
-                    "expression": { "code": "", "type": "javascript" },
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": "",
+                      "type": "javascript"
+                    },
                     "displayContent": "sdk.form.setCondition",
                     "isValidator": true,
                     "nodeName": "On Order",
@@ -4683,7 +5011,9 @@
                 {
                   "id": "if_onorder_add_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "loop_oo_add",
@@ -4909,7 +5239,9 @@
                 {
                   "id": "if_onorder_add_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -4947,7 +5279,9 @@
                 {
                   "id": "if_onorder_update_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "loop_oo_update",
@@ -5177,7 +5511,9 @@
                 {
                   "id": "if_onorder_update_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5215,7 +5551,9 @@
                 {
                   "id": "if_onorder_delete_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "loop_oo_delete",
@@ -5354,13 +5692,17 @@
                           "id": "delete_onorder",
                           "type": "delete-node",
                           "data": {
-                            "table_id": { "source": "" },
+                            "table_id": {
+                              "source": ""
+                            },
                             "condition": {},
                             "title": "Delete On Order",
                             "isValidator": true,
                             "nodeName": "Delete On Order",
                             "name": "Delete On Order",
-                            "node_ids": ["search_onorder_orphans"]
+                            "node_ids": [
+                              "search_onorder_orphans"
+                            ]
                           },
                           "blocks": []
                         }
@@ -5371,7 +5713,9 @@
                 {
                   "id": "if_onorder_delete_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5409,7 +5753,9 @@
                 {
                   "id": "if_has_preq_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "search_preq",
@@ -5557,7 +5903,9 @@
                 {
                   "id": "if_has_preq_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -5763,7 +6111,9 @@
                 {
                   "id": "if_internal_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "get_po_full",
@@ -5804,8 +6154,12 @@
                       "type": "condition-all-node",
                       "data": {
                         "title": "Parallel SO Fetch",
-                        "filter": { "list": [] },
-                        "expression": { "code": "" },
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
                         "displayContent": "sdk.form.setCondition"
                       },
                       "blocks": [
@@ -5814,8 +6168,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Existing Linkage",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Existing Linkage",
@@ -5865,8 +6224,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Customer+Currency",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Customer+Currency",
@@ -5949,8 +6313,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Accounting",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Accounting",
@@ -5999,8 +6368,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "SO Rule",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "SO Rule",
@@ -6104,8 +6478,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Addresses",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Addresses",
@@ -6232,8 +6611,12 @@
                               "type": "condition-all-node",
                               "data": {
                                 "title": "Countries/States",
-                                "filter": { "list": [] },
-                                "expression": { "code": "" },
+                                "filter": {
+                                  "list": []
+                                },
+                                "expression": {
+                                  "code": ""
+                                },
                                 "displayContent": "sdk.form.setCondition"
                               },
                               "blocks": [
@@ -6242,7 +6625,9 @@
                                   "type": "condition-all-node-item",
                                   "data": {
                                     "title": "Countries",
-                                    "filter": { "list": [] },
+                                    "filter": {
+                                      "list": []
+                                    },
                                     "expression": {
                                       "code": "",
                                       "type": "javascript"
@@ -6296,7 +6681,9 @@
                                   "type": "condition-all-node-item",
                                   "data": {
                                     "title": "States",
-                                    "filter": { "list": [] },
+                                    "filter": {
+                                      "list": []
+                                    },
                                     "expression": {
                                       "code": "",
                                       "type": "javascript"
@@ -6354,8 +6741,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Shipping Purpose",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Shipping Purpose",
@@ -6404,8 +6796,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Alias+SellerItems",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Alias+SellerItems",
@@ -6560,8 +6957,13 @@
                           "type": "condition-all-node-item",
                           "data": {
                             "title": "Linked SO",
-                            "filter": { "list": [] },
-                            "expression": { "code": "", "type": "javascript" },
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": "",
+                              "type": "javascript"
+                            },
                             "displayContent": "sdk.form.setCondition",
                             "isValidator": true,
                             "nodeName": "Linked SO",
@@ -6715,7 +7117,9 @@
                         {
                           "id": "if_do_unlink_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "update_so_unlink",
@@ -6906,7 +7310,9 @@
                         {
                           "id": "if_do_unlink_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -6944,7 +7350,9 @@
                         {
                           "id": "if_so_create_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "wf_create_so",
@@ -7084,7 +7492,9 @@
                                 {
                                   "id": "if_so_ok_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "update_so_source",
@@ -7315,7 +7725,9 @@
                                 {
                                   "id": "if_so_ok_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -7353,7 +7765,9 @@
                                 {
                                   "id": "if_so_failed_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "end_so_fail",
@@ -7363,7 +7777,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -7383,7 +7799,9 @@
                                 {
                                   "id": "if_so_failed_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -7393,7 +7811,9 @@
                         {
                           "id": "if_so_create_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -7431,7 +7851,9 @@
                         {
                           "id": "if_do_update_t",
                           "type": "ifBlock",
-                          "data": { "title": "true" },
+                          "data": {
+                            "title": "true"
+                          },
                           "blocks": [
                             {
                               "id": "wf_update_so",
@@ -7562,7 +7984,9 @@
                                 {
                                   "id": "if_update_failed_t",
                                   "type": "ifBlock",
-                                  "data": { "title": "true" },
+                                  "data": {
+                                    "title": "true"
+                                  },
                                   "blocks": [
                                     {
                                       "id": "end_update_fail",
@@ -7572,7 +7996,9 @@
                                         "outputs": {
                                           "type": "object",
                                           "properties": {
-                                            "result": { "type": "string" }
+                                            "result": {
+                                              "type": "string"
+                                            }
                                           }
                                         },
                                         "isValidator": true,
@@ -7606,7 +8032,9 @@
                                 {
                                   "id": "if_update_failed_f",
                                   "type": "ifBlock",
-                                  "data": { "title": "false" },
+                                  "data": {
+                                    "title": "false"
+                                  },
                                   "blocks": []
                                 }
                               ]
@@ -7616,7 +8044,9 @@
                         {
                           "id": "if_do_update_f",
                           "type": "ifBlock",
-                          "data": { "title": "false" },
+                          "data": {
+                            "title": "false"
+                          },
                           "blocks": []
                         }
                       ]
@@ -7626,7 +8056,9 @@
                 {
                   "id": "if_internal_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -7636,7 +8068,9 @@
         {
           "id": "if_issued_downstream_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -7712,7 +8146,9 @@
         {
           "id": "if_direct_pi_t",
           "type": "ifBlock",
-          "data": { "title": "true" },
+          "data": {
+            "title": "true"
+          },
           "blocks": [
             {
               "id": "get_direct_pi_po",
@@ -7894,7 +8330,9 @@
                 {
                   "id": "if_direct_pi_lines_t",
                   "type": "ifBlock",
-                  "data": { "title": "true" },
+                  "data": {
+                    "title": "true"
+                  },
                   "blocks": [
                     {
                       "id": "wf_direct_pi_save",
@@ -7950,7 +8388,9 @@
                 {
                   "id": "if_direct_pi_lines_f",
                   "type": "ifBlock",
-                  "data": { "title": "false" },
+                  "data": {
+                    "title": "false"
+                  },
                   "blocks": []
                 }
               ]
@@ -7960,7 +8400,9 @@
         {
           "id": "if_direct_pi_f",
           "type": "ifBlock",
-          "data": { "title": "false" },
+          "data": {
+            "title": "false"
+          },
           "blocks": []
         }
       ]
@@ -8004,7 +8446,10 @@
         "name": "End Node",
         "back_data_type": "OutputParams",
         "code": "",
-        "msg": { "type": "javascript", "code": "" },
+        "msg": {
+          "type": "javascript",
+          "code": ""
+        },
         "response_value": {
           "list": [
             {

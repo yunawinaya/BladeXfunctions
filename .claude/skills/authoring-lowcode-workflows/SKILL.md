@@ -19,6 +19,10 @@ Reports **MISSING** (ref to a nonexistent node), **FORWARD** (ref to a node that
 runtime), **UNDECLARED** (code-node returns a key its `response_json` omits), **UNUSED**,
 **CONDITIONAL** (informational). It scans BOTH reference forms — `{{node:X}}` templates *and*
 `ConditionRule` `prop: "node.X.data..."` leaves. A `{{node:` grep alone misses the filter form.
+Also **MULTIWHERE** (an update / delete / get / search filter with more than one top-level
+condition: they are not ANDed; on LSH 2026-10-24 three such update-nodes rewrote 11,000 step rows)
+and **IDIGNORED** (an update-node whose props carry `id` and whose filter tests other columns: the
+filter is ignored). Run it on EVERY workflow of a prod paste, whoever wrote it.
 
 ## Picking a node
 
@@ -108,6 +112,10 @@ grant, so it cannot be done from the DB. Immediately after they enable, confirm 
 ```
 `DIFFERS` against prod usually just means dev is ahead pending release — this repo is dev code.
 See the `debugging-bladex-prod` skill for traces and deployment authority.
+
+Then, a few minutes after a prod paste, `python3 scratchpad/prod_health.py` (read-only, about 5 s): what was
+published, mass writes, stuck or under-review jobs, held stock locks, crashes, deliveries whose stock does not
+match their reservations. Each of those would have shown the 2026-10-24 LSH guard within minutes.
 
 ## Common mistakes
 

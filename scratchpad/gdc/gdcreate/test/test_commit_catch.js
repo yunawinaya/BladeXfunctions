@@ -19,8 +19,9 @@ const t = (name, ok, got) => { console.log((ok ? "ok   " : "FAIL ") + name + (ok
 // the try-catch shape
 const tc = find(W, "try_catch_P3invCal");
 t("shape: the call sits alone in the try block, the marker in the catch block, the normalizer right after",
-  tc.blocks[0].key === "try" && tc.blocks[0].blocks.map((b) => b.id).join() === "workflow_node_q2vFSyDT" &&
-  tc.blocks[1].key === "catch" && tc.blocks[1].data.trycatch_type === "Filter" && tc.blocks[1].blocks.map((b) => b.id).join() === "code_node_P3crash0" &&
+  // the platform drops the try block's key / empty data on save, so a deployed copy is matched by type
+  (tc.blocks[0].key === "try" || tc.blocks[0].type === "tryBlock") && tc.blocks[0].blocks.map((b) => b.id).join() === "workflow_node_q2vFSyDT" &&
+  (tc.blocks[1].key === "catch" || tc.blocks[1].type === "catchBlock") && tc.blocks[1].data.trycatch_type === "Filter" && tc.blocks[1].blocks.map((b) => b.id).join() === "code_node_P3crash0" &&
   find(W, "ifBlock_XzDwQdw0").blocks.map((b) => b.id).slice(0, 2).join() === "try_catch_P3invCal,code_node_rhoiDSOp", tc);
 const marker = quiet(() => new Function(code("code_node_P3crash0"))());
 t("catch: marks the call as failed", marker.crashed === "YES", marker);

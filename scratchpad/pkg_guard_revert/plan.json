@@ -1,0 +1,155 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PACKING_SAVE",
+   "dataId": "1994279909883895810",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Packing/PackingSaveWorkflowJSON.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_guard_revert/base/PACKING_SAVE.dev_v59.json",
+   "smoke": {
+    "request": {
+     "entry": {
+      "plant_id": "1123598813738675202",
+      "di_freight_charges": 0,
+      "so_no": "SO/20261013-020",
+      "id": "2109853777360162818",
+      "packing_status": "Completed",
+      "table_hu_source": [],
+      "packing_mode": "Detail",
+      "create_time": "2026-10-13 11:48:34.338",
+      "create_dept": "1123598813738675201",
+      "created_by": "Admin",
+      "total_item_qty": 2,
+      "total_hu_count": 2,
+      "table_item_source": [
+       {
+        "item_code": "2094626841323700257",
+        "gd_line_id": "2109853353785790466",
+        "to_id": "2109853773283299329",
+        "line_status": "Fully Picked",
+        "so_no": "SO/20261013-020",
+        "qty_to_pick": 0,
+        "item_uom": "2018906563477008392",
+        "so_id": "2109851982235799554",
+        "total_quantity": 1,
+        "id": "2109853777385328642",
+        "remaining_qty": 0,
+        "select_item": 0,
+        "item_desc": "Master Cylinder with Neoprene Rubber finish",
+        "so_line_id": "2109851982239993859",
+        "gd_id": "2109853353769013249",
+        "item_name": "Master Cylinder with Neoprene Rubber",
+        "gd_no": "GD/20261013/578",
+        "picked_qty": 1,
+        "bin_location": "2018912822846582786"
+       },
+       {
+        "item_code": "2094626841323700256",
+        "gd_line_id": "2109853353785790467",
+        "to_id": "2109853773283299329",
+        "line_status": "Fully Picked",
+        "so_no": "SO/20261013-020",
+        "qty_to_pick": 0,
+        "item_uom": "2018906563477008392",
+        "so_id": "2109851982235799554",
+        "total_quantity": 1,
+        "id": "2109853777385328643",
+        "remaining_qty": 0,
+        "select_item": 0,
+        "item_desc": "Brake Pad with Sintered Metal finish",
+        "so_line_id": "2109851982244188161",
+        "gd_id": "2109853353769013249",
+        "item_name": "Brake Pad with Sintered Metal",
+        "gd_no": "GD/20261013/578",
+        "picked_qty": 1,
+        "bin_location": "2018912822846582786"
+       }
+      ],
+      "organization_id": "1123598813738675201",
+      "gd_no": "GD/20261013/578",
+      "create_user": "1123598821738675201",
+      "table_hu": [
+       {
+        "plant_id": "1123598813738675202",
+        "select_hu": 0,
+        "storage_location_id": "2034475998727450626",
+        "hu_row_type": "generated",
+        "hu_type": "Carton Box",
+        "net_weight": 0,
+        "net_volume": 0,
+        "location_id": "2034476113458442241",
+        "closed_by": "PKG_TEST_ADD_HU_ROWS",
+        "hu_status": "Completed",
+        "total_quantity": 1,
+        "id": "2111014036522008578",
+        "gross_weight": 0,
+        "temp_data": "[{\"line_index\":0,\"line_item_id\":\"2109853777385328642\",\"item_id\":\"2094626841323700257\",\"item_code\":\"2094626841323700257\",\"item_name\":\"Master Cylinder with Neoprene Rubber\",\"item_desc\":\"Master Cylinder with Neoprene Rubber finish\",\"remark\":\"\",\"remark_2\":\"\",\"remark_3\":\"\",\"item_uom\":\"2018906563477008392\",\"batch_no\":null,\"bin_location\":\"2018912822846582786\",\"total_quantity\":1.0,\"so_id\":\"2109851982235799554\",\"so_no\":\"SO/20261013-020\",\"so_line_id\":\"2109851982239993859\",\"gd_id\":\"2109853353769013249\",\"gd_no\":\"GD/20261013/578\",\"gd_line_id\":\"2109853353785790466\",\"to_id\":\"2109853773283299329\",\"to_line_id\":null}]",
+        "item_count": 1,
+        "handling_unit_id": "2111018493410410498",
+        "hu_material_id": "2068914886400737282",
+        "hu_uom": "2018906563477008386",
+        "organization_id": "1123598813738675201",
+        "hu_quantity": 0,
+        "customer_id": [
+         "2076477581747347458"
+        ],
+        "handling_no": "HU/0131"
+       },
+       {
+        "plant_id": "1123598813738675202",
+        "select_hu": 0,
+        "storage_location_id": "2034475998727450626",
+        "hu_row_type": "generated",
+        "hu_type": "Carton Box",
+        "net_weight": 0,
+        "net_volume": 0,
+        "location_id": "2034476113458442241",
+        "closed_by": "PKG_TEST_ADD_HU_ROWS",
+        "hu_status": "Completed",
+        "total_quantity": 1,
+        "id": "2111018496568721410",
+        "gross_weight": 0,
+        "temp_data": "[{\"line_index\":0,\"line_item_id\":\"2109853777385328643\",\"item_id\":\"2094626841323700256\",\"item_code\":\"2094626841323700256\",\"item_name\":\"Brake Pad with Sintered Metal\",\"item_desc\":\"Brake Pad with Sintered Metal finish\",\"remark\":\"\",\"remark_2\":\"\",\"remark_3\":\"\",\"item_uom\":\"2018906563477008392\",\"batch_no\":null,\"bin_location\":\"2018912822846582786\",\"total_quantity\":1.0,\"so_id\":\"2109851982235799554\",\"so_no\":\"SO/20261013-020\",\"so_line_id\":\"2109851982244188161\",\"gd_id\":\"2109853353769013249\",\"gd_no\":\"GD/20261013/578\",\"gd_line_id\":\"2109853353785790467\",\"to_id\":\"2109853773283299329\",\"to_line_id\":null}]",
+        "item_count": 1,
+        "handling_unit_id": "2111018495285264386",
+        "hu_material_id": "2068914886400737282",
+        "hu_uom": "2018906563477008386",
+        "organization_id": "1123598813738675201",
+        "hu_quantity": 0,
+        "customer_id": [
+         "2076477581747347458"
+        ],
+        "handling_no": "HU/0132"
+       }
+      ],
+      "tenant_id": "000000",
+      "created_at": "2026-10-13 00:00:00.000",
+      "to_id": "2109853773283299329",
+      "total_item_count": 2,
+      "update_time": "2026-10-16 16:56:47.196",
+      "packing_no_type": "2033723179439177729",
+      "update_user": "1123598821738675201",
+      "is_deleted": 0,
+      "so_id": [
+       "2109851982235799554"
+      ],
+      "packing_no": "PACK/20261013/0050",
+      "assigned_to": [],
+      "gd_id": "2109853353769013249",
+      "selected_hu_index": -1,
+      "customer_id": [
+       "2076477581747347458"
+      ],
+      "page_status": "Edit"
+     },
+     "saveAs": "Created"
+    },
+    "expect": {
+     "key": "errorStatus",
+     "equals": "terminalStatus"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GOODS_DELIVERY",
+   "dataId": "2017151544868491265",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/prod-hotfix/2026-10-24-lsh-borrowed-guard/revert/GOODS_DELIVERY.prod_v177.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GOODS_DELIVERY/v248_20261024-113643.enabled.json"
+  },
+  {
+   "name": "GD_UNUSED_FN_NEW",
+   "dataId": "2032273338771128322",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/prod-hotfix/2026-10-24-lsh-borrowed-guard/revert/GD_UNUSED_FN_NEW.prod_v56.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_UNUSED_FN_NEW/v58_20261024-113644.enabled.json"
+  }
+ ]
+}
