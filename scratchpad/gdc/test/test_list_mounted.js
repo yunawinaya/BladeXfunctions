@@ -19,7 +19,7 @@ const run = (opts) => {
     refresh() { refreshes++; },
     toView(v) { views.push(v); },
   };
-  const g = { window: { location: { href: opts.href || "https://x/gd" } }, URL, localStorage: { getItem: (k) => store[k] || null, setItem: (k, v) => { store[k] = v; } }, Date: opts.Date || Date, console };
+  const g = { window: opts.window || { location: { href: opts.href || "https://x/gd" } }, URL, localStorage: { getItem: (k) => store[k] || null, setItem: (k, v) => { store[k] = v; } }, Date: opts.Date || Date, console };
   new Function("window", "URL", "localStorage", "Date", "console", code).call(page, g.window, g.URL, g.localStorage, g.Date, g.console);
   return { calls, refreshes, views, store };
 };
@@ -61,5 +61,35 @@ t("the deep link (?type=&id=) still opens the drawer", () => {
   const r = run({ href: "https://x/gd?type=view&id=123" });
   assert.strictEqual(r.views.length, 1);
   assert.deepStrictEqual([r.views[0].data.id, r.views[0].viewMode], ["123", "disabled"]);
+});
+// BA 10-25: queued jobs waited up to 2.4 h once the page that queued them closed - the open list now re-kicks every 2 minutes
+const beatWindow = (href) => {
+  const w = { location: { href: href || "https://x/gd" }, beats: [], cleared: [] };
+  w.setInterval = (fn, ms) => { w.beats.push({ fn, ms }); return w.beats.length; };
+  w.clearInterval = (id) => { w.cleared.push(id); };
+  return w;
+};
+t("the open list re-kicks all six every 2 minutes; the per-browser throttle still holds", () => {
+  const clock = { t: 1000000000000 };
+  const w = beatWindow();
+  const r = run({ window: w, Date: { now: () => clock.t } });
+  assert.deepStrictEqual([w.beats.length, w.beats[0].ms, r.calls.length], [1, 120000, 6]);
+  clock.t += 60000;
+  w.beats[0].fn();
+  assert.strictEqual(r.calls.length, 6); // another tab kicked a minute ago: nothing
+  clock.t += 61000;
+  w.beats[0].fn();
+  assert.deepStrictEqual(r.calls.slice(6), [COMPLETE, EDIT, CREATE, CANCEL, REVERT, PICK]);
+});
+t("a re-mounted list replaces the beat; leaving the list stops it", () => {
+  const w = beatWindow("https://x/gd?type=view&id=1");
+  run({ window: w });
+  run({ window: w, store: {} });
+  assert.deepStrictEqual([w.beats.length, w.cleared], [2, [1]]);
+  const calls = run({ window: beatWindow() }).calls.length;
+  w.location.href = "https://x/other";
+  w.beats[1].fn();
+  assert.deepStrictEqual([w.cleared, w.gdcWorkerBeat], [[1, 2], null]);
+  assert.strictEqual(calls, 6);
 });
 console.log(n + " tests passed");

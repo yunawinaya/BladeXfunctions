@@ -39,7 +39,25 @@ const submitV2 = async (gdItem, answers) => {
   return fail(r.message || "Failed to complete Goods Delivery");
 };
 
-// one tick completes up to 5 due jobs; keep ticking while ticks find work (the page must stay open for that)
+// each queued delivery's own worker run, all started at once: it runs to the end on the server even when this page closes, and
+// a run for one job never touches another (two id-less runs starting together race for the same claim). LSH queued at most 12
+// per click (10-20..25); any beyond JOB_RUNS are left to the drain and the list's 2-minute re-kick (BA 10-25: a closed page
+// left queued completions waiting up to 2.4 h)
+const JOB_RUNS = 12;
+const startJob = (jobId) => {
+  try {
+    this.runWorkflow(
+      GDC_WF.WORKER,
+      { job_id: jobId },
+      () => this.refresh(),
+      (e) => console.error("GD Completion V2: worker for job failed", jobId, e),
+    );
+  } catch (e) {
+    console.error("GD Completion V2: worker could not be started", jobId, e);
+  }
+};
+
+// one tick runs due jobs for up to 240 s; keep ticking while ticks find work (the page must stay open for that)
 const drainWorker = (round) => {
   try {
     this.runWorkflow(
@@ -569,7 +587,11 @@ const handleWorkflowResult = async (
 
     this.hideLoading();
     this.refresh();
-    if (queuedJobs.length > 0) drainWorker(1);
+    if (queuedJobs.length > 0) {
+      queuedJobs.slice(0, JOB_RUNS).forEach(startJob);
+      // the drain starts once those runs hold their claims: whatever is still due (beyond JOB_RUNS, or a run that stopped)
+      setTimeout(() => drainWorker(1), 10000);
+    }
   } catch (error) {
     this.hideLoading();
     console.error(error);

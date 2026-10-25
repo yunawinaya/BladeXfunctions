@@ -400,8 +400,26 @@ def build_commit():
               "SELECT 'L' AS k, JSON_OBJECT('id', CAST(pl.id AS CHAR), 'gd_no', pl.gd_no, 'is_deleted', pl.is_deleted) AS j FROM transfer_order_jz8m9w3h_sub pl WHERE pl.tenant_id = %(T)s AND pl.id IN %(L)s\nUNION ALL\n"
               "SELECT 'P' AS k, JSON_OBJECT('id', CAST(p.id AS CHAR), 'gd_no', p.gd_no, 'is_deleted', p.is_deleted) AS j FROM packing p WHERE p.tenant_id = %(T)s AND p.id IN %(P)s\nUNION ALL\n"
               "SELECT 'I' AS k, JSON_OBJECT('id', CAST(l.id AS CHAR), 'gd_no', l.gd_no, 'is_deleted', l.is_deleted) AS j FROM packing_jz8m9w3h_sub l WHERE l.tenant_id = %(T)s AND l.id IN %(I)s\nUNION ALL\n"
-              "SELECT 'S' AS k, JSON_OBJECT('id', CAST(sr.id AS CHAR), 'gd_no', sr.gd_no, 'is_deleted', sr.is_deleted) AS j FROM packing_mudjw4xk_sub sr WHERE sr.tenant_id = %(T)s AND sr.id IN %(S)s") % {
-        "T": T, "MYT": myt, "H": jt(N(X5, "data.HIdsJson")), "L": jt(N(X5, "data.LIdsJson")), "P": jt(N(X5, "data.PIdsJson")), "I": jt(N(X5, "data.IIdsJson")), "S": jt(N(X5, "data.SIdsJson"))}
+              "SELECT 'S' AS k, JSON_OBJECT('id', CAST(sr.id AS CHAR), 'gd_no', sr.gd_no, 'is_deleted', sr.is_deleted) AS j FROM packing_mudjw4xk_sub sr WHERE sr.tenant_id = %(T)s AND sr.id IN %(S)s\nUNION ALL\n"
+              # the sibling GDs of each header that will end Cancelled (x5.js x5Siblings): already Cancelled under this token + "-Cancelled"
+              # (a rename lost before), or still Processing under this token with a cancel past its point of no return (X2 / X3 done)
+              # STRAIGHT_JOIN: ids -> header -> its tokens -> goods_delivery by (organization_id, delivery_no); otherwise MySQL reads the org's
+              # GDs first (5.9 s on LSH prod instead of 0.4 s)
+              "SELECT STRAIGHT_JOIN 'X' AS k, JSON_OBJECT('id', CAST(t.id AS CHAR), 'tok', TRIM(x.tok)) AS j\n"
+              "  FROM %(HID)s JOIN transfer_order t ON t.id = hid.i AND t.tenant_id = %(T)s JOIN %(TOK)s\n"
+              "  JOIN goods_delivery g ON g.tenant_id = t.tenant_id AND g.organization_id = '%(ORG)s' AND g.is_deleted = 0 AND g.gd_status = 'Cancelled'\n"
+              "   AND g.delivery_no = CONCAT(TRIM(x.tok), '-Cancelled') COLLATE utf8mb4_general_ci\nUNION ALL\n"
+              "SELECT STRAIGHT_JOIN 'X' AS k, JSON_OBJECT('id', CAST(t.id AS CHAR), 'tok', TRIM(x.tok)) AS j\n"
+              "  FROM %(HID)s JOIN transfer_order t ON t.id = hid.i AND t.tenant_id = %(T)s JOIN %(TOK)s\n"
+              "  JOIN goods_delivery g ON g.tenant_id = t.tenant_id AND g.organization_id = '%(ORG)s' AND g.is_deleted = 0 AND g.gd_status = 'Processing'\n"
+              "   AND g.delivery_no = TRIM(x.tok) COLLATE utf8mb4_general_ci\n"
+              " WHERE (SELECT COUNT(*) FROM gd_async_job j JOIN gd_publish_step p ON p.job_id = CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci AND p.is_deleted = 0 AND p.step_status = 'DONE'\n"
+              "         AND p.step_name IN ('X2_INVENTORY', 'X3_RESERVATIONS')\n"
+              "         WHERE j.tenant_id = t.tenant_id AND j.command = 'CANCEL_GD' AND j.correlation_id = CONCAT('GD|', g.id) COLLATE utf8mb4_general_ci AND j.is_deleted = 0\n"
+              "           AND j.job_status NOT IN ('FAILED', 'CANCELLED')) > 0") % {
+        "T": T, "MYT": myt, "H": jt(N(X5, "data.HIdsJson")), "L": jt(N(X5, "data.LIdsJson")), "P": jt(N(X5, "data.PIdsJson")), "I": jt(N(X5, "data.IIdsJson")), "S": jt(N(X5, "data.SIdsJson")),
+        "ORG": N(X5, "data.orgSql"), "HID": "JSON_TABLE('%s', '$[*]' COLUMNS (i BIGINT PATH '$')) hid" % N(X5, "data.HIdsJson"),
+        "TOK": "JSON_TABLE(CONCAT('[\"', REPLACE(REPLACE(REPLACE(IFNULL(t.delivery_no, ''), '\"', ''), ', ', ','), ',', '\",\"'), '\"]'), '$[*]' COLUMNS (tok VARCHAR(128) PATH '$')) x"}
     x5moves = ("SELECT CAST(m.id AS CHAR) AS id\n  FROM inventory_movement m\n WHERE m.id >= %s AND m.tenant_id = %s AND m.organization_id = '%s' AND m.trx_no = '%s' AND m.is_deleted = 0\n ORDER BY m.id") % (
         N(X5, "data.idFloor"), T, N(X5, "data.orgSql"), N(X5, "data.oldNoSql"))
     gdraw = ("SELECT 'H' AS k, JSON_OBJECT('id', CAST(g.id AS CHAR), 'gd_status', g.gd_status, 'gd_total', CAST(g.gd_total AS CHAR), 'picking_status', g.picking_status, "

@@ -2,7 +2,10 @@
 // answers, the user's prompt answers; prints every call, prompt and the summary
 const fs = require("fs");
 const code = fs.readFileSync(__dirname + "/../../../Goods Delivery/CompleteV2/gdc_list_func_bulkComplete.js", "utf8");
-const tick = () => new Promise((r) => setTimeout(r, 0));
+const realTimeout = setTimeout;
+// the page's own long waits (the 10 s drain delay) run at once here
+global.setTimeout = (f, ms) => realTimeout(f, ms > 1000 ? 1 : ms);
+const tick = () => new Promise((r) => realTimeout(r, 0));
 (async () => {
   const log = [];
   const rows = [
@@ -28,6 +31,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
         log.push(`SUBMIT ${params.gd_id} ${JSON.stringify(params.answers)} -> ${r.route}${r.code ? " " + r.code : ""}`);
         return setTimeout(() => ok({ data: r }), 0);
       }
+      if (id === "2110182645714518018" && params.job_id) { log.push("WORKER job " + params.job_id); return setTimeout(() => ok({ data: { processed: "1" } }), 0); }
       if (id === "2110182645714518018") { ticks++; log.push("WORKER tick " + ticks); return setTimeout(() => ok({ data: { processed: ticks < 2 ? "3" : "0" } }), 0); }
       if (id === "2017151544868491265") { log.push(`CLASSIC GOODS_DELIVERY ${params.allData.id}`); return setTimeout(() => ok({ data: { code: "200" } }), 0); }
     },
@@ -36,4 +40,10 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
   new Function(code).call(page);
   for (let k = 0; k < 60; k++) await tick();
   console.log(log.join("\n"));
+  // BA 10-25: every queued delivery gets its own worker run at once (it finishes even if the page closes); the drain comes after
+  const jobs = log.filter((l) => l.startsWith("WORKER job ")).map((l) => l.slice(11));
+  const firstTick = log.indexOf("WORKER tick 1"), lastJob = log.map((l) => l.startsWith("WORKER job ")).lastIndexOf(true);
+  const ok = JSON.stringify(jobs) === JSON.stringify(["J1", "J2", "J4"]) && firstTick > lastJob && log.includes("WORKER tick 2");
+  console.log(ok ? "ok   each queued job started with its job_id, then the drain" : "FAIL jobs " + JSON.stringify(jobs) + " first tick at " + firstTick);
+  if (!ok) process.exitCode = 1;
 })();

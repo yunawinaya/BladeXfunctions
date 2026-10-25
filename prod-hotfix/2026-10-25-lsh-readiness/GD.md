@@ -18,6 +18,7 @@ Owned workflows:
 | 3 | Paste GD_CANCEL_COMMIT, GD_CANCEL_WORKER, GD_CANCEL_PREPARE, GD_CANCEL_SUBMIT (ids in the folder README), run `resume_3_cancels.sql`, open the GD list | `prod-hotfix/2026-10-25-lsh-gd-cancel-shared-picking/` | Cancels of GDs sharing a Picking (dev live test passed); recovers GD-2610-1305 / 1308 / 1310; cancel reads stop growing with the square of LSH's Packing rows. |
 
 | 4 | Paste GD_COMPLETE_SUBMIT (2110182609618337794) | `prod-hotfix/2026-10-25-gd-complete-form-emptyref/GD_COMPLETE_SUBMIT.prod_v11_emptyref.json` | Form completions stop falling back to the classic (lockless) save on an empty attachment list (index item 10). **DONE**: prod v12 15:21:05, IDENTICAL. |
+| 6 | Paste the GD list page (1902688873696313346) | `prod-hotfix/2026-10-25-gd-list-worker-kicks/GDlistPage.prod_v401_worker_kicks.json` | Queued completions keep moving after the page closes: one worker run per queued GD, plus a 2-minute re-kick while any GD list is open (index item 11, BA point 1). **DONE**: prod 19:52:24, identical to the file. |
 | 5 | Run `repair.sql`, then Complete GD-2610-1245 | `prod-hotfix/2026-10-25-lsh-gd1245-balance/` | **DONE** 14:40 / 14:53 (index item 9). |
 
 Items 1-3: **DONE** (pasted 14:17-14:25, all IDENTICAL; 3 held cancels COMPLETED 14:31).

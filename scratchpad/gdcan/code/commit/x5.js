@@ -19,7 +19,19 @@ const x5HeaderDone = (text, oldNo, newNo) => x5Tokens(text).indexOf(newNo) >= 0 
 // a Picking another job holds (GD Edit V2 / a confirm: is_processing 1, its lock under 15 min - the _fc.js rule) is not written:
 // the step waits (a counted retry) rather than move the update_time that job pinned (agreed with GD Edit & Picking V2, 10-25)
 const pickHeld = (h) => Number(h && h.is_processing) === 1 && !(Number(h.lock_age_sec) > 900);
-const guardHeaderTokens = function guardHeaderTokens(planned, now, col, oldNo, newNo) {
+// Each cancel writes the whole text, so a write carrying only its own rename can drop a sibling's (BA 10-25, race_x5.js). The
+// X rows name the sibling GDs of a header that will end Cancelled - a cancel past its point of no return (X2 / X3 done), or one
+// already Cancelled whose rename was lost - and every write renames them too, so whichever write lands last keeps them all.
+const x5Siblings = function x5Siblings(nowRows) {
+  const out = {};
+  for (const r of list(nowRows)) {
+    const o = s(r.k) === "X" ? parseJ(r.j) : null;
+    // a token already carrying the suffix is never renamed again
+    if (o && s(o.id) && s(o.tok) && !/-Cancelled$/.test(s(o.tok))) (out[s(o.id)] = out[s(o.id)] || []).push(s(o.tok));
+  }
+  return out;
+};
+const guardHeaderTokens = function guardHeaderTokens(planned, now, col, oldNo, newNo, sibs) {
   const writes = [];
   const conflicts = [];
   const held = [];
@@ -29,11 +41,19 @@ const guardHeaderTokens = function guardHeaderTokens(planned, now, col, oldNo, n
       conflicts.push(s(r.id) + " (gone)");
       continue;
     }
-    if (x5HeaderDone(cur[col], oldNo, newNo)) continue;
-    const t = x5Rename(cur[col], oldNo, newNo);
-    if (t === null) conflicts.push(s(r.id));
-    else if (pickHeld(cur)) held.push(s(r.id));
-    else writes.push({ id: s(r.id), [col]: t });
+    const text = cur[col] === undefined || cur[col] === null ? "" : String(cur[col]);
+    const ownDone = x5HeaderDone(text, oldNo, newNo);
+    let t = ownDone ? text : x5Rename(text, oldNo, newNo);
+    if (t === null) {
+      conflicts.push(s(r.id));
+      continue;
+    }
+    for (const tok of (sibs || {})[s(r.id)] || []) t = x5Rename(t, tok, tok + "-Cancelled") || t;
+    if (t === text) continue;
+    // only this GD's own rename waits for a held Picking; a sibling's alone is left to the sibling
+    if (pickHeld(cur)) {
+      if (!ownDone) held.push(s(r.id));
+    } else writes.push({ id: s(r.id), [col]: t });
   }
   return { writes: writes, conflicts: conflicts, held: held };
 };
@@ -59,7 +79,7 @@ const cancelX5Plan = function cancelX5Plan(entry, partRows, nowRows, moveRows) {
   const g = {};
   const conflicts = [];
   for (const [k, [field, col]] of Object.entries(NUM_TABLES)) {
-    g[k] = k === "H" ? guardHeaderTokens(n[field], now[k], col, s(n.old_no), s(n.new_no)) : guardRows(numRows(n[field], col), now[k], [col]);
+    g[k] = k === "H" ? guardHeaderTokens(n[field], now[k], col, s(n.old_no), s(n.new_no), x5Siblings(nowRows)) : guardRows(numRows(n[field], col), now[k], [col]);
     conflicts.push(...g[k].conflicts.map((x) => field + " " + x));
   }
   if (conflicts.length) return Object.assign(base, stepEnd(entry, "X5_NUMBERS", conflicts.length + " row(s) changed by someone else meanwhile (e.g. " + conflicts.slice(0, 3).join(", ") + ")", true));

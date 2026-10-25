@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD list (bulk Complete job kicks + 2-minute worker re-kick)",
+   "kind": "page",
+   "dataId": "1902688873696313346",
+   "file": "Bulk Actions/Sales & Distribution/Goods Delivery/GDlistPageJSON.json",
+   "base": "scratchpad/drift/deploy/GDlistPage.dev_v401_base.json"
+  }
+ ]
+}

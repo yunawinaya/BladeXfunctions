@@ -8,7 +8,11 @@
       "icon": "icon-tabs",
       "group": "Layout",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "tabs": [
         {
           "label": "GD Listing",
@@ -21,7 +25,9 @@
               "typeIcon": "表格布局",
               "group": "Business",
               "groupSort": 0,
-              "enableScopes": ["Page"],
+              "enableScopes": [
+                "Page"
+              ],
               "generate": "whole",
               "options": {
                 "defaultValue": {},
@@ -2785,6 +2791,112 @@
                       "configRating": {},
                       "configDate": {},
                       "configCustom": {}
+                    },
+                    {
+                      "bsonType": "string",
+                      "component": {
+                        "name": "textarea"
+                      },
+                      "dataIdentifier": false,
+                      "defaultValue": "",
+                      "description": "Remark 4",
+                      "desensitization": false,
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": false,
+                      "key": "0z6dn6xs",
+                      "maxLength": 16777216,
+                      "multiple": false,
+                      "name": "order_remark4",
+                      "pattern": "",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "title": "Remark 4",
+                      "disabled": false,
+                      "fixed": "none",
+                      "align": "left",
+                      "width": 0,
+                      "hidden": false,
+                      "defaultHidden": false,
+                      "hoverView": false,
+                      "showStyle": "2",
+                      "showType": "",
+                      "isAllowEdit": [],
+                      "columnEvents": [],
+                      "allowEditFx": "",
+                      "editMethod": "default",
+                      "updateMethods": "auto",
+                      "configString": {},
+                      "configNumberPercent": {},
+                      "configProgress": {},
+                      "configCurrency": {},
+                      "configPhoneNumber": {},
+                      "configBoolean": {},
+                      "configTag": {},
+                      "configIcon": {},
+                      "configLink": {},
+                      "configButton": {},
+                      "configRating": {},
+                      "configDate": {},
+                      "configCustom": {}
+                    },
+                    {
+                      "bsonType": "string",
+                      "component": {
+                        "name": "textarea"
+                      },
+                      "dataIdentifier": false,
+                      "defaultValue": "",
+                      "description": "Remark 5",
+                      "desensitization": false,
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": false,
+                      "key": "k3i6rg4i",
+                      "maxLength": 16777216,
+                      "multiple": false,
+                      "name": "order_remark5",
+                      "pattern": "",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "title": "Remark 5",
+                      "disabled": false,
+                      "fixed": "none",
+                      "align": "left",
+                      "width": 0,
+                      "hidden": false,
+                      "defaultHidden": false,
+                      "hoverView": false,
+                      "showStyle": "2",
+                      "showType": "",
+                      "isAllowEdit": [],
+                      "columnEvents": [],
+                      "allowEditFx": "",
+                      "editMethod": "default",
+                      "updateMethods": "auto",
+                      "configString": {},
+                      "configNumberPercent": {},
+                      "configProgress": {},
+                      "configCurrency": {},
+                      "configPhoneNumber": {},
+                      "configBoolean": {},
+                      "configTag": {},
+                      "configIcon": {},
+                      "configLink": {},
+                      "configButton": {},
+                      "configRating": {},
+                      "configDate": {},
+                      "configCustom": {}
                     }
                   ],
                   "filters": [
@@ -3258,7 +3370,10 @@
                     "cellTextColor": "",
                     "headerBackgroundColor": "#F9F9F9",
                     "headerTextColor": "",
-                    "_sort": ["headerBackgroundColor", "colorPrimary"]
+                    "_sort": [
+                      "headerBackgroundColor",
+                      "colorPrimary"
+                    ]
                   },
                   "resizable": 1,
                   "autoLoad": true,
@@ -3349,7 +3464,11 @@
                     "colorColor": "",
                     "colorRules": []
                   },
-                  "multipleView": ["table", "gantt", "calendar"],
+                  "multipleView": [
+                    "table",
+                    "gantt",
+                    "calendar"
+                  ],
                   "calendarConfig": {
                     "startDateField": "delivery_date",
                     "endDateField": "",
@@ -3359,15 +3478,28 @@
                     "colorColor": "#000000",
                     "colorRules": []
                   },
-                  "isScrollbar": false
+                  "isScrollbar": false,
+                  "is_no_drag": false,
+                  "is_no_copy": false,
+                  "summaryColor": "#fafafa"
                 },
                 "remoteFunc": "func_ezwb0qqp",
                 "remoteOption": "option_ezwb0qqp",
                 "tableColumn": false,
                 "subform": false,
                 "isGetTree": false,
-                "padding": ["", "", "", ""],
-                "radius": ["", "", "", ""],
+                "padding": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                "radius": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
                 "fills": [],
                 "borders": [],
                 "styles": {}
@@ -3401,7 +3533,9 @@
               "typeIcon": "表格布局",
               "group": "Business",
               "groupSort": 0,
-              "enableScopes": ["Page"],
+              "enableScopes": [
+                "Page"
+              ],
               "generate": "whole",
               "options": {
                 "defaultValue": {},
@@ -5599,7 +5733,10 @@
                     "cellTextColor": "",
                     "headerBackgroundColor": "#F9F9F9",
                     "headerTextColor": "",
-                    "_sort": ["headerBackgroundColor", "colorPrimary"]
+                    "_sort": [
+                      "headerBackgroundColor",
+                      "colorPrimary"
+                    ]
                   },
                   "pagingEnabled": 1,
                   "pageWay": "Pagination",
@@ -5681,8 +5818,18 @@
                 "tableColumn": false,
                 "subform": false,
                 "isGetTree": true,
-                "padding": ["", "", "", ""],
-                "radius": ["", "", "", ""],
+                "padding": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                "radius": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
                 "fills": [],
                 "borders": []
               },
@@ -5727,7 +5874,11 @@
       "icon": "icon-Dialog",
       "group": "Container",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": {},
         "visible": false,
@@ -5763,7 +5914,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -5855,7 +6010,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -5906,7 +6065,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -5968,7 +6131,11 @@
       "icon": "icon-Dialog",
       "group": "Container",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": {},
         "visible": false,
@@ -6006,14 +6173,28 @@
           "icon": "icon-wenzishezhi-",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "      Please select how picking will be distributed",
             "customClass": "",
             "hidden": false,
             "isRich": false,
-            "padding": ["", "", "", ""],
-            "margin": ["", "", "20px", ""],
+            "padding": [
+              "",
+              "",
+              "",
+              ""
+            ],
+            "margin": [
+              "",
+              "",
+              "20px",
+              ""
+            ],
             "boxSizing": "border-box",
             "width": "",
             "maxWidth": "",
@@ -6026,9 +6207,19 @@
             "textOverflow": "",
             "whiteSpace": "",
             "lines": 0,
-            "radius": ["", "", "", ""],
+            "radius": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "position": "",
-            "positions": ["", "", "", ""],
+            "positions": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "zIndex": "",
             "flex": "",
             "flexGrow": "",
@@ -6064,7 +6255,11 @@
           "icon": "icon-radio-active",
           "group": "Select",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "inline": true,
             "defaultValue": "no_split",
@@ -6152,7 +6347,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "tier_1",
@@ -6274,7 +6473,11 @@
       "icon": "icon-Dialog",
       "group": "Container",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": {},
         "visible": false,
@@ -6312,14 +6515,28 @@
           "icon": "icon-wenzishezhi-",
           "group": "Design",
           "groupSort": 6,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": "      Select picking assignee",
             "customClass": "",
             "hidden": false,
             "isRich": false,
-            "padding": ["", "", "", ""],
-            "margin": ["", "", "20px", ""],
+            "padding": [
+              "",
+              "",
+              "",
+              ""
+            ],
+            "margin": [
+              "",
+              "",
+              "20px",
+              ""
+            ],
             "boxSizing": "border-box",
             "width": "",
             "maxWidth": "",
@@ -6332,9 +6549,19 @@
             "textOverflow": "",
             "whiteSpace": "",
             "lines": 0,
-            "radius": ["", "", "", ""],
+            "radius": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "position": "",
-            "positions": ["", "", "", ""],
+            "positions": [
+              "",
+              "",
+              "",
+              ""
+            ],
             "zIndex": "",
             "flex": "",
             "flexGrow": "",
@@ -6370,7 +6597,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -6427,7 +6658,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": [],
@@ -6533,7 +6768,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -6606,7 +6845,11 @@
       "icon": "icon-diy-com-textarea",
       "group": "Text",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "width": "",
         "defaultValue": "",
@@ -6660,7 +6903,11 @@
       "icon": "icon-Dialog",
       "group": "Container",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": {},
         "visible": false,
@@ -6696,7 +6943,11 @@
           "icon": "icon-table",
           "group": "Container",
           "groupSort": 0,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "defaultValue": [],
             "customClass": "",
@@ -6810,7 +7061,11 @@
               "icon": "icon-select",
               "group": "Select",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-select",
               "options": {
                 "defaultValue": "",
@@ -6902,7 +7157,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -6953,7 +7212,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -7004,7 +7267,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -7055,7 +7322,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -7106,7 +7377,11 @@
               "icon": "icon-input",
               "group": "Text",
               "groupSort": 1,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-input",
               "options": {
                 "width": "",
@@ -7158,7 +7433,11 @@
               "typeIcon": "数字",
               "group": "Number",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-number",
               "options": {
                 "width": "",
@@ -7210,7 +7489,11 @@
               "typeIcon": "数字",
               "group": "Number",
               "groupSort": 2,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "el": "fm-number",
               "options": {
                 "width": "",
@@ -7277,7 +7560,11 @@
       "icon": "icon-input",
       "group": "Text",
       "groupSort": 1,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "el": "fm-input",
       "options": {
         "width": "",
@@ -7326,7 +7613,11 @@
       "typeIcon": "JSON字段",
       "group": "Text",
       "groupSort": 8,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "model": "",
         "name": "",
@@ -7370,7 +7661,11 @@
       "icon": "icon-Dialog",
       "group": "Container",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": {},
         "visible": false,
@@ -7400,7 +7695,11 @@
           "icon": "icon-diy-com-textarea",
           "group": "Text",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "width": "",
             "defaultValue": "",
@@ -7446,7 +7745,11 @@
           "icon": "icon-diy-com-textarea",
           "group": "Text",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "width": "",
             "defaultValue": "",
@@ -7492,7 +7795,11 @@
           "icon": "icon-diy-com-textarea",
           "group": "Text",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "options": {
             "width": "",
             "defaultValue": "",
@@ -7554,9 +7861,14 @@
     "hideErrorMessage": false,
     "eventScript": [
       {
+        "key": "onFormChange",
+        "name": "onFormChange",
+        "type": "rule"
+      },
+      {
         "key": "mounted",
         "name": "mounted",
-        "func": "  const url = new URL(window.location.href)\n  const type = url.searchParams.get('type')\n  const id = url.searchParams.get('id')\n\n  if (type && id) {\n    this.toView({\n      title: type.charAt(0).toUpperCase() + type.slice(1),\n      target: '1902054888473481218', //table id for goods_delivery\n      targetType: 'Table',\n      mode: 'drawer',\n      ...(type === 'view' ? { viewMode: 'disabled' } : {}),\n      type: type,\n      data: {\n        id: id\n      }\n    })\n  }\n\n// GD Created / Completion / Edit / Cancel / Revert V2: there is no scheduled worker - a save, a completion, an edit, a cancel, a revert\n// or a Picking still waiting (a retry, a closed browser, an expired hold) moves on when the list opens (at most every 2 minutes per browser)\n(() => {\n  const KEY = \"gdc_worker_kick_at\";\n  let last = 0;\n  try {\n    last = Number(localStorage.getItem(KEY) || 0);\n  } catch (e) {}\n  if (Date.now() - last < 120000) return;\n  try {\n    localStorage.setItem(KEY, String(Date.now()));\n  } catch (e) {}\n  const tick = (workflowId, round, moved) => {\n    try {\n      this.runWorkflow(\n        workflowId,\n        {},\n        (w) => {\n          if (moved((w && w.data) || {})) {\n            this.refresh();\n            if (round < 40) tick(workflowId, round + 1, moved);\n          }\n        },\n        (e) => console.error(\"GD V2: worker tick failed\", workflowId, e),\n      );\n    } catch (e) {\n      console.error(\"GD V2: worker could not be started\", workflowId, e);\n    }\n  };\n  const processed = (d) => Number(d.processed || 0) > 0;\n  tick(\"2110182645714518018\", 1, processed); // GD_COMPLETE_WORKER\n  tick(\"2110618789356687361\", 1, processed); // GD_EDIT_WORKER\n  tick(\"2104840667119411201\", 1, processed); // GD_ASYNC_WORKER (GD Created)\n  tick(\"2112455700319932418\", 1, processed); // GD_CANCEL_WORKER\n  tick(\"2112758130420088833\", 1, processed); // GD_REVERT_WORKER\n  // GD_PICKING_OUTBOX_CONSUMER, poll mode: the tenant's earliest due Picking of a created delivery; DONE / DONE_NONE = one handled\n  tick(\"2105134245397041153\", 1, (d) => /^DONE/.test(String(d.consumer_route || \"\")));\n})();\n",
+        "func": "  const url = new URL(window.location.href)\n  const type = url.searchParams.get('type')\n  const id = url.searchParams.get('id')\n\n  if (type && id) {\n    this.toView({\n      title: type.charAt(0).toUpperCase() + type.slice(1),\n      target: '1902054888473481218', //table id for goods_delivery\n      targetType: 'Table',\n      mode: 'drawer',\n      ...(type === 'view' ? { viewMode: 'disabled' } : {}),\n      type: type,\n      data: {\n        id: id\n      }\n    })\n  }\n\n// GD Created / Completion / Edit / Cancel / Revert V2: there is no scheduled worker - a save, a completion, an edit, a cancel, a revert\n// or a Picking still waiting (a retry, a closed browser, an expired hold) moves on when the list opens (at most every 2 minutes per browser)\n// While the list stays open (a background tab counts) the same kick repeats every 2 minutes: a run that reached its budget or\n// crashed leaves its jobs to the next kick, and nothing else kicks once the page that queued them is closed (BA 10-25)\n(() => {\n  const KEY = \"gdc_worker_kick_at\";\n  const kickAll = () => {\n    let last = 0;\n    try {\n      last = Number(localStorage.getItem(KEY) || 0);\n    } catch (e) {}\n    if (Date.now() - last < 120000) return;\n    try {\n      localStorage.setItem(KEY, String(Date.now()));\n    } catch (e) {}\n    const tick = (workflowId, round, moved) => {\n      try {\n        this.runWorkflow(\n          workflowId,\n          {},\n          (w) => {\n            if (moved((w && w.data) || {})) {\n              this.refresh();\n              if (round < 40) tick(workflowId, round + 1, moved);\n            }\n          },\n          (e) => console.error(\"GD V2: worker tick failed\", workflowId, e),\n        );\n      } catch (e) {\n        console.error(\"GD V2: worker could not be started\", workflowId, e);\n      }\n    };\n    const processed = (d) => Number(d.processed || 0) > 0;\n    tick(\"2110182645714518018\", 1, processed); // GD_COMPLETE_WORKER\n    tick(\"2110618789356687361\", 1, processed); // GD_EDIT_WORKER\n    tick(\"2104840667119411201\", 1, processed); // GD_ASYNC_WORKER (GD Created)\n    tick(\"2112455700319932418\", 1, processed); // GD_CANCEL_WORKER\n    tick(\"2112758130420088833\", 1, processed); // GD_REVERT_WORKER\n    // GD_PICKING_OUTBOX_CONSUMER, poll mode: the tenant's earliest due Picking of a created delivery; DONE / DONE_NONE = one handled\n    tick(\"2105134245397041153\", 1, (d) => /^DONE/.test(String(d.consumer_route || \"\")));\n  };\n  kickAll();\n  if (typeof window.setInterval !== \"function\") return;\n  // one beat per window: a re-mounted list replaces it; it stops once the page leaves the list\n  const home = new URL(window.location.href).pathname;\n  if (window.gdcWorkerBeat) window.clearInterval(window.gdcWorkerBeat);\n  window.gdcWorkerBeat = window.setInterval(() => {\n    if (new URL(window.location.href).pathname !== home) {\n      window.clearInterval(window.gdcWorkerBeat);\n      window.gdcWorkerBeat = null;\n      return;\n    }\n    kickAll();\n  }, 120000);\n})();\n",
         "type": "js"
       },
       {
@@ -7994,7 +8306,7 @@
       {
         "key": "v0f9031l",
         "name": "func_bulkComplete",
-        "func": "// func_bulkComplete (GD list) + GD Completion V2: each selected Created delivery goes to GD_COMPLETE_SUBMIT first (QUEUED =\n// completed in the background by GD_COMPLETE_WORKER, which this page then keeps running until nothing is due - there is no\n// scheduled worker); a 406 is force-completed there too; NOT_ELIGIBLE runs the classic GOODS_DELIVERY path below, unchanged.\nconst GDC_WF = {\n  SUBMIT: \"2110182609618337794\", // GD_COMPLETE_SUBMIT\n  WORKER: \"2110182645714518018\", // GD_COMPLETE_WORKER\n};\n// Switch: false = every delivery runs the classic save\nconst ASYNC_COMPLETE_ENABLED = true;\n// Switch: false = a Force Complete (406) runs the classic save\nconst FORCE_COMPLETE_V2_ENABLED = true;\n\nconst runWf = (id, params) =>\n  new Promise((resolve, reject) => {\n    this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));\n  });\n\n// SUBMIT for one delivery, answering 401 / 403 as the classic path below does; 412 is left to the batch prompt\nconst submitV2 = async (gdItem, answers) => {\n  const res = await runWf(GDC_WF.SUBMIT, { operation: \"SUBMIT\", gd_id: gdItem.id, source: \"LIST\", answers: answers });\n  const r = (res && res.data) || null;\n  const fail = (error) => ({ kind: \"RESULT\", result: { delivery_no: gdItem.delivery_no, success: false, error: error } });\n  if (!r || !r.route) return fail(\"No response from workflow\");\n  if (r.route === \"QUEUED\") return { kind: \"QUEUED\", jobId: r.job_id };\n  if (r.route === \"NOT_ELIGIBLE\") return { kind: \"CLASSIC\", why: r.reason || r.message };\n  if (r.route !== \"STOP\") return fail(r.message || \"Failed to complete Goods Delivery\");\n  const code = String(r.code);\n  if (code === \"401\") return submitV2(gdItem, { ...answers, continueZero: \"Yes\" });\n  if (code === \"403\") return submitV2(gdItem, { ...answers, needCL: \"not required\" });\n  // the classic list force-completes without asking, and so does V2 (once: a second 406 runs the classic save)\n  if (code === \"406\") {\n    if (FORCE_COMPLETE_V2_ENABLED !== true || answers.isForceComplete === \"Yes\") return { kind: \"CLASSIC\", why: \"406: picking not completed\" };\n    return submitV2(gdItem, { ...answers, isForceComplete: \"Yes\" });\n  }\n  if (code === \"412\") return { kind: \"PENDING_SI\", answers: answers };\n  if (code === \"402\") return fail((r.message || \"Credit limit exceeded\").replace(/^Block - /, \"\"));\n  if (code === \"405\") return fail(\"Must save as Created first\");\n  if (code === \"407\") return fail(\"Packing must be completed first\");\n  return fail(r.message || \"Failed to complete Goods Delivery\");\n};\n\n// one tick completes up to 5 due jobs; keep ticking while ticks find work (the page must stay open for that)\nconst drainWorker = (round) => {\n  try {\n    this.runWorkflow(\n      GDC_WF.WORKER,\n      {},\n      (w) => {\n        const processed = Number((w && w.data && w.data.processed) || 0);\n        console.log(\"GD Completion V2: worker tick\", round, processed);\n        this.refresh();\n        if (processed > 0 && round < 40) drainWorker(round + 1);\n      },\n      (e) => console.error(\"GD Completion V2: worker tick failed\", e),\n    );\n  } catch (e) {\n    console.error(\"GD Completion V2: worker could not be started\", e);\n  }\n};\n\n// Every confirmation the workflow can ask for is carried in one object. Threading them\n// individually meant a retry after one gate dropped the answer to another -- and with no\n// user in the loop to break the cycle, a delivery that needs both continueZero and\n// isForceComplete bounced 401 -> 406 -> 401 forever.\nconst runGDWorkflow = async (data, ctx) => {\n  return new Promise((resolve, reject) => {\n    this.runWorkflow(\n      \"2017151544868491265\",\n      {\n        allData: data,\n        saveAs: \"Completed\",\n        pageStatus: \"Edit\",\n        needCL: ctx.needCL,\n        isForceComplete: ctx.isForceComplete,\n        continueZero: ctx.continueZero,\n        // Auto-GR / auto-SI decisions are carried on the data object so they persist across\n        // the 401/403/406 inline retries below (mirrors the GD form client).\n        auto_gr_confirmed: data.auto_gr_confirmed || \"\",\n        auto_gr_skip: data.auto_gr_skip || \"\",\n        auto_si_confirmed: data.auto_si_confirmed || \"\",\n        auto_si_skip: data.auto_si_skip || \"\",\n      },\n      (res) => {\n        console.log(\"Goods Delivery workflow response:\", res);\n        resolve(res);\n      },\n      (err) => {\n        console.error(\"Failed to save Goods Delivery:\", err);\n        reject(err);\n      },\n    );\n  });\n};\n\n// pendingGR / pendingSI: when provided, a 408 (auto-GR eligible) or 412 (auto-SI eligible) is\n// deferred into them for a single batch prompt instead of being decided per-GD. Pass null once\n// that phase's question has already been answered.\n//\n// A GD can hit both gates: the GR gate returns 408 before the SI gate is ever reached, so a GD\n// deferred for GR can come back asking 412 on its re-run. That is why pendingSI is still threaded\n// through phase 2 — see the phase comments below.\nconst handleWorkflowResult = async (\n  workflowResult,\n  gdItem,\n  gdData,\n  pendingGR,\n  pendingSI,\n  ctx,\n) => {\n  if (!workflowResult || !workflowResult.data) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: \"No response from workflow\",\n    };\n  }\n\n  const resultCode = workflowResult.data.code;\n\n  // Handle 401 - Zero quantity confirmation - auto-proceed\n  if (resultCode === \"401\" || resultCode === 401) {\n    console.log(\n      `GD ${gdItem.delivery_no}: Zero quantity warning, auto-proceeding`,\n    );\n    const next = { ...ctx, continueZero: \"Yes\" };\n    const retryResult = await runGDWorkflow(gdData, next);\n    return handleWorkflowResult(\n      retryResult,\n      gdItem,\n      gdData,\n      pendingGR,\n      pendingSI,\n      next,\n    );\n  }\n\n  // Handle 402 - Credit limit block\n  if (resultCode === \"402\" || resultCode === 402) {\n    const cleanMessage = (\n      workflowResult.data.msg ||\n      workflowResult.data.message ||\n      \"Credit limit exceeded\"\n    ).replace(/^Block - /, \"\");\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: cleanMessage,\n    };\n  }\n\n  // Handle 403 - Credit limit override - auto-proceed\n  if (resultCode === \"403\" || resultCode === 403) {\n    console.log(\n      `GD ${gdItem.delivery_no}: Credit limit override, auto-proceeding`,\n    );\n    const next = { ...ctx, needCL: \"not required\" };\n    const retryResult = await runGDWorkflow(gdData, next);\n    return handleWorkflowResult(\n      retryResult,\n      gdItem,\n      gdData,\n      pendingGR,\n      pendingSI,\n      next,\n    );\n  }\n\n  // Handle 405 - Must save as Created first (shouldn't happen for bulk)\n  if (resultCode === \"405\" || resultCode === 405) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: \"Must save as Created first\",\n    };\n  }\n\n  // Handle 406 - Force complete picking - auto-proceed\n  if (resultCode === \"406\" || resultCode === 406) {\n    console.log(\n      `GD ${gdItem.delivery_no}: Force complete picking, auto-proceeding`,\n    );\n    const next = { ...ctx, isForceComplete: \"Yes\" };\n    const retryResult = await runGDWorkflow(gdData, next);\n    return handleWorkflowResult(\n      retryResult,\n      gdItem,\n      gdData,\n      pendingGR,\n      pendingSI,\n      next,\n    );\n  }\n\n  // Handle 407 - Packing not completed\n  if (resultCode === \"407\" || resultCode === 407) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: \"Packing must be completed first\",\n    };\n  }\n\n  // Handle 408 - Internal trading: eligible for auto-GR. Defer to one batch\n  // prompt (phase 1). The GD is NOT completed yet (the gate returns before save).\n  if (resultCode === \"408\" || resultCode === 408) {\n    if (pendingGR) {\n      pendingGR.push({ gdItem, gdData, ctx });\n      return null; // deferred — handled in phase 2\n    }\n    // No batch context (defensive) — complete without auto-GR.\n    gdData.auto_gr_skip = true;\n    const retryResult = await runGDWorkflow(gdData, ctx);\n    return handleWorkflowResult(\n      retryResult,\n      gdItem,\n      gdData,\n      null,\n      pendingSI,\n      ctx,\n    );\n  }\n\n  // Handle 409 - Internal trading: GD does not fully complete the linked SO\n  if (resultCode === \"409\" || resultCode === 409) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error:\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Delivery does not fully complete the linked Sales Order (required for auto-GR).\",\n    };\n  }\n\n  // Handle 410 - GD completed, but auto-GR creation failed (non-blocking)\n  if (resultCode === \"410\" || resultCode === 410) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: true,\n      warning:\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Completed, but the linked Goods Receipt could not be auto-created.\",\n    };\n  }\n\n  // Handle 412 - Eligible for an auto Sales Invoice. Defer to one batch prompt.\n  // The GD is NOT completed yet (the gate returns before save), same as 408.\n  if (resultCode === \"412\" || resultCode === 412) {\n    if (pendingSI) {\n      pendingSI.push({ gdItem, gdData, ctx });\n      return null; // deferred — handled in the auto-SI phase\n    }\n    // No batch context (defensive) — complete without an invoice.\n    gdData.auto_si_skip = true;\n    const retryResult = await runGDWorkflow(gdData, ctx);\n    return handleWorkflowResult(retryResult, gdItem, gdData, null, null, ctx);\n  }\n\n  // Handle 411 - GD completed, but the auto Sales Invoice failed (non-blocking)\n  if (resultCode === \"411\" || resultCode === 411) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: true,\n      warning:\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Completed, but the Sales Invoice could not be auto-created.\",\n    };\n  }\n\n  // Handle 400 - General error\n  if (\n    resultCode === \"400\" ||\n    resultCode === 400 ||\n    workflowResult.data.success === false\n  ) {\n    const errorMessage =\n      workflowResult.data.msg ||\n      workflowResult.data.message ||\n      \"Failed to complete Goods Delivery\";\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: errorMessage,\n    };\n  }\n\n  // Handle success\n  if (\n    resultCode === \"200\" ||\n    resultCode === 200 ||\n    workflowResult.data.success === true\n  ) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: true,\n    };\n  }\n\n  return {\n    delivery_no: gdItem.delivery_no,\n    success: false,\n    error: \"Unknown workflow status\",\n  };\n};\n\n(async () => {\n  try {\n    this.showLoading();\n    const allListID = \"custom_ezwb0qqp\";\n\n    const selectedRecords =\n      this.getComponent(allListID)?.$refs.crud.tableSelect;\n\n    console.log(\"selectedRecords\", selectedRecords);\n\n    if (!selectedRecords || selectedRecords.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please select at least one record.\");\n      return;\n    }\n\n    const goodsDeliveryData = selectedRecords.filter(\n      (item) => item.gd_status === \"Created\",\n    );\n\n    if (goodsDeliveryData.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please select at least one created goods delivery.\");\n      return;\n    }\n\n    const goodsDeliveryNumbers = goodsDeliveryData.map(\n      (item) => item.delivery_no,\n    );\n\n    await this.$confirm(\n      `You've selected ${\n        goodsDeliveryNumbers.length\n      } goods delivery(s) to complete. <br> <strong>Goods Delivery Numbers:</strong> <br>${goodsDeliveryNumbers.join(\n        \", \",\n      )} <br>Do you want to proceed?`,\n      \"Goods Delivery Completion\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    const results = [];\n    const pendingGR = []; // GDs eligible for auto-GR (408), decided via one batch prompt\n    const pendingSI = []; // GDs eligible for auto-SI (412), decided via one batch prompt\n    const queuedJobs = []; // GD Completion V2 jobs this click queued\n\n    // Phase 1: complete everything; defer auto-GR-eligible (408) and auto-SI-eligible (412)\n    // GDs — neither is completed yet, both gates return before saving.\n    for (const gdItem of goodsDeliveryData) {\n      const id = gdItem.id;\n\n      if (ASYNC_COMPLETE_ENABLED === true) {\n        try {\n          const v = await submitV2(gdItem, { needCL: \"required\", continueZero: \"\", isForceComplete: \"\", auto_si_confirmed: \"\", auto_si_skip: \"\" });\n          if (v.kind === \"QUEUED\") {\n            results.push({ delivery_no: gdItem.delivery_no, success: true, queued: true });\n            queuedJobs.push(v.jobId);\n            continue;\n          }\n          if (v.kind === \"RESULT\") {\n            results.push(v.result);\n            continue;\n          }\n          if (v.kind === \"PENDING_SI\") {\n            pendingSI.push({ gdItem, v2: true, answers: v.answers });\n            continue;\n          }\n          console.log(`GD ${gdItem.delivery_no}: classic completion - ${v.why}`);\n        } catch (error) {\n          results.push({ delivery_no: gdItem.delivery_no, success: false, error: error.message || \"Failed to complete\" });\n          continue;\n        }\n      }\n\n      const data = await db.collection(\"goods_delivery\").doc(id).get();\n\n      if (!data.data || data.data.length === 0) {\n        results.push({\n          delivery_no: gdItem.delivery_no,\n          success: false,\n          error: \"Goods Delivery record not found\",\n        });\n        continue;\n      }\n\n      try {\n        const gdData = data.data[0];\n        const ctx = {\n          needCL: \"required\",\n          isForceComplete: \"\",\n          continueZero: \"\",\n        };\n        const workflowResult = await runGDWorkflow(gdData, ctx);\n        const result = await handleWorkflowResult(\n          workflowResult,\n          gdItem,\n          gdData,\n          pendingGR,\n          pendingSI,\n          ctx,\n        );\n        if (result) results.push(result);\n      } catch (error) {\n        results.push({\n          delivery_no: gdItem.delivery_no,\n          success: false,\n          error: error.message || \"Failed to complete\",\n        });\n      }\n    }\n\n    // Phase 2: one prompt for all auto-GR-eligible deliveries, then complete them.\n    // pendingSI is still passed: the GR gate sits BEFORE the SI gate, so a delivery deferred here\n    // only reaches the SI gate on this re-run and may now answer 412 — it must be deferred too,\n    // not decided per-GD.\n    if (pendingGR.length > 0) {\n      this.hideLoading();\n      const eligibleNos = pendingGR.map((p) => p.gdItem.delivery_no).join(\", \");\n      const createGR = await this.$confirm(\n        `${pendingGR.length} of the selected delivery(s) are linked to internal Purchase Orders and can auto-create Goods Receipts in the buyer organization.<br><strong>Deliveries:</strong><br>${eligibleNos}<br><br>Create the Goods Receipts now?<br><em>Choosing \"No\" will still complete the deliveries, without creating GRs.</em>`,\n        \"Internal Trading – Auto-create Goods Receipts\",\n        {\n          confirmButtonText: \"Yes, create GRs\",\n          cancelButtonText: \"No, complete only\",\n          type: \"info\",\n          dangerouslyUseHTMLString: true,\n        },\n      )\n        .then(() => true)\n        .catch(() => false);\n\n      this.showLoading();\n      for (const p of pendingGR) {\n        if (createGR) {\n          p.gdData.auto_gr_confirmed = true;\n        } else {\n          p.gdData.auto_gr_skip = true;\n        }\n        try {\n          const workflowResult = await runGDWorkflow(p.gdData, p.ctx);\n          const result = await handleWorkflowResult(\n            workflowResult,\n            p.gdItem,\n            p.gdData,\n            null,\n            pendingSI,\n            p.ctx,\n          );\n          if (result) results.push(result);\n        } catch (error) {\n          results.push({\n            delivery_no: p.gdItem.delivery_no,\n            success: false,\n            error: error.message || \"Failed to complete\",\n          });\n        }\n      }\n    }\n\n    // Phase 3: one prompt for all auto-SI-eligible deliveries, then complete them.\n    if (pendingSI.length > 0) {\n      this.hideLoading();\n      const siNos = pendingSI.map((p) => p.gdItem.delivery_no).join(\", \");\n      const createSI = await this.$confirm(\n        `${pendingSI.length} of the selected delivery(s) will be invoiced automatically on completion.<br><strong>Deliveries:</strong><br>${siNos}<br><br>Create the Sales Invoices now?<br><em>Choosing \"No\" will still complete the deliveries, without creating invoices.</em>`,\n        \"Auto-create Sales Invoices\",\n        {\n          confirmButtonText: \"Yes, create invoices\",\n          cancelButtonText: \"No, complete only\",\n          type: \"info\",\n          dangerouslyUseHTMLString: true,\n        },\n      )\n        .then(() => true)\n        .catch(() => false);\n\n      this.showLoading();\n      for (const p of pendingSI) {\n        if (p.v2) {\n          try {\n            const v = await submitV2(p.gdItem, createSI ? { ...p.answers, auto_si_confirmed: \"true\" } : { ...p.answers, auto_si_skip: \"true\" });\n            if (v.kind === \"QUEUED\") {\n              results.push({ delivery_no: p.gdItem.delivery_no, success: true, queued: true });\n              queuedJobs.push(v.jobId);\n            } else if (v.kind === \"RESULT\") {\n              results.push(v.result);\n            } else {\n              results.push({ delivery_no: p.gdItem.delivery_no, success: false, error: \"Could not be completed in the background - complete it from the form\" });\n            }\n          } catch (error) {\n            results.push({ delivery_no: p.gdItem.delivery_no, success: false, error: error.message || \"Failed to complete\" });\n          }\n          continue;\n        }\n        if (createSI) {\n          p.gdData.auto_si_confirmed = true;\n        } else {\n          p.gdData.auto_si_skip = true;\n        }\n        try {\n          const workflowResult = await runGDWorkflow(p.gdData, p.ctx);\n          const result = await handleWorkflowResult(\n            workflowResult,\n            p.gdItem,\n            p.gdData,\n            null,\n            null,\n            p.ctx,\n          );\n          if (result) results.push(result);\n        } catch (error) {\n          results.push({\n            delivery_no: p.gdItem.delivery_no,\n            success: false,\n            error: error.message || \"Failed to complete\",\n          });\n        }\n      }\n    }\n\n    // Show summary\n    const queuedCount = results.filter((r) => r.queued).length;\n    const queuedText = queuedCount > 0 ? `<br>${queuedCount} of them are being completed in the background.` : \"\";\n    const successCount = results.filter((r) => r.success).length;\n    const failCount = results.filter((r) => !r.success).length;\n    const warningItems = results.filter((r) => r.success && r.warning);\n\n    if (failCount > 0) {\n      const failedItems = results\n        .filter((r) => !r.success)\n        .map((r) => `${r.delivery_no}: ${r.error}`)\n        .join(\"<br>\");\n      const warnText =\n        warningItems.length > 0\n          ? `<br><br><strong>Warnings:</strong><br>${warningItems\n              .map((r) => `${r.delivery_no}: ${r.warning}`)\n              .join(\"<br>\")}`\n          : \"\";\n      this.$message.error(\n        `${successCount} succeeded, ${failCount} failed:<br>${failedItems}${warnText}${queuedText}`,\n      );\n    } else if (warningItems.length > 0) {\n      this.$message.warning(\n        `All ${successCount} Goods Delivery completed.<br><br><strong>Warnings:</strong><br>${warningItems\n          .map((r) => `${r.delivery_no}: ${r.warning}`)\n          .join(\"<br>\")}${queuedText}`,\n      );\n    } else {\n      this.$message.success(\n        queuedCount > 0\n          ? `${successCount - queuedCount} Goods Delivery completed, ${queuedCount} being completed in the background.`\n          : `All ${successCount} Goods Delivery completed successfully`,\n      );\n    }\n\n    this.hideLoading();\n    this.refresh();\n    if (queuedJobs.length > 0) drainWorker(1);\n  } catch (error) {\n    this.hideLoading();\n    console.error(error);\n  }\n})();\n",
+        "func": "// func_bulkComplete (GD list) + GD Completion V2: each selected Created delivery goes to GD_COMPLETE_SUBMIT first (QUEUED =\n// completed in the background by GD_COMPLETE_WORKER, which this page then keeps running until nothing is due - there is no\n// scheduled worker); a 406 is force-completed there too; NOT_ELIGIBLE runs the classic GOODS_DELIVERY path below, unchanged.\nconst GDC_WF = {\n  SUBMIT: \"2110182609618337794\", // GD_COMPLETE_SUBMIT\n  WORKER: \"2110182645714518018\", // GD_COMPLETE_WORKER\n};\n// Switch: false = every delivery runs the classic save\nconst ASYNC_COMPLETE_ENABLED = true;\n// Switch: false = a Force Complete (406) runs the classic save\nconst FORCE_COMPLETE_V2_ENABLED = true;\n\nconst runWf = (id, params) =>\n  new Promise((resolve, reject) => {\n    this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));\n  });\n\n// SUBMIT for one delivery, answering 401 / 403 as the classic path below does; 412 is left to the batch prompt\nconst submitV2 = async (gdItem, answers) => {\n  const res = await runWf(GDC_WF.SUBMIT, { operation: \"SUBMIT\", gd_id: gdItem.id, source: \"LIST\", answers: answers });\n  const r = (res && res.data) || null;\n  const fail = (error) => ({ kind: \"RESULT\", result: { delivery_no: gdItem.delivery_no, success: false, error: error } });\n  if (!r || !r.route) return fail(\"No response from workflow\");\n  if (r.route === \"QUEUED\") return { kind: \"QUEUED\", jobId: r.job_id };\n  if (r.route === \"NOT_ELIGIBLE\") return { kind: \"CLASSIC\", why: r.reason || r.message };\n  if (r.route !== \"STOP\") return fail(r.message || \"Failed to complete Goods Delivery\");\n  const code = String(r.code);\n  if (code === \"401\") return submitV2(gdItem, { ...answers, continueZero: \"Yes\" });\n  if (code === \"403\") return submitV2(gdItem, { ...answers, needCL: \"not required\" });\n  // the classic list force-completes without asking, and so does V2 (once: a second 406 runs the classic save)\n  if (code === \"406\") {\n    if (FORCE_COMPLETE_V2_ENABLED !== true || answers.isForceComplete === \"Yes\") return { kind: \"CLASSIC\", why: \"406: picking not completed\" };\n    return submitV2(gdItem, { ...answers, isForceComplete: \"Yes\" });\n  }\n  if (code === \"412\") return { kind: \"PENDING_SI\", answers: answers };\n  if (code === \"402\") return fail((r.message || \"Credit limit exceeded\").replace(/^Block - /, \"\"));\n  if (code === \"405\") return fail(\"Must save as Created first\");\n  if (code === \"407\") return fail(\"Packing must be completed first\");\n  return fail(r.message || \"Failed to complete Goods Delivery\");\n};\n\n// each queued delivery's own worker run, all started at once: it runs to the end on the server even when this page closes, and\n// a run for one job never touches another (two id-less runs starting together race for the same claim). LSH queued at most 12\n// per click (10-20..25); any beyond JOB_RUNS are left to the drain and the list's 2-minute re-kick (BA 10-25: a closed page\n// left queued completions waiting up to 2.4 h)\nconst JOB_RUNS = 12;\nconst startJob = (jobId) => {\n  try {\n    this.runWorkflow(\n      GDC_WF.WORKER,\n      { job_id: jobId },\n      () => this.refresh(),\n      (e) => console.error(\"GD Completion V2: worker for job failed\", jobId, e),\n    );\n  } catch (e) {\n    console.error(\"GD Completion V2: worker could not be started\", jobId, e);\n  }\n};\n\n// one tick runs due jobs for up to 240 s; keep ticking while ticks find work (the page must stay open for that)\nconst drainWorker = (round) => {\n  try {\n    this.runWorkflow(\n      GDC_WF.WORKER,\n      {},\n      (w) => {\n        const processed = Number((w && w.data && w.data.processed) || 0);\n        console.log(\"GD Completion V2: worker tick\", round, processed);\n        this.refresh();\n        if (processed > 0 && round < 40) drainWorker(round + 1);\n      },\n      (e) => console.error(\"GD Completion V2: worker tick failed\", e),\n    );\n  } catch (e) {\n    console.error(\"GD Completion V2: worker could not be started\", e);\n  }\n};\n\n// Every confirmation the workflow can ask for is carried in one object. Threading them\n// individually meant a retry after one gate dropped the answer to another -- and with no\n// user in the loop to break the cycle, a delivery that needs both continueZero and\n// isForceComplete bounced 401 -> 406 -> 401 forever.\nconst runGDWorkflow = async (data, ctx) => {\n  return new Promise((resolve, reject) => {\n    this.runWorkflow(\n      \"2017151544868491265\",\n      {\n        allData: data,\n        saveAs: \"Completed\",\n        pageStatus: \"Edit\",\n        needCL: ctx.needCL,\n        isForceComplete: ctx.isForceComplete,\n        continueZero: ctx.continueZero,\n        // Auto-GR / auto-SI decisions are carried on the data object so they persist across\n        // the 401/403/406 inline retries below (mirrors the GD form client).\n        auto_gr_confirmed: data.auto_gr_confirmed || \"\",\n        auto_gr_skip: data.auto_gr_skip || \"\",\n        auto_si_confirmed: data.auto_si_confirmed || \"\",\n        auto_si_skip: data.auto_si_skip || \"\",\n      },\n      (res) => {\n        console.log(\"Goods Delivery workflow response:\", res);\n        resolve(res);\n      },\n      (err) => {\n        console.error(\"Failed to save Goods Delivery:\", err);\n        reject(err);\n      },\n    );\n  });\n};\n\n// pendingGR / pendingSI: when provided, a 408 (auto-GR eligible) or 412 (auto-SI eligible) is\n// deferred into them for a single batch prompt instead of being decided per-GD. Pass null once\n// that phase's question has already been answered.\n//\n// A GD can hit both gates: the GR gate returns 408 before the SI gate is ever reached, so a GD\n// deferred for GR can come back asking 412 on its re-run. That is why pendingSI is still threaded\n// through phase 2 — see the phase comments below.\nconst handleWorkflowResult = async (\n  workflowResult,\n  gdItem,\n  gdData,\n  pendingGR,\n  pendingSI,\n  ctx,\n) => {\n  if (!workflowResult || !workflowResult.data) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: \"No response from workflow\",\n    };\n  }\n\n  const resultCode = workflowResult.data.code;\n\n  // Handle 401 - Zero quantity confirmation - auto-proceed\n  if (resultCode === \"401\" || resultCode === 401) {\n    console.log(\n      `GD ${gdItem.delivery_no}: Zero quantity warning, auto-proceeding`,\n    );\n    const next = { ...ctx, continueZero: \"Yes\" };\n    const retryResult = await runGDWorkflow(gdData, next);\n    return handleWorkflowResult(\n      retryResult,\n      gdItem,\n      gdData,\n      pendingGR,\n      pendingSI,\n      next,\n    );\n  }\n\n  // Handle 402 - Credit limit block\n  if (resultCode === \"402\" || resultCode === 402) {\n    const cleanMessage = (\n      workflowResult.data.msg ||\n      workflowResult.data.message ||\n      \"Credit limit exceeded\"\n    ).replace(/^Block - /, \"\");\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: cleanMessage,\n    };\n  }\n\n  // Handle 403 - Credit limit override - auto-proceed\n  if (resultCode === \"403\" || resultCode === 403) {\n    console.log(\n      `GD ${gdItem.delivery_no}: Credit limit override, auto-proceeding`,\n    );\n    const next = { ...ctx, needCL: \"not required\" };\n    const retryResult = await runGDWorkflow(gdData, next);\n    return handleWorkflowResult(\n      retryResult,\n      gdItem,\n      gdData,\n      pendingGR,\n      pendingSI,\n      next,\n    );\n  }\n\n  // Handle 405 - Must save as Created first (shouldn't happen for bulk)\n  if (resultCode === \"405\" || resultCode === 405) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: \"Must save as Created first\",\n    };\n  }\n\n  // Handle 406 - Force complete picking - auto-proceed\n  if (resultCode === \"406\" || resultCode === 406) {\n    console.log(\n      `GD ${gdItem.delivery_no}: Force complete picking, auto-proceeding`,\n    );\n    const next = { ...ctx, isForceComplete: \"Yes\" };\n    const retryResult = await runGDWorkflow(gdData, next);\n    return handleWorkflowResult(\n      retryResult,\n      gdItem,\n      gdData,\n      pendingGR,\n      pendingSI,\n      next,\n    );\n  }\n\n  // Handle 407 - Packing not completed\n  if (resultCode === \"407\" || resultCode === 407) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: \"Packing must be completed first\",\n    };\n  }\n\n  // Handle 408 - Internal trading: eligible for auto-GR. Defer to one batch\n  // prompt (phase 1). The GD is NOT completed yet (the gate returns before save).\n  if (resultCode === \"408\" || resultCode === 408) {\n    if (pendingGR) {\n      pendingGR.push({ gdItem, gdData, ctx });\n      return null; // deferred — handled in phase 2\n    }\n    // No batch context (defensive) — complete without auto-GR.\n    gdData.auto_gr_skip = true;\n    const retryResult = await runGDWorkflow(gdData, ctx);\n    return handleWorkflowResult(\n      retryResult,\n      gdItem,\n      gdData,\n      null,\n      pendingSI,\n      ctx,\n    );\n  }\n\n  // Handle 409 - Internal trading: GD does not fully complete the linked SO\n  if (resultCode === \"409\" || resultCode === 409) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error:\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Delivery does not fully complete the linked Sales Order (required for auto-GR).\",\n    };\n  }\n\n  // Handle 410 - GD completed, but auto-GR creation failed (non-blocking)\n  if (resultCode === \"410\" || resultCode === 410) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: true,\n      warning:\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Completed, but the linked Goods Receipt could not be auto-created.\",\n    };\n  }\n\n  // Handle 412 - Eligible for an auto Sales Invoice. Defer to one batch prompt.\n  // The GD is NOT completed yet (the gate returns before save), same as 408.\n  if (resultCode === \"412\" || resultCode === 412) {\n    if (pendingSI) {\n      pendingSI.push({ gdItem, gdData, ctx });\n      return null; // deferred — handled in the auto-SI phase\n    }\n    // No batch context (defensive) — complete without an invoice.\n    gdData.auto_si_skip = true;\n    const retryResult = await runGDWorkflow(gdData, ctx);\n    return handleWorkflowResult(retryResult, gdItem, gdData, null, null, ctx);\n  }\n\n  // Handle 411 - GD completed, but the auto Sales Invoice failed (non-blocking)\n  if (resultCode === \"411\" || resultCode === 411) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: true,\n      warning:\n        workflowResult.data.msg ||\n        workflowResult.data.message ||\n        \"Completed, but the Sales Invoice could not be auto-created.\",\n    };\n  }\n\n  // Handle 400 - General error\n  if (\n    resultCode === \"400\" ||\n    resultCode === 400 ||\n    workflowResult.data.success === false\n  ) {\n    const errorMessage =\n      workflowResult.data.msg ||\n      workflowResult.data.message ||\n      \"Failed to complete Goods Delivery\";\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: false,\n      error: errorMessage,\n    };\n  }\n\n  // Handle success\n  if (\n    resultCode === \"200\" ||\n    resultCode === 200 ||\n    workflowResult.data.success === true\n  ) {\n    return {\n      delivery_no: gdItem.delivery_no,\n      success: true,\n    };\n  }\n\n  return {\n    delivery_no: gdItem.delivery_no,\n    success: false,\n    error: \"Unknown workflow status\",\n  };\n};\n\n(async () => {\n  try {\n    this.showLoading();\n    const allListID = \"custom_ezwb0qqp\";\n\n    const selectedRecords =\n      this.getComponent(allListID)?.$refs.crud.tableSelect;\n\n    console.log(\"selectedRecords\", selectedRecords);\n\n    if (!selectedRecords || selectedRecords.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please select at least one record.\");\n      return;\n    }\n\n    const goodsDeliveryData = selectedRecords.filter(\n      (item) => item.gd_status === \"Created\",\n    );\n\n    if (goodsDeliveryData.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please select at least one created goods delivery.\");\n      return;\n    }\n\n    const goodsDeliveryNumbers = goodsDeliveryData.map(\n      (item) => item.delivery_no,\n    );\n\n    await this.$confirm(\n      `You've selected ${\n        goodsDeliveryNumbers.length\n      } goods delivery(s) to complete. <br> <strong>Goods Delivery Numbers:</strong> <br>${goodsDeliveryNumbers.join(\n        \", \",\n      )} <br>Do you want to proceed?`,\n      \"Goods Delivery Completion\",\n      {\n        confirmButtonText: \"Proceed\",\n        cancelButtonText: \"Cancel\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      console.log(\"User clicked Cancel or closed the dialog\");\n      throw new Error();\n    });\n\n    const results = [];\n    const pendingGR = []; // GDs eligible for auto-GR (408), decided via one batch prompt\n    const pendingSI = []; // GDs eligible for auto-SI (412), decided via one batch prompt\n    const queuedJobs = []; // GD Completion V2 jobs this click queued\n\n    // Phase 1: complete everything; defer auto-GR-eligible (408) and auto-SI-eligible (412)\n    // GDs — neither is completed yet, both gates return before saving.\n    for (const gdItem of goodsDeliveryData) {\n      const id = gdItem.id;\n\n      if (ASYNC_COMPLETE_ENABLED === true) {\n        try {\n          const v = await submitV2(gdItem, { needCL: \"required\", continueZero: \"\", isForceComplete: \"\", auto_si_confirmed: \"\", auto_si_skip: \"\" });\n          if (v.kind === \"QUEUED\") {\n            results.push({ delivery_no: gdItem.delivery_no, success: true, queued: true });\n            queuedJobs.push(v.jobId);\n            continue;\n          }\n          if (v.kind === \"RESULT\") {\n            results.push(v.result);\n            continue;\n          }\n          if (v.kind === \"PENDING_SI\") {\n            pendingSI.push({ gdItem, v2: true, answers: v.answers });\n            continue;\n          }\n          console.log(`GD ${gdItem.delivery_no}: classic completion - ${v.why}`);\n        } catch (error) {\n          results.push({ delivery_no: gdItem.delivery_no, success: false, error: error.message || \"Failed to complete\" });\n          continue;\n        }\n      }\n\n      const data = await db.collection(\"goods_delivery\").doc(id).get();\n\n      if (!data.data || data.data.length === 0) {\n        results.push({\n          delivery_no: gdItem.delivery_no,\n          success: false,\n          error: \"Goods Delivery record not found\",\n        });\n        continue;\n      }\n\n      try {\n        const gdData = data.data[0];\n        const ctx = {\n          needCL: \"required\",\n          isForceComplete: \"\",\n          continueZero: \"\",\n        };\n        const workflowResult = await runGDWorkflow(gdData, ctx);\n        const result = await handleWorkflowResult(\n          workflowResult,\n          gdItem,\n          gdData,\n          pendingGR,\n          pendingSI,\n          ctx,\n        );\n        if (result) results.push(result);\n      } catch (error) {\n        results.push({\n          delivery_no: gdItem.delivery_no,\n          success: false,\n          error: error.message || \"Failed to complete\",\n        });\n      }\n    }\n\n    // Phase 2: one prompt for all auto-GR-eligible deliveries, then complete them.\n    // pendingSI is still passed: the GR gate sits BEFORE the SI gate, so a delivery deferred here\n    // only reaches the SI gate on this re-run and may now answer 412 — it must be deferred too,\n    // not decided per-GD.\n    if (pendingGR.length > 0) {\n      this.hideLoading();\n      const eligibleNos = pendingGR.map((p) => p.gdItem.delivery_no).join(\", \");\n      const createGR = await this.$confirm(\n        `${pendingGR.length} of the selected delivery(s) are linked to internal Purchase Orders and can auto-create Goods Receipts in the buyer organization.<br><strong>Deliveries:</strong><br>${eligibleNos}<br><br>Create the Goods Receipts now?<br><em>Choosing \"No\" will still complete the deliveries, without creating GRs.</em>`,\n        \"Internal Trading – Auto-create Goods Receipts\",\n        {\n          confirmButtonText: \"Yes, create GRs\",\n          cancelButtonText: \"No, complete only\",\n          type: \"info\",\n          dangerouslyUseHTMLString: true,\n        },\n      )\n        .then(() => true)\n        .catch(() => false);\n\n      this.showLoading();\n      for (const p of pendingGR) {\n        if (createGR) {\n          p.gdData.auto_gr_confirmed = true;\n        } else {\n          p.gdData.auto_gr_skip = true;\n        }\n        try {\n          const workflowResult = await runGDWorkflow(p.gdData, p.ctx);\n          const result = await handleWorkflowResult(\n            workflowResult,\n            p.gdItem,\n            p.gdData,\n            null,\n            pendingSI,\n            p.ctx,\n          );\n          if (result) results.push(result);\n        } catch (error) {\n          results.push({\n            delivery_no: p.gdItem.delivery_no,\n            success: false,\n            error: error.message || \"Failed to complete\",\n          });\n        }\n      }\n    }\n\n    // Phase 3: one prompt for all auto-SI-eligible deliveries, then complete them.\n    if (pendingSI.length > 0) {\n      this.hideLoading();\n      const siNos = pendingSI.map((p) => p.gdItem.delivery_no).join(\", \");\n      const createSI = await this.$confirm(\n        `${pendingSI.length} of the selected delivery(s) will be invoiced automatically on completion.<br><strong>Deliveries:</strong><br>${siNos}<br><br>Create the Sales Invoices now?<br><em>Choosing \"No\" will still complete the deliveries, without creating invoices.</em>`,\n        \"Auto-create Sales Invoices\",\n        {\n          confirmButtonText: \"Yes, create invoices\",\n          cancelButtonText: \"No, complete only\",\n          type: \"info\",\n          dangerouslyUseHTMLString: true,\n        },\n      )\n        .then(() => true)\n        .catch(() => false);\n\n      this.showLoading();\n      for (const p of pendingSI) {\n        if (p.v2) {\n          try {\n            const v = await submitV2(p.gdItem, createSI ? { ...p.answers, auto_si_confirmed: \"true\" } : { ...p.answers, auto_si_skip: \"true\" });\n            if (v.kind === \"QUEUED\") {\n              results.push({ delivery_no: p.gdItem.delivery_no, success: true, queued: true });\n              queuedJobs.push(v.jobId);\n            } else if (v.kind === \"RESULT\") {\n              results.push(v.result);\n            } else {\n              results.push({ delivery_no: p.gdItem.delivery_no, success: false, error: \"Could not be completed in the background - complete it from the form\" });\n            }\n          } catch (error) {\n            results.push({ delivery_no: p.gdItem.delivery_no, success: false, error: error.message || \"Failed to complete\" });\n          }\n          continue;\n        }\n        if (createSI) {\n          p.gdData.auto_si_confirmed = true;\n        } else {\n          p.gdData.auto_si_skip = true;\n        }\n        try {\n          const workflowResult = await runGDWorkflow(p.gdData, p.ctx);\n          const result = await handleWorkflowResult(\n            workflowResult,\n            p.gdItem,\n            p.gdData,\n            null,\n            null,\n            p.ctx,\n          );\n          if (result) results.push(result);\n        } catch (error) {\n          results.push({\n            delivery_no: p.gdItem.delivery_no,\n            success: false,\n            error: error.message || \"Failed to complete\",\n          });\n        }\n      }\n    }\n\n    // Show summary\n    const queuedCount = results.filter((r) => r.queued).length;\n    const queuedText = queuedCount > 0 ? `<br>${queuedCount} of them are being completed in the background.` : \"\";\n    const successCount = results.filter((r) => r.success).length;\n    const failCount = results.filter((r) => !r.success).length;\n    const warningItems = results.filter((r) => r.success && r.warning);\n\n    if (failCount > 0) {\n      const failedItems = results\n        .filter((r) => !r.success)\n        .map((r) => `${r.delivery_no}: ${r.error}`)\n        .join(\"<br>\");\n      const warnText =\n        warningItems.length > 0\n          ? `<br><br><strong>Warnings:</strong><br>${warningItems\n              .map((r) => `${r.delivery_no}: ${r.warning}`)\n              .join(\"<br>\")}`\n          : \"\";\n      this.$message.error(\n        `${successCount} succeeded, ${failCount} failed:<br>${failedItems}${warnText}${queuedText}`,\n      );\n    } else if (warningItems.length > 0) {\n      this.$message.warning(\n        `All ${successCount} Goods Delivery completed.<br><br><strong>Warnings:</strong><br>${warningItems\n          .map((r) => `${r.delivery_no}: ${r.warning}`)\n          .join(\"<br>\")}${queuedText}`,\n      );\n    } else {\n      this.$message.success(\n        queuedCount > 0\n          ? `${successCount - queuedCount} Goods Delivery completed, ${queuedCount} being completed in the background.`\n          : `All ${successCount} Goods Delivery completed successfully`,\n      );\n    }\n\n    this.hideLoading();\n    this.refresh();\n    if (queuedJobs.length > 0) {\n      queuedJobs.slice(0, JOB_RUNS).forEach(startJob);\n      // the drain starts once those runs hold their claims: whatever is still due (beyond JOB_RUNS, or a run that stopped)\n      setTimeout(() => drainWorker(1), 10000);\n    }\n  } catch (error) {\n    this.hideLoading();\n    console.error(error);\n  }\n})();\n",
         "type": "js"
       },
       {

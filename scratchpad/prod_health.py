@@ -18,6 +18,9 @@ crashed Packing saves half-way and left stock locks held. Each section below wou
   BALANCE     Reserved stock whose balance row disagrees with the sum of its movements, for every item / batch / bin with
               a Reserved move in the window: a lost write (a classic and a V2 writer on one balance row, GD-2610-1245
               10-24); the next completion of that stock is refused. Reserved only: opening stock has no movements
+  NUMBERS     shared Picking headers whose delivery list still names a cancelled GD by its old number: two GD Cancel V2
+              jobs on one header can overwrite each other's rename (X5 writes the whole text; BA 10-25, race_x5.js).
+              Display text only; repair with REPLACE on that header
 
 Usage:
     python3 scratchpad/prod_health.py [--dev] [--tenant <tenant_id>] [--hours <window, default 24>]
@@ -205,6 +208,16 @@ def main():
                AND ib.material_id = k.item_id AND ib.location_id = k.bin_id
          WHERE ABS(k.by_movements - IFNULL(IF(k.batch_id IS NULL, ib.reserved_qty, bb.reserved_qty), 0)) > 0.0001"""),
          check=True, note=f"items with a Reserved move in the last {hours} h; a mismatch means a lost stock write")
+
+    checks += show("NUMBERS: shared Picking delivery lists still naming a cancelled GD by its old number", query(env, f"""
+        SELECT t.tenant_id, t.to_id, t.to_status, TRIM(x.tok) AS stale_token, g.delivery_no AS gd_now
+          FROM transfer_order t
+          JOIN JSON_TABLE(CONCAT('["', REPLACE(REPLACE(REPLACE(IFNULL(t.delivery_no, ''), '"', ''), ', ', ','), ',', '","'), '"]'),
+                          '$[*]' COLUMNS (tok VARCHAR(128) PATH '$')) x
+          JOIN goods_delivery g ON g.tenant_id = t.tenant_id AND g.is_deleted = 0 AND g.gd_status = 'Cancelled'
+           AND g.delivery_no COLLATE utf8mb4_general_ci = CONCAT(TRIM(x.tok), '-Cancelled') COLLATE utf8mb4_general_ci
+         WHERE t.is_deleted = 0 AND t.delivery_no LIKE '%,%'{t('t')}"""),
+         check=True, note="a lost rename from two concurrent cancels; display text only")
 
     print("\n" + ("Needs a look: " + str(checks) + " section(s) marked CHECK" if checks else "All OK"))
     return 1 if checks else 0

@@ -104,5 +104,24 @@ const pickNone = part("PICK", { rows: [], headers: [] });
 r = quiet(() => X4P.cancelX4PPlan(entry, pickNone, rows("P", [{ id: "7001", to_status: "Completed", to_id: "PI-2610-9001" }]).concat(rows("A", [{ id: "601", picking_id: "7001", gd_id: "1305", line_status: "Completed" }]))));
 t("X4P: a Picking already Completed before the cancel (no rows of this GD to write) stays as it is (user rule)", r.route === "GO" && r.headerRows.length === 0, r);
 
+// BA 10-25: a write carries the siblings that will end Cancelled (X rows), so a later write cannot drop their renames
+const xrow = (tok) => ({ k: "X", j: JSON.stringify({ id: "3446", tok: tok }) });
+r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311", OLD).concat([xrow("GD-2610-1311")]), []));
+t("X5 siblings: a sibling past its point of no return is renamed in the same write as this GD",
+  r.route === "GO" && r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311-Cancelled", r);
+r = quiet(() => X5.cancelX5Plan(entry, num, x5now(NEW + ", GD-2610-1311", NEW).concat([xrow("GD-2610-1311")]), []));
+t("X5 siblings: this GD already renamed, a sibling's rename lost earlier -> written back", r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311-Cancelled", r);
+r = quiet(() => X5.cancelX5Plan(entry, num, x5now(NEW + ", GD-2610-1311-Cancelled", NEW).concat([xrow("GD-2610-1311")]), []));
+t("X5 siblings: nothing left to rename -> no write", r.route === "GO" && r.headerRows.length === 0, r);
+r = quiet(() => X5.cancelX5Plan(entry, num, x5now(NEW + ", GD-2610-1311", NEW, held).concat([xrow("GD-2610-1311")]), []));
+t("X5 siblings: a held Picking with only a sibling's rename pending -> skipped, no wait", r.route === "GO" && r.headerRows.length === 0 && !(r.jobRows || []).length, r);
+r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311", OLD, held).concat([xrow("GD-2610-1311")]), []));
+t("X5 siblings: a held Picking with this GD's own rename pending still waits (counted retry)", status(r) === "COMMITTING_GD" && r.result_code === "GDX_STEP_RETRY", r);
+r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311", OLD).concat([xrow("GD-2610-1305"), xrow("GD-2610-9999")]), []));
+t("X5 siblings: its own token or a token not in the text change nothing extra", r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311", r);
+
+r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311-Cancelled", OLD).concat([xrow("GD-2610-1311-Cancelled")]), []));
+t("X5 siblings: a token already carrying the suffix is never renamed again", r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311-Cancelled", r);
+
 console.log(fails ? fails + " FAILED" : "ALL PASSED");
 process.exit(fails ? 1 : 0);
