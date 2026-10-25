@@ -120,6 +120,95 @@ check after the pastes clean for my jobs.
 - **Low, left as is:** web Auto Pick kicks each job once with no follower. On prod, all 61 LSH Auto Pick jobs finished
   within 15 s, and Pick All Remaining makes no stock moves, so it has no lock waits.
 
+## "Can it happen again" sweep (10-25 evening, read-only on prod)
+
+Verdict: no Picking / Edit incident can recur as it was. The classic header wipe ends as phones take the OTA, and three
+low items remain.
+
+1. **Past incidents, all fixed and live.** Prod = repo for PICKING v155, PICKING_LOOP v89, PICKING_ASYNC_* /
+   PICKING_BULK_* / PICKING_FC_DRIVE and GD_EDIT_* (SUBMIT, PREPARE, WORKER, COMMIT v12). That covers:
+   - 2,000-line GD re-save (V2 never re-saves a GD; classic refuses above 500 lines);
+   - the 300-GD Picking (below);
+   - the PICKING_LOOP lock leak (LockGate, 900 s takeover);
+   - the GD V2 picking_status blank (GD_BULK_PREPARE v18) and the consumer twin crash (v14);
+   - the `%%` date in P5 (COMMIT v13);
+   - the E5 'undefined' add, the unit guard and the custom_fields review in GD Edit V2.
+   - Since 10-23, every run of every V2 Picking / Edit workflow completed. Longest: COMMIT 8.8 s, worker 17.9 s, GD
+     Edit COMMIT 5.7 s.
+2. **The 300-GD Picking class.**
+   - **Classic** (phones on 1.1.34): the sibling-read timeout is fixed in PICKING v155 (set-based `SibRecs`), the stamp
+     storm in PICKING_LOOP v89 (`StampState`), and SO_AUTO_GD's whole-batch death on 10-13.
+   - Picking lines and records now have an index on transfer_order_id, so per-Picking reads are cheap.
+   - LSH classic runs since 10-23 are all under 45 s. The slow (137 s) and failed classic runs were at 528521
+     (Auto Complete GD) and 073522, not LSH.
+   - **V2:** never re-saves a GD, makes Packings in chunks of 25 deliveries, and a first confirm of 2,000 lines passed
+     on dev.
+   - **LSH reality:** 857 Pickings since 10-13, at most 11 deliveries (1.8 on average).
+   - **Residual, low:**
+     - (a) Convert to Picking has no cap, so a "Non Split" convert of hundreds of deliveries can still make one huge
+       Picking.
+     - (b) Repeated partial confirms of such a Picking read lines x records.
+     - (c) V2 Force Complete's facts read (`sql_node_PSfc`) scans the GD lines once per delivery, about 0.11 s each
+       (1.25 s measured on LSH's largest Picking), so a Force Complete of 270+ deliveries would hit the 30 s limit.
+       LSH's Force Complete is classic anyway.
+     - Guidance: don't convert more than about 50 deliveries into one Picking. A cap or the derived-table rewrite can
+       follow after 10-26 if wanted.
+3. **LSH leftovers: clean.** I checked for:
+   - open or under-review EDIT_GD / CONFIRM_PICKING jobs;
+   - deliveries in Processing with no open job;
+   - held Pickings;
+   - a delivery picking-Completed with open rows on a live Picking;
+   - a delivery whose lines all read picked but whose header doesn't;
+   - open rows of cancelled deliveries.
+4. **SQL over unindexed tables:**
+   - No `IN (SELECT … UNION …)` in my 12 workflows.
+   - Correlated per-row subqueries exist only on gd_async_job (1.5k rows, cheap) and in PSfc / PSmove / PPmove (per
+     delivery, above). PSmove and PPmove cover only deliveries with moved lines.
+5. **Still happening: the classic header wipe.**
+   - Classic PICKING writes 49 Picking header columns from what the phone sends, and the old app sends few of them.
+   - Since 10-23, 0 of 769 classic-confirmed LSH Pickings keep their `delivery_method`, against 50 of 88 V2-confirmed.
+   - **Ends with the OTA, per phone.** V2 confirms write stored + patch, and sudu-mobile-expo-f1 confirmed the branch's
+     classic fallbacks send each Picking's full stored header plus edits:
+     - swaps, splits and Draft: `buildPickingClassicPayload`, 49 = 49 HEADER_FIELDS, dev-verified 10-20;
+     - Force Complete: the whole stored record.
+   - Phones still on 1.1.34 keep wiping until they update.
+
+**Does an updated phone still call PICKING_LOOP?** Yes, in two ways:
+- **After a NOT_ELIGIBLE answer from PICKING_ASYNC_SUBMIT.** At LSH that is a pick moved to another bin or batch (moves
+  are not ported for Full Picking) and Force Complete (with `isForceComplete`).
+  - No job row is created. The marker is a PICKING_ASYNC_SUBMIT run for the same `picking_id` that answered NOT_ELIGIBLE
+    seconds before the PICKING_LOOP run.
+- **Directly, with no SUBMIT:** rows split over several locations, and an unsaved or Draft Picking. These carry no
+  marker, but none appeared in a prod week of mobile confirms.
+
+## First prod device run after the OTA (before volume)
+
+The Picking part of the run; it comes first, and its delivery then goes on to the Packing part in PACKING.md.
+
+- **What you need:**
+  - One phone with the OTA applied, logged in as an LSH user.
+  - One small LSH Goods Delivery (1-3 lines), Created and not yet converted (picking status Not Created). LSH's own test
+    SOs ("Joseph Testing …") fit.
+- **Setup:** on the web GD list, Convert to Picking for that one delivery. LSH runs Full Picking, so the split dialog
+  opens; make one Picking and assign the phone's user.
+- **How I take part:** tell me (GD Edit & Picking V2) when you start. I check each step read-only on prod and answer pass
+  or fail within a minute.
+
+| # | On the phone | Expect | I check |
+|---|---|---|---|
+| 1 | Open the Picking, pick every line from its allocated bin (no bin or batch swap), tap **Completed** | A toast that it is being saved in the background; the Picking reads Completed within about 30 s | One CONFIRM_PICKING job, key starts `PKC:`, COMPLETED; steps P0, P1, P3, P4 and P5 DONE; Picking Completed and unlocked; records = lines; GD lines and header picking Completed; a Created Packing for the delivery (Packing's step 1 starts here); no PICKING_LOOP run for this Picking |
+| 2 | On a second small Picking, tap Completed twice quickly (or turn on airplane mode right after the tap, then retry) | One save only; one result shown | One job only (same `PKC:` key -> EXISTING) |
+| 3 | *If a phone still on 1.1.34 is at hand:* confirm a Picking on the updated phone, and open the same Picking on the old phone while the job runs | The old app refuses: the Picking is in use / under processing | No PICKING_LOOP write lands on it (PICKING_LOOP v89 treats the open job as the lock) |
+| 4 | Close the app right after tapping Completed on a third small Picking, then reopen it after 1 minute | Reopening or the list shows the job's result; it finishes even with the phone closed | The job COMPLETED; its worker kick came from the reopen or the list, if not before |
+
+**Not on prod:**
+- A bin or batch swap. At LSH (Full Picking) it goes to classic PICKING_LOOP by design, and staging one moves real
+  stock.
+- Force Complete. LSH is a Full Picking org, where V2 Force Complete is parked, so it stays classic.
+- A large Picking. LSH's largest since 10-13 has 11 deliveries; the 2,000-line case passed on dev.
+
+Watch those as they happen naturally.
+
 ## What I watch tomorrow
 
 Run this every hour with `prod_health.py`. It should return no rows. It lists my LSH jobs that are under review or failed,

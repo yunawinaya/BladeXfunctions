@@ -52,6 +52,84 @@ Shared file: `Goods Delivery/GDonMounted.js` kicks several workers. Announce bef
 | 8 | **Engine lock waits under concurrent SO → GD conversions.** This morning (11:40-11:45, 10 conversions) GD creation commits took 30-84 s, almost all inside INVENTORY_APPLY_OPERATION waiting in INVENTORY_LOCK_TOKENS (one run 47.9 s). Since 10-23: 8 lock-token runs over 50 s (max 96.5 s), all completed; no engine failure since the 10-23 incident fix. A throughput limit on shared materials, not a failure. | GD | - | mitigation live: GD_ASYNC_WORKER prod v13 (240 s, lock-conflict retries finish in the run). **Watch** creation latency and LOCK_CONFLICT counts. |
 | 6 | `processed` in worker results counts SELECTED jobs, not done ones. Don't drive loops or reports from it. | each | | |
 
+## Recurrence sweep, 10-25 evening (GD session; prod, read-only)
+
+**Code:** all 130 workflows LSH ran 3+ times since 10-23 are functionally identical on dev and prod. Three differ by one node,
+all harmless:
+- SO_Convert_GD and GD_Convert_SI: a function moved within the file;
+- ATC_SYNC_MASTER_DATA: prod has the extra sub_tenant_id.
+
+So no fix is stranded on dev. All 41 GD / Picking / Packing repo files match prod.
+
+**Data (LSH now), all clean:**
+- no GD stuck in Processing without a job;
+- no Picking held 15+ min;
+- no stale mobile Packing lease;
+- no negative or inconsistent balance;
+- Reserved = movements (1,224 keys);
+- open GD lines all within SO planned (234 lines, 45 GDs);
+- no open SO line with an invalid unit (324 lines);
+- no duplicate GD / Picking / Packing / SO numbers;
+- no open GD with a blank picking_status.
+
+| Past incident | Fixed and live on prod | Can it recur at 2x? | Watch |
+|---|---|---|---|
+| 10-23 engine precheck crash, 30-min stall | yes: engine v12, worker sweep, retries | covered | CRASHES, JOBS |
+| 10-23 case-twin units (AutoCount sync) | sync exact-match v61; unit guard in classic + V2 | no: 0 of 324 open SO lines affected | refusals GD_INVALID_UOM |
+| 10-23 V2 create left picking_status blank | PREPARE v18 | no: 0 open GDs affected | - |
+| 10-23 ATC_SYNC_SO zeroed SO planned_qty | ATC_SYNC_SO v63 no longer writes Sudu-owned fields | not seen since; 0 of 234 open lines | completion refusals "planned would become negative" |
+| 10-24 V2 completion review + held locks (GD-2610-1100), classic collision | detection works (the engine refuses to write over a mismatch) | **yes, while classic phones remain** | JOBS review; OTA |
+| 10-24 borrowed guard (unreviewed prod paste) | reverted | process: only the user pastes; every paste verified | MASS-WRITE |
+| 10-24 `%%` date formats | fixed, lint PCTPCT | no | - |
+| 10-25 worker stall | budget 240 s, per-GD worker runs, 2-min re-kick | no while a GD list is open | JOBS untouched 15+ min |
+| 10-25 shared-Picking cancels + lost rename | X5 per-token + siblings | no | NUMBERS |
+| 10-25 cancel reads quadratic | derived-table reads | no | - |
+| 10-25 GD-2610-1245 lost stock write | repaired | **yes, while classic phones remain** | BALANCE; OTA |
+| 10-25 form completions went classic | gd_ref_doc rule | no | - |
+
+**Residual risks, in order:**
+1. Phones still on classic 1.1.34: the only known source of stock repairs. Get the OTA onto every phone before the shift;
+   a morning query can name any user still on classic PACKING_SAVE / PICKING_LOOP.
+2. First prod use of tonight's client paths: the form V2 completion, and the GD list's per-GD runs + 2-min re-kick. Dev-tested;
+   a zero-risk prod check is to open the GD list once.
+3. Slower creations under stock-lock contention: slower, not failing.
+4. Platform capacity at 2x has never been seen.
+5. Areas not swept here: SO Save, accounting. Picking / Packing: their sessions' sweeps (requested 20:40).
+6. **Packing sweep (Packing V2, ~21:00):** past incidents fixed and live (borrowed guard, `%%`, SO flip; over-pack is blocked
+   at completion; the client double-tap fix has also been in the store app since 1.1.32 and is in hotfix/v2-background,
+   per sudu-mobile-expo-f1). LSH leftovers all 0 (jobs, locks, boxes, totals 337 checked, reservations, stock in Cancelled
+   Packings).
+   **Not yet run on prod at all:**
+   - mobile V2 itself (last device run: dev iPhone 10-16);
+   - 9a's four new client fixes (no device run);
+   - never even on a dev phone: the NOT_ELIGIBLE fallback, two devices on one Packing, a big Packing.
+
+   So the OTA swaps the known classic-collision risk for a first real use. **Do one device run on prod right after the OTA,
+   before volume:** an updated phone picks and packs one real LSH GD end to end.
+   - Packing script: `PACKING.md`, section "First prod device run after the OTA (before volume)". Small GD pack + Complete,
+     a double tap, optionally 2 phones and a 1.1.34 phone as the second device.
+   - Tell the Packing session when you start; it verifies each step within a minute.
+   - The Picking half is asked of the Picking session (PICKING_EDIT.md).
+7. **Morning check of phones still on classic:** `python3 scratchpad/lsh_classic_phones.py --since "2026-10-26 06:00"`.
+   - It counts classic Packing completions: PACKING_SAVE with saveAs "Completed" only. Updated phones still call it for
+     Draft / Created saves.
+   - It counts classic Picking confirms: PICKING_LOOP with saveAs "Completed" + pageStatus "Edit". Created + Add is Convert to
+     Picking, an office action.
+   - It leaves out an updated phone's fallback right after a NOT_ELIGIBLE SUBMIT for the same Picking.
+   - Validated on 10-24. **These 19 users ran the classic app that day, so their phones must update:** packers carmen, ally,
+     vivian, lam, joseph, jay; pickers shan, kang, lim, faez, hao, soon, raymond, rex, wilson, khai, ganeson, hisham,
+     syarif. On 10-25 only joseph.
+8. **Picking / Edit sweep (42, ~21:10):** no incident can recur as it was. Prod = repo for PICKING v155, PICKING_LOOP v89, all
+   PICKING V2 and GD_EDIT_*; every V2 run since 10-23 completed. LSH leftovers clean (6 checks); no IN-UNION SQL.
+   - 300-GD class: classic fixes live. LSH Pickings have at most 11 GDs (1.8 on average).
+   - Low: Convert to Picking has no cap; V2 Force Complete's facts read would time out at 270+ GDs.
+   - **Guidance: keep each Picking at ~50 GDs or fewer.**
+   - Classic phones wipe the Picking header's delivery_method (0 of 769 classic-confirmed LSH Pickings keep it; 50 of 88 V2
+     do). That's data quality, not a blocker; it ends per phone with the OTA. The OTA's classic fallbacks send the full stored
+     header (confirmed by sudu-mobile-expo-f1).
+   - Device run: the Picking half (4 steps, PICKING_EDIT.md) goes first. It ends with the Created Packing that PACKING.md
+     step 1 starts from.
+
 ## Incident history (what must not repeat)
 
 - 10-23: an engine precheck crash caused 30-min stalls (fixed: retry in 13 s, worker sweep).

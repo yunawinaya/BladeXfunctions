@@ -71,6 +71,46 @@ No dependent (per-row) subquery in any Packing read.
 
 All of these grow linearly. An index on `goods_delivery_fwii8mvb_sub(goods_delivery_id)` would help GD, Picking and Packing alike; that is the user's decision, not needed for tomorrow.
 
+## Evening sweep 10-25 ("can it happen again", read-only prod, `scratchpad/pkg_sweep/sweep.py`)
+
+- **Past incidents:**
+  - The borrowed guard, the `%%` dates and the SO flip are fixed and live. The lint rules MULTIWHERE / IDIGNORED / PCTPCT find 0 in all 5 Packing workflows.
+  - Over-pack (mobile double tap) is blocked at completion by both paths. The client fix is confirmed in `hotfix/v2-background`, and already in store build 1.1.34 (first shipped in 1.1.32; commits 63c08fc7 + 7f73d5b5, per sudu-mobile-expo-f1).
+- **LSH leftovers, all 0:**
+  - open / review jobs;
+  - locks without a job;
+  - unfinished boxes in Completed Packings;
+  - Created Packings of closed GDs;
+  - over-packed lines (2,203 lines checked, all exact);
+  - totals vs box rows (337 Packings);
+  - reservations on boxes of closed GDs;
+  - stock in boxes of Cancelled Packings.
+- **Not yet run at volume on prod:**
+  - mobile V2 itself;
+  - the four new client fixes;
+  - from a phone: the NOT_ELIGIBLE fallback, two devices on one Packing, a big Packing;
+  - lock-conflict retries.
+
+## First prod device run after the OTA (before volume)
+
+The Packing part of the run; the Picking part is in PICKING_EDIT.md.
+- **What you need:** one phone with the OTA applied, logged in as an LSH user, and one small LSH Goods Delivery (1-3 lines) that is fully picked and has a Created Packing. LSH's own test SOs ("Joseph Testing …") fit.
+- **How I take part:** tell the Packing session when you start. I check each step read-only on prod (the job, its key, stock, reservations, SO, locks) and answer pass or fail within a minute.
+
+| # | On the phone | Expect | I check |
+|---|---|---|---|
+| 1 | Open the Packing, pack all lines into 1-2 boxes, tap **Completed** | If a box isn't completed yet: alert "Complete pending HUs?", then Confirm. Toast "Packing submitted" / "It is being completed in the background."; the card badge shows COMPLETING…, then Completed, usually within a minute (filtered to Created, the card drops out instead) | The job is COMPLETED and its key starts `PKM:`; Reserved stock moved to the box bins with the box stamped; reservations re-pointed; GD and SO packed; lock released |
+| 2 | Tap Completed twice quickly on another small Packing (or tap again after a lost answer) | A second quick tap is ignored. After a lost answer: "No answer from the server … Tap Completed again"; the retap shows "Packing submitted" again (or "Packing completed successfully") | One job only (same key → EXISTING) |
+| 3 | *If a second phone is available:* phone A opens Packing X; phone B opens X | B gets toast "Packing in use" / "<A's name> is working on <packing no> right now." | The lease is A's |
+| 4 | *Same:* A completes X; B opens X while the job runs | B opens read-only with the banner "Being completed in the background"; when it ends: "Packing completed" / "<packing no> was completed in the background." and the view reloads as Completed | Lock = `PKGJOB-<job>`; after COMPLETED, B sees Completed |
+| 5 | *If a phone still on 1.1.34 is at hand:* repeat 4 with it as B | The old app shows "Packing in use" / "Background save is working on <packing no> right now." | No classic save lands on X |
+
+**Not on prod:**
+- The classic fallback (NOT_ELIGIBLE): no LSH Packing qualifies, and staging one would mean bad data.
+- A large Packing: LSH's largest is about 12 lines; the 2,000-line case passed on dev on the desktop.
+
+Watch those two as they happen naturally.
+
 ## What the Packing session watches tomorrow
 
 - `gd_async_job` COMPLETE_PACKING (tenant 128671) not COMPLETED for more than 2 minutes, or any FAILED / REQUIRES_REVIEW.
