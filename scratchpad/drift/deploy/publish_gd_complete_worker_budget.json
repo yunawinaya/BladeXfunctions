@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_COMPLETE_WORKER",
+   "dataId": "2110182645714518018",
+   "file": "Goods Delivery/CompleteV2/GD_COMPLETE_WORKER.json",
+   "base": "scratchpad/drift/deploy/GD_COMPLETE_WORKER.dev_v5_base.json"
+  }
+ ]
+}

@@ -14,7 +14,9 @@ const MUTANTS = {
   e1_no_skip: ["e1.js", "needCall: movements.length ? \"YES\" : \"NO\"", "needCall: \"YES\""],
   e1_no_restore: ["e1.js", "return failNoWrite(entry, \"GDE_INVENTORY_\" + (s(eng.result_code) || \"FAILED\"), why, restore);", "return failNoWrite(entry, \"GDE_INVENTORY_\" + (s(eng.result_code) || \"FAILED\"), why);"],
   e2_sparse: ["e2.js", "for (const c of cols) row[c] = geCell(K, c, c in p.cells ? p.cells[c] : cur[c]);", "for (const c of Object.keys(p.cells)) row[c] = geCell(K, c, p.cells[c]);"],
-  e2_no_before: ["e2.js", "if (!cs.every((c) => sameVal(cur[c], p.before[c]))) { conflicts.push(s(p.id)); continue; }", ""],
+  e2_no_before: ["e2.js", "if (!cs.every((c) => same(c, cur[c], p.before[c]))) { conflicts.push(s(p.id)); continue; }", ""],
+  e2_cf_raw: ["e2.js", "(/^custom_fields/.test(c) ? sameVal(geCfCanon(a, defs), geCfCanon(b, defs)) : sameVal(a, b))", "sameVal(a, b)"],
+  e2_cf_keep_undefined: ["e2.js", "if (!names.length || names.indexOf(name) >= 0) out[name] = o[k];", "out[name] = o[k];"],
   e2_dup_insert: ["e2.js", "    if (byKey[k]) return;\n", ""],
   e2_raw_dec: ["e2.js", "if (kind === \"dec\") return v === \"\" ? null : q8(v).toFixed(8);", "if (kind === \"dec\") return v;"],
   e3_no_fix: ["e3.js", "const res = rv.fix(resPart);", "const res = resPart;"],
@@ -150,6 +152,40 @@ it("E2: second pass inserts the child under its parent's real id, skips what is 
 it("E2: a line changed by someone else after the stock moved goes to review", () => {
   const r = call("commitE2Plan", E(), gdl, [L({ gd_qty: 7 }), L({ id: "4002" })], K);
   assert.strictEqual(r.job_status, "REQUIRES_REVIEW");
+});
+// custom fields (502801, GD2610-0654 10-23): the form sends them by name, the platform stores them by its definition ids, and
+// a raw read sees the ids; E2's line reads carry the definitions (the cf_defs row)
+const CF_DEFS = { cf_defs: { "2074066865204011010": "kamco_kg_pc", "2074069950630502401": "kamco_unit_price" } };
+const gdlCf = { inserts: [], deletes: [], order: [], patches: [{ id: "4001", cells: { gd_qty: 4, custom_fields: { kamco_kg_pc: 2.01, kamco_unit_price: 41.3 } },
+  before: { gd_qty: 5, custom_fields: { "2074066865204011010": 2.01, "2074069950630502401": 40 } } }] };
+const cfIds = (kg, price) => ({ "2074066865204011010": kg, "2074069950630502401": price });
+it("E2: custom fields stored by id at their before -> the patch is written, by name as the platform takes it", () => {
+  const r = call("commitE2Plan", E(), gdlCf, [L({ custom_fields: cfIds(2.01, 40) }), CF_DEFS], K);
+  assert.strictEqual(r.patchCount, 1); assert.deepStrictEqual(r.patchSlices[0].rows[0].custom_fields, { kamco_kg_pc: 2.01, kamco_unit_price: 41.3 });
+});
+it("E2: custom fields written by name read back by id -> the check passes", () => {
+  const r = call("commitE2Check", E(), gdlCf, [{ id: "4001", is_deleted: 0, job_line_key: null, gd_qty: "4.00000000", custom_fields: cfIds(2.01, 41.3) }, CF_DEFS]);
+  assert.strictEqual(r.route, "OK");
+});
+it("E2: a re-run after the write landed (custom fields read back by id) writes nothing and is not a conflict", () => {
+  const r = call("commitE2Plan", E(), gdlCf, [L({ gd_qty: 4, custom_fields: cfIds(2.01, 41.3) }), CF_DEFS], K);
+  assert.strictEqual(r.patchCount, 0); assert.notStrictEqual(r.job_status, "REQUIRES_REVIEW");
+});
+it("E2: a custom field changed by someone else still goes to review", () => {
+  const r = call("commitE2Plan", E(), gdlCf, [L({ custom_fields: cfIds(2.01, 55) }), CF_DEFS], K);
+  assert.strictEqual(r.job_status, "REQUIRES_REVIEW");
+});
+it("E2: a name the line table does not define is dropped on write, so the check does not wait for it", () => {
+  const g = JSON.parse(JSON.stringify(gdlCf));
+  g.patches[0].cells.custom_fields.not_defined = "x";
+  const r = call("commitE2Check", E(), g, [{ id: "4001", is_deleted: 0, job_line_key: null, gd_qty: 4, custom_fields: cfIds(2.01, 41.3) }, CF_DEFS]);
+  assert.strictEqual(r.route, "OK");
+});
+it("E2: no definitions (900938 stores names) -> custom fields compare by name, unchanged", () => {
+  const g = { inserts: [], deletes: [], order: [], patches: [{ id: "4001", cells: { custom_fields: { kamco_unit_price: 159 } }, before: { custom_fields: {} } }] };
+  const ok = call("commitE2Check", E(), g, [{ id: "4001", is_deleted: 0, job_line_key: null, custom_fields: { kamco_unit_price: 159 } }, { cf_defs: {} }]);
+  const off = call("commitE2Check", E(), g, [{ id: "4001", is_deleted: 0, job_line_key: null, custom_fields: { kamco_unit_price: 160 } }]);
+  assert.deepStrictEqual([ok.route, off.result_code], ["OK", "GDE_STEP_RETRY"]);
 });
 
 // ---- E3

@@ -12,6 +12,7 @@ run alloc_parity node test/edit_parity.js --alloc "$FX"/*.json
 run delta node test/test_delta.js "$FX"/*.json
 run plan node test/test_plan.js "$FX"/*.json
 run commit node test/test_commit.js
+run replay_cf node test/replay_cf_0654.js
 run lanes node test/test_lanes.js
 run submit node test/test_submit.js "$FX"/*.json
 run uom_guard node test/test_uom_guard_edit.js "$FX"

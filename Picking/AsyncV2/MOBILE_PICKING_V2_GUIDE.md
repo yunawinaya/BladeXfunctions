@@ -198,8 +198,9 @@ A job moves only when a client starts PICKING_ASYNC_WORKER:
 - one live kick per job (an in-flight set, as Packing V2): again on open and on every STATUS poll that still reads
   running (Part 4), since a retry wait or a stock-lock wait only moves on a kick;
 - when the Picking **list** opens: `{}` at most once every 2 minutes per device (AsyncStorage
-  throttle key, e.g. `pkv2_worker_kick_at`; report-once key `pkv2_seen_<job_id>`). While `data.processed > 0`, call again, up to 5 rounds (the worker takes up to 5 jobs per
-  call), refreshing the list after each productive round. Desktop's Picking form does the `{ job_id }` kick on open.
+  throttle key, e.g. `pkv2_worker_kick_at`; report-once key `pkv2_seen_<job_id>`). One call, no loop: `data.processed`
+  counts the jobs a run selected, not the ones it finished (2026-10-25), so never loop or report on it. The jobs this
+  device started are followed by `{ job_id }` until they end (above). Desktop's Picking form does the `{ job_id }` kick on open.
 
 ## Part 6 — Building the confirmation from mobile state
 

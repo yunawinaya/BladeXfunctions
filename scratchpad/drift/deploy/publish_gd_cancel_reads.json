@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_CANCEL_PREPARE",
+   "dataId": "2112455739305988098",
+   "file": "Goods Delivery/CancelV2/GD_CANCEL_PREPARE.json",
+   "base": "scratchpad/drift/deploy/GD_CANCEL_PREPARE.dev_v3_base.json"
+  },
+  {
+   "name": "GD_CANCEL_SUBMIT",
+   "dataId": "2112455664139866113",
+   "file": "Goods Delivery/CancelV2/GD_CANCEL_SUBMIT.json",
+   "base": "scratchpad/drift/deploy/GD_CANCEL_SUBMIT.dev_v3_base.json"
+  }
+ ]
+}

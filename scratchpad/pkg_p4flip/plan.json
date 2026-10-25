@@ -1,0 +1,36 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PACKING_BULK_COMMIT",
+   "dataId": "2109924671239589890",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_p4flip/out/PACKING_BULK_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_p4flip/base/PACKING_BULK_COMMIT.v7.json",
+   "smoke": {
+    "request": {
+     "job_id": "smoke-not-a-job"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "PK_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "PACKING_BULK_PREPARE",
+   "dataId": "2109924633813815298",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_p4flip/out/PACKING_BULK_PREPARE.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_p4flip/base/PACKING_BULK_PREPARE.v6.json",
+   "smoke": {
+    "request": {
+     "job_id": "smoke-not-a-job"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "PK_INVALID_DATA"
+    }
+   }
+  }
+ ]
+}

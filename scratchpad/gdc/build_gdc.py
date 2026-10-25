@@ -696,7 +696,7 @@ def build_worker():
                 AND (j.next_attempt_at IS NULL OR j.next_attempt_at <= NOW(3))
                 AND (c.id IS NULL OR c.started_at <= NOW(3) - INTERVAL 10 MINUTE)
               ORDER BY j.create_time, j.id
-              LIMIT 5) x
+              LIMIT 10) x
     ON 1 = 1""" % {"T": T, "JOB": N(G, "data.jobId"), "GDCOL": GD_ID_COL, "LOCK": GD_LOCK_JOIN}
     tick = """SELECT DATE_FORMAT(n.t, '%%Y-%%m-%%d %%H:%%i:%%s') AS db_now,
        DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%%Y-%%m-%%d %%H:%%i:%%s') AS lease_until,
@@ -771,7 +771,7 @@ def build_worker():
             K.code("code_node_GWrejres", "Result (REJECTED_INPUT)", wcode("result.js", {"__PATH__": "REJECTED_INPUT", "__PLAN__": "null", "__ROWS__": "[]"}), res_fields),
             K.ret("return_node_GWrej", "Return (invalid input)", [(f, N("code_node_GWrejres", "data." + f)) for f in res_fields]),
         ]),
-        K.sql("sql_node_GWpoll", "Poll: the due COMPLETE_GD jobs of the tenant (at most 5, oldest first; lease expired or never set; backoff over; no live claim row) + DB clock", poll,
+        K.sql("sql_node_GWpoll", "Poll: the due COMPLETE_GD jobs of the tenant (at most 10, oldest first; lease expired or never set; backoff over; no live claim row) + DB clock", poll,
               ["db_now", "id", "organization_id", "gd_id", "job_status", "progress_percent", "progress_message", "attempt_count", "next_attempt_at", "lease_owner",
                "lease_expires_at", "dead_lease", "row_version", "error_code", "error_message", "error_details", "claim_id", "claim_started_at", "claim_owner"]),
         K.code("code_node_GWplan", "Plan: the loop's items (the due jobs with their claim facts), the run start", wcode("plan.js"),
@@ -833,7 +833,7 @@ def build_worker():
         K.code("code_node_GWresult", "Result (DONE)", wcode("result.js", {"__PATH__": "DONE", "__PLAN__": plan_ref, "__ROWS__": "[%s][0]" % N("sql_node_GWfinal", "data")}), res_fields),
         K.ret("return_node_GWdone", "Return the tick's result", [(f, N("code_node_GWresult", "data." + f)) for f in res_fields]),
     ]
-    return K.workflow([("job_id", "string", "optional: gd_async_job.id (digits) to drive this job only (the form's kick after a submit); empty under Quartz: the oldest due jobs of the session tenant (at most 5 per tick)")],
+    return K.workflow([("job_id", "string", "optional: gd_async_job.id (digits) to drive this job only (the form's kick after a submit); empty under Quartz: the oldest due jobs of the session tenant (at most 10 per tick)")],
                       res_fields, nodes)
 
 # =============================================================================================== GD_COMPLETE_SUBMIT

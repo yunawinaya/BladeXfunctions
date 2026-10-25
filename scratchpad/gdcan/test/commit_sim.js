@@ -73,7 +73,8 @@ function mocks(w) {
       if (id === "sql_node_XCx0box") return itemsOf(idsIn(text)[0]).map((i) => ({ handling_unit_id: i.handling_unit_id, material_id: i.material_id, balance_id: i.balance_id, batch_id: i.batch_id, quantity: i.quantity }));
       if (/^sql_node_XCx4(lines|linesB)$/.test(id)) return Object.values(w.sol).map((o) => ({ j: JSON.stringify(o) }));
       if (/^sql_node_XCx4(hdrs|hdrsB)$/.test(id)) return Object.values(w.soh).map((o) => ({ j: JSON.stringify(o) }));
-      if (/^sql_node_XCx4p(rows|back)$/.test(id)) { const [l, p] = idsIn(text); return jrows("L", byIds(w.pkl, l)).concat(jrows("P", byIds(w.pkh, p))); }
+      if (/^sql_node_XCx4p(rows|back)$/.test(id)) { const [l, p] = idsIn(text); return jrows("L", byIds(w.pkl, l)).concat(jrows("P", byIds(w.pkh, p)),
+        jrows("A", Object.values(w.pkl).filter((r) => p.indexOf(String(r.picking_id)) >= 0).map((r) => ({ id: r.id, picking_id: r.picking_id, gd_id: r.gd_id, line_status: r.line_status, is_deleted: r.is_deleted || 0 })))); }
       if (/^sql_node_XCx4k(rows|back)$/.test(id)) { const [l, h] = idsIn(text); return jrows("L", byIds(w.pl, l)).concat(jrows("H", byIds(w.ph, h))); }
       if (/^sql_node_XCx4h(now|after|back)$/.test(id)) return huFacts(text);
       if (/^sql_node_XCx5rows/.test(id)) { const [h, l, p, i, s] = idsIn(text); return jrows("H", byIds(w.pkh, h)).concat(jrows("L", byIds(w.pkl, l)), jrows("P", byIds(w.ph, p)), jrows("I", byIds(w.pl, i)), jrows("S", byIds(w.ps, s))); }

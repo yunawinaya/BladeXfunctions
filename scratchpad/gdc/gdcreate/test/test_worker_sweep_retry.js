@@ -19,9 +19,9 @@ const t = (name, ok, got) => { console.log((ok ? "ok   " : "FAIL ") + name + (ok
 const row = (id, extra) => Object.assign({ db_now: "2026-10-23 05:00:00", id: id, organization_id: "9", job_status: "COMMITTING_GD", attempt_count: 0, row_version: 7, dead_lease: 0, claim_id: "", lease_live: 0, due_now: 1, op_live: 0, claim_live: 0, rclaim_live: 0, error_code: null }, extra || {});
 const guard = (jobId) => ({ route: "CONTINUE", jobId: jobId, tenantId: "128671", leaseOwner: "WRK|abc" });
 const plan = run("code_node_JsJ91wA5", { "code_node_1OvNTk9G2.data": guard("11"), "sql_node_RaVfenlh.data": [row("11"), row("12"), row("13"), row("14")] });
-t("plan: 4 due jobs -> 4 first passes + 2 retry passes for the first 3 (10 loop items), count 4, ids once",
-  plan.items.length === 10 && plan.count === 4 && plan.jobIdsSql === "11,12,13,14" &&
-  plan.items.slice(4).map((i) => i.jobId + "/" + i.retry).join() === "11/1,12/1,13/1,11/2,12/2,13/2", plan.items.map((i) => i.jobId + "/" + (i.retry || 0)));
+t("plan: 4 due jobs -> 4 first passes + 6 retry passes for the first 3 (22 loop items; LSH 10-25: was 2), count 4, ids once",
+  plan.items.length === 22 && plan.count === 4 && plan.jobIdsSql === "11,12,13,14" &&
+  plan.items.slice(4).map((i) => i.jobId + "/" + i.retry).join() === [1, 2, 3, 4, 5, 6].map((n) => "11/" + n + ",12/" + n + ",13/" + n).join(), plan.items.map((i) => i.jobId + "/" + (i.retry || 0)));
 const idle = run("code_node_JsJ91wA5", { "code_node_1OvNTk9G2.data": guard("0"), "sql_node_RaVfenlh.data": [{ db_now: "2026-10-23 05:00:00" }] });
 t("plan: no due job -> IDLE, no items", idle.route === "IDLE" && idle.items.length === 0, idle);
 
@@ -34,24 +34,28 @@ t("pick: the first pass of a due job -> CLAIM", p.route === "CLAIM" && p.jobId =
 p = pick(4, row("11", { db_now: "2026-10-23 05:00:20", job_status: "COMPLETED" }));
 t("pick: a retry pass of a job that completed -> SKIP, nothing to retry", p.route === "SKIP" && /nothing to retry/.test(p.result_message), p);
 p = pick(4, row("11", { db_now: "2026-10-23 05:00:30", error_code: "GD_INVENTORY_IN_PROGRESS", row_version: 9 }));
-t("pick: a retry pass of a job a conflict left waiting, 30 s in -> CLAIM (retry budget 45 s)", p.route === "CLAIM" && p.claimName === "W0_CLAIM_9", p);
+t("pick: a retry pass of a job a conflict left waiting, 30 s in -> CLAIM (retry budget 240 s)", p.route === "CLAIM" && p.claimName === "W0_CLAIM_9", p);
 p = pick(7, row("11", { db_now: "2026-10-23 05:00:40", error_code: "GD_INVENTORY_RETRYABLE_REJECTION", row_version: 10 }));
 t("pick: the second retry pass after a RETRY, 40 s in -> CLAIM", p.route === "CLAIM" && p.claimName === "W0_CLAIM_10", p);
-p = pick(4, row("11", { db_now: "2026-10-23 05:00:50", error_code: "GD_INVENTORY_IN_PROGRESS" }));
-t("pick: a retry pass 50 s in -> SKIP, left for the next tick", p.route === "SKIP" && /retry pass 1: 50 s/.test(p.result_message), p);
+p = pick(4, row("11", { db_now: "2026-10-23 05:00:50", error_code: "GD_INVENTORY_IN_PROGRESS", row_version: 11 }));
+t("pick: a retry pass 50 s in -> CLAIM now (the later 16 s / 30 s backoffs are waited out in the run)", p.route === "CLAIM" && p.claimName === "W0_CLAIM_11", p);
+p = pick(4, row("11", { db_now: "2026-10-23 05:04:10", error_code: "GD_INVENTORY_IN_PROGRESS" }));
+t("pick: a retry pass 250 s in -> SKIP, left for the next tick", p.route === "SKIP" && /retry pass 1: 250 s/.test(p.result_message), p);
 p = pick(4, row("11", { db_now: "2026-10-23 05:00:10", error_code: "GD_INVENTORY_IN_PROGRESS", due_now: 0, next_attempt_at: "2026-10-23 05:00:30" }));
 t("pick: a retry pass not due yet -> SKIP, not due", p.route === "SKIP" && /not due/.test(p.result_message), p);
 p = pick(4, row("11", { db_now: "2026-10-23 05:00:10", error_code: "GD_PREPARE_FAILED" }));
 t("pick: a retry pass of a job with another error -> SKIP", p.route === "SKIP" && /nothing to retry/.test(p.result_message), p);
 p = pick(2, row("13", { db_now: "2026-10-23 05:00:25" }));
-t("pick: a first pass after 20 s (index > 0) -> SKIP, budget as before", p.route === "SKIP" && /^budget: 25 s/.test(p.result_message), p);
+t("pick: a first pass 25 s in (index > 0) -> CLAIM now (budget 240 s; was 20 s)", p.route === "CLAIM" && p.jobId === "13", p);
+p = pick(2, row("13", { db_now: "2026-10-23 05:04:05" }));
+t("pick: a first pass 245 s in (index > 0) -> SKIP, budget", p.route === "SKIP" && /^budget: 245 s/.test(p.result_message), p);
 p = pick(4, row("11", { db_now: "2026-10-23 05:00:10", error_code: "GD_INVENTORY_IN_PROGRESS", lease_live: 1, lease_owner: "WRK|other" }));
 t("pick: a retry pass of a job another run holds -> SKIP (live lease)", p.route === "SKIP" && /live lease/.test(p.result_message), p);
 
 const slot = (index) => run("code_node_WKslot", { "code_node_JsJ91wA5.data": plan, "get_cache_node_JEpzWu86.data": index });
 t("slot: a first pass -> 0 (no wait)", slot(0).retryJobId === "0" && slot(3).retryJobId === "0", [slot(0), slot(3)]);
 t("slot: a retry pass -> its job", slot(4).retryJobId === "11" && slot(9).retryJobId === "13", [slot(4), slot(9)]);
-t("slot: past the end -> 0", slot(12).retryJobId === "0", slot(12));
+t("slot: the sixth pass of the third job -> its job; past the end -> 0", slot(21).retryJobId === "13" && slot(22).retryJobId === "0", [slot(21), slot(22)]);
 
 const readBack = [{ id: "11", job_status: "COMPLETED", error_code: "", gd_id: "1", gd_status: "Created", attempt_count: 1, lease_owner: "" }, { id: "12", job_status: "COMMITTING_GD", error_code: "GD_INVENTORY_IN_PROGRESS", gd_id: "2", gd_status: "Processing", attempt_count: 0, lease_owner: "" }];
 const answer = (jobId) => run("code_node_LdCyuBWM", { "code_node_1OvNTk9G2.data.route": "CONTINUE", "code_node_JsJ91wA5.data.route": "WORK", "code_node_1OvNTk9G2.data": guard(jobId), "code_node_JsJ91wA5.data": plan, "sql_node_CObTsMBI.data": readBack });

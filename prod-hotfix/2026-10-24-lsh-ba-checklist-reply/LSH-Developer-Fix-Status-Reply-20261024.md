@@ -17,7 +17,7 @@ team's operator. Status is as of 12:45 MYT.
 | LSH-OPS-06 | P1 follow-up | Historical invoices with blank item codes | **Not in this team's scope** | Accounting integration | — | As above. |
 | LSH-OPS-07 | P2 | Item posting price tag | **Not in this team's scope** | Accounting integration | — | As above. |
 | LSH-OPS-08 | P2 follow-up | TMS updates failing; GD-2610-967 assignment | **Needs investigation** (outbound) / **Not fixed** (inbound) | Not yet assigned | — | Code fix in VERSA_FLEET_POST, then re-push 5 GDs; manual driver/vehicle fix for GD-2610-967. |
-| LSH-OPS-09 | P2 | PO item lines missing arrival dates | **Fix ready; production deployment pending** | Dev (42) | PO_SAVE fix live on dev 12:35, tested | Deploy PO_SAVE to production, then backfill 90 lines on 46 POs (today). |
+| LSH-OPS-09 | P2 | PO item lines missing arrival dates | **Fixed and verified** (new saves) | Dev (42) | PO_SAVE fix live in production since 24 Oct 12:47:56 | None. The 90 earlier lines are not backfilled; re-saving such a PO fills them. |
 
 ## LSH-OPS-01 — packing checkpoint overwrite
 
@@ -133,7 +133,7 @@ team's operator. Status is as of 12:45 MYT.
 
 ## LSH-OPS-09 — PO item arrival dates
 
-- Developer status: **Fix ready; production deployment pending.**
+- Developer status: **Fixed and verified** for new saves.
 - Finding:
   - All ten lines are still NULL (`po_expected_date`). They were saved from the PO form by lshteam on 10-24 between 00:01
     and 00:19 and issued directly.
@@ -147,9 +147,8 @@ team's operator. Status is as of 12:45 MYT.
   - Live on dev since 12:35. A test PO saved with a blank line date received the header date.
   - The backfill copies each affected line's header date. Its preview lists the 90 LSH lines on 46 POs, each with its
     PO's date.
-- Remaining work / owner / ETA (Dev 42, today):
-  1. Deploy the PO_SAVE fix to production.
-  2. Run the backfill right after it.
+- Production: live since 24 Oct 12:47:56. Verified on 25 Oct: all 24 LSH lines saved since then carry their header date.
+- The 90 earlier lines are not backfilled (decision 25 Oct). Re-saving such a PO fills its lines from the header date.
 
 ## Earlier fixes — operational closure
 
@@ -170,7 +169,7 @@ Reviewed by / time MYT: Developer team (sessions 22 and 42) / 24 Oct 2026, 12:10
 
 Fixed and verified: LSH-OPS-01, LSH-OPS-02, LSH-OPS-03; earlier fixes GD-2610-1100, SO UOM, SO2610-1577, GD-2610-1142
 Fixed, ready for users: LSH-OPS-04 (complete GD-2610-1034 and 1253); GD-2610-1195 (under OPS-03)
-Fix ready, production deployment pending: LSH-OPS-09 (PO_SAVE, then backfill of 90 lines on 46 POs)
+Fixed for new saves: LSH-OPS-09 (PO_SAVE live 24 Oct 12:47:56; the 90 earlier lines not backfilled)
 Not fixed: LSH-OPS-08 inbound (GD-2610-967)
 Needs investigation: LSH-OPS-08 outbound (Versa update 400)
 Not in this team's scope: LSH-OPS-05, 06, 07 (accounting integration)
@@ -178,7 +177,7 @@ Not in this team's scope: LSH-OPS-05, 06, 07 (accounting integration)
 Production deployment references: PACKING_SAVE restored 11:29:49; GD_BULK_COMMIT fix 10:53; GOODS_DELIVERY and
 GD_UNUSED_FN_NEW restored 12:36–12:37
 Documents/data already recovered: see OPS-01 to OPS-04
-Documents/data still pending: OPS-08 GDs; OPS-09 POs (backfill after the PO_SAVE deployment)
+Documents/data still pending: OPS-08 GDs
 Verification evidence: per item above
-Remaining owner / ETA: OPS-09 today (42); OPS-08 owner to be assigned
+Remaining owner / ETA: OPS-08 owner to be assigned
 ```

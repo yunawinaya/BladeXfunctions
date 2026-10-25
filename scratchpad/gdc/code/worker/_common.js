@@ -1,6 +1,6 @@
 const PKC = {
   retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },
-  worker_budget_seconds: 20,
+  worker_budget_seconds: 240,
   states: ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_GD"],
   hard: ["GDC_INVALID_REQUEST", "GDC_INVALID_DATA", "GDC_GD_NOT_FOUND", "GDC_NOT_LOCKED", "GDC_NOT_ELIGIBLE", "GDC_NOT_YET_SUPPORTED", "GDC_400", "GDC_401", "GDC_412", "GDC_UNEXPECTED_PATCH", "GDC_RES_BLANK", "GDC_LINES_CHANGED", "GDC_STALE", "JOB_ILLEGAL_TRANSITION"],
 };

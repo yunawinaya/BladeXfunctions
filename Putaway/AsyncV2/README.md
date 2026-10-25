@@ -1,25 +1,32 @@
-# Putaway Completion V2 — Completed in the background (dev only)
+# Putaway Completion V2 — Completed in the background (dev and prod)
 
-Built 2026-10-14/15. A desktop Putaway confirmation runs in the background, in steps that each check what they wrote.
+Built 2026-10-14/15. A Putaway confirmation runs in the background, in steps that each check what they wrote.
 On dev a 2,000-line Transfer Order is put away in about 2 s (SUBMIT) plus 85 s (worker) per confirmation. That covers
 4,000 movements, the records, and 2,000+ in-transit rows. The classic PUTAWAY_LOOP → PUTAWAY takes about 0.75 s per
-line, so roughly 25 min at 2,000 lines. **Prod has none of this.**
+line, so roughly 25 min at 2,000 lines. **On prod since the 2026-10-22 full deployment** (desktop form). Checked
+2026-10-25: prod = dev = repo for all four workflows, same ids.
 
-| Workflow (dev id, version) | Role |
+| Workflow (id, version on dev and prod) | Role |
 |---|---|
-| PUTAWAY_ASYNC_SUBMIT `2110545826201112577` v4 | runs PUTAWAY_LOOP's and PUTAWAY's gates (lifted) against the **stored** pending quantities. Then it locks the TO (`is_processing 1`), writes the LOCK row and queues a `COMPLETE_PUTAWAY` job. `operation: STATUS` reports the latest job |
+| PUTAWAY_ASYNC_SUBMIT `2110545826201112577` v5 | runs PUTAWAY_LOOP's and PUTAWAY's gates (lifted) against the **stored** pending quantities. Then it locks the TO (`is_processing 1`), writes the LOCK row and queues a `COMPLETE_PUTAWAY` job. `operation: STATUS` reports the latest job |
 | PUTAWAY_ASYNC_WORKER `2110545857423511553` v3 | claims due jobs and calls PREPARE, then COMMIT twice (COMMIT splits after the stock step) |
-| PUTAWAY_BULK_PREPARE `2110545896879329281` v4 | SQL reads (no row caps; in-transit rows still In Transit with every column, closed ones as keys only), PUTAWAY's code lifted verbatim, and INVENTORY_BULK_APPLY in PLAN mode: per row, SUBTRACT at the source bin + ADD at the target bin (`TO - PA`, isMovingInv 1, the line's price and dates) |
-| PUTAWAY_BULK_COMMIT `2110545933231362050` v6 | P0 revalidation (stored pending, open in-transit rows, header `update_time`) · P1 stock (INVENTORY_BULK_APPLY, all or nothing) · P2 records (keyed by `job_line_key`), lines, `to_status` · P3 in-transit rows (close the consumed ones, insert remainders) · P4 GR `putaway_status` / `gr_status` · unlock |
+| PUTAWAY_BULK_PREPARE `2110545896879329281` v5 | SQL reads (no row caps; in-transit rows still In Transit with every column, closed ones as keys only), PUTAWAY's code lifted verbatim, and INVENTORY_BULK_APPLY in PLAN mode: per row, SUBTRACT at the source bin + ADD at the target bin (`TO - PA`, isMovingInv 1, the line's price and dates) |
+| PUTAWAY_BULK_COMMIT `2110545933231362050` v8 | P0 revalidation (stored pending, open in-transit rows, header `update_time`) · P1 stock (INVENTORY_BULK_APPLY, all or nothing) · P2 records (keyed by `job_line_key`), lines, `to_status` · P3 in-transit rows (close the consumed ones, insert remainders) · P4 GR `putaway_status` / `gr_status` · unlock |
 
 Built from `scratchpad/pwv2/` (`python3 build_pwv2.py [--write] [NAME ...]`; for a small change
 `python3 rekey_build.py NAME [--write]`, which keeps the live node keys so the diff shows only the real change).
 Published with `.dbtools/wf_upload.mjs`.
 
-**Mobile is unchanged:** it still calls PUTAWAY_LOOP (v16 on dev). PUTAWAY_LOOP refuses a Completed confirmation of
-more than 500 lines, and answers "under processing" while a V2 job of the TO is open or its GR is `Processing`; mobile
-keeps retrying on that answer. PUTAWAY (v35) checks against the stored `pending_process_qty`, so a stale mobile copy
-cannot post a line V2 has already put away.
+**Mobile:** the store build calls the classic PUTAWAY_LOOP. The `hotfix/v2-background` OTA (2026-10-25) moves it to V2
+(SUBMIT, then a per-job follower: worker `{ job_id }`, STATUS every 10 s with re-kicks; see
+`MOBILE_PUTAWAY_V2_GUIDE.md`). For phones still on the old build, PUTAWAY_LOOP v19 (dev = prod) refuses a Completed
+confirmation of more than 500 lines. It answers "under processing" while a V2 job of the TO is open or its GR is
+`Processing`, and mobile keeps retrying on that answer. PUTAWAY (v35) checks against the stored `pending_process_qty`,
+so a stale mobile copy cannot post a line V2 has already put away.
+
+**Worker budget:** PUTAWAY_ASYNC_WORKER v3 has `worker_budget_seconds: 20`. A run always takes its first job and starts
+no further job after 20 s. A `{ job_id }` kick (form, mobile follower) takes only that job, so the budget limits only
+the id-less list sweep.
 
 ## What goes to the background
 

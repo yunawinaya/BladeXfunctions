@@ -2,9 +2,10 @@
 
 > **Audience:** the engineer moving the mobile app's Putaway confirmation (`sudu-mobile-expo`,
 > `src/features/wm/putaway/`) to the background completion, and making the Putaway screens work with 2,000+ lines.
-> **Server side:** built, deployed and tested on **dev** (2026-10-15). Desktop already uses it. Nothing here needs a
-> server change; if you find you need one, ask the owner of `Putaway/AsyncV2/` (session `bladexfunctions-a6`).
-> **Prod:** the V2 workflows do **not** exist on prod. The mobile build must keep V2 off there (see Part 7).
+> **Server side:** on dev since 2026-10-15 and on prod since the 2026-10-22 full deployment, with the same workflow ids.
+> The desktop Putaway form uses it on both. Nothing here needs a server change; if you find you need one, ask the owner
+> of `Putaway/AsyncV2/` (session "PO GR Putaway V2").
+> **Mobile:** the `hotfix/v2-background` OTA (2026-10-25) moves the app's Putaway to V2 on prod (Part 7).
 > **Read with:** `README.md` in this folder (what the server does, what it refuses, test results).
 
 ---
@@ -20,15 +21,15 @@ V2 changes what mobile sends and when it waits:
 1. **SUBMIT:** send a compact confirmation (per stored line id: quantity, bin, storage location, category, remark) to
    **PUTAWAY_ASYNC_SUBMIT**. It checks everything the classic save checks, against the **stored** pending
    quantities, and answers within about 2 s at 2,000 lines: `QUEUED`, or a refusal with the classic's own message.
-2. **Kick the worker:** start **PUTAWAY_ASYNC_WORKER** for that job. This is fire-and-forget: do not wait for it and do
-   not treat its timeout as a failure. The worker moves the stock (about 85 s at 2,000 lines on dev), writes records,
-   in-transit rows and the GR status, then marks the job COMPLETED.
+2. **Kick the worker and follow the job:** start **PUTAWAY_ASYNC_WORKER** `{ job_id }` for that job, then follow it to
+   its end (Part 5). Do not wait on the kick and do not treat its timeout as a failure. The worker moves the stock
+   (about 85 s at 2,000 lines on dev), writes records, in-transit rows and the GR status, then marks the job COMPLETED.
 3. **STATUS:** ask PUTAWAY_ASYNC_SUBMIT `operation: "STATUS"` whenever you need to know where a TO stands.
 
 Mobile never computes stock, records or statuses. When SUBMIT answers `NOT_ELIGIBLE`, run today's classic call
 unchanged, for at most 500 rows.
 
-## Part 1 — Workflow ids (dev)
+## Part 1 — Workflow ids (dev and prod)
 
 | Workflow | Id | Call it |
 |---|---|---|
@@ -95,7 +96,7 @@ any stable string hash (desktop uses FNV-1a + djb2, 16 hex chars).
 
 | `data.route` | `code` | What it means | What mobile does |
 |---|---|---|---|
-| `QUEUED` | 200 | job created (`job_id`, `job_status`, `to_no`) | kick the worker `{ job_id }` without awaiting it; toast "TO … is being completed in the background"; leave the screen |
+| `QUEUED` | 200 | job created (`job_id`, `job_status`, `to_no`) | kick the worker `{ job_id }` without awaiting it and follow the job (Part 5); toast "TO … is being completed in the background"; leave the screen |
 | `STATUS` | 200 | this key already has a job (`job_status`, `progress_message`, `error_message`) | QUEUED / VALIDATING / READY_TO_COMMIT / COMMITTING_PUTAWAY → same as QUEUED; COMPLETED → "already completed"; FAILED → show `error_message`, next tap uses the next generation |
 | `BUSY` | 409 | another completion of this TO is open | show `message`; do **not** loop on it (a job can run for minutes) |
 | `NOT_ELIGIBLE` | 300 | V2 does not take this TO (`reason`) | run the classic PUTAWAY_LOOP call for it, unchanged |
@@ -135,17 +136,23 @@ The answer's `job_status` is the TO's latest job:
   confirming again.
 - `COMPLETED` or no job → normal.
 
-Call it when a TO is opened for putaway (before allowing input). Optionally also call it while the user stays on a
-TO they just submitted (every 5–10 s, stop at a final status).
+Call it when a TO is opened for putaway (before allowing input), and to follow each job you start (Part 5).
 
 ## Part 5 — Kicking the worker (there is no scheduler)
 
-There is no scheduled worker. A job moves only when a client starts PUTAWAY_ASYNC_WORKER:
-- right after QUEUED: `{ job_id }`, fire-and-forget (`runWorkflowById` has no client timeout; the server finishes
-  even if the phone gives up);
-- when a running job is found on open (Part 4);
-- when the Putaway **list** opens: `{}` at most once every 2 minutes per device. While the answer's `data.processed > 0`,
-  call again, up to 40 rounds, then refresh the list. Desktop does the same (`pwV2_list_mounted_kick.js`).
+There is no scheduled worker. A job moves only when a client starts PUTAWAY_ASYNC_WORKER. A job that has to wait
+(a counted retry, or the stock engine's lock wait under load) is picked up again only by the **next** kick. So the
+client that starts a job also follows it:
+- **Follow every job you queue:** `{ job_id }` at once, then STATUS (Part 4) every 10 s, kicking `{ job_id }` again
+  while it is running. Stop at a final status (COMPLETED / FAILED / REQUIRES_REVIEW), after 3 min without progress, or
+  10 min in all. Kick and STATUS calls get their own timeouts; a timed-out kick is not a failure, since the server
+  finishes the run anyway. Mobile: `followPutawayJob` (commit `2b9c7e55`).
+- When a running job is found on open (Part 4): kick `{ job_id }` again.
+- When the Putaway **list** opens: `{}` (every due job) at most once every 2 minutes per device, **one call, no loop**,
+  then refresh the list.
+- Never loop on `data.processed`: it counts the jobs a run **selected**, not the ones it finished (found 10-25). An
+  id-less run starts no new job after its time budget, so a list kick is a sweep, not a guarantee; the follower is what
+  moves a job to its end.
 
 ## Part 6 — Building the confirmation from mobile state
 
@@ -158,15 +165,20 @@ Map each stored line's put-away instances to entries:
 Do not fetch `table_putaway_records` (`getPutawayRecordsById`) for V2: the server writes the records itself, keyed
 per job line, and replays safely.
 
-## Part 7 — Gating (dev only for now)
+## Part 7 — Gating
 
-- Add a switch `PUTAWAY_V2_ENABLED`: **true on the dev backend, false on prod**, until the user decides the prod
-  rollout. With it off, today's classic call is used as is.
+- Switch `PUTAWAY_V2_ENABLED`: **on for dev and prod** with the `hotfix/v2-background` OTA (user's call, 10-24). The
+  server workflows are the same on both (checked 2026-10-25: prod = dev = repo for SUBMIT v5, WORKER v3, PREPARE v5,
+  COMMIT v8). With the switch off, today's classic call is used as is.
 - Fall back to classic **only** on an explicit `NOT_ELIGIBLE` answer, or when the switch is off. Never fall back
   after a network error or a missing answer; repeat SUBMIT with the same key instead. The classic would run on top of
   a job that may already be queued. The server refuses that double post, against the stored pending quantities, but
   the user would see an error.
-- PUTAWAY_LOOP on dev refuses more than 500 lines. That's expected: those TOs need V2.
+- Mixed fleet (phones on the old build next to phones on the OTA, plus desktop): classic PUTAWAY_LOOP v19, on prod
+  and dev, answers "The current putaway is under processing" while a V2 job of that TO is open (REQUIRES_REVIEW
+  included) or its GR is still `Processing`. That holds even after the TO's `is_processing` lock passes its 900 s stale
+  limit, and nothing is written.
+- PUTAWAY_LOOP refuses a Completed confirmation of more than 500 lines. That's expected: those TOs need V2.
 
 ## Part 8 — 2,000+ lines on the phone (required)
 
@@ -209,17 +221,17 @@ Measure before and after, and report the numbers.
 6. A lost answer (airplane mode right after the tap) → the retry with the same key gets STATUS, and there is exactly
    one job.
 7. **2,000-line TO**: open, scroll, enter quantities (auto-location for the whole TO), split a few lines, confirm, and
-   watch it complete. Ask `bladexfunctions-a6` for a fresh one; I'll create it in tenant 000000, plant
+   watch it complete. Ask the Putaway V2 owner ("PO GR Putaway V2") for a fresh one, created in tenant 000000, plant
    `1123598813738675202` (putaway on, in-transit, batch items). Report the Part 8 numbers.
 
-To check results on the server, ask `bladexfunctions-a6` for the job's status and the reconcile (movements, records,
-in-transit, GR). I have the scripts.
+To check results on the server, ask the Putaway V2 owner for the job's status and the reconcile (movements, records,
+in-transit, GR).
 
 ## Part 10 — Attachments, and what stays classic
 
 - **Attachments are saved now (2026-10-16).** Until then they were silently dropped on Completed, on both paths.
   - V2: send `request.ref_doc` (Part 2). Key absent = keep the stored list; a list replaces it.
-  - Classic: PUTAWAY_LOOP v19 on dev **adds** the files in `arrayData[].ref_doc` to the stored list on Completed
-    (de-duplicated by url / link / key); `[]` or absent changes nothing, and nothing can be removed on this path. Today's
-    app (sends `[]` or only the new files) is therefore safe. Sending stored + new also works. The prod paste is pending.
+  - Classic: PUTAWAY_LOOP v19 (dev and prod) **adds** the files in `arrayData[].ref_doc` to the stored list on
+    Completed (de-duplicated by url / link / key); `[]` or absent changes nothing, and nothing can be removed on this
+    path. Today's app (sends `[]` or only the new files) is therefore safe. Sending stored + new also works.
 - Mobile V2 for HU, bundle and serial putaways: those stay classic, at most 500 rows.

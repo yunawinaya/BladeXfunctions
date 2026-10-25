@@ -13,10 +13,13 @@ _spec.loader.exec_module(_gdc)
 T, G = _gdc.T, _gdc.G
 MYT_NOW = "CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')"
 
-PICK_IDS = (f"SELECT t0.id FROM transfer_order t0 WHERE t0.tenant_id = {T} AND t0.is_deleted = 0 AND JSON_CONTAINS(t0.gd_no, JSON_QUOTE('{G}'))\n"
-            f"             UNION SELECT x.transfer_order_id FROM transfer_order_jz8m9w3h_sub x WHERE x.tenant_id = {T} AND x.gd_id = {G} AND x.is_deleted = 0")
-PACK_IDS = (f"SELECT p0.id FROM packing p0 WHERE p0.tenant_id = {T} AND p0.is_deleted = 0 AND p0.gd_id = '{G}'\n"
-            f"             UNION SELECT l0.packing_id FROM packing_jz8m9w3h_sub l0 WHERE l0.tenant_id = {T} AND l0.gd_id = {G} AND l0.is_deleted = 0")
+# each id set is its UNION read once as a derived table: an IN (... UNION ...) subquery runs once per outer row (DEPENDENT
+# SUBQUERY), and the Packing child tables have no packing_id index - quadratic in the tenant's rows (prod 10-25: LSH's 2,100
+# Packing lines took 2.6 s alone, 7 s with 10 cancels; dev's 2,000-row Pickings hit the 30 s statement limit)
+PICK_IDS = (f"SELECT pi.id FROM (SELECT t0.id FROM transfer_order t0 WHERE t0.tenant_id = {T} AND t0.is_deleted = 0 AND JSON_CONTAINS(t0.gd_no, JSON_QUOTE('{G}'))\n"
+            f"             UNION SELECT x.transfer_order_id FROM transfer_order_jz8m9w3h_sub x WHERE x.tenant_id = {T} AND x.gd_id = {G} AND x.is_deleted = 0) pi")
+PACK_IDS = (f"SELECT pk.id FROM (SELECT p0.id FROM packing p0 WHERE p0.tenant_id = {T} AND p0.is_deleted = 0 AND p0.gd_id = '{G}'\n"
+            f"             UNION SELECT l0.packing_id FROM packing_jz8m9w3h_sub l0 WHERE l0.tenant_id = {T} AND l0.gd_id = {G} AND l0.is_deleted = 0) pk")
 # the boxes of those Packings: generated / locked rows with a handling unit
 BOX_IDS = (f"SELECT CAST(u0.handling_unit_id AS UNSIGNED) FROM packing_hr4nq20g_sub u0 WHERE u0.tenant_id = {T} AND u0.is_deleted = 0\n"
            f"               AND u0.handling_unit_id REGEXP '^[0-9]{{1,20}}$' AND u0.packing_id IN ({PACK_IDS})")

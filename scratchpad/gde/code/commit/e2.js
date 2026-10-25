@@ -14,6 +14,29 @@ const geCell = function geCell(K, c, v) {
   return v;
 };
 const geLineRows = (rows) => { const o = {}; for (const r of list(rows)) { const x = typeof r.j === "string" ? parseJ(r.j) : r; if (x && x.id !== undefined) o[s(x.id)] = x; } return o; };
+// custom fields: the platform stores a line's field names as its table's definition ids (and keeps ids it is given), so a raw
+// read sees ids where the form sent names (502801, GD2610-0654). E2's line reads carry the definitions as a row
+// { cf_defs: { id: name } }; a custom-fields cell compares as names, without the names a table with definitions lacks (its
+// write drops them)
+const geCfDefs = function geCfDefs(rows) {
+  for (const r of list(rows)) {
+    const x = typeof r.j === "string" ? parseJ(r.j) : r;
+    if (x && x.cf_defs && typeof x.cf_defs === "object") return x.cf_defs;
+  }
+  return {};
+};
+const geCfCanon = function geCfCanon(v, defs) {
+  const o = typeof v === "string" && /^\s*\{/.test(v) ? parseJ(v) : v;
+  if (!o || typeof o !== "object" || Array.isArray(o)) return v;
+  const names = Object.keys(defs).map((k) => defs[k]);
+  const out = {};
+  for (const k of Object.keys(o)) {
+    const name = defs[k] || k;
+    if (!names.length || names.indexOf(name) >= 0) out[name] = o[k];
+  }
+  return out;
+};
+const geSame = (defs) => (c, a, b) => (/^custom_fields/.test(c) ? sameVal(geCfCanon(a, defs), geCfCanon(b, defs)) : sameVal(a, b));
 // what a check reads of the lines (E0 before anything, E2 after): id, is_deleted, job_line_key and every column a patch writes,
 // each as jobj renders it (exprs: the build-time map, so no text from the payload reaches the SQL); not whole rows
 const geLineCheckSql = function geLineCheckSql(gdl, exprs) {
@@ -50,12 +73,13 @@ const commitE2Plan = function commitE2Plan(entry, gdl, lineRows, K) {
   });
   // patches: written whole where every patched cell still holds its before
   const writes = [];
+  const same = geSame(geCfDefs(lineRows));
   for (const p of gdl.patches || []) {
     const cur = fresh[s(p.id)];
     if (!cur || String(cur.is_deleted) !== "0") { conflicts.push(s(p.id) + " (gone)"); continue; }
     const cs = Object.keys(p.cells);
-    if (cs.every((c) => sameVal(cur[c], p.cells[c]))) continue;
-    if (!cs.every((c) => sameVal(cur[c], p.before[c]))) { conflicts.push(s(p.id)); continue; }
+    if (cs.every((c) => same(c, cur[c], p.cells[c]))) continue;
+    if (!cs.every((c) => same(c, cur[c], p.before[c]))) { conflicts.push(s(p.id)); continue; }
     const row = { id: s(p.id) };
     for (const c of cols) row[c] = geCell(K, c, c in p.cells ? p.cells[c] : cur[c]);
     writes.push(row);
@@ -77,7 +101,8 @@ const commitE2Check = function commitE2Check(entry, gdl, lineRows) {
   const missing = (gdl.inserts || []).filter((x, i) => !byKey[entry.jobId + "|L|" + (i + 1)]).length;
   const twice = Object.keys(byKey).filter((k) => byKey[k] > 1);
   if (twice.length) return stepEnd(entry, "E2_LINES", "line(s) inserted twice: " + twice.slice(0, 3).join(", "), true);
-  const off = (gdl.patches || []).filter((p) => { const cur = fresh[s(p.id)]; return !cur || Object.keys(p.cells).some((c) => !sameVal(cur[c], p.cells[c])); }).map((p) => s(p.id));
+  const same = geSame(geCfDefs(lineRows));
+  const off = (gdl.patches || []).filter((p) => { const cur = fresh[s(p.id)]; return !cur || Object.keys(p.cells).some((c) => !same(c, cur[c], p.cells[c])); }).map((p) => s(p.id));
   const notGone = (gdl.deletes || []).filter((id) => fresh[s(id)] && String(fresh[s(id)].is_deleted) === "0");
   if (missing || off.length || notGone.length) return stepEnd(entry, "E2_LINES", missing + " insert(s), " + off.length + " patch(es) and " + notGone.length + " removal(s) do not read back", false);
   return stepOk(entry, "E2_LINES", (gdl.inserts || []).length + " inserted, " + (gdl.patches || []).length + " patched, " + (gdl.deletes || []).length + " removed", "lines saved");

@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_ASYNC_WORKER",
+   "dataId": "2104840667119411201",
+   "file": "Goods Delivery/AsyncV2/GD_ASYNC_WORKER.json",
+   "base": "scratchpad/drift/deploy/GD_ASYNC_WORKER.dev_v15_base.json"
+  },
+  {
+   "name": "GD_COMPLETE_WORKER",
+   "dataId": "2110182645714518018",
+   "file": "Goods Delivery/CompleteV2/GD_COMPLETE_WORKER.json",
+   "base": "scratchpad/drift/deploy/GD_COMPLETE_WORKER.dev_v6_base.json"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_CANCEL_COMMIT",
+   "dataId": "2112455779051212802",
+   "file": "Goods Delivery/CancelV2/GD_CANCEL_COMMIT.json",
+   "base": "scratchpad/drift/deploy/GD_CANCEL_COMMIT.dev_v5_base.json"
+  },
+  {
+   "name": "GD_CANCEL_WORKER",
+   "dataId": "2112455700319932418",
+   "file": "Goods Delivery/CancelV2/GD_CANCEL_WORKER.json",
+   "base": "scratchpad/drift/deploy/GD_CANCEL_WORKER.dev_v4_base.json"
+  }
+ ]
+}

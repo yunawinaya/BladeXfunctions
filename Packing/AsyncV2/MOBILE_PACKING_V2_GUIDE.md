@@ -6,8 +6,9 @@
 > `hooks/usePutawayWorkerKick.ts`).
 > **Server side:** built, deployed and tested on **dev** (2026-10-13 → 10-15: 2-line, 2,000-line, batch, fallback and
 > re-kick tests all passed). The desktop Packing form already uses it. Nothing here needs a server change; if you find
-> you need one, ask the owner of `Packing/AsyncV2/` (session `bladexfunctions-5a`; names change on restart).
-> **Prod:** the V2 workflows do **not** exist on prod. The mobile build must keep V2 off there (Part 7).
+> you need one, ask the owner of `Packing/AsyncV2/` (the Packing V2 session; names change on restart).
+> **Prod:** live on prod with the **same workflow ids** as dev, and identical to dev since 2026-10-25 13:21 (SUBMIT v7,
+> WORKER v5, PREPARE v7, COMMIT v9). Whether the prod bundle turns V2 on is the user's OTA decision (Part 7).
 > **Read with:** `README.md` in this folder (what the server does, what it refuses, test results).
 > **Independent of Picking V2:** Packing V2 only needs the GD lines to be picked (`picking_status = Completed`), which
 > the classic Picking and Picking V2 both write. Mobile Picking V2 being on hold does not block this.
@@ -36,7 +37,7 @@ V2 keeps everything up to the last call and replaces only that call:
 Mobile never computes stock, reservations or statuses. When SUBMIT answers `NOT_ELIGIBLE`, run today's classic call
 unchanged, on the same tap.
 
-## Part 1 — Workflow ids (dev)
+## Part 1 — Workflow ids (dev and prod: the same)
 
 | Workflow | Id | Call it |
 |---|---|---|
@@ -139,9 +140,14 @@ No Quartz row runs this worker (by decision: it is expensive). Jobs move only wh
   continues on the server.
 - **Opening a Packing with a running job:** kick `WORKER { job_id }` (Part 4). A second kick while a run holds the job
   does nothing (the claim is unique per job version), so kicking on every open is safe.
-- **List mount:** `WORKER {}` drains up to 5 due Packing jobs of the tenant per call. Throttle per device (Putaway uses
-  2 min) and repeat while `data.processed > 0`, up to a small cap, refreshing the list after each round that moved
-  something — copy `usePutawayWorkerKick` / `kickPutawayWorkerFromList`.
+- **Follow your own job:** after QUEUED, re-kick `WORKER { job_id }` while STATUS says it is running (about every 10 s,
+  for up to about 3 min), even after going back to the list. A stock lock conflict makes the job wait 2, 4, then 8 s
+  for its next try, and only a new kick runs it (at LSH about 1 engine call in 5 met a lock conflict in the week of
+  10-22). After 3 conflicts the job ends FAILED, "the stock stayed busy … complete the Packing again": nothing was
+  moved, the lock is back, and tapping Completed again (a new key) is the retry.
+- **List mount:** one `WORKER {}` per device every 2 min at most. It drains up to 5 due Packing jobs of the tenant.
+  Do not repeat it on `data.processed > 0`: `processed` counts the jobs the run SELECTED, so a job another device is
+  running keeps it above 0. Refresh the list when a job in `data.jobs` has a `job_status` different from its `before`.
 
 WORKER answer: `worker_route` (`WORKED` / `IDLE` / `REJECTED`), `processed`, `job_id`, `job_status`, `result_code`,
 `result_message`, `packing_id` (first job of the tick), `jobs` (JSON string of all of them).
@@ -157,11 +163,13 @@ WORKER answer: `worker_route` (`WORKED` / `IDLE` / `REJECTED`), `processed`, `jo
 - New: `config/packingV2.ts` (ids, switch, statuses, intervals) and `utils/packing_v2_workflow.utils.ts`
   (submit / status / kick + answer classification, unit-tested like `putaway_v2.utils`).
 
-## Part 7 — Gating (dev only for now)
+## Part 7 — Gating
 
-Same switch as Putaway: on when the bundle's backend URL is `https://dev.mes.sudu.ai`, off everywhere else (prod,
-staging, the web proxy), never by app variant. Off = today's behaviour, byte for byte. Prod gets its own workflow ids
-when Packing V2 is deployed there; the switch then becomes a per-backend id map.
+Same switch as Putaway: by the bundle's backend URL, never by app variant. Off = today's behaviour, byte for byte.
+Dev and prod use the same workflow ids, so no per-backend id map is needed. Turning it on for prod
+(`https://main.mes.sudu.ai`) is the user's decision. Phones on an older build keep the classic save next to V2 ones:
+the Packing lock (`PKGJOB-<job>`), PACKING_SESSION and PACKING_SAVE's guards keep the two from completing one Packing
+twice.
 
 ## Part 8 — Large Packings on the phone (measure, then decide)
 

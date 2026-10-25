@@ -451,6 +451,22 @@ SELECT 'C' AS k, JSON_OBJECT('id', CAST(r.id AS CHAR), 'job_line_key', r.job_lin
    AND (gl.id IN (@IDS) OR gl.job_line_key LIKE '@JOBID|L|%')
  ORDER BY gl.id""", SEL=selref, TEN=TEN, GDID=GDID, IDS=ids_in(idsref), JOBID=JOBID)
 
+    # E2's reads: the same lines plus one first row { cf_defs: { id: name } }, the line table's custom-field definitions (the
+    # platform stores a line's custom fields by definition id, the form sends names: e2.js geCfCanon)
+    CF_DEFS = """SELECT JSON_OBJECT('cf_defs', COALESCE((SELECT JSON_OBJECTAGG(CAST(d.id AS CHAR), d.field_name) FROM su_code_custom_field d
+                                    WHERE d.tenant_id = '@TEN' AND d.is_deleted = 0 AND d.table_id = '1902054888473481218' AND d.sub_table_key = 'fwii8mvb'),
+                                   JSON_OBJECT())) AS j, 0 AS o"""
+
+    def gdlines_cf(selref, idsref):
+        return q("""SELECT x.j FROM (
+SELECT @SEL AS j, gl.id AS o
+  FROM goods_delivery_fwii8mvb_sub gl
+ WHERE gl.tenant_id = '@TEN' AND gl.goods_delivery_id = @GDID
+   AND (gl.id IN (@IDS) OR gl.job_line_key LIKE '@JOBID|L|%')
+UNION ALL
+@CFDEFS) x
+ ORDER BY x.o""", SEL=selref, CFDEFS=CF_DEFS, TEN=TEN, GDID=GDID, IDS=ids_in(idsref), JOBID=JOBID)
+
     def so_lines(src):
         return q("""SELECT JSON_OBJECT('id', CAST(sl.id AS CHAR), 'sales_order_id', CAST(sl.sales_order_id AS CHAR), 'parent_id', CAST(sl.parent_id AS CHAR),
        'item_bundle_id', CAST(sl.item_bundle_id AS CHAR), 'item_name', sl.item_name, 'so_quantity', sl.so_quantity, 'delivered_qty', sl.delivered_qty,
@@ -648,7 +664,7 @@ return res;"""
         K.if_(ids, "if_GXe2", "IF E2 LINES is due", is_(XE, "needE2", "YES"), [
             cnode("code_node_GXe2ids", "E2: the lines to read (patched, removed), whether new bundle items wait for their parent, what the check reads",
                   C0 + [CM + "e2.js", "@linesql"], e2ids_js, ["ok", "gdLineIdsJson", "twoPass", "lineCheckSql"]),
-            K.sql("sql_node_GXe2la", "E2: those lines now (whole rows: a patch goes out whole) + this job's inserted lines", gdlines(N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
+            K.sql("sql_node_GXe2la", "E2: those lines now (whole rows: a patch goes out whole) + this job's inserted lines", gdlines_cf(jobj("gl", "goods_delivery_fwii8mvb_sub"), N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
             e2_plan("a", "sql_node_GXe2la"),
             end_block("e2a", "code_node_GXe2a", "IF the lines changed after the stock moved: review"),
             e2_add("a"),
@@ -657,14 +673,14 @@ return res;"""
                 gate(ids, "cor_GXe2dela", "Lines to remove?", "code_node_GXe2a", "needDelete", [
                     rows_update(ids, "update_node_GXe2dela", "E2 WRITE: removed lines is_deleted = 1 (as the classic save)", GDL, "code_node_GXe2a", "deleteRows", ["is_deleted"])])]),
             K.if_(ids, "if_GXe2two", "IF new bundle items waited for their parent: plan again with the parents' ids, then its patches and removals", is_("code_node_GXe2ids", "twoPass", "YES"), [
-                K.sql("sql_node_GXe2lb", "E2: the lines again (the parents inserted now)", gdlines(N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
+                K.sql("sql_node_GXe2lb", "E2: the lines again (the parents inserted now)", gdlines_cf(jobj("gl", "goods_delivery_fwii8mvb_sub"), N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
                 e2_plan("b", "sql_node_GXe2lb"),
                 end_block("e2b", "code_node_GXe2b", "IF the lines changed meanwhile: review"),
                 e2_add("b"),
                 *slice_loop("e2pb", "code_node_GXe2b", "patchSlices", "E2 WRITE: GD lines, whole rows", GDL, LINE_COLS),
                 gate(ids, "cor_GXe2delb", "Lines to remove?", "code_node_GXe2b", "needDelete", [
                     rows_update(ids, "update_node_GXe2delb", "E2 WRITE: removed lines is_deleted = 1 (as the classic save)", GDL, "code_node_GXe2b", "deleteRows", ["is_deleted"])])]),
-            K.sql("sql_node_GXe2back", "E2 read-back (the compared columns only)", gdlines_sel(N("code_node_GXe2ids", "data.lineCheckSql"), N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
+            K.sql("sql_node_GXe2back", "E2 read-back (the compared columns only)", gdlines_cf(N("code_node_GXe2ids", "data.lineCheckSql"), N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
             cnode("code_node_GXe2check", "E2 check: every insert once, every patch and removal reads back -> DONE", C0 + [CM + "e2.js"],
                   tail("commitE2Check(entry, %s, %s)" % (part_js("b", "GDL"), d("sql_node_GXe2back")), "commit E2 check", pre=ENTRY), CHK, arrays=CHK_ARR),
             end_block("e2", "code_node_GXe2check", "IF E2 did not complete"),

@@ -372,8 +372,13 @@ def build_commit():
                            "       CAST(hi.quantity AS CHAR) AS quantity\n  FROM handling_unit_atu7sreg_sub hi\n WHERE hi.tenant_id = %s AND hi.is_deleted = 0 AND hi.handling_unit_id IN %s") % (T, jt(ref))
     x4prows = ("SELECT 'L' AS k, JSON_OBJECT('id', CAST(pl.id AS CHAR), 'line_status', pl.line_status, 'pending_process_qty', pl.pending_process_qty, 'is_deleted', pl.is_deleted) AS j\n"
                "  FROM transfer_order_jz8m9w3h_sub pl\n WHERE pl.tenant_id = %s AND pl.id IN %s\nUNION ALL\n"
-               "SELECT 'P' AS k, JSON_OBJECT('id', CAST(t.id AS CHAR), 'to_status', t.to_status, 'to_id', t.to_id, 'is_deleted', t.is_deleted) AS j\n"
-               "  FROM transfer_order t\n WHERE t.tenant_id = %s AND t.id IN %s") % (T, jt(N("code_node_XCx4pids", "data.lineIdsJson")), T, jt(N("code_node_XCx4pids", "data.pickingIdsJson")))
+               "SELECT 'P' AS k, JSON_OBJECT('id', CAST(t.id AS CHAR), 'to_status', t.to_status, 'to_id', t.to_id, 'is_deleted', t.is_deleted, 'is_processing', COALESCE(t.is_processing, 0),\n"
+               "                             'lock_age_sec', TIMESTAMPDIFF(SECOND, t.update_time, %s)) AS j\n"
+               "  FROM transfer_order t\n WHERE t.tenant_id = %s AND t.id IN %s\nUNION ALL\n"
+               "SELECT 'A' AS k, JSON_OBJECT('id', CAST(pa.id AS CHAR), 'picking_id', CAST(pa.transfer_order_id AS CHAR), 'gd_id', CAST(pa.gd_id AS CHAR),\n"
+               "                             'line_status', pa.line_status, 'is_deleted', pa.is_deleted) AS j\n"
+               "  FROM transfer_order_jz8m9w3h_sub pa\n WHERE pa.tenant_id = %s AND pa.is_deleted = 0 AND pa.transfer_order_id IN %s") % (
+        T, jt(N("code_node_XCx4pids", "data.lineIdsJson")), myt, T, jt(N("code_node_XCx4pids", "data.pickingIdsJson")), T, jt(N("code_node_XCx4pids", "data.pickingIdsJson")))
     x4krows = ("SELECT 'L' AS k, JSON_OBJECT('id', CAST(l.id AS CHAR), 'line_status', l.line_status, 'remaining_qty', l.remaining_qty, 'is_deleted', l.is_deleted) AS j\n"
                "  FROM packing_jz8m9w3h_sub l\n WHERE l.tenant_id = %s AND l.id IN %s\nUNION ALL\n"
                "SELECT 'H' AS k, JSON_OBJECT('id', CAST(p.id AS CHAR), 'packing_status', p.packing_status, 'gd_status', p.gd_status, 'is_deleted', p.is_deleted) AS j\n"
@@ -390,12 +395,13 @@ def build_commit():
                 "  FROM packing_mudjw4xk_sub sr\n WHERE sr.tenant_id = %s AND sr.id IN %s") % (
         T, jt(N(HX, "data.boxIdsJson")), T, jt(N(HX, "data.huIdsJson")), T, jt(N(HX, "data.rowIdsJson")), T, jt(N(HX, "data.sourceIdsJson")))
     X5 = "code_node_XCx5ids"
-    x5rows = ("SELECT 'H' AS k, JSON_OBJECT('id', CAST(t.id AS CHAR), 'delivery_no', t.delivery_no, 'is_deleted', t.is_deleted) AS j FROM transfer_order t WHERE t.tenant_id = %(T)s AND t.id IN %(H)s\nUNION ALL\n"
+    x5rows = ("SELECT 'H' AS k, JSON_OBJECT('id', CAST(t.id AS CHAR), 'delivery_no', t.delivery_no, 'is_deleted', t.is_deleted, 'is_processing', COALESCE(t.is_processing, 0),\n"
+              "                             'lock_age_sec', TIMESTAMPDIFF(SECOND, t.update_time, %(MYT)s)) AS j FROM transfer_order t WHERE t.tenant_id = %(T)s AND t.id IN %(H)s\nUNION ALL\n"
               "SELECT 'L' AS k, JSON_OBJECT('id', CAST(pl.id AS CHAR), 'gd_no', pl.gd_no, 'is_deleted', pl.is_deleted) AS j FROM transfer_order_jz8m9w3h_sub pl WHERE pl.tenant_id = %(T)s AND pl.id IN %(L)s\nUNION ALL\n"
               "SELECT 'P' AS k, JSON_OBJECT('id', CAST(p.id AS CHAR), 'gd_no', p.gd_no, 'is_deleted', p.is_deleted) AS j FROM packing p WHERE p.tenant_id = %(T)s AND p.id IN %(P)s\nUNION ALL\n"
               "SELECT 'I' AS k, JSON_OBJECT('id', CAST(l.id AS CHAR), 'gd_no', l.gd_no, 'is_deleted', l.is_deleted) AS j FROM packing_jz8m9w3h_sub l WHERE l.tenant_id = %(T)s AND l.id IN %(I)s\nUNION ALL\n"
               "SELECT 'S' AS k, JSON_OBJECT('id', CAST(sr.id AS CHAR), 'gd_no', sr.gd_no, 'is_deleted', sr.is_deleted) AS j FROM packing_mudjw4xk_sub sr WHERE sr.tenant_id = %(T)s AND sr.id IN %(S)s") % {
-        "T": T, "H": jt(N(X5, "data.HIdsJson")), "L": jt(N(X5, "data.LIdsJson")), "P": jt(N(X5, "data.PIdsJson")), "I": jt(N(X5, "data.IIdsJson")), "S": jt(N(X5, "data.SIdsJson"))}
+        "T": T, "MYT": myt, "H": jt(N(X5, "data.HIdsJson")), "L": jt(N(X5, "data.LIdsJson")), "P": jt(N(X5, "data.PIdsJson")), "I": jt(N(X5, "data.IIdsJson")), "S": jt(N(X5, "data.SIdsJson"))}
     x5moves = ("SELECT CAST(m.id AS CHAR) AS id\n  FROM inventory_movement m\n WHERE m.id >= %s AND m.tenant_id = %s AND m.organization_id = '%s' AND m.trx_no = '%s' AND m.is_deleted = 0\n ORDER BY m.id") % (
         N(X5, "data.idFloor"), T, N(X5, "data.orgSql"), N(X5, "data.oldNoSql"))
     gdraw = ("SELECT 'H' AS k, JSON_OBJECT('id', CAST(g.id AS CHAR), 'gd_status', g.gd_status, 'gd_total', CAST(g.gd_total AS CHAR), 'picking_status', g.picking_status, "
@@ -521,7 +527,7 @@ def build_commit():
             K.code("code_node_XCx4pids", "X4P: the Picking rows and headers to read", cc(["_rows.js", "x4p.js"], "return cancelX4PIds(%s, [%s][0]);" % (E_, N("sql_node_XCx4ppart", "data"))),
                    ["ok", "lineIdsJson", "pickingIdsJson"]),
             sqlj("sql_node_XCx4prows", "X4P: those Picking rows and headers now", x4prows),
-            K.code("code_node_XCx4pplan", "X4P plan: rows / headers still at before are written; at after = done; else review",
+            K.code("code_node_XCx4pplan", "X4P plan: rows still at before are written (else review); each Picking header decided on its rows as they are now",
                    cc(["_rows.js", "x4p.js"], ctail("cancelX4PPlan(%s, [%s][0], [%s][0])" % (E_, N("sql_node_XCx4ppart", "data"), N("sql_node_XCx4prows", "data")), "commit X4P plan")),
                    ["route", "lineSlices", "lineCount", "headerRows", "needHeaders", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"],
                    arrays=("lineSlices", "headerRows", "jobRows"), objects=("lineCount",)),
@@ -531,7 +537,7 @@ def build_commit():
             gate(ids, "cor_XCx4phdr", "Picking headers to close?", "code_node_XCx4pplan", "needHeaders", [
                 upd(ids, "update_node_XCx4phdr", "X4P WRITE: Picking Cancelled (+ -Cancelled) / Completed", PKH, "code_node_XCx4pplan", "headerRows", ["to_status", "to_id"], {"to_status": "Transfer Order Status"})]),
             sqlj("sql_node_XCx4pback", "X4P read-back", x4prows),
-            K.code("code_node_XCx4pcheck", "X4P check: every row at its after-values -> DONE",
+            K.code("code_node_XCx4pcheck", "X4P check: every row at its after-values, every header at the status its rows give now -> DONE",
                    cc(["_rows.js", "x4p.js"], ctail("cancelX4PCheck(%s, [%s][0], [%s][0])" % (E_, N("sql_node_XCx4ppart", "data"), N("sql_node_XCx4pback", "data")), "commit X4P check")), chk, arrays=chk_arr),
             end_block(ids, "x4p", "code_node_XCx4pcheck", "IF X4P did not complete"),
             step_done(ids, "x4p", "code_node_XCx4pcheck", "X4P_PICKING"),
@@ -602,7 +608,7 @@ def build_commit():
                 ("cai_XCx5rows", "Numbers", [sqlj("sql_node_XCx5rows", "X5: the Picking / Packing rows now", x5rows)]),
                 ("cai_XCx5moves", "Movements", [K.sql("sql_node_XCx5moves", "X5: the movements still carrying the old number", x5moves, ["id"])]),
             ]),
-            K.code("code_node_XCx5plan", "X5 plan: rows still at before are written (else review); every movement found renamed",
+            K.code("code_node_XCx5plan", "X5 plan: rows still at before are written (else review); a Picking header renames this GD's token in its current text; every movement found renamed",
                    cc(["_rows.js", "x5.js"], ctail("cancelX5Plan(%s, [%s][0], [%s][0], [%s][0])" % (E_, N("sql_node_XCx5part", "data"), N("sql_node_XCx5rows", "data"), N("sql_node_XCx5moves", "data")), "commit X5 plan")),
                    ["route", "headerRows", "needHeaders", "rowSlices", "rowCount", "packHeaderRows", "needPackHeaders", "itemSlices", "itemCount", "sourceSlices", "sourceCount",
                     "moveSlices", "moveCount", "jobRows", "needJobUpd", "result_code", "result_message", "job_status"],
@@ -620,7 +626,7 @@ def build_commit():
                 ("cai_XCx5rowsB", "Numbers", [sqlj("sql_node_XCx5rowsB", "X5 read-back: the Picking / Packing rows", x5rows)]),
                 ("cai_XCx5movesB", "Movements", [K.sql("sql_node_XCx5movesB", "X5 read-back: movements still carrying the old number", x5moves, ["id"])]),
             ]),
-            K.code("code_node_XCx5check", "X5 check: every number at its after-value, no movement left with the old number -> DONE",
+            K.code("code_node_XCx5check", "X5 check: every number at its after-value (a header: this GD's token), no movement left with the old number -> DONE",
                    cc(["_rows.js", "x5.js"], ctail("cancelX5Check(%s, [%s][0], [%s][0], [%s][0])" % (E_, N("sql_node_XCx5part", "data"), N("sql_node_XCx5rowsB", "data"), N("sql_node_XCx5movesB", "data")), "commit X5 check")),
                    chk, arrays=chk_arr),
             end_block(ids, "x5", "code_node_XCx5check", "IF X5 did not complete"),

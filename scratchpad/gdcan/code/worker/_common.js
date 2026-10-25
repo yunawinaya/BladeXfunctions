@@ -1,6 +1,6 @@
 const PKC = {
   retry: { max_retries: 3, base_delay_ms: 2000, max_delay_ms: 30000 },
-  worker_budget_seconds: 20,
+  worker_budget_seconds: 240,
   states: ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_GD"],
   hard: ["GDX_INVALID_REQUEST", "GDX_INVALID_DATA", "GDX_GD_NOT_FOUND", "GDX_NOT_LOCKED", "GDX_NOT_ELIGIBLE", "GDX_NOT_YET_SUPPORTED", "GDX_400", "GDX_401", "GDX_412", "GDX_UNEXPECTED_PATCH", "GDX_RES_BLANK", "GDX_LINES_CHANGED", "GDX_STALE", "GDX_BUSY", "GDX_TOO_LARGE", "GDX_RES_CONFLICT", "JOB_ILLEGAL_TRANSITION"],
 };
