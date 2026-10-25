@@ -1,4 +1,4 @@
-// submit_sim.js <tenant> <gd_id> <source> [answers.json] [form: stored | stored+edit | stored+undelivered]: GD_COMPLETE_SUBMIT
+// submit_sim.js <tenant> <gd_id> <source> [answers.json] [form: stored | stored+edit | stored+emptyref | stored+undelivered]: GD_COMPLETE_SUBMIT
 // as built (Goods Delivery/CompleteV2/) on the workflow interpreter, its SQL run READ-ONLY on live dev (.dbtools/db),
 // CREDIT_LIMIT_CHECK mocked as passed, the writes captured (nothing is written), the read-back answered from the capture
 const fs = require("fs"), path = require("path"), cp = require("child_process");
@@ -51,9 +51,13 @@ if (formMode) {
   const flat = (rows) => rows.flatMap((r) => [r].concat(r.children || []));
   if (formMode === "stored+edit") gd.order_remark = "typed but not saved";
   if (formMode === "stored+qty") flat(gd.table_gd)[0].gd_qty = Number(flat(gd.table_gd)[0].gd_qty) + 1;
+  // LSH 10-23..25: the form sends [] for an attachment column the stored GD holds as null
+  if (formMode === "stored+emptyref") gd.gd_ref_doc = [];
   if (formMode === "stored+undelivered") flat(gd.table_gd).forEach((r) => { if (r.material_id) r.gd_undelivered_qty = Number(r.gd_undelivered_qty || 0) + 7; });
   params.form = gd;
 }
+// DUMP=<file>: also write the request, e.g. to replay it live through runas.mjs
+if (process.env.DUMP) fs.writeFileSync(process.env.DUMP, JSON.stringify(params));
 const t0 = Date.now();
 const out = e.run("GD_COMPLETE_SUBMIT", params);
 const ms = Date.now() - t0;

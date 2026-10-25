@@ -73,4 +73,16 @@ t("gate: a form opened before the latest pick is not an edit; a quantity change 
   eq(gsFormDiff(stale, stored, kinds).changed, []);
   eq(gsFormDiff({ id: "3", table_gd: [{ id: "31", gd_qty: 3, picking_status: "In Progress" }] }, stored, kinds).changed, ["table_gd.gd_qty"]);
 });
+// LSH 10-23..25: 21 of 25 form completions went to the classic save on "unsaved changes (gd_ref_doc)" - the form sends [] for
+// an attachment column the stored GD holds as null
+t("gate: an empty list / object is no value, as null is; a real attachment still is an edit", () => {
+  const line = [{ id: "31", gd_qty: 2, picking_status: "In Progress" }];
+  eq(gsFormDiff({ id: "3", gd_ref_doc: [], table_gd: line }, Object.assign({}, stored, { gd_ref_doc: null }), kinds).changed, []);
+  eq(gsFormDiff({ id: "3", gd_ref_doc: [], table_gd: line }, Object.assign({}, stored, { gd_ref_doc: "[]" }), kinds).changed, []);
+  eq(gsFormDiff({ id: "3", gd_ref_doc: "", table_gd: line }, Object.assign({}, stored, { gd_ref_doc: "[]" }), kinds).changed, []);
+  eq(gsFormDiff({ id: "3", gd_ref_doc: {}, table_gd: line }, stored, kinds).changed, []);
+  eq(gsFormDiff({ id: "3", gd_ref_doc: [{ url: "a.pdf" }], table_gd: line }, Object.assign({}, stored, { gd_ref_doc: null }), kinds).changed, ["gd_ref_doc"]);
+  eq(gsFormDiff({ id: "3", gd_ref_doc: [], table_gd: line }, Object.assign({}, stored, { gd_ref_doc: "[{\"url\":\"a.pdf\"}]" }), kinds).changed, ["gd_ref_doc"]);
+  eq(gsFormDiff({ id: "3", table_gd: [{ id: "31", gd_qty: 2, picking_status: "In Progress", temp_qty_data: [] }] }, stored, kinds).changed, []);
+});
 console.log(n + " passed");

@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_COMPLETE_SUBMIT",
+   "dataId": "2110182609618337794",
+   "file": "Goods Delivery/CompleteV2/GD_COMPLETE_SUBMIT.json",
+   "base": "scratchpad/drift/deploy/GD_COMPLETE_SUBMIT.dev_v12_base.json"
+  }
+ ]
+}

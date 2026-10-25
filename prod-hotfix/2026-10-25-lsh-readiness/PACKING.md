@@ -47,6 +47,21 @@ LSH mobile packing then moves from PACKING_SAVE to PACKING_ASYNC_SUBMIT / WORKER
   - use a new idempotency key after a definitive answer;
   - mark its keys `PKM:<packing_id>:<gen>`.
 
+## NOT_ELIGIBLE fallback after the OTA (README item 9)
+
+The fallback to classic PACKING_SAVE is the only classic stock writer left on an updated phone's Packing path. At LSH it should be **~0**:
+- **SUBMIT's answers since 10-20:** 0 NOT_ELIGIBLE among 46 (19 QUEUED, 26 STATUS, 1 REJECT "open on mobile by joseph").
+- **All 364 LSH Packings since 10-11:**
+  - every one has a Goods Delivery and none is a Draft;
+  - 0 have an item the engine can't move (no base unit, serial, no batch flag, unsupported costing, Fixed Cost without a price);
+  - 0 have a non-batch item with batch balance rows (an upper bound for the stray-row rule);
+  - prod has 0 serial balance rows.
+- No Packing job has ever FAILED `PK_NOT_SUPPORTED`.
+
+**User decision 10-25: keep the fallback.** Refusing instead of falling back on 10-26 was not recommended: It would protect against nothing measured, and it would leave a real Packing impossible to complete, for example a new item created without a base unit. Any lost write still shows up in prod_health.py's BALANCE section within the hour. If the user wants it anyway: one line in SUBMIT's decide (tenant 128671: REJECT with a message instead of NOT_ELIGIBLE), a dev publish and a prod paste.
+
+The other classic writers are the 1.1.34 phones, until the forced update lands.
+
 ## Read cost per tap (README item 2d, EXPLAIN ANALYZE on prod 10-25, LSH PACK-2610-1175)
 
 No dependent (per-row) subquery in any Packing read.

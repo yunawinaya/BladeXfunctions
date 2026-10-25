@@ -7,9 +7,12 @@ const gsFlat = (rows) => (Array.isArray(rows) ? rows : []).flatMap((r) => [r].co
 const GS_PICKING_COLS = { picking_status: 1, prev_temp_qty_data: 1, picked_qty: 1, picked_temp_qty_data: 1, picked_view_stock: 1 };
 const gsFormDiff = function gsFormDiff(form, stored, kinds) {
   const H = kinds.header, L = kinds.line;
+  // an empty list / object is no value, as null is: the form sends [] for an attachment the stored GD holds as null (LSH
+  // 10-23..25: 21 of 25 form completions went to the classic save on "unsaved changes (gd_ref_doc)")
   const norm = (v, k) => {
     const x = gcColValue(v, k);
-    return x === undefined ? null : typeof x === "object" ? JSON.stringify(x) : x;
+    const j = x === undefined ? null : typeof x === "object" ? JSON.stringify(x) : x;
+    return j === "[]" || j === "{}" ? null : j;
   };
   const eq = (a, b) =>
     (a === null && b === null) ||

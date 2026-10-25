@@ -17,6 +17,11 @@ Owned workflows:
 | 2 | Paste GD_ASYNC_WORKER (2104840667119411201) | same folder, `GD_ASYNC_WORKER.prod_v12_lsh_waits.json` | SO→GD under contention: lock-conflict retries finish in the run instead of waiting minutes for a click. |
 | 3 | Paste GD_CANCEL_COMMIT, GD_CANCEL_WORKER, GD_CANCEL_PREPARE, GD_CANCEL_SUBMIT (ids in the folder README), run `resume_3_cancels.sql`, open the GD list | `prod-hotfix/2026-10-25-lsh-gd-cancel-shared-picking/` | Cancels of GDs sharing a Picking (dev live test passed); recovers GD-2610-1305 / 1308 / 1310; cancel reads stop growing with the square of LSH's Packing rows. |
 
+| 4 | Paste GD_COMPLETE_SUBMIT (2110182609618337794) | `prod-hotfix/2026-10-25-gd-complete-form-emptyref/GD_COMPLETE_SUBMIT.prod_v11_emptyref.json` | Form completions stop falling back to the classic (lockless) save on an empty attachment list (index item 10). **DONE**: prod v12 15:21:05, IDENTICAL. |
+| 5 | Run `repair.sql`, then Complete GD-2610-1245 | `prod-hotfix/2026-10-25-lsh-gd1245-balance/` | **DONE** 14:40 / 14:53 (index item 9). |
+
+Items 1-3: **DONE** (pasted 14:17-14:25, all IDENTICAL; 3 held cancels COMPLETED 14:31).
+
 After each paste: `.dbtools/wf --prod deployed <repo file>` must say IDENTICAL (on 10-24 a paste landed in a look-alike).
 
 ## Dev status (10-25)

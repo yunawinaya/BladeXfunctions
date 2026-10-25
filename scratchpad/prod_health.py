@@ -15,6 +15,9 @@ crashed Packing saves half-way and left stock locks held. Each section below wou
   GD-STOCK    open deliveries (not from a Picking Plan) whose line allocations have no matching open reservation:
               any on a handling unit, and any changed in the last 3 days; lines changed in the last 10 minutes are
               skipped (a save in flight)
+  BALANCE     Reserved stock whose balance row disagrees with the sum of its movements, for every item / batch / bin with
+              a Reserved move in the window: a lost write (a classic and a V2 writer on one balance row, GD-2610-1245
+              10-24); the next completion of that stock is refused. Reserved only: opening stock has no movements
 
 Usage:
     python3 scratchpad/prod_health.py [--dev] [--tenant <tenant_id>] [--hours <window, default 24>]
@@ -180,6 +183,28 @@ def main():
         HAVING unmatched > 0 AND lines_changed < {NOW} - INTERVAL 10 MINUTE
            AND (on_handling_unit > 0 OR lines_changed > {NOW} - INTERVAL 3 DAY)
          ORDER BY lines_changed DESC"""), check=True)
+
+    window_id = (int((time.time() - hours * 3600) * 1000) - SNOWFLAKE_EPOCH_MS) << 22
+    checks += show("BALANCE: Reserved stock that disagrees with its movements", query(env, f"""
+        SELECT k.tenant_id, CAST(k.item_id AS CHAR) AS item_id, IFNULL(CAST(k.batch_id AS CHAR), '') AS batch_id,
+               CAST(k.bin_id AS CHAR) AS bin_id, k.by_movements,
+               IFNULL(IF(k.batch_id IS NULL, ib.reserved_qty, bb.reserved_qty), 0) AS in_balance
+          FROM (SELECT m.tenant_id, m.item_id, NULLIF(m.batch_number_id, 0) AS batch_id, m.bin_location_id AS bin_id,
+                       SUM(IF(m.movement = 'IN', m.base_qty, -m.base_qty)) AS by_movements
+                  FROM inventory_movement m
+                  JOIN (SELECT DISTINCT w.tenant_id, w.item_id, IFNULL(w.batch_number_id, 0) AS batch_id, w.bin_location_id
+                          FROM inventory_movement w
+                         WHERE w.id > {window_id} AND w.is_deleted = 0 AND w.inventory_category = 'Reserved'{t('w')}) w
+                    ON w.tenant_id = m.tenant_id AND w.item_id = m.item_id AND w.bin_location_id = m.bin_location_id
+                   AND w.batch_id = IFNULL(m.batch_number_id, 0)
+                 WHERE m.is_deleted = 0 AND m.inventory_category = 'Reserved'
+                 GROUP BY 1, 2, 3, 4) k
+          LEFT JOIN item_batch_balance bb ON k.batch_id IS NOT NULL AND bb.tenant_id = k.tenant_id AND bb.is_deleted = 0
+               AND bb.material_id = k.item_id AND bb.batch_id = k.batch_id AND bb.location_id = k.bin_id
+          LEFT JOIN item_balance ib ON k.batch_id IS NULL AND ib.tenant_id = k.tenant_id AND ib.is_deleted = 0
+               AND ib.material_id = k.item_id AND ib.location_id = k.bin_id
+         WHERE ABS(k.by_movements - IFNULL(IF(k.batch_id IS NULL, ib.reserved_qty, bb.reserved_qty), 0)) > 0.0001"""),
+         check=True, note=f"items with a Reserved move in the last {hours} h; a mismatch means a lost stock write")
 
     print("\n" + ("Needs a look: " + str(checks) + " section(s) marked CHECK" if checks else "All OK"))
     return 1 if checks else 0
