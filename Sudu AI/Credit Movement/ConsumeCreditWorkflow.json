@@ -90,7 +90,7 @@
                 "level": 1,
                 "propLabel": "Tenant",
                 "valueLabel": "",
-                "operatorLabel": "equal"
+                "operatorLabel": "Equal"
               }
             ]
           }
@@ -285,7 +285,7 @@
                 "level": 1,
                 "propLabel": "主键ID",
                 "valueLabel": "",
-                "operatorLabel": "equal"
+                "operatorLabel": "Equal"
               }
             ]
           }
@@ -307,7 +307,8 @@
               "valueType": "formula",
               "valueTypeLabel": "",
               "value": "minus({{node:code_cc_compute.data.monthlyDelta}})",
-              "valueLabel": ""
+              "valueLabel": "",
+              "is_negative_number": true
             },
             {
               "prop": "flex_remain_credit",
@@ -317,7 +318,8 @@
               "valueType": "formula",
               "valueTypeLabel": "",
               "value": "minus({{node:code_cc_compute.data.flexDelta}})",
-              "valueLabel": ""
+              "valueLabel": "",
+              "is_negative_number": true
             }
           ]
         },

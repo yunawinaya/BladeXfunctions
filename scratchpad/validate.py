@@ -25,6 +25,9 @@ Catches the bug classes that the platform fails silently on:
   IDIGNORED    an update-node whose props carry `id` and whose filter also tests other columns: those
                tests are ignored, every listed id is written (BUG-20261012-017). Compute the exact id
                list in a code-node from fresh data and gate the update on its count.
+  PCTPCT       a sql-node DATE_FORMAT / TIME_FORMAT / STR_TO_DATE format holding '%%': MySQL reads it as a
+               literal '%', so the date comes back as text like "%Y-%m-%d" (a Python %-format leftover in a
+               builder; PICKING_BULK_COMMIT / PACKING_ASYNC_SUBMIT 2026-10-24). Write single '%'.
 
 Usage:
     python3 scratchpad/validate.py <workflow.json> [<workflow.json> ...]
@@ -68,6 +71,26 @@ INFORMATIONAL = {"CONDITIONAL"}
 
 # Node types whose rows are chosen by data.table_id.rules.
 FILTER_TYPES = {"update-node", "delete-node", "get-node", "search-node"}
+
+
+def date_formats(sql):
+    """The format literal (the last literal argument) of each DATE_FORMAT / TIME_FORMAT / STR_TO_DATE call."""
+    out = []
+    for m in re.finditer(r"(?i)\b(?:date_format|time_format|str_to_date)\s*\(", sql):
+        i, depth, quote = m.end(), 1, None
+        while i < len(sql) and depth:
+            c = sql[i]
+            if quote:
+                quote = None if c == quote else quote
+            elif c in "'\"":
+                quote = c
+            elif c in "()":
+                depth += 1 if c == "(" else -1
+            i += 1
+        lits = re.findall(r"'([^']*)'", sql[m.end():i - 1])
+        if lits:
+            out.append(lits[-1])
+    return out
 
 
 def children_of(node):
@@ -328,6 +351,9 @@ def check(path, only=None):
                 findings.append(("SQLSTART", nid, f"the platform runs only SELECT / WITH statements; this starts with {head[:20]!r}"))
             if re.search(r"(?i)\bset\b", sql):
                 findings.append(("SQLSTART", nid, "the platform refuses the keyword SET anywhere (e.g. CHARACTER SET) - use CONVERT(x USING utf8mb4)"))
+            fmts = [f for f in date_formats(sql) if "%%" in f]
+            if fmts:
+                findings.append(("PCTPCT", nid, f"{len(fmts)} date format(s) with '%%' (e.g. {fmts[0]!r}): MySQL returns the text, not the date - use single '%'"))
 
         if info["type"] in FILTER_TYPES:
             data = node.get("data") or {}
@@ -373,7 +399,7 @@ def check(path, only=None):
     print(f"\n=== {path}  ({len(index)} nodes)")
     if not findings:
         print("  clean")
-    order = ["MULTIWHERE", "IDIGNORED", "SQLSTART", "MISSING", "FORWARD", "DIVERGENT", "UNDECLARED", "UNUSED", "CONDITIONAL"]
+    order = ["MULTIWHERE", "IDIGNORED", "PCTPCT", "SQLSTART", "MISSING", "FORWARD", "DIVERGENT", "UNDECLARED", "UNUSED", "CONDITIONAL"]
     findings.sort(key=lambda f: (order.index(f[0]) if f[0] in order else 99, f[1]))
     for kind, nid, message in findings:
         print(f"  {kind:<12} {nid:<28} {message}")

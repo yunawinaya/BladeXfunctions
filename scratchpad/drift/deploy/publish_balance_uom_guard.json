@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "BALANCE_UOM_CONVERSION",
+   "dataId": "2084199011688968193",
+   "file": "Balance Table/BalanceUOMConversionWorkflow.json",
+   "base": "scratchpad/drift/deploy/BALANCE_UOM_CONVERSION.dev_v8_base.json"
+  }
+ ]
+}

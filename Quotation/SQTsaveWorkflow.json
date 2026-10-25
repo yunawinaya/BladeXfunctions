@@ -528,7 +528,7 @@
                         "name": "Map Validate Quantity",
                         "script": {
                           "type": "javascript",
-                          "code": "return {\n  lineItem: JSON.stringify({{workflowparams:data.table_sqt}}),\n  itemFields: 'material_id,material_name,sqt_desc',\n  quantityFields: 'quantity'\n}"
+                          "code": "const tableSQT =\n  {{workflowparams:data.table_sqt}} || [];\n\nconst flattenRows = (rows) => {\n  return (Array.isArray(rows) ? rows : []).flatMap(\n    (row) => [\n      row,\n      ...flattenRows(row?.children),\n    ]\n  );\n};\n\nconst allRows = flattenRows(tableSQT);\n\nreturn {\n  lineItem: JSON.stringify(allRows),\n  itemFields: \"material_id,material_name,sqt_desc\",\n  quantityFields: \"quantity\"\n};"
                         },
                         "response_json": [
                           {
@@ -1006,33 +1006,7 @@
                                                   "data": {
                                                     "title": "false"
                                                   },
-                                                  "blocks": [
-                                                    {
-                                                      "id": "end_node_CNTBQpE8",
-                                                      "type": "end-node",
-                                                      "data": {
-                                                        "title": "结束节点",
-                                                        "outputs": {
-                                                          "type": "object",
-                                                          "properties": {
-                                                            "result": {
-                                                              "type": "string"
-                                                            }
-                                                          }
-                                                        },
-                                                        "isValidator": true,
-                                                        "nodeName": "结束节点",
-                                                        "name": "结束节点",
-                                                        "back_data_type": "Default",
-                                                        "code": 403,
-                                                        "msg": {
-                                                          "type": "javascript",
-                                                          "code": "{{node:workflow_node_ysBZI7jQ.data.message}}"
-                                                        }
-                                                      },
-                                                      "blocks": []
-                                                    }
-                                                  ]
+                                                  "blocks": []
                                                 }
                                               ]
                                             }
@@ -1052,6 +1026,333 @@
                                 },
                                 {
                                   "id": "ifBlock_5OFfpp6X",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "false"
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "code_node_SqtApprMap",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// Filter unnecessary line reads Check Doc No, so sqt_no carries the 'issued'\n// marker and need_cl is already resolved.\nlet sqtData = {{node:code_node_CO6q7Vm4.data.table}};\n\n// Credit limit failed with Override. Block already ended the save with 402.\n// Run CL Workflow / Define Block or Override only ran when need_cl is 'required'.\nif (sqtData.need_cl === \"required\") {\n  const clResult = {{node:workflow_node_ysBZI7jQ.data.result}};\n  if (clResult === \"failed\") {\n    const isBlock = {{node:code_node_mKcfRLOe.data.isBlock}};\n    if (isBlock === \"override\") {\n      sqtData.cl_result = \"override\";\n    } else {\n      sqtData.cl_result = \"block\";\n    }\n  } else {\n    sqtData.cl_result = \"passed\";\n  }\n} else {\n  sqtData.cl_result = \"none\";\n}\n\n// Parents numbered 1, 2, …; children 1/1, 1/2, … (same as Fillback's line_index)\nconst items = [];\n(sqtData.table_sqt || []).forEach((item, index) => {\n  items.push({ ...item, lineNo: `${index + 1}` });\n  (Array.isArray(item.children) ? item.children : []).forEach((child, childIndex) => {\n    items.push({ ...child, lineNo: `${index + 1}/${childIndex + 1}` });\n  });\n});\n\n// 0 / empty = no limit, same rule as the form's unit_price validator\nconst limitOf = (value) => {\n  const n = parseFloat(value);\n  return value == null || value === \"\" || Number.isNaN(n) || n === 0 ? null : n;\n};\n\nconst minFailed = items.filter((item) => {\n  const minPrice = limitOf(item.min_price);\n  return minPrice !== null && (parseFloat(item.unit_price) || 0) < minPrice;\n});\n\nconst maxFailed = items.filter((item) => {\n  const maxPrice = limitOf(item.max_price);\n  return maxPrice !== null && (parseFloat(item.unit_price) || 0) > maxPrice;\n});\n\nsqtData.min_price_result = minFailed.length > 0 ? \"failed\" : \"passed\";\nsqtData.max_price_result = maxFailed.length > 0 ? \"failed\" : \"passed\";\n\nconst messages = [\n  ...minFailed.map(\n    (item) => `Line ${item.lineNo}: Unit Price ${item.unit_price} is below Min Price ${item.min_price}`,\n  ),\n  ...maxFailed.map(\n    (item) => `Line ${item.lineNo}: Unit Price ${item.unit_price} exceeds Max Price ${item.max_price}`,\n  ),\n];\n\nreturn { sqtData, message: messages.join(\"<br>\") };"
+                                },
+                                "title": "Map Approval SQT Data",
+                                "isValidator": true,
+                                "nodeName": "Map Approval SQT Data",
+                                "name": "Map Approval SQT Data",
+                                "response_json": [
+                                  {
+                                    "key": "tapprmap0",
+                                    "name": "sqtData",
+                                    "title": "sqtData",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "tapprmap1",
+                                    "name": "message",
+                                    "title": "message",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false
+                                  }
+                                ]
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "workflow_node_SqtApprCheck",
+                              "type": "workflow-node",
+                              "data": {
+                                "workflow_id": "",
+                                "workflow_name": "",
+                                "input_params": {},
+                                "title": "Check Approval",
+                                "isValidator": true,
+                                "nodeName": "Check Approval",
+                                "name": "Check Approval",
+                                "workflow": {
+                                  "rules": {
+                                    "collectionId": "2082344813454499841",
+                                    "list": [
+                                      {
+                                        "id": 1723795236686,
+                                        "parentId": 1723795236685,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  },
+                                  "source": "CHECK_APPROVAL:Workflow:2082344813454499841"
+                                },
+                                "remote": true,
+                                "remoteType": "innerdatasource",
+                                "body_params": {
+                                  "list": [
+                                    {
+                                      "prop": "documentType",
+                                      "propLabel": "Document Type",
+                                      "operator": "",
+                                      "operatorLabel": "",
+                                      "valueType": "value",
+                                      "valueTypeLabel": "",
+                                      "valueLabel": "",
+                                      "value": "SQT"
+                                    },
+                                    {
+                                      "prop": "data",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_SqtApprMap.data.sqtData}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Data"
+                                    },
+                                    {
+                                      "prop": "slotID",
+                                      "operator": "",
+                                      "valueType": "value",
+                                      "value": "slot_node_SqtApproval",
+                                      "valueLabel": "",
+                                      "propLabel": "Slot ID"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            },
+                            {
+                              "id": "if_SqtApprNone",
+                              "type": "if",
+                              "data": {
+                                "title": "IF no approval",
+                                "isValidator": true,
+                                "nodeName": "IF no approval",
+                                "name": "IF no approval",
+                                "condition_type": "ConditionRule",
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": ""
+                                },
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 1791000000006,
+                                      "parentId": 1791000000007,
+                                      "isTop": true,
+                                      "prop": "node.workflow_node_SqtApprCheck.data.needApproval",
+                                      "operator": "equal",
+                                      "valueType": "value",
+                                      "value": "No",
+                                      "type": "leaf",
+                                      "level": 1,
+                                      "propLabel": "Need Approval",
+                                      "valueLabel": "",
+                                      "operatorLabel": "Equal"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "if_SqtApprNone_t",
+                                  "type": "ifBlock",
+                                  "data": {
+                                    "title": "true"
+                                  },
+                                  "blocks": [
+                                    {
+                                      "id": "condition_or_SqtPrice",
+                                      "type": "condition-or-node",
+                                      "data": {
+                                        "title": "Condition",
+                                        "filter": {
+                                          "list": []
+                                        },
+                                        "expression": {
+                                          "code": ""
+                                        },
+                                        "displayContent": "sdk.form.setCondition"
+                                      },
+                                      "blocks": [
+                                        {
+                                          "id": "condition_or_item_SqtOverride",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "IF override",
+                                            "filter": {
+                                              "list": []
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_SqtApprMap.data.sqtData.cl_result}}' == 'override'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "isDefault": false,
+                                            "isValidator": true,
+                                            "nodeName": "IF override",
+                                            "name": "IF override",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_node_SqtOverride403",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:workflow_node_ysBZI7jQ.data.message}}"
+                                                },
+                                                "code": 403
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_item_SqtMinPrice",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "Min price not pass",
+                                            "filter": {
+                                              "list": []
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_SqtApprMap.data.sqtData.min_price_result}}' == 'failed'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "isDefault": false,
+                                            "isValidator": true,
+                                            "nodeName": "Min price not pass",
+                                            "name": "Min price not pass",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_node_SqtMinPrice402",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_SqtApprMap.data.message}}"
+                                                },
+                                                "code": 402
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_item_SqtMaxPrice",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "Max price not pass",
+                                            "filter": {
+                                              "list": []
+                                            },
+                                            "expression": {
+                                              "code": "'{{node:code_node_SqtApprMap.data.sqtData.max_price_result}}' == 'failed'",
+                                              "type": "javascript"
+                                            },
+                                            "displayContent": "sdk.form.setCondition",
+                                            "isDefault": false,
+                                            "isValidator": true,
+                                            "nodeName": "Max price not pass",
+                                            "name": "Max price not pass",
+                                            "condition_type": "Expression"
+                                          },
+                                          "blocks": [
+                                            {
+                                              "id": "end_node_SqtMaxPrice402",
+                                              "type": "end-node",
+                                              "data": {
+                                                "title": "结束节点",
+                                                "outputs": {
+                                                  "type": "object",
+                                                  "properties": {
+                                                    "result": {
+                                                      "type": "string"
+                                                    }
+                                                  }
+                                                },
+                                                "isValidator": true,
+                                                "nodeName": "结束节点",
+                                                "name": "结束节点",
+                                                "back_data_type": "Default",
+                                                "msg": {
+                                                  "type": "javascript",
+                                                  "code": "{{node:code_node_SqtApprMap.data.message}}"
+                                                },
+                                                "code": 402
+                                              },
+                                              "blocks": []
+                                            }
+                                          ]
+                                        },
+                                        {
+                                          "id": "condition_or_item_SqtPriceOther",
+                                          "type": "condition-or-node-item",
+                                          "data": {
+                                            "title": "Other",
+                                            "isDefault": true,
+                                            "filter": {
+                                              "list": []
+                                            },
+                                            "expression": {
+                                              "code": ""
+                                            },
+                                            "displayContent": "sdk.form.otherCondition"
+                                          },
+                                          "blocks": []
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "if_SqtApprNone_f",
                                   "type": "ifBlock",
                                   "data": {
                                     "title": "false"
@@ -1234,7 +1535,7 @@
         "name": "Fillback Header Fields",
         "script": {
           "type": "javascript",
-          "code": "let updatedLineItem = [];\nlet customerName = \"\";\nlet table = {{workflowparams:data.sqt_status}} == 'Draft' ? {{node:code_node_UBbCdEPT.data.table}} : {{node:code_node_CO6q7Vm4.data.table}};\n\nif (table.customer_type === \"Existing Customer\") {\n  customerName = {{node:get_node_ka9vQdgM.data.data.customer_com_name}}\n} else {\n  customerName = {{node:code_node_RJdYLy0i.data.customer_name}}\n}\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  customer_id: table.sqt_customer_id || null,\n  plant_id: table.sqt_plant || null,\n  payment_term_id: table.sqt_payment_term || null,\n  sales_person_id: table.sales_person_id || null,\n  area_id: table.sqt_area_id || null,\n  billing_state_id: table.billing_address_state || null,\n  billing_country_id: table.billing_address_country || null,\n  shipping_state_id: table.shipping_address_state || null,\n  shipping_country_id: table.shipping_address_country || null,\n  customer_name: customerName,\n  organization_id: table.organization_id,\n  access_group: table.access_group || [],\n  agent_user_id: table.agent_user_id || null,\n};\n\nconst formatLine = (sqtLineItem) => ({\n  // Copy all existing properties\n  ...sqtLineItem,\n\n  // Apply number formatting to numeric fields\n  quantity: parseFloat(sqtLineItem.quantity || 0),\n  unit_price: parseFloat(sqtLineItem.unit_price || 0),\n  sqt_gross: parseFloat(sqtLineItem.sqt_gross || 0),\n  sqt_discount: parseFloat(sqtLineItem.sqt_discount || 0),\n  sqt_discount_amount: parseFloat(sqtLineItem.sqt_discount_amount || 0),\n  sqt_taxes_fee_amount: parseFloat(sqtLineItem.sqt_taxes_fee_amount || 0),\n  total_price: parseFloat(sqtLineItem.total_price || 0),\n\n  expected_shipment_date: sqtLineItem.expected_shipment_date ? sqtLineItem.expected_shipment_date : table.expected_shipment_date,\n});\n\nfor (const [index, sqtLineItem] of table.table_sqt.entries()) {\n  const formattedItem = {\n    ...formatLine(sqtLineItem),\n    ...commonFields,\n    line_index: index + 1,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(sqtLineItem.children) && {\n      children: sqtLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\ntable.need_cl = '';\ntable.table_sqt = updatedLineItem;\nreturn {table};\n"
+          "code": "let updatedLineItem = [];\nlet customerName = \"\";\n// Draft: raw params + draft marker. Otherwise: filtered lines + issued marker, or,\n// when approval is needed, the copy CHECK_APPROVAL handed back (it may have been\n// knocked back to Draft, and carries approval_condition).\nlet table = {{workflowparams:data.sqt_status}} == 'Draft'\n  ? {{node:code_node_UBbCdEPT.data.table}}\n  : {{node:workflow_node_SqtApprCheck.data.needApproval}} == 'Yes'\n    ? {{node:workflow_node_SqtApprCheck.data.data}}\n    : {{node:code_node_SqtApprMap.data.sqtData}};\n\n// The form sends back whatever approval_condition it loaded. Only the copy CHECK_APPROVAL\n// just worked out is current; anything else (draft, no approval needed) is cleared.\nif ({{node:workflow_node_SqtApprCheck.data.needApproval}} != 'Yes') {\n  table.approval_condition = {};\n}\n\nif (table.customer_type === \"Existing Customer\") {\n  customerName = {{node:get_node_ka9vQdgM.data.data.customer_com_name}}\n} else {\n  customerName = {{node:code_node_RJdYLy0i.data.customer_name}}\n}\n\n// Header fields shared by every line, parent and child alike\nconst commonFields = {\n  customer_id: table.sqt_customer_id || null,\n  plant_id: table.sqt_plant || null,\n  payment_term_id: table.sqt_payment_term || null,\n  sales_person_id: table.sales_person_id || null,\n  area_id: table.sqt_area_id || null,\n  billing_state_id: table.billing_address_state || null,\n  billing_country_id: table.billing_address_country || null,\n  shipping_state_id: table.shipping_address_state || null,\n  shipping_country_id: table.shipping_address_country || null,\n  customer_name: customerName,\n  organization_id: table.organization_id,\n  access_group: table.access_group || [],\n  agent_user_id: table.agent_user_id || null,\n};\n\nconst formatLine = (sqtLineItem) => ({\n  // Copy all existing properties\n  ...sqtLineItem,\n\n  // Apply number formatting to numeric fields\n  quantity: parseFloat(sqtLineItem.quantity || 0),\n  unit_price: parseFloat(sqtLineItem.unit_price || 0),\n  sqt_gross: parseFloat(sqtLineItem.sqt_gross || 0),\n  sqt_discount: parseFloat(sqtLineItem.sqt_discount || 0),\n  sqt_discount_amount: parseFloat(sqtLineItem.sqt_discount_amount || 0),\n  sqt_taxes_fee_amount: parseFloat(sqtLineItem.sqt_taxes_fee_amount || 0),\n  total_price: parseFloat(sqtLineItem.total_price || 0),\n\n  expected_shipment_date: sqtLineItem.expected_shipment_date ? sqtLineItem.expected_shipment_date : table.expected_shipment_date,\n});\n\nfor (const [index, sqtLineItem] of table.table_sqt.entries()) {\n  const formattedItem = {\n    ...formatLine(sqtLineItem),\n    ...commonFields,\n    line_index: index + 1,\n\n    // If got child, give it the same formatting and header fields\n    ...(Array.isArray(sqtLineItem.children) && {\n      children: sqtLineItem.children.map((child, childIndex) => ({\n        ...formatLine(child),\n        ...commonFields,\n        line_index: `${index + 1}/${childIndex + 1}`,\n      })),\n    }),\n  };\n\n  updatedLineItem.push(formattedItem);\n}\n\ntable.need_cl = '';\ntable.table_sqt = updatedLineItem;\nreturn {table};\n"
         },
         "response_json": [
           {
@@ -3142,6 +3443,15 @@
                       "is_negative_number": false,
                       "valueLabel": "",
                       "propLabel": "Description"
+                    },
+                    {
+                      "prop": "approval_condition",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.approval_condition}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Approval Condition",
+                      "is_negative_number": false
                     }
                   ]
                 }
@@ -4391,6 +4701,15 @@
                       "is_negative_number": false,
                       "valueLabel": "",
                       "propLabel": "Description"
+                    },
+                    {
+                      "prop": "approval_condition",
+                      "valueType": "field",
+                      "value": "{{node:code_node_JVj8v3Y0.data.table.approval_condition}}",
+                      "operator": "",
+                      "valueLabel": "",
+                      "propLabel": "Approval Condition",
+                      "is_negative_number": false
                     }
                   ]
                 }
@@ -5184,6 +5503,237 @@
         },
         {
           "id": "if_SqtCascadeB_f",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "if_SqtApprNeed",
+      "type": "if",
+      "data": {
+        "title": "IF need approval?",
+        "isValidator": true,
+        "nodeName": "IF need approval?",
+        "name": "IF need approval?",
+        "condition_type": "ConditionRule",
+        "expression": {
+          "type": "javascript",
+          "code": ""
+        },
+        "filter": {
+          "list": [
+            {
+              "id": 1791000000010,
+              "parentId": 1791000000011,
+              "isTop": true,
+              "prop": "node.workflow_node_SqtApprCheck.data.needApproval",
+              "operator": "equal",
+              "valueType": "value",
+              "value": "Yes",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "Need Approval",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_SqtApprNeed_t",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "slot_node_SqtApproval",
+              "type": "slot-node",
+              "data": {
+                "slot_id": "",
+                "slot_name": "",
+                "slot_params": {},
+                "title": "SQT Approval",
+                "isValidator": true,
+                "nodeName": "SQT Approval",
+                "name": "SQT Approval",
+                "name_k": "SQT Approval",
+                "table_id": {
+                  "rules": {
+                    "collectionId": "1902775274655825922",
+                    "list": [
+                      {
+                        "id": 1735218938947,
+                        "parentId": 1735218938946,
+                        "isTop": true,
+                        "prop": "",
+                        "operator": "",
+                        "valueType": "",
+                        "value": "",
+                        "type": "leaf",
+                        "level": 1
+                      }
+                    ]
+                  },
+                  "source": "Quotation:Table:1902775274655825922"
+                },
+                "primary_key": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_S7Ynb4nr.data.sqtData.id}}"
+                },
+                "display_fields": {
+                  "list": []
+                },
+                "des": ""
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_SqtApproved",
+              "type": "if",
+              "data": {
+                "title": "IF approved?",
+                "isValidator": true,
+                "nodeName": "IF approved?",
+                "name": "IF approved?",
+                "condition_type": "Expression",
+                "expression": {
+                  "type": "javascript",
+                  "code": "{{node:slot_node_SqtApproval.result}}"
+                },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1736695973613,
+                      "parentId": 1736695973612,
+                      "isTop": true,
+                      "prop": "node.slot_node_SqtApproval.result",
+                      "operator": "",
+                      "valueType": "value",
+                      "value": 0,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "最终结果"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_SqtApproved_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "code_node_SqtApprUpdated",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "let latestSQTData = {{node:code_node_S7Ynb4nr.data.sqtData}};\n\n// Held back as a draft for approval -> issue it and number it now. 'issued' is the same\n// marker Check Doc No uses; manual numbering (-9999) keeps the typed number.\n// A quotation that was already Issued or Completed keeps its status and number.\nif (latestSQTData.sqt_status === \"Draft\") {\n  if (latestSQTData.sqt_no_type !== -9999) {\n    latestSQTData.sqt_no = \"issued\";\n  }\n  latestSQTData.sqt_status = \"Issued\";\n}\n\nreturn { latestSQTData };"
+                        },
+                        "title": "Map Updated Data",
+                        "isValidator": true,
+                        "nodeName": "Map Updated Data",
+                        "name": "Map Updated Data",
+                        "response_json": [
+                          {
+                            "key": "rupdated0",
+                            "name": "latestSQTData",
+                            "title": "latestSQTData",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "update_node_SqtApproved",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Quotation:Table:1902775274655825922",
+                          "rules": {
+                            "collectionId": "1902775274655825922",
+                            "list": [
+                              {
+                                "id": 1791000000012,
+                                "parentId": 1791000000011,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_S7Ynb4nr.data.sqtData.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Update Approved Data",
+                        "isValidator": true,
+                        "nodeName": "Update Approved Data",
+                        "name": "Update Approved Data",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "sqt_no",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SqtApprUpdated.data.latestSQTData.sqt_no}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "Quotation No",
+                              "is_negative_number": false
+                            },
+                            {
+                              "prop": "sqt_status",
+                              "valueType": "field",
+                              "value": "{{node:code_node_SqtApprUpdated.data.latestSQTData.sqt_status}}",
+                              "operator": "",
+                              "valueLabel": "",
+                              "propLabel": "SQT Status",
+                              "is_negative_number": false
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_SqtApproved_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_SqtApprNeed_f",
           "type": "ifBlock",
           "data": {
             "title": "false"

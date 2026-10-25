@@ -20,7 +20,15 @@
     {
       "key": "hdjacr0n",
       "name": "customer_name",
-      "title": "customer_name",
+      "title": "Customer Name",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false
+    },
+    {
+      "key": "1r0byuda",
+      "name": "customer_status",
+      "title": "Customer Status",
       "description": "",
       "bsonType": "string",
       "isExpand": false
@@ -41,7 +49,12 @@
     {
       "id": "start",
       "type": "start-node",
-      "data": { "isValidator": true, "title": "Start Node" },
+      "data": {
+        "isValidator": true,
+        "title": "Start Node",
+        "nodeName": "Start Node",
+        "name": "Start Node"
+      },
       "blocks": []
     },
     {
@@ -100,7 +113,8 @@
               "valueType": "field",
               "valueTypeLabel": "",
               "valueLabel": "",
-              "value": "{{workflowparams:id}}"
+              "value": "{{workflowparams:id}}",
+              "is_negative_number": false
             },
             {
               "prop": "tenant_id",
@@ -108,7 +122,8 @@
               "valueType": "field",
               "value": "{{system:tenantId}}",
               "valueLabel": "",
-              "propLabel": "Tenant ID"
+              "propLabel": "Tenant ID",
+              "is_negative_number": false
             },
             {
               "prop": "org_id",
@@ -116,7 +131,8 @@
               "valueType": "field",
               "value": "{{global:firstLvDeptId}}",
               "valueLabel": "",
-              "propLabel": "Organization ID"
+              "propLabel": "Organization ID",
+              "is_negative_number": false
             },
             {
               "prop": "customer_code",
@@ -124,7 +140,8 @@
               "valueType": "field",
               "value": "{{workflowparams:customer_code}}",
               "valueLabel": "",
-              "propLabel": "Customer Code"
+              "propLabel": "Customer Code",
+              "is_negative_number": false
             },
             {
               "prop": "customer_name",
@@ -132,7 +149,17 @@
               "valueType": "field",
               "value": "{{workflowparams:customer_name}}",
               "valueLabel": "",
-              "propLabel": "Customer Name"
+              "propLabel": "Customer Name",
+              "is_negative_number": false
+            },
+            {
+              "prop": "customer_status",
+              "operator": "",
+              "valueType": "field",
+              "value": "{{workflowparams:customer_status}}",
+              "is_negative_number": false,
+              "valueLabel": "",
+              "propLabel": "Customer Status"
             }
           ]
         }

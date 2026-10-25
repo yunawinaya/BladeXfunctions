@@ -1408,6 +1408,288 @@
       "blocks": []
     },
     {
+      "id": "code_node_CLgdKey",
+      "type": "code-node",
+      "data": {
+        "title": "Classic lock pre-check: switch and the delivery's ITEM keys",
+        "isValidator": true,
+        "nodeName": "Classic lock pre-check: switch and the delivery's ITEM keys",
+        "name": "Classic lock pre-check: switch and the delivery's ITEM keys",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// MIN-01: refuse the whole delivery before any write while an engine run holds one of its ITEM keys; the classic children\n// would otherwise answer 400 busy in the middle of the movement loop. Same switch as the children's CL_LOCK_ENABLED.\nconst CL_LOCK_ENABLED = false;\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst docNo = s([{{workflowparams:doc_no}}][0]);\nconst org = s([{{workflowparams:organization_id}}][0]);\nconst tenant = s([{{system:tenantId}}][0]);\nconst raw = [{{node:code_node_QrF4F4Hx.data.inventoryMovements}}][0];\nconst mv = Array.isArray(raw) ? raw : [];\nconst fixed = null;\nconst keys = {};\nfor (const m of mv) {\n  const mat = s(m && m.material_id);\n  const bin = s(m && m.bin_location);\n  if (/^[0-9]{1,20}$/.test(mat) && /^[0-9]{1,20}$/.test(bin)) keys[\"ITEM|\" + mat + \"|\" + bin] = true;\n}\nconst list = fixed || Object.keys(keys).sort();\n// DEV tests: a delivery numbered MIN01-TEST... runs the check while the switch is OFF\nconst wanted = CL_LOCK_ENABLED || docNo.indexOf(\"MIN01-TEST\") === 0;\nconst ok = /^[0-9]{1,19}$/.test(org) && /^[0-9]{1,20}$/.test(tenant) && list.length > 0;\nreturn { on: wanted && ok ? \"YES\" : \"NO\", org: org, tenant: tenant, keysJson: JSON.stringify(list), count: list.length };"
+        },
+        "response_json": [
+          {
+            "key": "wsldpopa",
+            "name": "on",
+            "title": "on",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "8idmmtgm",
+            "name": "org",
+            "title": "org",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "j6hn2ahx",
+            "name": "tenant",
+            "title": "tenant",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "jw4ddjj3",
+            "name": "keysJson",
+            "title": "keysJson",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false
+          },
+          {
+            "key": "ego66vgl",
+            "name": "count",
+            "title": "count",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_CLgdOn",
+      "type": "if",
+      "data": {
+        "title": "IF the classic lock is on: check the delivery's keys before any write",
+        "filter": {
+          "list": [
+            {
+              "id": 1795000000003,
+              "parentId": 1795000000004,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "code": "'{{node:code_node_CLgdKey.data.on}}' == 'YES'",
+          "type": "javascript"
+        },
+        "isValidator": true,
+        "nodeName": "IF the classic lock is on: check the delivery's keys before any write",
+        "name": "IF the classic lock is on: check the delivery's keys before any write",
+        "condition_type": "Expression"
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_CLgdOnT",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_CLgdLk",
+              "type": "sql-node",
+              "data": {
+                "table_id": {
+                  "source": "Inventory Balance Lock:Table:2105132021358956546",
+                  "rules": { "collectionId": "2105132021358956546", "list": [] }
+                },
+                "title": "Classic lock pre-check: the delivery's keys held by an engine run",
+                "nodeName": "Classic lock pre-check: the delivery's keys held by an engine run",
+                "name": "Classic lock pre-check: the delivery's keys held by an engine run",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT l.lock_key, l.free_token, l.owner_operation_id, l.last_owner_operation_id\n  FROM inventory_balance_lock l\n WHERE l.tenant_id = '{{node:code_node_CLgdKey.data.tenant}}'\n   AND l.organization_id = '{{node:code_node_CLgdKey.data.org}}'\n   AND l.is_deleted = 0\n   AND l.lock_key IN (SELECT jt.k FROM JSON_TABLE('{{node:code_node_CLgdKey.data.keysJson}}', '$[*]' COLUMNS (k VARCHAR(128) CHARSET utf8mb4 COLLATE utf8mb4_general_ci PATH '$')) jt)\n   AND l.free_token = 0\n   AND l.owner_operation_id NOT LIKE 'CL|%'"
+                },
+                "response_json": [
+                  {
+                    "key": "10f13ciy",
+                    "name": "lock_key",
+                    "title": "lock_key",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "7ndexgt6",
+                    "name": "free_token",
+                    "title": "free_token",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "mageyo54",
+                    "name": "owner_operation_id",
+                    "title": "owner_operation_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "e8dxcya4",
+                    "name": "last_owner_operation_id",
+                    "title": "last_owner_operation_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "params": {},
+                "result_mode": "many",
+                "tableId": "2105132021358956546"
+              }
+            },
+            {
+              "id": "code_node_CLgdChk",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Classic lock pre-check: busy?",
+                "isValidator": true,
+                "nodeName": "Classic lock pre-check: busy?",
+                "name": "Classic lock pre-check: busy?",
+                "script": {
+                  "type": "javascript",
+                  "code": "const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst raw = [{{node:sql_node_CLgdLk.data}}][0];\nconst rows = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter((r) => r && r.lock_key);\nconst n = rows.length;\nreturn {\n  busy: n ? \"YES\" : \"NO\",\n  message: n ? \"Stock of \" + n + \" item / bin pair(s) on this delivery is being updated by another document. Please try again in a moment. (\" +\n    rows.map((r) => s(r.lock_key).replace(/^ITEM\\|/, \"\")).slice(0, 5).join(\", \") + \")\" : \"\",\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "cpbkt767",
+                    "name": "busy",
+                    "title": "busy",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  },
+                  {
+                    "key": "xct3ahbs",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_CLgdBusy",
+              "type": "if",
+              "data": {
+                "title": "IF an engine run holds one of them: answer 400, write nothing",
+                "isValidator": true,
+                "nodeName": "IF an engine run holds one of them: answer 400, write nothing",
+                "name": "IF an engine run holds one of them: answer 400, write nothing",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1795000000001,
+                      "parentId": 1795000000002,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_CLgdChk.data.busy}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_CLgdBusyT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_CLgdBusy",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "propLabel": "message",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "field",
+                              "valueTypeLabel": "",
+                              "value": "{{node:code_node_CLgdChk.data.message}}",
+                              "valueLabel": ""
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_CLgdBusyF",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_CLgdOnF",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_CheckOnly01",
       "type": "if",
       "data": {

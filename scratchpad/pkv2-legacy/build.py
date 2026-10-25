@@ -670,7 +670,7 @@ SELECT CAST('H' AS CHAR), CAST(g.id AS CHAR), CAST(g.id AS CHAR), CAST('' AS CHA
  WHERE t.tenant_id = '%(T)s'
    AND t.id = %(PID)s
    AND t.is_deleted = 0""" % {"T": T, "PID": PID, "DI": ",\n       ".join(("CAST(t.%s AS CHAR) AS %s" % (k, k)) if k in ("di_vehicle_number", "di_freight_charges") else
-                                                              ("DATE_FORMAT(t.%s, '%%%%Y-%%%%m-%%%%d %%%%H:%%%%i:%%%%s') AS %s" % (k, k)) if k in ("di_est_delivery_date", "di_est_arrival_date", "di_pickup_date", "di_validity_of_collection") else
+                                                              ("DATE_FORMAT(t.%s, '%%Y-%%m-%%d %%H:%%i:%%s') AS %s" % (k, k)) if k in ("di_est_delivery_date", "di_est_arrival_date", "di_pickup_date", "di_validity_of_collection") else
                                                               "t." + k for k in DI)}
     sql_p5lines = """SELECT CAST(l.gd_id AS CHAR) AS gd_id,
        l.gd_no,

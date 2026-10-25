@@ -10,6 +10,229 @@
       "blocks": []
     },
     {
+      "id": "code_node_SCguard",
+      "type": "code-node",
+      "data": {
+        "title": "SC Guard: a Review building an SA of > 500 lines? stored SC id",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "isValidator": true,
+        "nodeName": "SC Guard: a Review building an SA of > 500 lines? stored SC id",
+        "name": "SC Guard: a Review building an SA of > 500 lines? stored SC id",
+        "script": {
+          "type": "javascript",
+          "code": "// SA V2 / SC Review V2 - helpers every package uses (SUBMIT, PREPARE, COMMIT, WORKER, client). Copied from smv2\n// code/shared/lot_common.js (with f8's lotParseJ fix) and renamed sa / SA_. Included into a code node by the builders\n// (v2build.include_js drops the \"if (typeof module\" line); every top-level name carries the sa / SA_ prefix so the file\n// concatenates with a step's own helpers (s, q8, list, digits, parseJ) without a redeclaration.\nconst saS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// q8: the 8-dp rounding of COMPUTED quantities (STOCK_ADJUSTMENT code_node_O4tWJ5JH's q8); a NUMBER\nconst saQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// a decimal as the 8-dp text the platform stores, never negative; a STRING\nconst saQtyStr = (v) => Math.max(0, saQ8(v)).toFixed(8);\nconst saDigits = (v) => /^[0-9]{1,20}$/.test(saS(v));\n// a bigint id as a digit string: a digit string as is, a SAFE non-negative integer number as its digits; anything else\n// (a 19-digit id that already went through a JS number, \"\", null, text) -> \"\"\nconst saIdStr = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"\";\n  const t = saS(v);\n  return /^[0-9]{1,20}$/.test(t) ? t : \"\";\n};\n// JSON text with every bare 16+ digit integer TOKEN read as a STRING (snowflake ids survive); only whole integer tokens -\n// never the fraction digits of a float such as 0.30000000000000004; null when it does not parse\nconst saParseJ = (t) => {\n  if (t === undefined || t === null) return null;\n  if (typeof t === \"object\") return t;\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst saList = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r !== undefined && r !== null);\n// a JSON-text-or-array column (balance_index, reference_documents): the array, [] when empty / not a list\nconst saJsonList = (v) => {\n  if (Array.isArray(v)) return v;\n  const t = saS(v);\n  if (!t) return [];\n  const p = saParseJ(t);\n  return Array.isArray(p) ? p : [];\n};\n// sql-node rows: JSON_OBJECT rows ({ j: \"<json>\" }) or already-plain objects -> plain objects (ids of 16+ digits as strings)\nconst saRows = (rows) => saList(rows).map((r) => (r && typeof r === \"object\" && typeof r.j === \"string\" ? saParseJ(r.j) : r)).filter((r) => r && typeof r === \"object\");\n// STOCK_ADJUSTMENT code_node_GmKmvMGe: balance.category || \"Unrestricted\"\nconst saCategory = (c) => saS(c) || \"Unrestricted\";\n// an entry's movement_type -> \"ADD\" (in) / \"SUBTRACT\" (out) / \"\" (invalid); readers are case-insensitive (prod holds\n// In / IN / Out / OUT); the STORED casing is never rewritten (AutoCount V2 posting compares it exactly)\nconst saDirection = (mt) => {\n  const t = saS(mt).toLowerCase();\n  return t === \"in\" ? \"ADD\" : t === \"out\" ? \"SUBTRACT\" : \"\";\n};\n// UTF-8 byte length of a balance_index value (the column is TEXT, 65,535 bytes; prod's non-strict sql_mode truncates)\nconst saUtf8Bytes = (v) => {\n  const t = Array.isArray(v) || (v && typeof v === \"object\") ? JSON.stringify(v) : saS(v);\n  let n = 0;\n  for (let i = 0; i < t.length; i++) {\n    const c = t.charCodeAt(i);\n    if (c < 0x80) n += 1;\n    else if (c < 0x800) n += 2;\n    else if (c >= 0xd800 && c <= 0xdbff) { n += 4; i++; }\n    else n += 3;\n  }\n  return n;\n};\nconst SA_LINE_MAX_BYTES = 60000;\nconst SA_MAX_ENTRIES = 5000;\nconst SA_CLASSIC_MAX_ENTRIES = 500;\nconst SA_REVIEW_LINE_MAX_ENTRIES = 50;\nconst saDbAddSeconds = function saDbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// the bounded statuses a COMPLETE_SA job may restore (CONTRACT.md §2): FORM -> Draft, REVIEW -> Cancelled; anything else =\n// unknown = no unlock, REQUIRES_REVIEW SA_PREV_STATUS_UNKNOWN\nconst SA_PREV_STATUSES = [\"Draft\", \"Cancelled\"];\nconst saPrevStatusOk = (v) => SA_PREV_STATUSES.indexOf(saS(v)) >= 0;\n// the payload part rows of one value: step_name <prefix><nnn>, 400,000 characters each (GR / Putaway / LOT V2's chunking)\nconst SA_CHUNK = 400000;\nconst saPartRows = function saPartRows(jobId, organizationId, prefix, value, status) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += SA_CHUNK, n++) {\n    out.push({ job_id: saS(jobId), organization_id: saS(organizationId), step_name: prefix + String(n).padStart(3, \"0\"), step_status: status || \"PAYLOAD\", attempt_count: 0,\n      result_ref: text.slice(at, at + SA_CHUNK) });\n  }\n  return out;\n};\n// a part's chunk rows (step_name <prefix>nnn) joined in step-name order -> the value; null when there is no row, undefined\n// when the joined text does not parse (GR's joinChunks)\nconst saJoinChunks = function saJoinChunks(rows, prefix) {\n  const mine = saList(rows).filter((r) => saS(r.step_name).indexOf(prefix) === 0).sort((a, b) => (saS(a.step_name) < saS(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  const p = saParseJ(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  return p === null ? undefined : p;\n};\n// SC guard (CONTRACT §11): reads only allData.id / .table_stock_count, saveAs and createAdjustment (mobile's pageStatus is an\n// object); a Review that would build an SA (code_review_prep's own predicates) of > 500 lines with a variance is refused.\nconst scGuardIn = { allData: [{{workflowparams:allData}}][0], saveAs: [{{workflowparams:saveAs}}][0],\n  createAdjustment: [{{workflowparams:createAdjustment}}][0], tenantId: [{{system:tenantId}}][0] };\nlet scGuardDoc = scGuardIn.allData;\nif (typeof scGuardDoc === \"string\") scGuardDoc = saParseJ(scGuardDoc);\nif (!scGuardDoc || typeof scGuardDoc !== \"object\" || Array.isArray(scGuardDoc)) scGuardDoc = {};\nlet scId = \"0\";\nlet tenantId = \"0\";\ntry {\n  const t = saS(scGuardIn.tenantId);\n  const id = saIdStr(scGuardDoc.id);\n  if (saDigits(t) && saDigits(id)) {\n    scId = id;\n    tenantId = t;\n  }\n} catch (e) {\n  scId = \"0\";\n  tenantId = \"0\";\n}\nlet reviewLines = 0;\nlet buildsSa = false;\nlet reason = \"\";\nlet message = \"\";\ntry {\n  const lines = (Array.isArray(scGuardDoc.table_stock_count) ? scGuardDoc.table_stock_count : []).filter((item) => item && typeof item === \"object\" && item.line_status !== \"Cancel\");\n  const allApproved = lines.every((item) => item.line_status === \"Approved\" || item.line_status === \"Adjusted\");\n  const approvedItems = lines.filter((item) => item.review_status === \"Approved\" && item.line_status !== \"Adjusted\");\n  const itemsWithVariance = approvedItems.filter((item) => item.variance_qty !== 0 && item.line_status === \"Approved\");\n  buildsSa = approvedItems.length > 0 && (allApproved || scGuardIn.createAdjustment === \"Yes\");\n  reviewLines = itemsWithVariance.length;\n  const saveAs = scGuardIn.saveAs === undefined || scGuardIn.saveAs === null ? \"\" : String(scGuardIn.saveAs);\n  if (saveAs === \"Review\" && buildsSa && reviewLines > SA_CLASSIC_MAX_ENTRIES) {\n    reason = \"SA_CLASSIC_TOO_BIG\";\n    message = \"This review has \" + reviewLines + \" approved lines with a variance. Review at most \" + SA_CLASSIC_MAX_ENTRIES + \" lines at a time.\";\n  }\n} catch (e) {\n  reason = \"\";\n  message = \"\";\n}\nreturn { scId: scId, tenantId: tenantId, reviewLines: String(reviewLines), buildsSa: buildsSa ? \"YES\" : \"NO\", reason: reason, message: message };"
+        },
+        "response_json": [
+          {
+            "key": "rb2lh577",
+            "name": "scId",
+            "title": "scId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "799vl46z",
+            "name": "tenantId",
+            "title": "tenantId",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "9fllkqu2",
+            "name": "reviewLines",
+            "title": "reviewLines",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "iaula9fx",
+            "name": "buildsSa",
+            "title": "buildsSa",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "uy6v5ykp",
+            "name": "reason",
+            "title": "reason",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "tuwzu1tx",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_SCguard",
+      "type": "sql-node",
+      "data": {
+        "title": "SC Guard: Processing SAs of this Stock Count (id 0 = no stored SC)",
+        "isValidator": true,
+        "nodeName": "SC Guard: Processing SAs of this Stock Count (id 0 = no stored SC)",
+        "name": "SC Guard: Processing SAs of this Stock Count (id 0 = no stored SC)",
+        "script": {
+          "type": "sql",
+          "code": "SELECT COUNT(*) AS busy_count\n  FROM stock_adjustment g\n WHERE g.tenant_id = '{{node:code_node_SCguard.data.tenantId}}'\n   AND g.stock_count_id = {{node:code_node_SCguard.data.scId}}\n   AND {{node:code_node_SCguard.data.scId}} > 0\n   AND g.stock_adjustment_status = 'Processing'\n   AND g.is_deleted = 0"
+        },
+        "response_json": [
+          {
+            "key": "eilw0ycs",
+            "name": "busy_count",
+            "title": "busy_count",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ],
+        "database_id": "",
+        "sql": "",
+        "params": {}
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_SCguardVerdict",
+      "type": "code-node",
+      "data": {
+        "title": "SC Guard: SA processing? Review too large?",
+        "isValidator": true,
+        "nodeName": "SC Guard: SA processing? Review too large?",
+        "name": "SC Guard: SA processing? Review too large?",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// A Processing SA made from this Stock Count refuses EVERY save of it (web and mobile alike).\nconst scGuardRows = [{{node:sql_node_SCguard.data}}][0];\nconst scGuardOut = [{{node:code_node_SCguard.data}}][0] || {};\nlet busy = false;\ntry {\n  const rows = Array.isArray(scGuardRows) ? scGuardRows : scGuardRows && typeof scGuardRows === \"object\" ? [scGuardRows] : [];\n  busy = rows.some((r) => r && typeof r === \"object\" && Number(r.busy_count) > 0);\n} catch (e) {\n  busy = false;\n}\nconst reason = busy ? \"SA_SC_BUSY\" : String(scGuardOut.reason || \"\");\nconst message = busy ? \"A Stock Adjustment from this Stock Count is being processed in the background - please wait for it to finish.\" : String(scGuardOut.message || \"\");\nreturn { refuse: reason && message ? \"YES\" : \"NO\", reason: reason, message: message };"
+        },
+        "response_json": [
+          {
+            "key": "stkt13fj",
+            "name": "refuse",
+            "title": "refuse",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "0as55wif",
+            "name": "reason",
+            "title": "reason",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "hylvf5jd",
+            "name": "message",
+            "title": "message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_SCguardRefuse",
+      "type": "if",
+      "data": {
+        "title": "IF refused (a Processing SA of this Stock Count / a Review of more than 500 lines)",
+        "isValidator": true,
+        "nodeName": "IF refused (a Processing SA of this Stock Count / a Review of more than 500 lines)",
+        "name": "IF refused (a Processing SA of this Stock Count / a Review of more than 500 lines)",
+        "condition_type": "ConditionRule",
+        "filter": {
+          "list": [
+            {
+              "id": 1797800000001,
+              "parentId": 1797800000002,
+              "isTop": true,
+              "prop": "node.code_node_SCguardVerdict.data.refuse",
+              "operator": "equal",
+              "valueType": "value",
+              "value": "YES",
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "refuse",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_SCguardRefuse_true",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "end_SCguardRefuse",
+              "type": "end-node",
+              "data": {
+                "title": "End: refused (SA V2 guard)",
+                "outputs": {
+                  "type": "object",
+                  "properties": {
+                    "result": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "isValidator": true,
+                "nodeName": "End: refused (SA V2 guard)",
+                "name": "End: refused (SA V2 guard)",
+                "back_data_type": "Default",
+                "code": 400,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_SCguardVerdict.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_SCguardRefuse_false",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "cond_save_as",
       "type": "condition-or-node",
       "data": {

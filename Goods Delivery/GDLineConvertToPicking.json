@@ -190,6 +190,110 @@
       "blocks": []
     },
     {
+      "id": "code_node_ConvBusy",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "GD Busy: a GD being saved in the background is not converted",
+        "isValidator": true,
+        "nodeName": "GD Busy: a GD being saved in the background is not converted",
+        "name": "GD Busy: a GD being saved in the background is not converted",
+        "script": {
+          "type": "javascript",
+          "code": "// A Goods Delivery being saved in the background is not converted: the run fails with the reason (mobile inserts nothing).\nconst raw = {{node:search_node_rxIt49E4.data.data}};\nconst row = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter((g) => g && g.gd_status === \"Processing\")[0];\nreturn row\n  ? { busy: 1, message: \"Goods Delivery \" + (row.delivery_no || row.id) + \" is being saved in the background. Wait a moment, then try again.\" }\n  : { busy: 0, message: \"\" };\n"
+        },
+        "response_json": [
+          {
+            "key": "cvbusy01",
+            "name": "busy",
+            "title": "Busy",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cvmsg001",
+            "name": "message",
+            "title": "Message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_ConvBusy",
+      "type": "if",
+      "data": {
+        "title": "IF a GD is being saved in the background: the run fails with the reason",
+        "isValidator": true,
+        "nodeName": "IF a GD is being saved in the background: the run fails with the reason",
+        "name": "IF a GD is being saved in the background: the run fails with the reason",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1791960000002,
+              "parentId": 1791960000001,
+              "isTop": true,
+              "prop": "node.code_node_ConvBusy.data.busy",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "busy",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_ConvBusyT",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "end_ConvBusy",
+              "type": "end-node",
+              "data": {
+                "title": "End: refused (a GD is being saved in the background)",
+                "outputs": {
+                  "type": "object",
+                  "properties": { "result": { "type": "string" } }
+                },
+                "isValidator": true,
+                "nodeName": "End: refused (a GD is being saved in the background)",
+                "name": "End: refused (a GD is being saved in the background)",
+                "back_data_type": "Default",
+                "code": 400,
+                "msg": {
+                  "type": "javascript",
+                  "code": "{{node:code_node_ConvBusy.data.message}}"
+                }
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_ConvBusyF",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "code_node_1loqHjR1",
       "type": "code-node",
       "data": {

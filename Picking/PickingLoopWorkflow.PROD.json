@@ -86,6 +86,486 @@
       "blocks": []
     },
     {
+      "id": "code_node_GdBusyIds",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "GD Busy: the GDs of every Picking in this call",
+        "isValidator": true,
+        "nodeName": "GD Busy: the GDs of every Picking in this call",
+        "name": "GD Busy: the GDs of every Picking in this call",
+        "script": {
+          "type": "javascript",
+          "code": "// The GDs of every Picking in this call (digits only: interpolated into sql_node_GdBusy).\nconst items = {{workflowparams:arrayData}};\nconst ids = new Set();\nfor (const item of Array.isArray(items) ? items : []) {\n  for (const id of Array.isArray(item && item.gd_no) ? item.gd_no : []) {\n    if (/^[0-9]{1,20}$/.test(String(id))) ids.add(String(id));\n  }\n}\nreturn { gdIdSql: ids.size > 0 ? [...ids].join(\",\") : \"0\" };\n"
+        },
+        "response_json": [
+          {
+            "key": "gbids001",
+            "name": "gdIdSql",
+            "title": "GD ids (digits, comma-separated)",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "sql_node_GdBusy",
+      "type": "sql-node",
+      "data": {
+        "title": "GD Busy: a GD being saved in the background (Processing, or an open edit / completion job)",
+        "isValidator": true,
+        "nodeName": "GD Busy: a GD being saved in the background (Processing, or an open edit / completion job)",
+        "name": "GD Busy: a GD being saved in the background (Processing, or an open edit / completion job)",
+        "database_id": "",
+        "sql": "",
+        "params": {},
+        "script": {
+          "type": "sql",
+          "code": "SELECT COALESCE(NULLIF(g.delivery_no, ''), CAST(g.id AS CHAR)) AS gd_no\n  FROM goods_delivery g\n WHERE g.tenant_id = '{{system:tenantId}}'\n   AND g.id IN ({{node:code_node_GdBusyIds.data.gdIdSql}})\n   AND g.is_deleted = 0\n   AND (g.gd_status = 'Processing'\n                OR EXISTS (SELECT 1\n                             FROM gd_async_job j\n                            WHERE j.tenant_id = g.tenant_id\n                              AND j.is_deleted = 0\n                              AND j.command IN ('EDIT_GD', 'COMPLETE_GD', 'COMPLETE_PACKING')\n                              AND j.correlation_id = CONCAT('GD|', g.id) COLLATE utf8mb4_general_ci\n                              AND j.job_status NOT IN ('COMPLETED', 'FAILED', 'CANCELLED')))\n LIMIT 1"
+        },
+        "response_json": [
+          {
+            "key": "gbsql001",
+            "name": "gd_no",
+            "title": "GD No",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "code_node_GdBusy",
+      "type": "code-node",
+      "data": {
+        "title": "GD Busy: verdict",
+        "isValidator": true,
+        "nodeName": "GD Busy: verdict",
+        "name": "GD Busy: verdict",
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "script": {
+          "type": "javascript",
+          "code": "// A Goods Delivery these Pickings name is being saved in the background (GD Edit V2 / GD Completed V2): refuse them all.\nconst raw = {{node:sql_node_GdBusy.data}};\nconst row = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter((r) => r && r.gd_no)[0];\nreturn row\n  ? { busy: 1, message: \"Goods Delivery \" + row.gd_no + \" is being saved in the background. Wait a moment, then try again.\" }\n  : { busy: 0, message: \"\" };\n"
+        },
+        "response_json": [
+          {
+            "key": "gbbusy01",
+            "name": "busy",
+            "title": "Busy",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "gbmsg001",
+            "name": "message",
+            "title": "Message",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_GdBusy",
+      "type": "if",
+      "data": {
+        "title": "IF a GD is being saved in the background: answer 400, nothing written",
+        "isValidator": true,
+        "nodeName": "IF a GD is being saved in the background: answer 400, nothing written",
+        "name": "IF a GD is being saved in the background: answer 400, nothing written",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1791950000002,
+              "parentId": 1791950000001,
+              "isTop": true,
+              "prop": "node.code_node_GdBusy.data.busy",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "busy",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_GdBusyT",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "return_node_GdBusy",
+              "type": "return-node",
+              "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                  "list": [
+                    {
+                      "prop": "code",
+                      "propLabel": "code",
+                      "operator": "",
+                      "operatorLabel": "",
+                      "valueType": "value",
+                      "valueTypeLabel": "",
+                      "value": "400",
+                      "valueLabel": ""
+                    },
+                    {
+                      "prop": "message",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_GdBusy.data.message}}",
+                      "valueLabel": "",
+                      "propLabel": "message"
+                    }
+                  ]
+                },
+                "return_raw_data": 0
+              },
+              "blocks": []
+            }
+          ]
+        },
+        {
+          "id": "if_block_GdBusyF",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
+      "id": "code_node_CoverIds",
+      "type": "code-node",
+      "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Double Picking: the GD lines this call puts on a live Picking",
+        "isValidator": true,
+        "nodeName": "Double Picking: the GD lines this call puts on a live Picking",
+        "name": "Double Picking: the GD lines this call puts on a live Picking",
+        "script": {
+          "type": "javascript",
+          "code": "// The GD lines this call puts on a live Picking (an Add, or a Draft saved as Created / Completed) and how much of each:\n// sql_node_Cover reads what other live Pickings already hold of them. Confirms of a live Picking (mobile, the form) are\n// not checked and read nothing. Digits only: the ids are interpolated into sql_node_Cover.\nconst items = {{workflowparams:arrayData}};\nconst saveAs = {{workflowparams:saveAs}};\nconst pageStatus = {{workflowparams:pageStatus}};\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst digits = (v) => (/^[0-9]{1,20}$/.test(String(v === undefined || v === null ? \"\" : v)) ? String(v) : \"\");\nconst mine = {};\nconst gds = new Set();\nconst own = new Set();\nif (saveAs !== \"Draft\" && saveAs !== \"Cancelled\") {\n  for (const p of Array.isArray(items) ? items : []) {\n    if (!p || (pageStatus !== \"Add\" && p.to_status !== \"Draft\")) continue;\n    if (digits(p.id)) own.add(digits(p.id));\n    for (const id of Array.isArray(p.gd_no) ? p.gd_no : []) if (digits(id)) gds.add(digits(id));\n    const rows = [];\n    for (const r of Array.isArray(p.table_picking_items) ? p.table_picking_items : []) {\n      if (!r) continue;\n      rows.push(r);\n      for (const c of Array.isArray(r.children) ? r.children : []) if (c) rows.push(c);\n    }\n    for (const r of rows) {\n      const line = digits(r.gd_line_id);\n      if (!line || r.row_type === \"header\" || r.line_status === \"Cancelled\") continue;\n      if (digits(r.gd_id)) gds.add(digits(r.gd_id));\n      mine[line] = q8((mine[line] || 0) + q8(r.qty_to_pick));\n    }\n  }\n}\nfor (const line of Object.keys(mine)) if (!(mine[line] > 0)) delete mine[line];\nconst lines = Object.keys(mine);\nreturn {\n  check: lines.length > 0 && gds.size > 0 ? 1 : 0,\n  lineIdCsv: lines.length ? lines.join(\",\") : \"0\",\n  gdIdCsv: gds.size ? [...gds].join(\",\") : \"0\",\n  ownIdCsv: own.size ? [...own].join(\",\") : \"0\",\n  mine,\n};\n"
+        },
+        "response_json": [
+          {
+            "key": "cvids001",
+            "name": "check",
+            "title": "Check (1 = read what other Pickings hold)",
+            "description": "",
+            "bsonType": "int",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cvids002",
+            "name": "lineIdCsv",
+            "title": "GD line ids (digits, comma-separated)",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cvids003",
+            "name": "gdIdCsv",
+            "title": "GD ids (digits, comma-separated)",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cvids004",
+            "name": "ownIdCsv",
+            "title": "This call's own Picking ids (digits, or 0)",
+            "description": "",
+            "bsonType": "string",
+            "isExpand": false,
+            "children": []
+          },
+          {
+            "key": "cvids005",
+            "name": "mine",
+            "title": "Quantity per GD line this call adds",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "children": []
+          }
+        ]
+      },
+      "blocks": []
+    },
+    {
+      "id": "if_CoverCheck",
+      "type": "if",
+      "data": {
+        "title": "IF a Picking goes live in this call: check its GD lines are not on other Pickings already",
+        "isValidator": true,
+        "nodeName": "IF a Picking goes live in this call: check its GD lines are not on other Pickings already",
+        "name": "IF a Picking goes live in this call: check its GD lines are not on other Pickings already",
+        "condition_type": "ConditionRule",
+        "expression": { "type": "javascript", "code": "" },
+        "filter": {
+          "list": [
+            {
+              "id": 1791970000002,
+              "parentId": 1791970000001,
+              "isTop": true,
+              "prop": "node.code_node_CoverIds.data.check",
+              "operator": "numberEqual",
+              "valueType": "value",
+              "value": 1,
+              "type": "leaf",
+              "level": 1,
+              "propLabel": "check",
+              "valueLabel": "",
+              "operatorLabel": "Equal"
+            }
+          ]
+        }
+      },
+      "blocks": [
+        {
+          "id": "if_block_CoverCheckT",
+          "type": "ifBlock",
+          "data": { "title": "true" },
+          "blocks": [
+            {
+              "id": "sql_node_Cover",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Double Picking: what other live Pickings already hold of these GD lines",
+                "isValidator": true,
+                "nodeName": "Double Picking: what other live Pickings already hold of these GD lines",
+                "name": "Double Picking: what other live Pickings already hold of these GD lines",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(gl.id AS CHAR) AS gd_line_id,\n       gl.gd_qty,\n       COALESCE(NULLIF(g.delivery_no, ''), CAST(g.id AS CHAR)) AS delivery_no,\n       COALESCE(NULLIF(gl.material_name, ''), CAST(gl.id AS CHAR)) AS item_name,\n       COALESCE(o.covered, 0) AS covered,\n       o.pickings\n  FROM JSON_TABLE(CONCAT('[', '{{node:code_node_CoverIds.data.lineIdCsv}}', ']'), '$[*]' COLUMNS (lid BIGINT PATH '$')) l\n  JOIN goods_delivery_fwii8mvb_sub gl ON gl.id = l.lid AND gl.tenant_id = '{{system:tenantId}}'\n  JOIN goods_delivery g ON g.id = gl.goods_delivery_id\n  LEFT JOIN (SELECT x.gd_line_id, SUM(x.qty) AS covered, GROUP_CONCAT(DISTINCT x.to_no ORDER BY x.to_no SEPARATOR ', ') AS pickings\n               FROM (SELECT i.gd_line_id, i.qty_to_pick AS qty, t.to_id AS to_no\n                       FROM transfer_order t\n                       JOIN transfer_order_jz8m9w3h_sub i ON i.transfer_order_id = t.id AND i.tenant_id = t.tenant_id AND i.is_deleted = 0\n                      WHERE t.tenant_id = '{{system:tenantId}}'\n                        AND t.is_deleted = 0\n                        AND t.to_status NOT IN ('Completed', 'Cancelled', 'Draft')\n                        AND t.id NOT IN ({{node:code_node_CoverIds.data.ownIdCsv}})\n                        AND COALESCE(i.line_status, '') <> 'Cancelled'\n                        AND COALESCE(i.row_type, '') <> 'header'\n                        AND (JSON_OVERLAPS(t.gd_no, CAST(CONCAT('[', '{{node:code_node_CoverIds.data.gdIdCsv}}', ']') AS JSON))\n                             OR JSON_OVERLAPS(t.gd_no, (SELECT JSON_ARRAYAGG(CAST(d.id AS CHAR))\n                                                          FROM JSON_TABLE(CONCAT('[', '{{node:code_node_CoverIds.data.gdIdCsv}}', ']'),\n                                                                          '$[*]' COLUMNS (id BIGINT PATH '$')) d)))\n                     UNION ALL\n                     SELECT r.gd_line_id, COALESCE(r.store_out_qty, 0) AS qty, t.to_id AS to_no\n                       FROM transfer_order t\n                       JOIN transfer_order_vrqs3cmr_sub r ON r.transfer_order_id = t.id AND r.tenant_id = t.tenant_id AND r.is_deleted = 0\n                      WHERE t.tenant_id = '{{system:tenantId}}'\n                        AND t.is_deleted = 0\n                        AND t.to_status = 'Completed'\n                        AND t.id NOT IN ({{node:code_node_CoverIds.data.ownIdCsv}})\n                        AND (JSON_OVERLAPS(t.gd_no, CAST(CONCAT('[', '{{node:code_node_CoverIds.data.gdIdCsv}}', ']') AS JSON))\n                             OR JSON_OVERLAPS(t.gd_no, (SELECT JSON_ARRAYAGG(CAST(d.id AS CHAR))\n                                                          FROM JSON_TABLE(CONCAT('[', '{{node:code_node_CoverIds.data.gdIdCsv}}', ']'),\n                                                                          '$[*]' COLUMNS (id BIGINT PATH '$')) d)))) x\n              GROUP BY x.gd_line_id) o ON o.gd_line_id = gl.id"
+                },
+                "response_json": [
+                  {
+                    "key": "cvsql001",
+                    "name": "gd_line_id",
+                    "title": "GD line id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cvsql002",
+                    "name": "gd_qty",
+                    "title": "GD quantity",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cvsql003",
+                    "name": "delivery_no",
+                    "title": "GD number",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cvsql004",
+                    "name": "item_name",
+                    "title": "Item",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cvsql005",
+                    "name": "covered",
+                    "title": "Held by other live Pickings",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cvsql006",
+                    "name": "pickings",
+                    "title": "Those Pickings",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_Cover",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Double Picking: verdict",
+                "isValidator": true,
+                "nodeName": "Double Picking: verdict",
+                "name": "Double Picking: verdict",
+                "script": {
+                  "type": "javascript",
+                  "code": "// A GD line may not be on Pickings for more than its quantity: what other live Pickings already hold (sql_node_Cover:\n// open ones their qty_to_pick, Completed ones what they picked, as Convert to Picking counts it) + what this call adds.\n// Over -> the whole call is refused before any Picking is written.\nconst raw = {{node:sql_node_Cover.data}};\nconst mine = {{node:code_node_CoverIds.data.mine}} || {};\nconst EPS = 1e-6;\nconst num = (v) => parseFloat(v) || 0;\nconst over = (Array.isArray(raw) ? raw : raw ? [raw] : []).filter((r) => {\n  if (!r || !r.gd_line_id) return false;\n  const m = num(mine[String(r.gd_line_id)]);\n  const covered = num(r.covered);\n  return m > EPS && covered > EPS && covered + m > num(r.gd_qty) + EPS;\n});\nif (!over.length) return { over: 0, message: \"\" };\nconst fmt = (v) => String(Number(num(v).toFixed(8)));\nconst named = over.slice(0, 3).map((r) => (r.delivery_no || \"Goods Delivery\") + \" \" + (r.item_name || \"line\") + \": \" + fmt(r.covered) + \" of \" + fmt(r.gd_qty) + \" already on \" + (r.pickings || \"another Picking\"));\nreturn {\n  over: 1,\n  message: \"Picking not saved: these Goods Delivery lines are already on another Picking. \" + named.join(\"; \") + (over.length > 3 ? \"; and \" + (over.length - 3) + \" more\" : \"\") + \". Refresh the list and convert only what is left.\",\n};\n"
+                },
+                "response_json": [
+                  {
+                    "key": "cvver001",
+                    "name": "over",
+                    "title": "Over (1 = refuse)",
+                    "description": "",
+                    "bsonType": "int",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "cvver002",
+                    "name": "message",
+                    "title": "Message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_CoverOver",
+              "type": "if",
+              "data": {
+                "title": "IF these lines are already on other Pickings: answer 400, nothing written",
+                "isValidator": true,
+                "nodeName": "IF these lines are already on other Pickings: answer 400, nothing written",
+                "name": "IF these lines are already on other Pickings: answer 400, nothing written",
+                "condition_type": "ConditionRule",
+                "expression": { "type": "javascript", "code": "" },
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1791970000012,
+                      "parentId": 1791970000011,
+                      "isTop": true,
+                      "prop": "node.code_node_Cover.data.over",
+                      "operator": "numberEqual",
+                      "valueType": "value",
+                      "value": 1,
+                      "type": "leaf",
+                      "level": 1,
+                      "propLabel": "over",
+                      "valueLabel": "",
+                      "operatorLabel": "Equal"
+                    }
+                  ]
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_CoverOverT",
+                  "type": "ifBlock",
+                  "data": { "title": "true" },
+                  "blocks": [
+                    {
+                      "id": "return_node_Cover",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "title": "Return Data",
+                        "isValidator": true,
+                        "nodeName": "Return Data",
+                        "name": "Return Data",
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "code",
+                              "propLabel": "code",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "400",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_Cover.data.message}}",
+                              "valueLabel": "",
+                              "propLabel": "message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_CoverOverF",
+                  "type": "ifBlock",
+                  "data": { "title": "false" },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "if_block_CoverCheckF",
+          "type": "ifBlock",
+          "data": { "title": "false" },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "code_node_uPSc7Syb",
       "type": "code-node",
       "data": {
@@ -399,7 +879,7 @@
                     "name": "Get Updated Picking Data",
                     "script": {
                       "type": "sql",
-                      "code": "SELECT id,\n       to_status,\n       COALESCE(is_processing, 0) AS is_processing,\n       TIMESTAMPDIFF(\n           SECOND,\n           update_time,\n           CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')\n       ) AS lock_age_sec\nFROM transfer_order\nWHERE id = '{{node:code_node_hjAwTKzF.data.lockId}}'\n  AND is_deleted = 0\nLIMIT 1"
+                      "code": "SELECT id,\n       to_status,\n       COALESCE(is_processing, 0) AS is_processing,\n       TIMESTAMPDIFF(\n           SECOND,\n           update_time,\n           CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00')\n       ) AS lock_age_sec,\n       (SELECT CONCAT(CAST(j.id AS CHAR), '|', j.job_status)\n          FROM gd_async_job j\n         WHERE j.tenant_id = t.tenant_id\n           AND j.command = 'CONFIRM_PICKING'\n           AND j.picking_id = '{{node:code_node_hjAwTKzF.data.lockId}}'\n           AND j.is_deleted = 0\n           AND j.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_PICKING', 'REQUIRES_REVIEW')\n         ORDER BY j.id DESC\n         LIMIT 1) AS open_job\nFROM transfer_order t\nWHERE id = '{{node:code_node_hjAwTKzF.data.lockId}}'\n  AND is_deleted = 0\nLIMIT 1"
                     },
                     "response_json": [
                       {
@@ -437,6 +917,15 @@
                         "bsonType": "int",
                         "isExpand": false,
                         "children": []
+                      },
+                      {
+                        "key": "lg4opj01",
+                        "name": "open_job",
+                        "title": "Open Job",
+                        "description": "",
+                        "bsonType": "string",
+                        "isExpand": false,
+                        "children": []
                       }
                     ]
                   },
@@ -455,7 +944,7 @@
                     "name": "Lock Decision",
                     "script": {
                       "type": "javascript",
-                      "code": "const rows = {{node:sql_node_LockGate.data}} || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst row = list[0];\n\n// A crashed run can never release the mutex in-flow, so a lock this old is\n// treated as abandoned and taken over.\nconst STALE_SEC = 900;\n\n// 0 = free, take the lock   1 = held by a live run   2 = already Completed   3 = Cancelled\nlet lockState = 1;\nlet staleRecovered = 0;\n\nif (row && row.id) {\n  if (row.to_status === \"Completed\") {\n    lockState = 2;\n  } else if (row.to_status === \"Cancelled\") {\n    // A device holding a stale copy must not complete a Picking its GD cancel already closed.\n    lockState = 3;\n  } else if (Number(row.is_processing) === 1) {\n    const age = Number(row.lock_age_sec);\n    // A negative or unparseable age means the clock assumption is off; stay\n    // locked rather than risk stealing a lock from a run still in progress.\n    if (isFinite(age) && age > STALE_SEC) {\n      lockState = 0;\n      staleRecovered = 1;\n    }\n  } else {\n    lockState = 0;\n  }\n}\n\nreturn {\n  lockState,\n  staleRecovered\n}\n"
+                      "code": "const rows = {{node:sql_node_LockGate.data}} || [];\nconst list = Array.isArray(rows) ? rows : [rows];\nconst row = list[0];\n\n// A crashed run can never release the mutex in-flow, so a lock this old is\n// treated as abandoned and taken over.\nconst STALE_SEC = 900;\n\n// 0 = free, take the lock   1 = held by a live run   2 = already Completed   3 = Cancelled\nlet lockState = 1;\nlet staleRecovered = 0;\n\nif (row && row.id) {\n  if (row.to_status === \"Completed\") {\n    lockState = 2;\n  } else if (row.to_status === \"Cancelled\") {\n    // A device holding a stale copy must not complete a Picking its GD cancel already closed.\n    lockState = 3;\n  } else if (row.open_job) {\n    // a background confirm / force complete (Picking V2) holds it until its job ends, however long that takes\n    lockState = 1;\n  } else if (Number(row.is_processing) === 1) {\n    const age = Number(row.lock_age_sec);\n    // A negative or unparseable age means the clock assumption is off; stay\n    // locked rather than risk stealing a lock from a run still in progress.\n    if (isFinite(age) && age > STALE_SEC) {\n      lockState = 0;\n      staleRecovered = 1;\n    }\n  } else {\n    lockState = 0;\n  }\n}\n\nreturn {\n  lockState,\n  staleRecovered\n}\n"
                     },
                     "response_json": [
                       {

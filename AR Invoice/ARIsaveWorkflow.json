@@ -43,7 +43,7 @@
         "condition_type": "Expression",
         "expression": {
           "type": "javascript",
-          "code": "'{{workflowparams:page_status}}' == 'Add' || '{{workflowparams:page_status}}' == 'Clone'"
+          "code": "'{{workflowparams:page_status}}' == 'Add' || '{{workflowparams:page_status}}' == 'Convert'"
         }
       },
       "blocks": [

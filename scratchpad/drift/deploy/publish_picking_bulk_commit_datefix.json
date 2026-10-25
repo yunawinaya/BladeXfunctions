@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PICKING_BULK_COMMIT",
+   "dataId": "2109531367339180034",
+   "file": "Picking/AsyncV2/PICKING_BULK_COMMIT.json",
+   "base": "scratchpad/drift/deploy/PICKING_BULK_COMMIT.dev_v12_base.json"
+  }
+ ]
+}
