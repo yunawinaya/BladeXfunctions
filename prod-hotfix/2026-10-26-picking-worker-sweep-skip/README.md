@@ -44,5 +44,8 @@ PUTAWAY_ASYNC_WORKER or PACKING_ASYNC_WORKER: `wf --prod deployed` can match a k
 
 ## After the paste
 
+**Pasted 2026-10-26 11:15:02 as prod v6: IDENTICAL.** The hour after: 221 runs, all Complete (no claim crash); 81 LSH jobs
+COMPLETED.
+
 Check: `.dbtools/wf --prod deployed Picking/AsyncV2/PICKING_ASYNC_WORKER.json` must say IDENTICAL as
 'PICKING_ASYNC_WORKER' (id=2109531412499251201).

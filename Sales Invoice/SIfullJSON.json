@@ -5211,7 +5211,7 @@
                                 "pad": "*",
                                 "desensitization_pattern": "",
                                 "desensitization_replace": "",
-                                "labelWrap": true,
+                                "labelWrap": false,
                                 "sorts": [],
                                 "paging_enabled": 0,
                                 "auto_refresh": 0,
@@ -5222,7 +5222,8 @@
                                         "key": "vb4rc8wn",
                                         "name": "onSiVehicleNumberfunc"
                                     }
-                                ]
+                                ],
+                                "buttonText": "Add"
                             },
                             "events": {
                                 "onReady": "",

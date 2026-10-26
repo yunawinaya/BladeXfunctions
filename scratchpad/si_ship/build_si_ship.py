@@ -97,6 +97,10 @@ def build_form(base_name):
     vehicle = widgets[1]
     assert vehicle["options"]["buttonEvent"] == [{"key": "pqjfqfd3", "name": "onDiVehicleNumberfunc"}]
     vehicle["options"]["buttonEvent"] = [{"key": VEHICLE_BTN_KEY, "name": VEHICLE_BTN_NAME}]
+    # GD's grid wraps its labels; on the SI header that put "Vehicle Number" on two lines beside Shipping Method
+    vehicle["options"]["labelWrap"] = False
+    # GD's widget has no buttonText, so its "+" reads the platform default "新增"; SO's di_vehicle_number sets "Add"
+    vehicle["options"]["buttonText"] = "Add"
     right[1:1] = widgets
 
     scripts = si["config"]["eventScript"]

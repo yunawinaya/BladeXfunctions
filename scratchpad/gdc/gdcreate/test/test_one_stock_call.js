@@ -35,4 +35,12 @@ for (const count of [1, 2, 16, 25, 26, 36, 72, 92, 400, 4000]) {
 }
 assert.strictEqual(shape(give(["1", "2", "2"])), shape(take(["1", "2", "2"])), "a key listed twice: TAKE and GIVE split differently");
 n++;
-console.log("test_one_stock_call: " + n + " pass (TAKE and GIVE split identically)");
+// patch_engine_one_call_both.py: both as ONE main call, every key in lock order, the lanes empty
+const one = (o, count) => o.warm.length === count && o.count === String(count) && [0, 1, 2, 3, 4, 5, 6, 7, 8].every((k) => (o["lane" + k] || []).length === 0 && o["has" + k] === "NO");
+for (const count of [26, 72, 92, 200, 4000]) {
+  assert(one(take(ids(count)), count), count + " keys: TAKE is not one call");
+  assert(one(give(ids(count)), count), count + " keys: GIVE is not one call");
+  assert.strictEqual(take(ids(count)).warm.join(), ids(count).join(), count + " keys: TAKE changed the lock order");
+  n += 3;
+}
+console.log("test_one_stock_call: " + n + " pass (TAKE and GIVE split identically, each one call)");

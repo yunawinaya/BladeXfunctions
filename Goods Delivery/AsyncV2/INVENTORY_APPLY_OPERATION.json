@@ -8008,7 +8008,7 @@
         "timeout": 30000,
         "script": {
           "type": "javascript",
-          "code": "// INVENTORY_APPLY_OPERATION - lock TAKE: the first 25 keys alone (one first load of INVENTORY_LOCK_TOKENS after a restart), then 9 lanes (10-22)\nconst list = (r) => (Array.isArray(r) ? r : r ? [r] : []);\nconst rows = list([{{node:code_node_J6YxjhQw.data.ids}}][0]);\nconst solo = new Set(rows.map(String)).size !== rows.length; // a key twice: one call, as before\nconst more = solo ? [] : rows.slice(25), per = Math.max(1, Math.ceil(more.length / 9));\nconst out = { warm: solo ? rows : rows.slice(0, 25), count: String(rows.length) };\nfor (let k = 0; k < 9; k++) { const part = more.slice(k * per, (k + 1) * per); out[\"lane\" + k] = part; out[\"has\" + k] = part.length ? \"YES\" : \"NO\"; }\nreturn out;"
+          "code": "// INVENTORY_APPLY_OPERATION - lock TAKE: every key in one call (2026-10-26; the 9 lanes of 10-22 stay empty)\nconst list = (r) => (Array.isArray(r) ? r : r ? [r] : []);\nconst rows = list([{{node:code_node_J6YxjhQw.data.ids}}][0]);\n// 2026-10-26: every key in this ONE call, in lock order; the lanes stay empty. TAKE and GIVE must split alike: a lane\n// cannot release a key the main call took (v13 froze every operation with more than 25 keys at give-back)\nconst more = [], per = 1;\nconst out = { warm: rows, count: String(rows.length) };\nfor (let k = 0; k < 9; k++) { const part = more.slice(k * per, (k + 1) * per); out[\"lane\" + k] = part; out[\"has\" + k] = part.length ? \"YES\" : \"NO\"; }\nreturn out;"
         },
         "response_json": [
           {
@@ -43074,7 +43074,7 @@
                 "timeout": 30000,
                 "script": {
                   "type": "javascript",
-                  "code": "// INVENTORY_APPLY_OPERATION - lock GIVE: the first 25 keys alone (one first load of INVENTORY_LOCK_TOKENS after a restart), then 9 lanes (10-22)\nconst list = (r) => (Array.isArray(r) ? r : r ? [r] : []);\nconst rows = list([{{node:code_node_mkkHs3G9.data.plusIds}}][0]);\nconst solo = new Set(rows.map(String)).size !== rows.length; // a key twice: one call, as before\nconst more = solo ? [] : rows.slice(25), per = Math.max(1, Math.ceil(more.length / 9));\nconst out = { warm: solo ? rows : rows.slice(0, 25), count: String(rows.length) };\nfor (let k = 0; k < 9; k++) { const part = more.slice(k * per, (k + 1) * per); out[\"lane\" + k] = part; out[\"has\" + k] = part.length ? \"YES\" : \"NO\"; }\nreturn out;"
+                  "code": "// INVENTORY_APPLY_OPERATION - lock GIVE: every key in one call (2026-10-26; the 9 lanes of 10-22 stay empty)\nconst list = (r) => (Array.isArray(r) ? r : r ? [r] : []);\nconst rows = list([{{node:code_node_mkkHs3G9.data.plusIds}}][0]);\n// 2026-10-26: every key in this ONE call, in lock order; the lanes stay empty. TAKE and GIVE must split alike: a lane\n// cannot release a key the main call took (v13 froze every operation with more than 25 keys at give-back)\nconst more = [], per = 1;\nconst out = { warm: rows, count: String(rows.length) };\nfor (let k = 0; k < 9; k++) { const part = more.slice(k * per, (k + 1) * per); out[\"lane\" + k] = part; out[\"has\" + k] = part.length ? \"YES\" : \"NO\"; }\nreturn out;"
                 },
                 "response_json": [
                   {

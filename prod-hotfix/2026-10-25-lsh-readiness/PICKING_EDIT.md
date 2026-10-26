@@ -135,6 +135,17 @@ check after the pastes clean for my jobs.
   - **Prod v14 pasted 06:54:13, IDENTICAL.**
   - Folder `prod-hotfix/2026-10-26-picking-p4-sibling/`.
 
+## 10-26 midday: P5 refresh race (PACK-2610-1359): won't fix
+
+- **What happened:** two zone Pickings of GD-2610-1515 finished within a second (jobs 2114562372571107330 /
+  2114562385137242114), and both P5s rebuilt the Packing's item list. The first had read the GD before the second's
+  picks, so it briefly wrote one line "Open". The second wrote the full picture 0.2 s later.
+- **Why won't fix:** P5 rebuilds every line of the delivery, so it can't drop lines. The only values it can leave stale
+  (picked_qty / line_status on Packing rows) mean PACKED, and the Packing clients recompute them from the boxes on every
+  open and save. A retry check on them would loop on any partly packed Packing.
+- **Retracted:** my "5 Packings reverted by stale saves" alarm was a misread of those same columns. The Packing session
+  confirmed every line matches its boxes.
+
 ## 10-26 11:10: mobile V2 Picking live on prod
 
 - **Volume:** 288 app V2 confirms (`PKC:` keys) from 14 LSH users since 07:10:45, plus 3 web. All COMPLETED; the longest
@@ -152,9 +163,10 @@ check after the pastes clean for my jobs.
   id-less runs took up to 5 jobs.
 - **Fix:** LIMIT 1 in both polls.
   - Dev: GD_EDIT_WORKER v9 and PICKING_ASYNC_WORKER v6 at 11:02, idle smokes OK.
-  - Prod: GD_EDIT_WORKER **with the stock-lock batch** (`prod-hotfix/2026-10-26-gde-worker-one-job/`).
-  - Prod: PICKING_ASYNC_WORKER after the peak (`prod-hotfix/2026-10-26-picking-worker-sweep-skip/`, now with the 10 s skip
-    and LIMIT 1).
+  - **Prod: GD_EDIT_WORKER v9 pasted 11:13:48, IDENTICAL** (with the stock-lock batch).
+  - **Prod: PICKING_ASYNC_WORKER v6 pasted 11:15:02, IDENTICAL** (10 s skip + LIMIT 1).
+  - **The hour after:** 81 LSH Picking jobs, all COMPLETED (max 19 s, 0 retries). 221 Picking and 388 GD Edit worker runs,
+    all Complete: no claim crash since.
 
 ## 10-26: worker claim races (harmless crashes, possible error pop-up)
 

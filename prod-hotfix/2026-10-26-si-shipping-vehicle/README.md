@@ -9,7 +9,9 @@ client then asked for the values to come from the SO / GD (same day), so this fo
   - `si_shipping_method` "Shipping Method" (key `sm5hq2vt`): a table-select on Shipping Method that lists active
     methods of the SI's organization. Cloned from GD `di_shipping_method`.
   - `si_vehicle_number` "Vehicle Number" (key `vn7kx3pd`): a select on Vehicle, with GD's "+" button that opens an
-    Add Vehicle dialog (new script `onSiVehicleNumberfunc`, key `vb4rc8wn`). Cloned from GD `di_vehicle_number`.
+    Add Vehicle dialog (new script `onSiVehicleNumberfunc`, key `vb4rc8wn`). Cloned from GD `di_vehicle_number`, but
+    with its label on one line (`labelWrap: false`, like the other SI fields) and the button reading "+ Add"
+    (`buttonText: "Add"`, as on SO's Vehicle Number; GD's has no buttonText, so it shows the default "新增").
   - Both stay editable after Completed / Fully Posted (those forms' Update buttons save the whole form).
   - Fill on the form: `onChange_soID`, which runs after "Add from SO / GD", takes `di_shipping_method` /
     `di_vehicle_number` from the first GD when the lines came from a GD, else from the first SO. The GD read asks for
@@ -24,7 +26,7 @@ client then asked for the values to come from the SO / GD (same day), so this fo
 - A combined SI (several SOs / GDs) takes the values from the first document, the same rule as its addresses and
   remarks. The SI copies what the source holds at that moment. Later edits on the SO / GD do not flow down.
 
-**Dev** (published 2026-10-26, backups in `~/Documents/ASC-dev/workflow-backups/dev/`): SI form v392, SI_SAVE v85,
+**Dev** (published 2026-10-26, backups in `~/Documents/ASC-dev/workflow-backups/dev/`): SI form v393, SI_SAVE v85,
 GD_Convert_SI / SO_Convert_SI / SO_SAVE new enabled rows (version numbers stayed v29 / v58 / v172). Builder:
 `scratchpad/si_ship/build_si_ship.py`. Offline test (`scratchpad/si_ship/test/test_fill.py [--prod]`, read-only) runs
 each Map SI Data node, live vs. patched, on real dev documents. The payloads are identical except the two new keys,

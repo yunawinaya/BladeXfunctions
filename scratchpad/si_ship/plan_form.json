@@ -2,6 +2,12 @@
   "profile": "dev-main-write",
   "tableId": "1856231112670498818",
   "items": [
-    { "name": "Sales Invoice form", "kind": "form", "dataId": "1902525285396496385", "file": "scratchpad/si_ship/out/SI_form.json", "base": "scratchpad/si_ship/base/SI_form.dev_v390.json" }
+    {
+      "name": "Sales Invoice form",
+      "kind": "form",
+      "dataId": "1902525285396496385",
+      "file": "scratchpad/si_ship/out/SI_form.json",
+      "base": "scratchpad/si_ship/base/SI_form.dev_v392.json"
+    }
   ]
 }

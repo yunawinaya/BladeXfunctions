@@ -30,5 +30,7 @@ batch (`../2026-10-26-stock-locks/`) or later: the user's call.
 
 ## After the paste
 
+**Pasted 2026-10-26 11:13:48 as prod v9: IDENTICAL.** The hour after: 388 GD_EDIT_WORKER runs, all Complete.
+
 Check: `.dbtools/wf --prod deployed "Goods Delivery/EditV2/GD_EDIT_WORKER.json"` must say IDENTICAL as 'GD_EDIT_WORKER'
 (id=2110618789356687361).
