@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PICKING_BULK_PREPARE",
+   "dataId": "2109531157594619905",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_BULK_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING_BULK_PREPARE/v12_20261026-170529.enabled.json"
+  },
+  {
+   "name": "PICKING",
+   "dataId": "2020683258347081730",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/PickingProcessWorkflow.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING/v155_20261026-170531.enabled.json"
+  }
+ ]
+}

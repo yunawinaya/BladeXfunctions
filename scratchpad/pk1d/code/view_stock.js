@@ -10,7 +10,7 @@ const buildViewStock = (entries, uom, names) => {
   }
   const looseEntries = active.filter(e => !e.handling_unit_id);
   const huEntries = active.filter(e => e.handling_unit_id);
-  const total = active.reduce((s, e) => s + (e.gd_quantity || 0), 0);
+  const total = active.reduce((s, e) => s + (Number(e.gd_quantity) || 0), 0);
 
   const fmtBatch = (e) => {
     if (!e.batch_id) return '';

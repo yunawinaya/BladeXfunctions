@@ -140,4 +140,16 @@ const fin = (planOut, mv, mp, eng) => runBody(FINAL, inj(FINAL, { code_node_PPen
   eq("result: without a move, the plan answers (the final node never ran)", rv({ route: "OK", result_message: "Picking processed successfully", recordCount: 1 }, [{ id: "70001", job_status: "READY_TO_COMMIT" }], null).result_message,
     "Picking processed successfully");
 }
+
+// ---- text quantities (GD Created V2 stores "gd_quantity":"100"): KF PICK-FG2610-160 merged 5 x "100" into "100100100100100"
+{
+  const T = (bin) => Object.assign({}, E1, { location_id: bin, gd_quantity: "5", unrestricted_qty: "5" });
+  const rows = [L("311", "5001", { temp_qty_data: JSON.stringify([T("4001"), T("4002")]), view_stock: "Total: 10 PCS\n\nDETAILS:\n1. A-01: 5 PCS\n[Batch: B1]\n2. A-02: 5 PCS\n[Batch: B1]" })]
+    .concat(ROWS.slice(1), [{ kind: "B", id: "4002", plant_id: "7001", name: "A-02" }]);
+  const r = move(PLANOUT([REC(), REC({ source_bin: "4002" })]), rows);
+  const cells = CELLS(r, 0, 0);
+  const t = JSON.parse(cells.temp_qty_data);
+  eq("move: text quantities merge into the bay as numbers", [r.route, t.length, t[0].location_id, t[0].gd_quantity, t[0].unrestricted_qty, cells.view_stock.split("\n")[0]],
+    ["OK", 1, "4009", 10, 10, "Total: 10 PCS"]);
+}
 done();

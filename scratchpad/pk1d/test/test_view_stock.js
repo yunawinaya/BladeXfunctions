@@ -22,6 +22,7 @@ const CASES = {
   "nothing allocated": [{ location_id: "L1", gd_quantity: 0 }],
   "names missing fall back to ids": [{ location_id: "L9", batch_id: "B9", gd_quantity: 1 }, { location_id: "L9", handling_unit_id: "H9", gd_quantity: 1 }],
   "decimal quantities": [{ location_id: "L1", gd_quantity: 2.5 }, { location_id: "L2", gd_quantity: 0.25 }],
+  "text quantities": [{ location_id: "L1", gd_quantity: "100" }, { location_id: "L2", gd_quantity: "100" }],
 };
 for (const [name, entries] of Object.entries(CASES)) {
   for (const uom of ["PCS", "BAG"]) {
@@ -30,6 +31,11 @@ for (const [name, entries] of Object.entries(CASES)) {
     });
   }
 }
+it("buildViewStock adds text quantities as numbers (GD Created V2 stores \"100\"; KF showed Total: 0100100100100100)", () => {
+  const entries = CASES["text quantities"];
+  assert.strictEqual(buildViewStock(JSON.parse(JSON.stringify(entries)), "PCS").split("\n")[0], "Total: 200 PCS");
+  assert.strictEqual(classic(NAMES)(JSON.parse(JSON.stringify(entries)), "PCS").split("\n")[0], "Total: 200 PCS");
+});
 it("buildViewStock without a names argument uses the ids", () => {
   assert.strictEqual(buildViewStock([{ location_id: "L1", gd_quantity: 5 }], "PCS"), "Total: 5 PCS\n\nDETAILS:\n1. L1: 5 PCS");
 });

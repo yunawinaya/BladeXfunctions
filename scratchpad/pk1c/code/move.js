@@ -19,7 +19,7 @@ const pkMovePlan = function pkMovePlan(IN) {
     }
     const looseEntries = active.filter(e => !e.handling_unit_id);
     const huEntries = active.filter(e => e.handling_unit_id);
-    const total = active.reduce((s, e) => s + (e.gd_quantity || 0), 0);
+    const total = active.reduce((s, e) => s + (Number(e.gd_quantity) || 0), 0);
     const fmtBatch = (e) => {
       if (!e.batch_id) return '';
       const name = batchNameMap[e.batch_id] || e.batch_id;
@@ -145,9 +145,10 @@ const pkMovePlan = function pkMovePlan(IN) {
       const huKey = entry.handling_unit_id || 'no_hu';
       const key = entry.location_id + '_' + (normalizedBatch || 'none') + '_' + huKey;
       if (locationBatchMap[key]) {
-        locationBatchMap[key].gd_quantity += entry.gd_quantity || 0;
-        locationBatchMap[key].unrestricted_qty += (entry.unrestricted_qty || 0);
-        locationBatchMap[key].balance_quantity += (entry.balance_quantity || 0);
+        // GD Created V2 stores some quantities as text ("100"): add them as numbers
+        locationBatchMap[key].gd_quantity = (Number(locationBatchMap[key].gd_quantity) || 0) + (Number(entry.gd_quantity) || 0);
+        locationBatchMap[key].unrestricted_qty = (Number(locationBatchMap[key].unrestricted_qty) || 0) + (Number(entry.unrestricted_qty) || 0);
+        locationBatchMap[key].balance_quantity = (Number(locationBatchMap[key].balance_quantity) || 0) + (Number(entry.balance_quantity) || 0);
       } else {
         locationBatchMap[key] = { ...entry, batch_id: normalizedBatch };
       }
