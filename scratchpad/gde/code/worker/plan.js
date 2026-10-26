@@ -1,4 +1,5 @@
-// GD_EDIT_WORKER - Plan: the due jobs (at most 5; an expired hold is due) -> the loop's items, the run start
+// GD_EDIT_WORKER - Plan: the due job (at most 1 per run: a run that touched stock keys blocks them until it ends, so it
+// takes no second job - 10-26 LSH freeze; an expired hold is due) -> the loop's items, the run start
 const workerItem = function workerItem(row) {
   const s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
   const dead = String(row.dead_lease) === "1";

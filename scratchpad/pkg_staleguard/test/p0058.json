@@ -1,0 +1,111 @@
+{
+  "ok": true,
+  "data": {
+    "table": "Packing",
+    "count": 1,
+    "rows": [
+      {
+        "plant_id": "1123598813738675202",
+        "di_freight_charges": 0,
+        "so_no": "SO/20261016-031",
+        "idempotency_key": "PKG|2110944492629655554",
+        "id": "2110944493556596738",
+        "packing_status": "Created",
+        "table_hu_source": [],
+        "packing_mode": "Detail",
+        "create_time": "2026-10-16 12:02:41.363",
+        "create_dept": "1123598813738675201",
+        "created_by": "2015606952982085634",
+        "total_item_qty": 0,
+        "total_hu_count": 0,
+        "table_item_source": [
+          {
+            "item_code": "2064633018934157313",
+            "gd_line_id": "2110944492675792898",
+            "to_id": "2110944756296187906",
+            "line_status": "Fully Picked",
+            "so_no": "SO/20261016-031",
+            "qty_to_pick": 0,
+            "item_uom": "2018906563477008389",
+            "so_id": "2110944363331846146",
+            "total_quantity": 1,
+            "id": "2110944818438995970",
+            "remaining_qty": 0,
+            "batch_no": "2102287018456641538",
+            "select_item": 0,
+            "so_line_id": "2110944363340234754",
+            "gd_id": "2110944492629655554",
+            "item_name": "ITEM-ZX-BATCH",
+            "gd_no": "GD/20261016/587",
+            "picked_qty": 1,
+            "bin_location": "2018912822846582786"
+          },
+          {
+            "item_code": "2064633018934157313",
+            "gd_line_id": "2110944492675792898",
+            "to_id": "2110944756296187906",
+            "line_status": "Fully Picked",
+            "so_no": "SO/20261016-031",
+            "qty_to_pick": 0,
+            "item_uom": "2018906563477008389",
+            "so_id": "2110944363331846146",
+            "total_quantity": 1,
+            "id": "2110944818438995971",
+            "remaining_qty": 0,
+            "batch_no": "2102303561445928962",
+            "select_item": 0,
+            "so_line_id": "2110944363340234754",
+            "gd_id": "2110944492629655554",
+            "item_name": "ITEM-ZX-BATCH",
+            "gd_no": "GD/20261016/587",
+            "picked_qty": 1,
+            "bin_location": "2018912822846582786"
+          }
+        ],
+        "organization_id": "1123598813738675201",
+        "gd_no": "GD/20261016/587",
+        "create_user": "2015606952982085634",
+        "table_hu": [],
+        "tenant_id": "000000",
+        "created_at": "2026-10-16 00:00:00.000",
+        "total_item_count": 0,
+        "update_time": "2026-10-16 12:03:58.821",
+        "packing_no_type": "2033723179439177729",
+        "update_user": "2015606952982085634",
+        "is_deleted": 0,
+        "so_id": [
+          "2110944363331846146"
+        ],
+        "packing_no": "PACK/20261016/0058",
+        "assigned_to": [],
+        "gd_id": "2110944492629655554",
+        "selected_hu_index": -1,
+        "customer_id": [
+          "2086719200473055234"
+        ]
+      }
+    ]
+  },
+  "error": null,
+  "_notice": [
+    {
+      "level": "info",
+      "code": "data.read.datetime_path",
+      "message": "本回执里的时间值（create_time/created_at/update_time 等）是**读回路**的显示值——平台读写两条路的时区口径可能不同（真机实测过整 15 小时的差）。**不要把它原样回写**：read-modify-write 每轮会再漂一次、跨日累加。要改时间就写你本意的那个值。"
+    }
+  ],
+  "runtime": {
+    "kind": "unknown",
+    "version": "0.9.13",
+    "buildHash": "d6ec49f3e179",
+    "builtAt": "2026-10-22T00:56:35.181Z",
+    "payloadHash12": "4ed4df866383"
+  },
+  "_meta": {
+    "schemaVersion": 1,
+    "projection": "full",
+    "bytes": 3744,
+    "fields": 3,
+    "warningsDeduped": 0
+  }
+}

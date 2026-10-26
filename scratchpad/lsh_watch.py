@@ -21,8 +21,11 @@ import sys
 EPOCH = 1288834974657
 MYT = datetime.timezone(datetime.timedelta(hours=8))
 NOW = "DATE_ADD(UTC_TIMESTAMP(), INTERVAL 8 HOUR)"
-BUSINESS = ("GD_INSUFFICIENT_STOCK", "GDC_INVENTORY_INSUFFICIENT", "GD_INVALID_UOM", "GDC_NOT_ELIGIBLE", "GDX_NOT_ELIGIBLE")
+BUSINESS = ("GD_INSUFFICIENT_STOCK", "GDC_INVENTORY_INSUFFICIENT", "GD_INVALID_UOM", "GDC_NOT_ELIGIBLE", "GDX_NOT_ELIGIBLE",
+            "GD_INVENTORY_REJECTED",  # the engine refused before any stock change (e.g. INSUFFICIENT_STOCK at apply time)
+            "GRV_STALE")  # a GR revert refused because the receipt's stock was used (business; PO GR Putaway session's area)
 CRASH_WF = ("GD_", "GOODS_DELIVERY", "PACKING", "PICKING", "INVENTORY_", "SUBTRACT_INVENTORY", "ADD_INVENTORY", "SO_AUTO_GD", "REPACKING")
+NOT_CRASH = ("GD_Convert_SI",)  # validations thrown as a failed run ("already has existing Sales Invoice")
 
 
 def rows(sql):
@@ -77,10 +80,10 @@ def main():
     crash = rows("SELECT workflow_name wf, COUNT(*) n, MAX(create_time) latest, LEFT(MAX(IFNULL(error_msg, '')), 110) err FROM su_code_workflow_inst "
                  "WHERE id > %d AND tenant_id = '%s' AND status = 'Fail' GROUP BY wf" % (lo_id, tenant))
     for r in crash:
-        if str(r["wf"]).startswith(CRASH_WF):
+        if str(r["wf"]).startswith(CRASH_WF) and str(r["wf"]) not in NOT_CRASH:
             alerts += 1
             print("ALERT crash %s x%s, latest %s: %s" % (r["wf"], r["n"], str(r["latest"])[11:19], r["err"]))
-    other = [r for r in crash if not str(r["wf"]).startswith(CRASH_WF)]
+    other = [r for r in crash if not str(r["wf"]).startswith(CRASH_WF) or str(r["wf"]) in NOT_CRASH]
     if other:
         print("info other failed runs: " + ", ".join("%s x%s" % (r["wf"], r["n"]) for r in other))
 
@@ -99,6 +102,17 @@ def main():
     for r in orphans:
         alerts += 1
         print("ALERT stock operation past its lease: %s %s (lease %s UTC), holds %s key rows" % (r["op"], r["st"], r["lease_utc"], r["keys_held"]))
+    # 10-26: a lock-token call normally takes 1-60 s; one stuck for minutes is a lock cycle that only the platform's 20-min
+    # child limit ends (07:31-07:51: 5 GDs, 81 keys stranded). Its stuck TAKE / GIVE names the operation to watch
+    lo_frozen = (int((now - datetime.timedelta(minutes=30)).timestamp() * 1000) - EPOCH) << 22
+    frozen = rows("SELECT CAST(id AS CHAR) id, DATE_FORMAT(create_time, '%%H:%%i:%%s') started, TIMESTAMPDIFF(SECOND, create_time, %s) secs, "
+                  "JSON_UNQUOTE(JSON_EXTRACT(request_json_data, '$.workflowparams.mode')) mode, JSON_UNQUOTE(JSON_EXTRACT(request_json_data, '$.workflowparams.operation_id')) op "
+                  "FROM su_code_workflow_inst WHERE workflow_id = 2105936479113383937 AND id > %d AND tenant_id = '%s' AND status = 'InExecute' "
+                  "AND create_time < %s - INTERVAL 3 MINUTE" % (NOW, lo_frozen, tenant, NOW))
+    for r in frozen:
+        alerts += 1
+        print("ALERT stock lock call running %s s (%s %s, started %s): a lock cycle until the 20-min platform limit - its keys stay held"
+              % (r["secs"], r["mode"], r["op"], r["started"]))
 
     classic = rows("SELECT IFNULL(create_user_name, create_user) u, workflow_name wf, COUNT(*) n FROM su_code_workflow_inst WHERE id > %d AND tenant_id = '%s' "
                    "AND ((workflow_name = 'PACKING_SAVE' AND JSON_UNQUOTE(JSON_EXTRACT(request_json_data, '$.workflowparams.saveAs')) = 'Completed') "

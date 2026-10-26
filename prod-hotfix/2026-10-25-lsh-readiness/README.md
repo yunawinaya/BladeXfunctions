@@ -67,6 +67,8 @@ Shared file: `Goods Delivery/GDonMounted.js` kicks several workers. Announce bef
 | 12 | **BA: two overlapping cancels on one Picking header can silently drop a rename** (X5 writes the whole text; each check sees only its own token). Reproduced: `scratchpad/gdcan/test/race_x5.js`. Display text only. Never happened at LSH (0 of 310 shared headers). | GD | **fixed**: every X5 write also renames the siblings that will end Cancelled (past X2 / X3, or Cancelled with the rename lost), so the last write keeps them all; no lock, no SQL. GD_CANCEL_COMMIT dev v9; race test, 33 cases, sims pass; **live PASSED** (dev 504 + 505: one write carried both renames) | **DONE**: GD_CANCEL_COMMIT prod v7 20:12:23, IDENTICAL. The NUMBERS check stays as a monitor. |
 | 8 | **Engine lock waits under concurrent SO → GD conversions.** This morning (11:40-11:45, 10 conversions) GD creation commits took 30-84 s, almost all inside INVENTORY_APPLY_OPERATION waiting in INVENTORY_LOCK_TOKENS (one run 47.9 s). Since 10-23: 8 lock-token runs over 50 s (max 96.5 s), all completed; no engine failure since the 10-23 incident fix. A throughput limit on shared materials, not a failure. | GD | - | mitigation live: GD_ASYNC_WORKER prod v13 (240 s, lock-conflict retries finish in the run). **Watch** creation latency and LOCK_CONFLICT counts. |
 | 6 | `processed` in worker results counts SELECTED jobs, not done ones. Don't drive loops or reports from it. | each | | |
+| 13 | **Stock locks** (10-26). **(a) Freeze and slow TAKEs:** the platform holds a taken key until the whole top-level run ends. APPLY's parallel TAKE lanes broke the lock order (the 07:31 freeze), and worker runs kept keys through further jobs and retry sleeps (TAKEs of 2-9 min). **(b) False review:** the engine compared stored decimals at 8 places while the platform stores the tenant's 4 / 3 (GUB GD-26/10/0528). **(c) Claim herd:** 161 worker runs died on the claim insert, all from retry passes. | GD | INVENTORY_APPLY_OPERATION v15 (precision + one ordered TAKE), INVENTORY_OPERATION_RECONCILE v13, GD_ASYNC_WORKER v21 (one stock call per run, no retry passes); all tests pass; dev end-to-end PASSED (GD/20261026/625, /626). Next: the same rule for GD_COMPLETE / GD_CANCEL workers. Edit & Picking (42): one breach, id-less runs take up to 5 jobs; fix LIMIT 5 -> 1 in GD_EDIT_WORKER / PICKING_ASYNC_WORKER polls, building on dev; GD_EDIT_WORKER suggested with this paste batch (its own folder), PICKING_ASYNC_WORKER after peak. Packing: 0 runs with 2+ jobs today; its options are with its owner | **pending (user)**: `../2026-10-26-stock-locks/` (replaces the never-pasted `../2026-10-26-engine-precision-worker-herd/`), pasted together with `../2026-10-26-gde-worker-one-job/` (GD_EDIT_WORKER 2110618789356687361, prod v8 -> dev v9, 42's; the user's choice). After peak: `../2026-10-26-picking-worker-sweep-skip/` (PICKING_ASYNC_WORKER, 42's) |
+| 14 | **Purchase returns from Blocked / Reserved / QI refused as Unrestricted** (LSH PR-2610-0014; 27 LSH refusals since 10-17). PURCHASE_RETURN passed the category to GLOBAL_INVENTORY_VALIDATION as `" category"` (leading space), so the check fell back to Unrestricted. Refused attempts write nothing: no repair. | PO GR Putaway | PURCHASE_RETURN v17 (10:24) | **pending (user)**: `../2026-10-26-prt-blocked-category/` |
 
 ## Recurrence sweep, 10-25 evening (GD session; prod, read-only)
 
@@ -169,8 +171,48 @@ So no fix is stranded on dev. All 41 GD / Picking / Packing repo files match pro
     the platform's 20-min child limit (07:51). GD_BULK_COMMIT then moved to a new operation id and stranded 81 keys (33
     products). Released by `../2026-10-26-lsh-orphan-locks/repair.sql`. Fix: the same operation is retried, so RECOVER
     releases the keys (prod v25+).
+    - **Root cause (GD session, 10-26 10:50, from prod run timings):** the platform keeps the atomic-count lock that
+      INVENTORY_LOCK_TOKENS takes on a key until the TOP-LEVEL run ends (the worker run), not when the engine call ends.
+      - A blocked TAKE gets through only when that whole run ends. Packing PKG|2114544577384943617|3 waited 99.7 s: through
+        1.8 s after GD_COMPLETE_WORKER 2114544729973723137 ended, 15 s after its engine run had ended.
+      - So a worker run that touched a key (taken or given back) blocks it for its whole life: up to 240 s, several jobs,
+        retry sleeps. Today there were 82 TAKEs over 30 s and 35 over 2 min.
+      - **Freeze:** a run that holds keys out of order waits for another run that waits for it. The lock has no timeout,
+        so only the 20-min limit ends it. Two ways to hold keys out of order:
+        - INVENTORY_APPLY_OPERATION's 9 parallel TAKE lanes (since 10-22). At 07:31, 1 of GD|2114497026472415234|11's 8
+          lanes waited while its other lanes' keys blocked 4 GDs.
+        - A second engine call in the same worker run.
+      - **Fix (user's choice, item 13):** one ordered TAKE call in INVENTORY_APPLY_OPERATION, and one stock call per
+        GD_ASYNC_WORKER run. Dev v15 / v21, prod paste pending. `scratchpad/lsh_watch.py` now alerts on a lock call running
+        3+ min.
   - **Starvation.** Big old GDs never found all their keys free while newer GDs kept taking some; GD-2610-1470 waited 70 min.
     Fix: oldest waiting GD goes first (prod v28, `../2026-10-26-gd-commit-oldest-first-v3/`). v26 / v27 never fired: the
     platform drops sql-node columns not declared in the node's response_json.
   - **Rule:** adding a SELECT column to an existing sql-node means adding it to that node's response_json.
   - lsh_watch.py now alerts on a stock operation past its lease that still holds keys.
+  - **Review polish, prod 09:35-09:40** (`../2026-10-26-gd-review-polish/`: GD_ASYNC_WORKER v16, GD_BULK_COMMIT v29,
+    GD_JOB_RECONCILE v10):
+    - oldest-first counts only VALID allocated rows with a location (charge lines made unrelated GDs queue);
+    - retry limit 200 everywhere (worker / reconcile were 60);
+    - a head with 30+ retries no longer blocks the queue;
+    - timezone-free liveness (next_attempt_at / lease, DB clock);
+    - a lazy, indexed check;
+    - unrecorded call failures fail cleanly after 6 in a row;
+    - one more same-operation recovery before review.
+    Lint rule SQLCOLUMN added. Dev end-to-end run passed (GD/20261026/624).
+- 10-26 GUB (900938): GD-26/10/0528 was held for review by a false VERIFICATION_MISMATCH. The engine compares the planned FIFO
+  price (99.93685714) with the stored 4-decimal value (99.9369). Stock was applied correctly. Repaired by
+  `../2026-10-26-gub-gd0528-review/repair.sql`; the GD was Created at 09:23. Any tenant could hit this when a FIFO cost has
+  more than 4 decimals. **Fix (item 13):** the engine's checks compare at the tenant's number rule; dev v14, prod paste
+  pending.
+- 10-26 (GD session): **claim herd.** 161 GD_ASYNC_WORKER runs died on `Duplicate entry ... W0_CLAIM_<n>` (06:51-08:31), 154 on
+  jobs waiting on stock locks: every tick retried the same 3 oldest jobs and woke with the others. **Fix (item 13):** only
+  the run that claimed a waiting job last sleeps on it and retries it; dev v20, prod paste pending.
+- 10-26 (Edit & Picking session, 42): **mobile V2 Picking is live on prod and healthy.** Since 07:10:45, LSH ran 288
+  CONFIRM_PICKING jobs from the app (PKC:, 14 users) plus 3 from the web. All COMPLETED, longest 29 s, no failure, review or
+  stuck job. The OTA reached the pickers before 07:10, so real traffic replaced the planned first device run (item 5).
+  - PACK-2610-1012: its 2 lines were written by an app V2 confirm's P5 at 10:57:49.9. A stale-copy classic PACKING_SAVE from
+    carmen's phone wiped them at 10:59:04. The fix is the Packing session's.
+- 10-26 (PO GR Putaway V2 session): LSH PR-2610-0014 could not be completed ("Insufficient stock ... (Unrestricted).
+  Available: 0" for stock chosen from Blocked). Cause: a parameter named `" category"` in PURCHASE_RETURN, there since at
+  least July. **Fix (item 14)**, prod paste pending.

@@ -934,12 +934,12 @@
                               "valueLabel": ""
                             },
                             {
-                              "prop": " category",
+                              "prop": "category",
                               "operator": "",
                               "valueType": "field",
                               "value": "{{node:code_node_l7SCHo67.data.inventory_category}}",
                               "valueLabel": "",
-                              "propLabel": " category"
+                              "propLabel": "category"
                             }
                           ]
                         }

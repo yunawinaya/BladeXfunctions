@@ -40,13 +40,14 @@ const disabledField = async (status) => {
         "si_address_name",
         "si_address_contact",
         "sales_invoice_no",
-        "sales_invoice_date",
+        "sales_invoice_no_type",
         "sales_person_id",
         "si_payment_term_id",
         "si_description",
         "posted_date",
         "posted_status",
         "plant_id",
+        "project_id",
         "invoice_type",
         "organization_id",
         "fileupload_hmtcurne",
@@ -255,7 +256,7 @@ const checkAccIntegrationType = async (organizationId) => {
         console.log("status", status);
         this.setData({ previous_status: status });
         console.log("data", this.getValues());
-
+        this.getComponent('table_si')?.hideChildRecord();
         if (status === "Draft") {
           this.hide([
             "button_posted",
@@ -277,6 +278,35 @@ const checkAccIntegrationType = async (organizationId) => {
           ]);
 
           this.disabled("table_si.invoice_qty", true);
+          this.disabled("sales_invoice_date", false)
+
+
+          setTimeout(() => {
+            document
+              .querySelectorAll(
+                "#pane-tab_si button.el-button--danger.el-button--small",
+              )
+              .forEach((button) => {
+                button.disabled = true;
+                button.setAttribute("aria-disabled", "true");
+              });
+          }, 100);
+        } else if (status === "Fully Posted") {
+          this.hide([
+            "link_shipping_address",
+            "link_billing_address",
+            "button_save_as_draft",
+            "button_completed",
+            "button_completed_posted",
+            "button_posted",
+            "button_update_completed"
+          ]);
+          this.display([
+            "button_update_posted",
+          ]);
+
+          this.disabled(["table_si.invoice_qty"], true);
+          this.disabled("sales_invoice_date", false)
 
           setTimeout(() => {
             document

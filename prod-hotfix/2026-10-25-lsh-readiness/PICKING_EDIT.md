@@ -135,6 +135,27 @@ check after the pastes clean for my jobs.
   - **Prod v14 pasted 06:54:13, IDENTICAL.**
   - Folder `prod-hotfix/2026-10-26-picking-p4-sibling/`.
 
+## 10-26 11:10: mobile V2 Picking live on prod
+
+- **Volume:** 288 app V2 confirms (`PKC:` keys) from 14 LSH users since 07:10:45, plus 3 web. All COMPLETED; the longest
+  took 29 s.
+- **The planned first device run** is superseded by real traffic on the Picking side.
+- **PACK-2610-1012** (Packing's item): an app V2 confirm's P5 added 2 lines at 10:57:49.9, then a stale-copy classic
+  PACKING_SAVE wiped them at 10:59:04. P5 bumps packing.update_time, so a stale copy is detectable. GD-2610-1175 is fully
+  picked.
+
+## 10-26: one job per worker run (the stock-lock rule)
+
+- **The rule:** the platform's stock lock lasts until the top-level run ends, so a worker run makes at most one stock call
+  and takes no further job after it.
+- **My workers:** each job makes one stock call (GD Edit E1; Picking PM1, moves only; the PLANs take no locks). But
+  id-less runs took up to 5 jobs.
+- **Fix:** LIMIT 1 in both polls.
+  - Dev: GD_EDIT_WORKER v9 and PICKING_ASYNC_WORKER v6 at 11:02, idle smokes OK.
+  - Prod: GD_EDIT_WORKER **with the stock-lock batch** (`prod-hotfix/2026-10-26-gde-worker-one-job/`).
+  - Prod: PICKING_ASYNC_WORKER after the peak (`prod-hotfix/2026-10-26-picking-worker-sweep-skip/`, now with the 10 s skip
+    and LIMIT 1).
+
 ## 10-26: worker claim races (harmless crashes, possible error pop-up)
 
 - **Seen:** PICKING_ASYNC_WORKER crashed 3 times at the claim insert at LSH (07:22 x2, 07:28). The other run did each job;

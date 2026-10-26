@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "INVENTORY_APPLY_OPERATION",
+   "dataId": "2105133980371554305",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/INVENTORY_APPLY_OPERATION.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/INVENTORY_APPLY_OPERATION/v14_20261026-104834.enabled.json"
+  },
+  {
+   "name": "GD_ASYNC_WORKER",
+   "dataId": "2104840667119411201",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_ASYNC_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_ASYNC_WORKER/v20_20261026-104835.enabled.json"
+  }
+ ]
+}

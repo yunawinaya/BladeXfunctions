@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "INVENTORY_APPLY_OPERATION",
+   "dataId": "2105133980371554305",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/INVENTORY_APPLY_OPERATION.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/INVENTORY_APPLY_OPERATION/v13_20261026-102106.enabled.json"
+  },
+  {
+   "name": "INVENTORY_OPERATION_RECONCILE",
+   "dataId": "2105134048113758209",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/INVENTORY_OPERATION_RECONCILE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/INVENTORY_OPERATION_RECONCILE/v12_20261026-102107.enabled.json"
+  }
+ ]
+}

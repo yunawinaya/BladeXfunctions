@@ -1,0 +1,9 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  { "name": "GD_BULK_COMMIT", "dataId": "2104840402446245890", "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_BULK_COMMIT.json", "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_BULK_COMMIT/v30_20261026-091349.enabled.json" },
+  { "name": "GD_JOB_RECONCILE", "dataId": "2105133877053263874", "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_JOB_RECONCILE.json", "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_JOB_RECONCILE/v9_20261026-091354.enabled.json" },
+  { "name": "GD_ASYNC_WORKER", "dataId": "2104840667119411201", "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_ASYNC_WORKER.json", "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_ASYNC_WORKER/v18_20261026-091351.enabled.json" }
+ ]
+}

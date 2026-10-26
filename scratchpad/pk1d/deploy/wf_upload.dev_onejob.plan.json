@@ -1,0 +1,36 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_EDIT_WORKER",
+   "dataId": "2110618789356687361",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_EDIT_WORKER/v8_20261026-105839.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": ""
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  },
+  {
+   "name": "PICKING_ASYNC_WORKER",
+   "dataId": "2109531412499251201",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_ASYNC_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING_ASYNC_WORKER/v5_20261026-105840.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": ""
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  }
+ ]
+}

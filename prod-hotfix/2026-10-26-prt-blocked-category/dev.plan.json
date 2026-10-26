@@ -1,0 +1,7 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "PURCHASE_RETURN", "dataId": "2066433188188499969", "file": "prod-hotfix/2026-10-26-prt-blocked-category/PURCHASE_RETURN.prod_paste.json", "base": "prod-hotfix/2026-10-26-prt-blocked-category/PURCHASE_RETURN.prod_v16_base.json" }
+  ]
+}

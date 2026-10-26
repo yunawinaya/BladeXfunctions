@@ -1,0 +1,10 @@
+{
+  "profile": "dev-main-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "Sales Invoice form", "kind": "form", "dataId": "1902525285396496385", "file": "scratchpad/si_ship/out/SI_form.json", "base": "scratchpad/si_ship/base/SI_form.dev_v391.json" },
+    { "name": "GD_Convert_SI", "dataId": "2070069049332416514", "file": "scratchpad/si_ship/out/GD_Convert_SI.json", "base": "scratchpad/si_ship/base/GD_Convert_SI.dev_v29.json" },
+    { "name": "SO_Convert_SI", "dataId": "2029006184569364481", "file": "scratchpad/si_ship/out/SO_Convert_SI.json", "base": "scratchpad/si_ship/base/SO_Convert_SI.dev_v58.json" },
+    { "name": "SO_SAVE", "dataId": "1988908545345945602", "file": "scratchpad/si_ship/out/SO_SAVE.json", "base": "scratchpad/si_ship/base/SO_SAVE.dev_v172.json" }
+  ]
+}

@@ -1,0 +1,1 @@
+{"code":200,"data":{"errorStatus":"fullyPacked","message":"Cannot complete packing — 2 line(s) not fully packed:\nITEM-ZX-BATCH: required 1, packed 0\nITEM-ZX-BATCH: required 1, packed 0"},"msg":"操作成功","success":true}

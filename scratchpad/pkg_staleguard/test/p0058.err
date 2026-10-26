@@ -1,0 +1,1 @@
+[info] data.read.datetime_path: 本回执里的时间值（create_time/created_at/update_time 等）是**读回路**的显示值——平台读写两条路的时区口径可能不同（真机实测过整 15 小时的差）。**不要把它原样回写**：read-modify-write 每轮会再漂一次、跨日累加。要改时间就写你本意的那个值。

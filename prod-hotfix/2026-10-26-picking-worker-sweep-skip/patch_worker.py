@@ -1,5 +1,6 @@
 """patch_worker.py <base.json> <out.json>: PICKING_ASYNC_WORKER's poll, one exact raw-text replacement (the file's own formatting
-kept). An id-less run (a Picking list open) leaves a job to its own kick for its first 10 s, and for 10 s after a retry comes
+kept). Two changes in that one SQL: the id-less skip below, and LIMIT 1 (at most one job per run, so a run that touched stock
+keys takes no second job). An id-less run (a Picking list open) leaves a job to its own kick for its first 10 s, and for 10 s after a retry comes
 due: two runs claiming one job at once crash the loser at add_node_PWclaim (LSH 10-26 07:22 x2, 07:28), and that crash can reach
 the user as an error toast. Same rule as GD_ASYNC_WORKER's pick (C) and the consumer's v14 poll skip.
 create_time is the platform's MYT clock (UTC_TIMESTAMP + 8 h on any session); next_attempt_at is written from the session's
@@ -38,6 +39,10 @@ add = """                AND (c.id IS NULL OR c.started_at <= NOW(3) - INTERVAL 
               ORDER BY j.create_time, j.id"""
 assert sql.count(anchor) == 1
 new = sql.replace(anchor, add)
+# at most one job per run (10-26 LSH freeze): a run that touched stock keys blocks them until it ends, so it takes no second
+# job; runs for a named job_id already take only that job
+assert new.count("              LIMIT 5) x") == 1
+new = new.replace("              LIMIT 5) x", "              LIMIT 1) x")
 old_esc, new_esc = json.dumps(sql, ensure_ascii=False)[1:-1], json.dumps(new, ensure_ascii=False)[1:-1]
 assert t.count(old_esc) == 1
 t = t.replace(old_esc, new_esc)

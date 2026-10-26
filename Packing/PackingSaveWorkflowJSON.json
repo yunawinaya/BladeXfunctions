@@ -402,6 +402,185 @@
               ]
             },
             {
+              "id": "sql_node_PkStale",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Live Source Lines Of The Stored Packing",
+                "isValidator": true,
+                "nodeName": "Live Source Lines Of The Stored Packing",
+                "name": "Live Source Lines Of The Stored Packing",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST('SRC' AS CHAR) AS kind, CAST(s.id AS CHAR) AS id, DATE_FORMAT(s.create_time, '%Y-%m-%d %H:%i:%s.%f') AS created, CAST(s.create_user AS CHAR) AS by_user\n  FROM packing_jz8m9w3h_sub s\n WHERE s.tenant_id = '{{node:code_node_PkTermPrep.data.tenantId}}'\n   AND s.packing_id = {{node:code_node_PkTermPrep.data.packingId}}\n   AND s.is_deleted = 0\nUNION ALL\nSELECT CAST('HUSRC' AS CHAR), CAST(h.id AS CHAR), DATE_FORMAT(h.create_time, '%Y-%m-%d %H:%i:%s.%f'), CAST(h.create_user AS CHAR)\n  FROM packing_mudjw4xk_sub h\n WHERE h.tenant_id = '{{node:code_node_PkTermPrep.data.tenantId}}'\n   AND h.packing_id = {{node:code_node_PkTermPrep.data.packingId}}\n   AND h.is_deleted = 0"
+                },
+                "response_json": [
+                  {
+                    "key": "pkst7kd2",
+                    "name": "kind",
+                    "title": "kind",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pkst3qa9",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pkst8mw4",
+                    "name": "created",
+                    "title": "created",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pkst5vx1",
+                    "name": "by_user",
+                    "title": "by_user",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PkStaleChk",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Stale Copy Check",
+                "isValidator": true,
+                "nodeName": "Stale Copy Check",
+                "name": "Stale Copy Check",
+                "script": {
+                  "type": "javascript",
+                  "code": "// a save from a copy loaded before someone else added lines (e.g. a Picking) would write its stale table_item_source over them\nconst entry = {{workflowparams:entry}} || {};\nconst rows = [{{node:sql_node_PkStale.data}}][0];\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst ms = (v) => {\n  const m = String(v || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2})[ T](\\d{2}):(\\d{2}):(\\d{2})(?:\\.(\\d{1,6}))?/);\n  return m ? Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6], Math.floor(Number(((m[7] || \"0\") + \"000\").slice(0, 3)))) : NaN;\n};\nconst loaded = ms(entry.update_time);\nconst me = String([{{system:uid}}][0] || \"\");\nconst mine = new Set(list(entry.table_item_source).concat(list(entry.table_hu_source)).map((r) => String(r.id || \"\")).filter((x) => x));\nconst added = isNaN(loaded) ? [] : list(rows).filter((r) => !mine.has(String(r.id)) && ms(r.created) > loaded && String(r.by_user) !== me);\nreturn {\n  stale: added.length ? \"1\" : \"0\",\n  message: \"This Packing changed since you opened it: \" + added.length + \" line(s) were added meanwhile (for example by a Picking). Close it and open it again. Nothing was saved.\",\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "pksc4hz8",
+                    "name": "stale",
+                    "title": "stale",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "pksc9tu3",
+                    "name": "message",
+                    "title": "message",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_PkStale",
+              "type": "if",
+              "data": {
+                "title": "IF Stale Copy",
+                "isValidator": true,
+                "nodeName": "IF Stale Copy",
+                "name": "IF Stale Copy",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1,
+                      "parentId": 0,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "code": "'{{node:code_node_PkStaleChk.data.stale}}' == '1'",
+                  "type": "javascript"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "if_block_PkStale_t",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "return_node_PkStale",
+                      "type": "return-node",
+                      "data": {
+                        "return_data": {},
+                        "status_code": 200,
+                        "response_value": {
+                          "list": [
+                            {
+                              "prop": "errorStatus",
+                              "propLabel": "Error Status",
+                              "operator": "",
+                              "operatorLabel": "",
+                              "valueType": "value",
+                              "valueTypeLabel": "",
+                              "value": "\"staleCopy\"",
+                              "valueLabel": ""
+                            },
+                            {
+                              "prop": "message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PkStaleChk.data.message}}",
+                              "valueLabel": "",
+                              "propLabel": "Message"
+                            }
+                          ]
+                        },
+                        "return_raw_data": 0,
+                        "title": "Return Stale Copy",
+                        "isValidator": true,
+                        "nodeName": "Return Stale Copy",
+                        "name": "Return Stale Copy"
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "if_block_PkStale_f",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "code_node_PkStoredPrep",
               "type": "code-node",
               "data": {

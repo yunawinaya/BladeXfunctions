@@ -987,7 +987,7 @@ def build_worker():
                 AND (@JOBID <> 0 OR NOT EXISTS (SELECT 1 FROM gd_publish_step r WHERE r.tenant_id = j.tenant_id AND r.job_id = (CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci)
                                                  AND r.step_name = 'RELEASE' AND r.is_deleted = 0 AND r.started_at > NOW(3) - INTERVAL 10 SECOND))
               ORDER BY j.create_time, j.id
-              LIMIT 5) x
+              LIMIT 1) x
     ON 1 = 1""", UNLOCK=UNLOCK_COLS.replace("\n       ", "\n                    "), LOCKJOIN=GD_LOCK_JOIN.replace("\n", "\n             "), TEN=TEN, JOBID=N(G, "data.jobId"))
     tick = q("""SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
        DATE_FORMAT(n.t + INTERVAL 10 MINUTE, '%Y-%m-%d %H:%i:%s') AS lease_until,

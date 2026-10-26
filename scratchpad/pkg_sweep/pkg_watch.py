@@ -52,7 +52,7 @@ while True:
             emit(state, "stuck:" + r["id"], f"JOB OPEN {int(r['age']) // 60} min: job {r['id']} packing {r['pk']} {r['st']} {r['ec']}")
         for r in db(f"""SELECT CAST(id AS CHAR) id, job_status st, attempt_count n, causation_id pk FROM gd_async_job
               WHERE tenant_id = '{T}' AND command = 'COMPLETE_PACKING' AND is_deleted = 0 AND update_time >= '{since}'
-               AND (error_code = 'PK_INVENTORY_RETRY' OR attempt_count > 0)"""):
+               AND (error_code = 'PK_INVENTORY_RETRY' OR attempt_count > 0) AND job_status NOT IN ('COMPLETED', 'FAILED', 'REQUIRES_REVIEW')"""):
             emit(state, "retry:" + r["id"], f"LOCK/STEP RETRY: job {r['id']} packing {r['pk']} attempt {r['n']} ({r['st']})")
         for r in db(f"""SELECT CAST(id AS CHAR) id, idempotency_key k, causation_id pk FROM gd_async_job WHERE tenant_id = '{T}'
               AND command = 'COMPLETE_PACKING' AND is_deleted = 0 AND idempotency_key LIKE 'PKM:%' ORDER BY id LIMIT 1"""):

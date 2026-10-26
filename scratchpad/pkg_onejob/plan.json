@@ -1,0 +1,19 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PACKING_ASYNC_WORKER",
+   "dataId": "2109924593737240578",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_onejob/out/PACKING_ASYNC_WORKER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_onejob/base/PACKING_ASYNC_WORKER.json",
+   "smoke": {
+    "request": {},
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  }
+ ]
+}

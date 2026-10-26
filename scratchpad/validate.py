@@ -28,6 +28,9 @@ Catches the bug classes that the platform fails silently on:
   PCTPCT       a sql-node DATE_FORMAT / TIME_FORMAT / STR_TO_DATE format holding '%%': MySQL reads it as a
                literal '%', so the date comes back as text like "%Y-%m-%d" (a Python %-format leftover in a
                builder; PICKING_BULK_COMMIT / PACKING_ASYNC_SUBMIT 2026-10-24). Write single '%'.
+  SQLCOLUMN    a sql-node SELECT column missing from the node's own response_json (when that lists fields): the
+               platform drops it, so code reading it sees nothing (GD_BULK_COMMIT older_waiting, 2026-10-26: the
+               oldest-first check never fired on prod v26 / v27). Declare every selected alias.
 
 Usage:
     python3 scratchpad/validate.py <workflow.json> [<workflow.json> ...]
@@ -71,6 +74,54 @@ INFORMATIONAL = {"CONDITIONAL"}
 
 # Node types whose rows are chosen by data.table_id.rules.
 FILTER_TYPES = {"update-node", "delete-node", "get-node", "search-node"}
+
+
+def select_aliases(sql):
+    """Aliases of the top-level SELECT list (None when the statement is not a plain SELECT ... FROM)."""
+    text = re.sub(r"--[^\n]*", "", sql)
+    m = re.match(r"(?is)\s*select\s+(distinct\s+)?", text)
+    if not m:
+        return None
+    i, depth, quote, items, cur = m.end(), 0, None, [], []
+    while i < len(text):
+        ch = text[i]
+        if quote:
+            cur.append(ch)
+            if ch == quote:
+                quote = None
+        elif ch in "'\"`":
+            quote = ch
+            cur.append(ch)
+        elif ch == "(":
+            depth += 1
+            cur.append(ch)
+        elif ch == ")":
+            depth -= 1
+            cur.append(ch)
+        elif depth == 0 and ch == ",":
+            items.append("".join(cur))
+            cur = []
+        elif depth == 0 and re.match(r"(?i)\bfrom\b", text[i:i + 5]) and (i == 0 or not re.match(r"[A-Za-z0-9_]", text[i - 1])):
+            items.append("".join(cur))
+            break
+        else:
+            cur.append(ch)
+        i += 1
+    else:
+        return None
+    out = []
+    for item in items:
+        item = item.strip()
+        if not item or item.endswith("*"):
+            continue
+        a = re.search(r"(?is)\bas\s+`?([A-Za-z0-9_]+)`?\s*$", item)
+        if a:
+            out.append(a.group(1))
+            continue
+        b = re.search(r"([A-Za-z0-9_]+)`?\s*$", item)
+        if b:
+            out.append(b.group(1))
+    return out
 
 
 def date_formats(sql):
@@ -354,6 +405,12 @@ def check(path, only=None):
             fmts = [f for f in date_formats(sql) if "%%" in f]
             if fmts:
                 findings.append(("PCTPCT", nid, f"{len(fmts)} date format(s) with '%%' (e.g. {fmts[0]!r}): MySQL returns the text, not the date - use single '%'"))
+            declared = {e.get("name") for e in ((node.get("data") or {}).get("response_json") or []) if isinstance(e, dict) and e.get("name")}
+            aliases = select_aliases(sql) if declared else None
+            for alias in aliases or []:
+                # only a column some other node reads matters (an alias kept for ORDER BY / UNION shape is harmless)
+                if alias not in declared and any(o != nid and re.search(r"\b%s\b" % re.escape(alias), json.dumps((index[o]["node"].get("data") or {}))) for o in index):
+                    findings.append(("SQLCOLUMN", nid, f"selects {alias!r}, which another node reads, but the node's response_json omits it: the platform drops the column"))
 
         if info["type"] in FILTER_TYPES:
             data = node.get("data") or {}
@@ -399,7 +456,7 @@ def check(path, only=None):
     print(f"\n=== {path}  ({len(index)} nodes)")
     if not findings:
         print("  clean")
-    order = ["MULTIWHERE", "IDIGNORED", "PCTPCT", "SQLSTART", "MISSING", "FORWARD", "DIVERGENT", "UNDECLARED", "UNUSED", "CONDITIONAL"]
+    order = ["MULTIWHERE", "IDIGNORED", "PCTPCT", "SQLSTART", "SQLCOLUMN", "MISSING", "FORWARD", "DIVERGENT", "UNDECLARED", "UNUSED", "CONDITIONAL"]
     findings.sort(key=lambda f: (order.index(f[0]) if f[0] in order else 99, f[1]))
     for kind, nid, message in findings:
         print(f"  {kind:<12} {nid:<28} {message}")

@@ -1,0 +1,7 @@
+{
+  "profile": "dev-main-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "SI_SAVE", "dataId": "2029040374929154050", "file": "scratchpad/si_ship/out/SI_SAVE.json", "base": "scratchpad/si_ship/base/SI_SAVE.dev_v84.json" }
+  ]
+}

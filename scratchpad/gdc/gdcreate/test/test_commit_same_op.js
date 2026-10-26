@@ -34,7 +34,18 @@ t("  ...backoff counted as before (30 s at 10 retries used)", j.next_attempt_at 
 d = decide([op("LOCKED")], crashed, 3, 4);
 t("crashed, operation LOCKED with an expired lease -> same operation too", d.route === "RETRY" && d.nextOperationId === "GD|77|4", { route: d.route, next: d.nextOperationId });
 d = decide([op("LOCKING")], crashed, 200, 201);
-t("crashed, LOCKING, retries used up -> not a silent new id: the existing exhaustion path (review, keys named)", d.route !== "RETRY" && d.job_status === "REQUIRES_REVIEW", { route: d.route, job_status: d.job_status });
+t("crashed, LOCKING, retries used up (200) -> still the SAME operation once more, so its RECOVER can release the keys", d.route === "RETRY" && d.nextOperationId === "GD|77|201" && d.jobRows[0].attempt_count === 201, { route: d.route, next: d.nextOperationId });
+d = decide([op("LOCKING")], crashed, 202, 201);
+t("crashed, LOCKING, past limit + 2 -> review naming the stuck operation and 'no stock moved' (not the false 'stock moved')", d.route === "REVIEW" && d.job_status === "REQUIRES_REVIEW" && /no stock moved/.test(d.jobRows[0].error_message) && !/Stock moved but/.test(d.jobRows[0].error_message) && d.hasHeader === "YES", { route: d.route, msg: (d.jobRows || [{}])[0].error_message });
+// a call that fails before the inventory workflow records anything: its own budget of 6 in a row (error_details.call_failures)
+const preWith = (attempts, opAttempt, details) => { const p = pre(attempts, opAttempt); p.jobRows[0].error_details = details ? JSON.stringify(details) : null; return p; };
+const decideD = (rows, response, attempts, opAttempt, details) => quiet(() => fns.publishP3(guard, preWith(attempts, opAttempt, details), p1, p2, rows, response));
+d = decideD([clock], crashed, 40, 41, { inventory_result_code: "LOCK_CONFLICT" });
+t("unrecorded crash after lock conflicts -> RETRY with a new id, call_failures 1 (the 40 lock retries do not count against it)", d.route === "RETRY" && d.nextOperationId === "GD|77|42" && JSON.parse(d.jobRows[0].error_details).call_failures === 1, { route: d.route, det: (d.jobRows || [{}])[0].error_details });
+d = decideD([clock], crashed, 45, 46, { inventory_result_code: "INVENTORY_CALL_FAILED", call_failures: 5 });
+t("unrecorded crash number 6 in a row -> still RETRY, call_failures 6", d.route === "RETRY" && JSON.parse(d.jobRows[0].error_details).call_failures === 6, { route: d.route });
+d = decideD([clock], crashed, 46, 47, { inventory_result_code: "INVENTORY_CALL_FAILED", call_failures: 6 });
+t("unrecorded crash number 7 in a row -> clean failure (nothing recorded, nothing held): FAILED, hidden rows soft-deleted", d.route === "FAIL_CLEAN" && d.job_status === "FAILED" && d.hasHeader === "YES" && /7 times in a row/.test(d.jobRows[0].error_message), { route: d.route, job_status: d.job_status });
 d = decide([clock], crashed, 2, 3);
 t("crashed, no operation row -> RETRY with a NEW operation (unchanged: nothing is held)", d.route === "RETRY" && d.nextOperationId === "GD|77|4", { route: d.route, next: d.nextOperationId });
 d = decide([op("REJECTED", { result_code: "LOCK_CONFLICT" })], crashed, 2, 3);

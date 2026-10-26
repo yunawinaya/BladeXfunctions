@@ -2504,6 +2504,22 @@
                       "value": "{{node:code_si_prep.data.entry.invoice_type}}",
                       "valueLabel": "",
                       "propLabel": "Invoice Type"
+                    },
+                    {
+                      "prop": "si_shipping_method",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_si_prep.data.entry.si_shipping_method}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method"
+                    },
+                    {
+                      "prop": "si_vehicle_number",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_si_prep.data.entry.si_vehicle_number}}",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number"
                     }
                   ]
                 }
@@ -3201,6 +3217,22 @@
                       "value": "{{node:code_si_prep.data.entry.invoice_type}}",
                       "valueLabel": "",
                       "propLabel": "Invoice Type"
+                    },
+                    {
+                      "prop": "si_shipping_method",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_si_prep.data.entry.si_shipping_method}}",
+                      "valueLabel": "",
+                      "propLabel": "Shipping Method"
+                    },
+                    {
+                      "prop": "si_vehicle_number",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_si_prep.data.entry.si_vehicle_number}}",
+                      "valueLabel": "",
+                      "propLabel": "Vehicle Number"
                     }
                   ]
                 }

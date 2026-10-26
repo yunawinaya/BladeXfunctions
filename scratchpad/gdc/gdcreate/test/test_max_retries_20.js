@@ -2,7 +2,7 @@
 // (argv[2], default the repo file): retry 7..20 every 30 s, a clean failure only after 20 (patch_max_retries_20.py, LSH 10-26).
 const fs = require("fs");
 const W = JSON.parse(fs.readFileSync(process.argv[2] || "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_BULK_COMMIT.json", "utf8"));
-const MAX = Number(process.argv[3] || 20);
+const MAX = Number(process.argv[3] || (JSON.stringify(W).match(/max_retries\\":(\d+)/) || [0, 20])[1]);
 const find = (o, id) => {
   if (Array.isArray(o)) { for (const v of o) { const r = find(v, id); if (r) return r; } return null; }
   if (o && typeof o === "object") { if (o.id === id) return o; for (const v of Object.values(o)) { const r = find(v, id); if (r) return r; } }
