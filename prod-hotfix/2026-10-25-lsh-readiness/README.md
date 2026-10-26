@@ -216,6 +216,13 @@ So no fix is stranded on dev. All 41 GD / Picking / Packing repo files match pro
     and no key ever held 2 tokens.
   - Tested on dev only with a 2-key GD, which never used the lane path. **Rule:** an engine change is tested at LSH sizes
     (more than 25 keys) before a prod paste.
+- 10-26 ~12:20 (GD session, dev, the user's request): **big-GD contention test.** Two 100-line GDs on the same stock (100
+  shared material+bin rows), converted together and kicked every 15 s like the SO list:
+  - older 113 s; younger 223 s (about 110 s waiting in line, then its own ~110 s);
+  - the younger made no stock call while the older held the stock: no lock conflicts, no retries;
+  - each stock call took and gave back 200 keys in one call (~9-12 s each on dev); nothing stuck.
+  - Test data: SO/20260901-001 + SO/20261026-059 (created by SO Save V2 for the test) -> GD/20261026/630 / 629.
+  - Driver: `scratchpad/gdc/gdcreate/contention/run_contention.py`.
 - 10-26 (Edit & Picking session, 42): **mobile V2 Picking is live on prod and healthy.** Since 07:10:45, LSH ran 288
   CONFIRM_PICKING jobs from the app (PKC:, 14 users) plus 3 from the web. All COMPLETED, longest 29 s, no failure, review or
   stuck job. The OTA reached the pickers before 07:10, so real traffic replaced the planned first device run (item 5).

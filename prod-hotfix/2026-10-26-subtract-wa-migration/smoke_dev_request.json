@@ -1,0 +1,21 @@
+{
+ "plant_id": "1123598813738675202",
+ "organization_id": "1123598813738675201",
+ "material_id": "2084504993182838824",
+ "quantity": 1,
+ "material_uom": "2018906563477008392",
+ "unit_price": 0,
+ "transaction_type": "SA",
+ "trx_no": "TEST-SUBTRACT-WA-20261026",
+ "parent_trx_no": "",
+ "inventory_category": "Unrestricted",
+ "location_id": "2018912822846582786",
+ "batch_id": "",
+ "index": 0,
+ "itemData": null,
+ "manufacturing_date": "",
+ "expired_date": "",
+ "doc_date": "2026-10-26",
+ "isMovingInv": 0,
+ "handling_unit_id": ""
+}

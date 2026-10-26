@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SUBTRACT_INVENTORY_NEW",
+   "dataId": "2031973476128071681",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/SubtractInventoryWorkflowNew.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/SUBTRACT_INVENTORY_NEW/v28_20261026-160958.enabled.json"
+  }
+ ]
+}

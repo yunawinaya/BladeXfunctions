@@ -1,0 +1,13 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "LSH IA print (Request Raw Mat Qty = issued quantity)",
+   "kind": "page",
+   "dataId": "2069438052207247362",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/prod-hotfix/2026-10-26-ia-print-issued-qty/lsh_ia_print.v4.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/prod-hotfix/2026-10-26-ia-print-issued-qty/lsh_ia_print.v3.deployed.json"
+  }
+ ]
+}
