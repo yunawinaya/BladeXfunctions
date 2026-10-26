@@ -32,6 +32,24 @@ GD_Convert_SI / SO_Convert_SI / SO_SAVE new enabled rows (version numbers stayed
 each Map SI Data node, live vs. patched, on real dev documents. The payloads are identical except the two new keys,
 which equal the source's values. Passed for the dev and the prod builds.
 
+## PROD DEPLOYED 2026-10-26 12:20-12:24 (user), verified
+
+Form v201, SI_SAVE v47, GD_Convert_SI v27, SO_Convert_SI v39, SO_SAVE v89: each IDENTICAL to its paste file, both columns
+exist, and nothing else was published in the window. First invoice after it: I137546 (035843, 12:25, from GD/2610/908)
+stored Shipping Method "3rd Party Transporter" = its GD and SO; SI_SAVE, AR_SAVE and SI_POST all Complete.
+
+## 6. SI list page: DEV + PROD (user moved the columns last)
+
+**What:** the "SI Listing" tab gets two columns, **last** (newly added fields go last; the user moved them in the designer):
+Shipping Method (`si_shipping_method.shipping_method_code`) and Vehicle Number (`si_vehicle_number.vehicle_number`), cloned
+from the GD list's columns. The "By Item" tab is unchanged. Also carries admin's designer edit (10-26 11:58-12:02): a sum
+total under Total Amount (user: include it).
+
+**Dev:** list page v169 (user, 12:43) = the builder's output. Repo copy: `Bulk Actions/Sales & Distribution/Sales Invoice/SIlistPageJSON.json`.
+**Prod:** v148 (user, 12:39). It is the same layout; the designer also filled in display defaults on SO Number (`align`,
+`fixed`, `editMethod`, ...) and `showStyle: '2'` on the two new columns. `6_SalesInvoice_list_page.prod_paste.json` is now
+a copy of what prod runs; `6_SalesInvoice_list_page.prod_v167_base.json` is the version before.
+
 ## Paste (user), in this order
 
 Every paste file is the prod version that is live now (the matching `*_base.json`) plus this change only. The checks

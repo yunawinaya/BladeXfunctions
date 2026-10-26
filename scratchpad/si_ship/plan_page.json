@@ -1,0 +1,7 @@
+{
+  "profile": "dev-main-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "Sales Invoice list page", "kind": "page", "dataId": "1902689138369478657", "file": "scratchpad/si_ship/out/SI_list_page.json", "base": "scratchpad/si_ship/base/SI_list_page.dev_v168_designing.json" }
+  ]
+}

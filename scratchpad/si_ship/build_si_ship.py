@@ -15,6 +15,7 @@ other header fields.
   - GD_Convert_SI / SO_Convert_SI: both columns added to the header sql-node and to the header map.
   - SO_SAVE auto SI (Issued SO with auto_si): header map (it reads the whole SO with a get-node).
 SI_SAVE: both written by Add Data and Update Data (fixed prop lists; a field missing there is never stored).
+SI list page: Shipping Method (code) and Vehicle Number columns, last, cloned from the GD list's.
 """
 import copy, json, os
 
@@ -180,12 +181,51 @@ def build_so_save(base_name):
     return wf
 
 
+def list_columns(page, collection_id):
+    found = []
+
+    def walk(n):
+        if isinstance(n, dict):
+            props = n.get("customProps")
+            if isinstance(props, dict) and isinstance(props.get("columns"), list) and \
+                    ((props.get("dataSource") or {}).get("rules") or {}).get("collectionId") == collection_id:
+                found.append(props["columns"])
+            for v in n.values():
+                walk(v)
+        elif isinstance(n, list):
+            for v in n:
+                walk(v)
+    walk(page)
+    return found
+
+
+def build_si_list(base_name):
+    # GD list's two columns, renamed to the SI's fields: a column is the target field's schema plus `parent`, which holds only
+    # the foreign key (shipping_method.id / Vehicle.id), the same for both lists
+    page, gd = load(base_name), load("GD_list_page.dev_v402.json")
+    (gd_list,) = list_columns(gd, "1902054888473481218")  # Goods Delivery
+    gd_cols = {c["name"]: c for c in gd_list}
+    (cols,) = list_columns(page, "1902525285396496385")  # Sales Invoice: the "SI Listing" tab, not "By Item"
+    assert not any(c["name"].startswith(("si_shipping_method", "si_vehicle_number")) for c in cols)
+    new = []
+    for gd_name, si_name in (("di_shipping_method.shipping_method_code", "si_shipping_method.shipping_method_code"),
+                             ("di_vehicle_number.vehicle_number", "si_vehicle_number.vehicle_number")):
+        c = copy.deepcopy(gd_cols[gd_name])
+        c["name"] = si_name
+        new.append(c)
+    cols.extend(new)  # newly added fields go last (user 10-26: moved them there in the designer, dev v169 / prod v148)
+    return page
+
+
 TARGETS = {  # out file: (builder, dev base, prod base)
     "SI_form.json": (build_form, "SI_form.dev_v389.json", "prod/SI_form.prod_v200.json"),
     "SI_SAVE.json": (build_si_save, "SI_SAVE.dev_v84.json", "prod/SI_SAVE.prod_v84.json"),
     "GD_Convert_SI.json": (build_gd_convert, "GD_Convert_SI.dev_v29.json", "prod/GD_Convert_SI.prod_v26.json"),
     "SO_Convert_SI.json": (build_so_convert, "SO_Convert_SI.dev_v58.json", "prod/SO_Convert_SI.prod_v38.json"),
     "SO_SAVE.json": (build_so_save, "SO_SAVE.dev_v172.json", "prod/SO_SAVE.prod_v88.json"),
+    # built on admin's unpublished v168 design (v167 + a Total Amount sum, user 10-26: include it); prod v167 = dev v167, so
+    # the prod paste is prod v167 + that sum + the two columns
+    "SI_list_page.json": (build_si_list, "SI_list_page.dev_v168_designing.json", "SI_list_page.dev_v168_designing.json"),
 }
 
 if __name__ == "__main__":
