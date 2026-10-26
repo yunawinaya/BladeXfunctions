@@ -40,6 +40,56 @@ const pkgV2Call = (workflowId, params) =>
     }
   });
 
+// Follow one background completion: start the worker for the job until it ends or 10 minutes pass. The answer carries no
+// next-attempt time, so a lock retry waits the server's backoff (2 s doubling to 30 s), an operation still running 10 s, the
+// hand-over after the stock call 1.5 s; a start that did not take the job (not due yet / another run has it) reads the job
+// through SUBMIT STATUS. One follower per job in this browser.
+const PKG_V2_OPEN = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PACKING"];
+const pkgV2FollowJob = (jobId, packingId, organizationId, onEnd) => {
+  let following = {};
+  try {
+    following = window.__pkgV2Following = window.__pkgV2Following || {};
+  } catch (e) {
+    following = {};
+  }
+  if (following[jobId]) return;
+  following[jobId] = 1;
+  const until = Date.now() + 10 * 60 * 1000;
+  let idle = 0;
+  const step = async () => {
+    const res = await pkgV2Call(PKG_V2_WF.WORKER, { job_id: jobId });
+    const w = res.ok ? res.data || {} : {};
+    let st = String(w.job_id || "") === jobId ? String(w.job_status || "") : "";
+    let msg = String(w.result_message || "");
+    let attempts = 0;
+    try {
+      attempts = Number((JSON.parse(w.jobs || "[]")[0] || {}).attempt_count) || 0;
+    } catch (e) {
+      attempts = 0;
+    }
+    if (!st) {
+      const s = await pkgV2Call(PKG_V2_WF.SUBMIT, { packing_id: packingId, organization_id: organizationId, operation: "STATUS" });
+      if (s.ok && String((s.data || {}).job_id || "") === jobId) {
+        st = String(s.data.job_status || "");
+        msg = String(s.data.result_message || msg);
+      }
+      idle += 1;
+    } else idle = 0;
+    if (st && PKG_V2_OPEN.indexOf(st) < 0) {
+      delete following[jobId];
+      return onEnd(st, msg);
+    }
+    if (Date.now() > until) {
+      delete following[jobId];
+      return;
+    }
+    const code = String(w.result_code || "");
+    const wait = code === "PK_INVENTORY_IN_PROGRESS" ? 10000 : /RETRY/.test(code) ? Math.min(30000, 2000 * Math.pow(2, Math.max(0, attempts - 1))) + 500 : idle ? Math.min(30000, 3000 * idle) : 1500;
+    setTimeout(step, wait);
+  };
+  step();
+};
+
 const setFlag = (k, v) => {
   this.models["_data"] = { ...this.models["_data"], [k]: v };
 };
@@ -196,19 +246,14 @@ const writeLedger = async (packingId) => {
     setFlag("pkgv2_key", null);
     this.$message.success("Packing submitted. It is being completed in the background; reopen it in a moment.");
     closeDialog();
-    // start the worker now; its scheduled run is the safety net, so a failed start is only logged
-    try {
-      this.runWorkflow(
-        PKG_V2_WF.WORKER,
-        { job_id: String(out.job_id) },
-        () => {
-          if (this.parentGenerateForm) this.parentGenerateForm.refresh();
-        },
-        (e) => console.error("Packing V2: worker start failed - the scheduled worker picks the job up", e),
-      );
-    } catch (e) {
-      console.error("Packing V2: worker could not be started", e);
-    }
+    // no worker is scheduled on the server: this browser starts it until the job ends; a job left open (browser closed) is
+    // taken by the next open of any Packing
+    pkgV2FollowJob(String(out.job_id), String(data.id), organizationId, (st, msg) => {
+      if (this.parentGenerateForm) this.parentGenerateForm.refresh();
+      if (st === "COMPLETED") this.$message.success("Packing " + (data.packing_no || "") + " completed.");
+      else if (st === "FAILED") this.$message.error("Packing " + (data.packing_no || "") + " was not completed: " + (msg || "unknown reason"));
+      else if (st === "REQUIRES_REVIEW") this.$message.error("Packing " + (data.packing_no || "") + " stopped half-way and is under review: " + msg + " Please contact support.");
+    });
   } catch (error) {
     setFlag("pkgv2_submitting", 0);
     this.hideLoading();

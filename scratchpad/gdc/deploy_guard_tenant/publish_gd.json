@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GOODS_DELIVERY",
+   "dataId": "2017151544868491265",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/GDheadWorkflow.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GOODS_DELIVERY/v251_20261027-025321.enabled.json"
+  }
+ ]
+}

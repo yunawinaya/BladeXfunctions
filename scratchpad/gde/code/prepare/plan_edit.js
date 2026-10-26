@@ -70,7 +70,8 @@ const geAdoptPickVersion = function geAdoptPickVersion(req, R) {
   const p = R && R.pick && R.pick.data;
   return s((req || {}).picking_version) || (p && s(p.id) && Number(p.is_processing) === 1 ? s(p.update_time) : "");
 };
-const geGdParts = function geGdParts(stored, after, K) {
+// cfDefs: the header table's custom-field definitions (cf.js) - a header custom_fields value compares as names
+const geGdParts = function geGdParts(stored, after, K, cfDefs) {
   const L = K.line, H = K.header;
   const sys = new Set(GE_SYS_COLS);
   const emptyV = (v) => v === undefined || v === null || v === "";
@@ -112,7 +113,8 @@ const geGdParts = function geGdParts(stored, after, K) {
   for (const c of new Set(Object.keys(after).concat(Object.keys(stored)))) {
     // gd_status is E6's; a Draft's 'issued' number is E0N's (the placeholder); a typed number (-9999) is a plain cell
     if (c === "table_gd" || c === "gd_status" || sys.has(c) || !H[c] || (c === "delivery_no" && after[c] === GE_NUMBER_PH)) continue;
-    if (!same(after[c], stored[c])) { GDH.cells[c] = emptyV(after[c]) ? null : after[c]; GDH.before[c] = emptyV(stored[c]) ? null : stored[c]; }
+    const changed = c === "custom_fields" && cfDefs ? !same(geCfCanon(after[c], cfDefs), geCfCanon(stored[c], cfDefs)) : !same(after[c], stored[c]);
+    if (changed) { GDH.cells[c] = emptyV(after[c]) ? null : after[c]; GDH.before[c] = emptyV(stored[c]) ? null : stored[c]; }
   }
   return { GDL, GDH };
 };
@@ -213,7 +215,7 @@ const gePlan = function gePlan(entry, R, K) {
   const resCreates = (exec.reservedRecordCreates || []).map((c, i) => Object.assign({}, c, { job_line_key: jobId + "|C|" + (i + 1), reserved_date: Pm.date, plant_id: Pm.plant, organization_id: Pm.org }));
 
   // GDL / GDH: the write, as the read-back shows it, against the GD as stored
-  const gp = geGdParts(stored, ch.afterImage, K);
+  const gp = geGdParts(stored, ch.afterImage, K, R.cfDefs);
   if (ch.minted.number) gp.GDH.number = ch.minted.number;
   if (s(stored.gd_status) === "Draft") gp.GDH.numbering = { delivery_no_type: ch.write.header.delivery_no_type === undefined ? null : ch.write.header.delivery_no_type, issue: ch.write.header.delivery_no === "issued" ? 1 : 0 };
   // delivery_cost <- driver_cost (deployed mapping): the form never sends driver_cost, so the classic save blanks a column

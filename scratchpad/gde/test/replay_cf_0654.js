@@ -8,7 +8,7 @@ const FX = JSON.parse(fs.readFileSync(__dirname + "/fixtures/cf_0654.json", "utf
 const F = JSON.parse(fs.readFileSync(R + "scratchpad/gdc/lift/fields.json", "utf8"));
 const K = { header: F.goods_delivery, line: F.goods_delivery_fwii8mvb_sub };
 let src = [R + "scratchpad/gdc/code/prepare/adapter.js", D + "/code/prepare/plan_edit.js"].map((f) => fs.readFileSync(f, "utf8")).join("\n");
-for (const f of ["_common.js", "e2.js"]) src += "\n" + fs.readFileSync(D + "/code/commit/" + f, "utf8");
+for (const f of ["_common.js", "cf.js", "e2.js"]) src += "\n" + fs.readFileSync(D + "/code/commit/" + f, "utf8");
 const sb = { JSON, Math, Number, String, Array, Object, Set, Map, parseFloat, parseInt, isNaN, isFinite, Boolean, Error, RegExp, Date, console };
 vm.createContext(sb);
 vm.runInContext(src, sb);

@@ -1,0 +1,55 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GOODS_DELIVERY",
+   "dataId": "2017151544868491265",
+   "file": "scratchpad/salescf/out/dev/GOODS_DELIVERY.json",
+   "base": "scratchpad/salescf/base/dev/GOODS_DELIVERY.json"
+  },
+  {
+   "name": "GD_BULK_PREPARE",
+   "dataId": "2104840044642754561",
+   "file": "scratchpad/salescf/out/dev/GD_BULK_PREPARE.json",
+   "base": "scratchpad/salescf/base/dev/GD_BULK_PREPARE.json"
+  },
+  {
+   "name": "GD_BULK_COMMIT",
+   "dataId": "2104840402446245890",
+   "file": "scratchpad/salescf/out/dev/GD_BULK_COMMIT.json",
+   "base": "scratchpad/salescf/base/dev/GD_BULK_COMMIT.json"
+  },
+  {
+   "name": "GD_COMPLETE_SUBMIT",
+   "dataId": "2110182609618337794",
+   "file": "scratchpad/salescf/out/dev/GD_COMPLETE_SUBMIT.json",
+   "base": "scratchpad/salescf/base/dev/GD_COMPLETE_SUBMIT.json"
+  },
+  {
+   "name": "SO_AUTO_GD",
+   "dataId": "2076557490389835777",
+   "file": "scratchpad/salescf/out/dev/SO_AUTO_GD.json",
+   "base": "scratchpad/salescf/base/dev/SO_AUTO_GD.json"
+  },
+  {
+   "name": "SO_Convert_GD",
+   "dataId": "1985267806223810561",
+   "file": "scratchpad/salescf/out/dev/SO_Convert_GD.json",
+   "base": "scratchpad/salescf/base/dev/SO_Convert_GD.json"
+  },
+  {
+   "name": "form_goods_delivery",
+   "dataId": "1902054888473481218",
+   "file": "scratchpad/salescf/out/dev/form_goods_delivery.json",
+   "base": "scratchpad/salescf/base/dev/form_goods_delivery.json",
+   "kind": "form"
+  },
+  {
+   "name": "SI_SAVE",
+   "dataId": "2029040374929154050",
+   "file": "scratchpad/salescf/deploy/SI_SAVE.dev_v87_titlefix.json",
+   "base": "scratchpad/salescf/deploy/SI_SAVE.dev_v86_published.json"
+  }
+ ]
+}

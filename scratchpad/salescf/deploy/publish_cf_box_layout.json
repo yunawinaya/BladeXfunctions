@@ -1,0 +1,20 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "form_goods_delivery",
+   "dataId": "1902054888473481218",
+   "kind": "form",
+   "file": "scratchpad/salescf/out/dev/form_goods_delivery.json",
+   "base": "scratchpad/salescf/deploy/form_goods_delivery.dev_v1493_published.json"
+  },
+  {
+   "name": "form_sales_invoice",
+   "dataId": "1902525285396496385",
+   "kind": "form",
+   "file": "scratchpad/salescf/out/dev/form_sales_invoice.json",
+   "base": "scratchpad/salescf/deploy/form_sales_invoice.dev_v395_published.json"
+  }
+ ]
+}

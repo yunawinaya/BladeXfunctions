@@ -15,18 +15,32 @@ const MUTANTS = {
   e1_no_restore: ["e1.js", "return failNoWrite(entry, \"GDE_INVENTORY_\" + (s(eng.result_code) || \"FAILED\"), why, restore);", "return failNoWrite(entry, \"GDE_INVENTORY_\" + (s(eng.result_code) || \"FAILED\"), why);"],
   e2_sparse: ["e2.js", "for (const c of cols) row[c] = geCell(K, c, c in p.cells ? p.cells[c] : cur[c]);", "for (const c of Object.keys(p.cells)) row[c] = geCell(K, c, p.cells[c]);"],
   e2_no_before: ["e2.js", "if (!cs.every((c) => same(c, cur[c], p.before[c]))) { conflicts.push(s(p.id)); continue; }", ""],
-  e2_cf_raw: ["e2.js", "(/^custom_fields/.test(c) ? sameVal(geCfCanon(a, defs), geCfCanon(b, defs)) : sameVal(a, b))", "sameVal(a, b)"],
-  e2_cf_keep_undefined: ["e2.js", "if (!names.length || names.indexOf(name) >= 0) out[name] = o[k];", "out[name] = o[k];"],
+  e2_cf_raw: ["cf.js", "(/^custom_fields/.test(c) ? sameVal(geCfCanon(a, defs), geCfCanon(b, defs)) : sameVal(a, b))", "sameVal(a, b)"],
+  e2_cf_keep_undefined: ["cf.js", "if (!names.length || names.indexOf(name) >= 0) out[name] = o[k];", "out[name] = o[k];"],
   e2_dup_insert: ["e2.js", "    if (byKey[k]) return;\n", ""],
   e2_raw_dec: ["e2.js", "if (kind === \"dec\") return v === \"\" ? null : q8(v).toFixed(8);", "if (kind === \"dec\") return v;"],
   e3_no_fix: ["e3.js", "const res = rv.fix(resPart);", "const res = resPart;"],
   e5_no_sig: ["e5.js", "if (intent && geSig(items, GE_SIG_ITEM) === intent.items && geSig(recs, GE_SIG_REC) === intent.records)", "if (intent)"],
   e6_no_unlock_status: ["e6.js", "row.gd_status = \"Created\";", ""],
+  e6_cf_write_raw: ["e6.js", "row[c] = geHeadCell(K, c, c === \"custom_fields\" && hasDefs ? geCfCanon(v, defs) : v);", "row[c] = geHeadCell(K, c, v);"],
+  e6_cf_no_wrote_check: ["e6.js", "!same(\"custom_fields\", head.custom_fields, wrote.custom_fields)) off.push(\"custom_fields\");", "false) off.push(\"custom_fields\");"],
+  e6_cf_raw: ["e6.js", "const off = Object.keys(want).filter((c) => !same(c, head[c], want[c]));", "const off = Object.keys(want).filter((c) => !sameVal(head[c], want[c]));"],
   entry_hold: ["entry.js", "if (req && Number(req.hold) === 1 && !released)", "if (false)"],
   e5_no_resolve: ["e5.js", "const pick = p.PICK ? rv.fix(p.PICK) : null;", "const pick = p.PICK || null;"],
+  chain_cf_none: ["chain.js", "if (cf && typeof cf === \"object\" && !Array.isArray(cf)) header.custom_fields = cf;", ""],
+  chain_cf_null: ["chain.js", "if (cf && typeof cf === \"object\" && !Array.isArray(cf)) header.custom_fields = cf;", "if (cf !== undefined) header.custom_fields = cf;"],
 };
-const files = ["_common.js", "guard.js", "own.js", "result.js", "so_fresh.js", "entry.js", "e0.js", "e0n.js", "e1.js", "e2.js", "e3.js", "e5.js", "e6.js", "e7.js"];
-let src = [R + "scratchpad/gdc/code/prepare/adapter.js", D + "/code/prepare/plan_edit.js"].map((f) => fs.readFileSync(f, "utf8")).join("\n");
+const files = ["_common.js", "cf.js", "guard.js", "own.js", "result.js", "so_fresh.js", "entry.js", "e0.js", "e0n.js", "e1.js", "e2.js", "e3.js", "e5.js", "e6.js", "e7.js"];
+let src = [R + "scratchpad/gdc/code/prepare/adapter.js", D + "/code/prepare/plan_edit.js", D + "/code/submit/delta.js"].map((f) => fs.readFileSync(f, "utf8")).join("\n");
+// delta.js compares cells with gdc's gcColValue (prepare/chain.js); only GC_GD_WRITE_COLS .. gcAfterImage is taken (the write
+// and its after-image), the chain itself is not run
+let CHAIN = fs.readFileSync(R + "scratchpad/gdc/code/prepare/chain.js", "utf8");
+CHAIN = CHAIN.slice(CHAIN.indexOf("const GC_GD_WRITE_COLS = ["), CHAIN.indexOf("\n};\n", CHAIN.indexOf("const gcAfterImage = function gcAfterImage(")) + 4);
+if (mutate && MUTANTS[mutate] && MUTANTS[mutate][0] === "chain.js") {
+  assert(CHAIN.indexOf(MUTANTS[mutate][1]) >= 0, "mutant " + mutate + " does not apply");
+  CHAIN = CHAIN.replace(MUTANTS[mutate][1], MUTANTS[mutate][2]);
+}
+src += "\n" + CHAIN;
 for (const f of files) {
   let t = fs.readFileSync(D + "/code/commit/" + f, "utf8");
   if (mutate && MUTANTS[mutate] && MUTANTS[mutate][0] === f) {
@@ -397,6 +411,103 @@ it("entry: with no version in the request, the Picking version PREPARE adopted (
   const m = JSON.parse(job().prepared_payload); m.picking_version = "2026-10-15 09:00:00.000";
   const r = call("commitEntry", guard, [job({ request_payload: JSON.stringify({ v: 1, picking_version: "" }), prepared_payload: JSON.stringify(m) })], [], gdLocked, pickHeld);
   assert.strictEqual(r.pickVersion, "2026-10-15 09:00:00.000"); assert.strictEqual(r.pickUnlockOk, "YES");
+});
+
+// ---- header custom fields: LSH 128671's GD header table has definitions, so a raw read sees ids where the form sends names
+const HCF = [{ j: JSON.stringify({ cf_defs: { "2114702689144279042": "lsh_envelope", "2114703625220657153": "lsh_restday" } }) }];
+const HCF_IDS = { "2114702689144279042": "Y", "2114703625220657153": "Sat" };
+const HCF_NAMES = { lsh_envelope: "Y", lsh_restday: "Sat" };
+const hcfStored = () => ({ id: "2100000000000000001", gd_status: "Created", order_remark: "old", custom_fields: HCF_IDS, table_gd: [] });
+it("header CF: the form's names against the stored ids are no edit (geDelta)", () => {
+  const d = call("geDelta", Object.assign(hcfStored(), { custom_fields: HCF_NAMES }), hcfStored(), K, call("geCfDefs", HCF));
+  assert.ok(!("custom_fields" in d.header), JSON.stringify(d.header));
+});
+it("header CF: a changed value is still an edit (geDelta)", () => {
+  const d = call("geDelta", Object.assign(hcfStored(), { custom_fields: { lsh_envelope: "N", lsh_restday: "Sat" } }), hcfStored(), K, call("geCfDefs", HCF));
+  assert.deepStrictEqual(d.header.custom_fields, { lsh_envelope: "N", lsh_restday: "Sat" });
+});
+it("header CF: names after against ids stored are no header cell (geGdParts)", () => {
+  const r = call("geGdParts", hcfStored(), Object.assign(hcfStored(), { custom_fields: HCF_NAMES }), K, call("geCfDefs", HCF));
+  assert.ok(!("custom_fields" in r.GDH.cells), JSON.stringify(r.GDH.cells));
+});
+it("header CF: E6 writes names and reads back ids -> the header is saved, no retry", () => {
+  const r = call("commitE6Check", E(), { cells: { custom_fields: HCF_NAMES }, before: { custom_fields: null } }, { gdPickingStatus: null },
+    [{ id: "2100000000000000001", gd_status: "Created", custom_fields: HCF_IDS }], HCF);
+  assert.ok(!/does not read back/.test(r.result_message || ""), r.result_message);
+  assert.notStrictEqual(r.job_status, "REQUIRES_REVIEW");
+});
+it("header CF: E6 plan over a fresh row that already holds the edit (as ids) -> already saved", () => {
+  const r = call("commitE6Plan", E(), { cells: { custom_fields: HCF_NAMES }, before: { custom_fields: null } }, { gdPickingStatus: null },
+    [hdr({ gd_status: "Created", custom_fields: HCF_IDS })], [head()], K, HCF);
+  assert.strictEqual(r.result_message, "the header is already saved");
+});
+it("header CF: someone else changed a header custom field meanwhile -> conflict, review", () => {
+  const r = call("commitE6Plan", E(), { cells: { custom_fields: { lsh_envelope: "N", lsh_restday: "Sat" } }, before: { custom_fields: HCF_IDS } }, { gdPickingStatus: null },
+    [hdr({ custom_fields: { "2114702689144279042": "X", "2114703625220657153": "Sat" } })], [head()], K, HCF);
+  assert.ok(/changed by someone else/.test(r.result_message || ""), r.result_message);
+});
+
+// the platform DROPS a header custom_fields keyed by ids on write (dev 000000 GD/20261027/632, 10-27: E6 rewrote the fresh row's
+// ids and read back {}); keyed by names it stores the ids. E6 writes names, and its check catches a value that did not come back
+it("header CF: E6 rewrites the stored ids as names (an unchanged custom_fields survives the whole-row write)", () => {
+  const r = call("commitE6Plan", E(), { cells: { order_remark: "new" }, before: { order_remark: "old" } }, { gdPickingStatus: null },
+    [hdr({ custom_fields: HCF_IDS })], [head()], K, HCF);
+  assert.deepStrictEqual(r.headerRows[0].custom_fields, HCF_NAMES);
+});
+it("header CF: without definitions E6 writes custom_fields as stored", () => {
+  const r = call("commitE6Plan", E(), { cells: { order_remark: "new" }, before: { order_remark: "old" } }, { gdPickingStatus: null },
+    [hdr({ custom_fields: { note: "x" } })], [head()], K, [{ j: JSON.stringify({ cf_defs: {} }) }]);
+  assert.deepStrictEqual(r.headerRows[0].custom_fields, { note: "x" });
+});
+it("header CF: a written custom_fields that reads back empty is caught (retry, then review)", () => {
+  const r = call("commitE6Check", E(), { cells: {}, before: {} }, { gdPickingStatus: null },
+    [{ id: "2100000000000000001", gd_status: "Created", custom_fields: {} }], HCF, [{ id: "2100000000000000001", custom_fields: HCF_NAMES }]);
+  assert.ok(/does not read back/.test(r.result_message || ""), r.result_message);
+});
+it("header CF: a written custom_fields that reads back as ids is saved", () => {
+  const r = call("commitE6Check", E(), { cells: {}, before: {} }, { gdPickingStatus: null },
+    [{ id: "2100000000000000001", gd_status: "Created", custom_fields: HCF_IDS }], HCF, [{ id: "2100000000000000001", custom_fields: HCF_NAMES }]);
+  assert.ok(!/does not read back/.test(r.result_message || ""), r.result_message);
+});
+
+// PREPARE's emulated write (gdc chain.js gcGdWrite) carries the form's header custom_fields only when it sends an object, as
+// GOODS_DELIVERY v251's GdCfNeed / GdCfOut do: {} clears; null, absent or text leave the stored value
+const cfParts = (fillAll) => {
+  const w = call("gcGdWrite", fillAll, {}, { table_gd: [] }, "Created");
+  return { w: w, parts: call("geGdParts", hcfStored(), call("gcAfterImage", hcfStored(), w, K), K, call("geCfDefs", HCF)) };
+};
+it("header CF: a form edit of a header custom field reaches the header part (gcGdWrite -> afterImage -> geGdParts)", () => {
+  const r = cfParts({ custom_fields: { lsh_envelope: "N", lsh_restday: "Sat" } });
+  assert.deepStrictEqual(r.parts.GDH.cells.custom_fields, { lsh_envelope: "N", lsh_restday: "Sat" });
+});
+it("header CF: {} sent by the form clears the header custom fields", () => {
+  assert.deepStrictEqual(cfParts({ custom_fields: {} }).parts.GDH.cells.custom_fields, {});
+});
+it("header CF: the unchanged value, as names or as the stored ids (SO_CASCADE's base), is no header cell", () => {
+  for (const v of [HCF_NAMES, HCF_IDS]) assert.ok(!("custom_fields" in cfParts({ custom_fields: v }).parts.GDH.cells), JSON.stringify(v));
+});
+it("header CF: null, absent or text leave the column (the stored value stays)", () => {
+  for (const f of [{ custom_fields: null }, {}, { custom_fields: "{\"lsh_envelope\":\"N\"}" }]) {
+    const r = cfParts(f);
+    assert.ok(!("custom_fields" in r.w.header), JSON.stringify(f));
+    assert.ok(!("custom_fields" in r.parts.GDH.cells), JSON.stringify(f));
+  }
+});
+// 1,622 Created GDs on prod (10-27) still hold NULL custom_fields; their form sends {} and the classic save writes it
+it("header CF: stored NULL + the form's {} -> a {} cell that E6 writes and reads back (no stuck edit)", () => {
+  const stored = Object.assign(hcfStored(), { custom_fields: null });
+  const noDefs = [{ j: JSON.stringify({ cf_defs: {} }) }];
+  const w = call("gcGdWrite", Object.assign({}, stored, { custom_fields: {} }), {}, { table_gd: [] }, "Created");
+  const gdh = call("geGdParts", stored, call("gcAfterImage", stored, w, K), K, call("geCfDefs", noDefs)).GDH;
+  assert.deepStrictEqual(gdh.cells, { custom_fields: {} });
+  const p = call("commitE6Plan", E(), gdh, { gdPickingStatus: null }, [hdr({ custom_fields: null })], [head()], K, noDefs);
+  assert.deepStrictEqual(p.headerRows[0].custom_fields, {});
+  const c = call("commitE6Check", E(), gdh, { gdPickingStatus: null }, [hdr({ gd_status: "Created", custom_fields: {} })], noDefs, p.headerRows);
+  assert.ok(!/does not read back/.test(c.result_message || ""), c.result_message);
+  assert.notStrictEqual(c.job_status, "REQUIRES_REVIEW");
+});
+it("header CF: custom_fields stays out of GC_GD_WRITE_COLS (GD Complete's gsFormDiff compares those raw)", () => {
+  assert.strictEqual(call("GC_GD_WRITE_COLS.indexOf", "custom_fields"), -1);
 });
 
 console.log(JSON.stringify({ mutant: mutate || null, cases: n, failed: failed }));

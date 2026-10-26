@@ -563,7 +563,7 @@
                 "name": "SO Guard: unfinished background save of these sales orders",
                 "script": {
                   "type": "sql",
-                  "code": "SELECT (SELECT g.gd_status\n          FROM goods_delivery g\n         WHERE g.id = {{node:code_node_GdSoGuard.data.gdId}}\n           AND g.is_deleted = 0) AS stored_status,\n       (SELECT CONCAT(j.job_status, '|', CAST(j.id AS CHAR), '|', COALESCE(j.source_so_no, ''))\n          FROM gd_async_job j\n         WHERE {{node:code_node_GdSoGuard.data.scopeSql}}\n           AND j.command = 'CREATE_GD_FROM_FORM'\n           AND j.is_deleted = 0\n           AND j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')\n           AND {{node:code_node_GdSoGuard.data.soLikeSql}}\n         ORDER BY j.id\n         LIMIT 1) AS busy_job"
+                  "code": "SELECT (SELECT g.gd_status\n          FROM goods_delivery g\n         WHERE g.tenant_id = '{{system:tenantId}}'\n           AND g.id = {{node:code_node_GdSoGuard.data.gdId}}\n           AND g.is_deleted = 0) AS stored_status,\n       (SELECT CONCAT(j.job_status, '|', CAST(j.id AS CHAR), '|', COALESCE(j.source_so_no, ''))\n          FROM gd_async_job j\n         WHERE j.tenant_id = '{{system:tenantId}}'\n           AND {{node:code_node_GdSoGuard.data.scopeSql}}\n           AND j.command = 'CREATE_GD_FROM_FORM'\n           AND j.is_deleted = 0\n           AND j.job_status IN ('QUEUED', 'VALIDATING', 'CALCULATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'RECONCILING_GD', 'REQUIRES_REVIEW')\n           AND {{node:code_node_GdSoGuard.data.soLikeSql}}\n         ORDER BY j.id\n         LIMIT 1) AS busy_job"
                 },
                 "response_json": [
                   {
@@ -821,7 +821,7 @@
                 "name": "Unit Guard: stored status, the items' units, the unit names",
                 "script": {
                   "type": "sql",
-                  "code": "SELECT CONVERT('GD' USING utf8mb4) COLLATE utf8mb4_general_ci AS kind,\n       CONVERT(IFNULL((SELECT g.gd_status FROM goods_delivery g WHERE g.id = {{node:code_node_GdUomGuard.data.gdId}} AND g.is_deleted = 0), '') USING utf8mb4) COLLATE utf8mb4_general_ci AS k,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS base_uom,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS stock_control,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS conv,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS name\nUNION ALL\nSELECT CONVERT('ITEM' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(CAST(i.id AS CHAR) USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(CAST(i.based_uom AS CHAR), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(CAST(i.stock_control AS CHAR), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL((SELECT GROUP_CONCAT(CAST(c.alt_uom_id AS CHAR)) FROM item_mji552rc_sub c WHERE c.Item_id = i.id AND c.is_deleted = 0 AND c.base_qty > 0), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(i.material_name, '') USING utf8mb4) COLLATE utf8mb4_general_ci\n  FROM item i\n WHERE i.id IN ({{node:code_node_GdUomGuard.data.materialIdsSql}})\n   AND i.is_deleted = 0\nUNION ALL\nSELECT CONVERT('UNIT' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(CAST(u.id AS CHAR) USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(u.uom_name, '') USING utf8mb4) COLLATE utf8mb4_general_ci\n  FROM unit_of_measurement u\n WHERE u.id IN ({{node:code_node_GdUomGuard.data.uomIdsSql}})"
+                  "code": "SELECT CONVERT('GD' USING utf8mb4) COLLATE utf8mb4_general_ci AS kind,\n       CONVERT(IFNULL((SELECT g.gd_status FROM goods_delivery g WHERE g.tenant_id = '{{system:tenantId}}' AND g.id = {{node:code_node_GdUomGuard.data.gdId}} AND g.is_deleted = 0), '') USING utf8mb4) COLLATE utf8mb4_general_ci AS k,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS base_uom,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS stock_control,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS conv,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci AS name\nUNION ALL\nSELECT CONVERT('ITEM' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(CAST(i.id AS CHAR) USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(CAST(i.based_uom AS CHAR), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(CAST(i.stock_control AS CHAR), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL((SELECT GROUP_CONCAT(CAST(c.alt_uom_id AS CHAR)) FROM item_mji552rc_sub c WHERE c.Item_id = i.id AND c.is_deleted = 0 AND c.base_qty > 0), '') USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(i.material_name, '') USING utf8mb4) COLLATE utf8mb4_general_ci\n  FROM item i\n WHERE i.tenant_id = '{{system:tenantId}}'\n   AND i.id IN ({{node:code_node_GdUomGuard.data.materialIdsSql}})\n   AND i.is_deleted = 0\nUNION ALL\nSELECT CONVERT('UNIT' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(CAST(u.id AS CHAR) USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT('' USING utf8mb4) COLLATE utf8mb4_general_ci,\n       CONVERT(IFNULL(u.uom_name, '') USING utf8mb4) COLLATE utf8mb4_general_ci\n  FROM unit_of_measurement u\n WHERE u.tenant_id = '{{system:tenantId}}'\n   AND u.id IN ({{node:code_node_GdUomGuard.data.uomIdsSql}})"
                 },
                 "response_json": [
                   {
@@ -5431,9 +5431,7 @@
                         {
                           "id": "ifBlock_FkYJzwsc",
                           "type": "ifBlock",
-                          "data": {
-                            "title": "false"
-                          },
+                          "data": { "title": "false" },
                           "blocks": [
                             {
                               "id": "if_cl_auto_override",
@@ -5453,9 +5451,7 @@
                                 {
                                   "id": "ifBlock_cl_ao_t",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "true"
-                                  },
+                                  "data": { "title": "true" },
                                   "blocks": [
                                     {
                                       "id": "return_node_hhplPnie",
@@ -5498,9 +5494,7 @@
                                 {
                                   "id": "ifBlock_cl_ao_f",
                                   "type": "ifBlock",
-                                  "data": {
-                                    "title": "false"
-                                  },
+                                  "data": { "title": "false" },
                                   "blocks": []
                                 }
                               ]
@@ -7370,10 +7364,7 @@
                 "nodeName": "IF Force Complete Closes Picking",
                 "name": "IF Force Complete Closes Picking",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -8117,6 +8108,156 @@
                                 ]
                               },
                               "blocks": []
+                            },
+                            {
+                              "id": "code_node_GdCfNeed1",
+                              "type": "code-node",
+                              "blocks": [],
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// Did this save leave the header custom fields out? Only then the stored ones are read (one column), so the save keeps them\nconst missing = (v) => v === undefined || v === null;\nconst cf = [{{node:code_node_IyJHrBst.data.allData.custom_fields}}][0];\nconst rawId = [{{node:code_node_IyJHrBst.data.allData.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst digits = /^[0-9]{1,20}$/.test(id);\nreturn { need: missing(cf) && digits ? \"1\" : \"0\", id: digits ? id : \"0\" };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "xpzb1g0m",
+                                    "name": "need",
+                                    "title": "need",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "negsf9b2",
+                                    "name": "id",
+                                    "title": "id",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ],
+                                "title": "Did the save leave the header custom fields out?",
+                                "isValidator": true,
+                                "nodeName": "Did the save leave the header custom fields out?",
+                                "name": "Did the save leave the header custom fields out?"
+                              }
+                            },
+                            {
+                              "id": "if_GdCfNeed1",
+                              "type": "if",
+                              "data": {
+                                "condition_type": "Expression",
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 2113500000005,
+                                      "parentId": 2113500000006,
+                                      "isTop": true,
+                                      "prop": "",
+                                      "operator": "",
+                                      "valueType": "",
+                                      "value": "",
+                                      "type": "leaf",
+                                      "level": 1
+                                    }
+                                  ]
+                                },
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{node:code_node_GdCfNeed1.data.need}}' == '1'"
+                                },
+                                "title": "IF the save left the header custom fields out",
+                                "isValidator": true,
+                                "nodeName": "IF the save left the header custom fields out",
+                                "name": "IF the save left the header custom fields out"
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_TGdCfNeed1",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "sql_node_GdCfRead1",
+                                      "type": "sql-node",
+                                      "blocks": [],
+                                      "data": {
+                                        "database_id": "",
+                                        "sql": "",
+                                        "params": {},
+                                        "script": {
+                                          "type": "sql",
+                                          "code": "SELECT CAST(t.id AS CHAR) AS row_id,\n       IF(t.custom_fields IS NULL, NULL, (SELECT IFNULL(JSON_OBJECTAGG(IFNULL(d.field_name, k.k),\n                              JSON_EXTRACT(t.custom_fields, CONCAT('$.\"', k.k, '\"'))), JSON_OBJECT())\n   FROM JSON_TABLE(IFNULL(JSON_KEYS(t.custom_fields), JSON_ARRAY()), '$[*]' COLUMNS (k VARCHAR(64) PATH '$')) k\n   LEFT JOIN su_code_custom_field d\n     ON d.id = IF(k.k REGEXP '^[0-9]+$', CAST(k.k AS UNSIGNED), NULL)\n    AND d.is_deleted = 0\n  WHERE NOT (k.k REGEXP '^[0-9]+$' AND d.id IS NULL))) AS custom_fields\n  FROM goods_delivery t\n WHERE t.id = CAST('{{node:code_node_GdCfNeed1.data.id}}' AS UNSIGNED)\n   AND t.tenant_id = '{{system:tenantId}}'\n   AND t.is_deleted = 0\n LIMIT 1"
+                                        },
+                                        "response_json": [
+                                          {
+                                            "key": "r9tqw8pe",
+                                            "name": "row_id",
+                                            "title": "row_id",
+                                            "description": "",
+                                            "bsonType": "string",
+                                            "isExpand": false,
+                                            "children": []
+                                          },
+                                          {
+                                            "key": "0rpwt1kw",
+                                            "name": "custom_fields",
+                                            "title": "custom_fields",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "children": []
+                                          }
+                                        ],
+                                        "title": "Stored header custom fields (this one column, by id)",
+                                        "isValidator": true,
+                                        "nodeName": "Stored header custom fields (this one column, by id)",
+                                        "name": "Stored header custom fields (this one column, by id)"
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_FGdCfNeed1",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "code_node_GdCfOut1",
+                              "type": "code-node",
+                              "blocks": [],
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// What the update writes into custom_fields: the payload's object, or (left out) the stored one as read\nconst missing = (v) => v === undefined || v === null;\nlet cf = [{{node:code_node_IyJHrBst.data.allData.custom_fields}}][0];\nif (String([{{node:code_node_GdCfNeed1.data.need}}][0]) === \"1\") {\n  const rows = [{{node:sql_node_GdCfRead1.data}}][0];\n  const row = Array.isArray(rows) ? rows[0] : rows;\n  let stored = row ? row.custom_fields : undefined;\n  if (typeof stored === \"string\") {\n    try {\n      stored = JSON.parse(stored);\n    } catch (e) {\n      stored = null;\n    }\n  }\n  cf = stored;\n}\nreturn { cf: missing(cf) ? null : cf };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "7ay5gjmp",
+                                    "name": "cf",
+                                    "title": "cf",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ],
+                                "title": "Header custom fields to write (sent, else as stored)",
+                                "isValidator": true,
+                                "nodeName": "Header custom fields to write (sent, else as stored)",
+                                "name": "Header custom fields to write (sent, else as stored)"
+                              }
                             },
                             {
                               "id": "update_node_elLmtlLm",
@@ -9048,6 +9189,14 @@
                                       "value": "{{node:code_node_IyJHrBst.data.allData.delivery_no}}",
                                       "valueLabel": "",
                                       "propLabel": "Goods Delivery Number"
+                                    },
+                                    {
+                                      "prop": "custom_fields",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_GdCfOut1.data.cf}}",
+                                      "valueLabel": "",
+                                      "propLabel": "custom_fields"
                                     }
                                   ]
                                 }
@@ -9095,6 +9244,156 @@
                           "type": "ifBlock",
                           "data": { "title": "false" },
                           "blocks": [
+                            {
+                              "id": "code_node_GdCfNeed2",
+                              "type": "code-node",
+                              "blocks": [],
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// Did this save leave the header custom fields out? Only then the stored ones are read (one column), so the save keeps them\nconst missing = (v) => v === undefined || v === null;\nconst cf = [{{node:code_node_IyJHrBst.data.allData.custom_fields}}][0];\nconst rawId = [{{node:code_node_IyJHrBst.data.allData.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst digits = /^[0-9]{1,20}$/.test(id);\nreturn { need: missing(cf) && digits ? \"1\" : \"0\", id: digits ? id : \"0\" };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "z6o2s4dm",
+                                    "name": "need",
+                                    "title": "need",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "koukdwuq",
+                                    "name": "id",
+                                    "title": "id",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ],
+                                "title": "Did the save leave the header custom fields out?",
+                                "isValidator": true,
+                                "nodeName": "Did the save leave the header custom fields out?",
+                                "name": "Did the save leave the header custom fields out?"
+                              }
+                            },
+                            {
+                              "id": "if_GdCfNeed2",
+                              "type": "if",
+                              "data": {
+                                "condition_type": "Expression",
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 2113500000007,
+                                      "parentId": 2113500000008,
+                                      "isTop": true,
+                                      "prop": "",
+                                      "operator": "",
+                                      "valueType": "",
+                                      "value": "",
+                                      "type": "leaf",
+                                      "level": 1
+                                    }
+                                  ]
+                                },
+                                "expression": {
+                                  "type": "javascript",
+                                  "code": "'{{node:code_node_GdCfNeed2.data.need}}' == '1'"
+                                },
+                                "title": "IF the save left the header custom fields out",
+                                "isValidator": true,
+                                "nodeName": "IF the save left the header custom fields out",
+                                "name": "IF the save left the header custom fields out"
+                              },
+                              "blocks": [
+                                {
+                                  "id": "ifBlock_TGdCfNeed2",
+                                  "type": "ifBlock",
+                                  "data": { "title": "true" },
+                                  "blocks": [
+                                    {
+                                      "id": "sql_node_GdCfRead2",
+                                      "type": "sql-node",
+                                      "blocks": [],
+                                      "data": {
+                                        "database_id": "",
+                                        "sql": "",
+                                        "params": {},
+                                        "script": {
+                                          "type": "sql",
+                                          "code": "SELECT CAST(t.id AS CHAR) AS row_id,\n       IF(t.custom_fields IS NULL, NULL, (SELECT IFNULL(JSON_OBJECTAGG(IFNULL(d.field_name, k.k),\n                              JSON_EXTRACT(t.custom_fields, CONCAT('$.\"', k.k, '\"'))), JSON_OBJECT())\n   FROM JSON_TABLE(IFNULL(JSON_KEYS(t.custom_fields), JSON_ARRAY()), '$[*]' COLUMNS (k VARCHAR(64) PATH '$')) k\n   LEFT JOIN su_code_custom_field d\n     ON d.id = IF(k.k REGEXP '^[0-9]+$', CAST(k.k AS UNSIGNED), NULL)\n    AND d.is_deleted = 0\n  WHERE NOT (k.k REGEXP '^[0-9]+$' AND d.id IS NULL))) AS custom_fields\n  FROM goods_delivery t\n WHERE t.id = CAST('{{node:code_node_GdCfNeed2.data.id}}' AS UNSIGNED)\n   AND t.tenant_id = '{{system:tenantId}}'\n   AND t.is_deleted = 0\n LIMIT 1"
+                                        },
+                                        "response_json": [
+                                          {
+                                            "key": "n65poxxg",
+                                            "name": "row_id",
+                                            "title": "row_id",
+                                            "description": "",
+                                            "bsonType": "string",
+                                            "isExpand": false,
+                                            "children": []
+                                          },
+                                          {
+                                            "key": "lzi0pvcg",
+                                            "name": "custom_fields",
+                                            "title": "custom_fields",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "children": []
+                                          }
+                                        ],
+                                        "title": "Stored header custom fields (this one column, by id)",
+                                        "isValidator": true,
+                                        "nodeName": "Stored header custom fields (this one column, by id)",
+                                        "name": "Stored header custom fields (this one column, by id)"
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "id": "ifBlock_FGdCfNeed2",
+                                  "type": "ifBlock",
+                                  "data": { "title": "false" },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "code_node_GdCfOut2",
+                              "type": "code-node",
+                              "blocks": [],
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// What the update writes into custom_fields: the payload's object, or (left out) the stored one as read\nconst missing = (v) => v === undefined || v === null;\nlet cf = [{{node:code_node_IyJHrBst.data.allData.custom_fields}}][0];\nif (String([{{node:code_node_GdCfNeed2.data.need}}][0]) === \"1\") {\n  const rows = [{{node:sql_node_GdCfRead2.data}}][0];\n  const row = Array.isArray(rows) ? rows[0] : rows;\n  let stored = row ? row.custom_fields : undefined;\n  if (typeof stored === \"string\") {\n    try {\n      stored = JSON.parse(stored);\n    } catch (e) {\n      stored = null;\n    }\n  }\n  cf = stored;\n}\nreturn { cf: missing(cf) ? null : cf };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "sobnq3m7",
+                                    "name": "cf",
+                                    "title": "cf",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ],
+                                "title": "Header custom fields to write (sent, else as stored)",
+                                "isValidator": true,
+                                "nodeName": "Header custom fields to write (sent, else as stored)",
+                                "name": "Header custom fields to write (sent, else as stored)"
+                              }
+                            },
                             {
                               "id": "update_node_aJCo6wbf",
                               "type": "update-node",
@@ -10033,6 +10332,14 @@
                                       "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
                                       "valueLabel": "",
                                       "propLabel": "Sales Representative"
+                                    },
+                                    {
+                                      "prop": "custom_fields",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_GdCfOut2.data.cf}}",
+                                      "valueLabel": "",
+                                      "propLabel": "custom_fields"
                                     }
                                   ]
                                 }
@@ -11018,6 +11325,14 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
                               "valueLabel": "",
                               "propLabel": "Sales Representative"
+                            },
+                            {
+                              "prop": "custom_fields",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.custom_fields}}",
+                              "valueLabel": "",
+                              "propLabel": "custom_fields"
                             }
                           ]
                         }
@@ -12134,10 +12449,7 @@
                 "nodeName": "IF Force Complete Closes Picking (after write)",
                 "name": "IF Force Complete Closes Picking (after write)",
                 "condition_type": "ConditionRule",
-                "expression": {
-                  "type": "javascript",
-                  "code": ""
-                },
+                "expression": { "type": "javascript", "code": "" },
                 "filter": {
                   "list": [
                     {
@@ -15326,6 +15638,156 @@
                   "data": { "title": "true" },
                   "blocks": [
                     {
+                      "id": "code_node_GdCfNeed3",
+                      "type": "code-node",
+                      "blocks": [],
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// Did this save leave the header custom fields out? Only then the stored ones are read (one column), so the save keeps them\nconst missing = (v) => v === undefined || v === null;\nconst cf = [{{node:code_node_IyJHrBst.data.allData.custom_fields}}][0];\nconst rawId = [{{node:code_node_IyJHrBst.data.allData.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst digits = /^[0-9]{1,20}$/.test(id);\nreturn { need: missing(cf) && digits ? \"1\" : \"0\", id: digits ? id : \"0\" };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "680rffo9",
+                            "name": "need",
+                            "title": "need",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "hm3grwo0",
+                            "name": "id",
+                            "title": "id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ],
+                        "title": "Did the save leave the header custom fields out?",
+                        "isValidator": true,
+                        "nodeName": "Did the save leave the header custom fields out?",
+                        "name": "Did the save leave the header custom fields out?"
+                      }
+                    },
+                    {
+                      "id": "if_GdCfNeed3",
+                      "type": "if",
+                      "data": {
+                        "condition_type": "Expression",
+                        "filter": {
+                          "list": [
+                            {
+                              "id": 2113500000009,
+                              "parentId": 2113500000010,
+                              "isTop": true,
+                              "prop": "",
+                              "operator": "",
+                              "valueType": "",
+                              "value": "",
+                              "type": "leaf",
+                              "level": 1
+                            }
+                          ]
+                        },
+                        "expression": {
+                          "type": "javascript",
+                          "code": "'{{node:code_node_GdCfNeed3.data.need}}' == '1'"
+                        },
+                        "title": "IF the save left the header custom fields out",
+                        "isValidator": true,
+                        "nodeName": "IF the save left the header custom fields out",
+                        "name": "IF the save left the header custom fields out"
+                      },
+                      "blocks": [
+                        {
+                          "id": "ifBlock_TGdCfNeed3",
+                          "type": "ifBlock",
+                          "data": { "title": "true" },
+                          "blocks": [
+                            {
+                              "id": "sql_node_GdCfRead3",
+                              "type": "sql-node",
+                              "blocks": [],
+                              "data": {
+                                "database_id": "",
+                                "sql": "",
+                                "params": {},
+                                "script": {
+                                  "type": "sql",
+                                  "code": "SELECT CAST(t.id AS CHAR) AS row_id,\n       IF(t.custom_fields IS NULL, NULL, (SELECT IFNULL(JSON_OBJECTAGG(IFNULL(d.field_name, k.k),\n                              JSON_EXTRACT(t.custom_fields, CONCAT('$.\"', k.k, '\"'))), JSON_OBJECT())\n   FROM JSON_TABLE(IFNULL(JSON_KEYS(t.custom_fields), JSON_ARRAY()), '$[*]' COLUMNS (k VARCHAR(64) PATH '$')) k\n   LEFT JOIN su_code_custom_field d\n     ON d.id = IF(k.k REGEXP '^[0-9]+$', CAST(k.k AS UNSIGNED), NULL)\n    AND d.is_deleted = 0\n  WHERE NOT (k.k REGEXP '^[0-9]+$' AND d.id IS NULL))) AS custom_fields\n  FROM goods_delivery t\n WHERE t.id = CAST('{{node:code_node_GdCfNeed3.data.id}}' AS UNSIGNED)\n   AND t.tenant_id = '{{system:tenantId}}'\n   AND t.is_deleted = 0\n LIMIT 1"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "73mi1so5",
+                                    "name": "row_id",
+                                    "title": "row_id",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  },
+                                  {
+                                    "key": "rf5m3fxu",
+                                    "name": "custom_fields",
+                                    "title": "custom_fields",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ],
+                                "title": "Stored header custom fields (this one column, by id)",
+                                "isValidator": true,
+                                "nodeName": "Stored header custom fields (this one column, by id)",
+                                "name": "Stored header custom fields (this one column, by id)"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "id": "ifBlock_FGdCfNeed3",
+                          "type": "ifBlock",
+                          "data": { "title": "false" },
+                          "blocks": []
+                        }
+                      ]
+                    },
+                    {
+                      "id": "code_node_GdCfOut3",
+                      "type": "code-node",
+                      "blocks": [],
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// What the update writes into custom_fields: the payload's object, or (left out) the stored one as read\nconst missing = (v) => v === undefined || v === null;\nlet cf = [{{node:code_node_IyJHrBst.data.allData.custom_fields}}][0];\nif (String([{{node:code_node_GdCfNeed3.data.need}}][0]) === \"1\") {\n  const rows = [{{node:sql_node_GdCfRead3.data}}][0];\n  const row = Array.isArray(rows) ? rows[0] : rows;\n  let stored = row ? row.custom_fields : undefined;\n  if (typeof stored === \"string\") {\n    try {\n      stored = JSON.parse(stored);\n    } catch (e) {\n      stored = null;\n    }\n  }\n  cf = stored;\n}\nreturn { cf: missing(cf) ? null : cf };"
+                        },
+                        "response_json": [
+                          {
+                            "key": "gdfoo371",
+                            "name": "cf",
+                            "title": "cf",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ],
+                        "title": "Header custom fields to write (sent, else as stored)",
+                        "isValidator": true,
+                        "nodeName": "Header custom fields to write (sent, else as stored)",
+                        "name": "Header custom fields to write (sent, else as stored)"
+                      }
+                    },
+                    {
                       "id": "update_node_wq10Ecg3",
                       "type": "update-node",
                       "data": {
@@ -16239,6 +16701,14 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
                               "valueLabel": "",
                               "propLabel": "Sales Representative"
+                            },
+                            {
+                              "prop": "custom_fields",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_GdCfOut3.data.cf}}",
+                              "valueLabel": "",
+                              "propLabel": "custom_fields"
                             }
                           ]
                         }
@@ -17186,6 +17656,14 @@
                               "value": "{{node:code_node_IyJHrBst.data.allData.sales_person}}",
                               "valueLabel": "",
                               "propLabel": "Sales Representative"
+                            },
+                            {
+                              "prop": "custom_fields",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_IyJHrBst.data.allData.custom_fields}}",
+                              "valueLabel": "",
+                              "propLabel": "custom_fields"
                             }
                           ]
                         }

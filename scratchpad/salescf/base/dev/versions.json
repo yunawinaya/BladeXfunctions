@@ -1,0 +1,86 @@
+{
+ "SI_SAVE": {
+  "kind": "workflow",
+  "dataId": "2029040374929154050",
+  "version": 85,
+  "historyId": "2113115671517265921",
+  "enabledAt": "2026-10-22 11:50:10.523000"
+ },
+ "SO_Convert_SI": {
+  "kind": "workflow",
+  "dataId": "2029006184569364481",
+  "version": 58,
+  "historyId": "2114560914542088194",
+  "enabledAt": "2026-10-26 11:33:03.313000"
+ },
+ "GD_Convert_SI": {
+  "kind": "workflow",
+  "dataId": "2070069049332416514",
+  "version": 30,
+  "historyId": "2114706383011655682",
+  "enabledAt": "2026-10-26 21:11:05.701000"
+ },
+ "SO_SAVE": {
+  "kind": "workflow",
+  "dataId": "1988908545345945602",
+  "version": 172,
+  "historyId": "2113526269507588098",
+  "enabledAt": "2026-10-23 15:01:44.713000"
+ },
+ "GOODS_DELIVERY": {
+  "kind": "workflow",
+  "dataId": "2017151544868491265",
+  "version": 249,
+  "historyId": "2113837083816939522",
+  "enabledAt": "2026-10-24 11:36:48.620000"
+ },
+ "GD_BULK_PREPARE": {
+  "kind": "workflow",
+  "dataId": "2104840044642754561",
+  "version": 21,
+  "historyId": "2114644708476661762",
+  "enabledAt": "2026-10-26 17:06:01.347000"
+ },
+ "GD_BULK_COMMIT": {
+  "kind": "workflow",
+  "dataId": "2104840402446245890",
+  "version": 32,
+  "historyId": "2114684027669131266",
+  "enabledAt": "2026-10-26 19:42:15.771000"
+ },
+ "SO_AUTO_GD": {
+  "kind": "workflow",
+  "dataId": "2076557490389835777",
+  "version": 21,
+  "historyId": "2113528383470358530",
+  "enabledAt": "2026-10-23 15:10:08.725000"
+ },
+ "SO_Convert_GD": {
+  "kind": "workflow",
+  "dataId": "1985267806223810561",
+  "version": 58,
+  "historyId": "2113479371067301750",
+  "enabledAt": "2026-10-23 11:55:23.572000"
+ },
+ "GD_COMPLETE_SUBMIT": {
+  "kind": "workflow",
+  "dataId": "2110182609618337794",
+  "version": 13,
+  "historyId": "2114255470363725826",
+  "enabledAt": "2026-10-25 15:19:19.747000"
+ },
+ "form_goods_delivery": {
+  "kind": "form",
+  "dataId": "1902054888473481218",
+  "version": 1492,
+  "historyId": "2113927863956983809",
+  "enabledAt": "2026-10-24 17:37:32"
+ },
+ "form_sales_invoice": {
+  "kind": "form",
+  "dataId": "1902525285396496385",
+  "version": 394,
+  "historyId": "2114703080416686082",
+  "enabledAt": "2026-10-26 20:57:58"
+ }
+}

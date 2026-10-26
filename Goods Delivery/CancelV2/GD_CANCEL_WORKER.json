@@ -4689,7 +4689,7 @@
       "timeout": 30000,
       "script": {
        "type": "javascript",
-       "code": "// GD_CANCEL_WORKER - Second publish: GD_CANCEL_COMMIT ended SPLIT (COMMITTING_GD under a SPLIT| hand-over lease,\n// no next attempt) -> call it again in this tick for the Packing and the finish; decided from the job row alone\nconst workerSplitResume = function workerSplitResume(guard, mid, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (s(mid.route) !== \"PUBLISH\" || !job) return Object.assign(base, { result_message: \"no publish call in this iteration\" });\n  const split = s(job.job_status) === \"COMMITTING_GD\" && s(job.lease_owner).indexOf(\"SPLIT|\") === 0 && !s(job.next_attempt_at);\n  if (!split) return Object.assign(base, { result_message: \"job is \" + s(job.job_status) + (s(job.lease_owner) ? \" (lease \" + s(job.lease_owner) + \")\" : \"\") + \": no second publish call\" });\n  return Object.assign(base, { route: \"PUBLISH\", result_message: \"split after the stock moved: the second GD_CANCEL_COMMIT call of this tick\" });\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst mid = [{{node:code_node_XWmid.data}}][0];\nconst res = workerSplitResume(guard, mid, [{{node:sql_node_XWsplit.data}}][0]);\nconsole.log(\"worker split\", JSON.stringify(res));\nreturn res;"
+       "code": "// GD_CANCEL_WORKER - Second publish: GD_CANCEL_COMMIT ended SPLIT (COMMITTING_GD under a SPLIT| hand-over lease,\n// no next attempt) -> call it again in this tick for the Packing and the finish; decided from the job row alone\nconst workerSplitResume = function workerSplitResume(guard, mid, rows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (Array.isArray(rows) ? rows : rows ? [rows] : []).filter((r) => r);\n  const dbNow = list.length ? s(list[0].db_now) || mid.dbNow : mid.dbNow;\n  const job = list.filter((r) => s(r.id))[0] || null;\n  const base = { route: \"END\", dbNow: dbNow, jobId: mid.jobId, jobStatus: job ? s(job.job_status) : \"\", result_message: \"\" };\n  if (s(mid.route) !== \"PUBLISH\" || !job) return Object.assign(base, { result_message: \"no publish call in this iteration\" });\n  const split = s(job.job_status) === \"COMMITTING_GD\" && s(job.lease_owner).indexOf(\"SPLIT|\") === 0 && !s(job.next_attempt_at);\n  if (!split) return Object.assign(base, { result_message: \"job is \" + s(job.job_status) + (s(job.lease_owner) ? \" (lease \" + s(job.lease_owner) + \")\" : \"\") + \": no second publish call\" });\n  return Object.assign(base, { route: \"PUBLISH\", result_message: \"split after the stock moved: the second GD_CANCEL_COMMIT call of this tick\" });\n};\nconst guard = [{{node:code_node_XWguard2.data}}][0];\nconst mid = [{{node:code_node_XWmid.data}}][0];\nconst res = workerSplitResume(guard, mid, [{{node:sql_node_XWsplit.data}}][0]);\n// one stock call per run (LSH 2026-10-26 20:40, two sweeps froze 30 min): a run keeps every key it took until it ends, so once\n// it has called the commit it takes no further job; the next tick or a job's own run takes them\nconst pick = [{{node:code_node_XWpick.data}}][0];\nres.nextIndex = String((mid && mid.route) || \"\").trim() === \"PUBLISH\" ? 9999 : Number(pick && pick.nextIndex) || 0;\nconsole.log(\"worker split\", JSON.stringify(res));\nreturn res;"
       },
       "response_json": [
        {
@@ -4736,12 +4736,21 @@
         "bsonType": "string",
         "isExpand": false,
         "children": []
+       },
+       {
+        "key": "xwnxt9k1",
+        "name": "nextIndex",
+        "title": "nextIndex",
+        "description": "",
+        "bsonType": "int",
+        "isExpand": false,
+        "children": []
        }
       ],
-      "title": "Second publish: COMMITTING_GD under a SPLIT| hand-over lease -> PUBLISH again",
+      "title": "Second publish: COMMITTING_GD under a SPLIT| hand-over lease -> PUBLISH again; next index past the plan after a commit call (one stock call per run)",
       "isValidator": true,
-      "nodeName": "Second publish: COMMITTING_GD under a SPLIT| hand-over lease -> PUBLISH again",
-      "name": "Second publish: COMMITTING_GD under a SPLIT| hand-over lease -> PUBLISH again"
+      "nodeName": "Second publish: COMMITTING_GD under a SPLIT| hand-over lease -> PUBLISH again; next index past the plan after a commit call (one stock call per run)",
+      "name": "Second publish: COMMITTING_GD under a SPLIT| hand-over lease -> PUBLISH again; next index past the plan after a commit call (one stock call per run)"
      },
      "blocks": []
     },
@@ -5578,7 +5587,7 @@
       "name": "Next loop index",
       "custom_wkbocgni": {
        "type": "javascript",
-       "code": "{{node:code_node_XWpick.data.nextIndex}}"
+       "code": "{{node:code_node_XWsplit.data.nextIndex}}"
       },
       "redis_key": "gdx_wrk_{{node:code_node_XWguard2.data.nonce}}"
      },

@@ -1,0 +1,8 @@
+{
+ "picking_id": "2113151473660002306",
+ "organization_id": "1901545950162329602",
+ "operation": "CONFIRM",
+ "idempotency_key": "PKC:1901545950162329602:2113151473660002306:5a17c0de26100002",
+ "payload": "{\"lines\":[{\"row_id\":\"2113151473693556739\",\"qty\":1}],\"header_patch\":{}}",
+ "confirmed_by": "smoke-header-recheck"
+}

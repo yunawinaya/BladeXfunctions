@@ -142,23 +142,21 @@ const fetchPickingSetup = async (organizationId) => {
 };
 
 // Packing V2: the Packing's latest background completion, read through PACKING_ASYNC_SUBMIT (STATUS: the browser cannot
-// read gd_async_job). While it is open the save buttons are hidden; FAILED / under review is reported once.
-const pkgV2ShowJobState = async () => {
-  const id = this.getValue("id");
-  if (!id || "2109924558618333185".indexOf("__") === 0) return;
-  let organizationId = String(this.getValue("organization_id") || "");
-  if (!organizationId) {
-    organizationId = String(this.getVarGlobal("deptParentId") || "");
-    if (!organizationId || organizationId === "0") organizationId = String(this.getVarSystem("deptIds") || "").split(",")[0];
-  }
-  const job = await new Promise((resolve) => {
+// read gd_async_job). While it is open the save buttons are hidden and this browser follows it to the end; FAILED / under
+// review is reported once. No worker is scheduled on the server, so any open of a Packing without a job of its own also
+// starts the worker once without naming a job (at most every 2 minutes in this browser): it takes the oldest due job, so a
+// completion whose browser was closed still finishes.
+const PKG_V2 = { SUBMIT: "2109924558618333185", WORKER: "2109924593737240578" };
+const PKG_V2_OPEN = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PACKING"];
+const pkgV2Run = (workflowId, params) =>
+  new Promise((resolve) => {
     try {
       this.runWorkflow(
-        "2109924558618333185",
-        { packing_id: String(id), organization_id: organizationId, operation: "STATUS" },
+        workflowId,
+        params,
         (res) => resolve((res && res.data) || null),
         (err) => {
-          console.error("Packing V2: job state could not be read", err);
+          console.error("Packing V2: " + workflowId + " call failed", err);
           resolve(null);
         },
       );
@@ -166,33 +164,98 @@ const pkgV2ShowJobState = async () => {
       resolve(null);
     }
   });
-  if (!job || !job.job_id) return;
-  if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PACKING"].includes(job.job_status)) {
+// start the worker for the job until it ends or 10 minutes pass; the answer carries no next-attempt time, so a lock retry
+// waits the server's backoff (2 s doubling to 30 s), an operation still running 10 s, the hand-over after the stock call
+// 1.5 s; a start that did not take the job (not due yet / another run has it) reads the job through STATUS
+const pkgV2FollowJob = (jobId, packingId, organizationId, onEnd) => {
+  let following = {};
+  try {
+    following = window.__pkgV2Following = window.__pkgV2Following || {};
+  } catch (e) {
+    following = {};
+  }
+  if (following[jobId]) return;
+  following[jobId] = 1;
+  const until = Date.now() + 10 * 60 * 1000;
+  let idle = 0;
+  const step = async () => {
+    const w = (await pkgV2Run(PKG_V2.WORKER, { job_id: jobId })) || {};
+    let st = String(w.job_id || "") === jobId ? String(w.job_status || "") : "";
+    let msg = String(w.result_message || "");
+    let attempts = 0;
+    try {
+      attempts = Number((JSON.parse(w.jobs || "[]")[0] || {}).attempt_count) || 0;
+    } catch (e) {
+      attempts = 0;
+    }
+    if (!st) {
+      const s = (await pkgV2Run(PKG_V2.SUBMIT, { packing_id: packingId, organization_id: organizationId, operation: "STATUS" })) || {};
+      if (String(s.job_id || "") === jobId) {
+        st = String(s.job_status || "");
+        msg = String(s.result_message || msg);
+      }
+      idle += 1;
+    } else idle = 0;
+    if (st && PKG_V2_OPEN.indexOf(st) < 0) {
+      delete following[jobId];
+      return onEnd(st, msg);
+    }
+    if (Date.now() > until) {
+      delete following[jobId];
+      return;
+    }
+    const code = String(w.result_code || "");
+    const wait = code === "PK_INVENTORY_IN_PROGRESS" ? 10000 : /RETRY/.test(code) ? Math.min(30000, 2000 * Math.pow(2, Math.max(0, attempts - 1))) + 500 : idle ? Math.min(30000, 3000 * idle) : 1500;
+    setTimeout(step, wait);
+  };
+  step();
+};
+const pkgV2Drain = () => {
+  try {
+    if (Date.now() - (Number(window.localStorage.getItem("pkgv2_drain_at")) || 0) < 120000) return;
+    window.localStorage.setItem("pkgv2_drain_at", String(Date.now()));
+  } catch (e) {
+    // storage blocked: started anyway
+  }
+  pkgV2Run(PKG_V2.WORKER, {});
+};
+const pkgV2ShowJobState = async () => {
+  const id = this.getValue("id");
+  if (!id || PKG_V2.SUBMIT.indexOf("__") === 0) return;
+  let organizationId = String(this.getValue("organization_id") || "");
+  if (!organizationId) {
+    organizationId = String(this.getVarGlobal("deptParentId") || "");
+    if (!organizationId || organizationId === "0") organizationId = String(this.getVarSystem("deptIds") || "").split(",")[0];
+  }
+  const job = await pkgV2Run(PKG_V2.SUBMIT, { packing_id: String(id), organization_id: organizationId, operation: "STATUS" });
+  if (!job || !job.job_id) return pkgV2Drain();
+  const seenKey = "pkgv2_seen_" + job.job_id;
+  const markSeen = () => {
+    try {
+      window.localStorage.setItem(seenKey, "1");
+    } catch (e) {
+      // storage blocked: reported again on the next open
+    }
+  };
+  if (PKG_V2_OPEN.includes(job.job_status)) {
     this.hide(["button_save_as_draft", "button_created", "button_completed"]);
     this.$message.warning("This Packing is being completed in the background (" + (job.result_message || job.job_status) + "). Reopen it in a moment.");
-    // no scheduled worker: every open starts it again (a run in progress holds the job's lease, so a second start does nothing)
-    try {
-      this.runWorkflow(
-        "2109924593737240578",
-        { job_id: String(job.job_id) },
-        (res) => {
-          if (((res && res.data) || {}).job_status === "COMPLETED") this.$message.success("The Packing was completed in the background. Reopen it to see it.");
-        },
-        (err) => console.error("Packing V2: worker start failed", err),
-      );
-    } catch (e) {
-      console.error("Packing V2: worker could not be started", e);
-    }
+    pkgV2FollowJob(String(job.job_id), String(id), organizationId, (st, msg) => {
+      markSeen();
+      if (st === "COMPLETED") this.$message.success("The Packing was completed in the background. Reopen it to see it.");
+      else if (st === "FAILED") this.$message.error("The last completion was not saved: " + (msg || "unknown reason"));
+      else if (st === "REQUIRES_REVIEW") this.$message.error("The last completion stopped half-way and is under review: " + msg + " Please contact support.");
+    });
     return;
   }
-  const seenKey = "pkgv2_seen_" + job.job_id;
+  pkgV2Drain();
   let seen = false;
   try {
     seen = window.localStorage.getItem(seenKey) === "1";
-    window.localStorage.setItem(seenKey, "1");
   } catch (e) {
     seen = false;
   }
+  markSeen();
   if (seen) return;
   if (job.job_status === "FAILED") this.$message.error("The last completion was not saved: " + (job.result_message || "unknown reason"));
   else if (job.job_status === "REQUIRES_REVIEW") this.$message.error("The last completion stopped half-way and is under review: " + job.result_message + " Please contact support.");

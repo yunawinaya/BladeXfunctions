@@ -14645,6 +14645,265 @@
       ]
     },
     {
+      "id": "if_PCbhdr",
+      "type": "if",
+      "data": {
+        "title": "IF phase B: re-check the Picking header (two confirms committed at once)",
+        "isValidator": true,
+        "nodeName": "IF phase B: re-check the Picking header (two confirms committed at once)",
+        "name": "IF phase B: re-check the Picking header (two confirms committed at once)",
+        "condition_type": "Expression",
+        "filter": {
+          "list": [
+            {
+              "id": 1796400000905,
+              "parentId": 1796400000906,
+              "isTop": true,
+              "prop": "",
+              "operator": "",
+              "valueType": "",
+              "value": "",
+              "type": "leaf",
+              "level": 1
+            }
+          ]
+        },
+        "expression": {
+          "type": "javascript",
+          "code": "'{{node:code_node_PCentry.data.phase}}' == 'B'"
+        }
+      },
+      "blocks": [
+        {
+          "id": "ifBlock_TPCbhdr",
+          "type": "ifBlock",
+          "data": {
+            "title": "true"
+          },
+          "blocks": [
+            {
+              "id": "sql_node_PCbhdr",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Header re-check: the stored Picking status and its rows (live, Completed)",
+                "isValidator": true,
+                "nodeName": "Header re-check: the stored Picking status and its rows (live, Completed)",
+                "name": "Header re-check: the stored Picking status and its rows (live, Completed)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT t.to_status AS to_status,\n       CAST(SUM(r.id IS NOT NULL AND IFNULL(r.line_status, '') <> 'Cancelled') AS CHAR) AS live_rows,\n       CAST(SUM(r.id IS NOT NULL AND IFNULL(r.line_status, '') = 'Completed') AS CHAR) AS completed_rows\n  FROM transfer_order t\n  LEFT JOIN transfer_order_jz8m9w3h_sub r\n    ON r.transfer_order_id = t.id\n   AND r.is_deleted = 0\n WHERE t.tenant_id = '{{node:code_node_PCguard.data.tenantId}}'\n   AND t.id = {{node:code_node_PCentry.data.pickingId}}\n   AND t.is_deleted = 0\n GROUP BY t.id, t.to_status"
+                },
+                "response_json": [
+                  {
+                    "key": "1ftisfhk",
+                    "name": "to_status",
+                    "title": "to_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "rgg6n3rv",
+                    "name": "live_rows",
+                    "title": "live_rows",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "byupu69z",
+                    "name": "completed_rows",
+                    "title": "completed_rows",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PCbhdr",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// PICKING_BULK_COMMIT - header re-check (phase B, before P5). Two confirms of one Picking that commit within milliseconds\n// each roll the header up in P1 from their own view, the other's rows still open, so both can write In Progress over rows that\n// are all Completed (LSH PI-2610-3697, 10-26). Phase B runs after phase A committed: roll the header up again from the stored\n// rows with P1's rule (every non-cancelled row Completed) and only ever promote. P5 then sees the Picking Completed.\nconst first = (v) => (Array.isArray(v) ? v[0] : v) || {};\nconst r = first([{{node:sql_node_PCbhdr.data}}][0]);\nconst live = Number(r.live_rows) || 0;\nconst done = Number(r.completed_rows) || 0;\nconst was = String(r.to_status || \"\");\nconst promote = live > 0 && done === live && was !== \"Completed\" && was !== \"Cancelled\";\nif (promote) console.log(\"header re-check: \" + was + \" -> Completed (\" + done + \"/\" + live + \" rows Completed)\");\nreturn {\n  needHdr: promote ? \"YES\" : \"NO\",\n  hdrRows: promote ? [{ id: String([{{node:code_node_PCentry.data.pickingId}}][0]), to_status: \"Completed\" }] : [],\n  was: was,\n};"
+                },
+                "response_json": [
+                  {
+                    "key": "d807zkd9",
+                    "name": "needHdr",
+                    "title": "needHdr",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "ise83kmf",
+                    "name": "hdrRows",
+                    "title": "hdrRows",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "665e33vb",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "eltmlj1l",
+                    "name": "was",
+                    "title": "was",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "Header re-check: every live row Completed -> the Picking Completed (only ever promotes)",
+                "isValidator": true,
+                "nodeName": "Header re-check: every live row Completed -> the Picking Completed (only ever promotes)",
+                "name": "Header re-check: every live row Completed -> the Picking Completed (only ever promotes)"
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_PCbhdrgo",
+              "type": "if",
+              "data": {
+                "title": "IF the header re-check promotes the Picking",
+                "isValidator": true,
+                "nodeName": "IF the header re-check promotes the Picking",
+                "name": "IF the header re-check promotes the Picking",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1796400000903,
+                      "parentId": 1796400000904,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_PCbhdr.data.needHdr}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TPCbhdrgo",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "update_node_PCbhdr",
+                      "type": "update-node",
+                      "data": {
+                        "table_id": {
+                          "source": "Transfer Order Picking:Table:1935556443668959233",
+                          "rules": {
+                            "collectionId": "1935556443668959233",
+                            "list": [
+                              {
+                                "id": 1796400000901,
+                                "parentId": 1796400000902,
+                                "isTop": true,
+                                "prop": "id",
+                                "operator": "in",
+                                "valueType": "field",
+                                "value": "{{node:code_node_PCbhdr.data.hdrRows.id}}",
+                                "type": "leaf",
+                                "level": 1,
+                                "propLabel": "主键ID",
+                                "valueLabel": "",
+                                "operatorLabel": "In"
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "condition": {},
+                        "title": "Header re-check WRITE: Picking to_status Completed",
+                        "isValidator": true,
+                        "nodeName": "Header re-check WRITE: Picking to_status Completed",
+                        "name": "Header re-check WRITE: Picking to_status Completed",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCbhdr.data.hdrRows.id}}",
+                              "valueLabel": "",
+                              "propLabel": "主键ID"
+                            },
+                            {
+                              "prop": "to_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCbhdr.data.hdrRows.to_status}}",
+                              "valueLabel": "",
+                              "propLabel": "to_status"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FPCbhdrgo",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "ifBlock_FPCbhdr",
+          "type": "ifBlock",
+          "data": {
+            "title": "false"
+          },
+          "blocks": []
+        }
+      ]
+    },
+    {
       "id": "if_PCp5",
       "type": "if",
       "data": {
@@ -15661,7 +15920,7 @@
                             "timeout": 30000,
                             "script": {
                               "type": "javascript",
-                              "code": "// PICKING_BULK_COMMIT - P5 build, one chunk of <= 25 deliveries: one Packing per Goods Delivery, created or refreshed\n// (code_node_pMVdQBEQ + code_node_gudzrvMQ, Map lookups). Picked quantities come from the GD line's picked_temp_qty_data\n// (Full Picking: every Picking), else from ALL of this Picking's records (the old path used only the records of the last\n// confirmation). A create carries idempotency_key PKG|<gd_id>; a re-run finds it and takes the update path. The tally\n// [deliveries that must have a Packing, failures] runs across the chunks.\nconst commitP5Build = function commitP5Build(entry, chunk, hdrRows, gdMasters, packings, huMasters, soMasters, recordRows, ruleRows, accRaw) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\n  const rowsOf = (res) => list(res && typeof res === \"object\" && !Array.isArray(res) && \"data\" in res ? res.data : res);\n  const parseJsonSafe = (v) => {\n    if (Array.isArray(v)) return v;\n    try { return v ? JSON.parse(v) : []; } catch (e) { return []; }\n  };\n  const flattenGdRows = (rows) => (rows || []).flatMap((row) => {\n    const rest = Object.assign({}, row || {});\n    delete rest.children;\n    return [rest].concat(Array.isArray(row && row.children) ? row.children : []);\n  });\n  const DELIVERY_INFO_KEYS = [\"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\",\n    \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\",\n    \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\"];\n  const buildDeliveryInfo = (source) => {\n    const fields = {};\n    for (const k of DELIVERY_INFO_KEYS) fields[k] = source && source[k] !== undefined && source[k] !== null ? source[k] : \"\";\n    return fields;\n  };\n\n  const picking = list(hdrRows).filter((r) => s(r.id))[0] || {};\n  const rule = list(ruleRows)[0] || {};\n  const gdById = new Map();\n  for (const g of rowsOf(gdMasters)) gdById.set(s(g.id), g);\n  const huById = new Map();\n  for (const h of rowsOf(huMasters)) huById.set(s(h.id), h);\n  const soById = new Map();\n  for (const so of rowsOf(soMasters)) soById.set(s(so.id), so);\n  const existingByGdId = new Map();\n  for (const p of rowsOf(packings)) if (s(p.gd_id) && s(p.packing_status) !== \"Cancelled\" && !existingByGdId.has(s(p.gd_id))) existingByGdId.set(s(p.gd_id), p);\n  const recordsByLine = new Map();\n  for (const r of list(recordRows)) {\n    const k = s(r.gd_line_id);\n    if (!recordsByLine.has(k)) recordsByLine.set(k, []);\n    recordsByLine.get(k).push(r);\n  }\n  // Picking remark wins over the GD line remark, field by field, when it is not empty; a key's latest record holds it\n  const recKey = (rec) => (s(rec.target_location) || s(rec.source_bin) || \"no-loc\") + \"_\" + (s(rec.target_batch) || s(rec.batch_no) || \"no-batch\") + \"_\" + (s(rec.handling_unit_id) || \"no-hu\");\n  const pickRemarkByKey = {};\n  for (const r of list(recordRows)) pickRemarkByKey[s(r.gd_line_id) + \"|\" + recKey(r)] = { line: s(r.gd_line_id), remark: s(r.remark), remark_2: s(r.remark_2), remark_3: s(r.remark_3) };\n  const pickRemarkByLine = {};\n  for (const v of Object.values(pickRemarkByKey)) {\n    const l = pickRemarkByLine[v.line] || (pickRemarkByLine[v.line] = { remark: [], remark_2: [], remark_3: [] });\n    for (const f of [\"remark\", \"remark_2\", \"remark_3\"]) if (v[f] && l[f].indexOf(v[f]) < 0) l[f].push(v[f]);\n  }\n  const remarksFor = (line, key) => {\n    const own = pickRemarkByKey[s(line.id) + \"|\" + key];\n    const byLine = pickRemarkByLine[s(line.id)];\n    const fromPicking = (f) => (own ? own[f] : byLine ? byLine[f].join(\"; \") : \"\");\n    return { remark: fromPicking(\"remark\") || line.line_remark_1 || \"\", remark_2: fromPicking(\"remark_2\") || line.line_remark_2 || \"\", remark_3: fromPicking(\"remark_3\") || line.line_remark_3 || \"\", covered: !!(own || byLine) };\n  };\n  const pickingGdIds = parseJsonSafe(picking.gd_no_json).filter(Boolean).map(String);\n  const pickingIsSingleGd = Array.from(new Set(pickingGdIds)).length === 1;\n  const pickCust = parseJsonSafe(picking.customer_id_json).filter(Boolean);\n  const createdAt = new Date().toISOString().split(\"T\")[0];\n\n  const keyOf = (e) => (e.location_id || \"no-loc\") + \"_\" + (e.batch_id || \"no-batch\") + \"_\" + (e.handling_unit_id || \"no-hu\");\n  const createRows = [];\n  const updateRows = [];\n  const expect = [];\n  for (const gdId of chunk.gdIds || []) {\n    const gd = gdById.get(s(gdId));\n    const anyRow = (chunk.groups || {})[gdId] || {};\n    // a delivery already completed or cancelled (a force complete skips them) keeps its Packing as it is\n    if (!gd || s(gd.gd_status) === \"Completed\" || s(gd.gd_status) === \"Cancelled\") continue;\n    const tableItemSource = [];\n    const huItems = [];\n    for (const line of flattenGdRows(Array.isArray(gd.table_gd) ? gd.table_gd : [])) {\n      if (!line.material_id) continue;\n      if (line.picking_status === \"Cancelled\") continue;\n      const tempArr = parseJsonSafe(line.temp_qty_data);\n      if (!Array.isArray(tempArr) || tempArr.length === 0) continue;\n      const pickedArr = parseJsonSafe(line.picked_temp_qty_data);\n      const pickedByKey = {};\n      if (Array.isArray(pickedArr) && pickedArr.length > 0) {\n        for (const p of pickedArr) pickedByKey[keyOf(p)] = (pickedByKey[keyOf(p)] || 0) + (Number(p.gd_quantity) || 0);\n      } else {\n        for (const rec of recordsByLine.get(s(line.id)) || []) {\n          const k = (s(rec.target_location) || s(rec.source_bin) || \"no-loc\") + \"_\" + (s(rec.target_batch) || s(rec.batch_no) || \"no-batch\") + \"_\" + (s(rec.handling_unit_id) || \"no-hu\");\n          pickedByKey[k] = (pickedByKey[k] || 0) + (Number(rec.store_out_qty) || 0);\n        }\n      }\n      for (const t of tempArr) {\n        const allocated = Number(t.gd_quantity) || 0;\n        if (allocated <= 0) continue;\n        const pickedQty = pickedByKey[keyOf(t)] || 0;\n        const remainingQty = Math.max(0, allocated - pickedQty);\n        const rem = remarksFor(line, keyOf(t));\n        const common = {\n          item_name: line.material_name, item_desc: line.gd_material_desc || \"\",\n          item_uom: line.good_delivery_uom_id || line.gd_order_uom_id || \"\", batch_no: t.batch_id || \"\", bin_location: t.location_id || \"\",\n          total_quantity: allocated, remark: rem.remark, remark_2: rem.remark_2, remark_3: rem.remark_3,\n        };\n        if (t.handling_unit_id) {\n          huItems.push(Object.assign({ row_type: \"item\", handling_unit_id: t.handling_unit_id, id: line.id || \"\", item_id: t.material_id || line.material_id, item_code: t.material_id || line.material_id }, common, {\n            hu_status: pickedQty >= allocated - 0.001 ? \"Unpacked\" : \"Pending\", so_id: line.line_so_id || \"\", so_no: line.line_so_no || \"\",\n            so_line_id: line.so_line_item_id || \"\", gd_id: gdId, gd_no: gd.delivery_no || \"\", gd_line_id: line.id || \"\", to_id: s(picking.id), to_line_id: \"\",\n          }));\n        } else {\n          tableItemSource.push(Object.assign({ item_id: line.material_id, item_code: line.material_id }, common, {\n            picked_qty: pickedQty, remaining_qty: remainingQty, qty_to_pick: remainingQty, _remark_from_picking: rem.covered,\n            line_status: pickedQty <= 0 ? \"Open\" : remainingQty <= 0.001 ? \"Fully Picked\" : \"Partially Picked\",\n            so_id: line.line_so_id || anyRow.so_id || \"\", so_no: line.line_so_no || anyRow.so_no || \"\", so_line_id: line.so_line_item_id || \"\",\n            gd_id: gdId, gd_no: gd.delivery_no || anyRow.gd_no || \"\", gd_line_id: line.id || \"\", to_id: s(picking.id), to_line_id: \"\",\n          }));\n        }\n      }\n    }\n    const deliveryInfo = buildDeliveryInfo(pickingIsSingleGd ? picking : gd);\n    // HU rows: a header per HU (Unpacked only when every item is upstream-picked) followed by its items\n    const huRows = [];\n    const huOrder = [];\n    for (const it of huItems) if (huOrder.indexOf(it.handling_unit_id) < 0) huOrder.push(it.handling_unit_id);\n    for (const huId of huOrder) {\n      const hu = huById.get(s(huId)) || {};\n      const items = huItems.filter((it) => it.handling_unit_id === huId);\n      huRows.push({ row_type: \"header\", handling_unit_id: huId, handling_no: hu.handling_no || \"\", hu_material_id: hu.hu_material_id || \"\", hu_type: hu.hu_type || \"\", hu_uom: hu.hu_uom || \"\", hu_status: items.every((it) => it.hu_status === \"Unpacked\") ? \"Unpacked\" : \"Pending\", storage_location: hu.storage_location || \"\", gross_weight: hu.gross_weight || 0, net_weight: hu.net_weight || 0, net_volume: hu.net_volume || 0 });\n      for (const it of items) huRows.push(it);\n    }\n    if (tableItemSource.length === 0 && huRows.length === 0) continue;\n    const existing = existingByGdId.get(s(gdId)) || null;\n    expect.push(s(gdId));\n    if (existing) {\n      const existingHuSource = Array.isArray(existing.table_hu_source) ? existing.table_hu_source : [];\n      const existingHuIds = {};\n      for (const r of existingHuSource) if (r.row_type === \"header\" && r.handling_unit_id) existingHuIds[r.handling_unit_id] = true;\n      const mergedHuSource = existingHuSource.slice();\n      for (const r of huRows) {\n        if (r.row_type === \"header\" && existingHuIds[r.handling_unit_id]) continue;\n        if (r.row_type === \"header\") existingHuIds[r.handling_unit_id] = true;\n        mergedHuSource.push(r);\n      }\n      // keep each surviving source row's own id: PackingRecomputeSource.js matches HU temp_data to it by line_item_id\n      const srcKey = (r) => s(r.gd_line_id) + \"|\" + s(r.bin_location) + \"|\" + s(r.batch_no);\n      const existingSrc = {};\n      for (const r of Array.isArray(existing.table_item_source) ? existing.table_item_source : []) if (r.id && !existingSrc[srcKey(r)]) existingSrc[srcKey(r)] = r;\n      // a row this Picking has no line for keeps the remark an earlier Picking gave it\n      const rebuilt = tableItemSource.map(({ _remark_from_picking, ...r }) => {\n        const old = existingSrc[srcKey(r)];\n        if (!old) return r;\n        const remarks = _remark_from_picking ? {} : { remark: old.remark || r.remark, remark_2: old.remark_2 || r.remark_2, remark_3: old.remark_3 || r.remark_3 };\n        return Object.assign({}, r, { id: old.id }, remarks);\n      });\n      updateRows.push(Object.assign({ existing_packing_id: s(existing.id), gd_id: s(gdId), table_item_source: rebuilt, table_hu_source: mergedHuSource }, deliveryInfo));\n    } else {\n      const so = soById.get(s(anyRow.so_id)) || {};\n      let soIdV = gd.so_id;\n      if (Array.isArray(soIdV) && soIdV.length === 0) soIdV = null;\n      soIdV = soIdV || anyRow.so_id;\n      let cust = gd.customer_name || anyRow.customer_id || (pickCust.length === 1 ? pickCust[0] : null) || so.customer_name;\n      if (Array.isArray(cust)) cust = cust.filter(Boolean)[0];\n      createRows.push(Object.assign({\n        packing_status: \"Created\", packing_no: \"issued\", packing_no_type: s(rule.rule_id), idempotency_key: \"PKG|\" + s(gdId),\n        plant_id: gd.plant_id || picking.plant_id, organization_id: gd.organization_id || picking.organization_id || entry.organizationId,\n        packing_mode: s(rule.packing_mode), created_by: s(picking.created_by), created_at: createdAt, gd_id: s(gdId), gd_no: gd.delivery_no || anyRow.gd_no || \"\",\n        so_id: Array.isArray(soIdV) ? soIdV.filter(Boolean) : soIdV ? [soIdV] : [], so_no: gd.so_no || anyRow.so_no || \"\", to_id: s(picking.id),\n        customer_id: cust ? [cust] : [], billing_address: gd.gd_billing_address || so.cust_billing_address || \"\",\n        shipping_address: gd.gd_shipping_address || so.cust_shipping_address || \"\", remarks: gd.order_remark || \"\", remarks_2: gd.order_remark2 || \"\",\n        remarks_3: gd.order_remark3 || \"\", table_item_source: tableItemSource.map(({ _remark_from_picking, ...r }) => r), table_hu_source: huRows,\n      }, deliveryInfo));\n    }\n  }\n  // no numbering rule: nothing is created (the add-node would fail the run); the tally carries the reason to the check\n  const noRule = createRows.length > 0 && !s(rule.rule_id);\n  let acc = accRaw;\n  if (typeof acc === \"string\") {\n    try {\n      acc = JSON.parse(acc);\n    } catch (e) {\n      acc = null;\n    }\n  }\n  acc = Array.isArray(acc) && acc.length === 2 && Array.isArray(acc[0]) && Array.isArray(acc[1]) ? acc : [[], []];\n  const fails = acc[1].slice();\n  if (noRule) fails.push(\"no Packing numbering rule for the organization: \" + createRows.length + \" Packing(s) could not be created\");\n  return {\n    route: noRule ? \"FAIL\" : \"WRITE\", createRows: noRule ? [] : createRows, updateRows: updateRows, hasCreates: createRows.length && !noRule ? \"YES\" : \"NO\", hasUpdates: updateRows.length ? \"YES\" : \"NO\",\n    acc: [acc[0].concat(expect), fails],\n    result_message: noRule ? fails[fails.length - 1] : createRows.length + \" Packing(s) to create, \" + updateRows.length + \" to refresh\",\n  };\n};\nconst entry = [{{node:code_node_PCentry.data}}][0];\nconst chunk = [{{node:code_node_PCp5chunk.data}}][0];\nconst res = commitP5Build(entry, chunk, [{{node:sql_node_PCp5hdr.data}}][0], [{{node:search_node_PCp5gd.data}}][0], [{{node:search_node_PCp5pack.data}}][0], [{{node:search_node_PCp5hu.data}}][0], [{{node:search_node_PCp5so.data}}][0], [{{node:sql_node_PCp5recs.data}}][0], [{{node:sql_node_PCp5rule.data}}][0], [{{node:get_cache_PCp5acc.data}}][0]);\nconsole.log(\"commit P5 build\", JSON.stringify({ route: res.route, creates: res.createRows.length, updates: res.updateRows.length, message: res.result_message }));\nreturn res;"
+                              "code": "// PICKING_BULK_COMMIT - P5 build, one chunk of <= 25 deliveries: one Packing per Goods Delivery, created or refreshed\n// (code_node_pMVdQBEQ + code_node_gudzrvMQ, Map lookups). Picked quantities come from the GD line's picked_temp_qty_data\n// (Full Picking: every Picking), else from ALL of this Picking's records (the old path used only the records of the last\n// confirmation). A create carries idempotency_key PKG|<gd_id>; a re-run finds it and takes the update path. The tally\n// [deliveries that must have a Packing, failures] runs across the chunks.\nconst commitP5Build = function commitP5Build(entry, chunk, hdrRows, gdMasters, packings, huMasters, soMasters, recordRows, ruleRows, accRaw) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\n  const rowsOf = (res) => list(res && typeof res === \"object\" && !Array.isArray(res) && \"data\" in res ? res.data : res);\n  const parseJsonSafe = (v) => {\n    if (Array.isArray(v)) return v;\n    try { return v ? JSON.parse(v) : []; } catch (e) { return []; }\n  };\n  const flattenGdRows = (rows) => (rows || []).flatMap((row) => {\n    const rest = Object.assign({}, row || {});\n    delete rest.children;\n    return [rest].concat(Array.isArray(row && row.children) ? row.children : []);\n  });\n  const DELIVERY_INFO_KEYS = [\"di_shipping_method\", \"di_driver_name\", \"di_ic_no\", \"di_driver_contact_no\", \"di_shipping_company\",\n    \"di_transport_name\", \"di_vehicle_number\", \"di_est_delivery_date\", \"di_est_arrival_date\", \"di_pickup_date\",\n    \"di_validity_of_collection\", \"di_tracking_number\", \"di_freight_charges\"];\n  const buildDeliveryInfo = (source) => {\n    const fields = {};\n    for (const k of DELIVERY_INFO_KEYS) fields[k] = source && source[k] !== undefined && source[k] !== null ? source[k] : \"\";\n    return fields;\n  };\n\n  const picking = list(hdrRows).filter((r) => s(r.id))[0] || {};\n  const rule = list(ruleRows)[0] || {};\n  const gdById = new Map();\n  for (const g of rowsOf(gdMasters)) gdById.set(s(g.id), g);\n  const huById = new Map();\n  for (const h of rowsOf(huMasters)) huById.set(s(h.id), h);\n  const soById = new Map();\n  for (const so of rowsOf(soMasters)) soById.set(s(so.id), so);\n  const existingByGdId = new Map();\n  for (const p of rowsOf(packings)) if (s(p.gd_id) && s(p.packing_status) !== \"Cancelled\" && !existingByGdId.has(s(p.gd_id))) existingByGdId.set(s(p.gd_id), p);\n  const recordsByLine = new Map();\n  for (const r of list(recordRows)) {\n    const k = s(r.gd_line_id);\n    if (!recordsByLine.has(k)) recordsByLine.set(k, []);\n    recordsByLine.get(k).push(r);\n  }\n  // Picking remark wins over the GD line remark, field by field, when it is not empty; a key's latest record holds it\n  const recKey = (rec) => (s(rec.target_location) || s(rec.source_bin) || \"no-loc\") + \"_\" + (s(rec.target_batch) || s(rec.batch_no) || \"no-batch\") + \"_\" + (s(rec.handling_unit_id) || \"no-hu\");\n  const pickRemarkByKey = {};\n  for (const r of list(recordRows)) pickRemarkByKey[s(r.gd_line_id) + \"|\" + recKey(r)] = { line: s(r.gd_line_id), remark: s(r.remark), remark_2: s(r.remark_2), remark_3: s(r.remark_3) };\n  const pickRemarkByLine = {};\n  for (const v of Object.values(pickRemarkByKey)) {\n    const l = pickRemarkByLine[v.line] || (pickRemarkByLine[v.line] = { remark: [], remark_2: [], remark_3: [] });\n    for (const f of [\"remark\", \"remark_2\", \"remark_3\"]) if (v[f] && l[f].indexOf(v[f]) < 0) l[f].push(v[f]);\n  }\n  const remarksFor = (line, key) => {\n    const own = pickRemarkByKey[s(line.id) + \"|\" + key];\n    const byLine = pickRemarkByLine[s(line.id)];\n    const fromPicking = (f) => (own ? own[f] : byLine ? byLine[f].join(\"; \") : \"\");\n    return { remark: fromPicking(\"remark\") || line.line_remark_1 || \"\", remark_2: fromPicking(\"remark_2\") || line.line_remark_2 || \"\", remark_3: fromPicking(\"remark_3\") || line.line_remark_3 || \"\", covered: !!(own || byLine) };\n  };\n  const pickingGdIds = parseJsonSafe(picking.gd_no_json).filter(Boolean).map(String);\n  const pickingIsSingleGd = Array.from(new Set(pickingGdIds)).length === 1;\n  const pickCust = parseJsonSafe(picking.customer_id_json).filter(Boolean);\n  const createdAt = new Date().toISOString().split(\"T\")[0];\n\n  const keyOf = (e) => (e.location_id || \"no-loc\") + \"_\" + (e.batch_id || \"no-batch\") + \"_\" + (e.handling_unit_id || \"no-hu\");\n  const createRows = [];\n  const updateRows = [];\n  const unhideRows = [];\n  const expect = [];\n  for (const gdId of chunk.gdIds || []) {\n    const gd = gdById.get(s(gdId));\n    const anyRow = (chunk.groups || {})[gdId] || {};\n    // a delivery already completed or cancelled (a force complete skips them) keeps its Packing as it is\n    if (!gd || s(gd.gd_status) === \"Completed\" || s(gd.gd_status) === \"Cancelled\") continue;\n    const tableItemSource = [];\n    const huItems = [];\n    for (const line of flattenGdRows(Array.isArray(gd.table_gd) ? gd.table_gd : [])) {\n      if (!line.material_id) continue;\n      if (line.picking_status === \"Cancelled\") continue;\n      const tempArr = parseJsonSafe(line.temp_qty_data);\n      if (!Array.isArray(tempArr) || tempArr.length === 0) continue;\n      const pickedArr = parseJsonSafe(line.picked_temp_qty_data);\n      const pickedByKey = {};\n      if (Array.isArray(pickedArr) && pickedArr.length > 0) {\n        for (const p of pickedArr) pickedByKey[keyOf(p)] = (pickedByKey[keyOf(p)] || 0) + (Number(p.gd_quantity) || 0);\n      } else {\n        for (const rec of recordsByLine.get(s(line.id)) || []) {\n          const k = (s(rec.target_location) || s(rec.source_bin) || \"no-loc\") + \"_\" + (s(rec.target_batch) || s(rec.batch_no) || \"no-batch\") + \"_\" + (s(rec.handling_unit_id) || \"no-hu\");\n          pickedByKey[k] = (pickedByKey[k] || 0) + (Number(rec.store_out_qty) || 0);\n        }\n      }\n      for (const t of tempArr) {\n        const allocated = Number(t.gd_quantity) || 0;\n        if (allocated <= 0) continue;\n        const pickedQty = pickedByKey[keyOf(t)] || 0;\n        const remainingQty = Math.max(0, allocated - pickedQty);\n        const rem = remarksFor(line, keyOf(t));\n        const common = {\n          item_name: line.material_name, item_desc: line.gd_material_desc || \"\",\n          item_uom: line.good_delivery_uom_id || line.gd_order_uom_id || \"\", batch_no: t.batch_id || \"\", bin_location: t.location_id || \"\",\n          total_quantity: allocated, remark: rem.remark, remark_2: rem.remark_2, remark_3: rem.remark_3,\n        };\n        if (t.handling_unit_id) {\n          huItems.push(Object.assign({ row_type: \"item\", handling_unit_id: t.handling_unit_id, id: line.id || \"\", item_id: t.material_id || line.material_id, item_code: t.material_id || line.material_id }, common, {\n            hu_status: pickedQty >= allocated - 0.001 ? \"Unpacked\" : \"Pending\", so_id: line.line_so_id || \"\", so_no: line.line_so_no || \"\",\n            so_line_id: line.so_line_item_id || \"\", gd_id: gdId, gd_no: gd.delivery_no || \"\", gd_line_id: line.id || \"\", to_id: s(picking.id), to_line_id: \"\",\n          }));\n        } else {\n          tableItemSource.push(Object.assign({ item_id: line.material_id, item_code: line.material_id }, common, {\n            picked_qty: pickedQty, remaining_qty: remainingQty, qty_to_pick: remainingQty, _remark_from_picking: rem.covered,\n            line_status: pickedQty <= 0 ? \"Open\" : remainingQty <= 0.001 ? \"Fully Picked\" : \"Partially Picked\",\n            so_id: line.line_so_id || anyRow.so_id || \"\", so_no: line.line_so_no || anyRow.so_no || \"\", so_line_id: line.so_line_item_id || \"\",\n            gd_id: gdId, gd_no: gd.delivery_no || anyRow.gd_no || \"\", gd_line_id: line.id || \"\", to_id: s(picking.id), to_line_id: \"\",\n          }));\n        }\n      }\n    }\n    const deliveryInfo = buildDeliveryInfo(pickingIsSingleGd ? picking : gd);\n    // HU rows: a header per HU (Unpacked only when every item is upstream-picked) followed by its items\n    const huRows = [];\n    const huOrder = [];\n    for (const it of huItems) if (huOrder.indexOf(it.handling_unit_id) < 0) huOrder.push(it.handling_unit_id);\n    for (const huId of huOrder) {\n      const hu = huById.get(s(huId)) || {};\n      const items = huItems.filter((it) => it.handling_unit_id === huId);\n      huRows.push({ row_type: \"header\", handling_unit_id: huId, handling_no: hu.handling_no || \"\", hu_material_id: hu.hu_material_id || \"\", hu_type: hu.hu_type || \"\", hu_uom: hu.hu_uom || \"\", hu_status: items.every((it) => it.hu_status === \"Unpacked\") ? \"Unpacked\" : \"Pending\", storage_location: hu.storage_location || \"\", gross_weight: hu.gross_weight || 0, net_weight: hu.net_weight || 0, net_volume: hu.net_volume || 0 });\n      for (const it of items) huRows.push(it);\n    }\n    if (tableItemSource.length === 0 && huRows.length === 0) continue;\n    const existing = existingByGdId.get(s(gdId)) || null;\n    expect.push(s(gdId));\n    if (existing) {\n      const existingHuSource = Array.isArray(existing.table_hu_source) ? existing.table_hu_source : [];\n      const existingHuIds = {};\n      for (const r of existingHuSource) if (r.row_type === \"header\" && r.handling_unit_id) existingHuIds[r.handling_unit_id] = true;\n      const mergedHuSource = existingHuSource.slice();\n      for (const r of huRows) {\n        if (r.row_type === \"header\" && existingHuIds[r.handling_unit_id]) continue;\n        if (r.row_type === \"header\") existingHuIds[r.handling_unit_id] = true;\n        mergedHuSource.push(r);\n      }\n      // keep each surviving source row's own id: PackingRecomputeSource.js matches HU temp_data to it by line_item_id\n      const srcKey = (r) => s(r.gd_line_id) + \"|\" + s(r.bin_location) + \"|\" + s(r.batch_no);\n      const existingSrc = {};\n      for (const r of Array.isArray(existing.table_item_source) ? existing.table_item_source : []) if (r.id && !existingSrc[srcKey(r)]) existingSrc[srcKey(r)] = r;\n      // a row this Picking has no line for keeps the remark an earlier Picking gave it\n      const rebuilt = tableItemSource.map(({ _remark_from_picking, ...r }) => {\n        const old = existingSrc[srcKey(r)];\n        if (!old) return r;\n        const remarks = _remark_from_picking ? {} : { remark: old.remark || r.remark, remark_2: old.remark_2 || r.remark_2, remark_3: old.remark_3 || r.remark_3 };\n        return Object.assign({}, r, { id: old.id }, remarks);\n      });\n      updateRows.push(Object.assign({ existing_packing_id: s(existing.id), gd_id: s(gdId), table_item_source: rebuilt, table_hu_source: mergedHuSource }, deliveryInfo));\n      // A save-time shell is kept hidden (Waiting) until something is picked: filling it makes it visible. Only the shell's\n      // status is written, and only from Waiting, so a Packing a packer has moved on is never reverted.\n      if (s(existing.packing_status) === \"Waiting\") unhideRows.push({ id: s(existing.id), packing_status: \"Created\" });\n    } else {\n      const so = soById.get(s(anyRow.so_id)) || {};\n      let soIdV = gd.so_id;\n      if (Array.isArray(soIdV) && soIdV.length === 0) soIdV = null;\n      soIdV = soIdV || anyRow.so_id;\n      let cust = gd.customer_name || anyRow.customer_id || (pickCust.length === 1 ? pickCust[0] : null) || so.customer_name;\n      if (Array.isArray(cust)) cust = cust.filter(Boolean)[0];\n      createRows.push(Object.assign({\n        packing_status: \"Created\", packing_no: \"issued\", packing_no_type: s(rule.rule_id), idempotency_key: \"PKG|\" + s(gdId),\n        plant_id: gd.plant_id || picking.plant_id, organization_id: gd.organization_id || picking.organization_id || entry.organizationId,\n        packing_mode: s(rule.packing_mode), created_by: s(picking.created_by), created_at: createdAt, gd_id: s(gdId), gd_no: gd.delivery_no || anyRow.gd_no || \"\",\n        so_id: Array.isArray(soIdV) ? soIdV.filter(Boolean) : soIdV ? [soIdV] : [], so_no: gd.so_no || anyRow.so_no || \"\", to_id: s(picking.id),\n        customer_id: cust ? [cust] : [], billing_address: gd.gd_billing_address || so.cust_billing_address || \"\",\n        shipping_address: gd.gd_shipping_address || so.cust_shipping_address || \"\", remarks: gd.order_remark || \"\", remarks_2: gd.order_remark2 || \"\",\n        remarks_3: gd.order_remark3 || \"\", table_item_source: tableItemSource.map(({ _remark_from_picking, ...r }) => r), table_hu_source: huRows,\n      }, deliveryInfo));\n    }\n  }\n  // no numbering rule: nothing is created (the add-node would fail the run); the tally carries the reason to the check\n  const noRule = createRows.length > 0 && !s(rule.rule_id);\n  let acc = accRaw;\n  if (typeof acc === \"string\") {\n    try {\n      acc = JSON.parse(acc);\n    } catch (e) {\n      acc = null;\n    }\n  }\n  acc = Array.isArray(acc) && acc.length === 2 && Array.isArray(acc[0]) && Array.isArray(acc[1]) ? acc : [[], []];\n  const fails = acc[1].slice();\n  if (noRule) fails.push(\"no Packing numbering rule for the organization: \" + createRows.length + \" Packing(s) could not be created\");\n  return {\n    route: noRule ? \"FAIL\" : \"WRITE\", createRows: noRule ? [] : createRows, updateRows: updateRows, hasCreates: createRows.length && !noRule ? \"YES\" : \"NO\", hasUpdates: updateRows.length ? \"YES\" : \"NO\", unhideRows: unhideRows, hasUnhide: unhideRows.length ? \"YES\" : \"NO\",\n    acc: [acc[0].concat(expect), fails],\n    result_message: noRule ? fails[fails.length - 1] : createRows.length + \" Packing(s) to create, \" + updateRows.length + \" to refresh\",\n  };\n};\nconst entry = [{{node:code_node_PCentry.data}}][0];\nconst chunk = [{{node:code_node_PCp5chunk.data}}][0];\nconst res = commitP5Build(entry, chunk, [{{node:sql_node_PCp5hdr.data}}][0], [{{node:search_node_PCp5gd.data}}][0], [{{node:search_node_PCp5pack.data}}][0], [{{node:search_node_PCp5hu.data}}][0], [{{node:search_node_PCp5so.data}}][0], [{{node:sql_node_PCp5recs.data}}][0], [{{node:sql_node_PCp5rule.data}}][0], [{{node:get_cache_PCp5acc.data}}][0]);\nconsole.log(\"commit P5 build\", JSON.stringify({ route: res.route, creates: res.createRows.length, updates: res.updateRows.length, message: res.result_message }));\nreturn res;"
                             },
                             "response_json": [
                               {
@@ -15726,6 +15985,35 @@
                                 "key": "y2s411dp",
                                 "name": "hasUpdates",
                                 "title": "hasUpdates",
+                                "description": "",
+                                "bsonType": "string",
+                                "isExpand": false,
+                                "children": []
+                              },
+                              {
+                                "key": "tcrq75j5",
+                                "name": "unhideRows",
+                                "title": "unhideRows",
+                                "description": "",
+                                "bsonType": "array",
+                                "isExpand": true,
+                                "children": [
+                                  {
+                                    "key": "ns9ezk9g",
+                                    "name": "items",
+                                    "title": "",
+                                    "description": "",
+                                    "bsonType": "any",
+                                    "isExpand": false,
+                                    "isArrayItem": true,
+                                    "children": []
+                                  }
+                                ]
+                              },
+                              {
+                                "key": "387dxit8",
+                                "name": "hasUnhide",
+                                "title": "hasUnhide",
                                 "description": "",
                                 "bsonType": "string",
                                 "isExpand": false,
@@ -16404,6 +16692,129 @@
                                 "isDefault": true,
                                 "filter": { "list": [] },
                                 "expression": { "code": "" },
+                                "displayContent": "sdk.form.otherCondition"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cor_PCp5unhide",
+                          "type": "condition-or-node",
+                          "data": {
+                            "title": "Packing shells to un-hide?",
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": ""
+                            },
+                            "displayContent": "sdk.form.setCondition"
+                          },
+                          "blocks": [
+                            {
+                              "id": "cori_YPCp5unhide",
+                              "type": "condition-or-node-item",
+                              "data": {
+                                "title": "YES",
+                                "filter": {
+                                  "list": [
+                                    {
+                                      "id": 1796400000951,
+                                      "parentId": 1796400000952,
+                                      "isTop": true,
+                                      "prop": "node.code_node_PCp5build.data.hasUnhide",
+                                      "operator": "equal",
+                                      "valueType": "value",
+                                      "value": "YES",
+                                      "type": "leaf",
+                                      "level": 1,
+                                      "propLabel": "hasUnhide",
+                                      "valueLabel": "",
+                                      "operatorLabel": "Equal"
+                                    }
+                                  ]
+                                },
+                                "expression": {
+                                  "code": ""
+                                },
+                                "displayContent": "sdk.form.setCondition",
+                                "isValidator": true,
+                                "nodeName": "YES",
+                                "name": "YES",
+                                "condition_type": "ConditionRule"
+                              },
+                              "blocks": [
+                                {
+                                  "id": "update_node_PCp5unhide",
+                                  "type": "update-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "Packing:Table:1993515601863524353",
+                                      "rules": {
+                                        "collectionId": "1993515601863524353",
+                                        "list": [
+                                          {
+                                            "id": 1796400000953,
+                                            "parentId": 1796400000954,
+                                            "isTop": true,
+                                            "prop": "id",
+                                            "operator": "in",
+                                            "valueType": "field",
+                                            "value": "{{node:code_node_PCp5build.data.unhideRows.id}}",
+                                            "type": "leaf",
+                                            "level": 1,
+                                            "propLabel": "主键ID",
+                                            "valueLabel": "",
+                                            "operatorLabel": "In"
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "condition": {},
+                                    "title": "Un-hide WRITE: the filled Packing shell(s) packing_status Created",
+                                    "isValidator": true,
+                                    "nodeName": "Un-hide WRITE: the filled Packing shell(s) packing_status Created",
+                                    "name": "Un-hide WRITE: the filled Packing shell(s) packing_status Created",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "id",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp5build.data.unhideRows.id}}",
+                                          "valueLabel": "",
+                                          "propLabel": "主键ID"
+                                        },
+                                        {
+                                          "prop": "packing_status",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp5build.data.unhideRows.packing_status}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Packing Status"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            },
+                            {
+                              "id": "cori_NPCp5unhide",
+                              "type": "condition-or-node-item",
+                              "data": {
+                                "title": "NO",
+                                "isDefault": true,
+                                "filter": {
+                                  "list": []
+                                },
+                                "expression": {
+                                  "code": ""
+                                },
                                 "displayContent": "sdk.form.otherCondition"
                               },
                               "blocks": []

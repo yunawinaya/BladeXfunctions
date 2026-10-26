@@ -1,0 +1,8 @@
+{
+ "picking_id": "2114686357714055170",
+ "organization_id": "1901545950162329602",
+ "operation": "PICK_ALL_REMAINING",
+ "idempotency_key": "PKC:1901545950162329602:2114686357714055170:5a17c0de26100003",
+ "payload": "{\"lines\":[]}",
+ "confirmed_by": "e2e-unhide"
+}

@@ -21,6 +21,10 @@ crashed Packing saves half-way and left stock locks held. Each section below wou
   NUMBERS     shared Picking headers whose delivery list still names a cancelled GD by its old number: two GD Cancel V2
               jobs on one header can overwrite each other's rename (X5 writes the whole text; BA 10-25, race_x5.js).
               Display text only; repair with REPLACE on that header
+  PACKING-HIDDEN  GD Created V2's Packing shell still "Waiting" although its GD is fully picked or the shell already has
+              lines: the Picking un-hide ("Waiting" -> "Created", PICKING_BULK_COMMIT P5 / classic PICKING) did not run, so
+              the Packing is missing from both lists (10-26 hidden-shell change). Holds while every packing setup
+              auto-triggers Packing (all 15 on prod, 10-26)
 
 Usage:
     python3 scratchpad/prod_health.py [--dev] [--tenant <tenant_id>] [--hours <window, default 24>]
@@ -218,6 +222,17 @@ def main():
            AND g.delivery_no COLLATE utf8mb4_general_ci = CONCAT(TRIM(x.tok), '-Cancelled') COLLATE utf8mb4_general_ci
          WHERE t.is_deleted = 0 AND t.delivery_no LIKE '%,%'{t('t')}"""),
          check=True, note="a lost rename from two concurrent cancels; display text only")
+
+    checks += show("PACKING-HIDDEN: Packings still 'Waiting' after their GD was picked", query(env, f"""
+        SELECT p.tenant_id, p.packing_no, p.gd_no, g.picking_status AS gd_picking,
+               (SELECT COUNT(*) FROM packing_jz8m9w3h_sub l WHERE l.packing_id = p.id AND l.is_deleted = 0) AS item_rows,
+               p.create_time
+          FROM packing p
+          JOIN goods_delivery g ON g.id = CAST(p.gd_id AS UNSIGNED) AND g.tenant_id = p.tenant_id AND g.is_deleted = 0
+         WHERE p.is_deleted = 0 AND p.packing_status = 'Waiting'{t('p')}
+           AND (g.picking_status = 'Completed'
+                OR EXISTS (SELECT 1 FROM packing_jz8m9w3h_sub l WHERE l.packing_id = p.id AND l.is_deleted = 0))"""),
+         check=True, note="the Picking un-hide did not run: the Packing is on neither list")
 
     print("\n" + ("Needs a look: " + str(checks) + " section(s) marked CHECK" if checks else "All OK"))
     return 1 if checks else 0

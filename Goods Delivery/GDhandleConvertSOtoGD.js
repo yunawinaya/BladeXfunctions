@@ -95,6 +95,128 @@ const handleConvertGDDraft = async (
   );
 };
 
+// GD Created V2 writes a short line as "auto allocation: Insufficient stock for item X. Available: A, Requested: R" in the
+// item's base unit; the list shows it like the GD form's Insufficient Inventory Alert, in the line's unit.
+const SHORT_STOCK_MESSAGE =
+  /Insufficient stock for item .*\. Available: (-?[0-9][0-9.eE+-]*), Requested: (-?[0-9][0-9.eE+-]*)/;
+const SHORT_STOCK_COLUMNS = [
+  "Item Code",
+  "Item Name",
+  "UOM",
+  "Order Qty",
+  "Undelivered",
+  "Remaining Demand",
+  "Available",
+  "Shortfall",
+];
+const CELL_STYLE = "border:1px solid #ebeef5;padding:4px 6px;white-space:nowrap";
+const RESULT_CLASS = "so-convert-gd-result";
+
+const formatQty = (value) => String(Number((Number(value) || 0).toFixed(8)));
+
+// A refused line as a short line in its own unit, or null when its message or quantities cannot be read
+const shortLine = (line) => {
+  const match =
+    line.code === "GD_INSUFFICIENT_STOCK"
+      ? SHORT_STOCK_MESSAGE.exec(line.message || "")
+      : null;
+  if (!match) return null;
+  const availableBase = Number(match[1]);
+  const toDeliver = Number(line.delivery_qty);
+  const baseQty =
+    Number(line.base_qty) > 0 ? Number(line.base_qty) : Number(match[2]);
+  if (!isFinite(availableBase) || !(toDeliver > 0) || !(baseQty > 0)) return null;
+  const available = Math.max(0, (availableBase * toDeliver) / baseQty);
+  return { ...line, available, shortfall: Math.max(0, toDeliver - available) };
+};
+
+const shortTable = (rows) =>
+  `<div style="overflow-x:auto"><table style="border-collapse:collapse;width:100%;margin:4px 0 8px;font-size:12px"><tr>${SHORT_STOCK_COLUMNS.map(
+    (label) =>
+      `<th style="${CELL_STYLE};background:#f5f7fa;text-align:left">${label}</th>`,
+  ).join("")}</tr>${rows
+    .map(
+      (row) =>
+        `<tr>${[row.item_code, row.item_name, row.uom]
+          .map((value) => `<td style="${CELL_STYLE}">${escapeHTML(value)}</td>`)
+          .join("")}${[
+          row.order_qty,
+          row.undelivered_qty,
+          row.delivery_qty,
+          row.available,
+        ]
+          .map(
+            (value) =>
+              `<td style="${CELL_STYLE};text-align:right">${formatQty(value)}</td>`,
+          )
+          .join(
+            "",
+          )}<td style="${CELL_STYLE};text-align:right;color:#f56c6c;font-weight:600">${formatQty(
+          row.shortfall,
+        )}</td></tr>`,
+    )
+    .join("")}</table></div>`;
+
+// A sales order the save refused line by line: its short lines as a table, any other line listed. Null when the check
+// sent no lines (a refusal of the whole delivery, or a check from before the lines were sent): the reason shows as before.
+const refusedDetail = (item) => {
+  const lines = (item.lines || []).filter(
+    (line) => String(line.line_no ?? "") !== "",
+  );
+  if (lines.length === 0) return null;
+  const total = Math.max(Number(item.lineCount) || 0, lines.length);
+  const rows = [];
+  const others = [];
+  for (const line of lines) {
+    const row = shortLine(line);
+    if (row) {
+      rows.push(row);
+    } else {
+      others.push(
+        `Line ${escapeHTML(line.line_no)}${
+          line.item_code ? ` (${escapeHTML(line.item_code)})` : ""
+        }: ${escapeHTML(line.message || line.code)}`,
+      );
+    }
+  }
+  const title =
+    others.length === 0
+      ? `not enough stock for ${total} item${total === 1 ? "" : "s"}`
+      : `${total} line${total === 1 ? " needs" : "s need"} correcting`;
+  return {
+    hasTable: rows.length > 0,
+    html: `<strong>${escapeHTML(item.so_no)}</strong> — ${title}${
+      rows.length > 0 ? shortTable(rows) : "<br>"
+    }${others.join("<br>")}${
+      total > lines.length ? `<br>… and ${total - lines.length} more` : ""
+    }`,
+  };
+};
+
+const SHORT_STOCK_NOTE = `<span style="color:#909399">Convert one of these on its own to open the form, where you can deliver the available quantity.</span>`;
+
+const hasShortTable = (blocked) =>
+  blocked.some((item) => {
+    const detail = refusedDetail(item);
+    return detail !== null && detail.hasTable;
+  });
+
+// A table needs more room than the message box gives: the result opens wider, its style added to the page once
+const resultOptions = (blocked, options) => {
+  if (!hasShortTable(blocked)) return options;
+  try {
+    if (!document.getElementById(`${RESULT_CLASS}-style`)) {
+      const style = document.createElement("style");
+      style.id = `${RESULT_CLASS}-style`;
+      style.textContent = `.el-message-box.${RESULT_CLASS}{--el-messagebox-width:min(960px,95vw);width:min(960px,95vw);max-width:95vw}.el-message-box.${RESULT_CLASS} .el-message-box__message{max-height:65vh;overflow:auto}`;
+      document.head.appendChild(style);
+    }
+  } catch (error) {
+    console.error("The result window could not be widened:", error);
+  }
+  return { ...options, customClass: RESULT_CLASS };
+};
+
 const buildCreatedSummary = (created, blocked, pending = []) => {
   const sections = [];
 
@@ -122,10 +244,22 @@ const buildCreatedSummary = (created, blocked, pending = []) => {
   }
 
   if (blocked.length > 0) {
+    // one block per sales order: a table or a list of lines keeps the same gap to the next one as a one-line reason
     sections.push(
-      `<strong>Not converted (${blocked.length}):</strong><br>${blocked
-        .map((item) => `${escapeHTML(item.so_no)} — ${escapeHTML(item.reason)}`)
-        .join("<br>")}`,
+      `<strong>Not converted (${blocked.length}):</strong>${blocked
+        .map((item) => {
+          const detail = refusedDetail(item);
+          return `<div style="margin-top:6px">${
+            detail
+              ? detail.html
+              : `${escapeHTML(item.so_no)} — ${escapeHTML(item.reason)}`
+          }</div>`;
+        })
+        .join("")}${
+        hasShortTable(blocked)
+          ? `<div style="margin-top:6px">${SHORT_STOCK_NOTE}</div>`
+          : ""
+      }`,
     );
   }
 
@@ -205,12 +339,33 @@ const kickWorker = (jobId) => {
   }
 };
 
+// A FAILED job's refused lines (job_lines_json: the first 10 per job, with item, unit and quantities) and how many it has
+const attachRefusedLines = (jobs, data) => {
+  let lines = [];
+  try {
+    lines = JSON.parse((data && data.job_lines_json) || "[]");
+  } catch (error) {
+    lines = [];
+  }
+  for (const job of jobs) {
+    job.lines = (Array.isArray(lines) ? lines : []).filter(
+      (line) => line && String(line.job_id) === String(job.job_id),
+    );
+    try {
+      job.lineCount =
+        Number(JSON.parse(job.error_details || "{}").line_error_count) || 0;
+    } catch (error) {
+      job.lineCount = 0;
+    }
+  }
+};
+
 const readJobs = (jobIds) =>
   new Promise((resolve) => {
     try {
       this.runWorkflow(
         SO_CONVERT_CHECK_WORKFLOW_ID,
-        { job_ids: jobIds },
+        { job_ids: jobIds, job_lines: "1" },
         (res) => {
           let jobs = null;
           try {
@@ -218,6 +373,7 @@ const readJobs = (jobIds) =>
           } catch (error) {
             jobs = null;
           }
+          if (Array.isArray(jobs)) attachRefusedLines(jobs, res && res.data);
           resolve(Array.isArray(jobs) ? jobs : null);
         },
         (err) => {
@@ -256,7 +412,12 @@ const followBackground = async (queued, created, blocked) => {
       if (CREATED_STATES.indexOf(status) >= 0) {
         created.push({ so_no: item.so_no, delivery_no: job.gd_no || item.gd_no || "" });
       } else if (status === "FAILED" || status === "CANCELLED") {
-        blocked.push({ so_no: item.so_no, reason: job.error_message || "The goods delivery could not be created." });
+        blocked.push({
+          so_no: item.so_no,
+          reason: job.error_message || "The goods delivery could not be created.",
+          lines: job.lines || [],
+          lineCount: job.lineCount || 0,
+        });
       } else if (status === "REQUIRES_REVIEW") {
         blocked.push({
           so_no: item.so_no,
@@ -419,20 +580,25 @@ const handleConvertGDCreated = async (
     await this.$alert(
       blocked.length > 0
         ? blocked
-            .map(
-              (item) =>
-                `<strong>${escapeHTML(item.so_no)}</strong><br>${escapeHTML(
-                  item.reason,
-                )}`,
-            )
-            .join("<br><br>")
+            .map((item) => {
+              const detail = refusedDetail(item);
+              return `<div style="margin-bottom:10px">${
+                detail
+                  ? detail.html
+                  : `<strong>${escapeHTML(item.so_no)}</strong><br>${escapeHTML(
+                      item.reason,
+                    )}`
+              }</div>`;
+            })
+            .join("") +
+            (hasShortTable(blocked) ? `<div>${SHORT_STOCK_NOTE}</div>` : "")
         : setupMessage || "No goods deliveries were created.",
       "Could Not Convert to Goods Delivery",
-      {
+      resultOptions(blocked, {
         confirmButtonText: "OK",
         type: "error",
         dangerouslyUseHTMLString: true,
-      },
+      }),
     );
     return;
   }
@@ -443,11 +609,11 @@ const handleConvertGDCreated = async (
     blocked.length > 0
       ? "Converted with Exceptions"
       : "Converted to Goods Deliveries",
-    {
+    resultOptions(blocked, {
       confirmButtonText: "OK",
       type: blocked.length > 0 ? "warning" : "success",
       dangerouslyUseHTMLString: true,
-    },
+    }),
   );
 };
 

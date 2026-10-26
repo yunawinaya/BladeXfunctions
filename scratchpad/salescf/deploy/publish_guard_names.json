@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GOODS_DELIVERY",
+   "dataId": "2017151544868491265",
+   "file": "scratchpad/salescf/out/dev/GOODS_DELIVERY.json",
+   "base": "scratchpad/salescf/deploy/GOODS_DELIVERY.dev_v250_published.json"
+  },
+  {
+   "name": "SI_SAVE",
+   "dataId": "2029040374929154050",
+   "file": "scratchpad/salescf/deploy/SI_SAVE.dev_v88_names.json",
+   "base": "scratchpad/salescf/deploy/SI_SAVE.dev_v87_titlefix.json"
+  }
+ ]
+}

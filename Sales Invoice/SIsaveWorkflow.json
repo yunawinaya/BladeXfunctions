@@ -2520,6 +2520,14 @@
                       "value": "{{node:code_si_prep.data.entry.si_vehicle_number}}",
                       "valueLabel": "",
                       "propLabel": "Vehicle Number"
+                    },
+                    {
+                      "prop": "custom_fields_h35azf2l",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_si_prep.data.entry.custom_fields_h35azf2l}}",
+                      "valueLabel": "",
+                      "propLabel": "custom_fields_h35azf2l"
                     }
                   ]
                 }
@@ -2535,6 +2543,160 @@
             "title": "false"
           },
           "blocks": [
+            {
+              "id": "code_node_SiCfNeed",
+              "type": "code-node",
+              "data": {
+                "title": "Did the save leave the header custom fields out?",
+                "isValidator": true,
+                "nodeName": "Did the save leave the header custom fields out?",
+                "name": "Did the save leave the header custom fields out?",
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// Did this save leave the header custom fields out? Only then the stored ones are read (one column), so the save keeps them\nconst missing = (v) => v === undefined || v === null;\nconst cf = [{{node:code_si_prep.data.entry.custom_fields_h35azf2l}}][0];\nconst rawId = [{{node:code_si_prep.data.entry.id}}][0];\nconst id = missing(rawId) ? \"\" : String(rawId).trim();\nconst digits = /^[0-9]{1,20}$/.test(id);\nreturn { need: missing(cf) && digits ? \"1\" : \"0\", id: digits ? id : \"0\" };"
+                },
+                "response_json": [
+                  {
+                    "key": "uxfl047a",
+                    "name": "need",
+                    "title": "need",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "jhwzgaui",
+                    "name": "id",
+                    "title": "id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "if_SiCfNeed",
+              "type": "if",
+              "data": {
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1800000027001,
+                      "parentId": 1800000027002,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_SiCfNeed.data.need}}' == '1'"
+                },
+                "title": "IF the save left the header custom fields out",
+                "isValidator": true,
+                "nodeName": "IF the save left the header custom fields out",
+                "name": "IF the save left the header custom fields out"
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TSiCfNeed",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "sql_node_SiCfRead",
+                      "type": "sql-node",
+                      "blocks": [],
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT CAST(t.id AS CHAR) AS row_id,\n       IF(t.custom_fields_h35azf2l IS NULL, NULL, (SELECT IFNULL(JSON_OBJECTAGG(IFNULL(d.field_name, k.k),\n                              JSON_EXTRACT(t.custom_fields_h35azf2l, CONCAT('$.\"', k.k, '\"'))), JSON_OBJECT())\n   FROM JSON_TABLE(IFNULL(JSON_KEYS(t.custom_fields_h35azf2l), JSON_ARRAY()), '$[*]' COLUMNS (k VARCHAR(64) PATH '$')) k\n   LEFT JOIN su_code_custom_field d\n     ON d.id = IF(k.k REGEXP '^[0-9]+$', CAST(k.k AS UNSIGNED), NULL)\n    AND d.is_deleted = 0\n  WHERE NOT (k.k REGEXP '^[0-9]+$' AND d.id IS NULL))) AS custom_fields_h35azf2l\n  FROM sales_invoice t\n WHERE t.id = CAST('{{node:code_node_SiCfNeed.data.id}}' AS UNSIGNED)\n   AND t.tenant_id = '{{system:tenantId}}'\n   AND t.is_deleted = 0\n LIMIT 1"
+                        },
+                        "response_json": [
+                          {
+                            "key": "8ywmc6qi",
+                            "name": "row_id",
+                            "title": "row_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "v70ko6an",
+                            "name": "custom_fields_h35azf2l",
+                            "title": "custom_fields_h35azf2l",
+                            "description": "",
+                            "bsonType": "any",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ],
+                        "title": "Stored header custom fields (this one column, by id)",
+                        "isValidator": true,
+                        "nodeName": "Stored header custom fields (this one column, by id)",
+                        "name": "Stored header custom fields (this one column, by id)"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FSiCfNeed",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "code_node_SiCfOut",
+              "type": "code-node",
+              "blocks": [],
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// What the update writes into custom_fields_h35azf2l: the payload's object, or (left out) the stored one as read\nconst missing = (v) => v === undefined || v === null;\nlet cf = [{{node:code_si_prep.data.entry.custom_fields_h35azf2l}}][0];\nif (String([{{node:code_node_SiCfNeed.data.need}}][0]) === \"1\") {\n  const rows = [{{node:sql_node_SiCfRead.data}}][0];\n  const row = Array.isArray(rows) ? rows[0] : rows;\n  let stored = row ? row.custom_fields_h35azf2l : undefined;\n  if (typeof stored === \"string\") {\n    try {\n      stored = JSON.parse(stored);\n    } catch (e) {\n      stored = null;\n    }\n  }\n  cf = stored;\n}\nreturn { cf: missing(cf) ? null : cf };"
+                },
+                "response_json": [
+                  {
+                    "key": "7rkpl3kx",
+                    "name": "cf",
+                    "title": "cf",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "Header custom fields to write (sent, else as stored)",
+                "isValidator": true,
+                "nodeName": "Header custom fields to write (sent, else as stored)",
+                "name": "Header custom fields to write (sent, else as stored)"
+              }
+            },
             {
               "id": "update_node_I7KGszOE",
               "type": "update-node",
@@ -3233,6 +3395,14 @@
                       "value": "{{node:code_si_prep.data.entry.si_vehicle_number}}",
                       "valueLabel": "",
                       "propLabel": "Vehicle Number"
+                    },
+                    {
+                      "prop": "custom_fields_h35azf2l",
+                      "operator": "",
+                      "valueType": "field",
+                      "value": "{{node:code_node_SiCfOut.data.cf}}",
+                      "valueLabel": "",
+                      "propLabel": "custom_fields_h35azf2l"
                     }
                   ]
                 }

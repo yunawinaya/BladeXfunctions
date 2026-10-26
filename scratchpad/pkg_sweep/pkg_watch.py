@@ -70,6 +70,12 @@ while True:
              WHERE p.tenant_id = '{T}' AND p.is_deleted = 0 AND p.packing_lock_session_id LIKE 'PKGJOB-%'
                AND (j.id IS NULL OR j.job_status IN ('COMPLETED', 'FAILED', 'CANCELLED'))"""):
             emit(state, "lock:" + r["packing_no"] + r["s"], f"LOCK LEFT: {r['packing_no']} still held by {r['s']} (job {r['st'] or 'missing'})")
+        # GD Created V2's shell stays "Waiting" (on neither list) until Picking fills it and sets it Created (10-26)
+        for r in db(f"""SELECT p.packing_no, p.gd_no, COALESCE(g.picking_status, '') gp FROM packing p
+              JOIN goods_delivery g ON g.id = CAST(p.gd_id AS UNSIGNED) AND g.tenant_id = p.tenant_id AND g.is_deleted = 0
+             WHERE p.tenant_id = '{T}' AND p.is_deleted = 0 AND p.packing_status = 'Waiting'
+               AND (g.picking_status = 'Completed' OR EXISTS (SELECT 1 FROM packing_jz8m9w3h_sub l WHERE l.packing_id = p.id AND l.is_deleted = 0))"""):
+            emit(state, "hidden:" + r["packing_no"], f"HIDDEN BUT PICKED: {r['packing_no']} ({r['gd_no']}, picking {r['gp']}) is still 'Waiting' - the Picking un-hide did not run; it is on neither list")
         if time.time() - state.get("classic_at", 0) > 1800:
             rows = db(f"""SELECT create_user_name u, COUNT(*) n FROM su_code_workflow_inst WHERE workflow_id = 1994279909883895810 AND tenant_id = '{T}'
                   AND create_time >= {NOW} - INTERVAL 30 MINUTE AND request_json_data LIKE '%"saveAs":"Completed"%' GROUP BY u ORDER BY n DESC""")

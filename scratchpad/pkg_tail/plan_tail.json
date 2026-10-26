@@ -1,0 +1,28 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PACKING_BULK_COMMIT",
+   "dataId": "2109924671239589890",
+   "file": "Packing/AsyncV2/PACKING_BULK_COMMIT.json",
+   "base": "scratchpad/pkg_tail/base/PACKING_BULK_COMMIT.v9.json",
+   "smoke": {
+    "request": {
+     "job_id": "smoke-not-a-job"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "PK_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "Packing form",
+   "kind": "form",
+   "dataId": "1993515601863524353",
+   "file": "Packing/PackingFullJSON.json",
+   "base": "scratchpad/pkg_tail/base/PackingFullJSON.v205.json"
+  }
+ ]
+}

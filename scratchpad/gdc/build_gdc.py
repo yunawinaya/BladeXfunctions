@@ -928,7 +928,20 @@ def build_submit():
     reads = [("hdr", "The Goods Delivery (every schema field)"), ("lines", "Its lines, top-level and bundle items"),
              ("setup", "Picking Setup + Packing Setup of the organization"), ("link", "Internal-trading links of its Sales Orders"),
              ("items", "Items of its lines (flags, serial management, UOM)"), ("sohl", "Sales Order lines it points at (QtyCheckBatch's columns)")]
-    read_nodes = [("cai_GS" + k, k, [K.sql("sql_node_GS" + k, title, PSQL[k].replace("code_node_GCentry", E), ["j"] if k != "setup" else ["k", "j"])]) for k, title in reads]
+    # the GD header's custom-field definitions { id: field_name } next to its row (bladexfunctions-68's G7, 10-27): gate.js
+    # gsCfKey compares a custom_fields value by field name, the form's names against the stored definition ids
+    cf_defs = ("(SELECT JSON_OBJECTAGG(CAST(d.id AS CHAR), d.field_name) FROM su_code_custom_field d WHERE d.tenant_id = g.tenant_id"
+               " AND d.table_id = '1902054888473481218' AND d.sub_table_key %s AND d.is_deleted = 0)")
+
+    def read_sql(k):
+        s = PSQL[k].replace("code_node_GCentry", E)
+        if k != "hdr":
+            return s
+        old = "'sub_tenant_id', g.`sub_tenant_id`) AS j"
+        assert s.count(old) == 1, "the header read's JSON_OBJECT changed"
+        # and its lines' (sub_table_key fwii8mvb, as GD Edit V2 reads them): gsFormDiff compares line custom fields by name too
+        return s.replace(old, "'sub_tenant_id', g.`sub_tenant_id`, 'cf_defs', %s, 'cf_line_defs', %s) AS j" % (cf_defs % "IS NULL", cf_defs % "= 'fwii8mvb'"))
+    read_nodes = [("cai_GS" + k, k, [K.sql("sql_node_GS" + k, title, read_sql(k), ["j"] if k != "setup" else ["k", "j"])]) for k, title in reads]
     entry_fields = ["route", "code", "message", "reason", "tenantId", "gdId", "gdNo", "organizationId", "plantId", "lineCount", "dbNow", "lockN", "jobId", "jobStatus",
                     "progressPercent", "progressMessage", "errorCode", "errorMessage"]
     nodes = [

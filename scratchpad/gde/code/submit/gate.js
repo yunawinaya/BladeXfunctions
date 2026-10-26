@@ -24,7 +24,7 @@ const submitGateOn = function submitGateOn(guard, entry, R, form, K) {
     allData.gd_status = stored.gd_status;
   } else {
     allData = form;
-    delta = geDelta(form, stored, K);
+    delta = geDelta(form, stored, K, R.cfDefs);
   }
   const rows = (allData.table_gd || []).flatMap((r) => [r].concat(r.children || []));
   if ((R.serialItems || []).length) return Object.assign(base, notEligible("it has serial-numbered items", n));

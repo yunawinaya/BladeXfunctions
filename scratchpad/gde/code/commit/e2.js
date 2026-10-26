@@ -14,29 +14,7 @@ const geCell = function geCell(K, c, v) {
   return v;
 };
 const geLineRows = (rows) => { const o = {}; for (const r of list(rows)) { const x = typeof r.j === "string" ? parseJ(r.j) : r; if (x && x.id !== undefined) o[s(x.id)] = x; } return o; };
-// custom fields: the platform stores a line's field names as its table's definition ids (and keeps ids it is given), so a raw
-// read sees ids where the form sent names (502801, GD2610-0654). E2's line reads carry the definitions as a row
-// { cf_defs: { id: name } }; a custom-fields cell compares as names, without the names a table with definitions lacks (its
-// write drops them)
-const geCfDefs = function geCfDefs(rows) {
-  for (const r of list(rows)) {
-    const x = typeof r.j === "string" ? parseJ(r.j) : r;
-    if (x && x.cf_defs && typeof x.cf_defs === "object") return x.cf_defs;
-  }
-  return {};
-};
-const geCfCanon = function geCfCanon(v, defs) {
-  const o = typeof v === "string" && /^\s*\{/.test(v) ? parseJ(v) : v;
-  if (!o || typeof o !== "object" || Array.isArray(o)) return v;
-  const names = Object.keys(defs).map((k) => defs[k]);
-  const out = {};
-  for (const k of Object.keys(o)) {
-    const name = defs[k] || k;
-    if (!names.length || names.indexOf(name) >= 0) out[name] = o[k];
-  }
-  return out;
-};
-const geSame = (defs) => (c, a, b) => (/^custom_fields/.test(c) ? sameVal(geCfCanon(a, defs), geCfCanon(b, defs)) : sameVal(a, b));
+// custom fields compare as names (cf.js: geCfDefs / geCfCanon / geSame; E2's line reads carry the definitions row)
 // what a check reads of the lines (E0 before anything, E2 after): id, is_deleted, job_line_key and every column a patch writes,
 // each as jobj renders it (exprs: the build-time map, so no text from the payload reaches the SQL); not whole rows
 const geLineCheckSql = function geLineCheckSql(gdl, exprs) {

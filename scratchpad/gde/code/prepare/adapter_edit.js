@@ -34,6 +34,8 @@ const geAdapt = function geAdapt(S) {
   const sohl = obj(S.sohl);
   return Object.assign(base, {
     stored: stored,
+    // the GD header's custom-field definitions (read cfh; cf.js): its custom_fields compare as names
+    cfDefs: geCfDefs(S.cfh),
     pick: pick,
     livePickings: live.map((p) => ({ id: p.id, to_id: p.to_id, to_status: p.to_status, is_processing: p.is_processing, update_time: p.update_time })),
     activePickings: gcSearch(notCompleted),

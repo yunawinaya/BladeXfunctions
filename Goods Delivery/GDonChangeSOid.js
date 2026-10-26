@@ -1,3 +1,25 @@
+// Header custom fields to copy: an object as is, JSON text parsed, anything else {} (only the fields are skipped, never the document)
+const headerCustomFields = (v) => {
+  let o = v;
+  if (typeof o === "string") {
+    if (!o.trim()) return {};
+    try {
+      o = JSON.parse(o);
+    } catch (e) {
+      console.log("header custom fields skipped: not JSON");
+      return {};
+    }
+  }
+  return o && typeof o === "object" && !Array.isArray(o) ? o : {};
+};
+// Header description: a value still equal to the source form's default (Sales Order, Cash Sales, Sales Invoice) is not
+// carried forward -- the target gets its own default instead. Blank counts as default.
+const carryDescription = (value, targetDefault) => {
+  const text = value == null ? "" : String(value).trim();
+  const defaults = ["Sales Order", "Cash Sales", "Sales Invoice"];
+  return !text || defaults.some((x) => x.toLowerCase() === text.toLowerCase()) ? targetDefault : value;
+};
+
 (async () => {
   const soIDs = arguments[0].value;
 
@@ -19,6 +41,7 @@
     this.display("address_grid");
 
     await this.setData({
+      document_description: carryDescription(soData.so_description, "Goods Delivery"),
       gd_delivery_method: soData.so_delivery_method,
       delivery_method_text: soData.so_delivery_method,
 
@@ -85,6 +108,11 @@
       project_id: soData.project_id ?? null,
     });
 
+    // Header custom fields: a new delivery takes its first order's once; a box that already holds values is left alone,
+    // since picking more orders runs this again
+    if ((this.isAdd || this.isCopy) && Object.keys(headerCustomFields(this.getValue("custom_fields"))).length === 0) {
+      await this.setData({ custom_fields: headerCustomFields(soData.custom_fields_m07krnod) });
+    }
   } else {
     await this.triggerEvent("func_reset_delivery_method");
     this.hide("address_grid");

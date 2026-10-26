@@ -4,8 +4,10 @@
 // a stored line the form no longer has is removed; `layout` keeps the form's order and bundle nesting.
 // delta = { header: {col: value}, dropHeader: [col], lines: [{id, cells: {col: value}, drop: [col]}], added: [row],
 //           removed: [id], layout: [{ref: id | "+n", children: [id | "+n"]}] }
-const geDelta = function geDelta(form, stored, kinds) {
+// cfDefs: the header table's custom-field definitions (cf.js) - a header custom_fields value compares as names
+const geDelta = function geDelta(form, stored, kinds, cfDefs) {
   const H = kinds.header, L = kinds.line;
+  const hv = (c, v) => (c === "custom_fields" && cfDefs ? geCfCanon(v, cfDefs) : v);
   // JSON with sorted keys: a MySQL json column keeps its own key order
   const sorted = (key, x) => (x && typeof x === "object" && !Array.isArray(x) ? Object.keys(x).sort().reduce((o, kk) => ((o[kk] = x[kk]), o), {}) : x);
   const norm = (v, k) => {
@@ -17,7 +19,7 @@ const geDelta = function geDelta(form, stored, kinds) {
   const delta = { header: {}, dropHeader: [], lines: [], added: [], removed: [], layout: [] };
   for (const c of Object.keys(H)) {
     if (c === "table_gd" || c === "id") continue;
-    if (has(form, c)) { if (!eq(norm(form[c], H[c]), norm(stored[c], H[c]))) delta.header[c] = form[c]; }
+    if (has(form, c)) { if (!eq(norm(hv(c, form[c]), H[c]), norm(hv(c, stored[c]), H[c]))) delta.header[c] = form[c]; }
     else if (has(stored, c)) delta.dropHeader.push(c);
   }
   const byId = {};

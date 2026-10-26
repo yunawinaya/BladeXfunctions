@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_COMPLETE_SUBMIT",
+   "dataId": "2110182609618337794",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/CompleteV2/GD_COMPLETE_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_COMPLETE_SUBMIT/v14_20261027-020547.enabled.json"
+  }
+ ]
+}

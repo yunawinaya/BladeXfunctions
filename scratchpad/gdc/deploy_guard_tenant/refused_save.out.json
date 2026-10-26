@@ -1,0 +1,1 @@
+{"code":200,"data":{"code":"400","message":"Not saved: line 1 (ITM-20260600005-A) is in BAG. That unit is not one of the item's units, so the stock quantity cannot be worked out. Choose the item's own unit, or add the unit to the item's unit conversions, then save again."},"msg":"操作成功","success":true}

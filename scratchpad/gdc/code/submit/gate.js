@@ -5,6 +5,29 @@
 const gsFlat = (rows) => (Array.isArray(rows) ? rows : []).flatMap((r) => [r].concat(Array.isArray(r.children) ? r.children : []));
 // written onto the lines by pick confirmations, never by the user: a form opened before the latest pick is not an edit
 const GS_PICKING_COLS = { picking_status: 1, prev_temp_qty_data: 1, picked_qty: 1, picked_temp_qty_data: 1, picked_view_stock: 1 };
+// header custom fields as compared by gsFormDiff: by field name (stored definition ids through cf_defs; a numeric key with no
+// definition is ignored), null / "" values left out as gcStrip leaves them out, keys sorted
+const gsCfKey = function gsCfKey(v, defs) {
+  let o = v;
+  if (typeof o === "string") {
+    try {
+      o = JSON.parse(o);
+    } catch (e) {
+      o = null;
+    }
+  }
+  const d = defs && typeof defs === "object" ? defs : {};
+  const out = {};
+  if (o && typeof o === "object" && !Array.isArray(o)) {
+    for (const k of Object.keys(o)) {
+      const x = o[k];
+      if (x === null || x === undefined || x === "") continue;
+      if (!/^[0-9]+$/.test(k)) out[k] = x;
+      else if (d[k]) out[d[k]] = x;
+    }
+  }
+  return JSON.stringify(Object.keys(out).sort().reduce((a, k) => ((a[k] = out[k]), a), {}));
+};
 const gsFormDiff = function gsFormDiff(form, stored, kinds) {
   const H = kinds.header, L = kinds.line;
   // an empty list / object is no value, as null is: the form sends [] for an attachment the stored GD holds as null (LSH
@@ -22,6 +45,9 @@ const gsFormDiff = function gsFormDiff(form, stored, kinds) {
     if (!H[c] || !Object.prototype.hasOwnProperty.call(form, c)) continue;
     if (!eq(norm(form[c], H[c]), norm(stored[c], H[c]))) changed.push(c);
   }
+  // header custom fields, by name (not a GC_GD_WRITE_COLS column): an edit sends the completion to the classic save
+  if (Object.prototype.hasOwnProperty.call(form, "custom_fields") && gsCfKey(form.custom_fields, null) !== gsCfKey(stored.custom_fields, stored.cf_defs))
+    changed.push("custom_fields");
   const byId = {};
   for (const r of gsFlat(stored.table_gd)) byId[String(r.id)] = r;
   const overrides = {};
@@ -35,6 +61,12 @@ const gsFormDiff = function gsFormDiff(form, stored, kinds) {
     matched++;
     for (const c of Object.keys(r)) {
       if (c === "children" || c === "id" || !L[c] || GS_PICKING_COLS[c]) continue;
+      // a line's custom fields by name too: its stored row holds definition ids (cf_line_defs), the form sends names, so a raw
+      // compare read every 502801 line as edited and sent the completion to the classic save (10-27)
+      if (c === "custom_fields") {
+        if (gsCfKey(r[c], null) !== gsCfKey(o[c], stored.cf_line_defs) && changed.indexOf("table_gd.custom_fields") < 0) changed.push("table_gd.custom_fields");
+        continue;
+      }
       if (eq(norm(r[c], L[c]), norm(o[c], L[c]))) continue;
       if (c === "gd_undelivered_qty") overrides[String(r.id)] = { gd_undelivered_qty: r[c] === null || r[c] === "" ? 0 : r[c] };
       else if (changed.indexOf("table_gd." + c) < 0) changed.push("table_gd." + c);

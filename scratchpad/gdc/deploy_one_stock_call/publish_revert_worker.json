@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_REVERT_WORKER",
+   "dataId": "2112758130420088833",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_REVERT_WORKER/v6_20261027-004654.enabled.json"
+  }
+ ]
+}

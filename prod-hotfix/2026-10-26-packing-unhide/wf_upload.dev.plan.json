@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PICKING_BULK_COMMIT",
+   "dataId": "2109531367339180034",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_BULK_COMMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING_BULK_COMMIT/v15_20261026-193755.enabled.json"
+  },
+  {
+   "name": "PICKING",
+   "dataId": "2020683258347081730",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/PickingProcessWorkflow.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING/v156_20261026-193804.enabled.json"
+  }
+ ]
+}

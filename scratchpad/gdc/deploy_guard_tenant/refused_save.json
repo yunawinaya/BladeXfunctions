@@ -1,0 +1,19 @@
+{
+ "saveAs": "Created",
+ "pageStatus": "Add",
+ "allData": {
+  "organization_id": "1123598813738675201",
+  "plant_id": "1123598813738675202",
+  "so_id": ["2112386058800959490"],
+  "table_gd": [
+   {
+    "material_id": "2064633018934157313",
+    "material_name": "ITM-20260600005-A",
+    "gd_qty": 1,
+    "gd_order_uom_id": "2018906563477008385",
+    "good_delivery_uom_id": "2018906563477008385",
+    "line_so_id": "2112386058800959490"
+   }
+  ]
+ }
+}

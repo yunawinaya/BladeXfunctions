@@ -47,6 +47,11 @@ HU_CAND = f"SELECT hc.handling_unit_id FROM handling_unit_atu7sreg_sub hc WHERE 
 
 SQL = {
     "hdr": f"SELECT {jobj('g', 'goods_delivery')} AS j\n  FROM goods_delivery g\n WHERE g.tenant_id = {T} AND g.id = {G} AND g.is_deleted = 0",
+    # the GD header table's custom-field definitions { cf_defs: { id: name } } (code/commit/cf.js): a header custom_fields
+    # value compares as names (LSH 128671 has header definitions; a raw read sees their ids)
+    "cfh": f"SELECT JSON_OBJECT('cf_defs', COALESCE((SELECT JSON_OBJECTAGG(CAST(d.id AS CHAR), d.field_name) FROM su_code_custom_field d"
+           f"\n WHERE d.tenant_id = {T} AND d.is_deleted = 0 AND d.table_id = '1902054888473481218' AND IFNULL(d.sub_table_key, '') = ''),"
+           f" JSON_OBJECT())) AS j",
     "lines": f"SELECT {jobj('gl', 'goods_delivery_fwii8mvb_sub')} AS j\n  FROM {LINES}\n ORDER BY gl.id",
     "setup": (
         "SELECT x.k, x.j FROM (\n"

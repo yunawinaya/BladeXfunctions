@@ -188,6 +188,10 @@ const gcGdWrite = function gcGdWrite(fillAll, fmtAll, merge, saveAs) {
   header.gd_status = saveAs;
   header.gd_total = fmtAll.gd_total === undefined ? null : fmtAll.gd_total;
   header.picking_status = merge.picking_status === undefined ? null : merge.picking_status;
+  // header custom fields (v251's GdCfNeed / GdCfOut; not a GC_GD_WRITE_COLS column, gsFormDiff compares those raw): only an
+  // object is a value ({} clears); null, absent or text leave the stored value
+  const cf = fillAll.custom_fields;
+  if (cf && typeof cf === "object" && !Array.isArray(cf)) header.custom_fields = cf;
   return { header: header, table_gd: merge.table_gd || [] };
 };
 

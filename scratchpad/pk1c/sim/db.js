@@ -420,6 +420,15 @@ function mocks() {
       for (const k of ["di_shipping_method", "di_driver_name", "di_ic_no", "di_driver_contact_no", "di_shipping_company", "di_transport_name", "di_vehicle_number", "di_est_delivery_date", "di_est_arrival_date", "di_pickup_date", "di_validity_of_collection", "di_tracking_number", "di_freight_charges"]) r[k] = p[k] === undefined ? null : p[k];
       return [r];
     },
+    // the header re-check (phase B, before P5): the stored status and the Picking's live / Completed rows
+    sql_node_PCbhdr: (text, ctx, e) => {
+      const id = out(ctx, "code_node_PCentry").pickingId;
+      const p = e.db.t.picking.find((x) => x.id === id);
+      if (!p) return [];
+      const rows = e.db.t.lines.filter((l) => l.transfer_order_id === id && !l.is_deleted);
+      return [{ to_status: p.to_status, live_rows: String(rows.filter((l) => (l.line_status || "") !== "Cancelled").length),
+        completed_rows: String(rows.filter((l) => (l.line_status || "") === "Completed").length) }];
+    },
     sql_node_PCp5lines: (text, ctx, e) => e.db.t.lines.filter((l) => l.transfer_order_id === out(ctx, "code_node_PCentry").pickingId).map((l) => ({ gd_id: S(l.gd_id), gd_no: l.gd_no, so_id: S(l.so_id), so_no: l.so_no, customer_id: S(l.customer_id), qty_to_pick: n8(l.qty_to_pick), pending_process_qty: n8(l.pending_process_qty), line_status: l.line_status, item_bundle_id: S(l.item_bundle_id), item_code: S(l.item_code), handling_unit_id: S(l.handling_unit_id), row_type: l.row_type })),
     // stage 1b reads the records of one chunk of deliveries; stage 1a read all of the Picking's
     sql_node_PCp5recs: (text, ctx, e) => e.db.t.records.filter((r) => r.transfer_order_id === out(ctx, "code_node_PCentry").pickingId && (!out(ctx, "code_node_PCp5chunk") || String(out(ctx, "code_node_PCp5chunk").gdIdsCsv).split(",").includes(String(r.gd_id)))).map((r) => ({ gd_line_id: S(r.gd_line_id), store_out_qty: n8(r.store_out_qty), target_location: S(r.target_location) || null, source_bin: S(r.source_bin) || null, target_batch: S(r.target_batch) || null, batch_no: S(r.batch_no) || null, handling_unit_id: S(r.handling_unit_id) || null })),

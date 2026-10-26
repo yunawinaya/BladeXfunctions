@@ -1,0 +1,290 @@
+// Helper functions
+const showStatusHTML = async (status) => {
+  switch (status) {
+    case "Draft":
+      this.display(["draft_status"]);
+      break;
+    case "Created":
+      this.display(["created_status"]);
+      break;
+    case "Completed":
+      this.display(["completed_status"]);
+      break;
+    case "Cancelled":
+      this.display(["cancelled_status"]);
+      break;
+    default:
+      break;
+  }
+};
+
+const disabledField = async (status) => {
+  // Fields sourced upstream (from GD / SO / Picking) — should stay immutable
+  // once the Packing has been created. User should not edit these on Created or Completed.
+  const upstreamFields = [
+    "plant_id",
+    "organization_id",
+    "packing_no",
+    "packing_no_type",
+    "gd_id",
+    "gd_no",
+    "so_id",
+    "so_no",
+    "to_id",
+    "customer_id",
+    "billing_address",
+    "shipping_address",
+  ];
+
+  if (status === "Completed" || status === "Cancelled") {
+    this.disabled(
+      [
+        ...upstreamFields,
+        "packing_status",
+        "packing_mode",
+        "assigned_to",
+        "created_by",
+        "created_at",
+        "ref_doc",
+        "table_hu",
+        "remarks",
+        "remarks_2",
+        "remarks_3",
+      ],
+      true,
+    );
+    this.hide(["button_save_as_draft", "button_created", "button_completed"]);
+  } else if (status === "Created") {
+    this.disabled(upstreamFields, true);
+    this.disabled(["ref_doc"], false);
+  } else {
+    this.disabled(["ref_doc"], false);
+  }
+};
+
+const setPlant = async (organizationId) => {
+  const deptId = this.getVarSystem("deptIds").split(",")[0];
+  let plantId = "";
+  const plant = this.getValue("plant_id");
+
+  if (!plant) {
+    if (deptId === organizationId) {
+      const resPlant = await db
+        .collection("blade_dept")
+        .where({ parent_id: deptId })
+        .get();
+
+      if (!resPlant && resPlant.data.length === 0) {
+        plantId = deptId;
+      } else {
+        plantId = "";
+      }
+    } else {
+      plantId = deptId;
+    }
+  }
+
+  this.setData({
+    organization_id: organizationId,
+    ...(!plant ? { plant_id: plantId } : {}),
+    created_at: new Date().toISOString().split("T")[0],
+  });
+};
+
+const setPackingMode = async () => {
+  const packingMode = this.getValue("packing_mode");
+  if (packingMode === "Basic") {
+    this.display(["table_hu.hu_quantity"]);
+    this.hide(["table_hu.item_count", "table_hu.total_quantity"]);
+  } else {
+    this.hide(["table_hu.hu_quantity"]);
+    this.display(["table_hu.item_count", "table_hu.total_quantity"]);
+  }
+};
+
+// table_hu_source columns `hu_select` and `handling_unit_id` are visible by
+// default in the form schema. This function walks each row and hides them
+// on non-header (item) rows so they only appear on HU headers.
+const applyHuSourceVisibility = async () => {
+  const rows = this.getValue("table_hu_source") || [];
+  if (rows.length === 0) return;
+
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].row_type !== "header") {
+      await this.hide(`table_hu_source.${i}.handling_unit_id`);
+    }
+  }
+};
+
+const fetchPickingSetup = async (organizationId) => {
+  try {
+    const resPickingSetup = await db
+      .collection("picking_setup")
+      .where({ organization_id: organizationId })
+      .get()
+      .then((res) => {
+        return res.data[0];
+      });
+
+    if (!resPickingSetup) {
+      console.log("No picking setup found");
+      return;
+    }
+
+    const pickingAfter = resPickingSetup.picking_after;
+
+    if (pickingAfter === "Sales Order") {
+      await this.hide(["gd_id"]);
+    }
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+// Packing V2: the Packing's latest background completion, read through PACKING_ASYNC_SUBMIT (STATUS: the browser cannot
+// read gd_async_job). While it is open the save buttons are hidden; FAILED / under review is reported once.
+const pkgV2ShowJobState = async () => {
+  const id = this.getValue("id");
+  if (!id || "2109924558618333185".indexOf("__") === 0) return;
+  let organizationId = String(this.getValue("organization_id") || "");
+  if (!organizationId) {
+    organizationId = String(this.getVarGlobal("deptParentId") || "");
+    if (!organizationId || organizationId === "0") organizationId = String(this.getVarSystem("deptIds") || "").split(",")[0];
+  }
+  const job = await new Promise((resolve) => {
+    try {
+      this.runWorkflow(
+        "2109924558618333185",
+        { packing_id: String(id), organization_id: organizationId, operation: "STATUS" },
+        (res) => resolve((res && res.data) || null),
+        (err) => {
+          console.error("Packing V2: job state could not be read", err);
+          resolve(null);
+        },
+      );
+    } catch (e) {
+      resolve(null);
+    }
+  });
+  if (!job || !job.job_id) return;
+  if (["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_PACKING"].includes(job.job_status)) {
+    this.hide(["button_save_as_draft", "button_created", "button_completed"]);
+    this.$message.warning("This Packing is being completed in the background (" + (job.result_message || job.job_status) + "). Reopen it in a moment.");
+    // no scheduled worker: every open starts it again (a run in progress holds the job's lease, so a second start does nothing)
+    try {
+      this.runWorkflow(
+        "2109924593737240578",
+        { job_id: String(job.job_id) },
+        (res) => {
+          if (((res && res.data) || {}).job_status === "COMPLETED") this.$message.success("The Packing was completed in the background. Reopen it to see it.");
+        },
+        (err) => console.error("Packing V2: worker start failed", err),
+      );
+    } catch (e) {
+      console.error("Packing V2: worker could not be started", e);
+    }
+    return;
+  }
+  const seenKey = "pkgv2_seen_" + job.job_id;
+  let seen = false;
+  try {
+    seen = window.localStorage.getItem(seenKey) === "1";
+    window.localStorage.setItem(seenKey, "1");
+  } catch (e) {
+    seen = false;
+  }
+  if (seen) return;
+  if (job.job_status === "FAILED") this.$message.error("The last completion was not saved: " + (job.result_message || "unknown reason"));
+  else if (job.job_status === "REQUIRES_REVIEW") this.$message.error("The last completion stopped half-way and is under review: " + job.result_message + " Please contact support.");
+};
+
+// Main execution function
+(async () => {
+  try {
+    let pageStatus = "";
+    const status = await this.getValue("packing_status");
+    console.log("Debug", this.getValues());
+
+    if (this.isAdd) pageStatus = "Add";
+    else if (this.isEdit) pageStatus = "Edit";
+    else if (this.isView) pageStatus = "View";
+    else throw new Error("Invalid page state");
+
+    let organizationId = this.getVarGlobal("deptParentId");
+    if (organizationId === "0") {
+      organizationId = this.getVarSystem("deptIds").split(",")[0];
+    }
+
+    this.setData({ page_status: pageStatus });
+
+    switch (pageStatus) {
+      case "Add":
+        // Add mode
+        this.display(["draft_status"]);
+        this.disabled("assigned_to", false);
+        this.setData({
+          created_by: this.getVarGlobal("nickname"),
+        });
+
+        setPlant(organizationId);
+
+        await setPackingMode();
+        await fetchPickingSetup(organizationId);
+        break;
+
+      case "Edit":
+        if (status !== "Draft") {
+          this.hide(["button_save_as_draft"]);
+          await fetchPickingSetup(organizationId);
+        }
+        await disabledField(status);
+        await showStatusHTML(status);
+        await setPackingMode();
+        pkgV2ShowJobState();
+        break;
+
+      case "View":
+        await showStatusHTML(status);
+        this.hide([
+          "button_save_as_draft",
+          "button_created",
+          "button_completed",
+        ]);
+        await setPackingMode();
+        pkgV2ShowJobState();
+        break;
+    }
+
+    await this.triggerEvent("PackingRecomputeSource");
+  } catch (error) {
+    console.error(error);
+    this.$message.error(error.message || "An error occurred");
+  }
+})();
+
+// Per-row visibility for table_hu_source needs the table data to be loaded
+// before display/hide can target specific rows. Run after a delay.
+setTimeout(async () => {
+  if (this.isAdd) return;
+  await applyHuSourceVisibility();
+}, 500);
+
+setTimeout(async () => {
+  if (!this.isAdd) return;
+  const maxRetries = 10;
+  const interval = 500;
+  for (let i = 0; i < maxRetries; i++) {
+    const op = await this.onDropdownVisible("packing_no_type", true);
+    if (op != null) break;
+    await new Promise((resolve) => setTimeout(resolve, interval));
+  }
+  function getDefaultItem(arr) {
+    return arr?.find((item) => item?.item?.is_default === 1);
+  }
+
+  const optionsData = this.getOptionData("packing_no_type") || [];
+  const data = getDefaultItem(optionsData);
+  if (data) {
+    this.setData({ packing_no_type: data.value });
+  }
+}, 500);

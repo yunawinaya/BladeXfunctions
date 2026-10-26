@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_COMPLETE_WORKER",
+   "dataId": "2110182645714518018",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/CompleteV2/GD_COMPLETE_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_COMPLETE_WORKER/v7_20261027-003454.enabled.json"
+  },
+  {
+   "name": "GD_CANCEL_WORKER",
+   "dataId": "2112455700319932418",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/CancelV2/GD_CANCEL_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_CANCEL_WORKER/v5_20261027-003455.enabled.json"
+  }
+ ]
+}

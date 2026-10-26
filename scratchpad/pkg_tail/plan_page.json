@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "Packing list",
+   "kind": "page",
+   "dataId": "1993880834000805890",
+   "file": "scratchpad/pkg_tail/out/PackingListPage.json",
+   "base": "scratchpad/pkg_tail/base/PackingListPage.v28.json"
+  }
+ ]
+}

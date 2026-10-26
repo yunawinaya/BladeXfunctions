@@ -671,7 +671,7 @@
                         "name": "6-1. Set Redis Name",
                         "script": {
                           "type": "javascript",
-                          "code": "const userID = {{system:uid}};\nconst now = new Date();\nconst date = now.toISOString().split('T')[0]; // YYYY-MM-DD\nconst time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS\n\n// One key carries the whole run: the loop's cursor and the invoices created so\n// far, as JSON. A code node cannot reach Redis by itself -- only 6-3 reads the\n// key and 9 writes it -- so both ride in the same value.\nreturn {\n  redis_name: `PO_CONVERT_PI:${userID}:${date}:${time}`,\n  // Example: \"PO_CONVERT_PI:12345:2024-02-24:143022\"\n  initial_state: JSON.stringify({ index: 0, pi_list: [] })\n};\n"
+                          "code": "const userID = {{system:uid}};\nconst now = new Date();\nconst date = now.toISOString().split('T')[0]; // YYYY-MM-DD\nconst time = now.toTimeString().split(' ')[0].replace(/:/g, ''); // HHMMSS\n\n// One key carries the whole run: the loop's cursor and the invoices created so\n// far, as JSON. A code node cannot reach Redis by itself -- only 6-3 reads the\n// key and 9 writes it -- so both ride in the same value.\n// the random tag: two runs of one user in the same second shared one key (GD-2610-2093 reported 2094's invoice, 10-26)\nreturn {\n  redis_name: `PO_CONVERT_PI:${userID}:${date}:${time}:${Math.random().toString(36).slice(2, 10)}`,\n  // Example: \"PO_CONVERT_PI:12345:2024-02-24:143022:k3f9x0ab\"\n  initial_state: JSON.stringify({ index: 0, pi_list: [] })\n};\n"
                         },
                         "response_json": [
                           {

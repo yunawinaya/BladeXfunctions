@@ -207,7 +207,8 @@ def ret_block(prefix, tag, title, fields, mods, body):
 # =============================================================================================== GD_EDIT_PREPARE
 PE = "code_node_GEentry"   # prepare/sql.py's token node
 P_READS = [
-    ("hdr", "The Goods Delivery (every schema field)", ["j"]), ("lines", "Its lines, top-level and bundle items", ["j"]),
+    ("hdr", "The Goods Delivery (every schema field)", ["j"]), ("cfh", "The GD header's custom-field definitions (custom_fields compare as names)", ["j"]),
+    ("lines", "Its lines, top-level and bundle items", ["j"]),
     ("setup", "Picking Setup + Packing Setup of the organization", ["k", "j"]), ("link", "Internal-trading links of its Sales Orders (stored + edited)", ["j"]),
     ("items", "Items of its lines and of the edit", ["j"]), ("sohl", "Sales Order lines (stored + edited), the columns the SO nodes read", ["j"]),
     ("soh", "Its Sales Orders (status columns)", ["j"]), ("alloc", "on_reserved_gd Allocated to it (no row limit)", ["j"]),
@@ -221,7 +222,7 @@ P_READS = [
     ("ares", "Auto allocation: their reservations GLOBAL_ALLOCATION reads (SO Pending, HU-allocated, this GD's own)", ["k", "j"]),
     ("aref", "Auto allocation: UOMs, the plant's bins, HUs + items, batch numbers (only when a row may need allocation)", ["k", "j"]),
 ]
-PLAN_MODS = ["gdc/lift/runtime.js", "@lift", "gdc/code/prepare/chain.js", "gdc/code/prepare/adapter.js", "code/prepare/alloc_edit.js", "code/prepare/chain_edit.js", "code/submit/delta.js",
+PLAN_MODS = ["gdc/lift/runtime.js", "@lift", "gdc/code/prepare/chain.js", "gdc/code/prepare/adapter.js", "code/prepare/alloc_edit.js", "code/prepare/chain_edit.js", "code/commit/cf.js", "code/submit/delta.js",
              "code/prepare/apply_delta.js", "code/prepare/plan_edit.js", "code/commit/so_edit.js", "code/prepare/adapter_edit.js", "@kinds"]
 
 
@@ -494,6 +495,9 @@ UNION ALL
     pick_recs = q("SELECT @JOBJ AS j\n  FROM transfer_order_vrqs3cmr_sub pr\n WHERE pr.is_deleted = 0 AND pr.transfer_order_id IN (@OF)\n ORDER BY pr.id",
                   JOBJ=jobj("pr", "transfer_order_vrqs3cmr_sub"), OF=of_picks, TEN=TEN, ORGID=ORGID, GDID=GDID)
     head_full = q("SELECT @JOBJ AS j\n  FROM goods_delivery g\n WHERE g.tenant_id = '@TEN' AND g.id = @GDID", JOBJ=jobj("g", "goods_delivery"), TEN=TEN, GDID=GDID)
+    # E6: the GD header table's custom-field definitions (cf.js), so its custom_fields compare as names (LSH 128671)
+    head_cf = q("SELECT JSON_OBJECT('cf_defs', COALESCE((SELECT JSON_OBJECTAGG(CAST(d.id AS CHAR), d.field_name) FROM su_code_custom_field d\n"
+                " WHERE d.tenant_id = '@TEN' AND d.is_deleted = 0 AND d.table_id = '1902054888473481218' AND IFNULL(d.sub_table_key, '') = ''), JSON_OBJECT())) AS j", TEN=TEN)
     head_no = q("SELECT JSON_OBJECT('id', CAST(g.id AS CHAR), 'delivery_no', g.delivery_no, 'delivery_no_type', g.delivery_no_type, 'gd_status', g.gd_status) AS j\n"
                 "  FROM goods_delivery g\n WHERE g.tenant_id = '@TEN' AND g.id = @GDID", TEN=TEN, GDID=GDID)
     iba = q("SELECT COUNT(*) AS intents FROM gd_publish_step st WHERE st.tenant_id = '@TEN' AND st.job_id = 'GDE|@JOBID' AND st.step_name LIKE 'IBA|I|%' AND st.is_deleted = 0",
@@ -577,7 +581,7 @@ return res;"""
     NUM = "const e = Object.assign({}, entry, { number: s((%s || {}).number) || s(entry.number) });" % d("code_node_GXe0ncheck")
     phase_a = [
         K.parallel("condition_all_GXapart", "Phase A: the parts it reads, in parallel", parts("a", ["RES", "GDL", "PICK", "SO", "GDH", "ENGINE"])),
-        cnode(ida, "Phase A: the reservation, line and sales-order ids to read fresh (the lines: only what E0 compares)", C0 + ["gdc/code/prepare/adapter.js", CM + "so_fresh.js", CM + "e2.js", "@linesql"],
+        cnode(ida, "Phase A: the reservation, line and sales-order ids to read fresh (the lines: only what E0 compares)", C0 + ["gdc/code/prepare/adapter.js", CM + "so_fresh.js", CM + "cf.js", CM + "e2.js", "@linesql"],
               ida_js, ["ok", "resIdsJson", "gdLineIdsJson", "soIdsJson", "soLineIdsJson", "lineCheckSql"]),
         K.if_(ids, "if_GXe0", "IF E0 REVALIDATE is due: nothing written yet - the rows as PREPARE read them, our locks, the sales orders still accept the edit",
               is_(XE, "needE0", "YES"), [
@@ -650,7 +654,7 @@ return res;"""
 
     def e2_plan(tag, lines_node):
         return cnode("code_node_GXe2%s" % tag, "E2 plan (%s): inserts not made yet (a bundle item waits for its parent's id), patches at their before (whole rows), removals" % tag,
-                     C0 + [CM + "e2.js", "@kinds"], tail("commitE2Plan(entry, %s, %s, GE_KINDS)" % (part_js("b", "GDL"), d(lines_node)), "commit E2 plan " + tag, pre=ENTRY),
+                     C0 + [CM + "cf.js", CM + "e2.js", "@kinds"], tail("commitE2Plan(entry, %s, %s, GE_KINDS)" % (part_js("b", "GDL"), d(lines_node)), "commit E2 plan " + tag, pre=ENTRY),
                      E2F, arrays=E2A, objects=("patchCount", "deferred"))
 
     def e2_add(tag):
@@ -663,7 +667,7 @@ return res;"""
         K.parallel("condition_all_GXbpart", "Phase B: the part it reads", parts("b", ["GDL"])),
         K.if_(ids, "if_GXe2", "IF E2 LINES is due", is_(XE, "needE2", "YES"), [
             cnode("code_node_GXe2ids", "E2: the lines to read (patched, removed), whether new bundle items wait for their parent, what the check reads",
-                  C0 + [CM + "e2.js", "@linesql"], e2ids_js, ["ok", "gdLineIdsJson", "twoPass", "lineCheckSql"]),
+                  C0 + [CM + "cf.js", CM + "e2.js", "@linesql"], e2ids_js, ["ok", "gdLineIdsJson", "twoPass", "lineCheckSql"]),
             K.sql("sql_node_GXe2la", "E2: those lines now (whole rows: a patch goes out whole) + this job's inserted lines", gdlines_cf(jobj("gl", "goods_delivery_fwii8mvb_sub"), N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
             e2_plan("a", "sql_node_GXe2la"),
             end_block("e2a", "code_node_GXe2a", "IF the lines changed after the stock moved: review"),
@@ -681,7 +685,7 @@ return res;"""
                 gate(ids, "cor_GXe2delb", "Lines to remove?", "code_node_GXe2b", "needDelete", [
                     rows_update(ids, "update_node_GXe2delb", "E2 WRITE: removed lines is_deleted = 1 (as the classic save)", GDL, "code_node_GXe2b", "deleteRows", ["is_deleted"])])]),
             K.sql("sql_node_GXe2back", "E2 read-back (the compared columns only)", gdlines_cf(N("code_node_GXe2ids", "data.lineCheckSql"), N("code_node_GXe2ids", "data.gdLineIdsJson")), J),
-            cnode("code_node_GXe2check", "E2 check: every insert once, every patch and removal reads back -> DONE", C0 + [CM + "e2.js"],
+            cnode("code_node_GXe2check", "E2 check: every insert once, every patch and removal reads back -> DONE", C0 + [CM + "cf.js", CM + "e2.js"],
                   tail("commitE2Check(entry, %s, %s)" % (part_js("b", "GDL"), d("sql_node_GXe2back")), "commit E2 check", pre=ENTRY), CHK, arrays=CHK_ARR),
             end_block("e2", "code_node_GXe2check", "IF E2 did not complete"),
             step_done("e2", "code_node_GXe2check", "E2_LINES")]),
@@ -753,7 +757,7 @@ return res;"""
         "const res = { gdLineIdsJson: JSON.stringify(u.length ? u : [\"0\"]) };\nconsole.log(\"commit ids C\", JSON.stringify({ stamps: u.length }));\nreturn res;"
     e5_mods = C0 + ["gdc/code/prepare/adapter.js", "code/prepare/plan_edit.js", CM + "e5.js"]   # plan: geRebuildPicking
     e5_chk = C0 + ["gdc/code/prepare/adapter.js", CM + "e5.js"]
-    e5_stamp = C0 + [CM + "e2.js", CM + "e5.js"]                                                  # geLineRows
+    e5_stamp = C0 + [CM + "cf.js", CM + "e2.js", CM + "e5.js"]                                                  # geLineRows
     e5_steps = "list(%s).concat(list(%s))" % (d("sql_node_GXsteps"), d("sql_node_GXe5int"))
     pick_refs = lambda src: [("code_node_6L2Ozea8.data.updateData.", src + ".data.writeRow."), ("code_node_6L2Ozea8.data.existingTOId", src + ".data.writeRow.id")]
     phase_c = [
@@ -801,9 +805,10 @@ return res;"""
                   step_done("e5", "code_node_GXe5check", "E5_PICKING")]),
         K.if_(ids, "if_GXe6", "IF E6 HEADER is due: the changed cells + gd_status Created (the unlock), our Picking lock released at its version", is_(XE, "needE6", "YES"), [
             par("condition_all_GXe6read", "E6 reads in parallel", [
-                ("sql_node_GXe6head", "E6: the Goods Delivery now", head_full, J), ("sql_node_GXe6pk", "E6: the Picking SUBMIT locked, now", locked_pick, ["id", "is_processing", "update_time"])]),
-            cnode("code_node_GXe6plan", "E6 plan: the header out whole over the fresh row, gd_status Created; the Picking unlock at the version this job holds", C0 + [CM + "e6.js", "@kinds"],
-                  tail("commitE6Plan(e, %s, %s, %s, %s, GE_KINDS)" % (part_js("c", "GDH"), part_js("c", "STAMP"), d("sql_node_GXe6head"), d("sql_node_GXe6pk")), "commit E6 plan",
+                ("sql_node_GXe6head", "E6: the Goods Delivery now", head_full, J), ("sql_node_GXe6pk", "E6: the Picking SUBMIT locked, now", locked_pick, ["id", "is_processing", "update_time"]),
+                ("sql_node_GXe6cf", "E6: the GD header's custom-field definitions (custom_fields compare as names)", head_cf, J)]),
+            cnode("code_node_GXe6plan", "E6 plan: the header out whole over the fresh row, gd_status Created; the Picking unlock at the version this job holds", C0 + [CM + "cf.js", CM + "e6.js", "@kinds"],
+                  tail("commitE6Plan(e, %s, %s, %s, %s, GE_KINDS, %s)" % (part_js("c", "GDH"), part_js("c", "STAMP"), d("sql_node_GXe6head"), d("sql_node_GXe6pk"), d("sql_node_GXe6cf")), "commit E6 plan",
                        pre=ENTRY + "\nconst e = Object.assign({}, entry, { pickVersion: s(%s) || s(entry.pickVersion) });" % d("code_node_GXe5check", "data.ref")),
                   CHK + ["headerRows", "needHeader"], arrays=CHK_ARR + ("headerRows",)),
             end_block("e6pl", "code_node_GXe6plan", "IF the header cannot be written: review"),
@@ -813,8 +818,8 @@ return res;"""
             gate(ids, "cor_GXe6punlock", "Our Picking lock to release?", "code_node_GXe6plan", "needPickUnlock", [
                 rows_update(ids, "update_node_GXe6punlock", "Picking is_processing = 0 (at the version this job holds)", PICKT, "code_node_GXe6plan", "pickUnlockRows", ["is_processing"])]),
             K.sql("sql_node_GXe6back", "E6 read-back", head_full, J),
-            cnode("code_node_GXe6check", "E6 check: Created, every cell reads back -> DONE", C0 + [CM + "e6.js"],
-                  tail("commitE6Check(entry, %s, %s, %s)" % (part_js("c", "GDH"), part_js("c", "STAMP"), d("sql_node_GXe6back")), "commit E6 check", pre=ENTRY), CHK, arrays=CHK_ARR),
+            cnode("code_node_GXe6check", "E6 check: Created, every cell reads back -> DONE", C0 + [CM + "cf.js", CM + "e6.js"],
+                  tail("commitE6Check(entry, %s, %s, %s, %s, %s)" % (part_js("c", "GDH"), part_js("c", "STAMP"), d("sql_node_GXe6back"), d("sql_node_GXe6cf"), d("code_node_GXe6plan", "data.headerRows")), "commit E6 check", pre=ENTRY), CHK, arrays=CHK_ARR),
             end_block("e6", "code_node_GXe6check", "IF the header did not read back"),
             step_done("e6", "code_node_GXe6check", "E6_HEADER")]),
         K.if_(ids, "if_GXe7", "IF E7 AFTER is due: REORDER_SET_REDIS GD_CREATED once, the items' last_transaction_date", is_(XE, "needE7", "YES"), [
@@ -1144,10 +1149,10 @@ def build_worker():
 
 
 # =============================================================================================== GD_EDIT_SUBMIT
-S_READS = ["hdr", "lines", "setup", "link", "items", "sohl", "soh", "pick", "picki", "pickr", "bins", "pfmt", "lock", "aitem", "abal", "ares", "aref", "uoms"]  # the gates stop before the planner: no alloc / pend
+S_READS = ["hdr", "cfh", "lines", "setup", "link", "items", "sohl", "soh", "pick", "picki", "pickr", "bins", "pfmt", "lock", "aitem", "abal", "ares", "aref", "uoms"]  # the gates stop before the planner: no alloc / pend
 SUB_RES = ["route", "code", "message", "reason", "command", "job_id", "job_status", "gd_id", "gd_no", "line_count", "progress_percent", "progress_message",
            "error_code", "error_message", "picking_reversal_note", "credit_limit_note", "cascade_ref", "evidence"]
-GATE_MODS = ["gdc/lift/runtime.js", "@lift", "gdc/code/prepare/chain.js", "gdc/code/prepare/adapter.js", "code/prepare/alloc_edit.js", "code/prepare/chain_edit.js", "code/submit/delta.js",
+GATE_MODS = ["gdc/lift/runtime.js", "@lift", "gdc/code/prepare/chain.js", "gdc/code/prepare/adapter.js", "code/prepare/alloc_edit.js", "code/prepare/chain_edit.js", "code/commit/cf.js", "code/submit/delta.js",
              "code/prepare/apply_delta.js", "code/prepare/adapter_edit.js", "gdc/code/submit/required.js", "code/submit/_common.js", "../pk1d/code/fc_fp.js", "code/submit/fc.js",
              "code/submit/gate.js", "@kinds"]
 SC = ["code/submit/_common.js"]
