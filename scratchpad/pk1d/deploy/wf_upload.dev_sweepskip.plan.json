@@ -1,0 +1,21 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PICKING_ASYNC_WORKER",
+   "dataId": "2109531412499251201",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_ASYNC_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING_ASYNC_WORKER/v4_20261026-074902.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": ""
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  }
+ ]
+}

@@ -120,6 +120,30 @@ check after the pastes clean for my jobs.
 - **Low, left as is:** web Auto Pick kicks each job once with no follower. On prod, all 61 LSH Auto Pick jobs finished
   within 15 s, and Pick All Remaining makes no stock moves, so it has no lock waits.
 
+## 10-26 morning: P4 header race fixed on prod
+
+- **Found at 06:42:** one LSH web Auto Pick job (10-25 16:07, PI-2610-3490) waited 2 min 50 s for a worker kick.
+  - P4 read back a delivery header that a sibling job (Pickings sharing the delivery, Full Picking) had written from newer
+    facts, called it a mismatch, and retried.
+  - Only a Picking list or form open moves a retry.
+- **Also:** retry rows concatenated attempts / row_version as text.
+- **Fixed in PICKING_BULK_COMMIT (2109531367339180034):**
+  - P4 accepts a header holding the fresh roll-up; a real mismatch still retries.
+  - Retry rows read numbers.
+- **Status:**
+  - Dev v14 06:52 + smoke passed (PI-20261022-0106, 9 s, P0-P5 DONE, row_version 6).
+  - **Prod v14 pasted 06:54:13, IDENTICAL.**
+  - Folder `prod-hotfix/2026-10-26-picking-p4-sibling/`.
+
+## 10-26: worker claim races (harmless crashes, possible error pop-up)
+
+- **Seen:** PICKING_ASYNC_WORKER crashed 3 times at the claim insert at LSH (07:22 x2, 07:28). The other run did each job;
+  nothing ran twice.
+- **Fix:** list-open id-less runs leave a job to its own kick for its first 10 s and 10 s after it comes due. Same rule
+  as the GD session's creation-worker fix.
+- **Status:** dev v5 07:49, idle smoke OK. Prod paste **after LSH's peak** (the user's call):
+  `prod-hotfix/2026-10-26-picking-worker-sweep-skip/`.
+
 ## "Can it happen again" sweep (10-25 evening, read-only on prod)
 
 Verdict: no Picking / Edit incident can recur as it was. The classic header wipe ends as phones take the OTA, and three

@@ -15,6 +15,22 @@ organization 1996787068457861121.
 
 Shared file: `Goods Delivery/GDonMounted.js` kicks several workers. Announce before editing it.
 
+**10-26 live monitoring (user's split):**
+- **GD issues: GD Completed & Created V2**, covering creation, completion, cancel, revert, SO → GD convert, the GD list and
+  form. It runs `python3 scratchpad/lsh_watch.py --minutes 25` every 15 min, read-only, ~3 s, and
+  `python3 scratchpad/prod_health.py --tenant 128671` hourly.
+- **Picking issues: GD Edit & Picking V2. Packing issues: Packing V2.**
+- An alert outside your own area goes to its owner at once, with the job / run ids.
+- Known Picking pattern (42): a CONFIRM_PICKING job in COMMITTING_PICKING with PK_STEP_RETRY. Two web Auto Pick jobs on
+  Pickings sharing a GD collide; the retry recomputes correctly but waits for a PICKING_ASYNC_WORKER kick. Neither the GD
+  list nor the GD form starts that worker: only a Picking list / form open does. Over 10 min stuck → 42.
+  - 42 found the cause (10-26 ~06:55): the sibling job wrote the correct final status after ours, and our read-back compared
+    against facts read before the sibling's P1.
+  - Fix in progress on dev: PICKING_BULK_COMMIT P4's check accepts a read-back that equals a fresh recomputation. No new
+    nodes; the true stale case still retries. Prod is the user's call.
+  - The GD-list kick of PICKING_ASYNC_WORKER is on hold at 42's request.
+- Packing runs its own watch every 2.5 min (`scratchpad/pkg_sweep/pkg_watch.py`).
+
 ## Rules for prod
 
 1. Only the user pastes prod or runs prod SQL. Each hand-off names the workflow AND its id. Several names differ by one word
@@ -106,6 +122,10 @@ So no fix is stranded on dev. All 41 GD / Picking / Packing repo files match pro
 
    So the OTA swaps the known classic-collision risk for a first real use. **Do one device run on prod right after the OTA,
    before volume:** an updated phone picks and packs one real LSH GD end to end.
+   - **Update 10-26 06:45 (Packing):** the first prod mobile V2 Packing run already happened on 10-25 16:12-16:18. joseph
+     completed 10 Packings on V2 (PACK-2610-1176..1185, 11-26 lines): all COMPLETED, 0 retries, 25-49 s, locks released.
+     No classic Completed save at LSH since. That covers PACKING.md step 1; the double tap / 2 devices aren't visible in the
+     data.
    - Packing script: `PACKING.md`, section "First prod device run after the OTA (before volume)". Small GD pack + Complete,
      a double tap, optionally 2 phones and a 1.1.34 phone as the second device.
    - Tell the Packing session when you start; it verifies each step within a minute.

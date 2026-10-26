@@ -1,0 +1,62 @@
+diff --git a/Goods Delivery/GDhandleConvertSOtoGD.js b/Goods Delivery/GDhandleConvertSOtoGD.js
+index 2c082a8a..8c649b1b 100644
+--- a/Goods Delivery/GDhandleConvertSOtoGD.js	
++++ b/Goods Delivery/GDhandleConvertSOtoGD.js	
+@@ -190,6 +190,12 @@ const runConvertBatch = (soIds, plantID, organizationID, convertType) =>
+ // GD Created V2: the list follows the queued deliveries for at most this long, then reports the rest as in the background
+ const FOLLOW_MS = 120000;
+ const FOLLOW_EVERY_MS = 3000;
++// At most MAX_WORKERS deliveries' workers run at once, the next starting as one ends: 300 started together all wait on the same
++// items' stock locks and many give up (LSH 10-26 converts up to 300 sales orders at once). A long list is followed longer
++// (MS_PER_QUEUED each, up to FOLLOW_MAX_MS); what is left then is moved by the GD list's 2-minute worker kick.
++const MAX_WORKERS = 8;
++const MS_PER_QUEUED = 4000;
++const FOLLOW_MAX_MS = 600000;
+ const CREATED_STATES = ["GD_COMMITTED", "CREATING_PICKING", "PICKING_RETRYING", "PICKING_READY", "COMPLETED"];
+ 
+ const kickWorker = (jobId) => {
+@@ -234,10 +240,24 @@ const readJobs = (jobIds) =>
+ // Starts the worker for each queued delivery, then moves each one to created / blocked as its job ends; returns the rest
+ const followBackground = async (queued, created, blocked) => {
+   let pending = queued.slice();
+-  pending.forEach((item) => kickWorker(item.job_id));
++  const kickedAt = {};
++  // start the workers of deliveries not started yet while fewer than MAX_WORKERS started ones are unfinished
++  const startMore = (round) => {
++    let running = pending.filter((item) => kickedAt[item.job_id] !== undefined).length;
++    for (const item of pending) {
++      if (running >= MAX_WORKERS) break;
++      if (kickedAt[item.job_id] === undefined) {
++        kickedAt[item.job_id] = round;
++        kickWorker(item.job_id);
++        running++;
++      }
++    }
++  };
++  startMore(0);
+   const started = Date.now();
++  const followMs = Math.min(FOLLOW_MAX_MS, Math.max(FOLLOW_MS, queued.length * MS_PER_QUEUED));
+   let round = 0;
+-  while (pending.length > 0 && Date.now() - started < FOLLOW_MS) {
++  while (pending.length > 0 && Date.now() - started < followMs) {
+     this.hideLoading();
+     this.showLoading(
+       `Creating goods deliveries in the background: ${queued.length - pending.length} of ${queued.length} done...`,
+@@ -272,8 +292,15 @@ const followBackground = async (queued, created, blocked) => {
+       }
+     }
+     pending = still;
+-    // a worker run that ended before its job did (stock locks held by another save) is started again
+-    if (++round % 5 === 0) pending.forEach((item) => kickWorker(item.job_id));
++    // a started worker run that ended before its job did (stock locks held by another save) is started again every 5 rounds
++    round++;
++    pending.forEach((item) => {
++      if (kickedAt[item.job_id] !== undefined && round - kickedAt[item.job_id] >= 5) {
++        kickedAt[item.job_id] = round;
++        kickWorker(item.job_id);
++      }
++    });
++    startMore(round);
+   }
+   return pending;
+ };

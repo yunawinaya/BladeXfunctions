@@ -1,0 +1,34 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PACKING_BULK_COMMIT",
+   "dataId": "2109924671239589890",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_rvfix/out/PACKING_BULK_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_rvfix/base/PACKING_BULK_COMMIT.json",
+   "smoke": {
+    "request": {
+     "job_id": "smoke-not-a-job"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "PK_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "PACKING_ASYNC_WORKER",
+   "dataId": "2109924593737240578",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_rvfix/out/PACKING_ASYNC_WORKER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/pkg_rvfix/base/PACKING_ASYNC_WORKER.json",
+   "smoke": {
+    "request": {},
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  }
+ ]
+}

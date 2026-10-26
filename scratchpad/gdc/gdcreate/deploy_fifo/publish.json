@@ -1,0 +1,7 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  { "name": "GD_BULK_COMMIT", "dataId": "2104840402446245890", "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_BULK_COMMIT.json", "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_BULK_COMMIT/v25_20261026-081243.enabled.json" }
+ ]
+}
