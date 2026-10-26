@@ -111,6 +111,17 @@ The Packing part of the run; the Picking part is in PICKING_EDIT.md.
 
 Watch those two as they happen naturally.
 
+## 10-26 live fix: numbers joined as text (found by the watch on PACK-2610-1026)
+
+Code nodes declared numeric outputs as bsonType "string", so `rowVersion + 2` and `rv + 1` concatenated. A normal job's row_version ended at `222`, and one per retry grew a digit (`2222222` today), toward the INT limit. The step-retry counter also read "1" + 1 = "11", which sent a job to review after 2 step retries instead of 3.
+
+**Fix:** Number() at 38 use sites, in PACKING_BULK_COMMIT (37) and PACKING_ASYNC_WORKER (1).
+
+**Status:**
+- dev: COMMIT v9 and WORKER v6, 08:43;
+- prod (user pasted): WORKER v6 08:46:32 and COMMIT v10 08:48:05, both IDENTICAL; PICKING_BULK_COMMIT untouched;
+- live check: the first job on the new code, PACK-2610-1018, completed with row_version **6** (was 222).
+
 ## What the Packing session watches tomorrow
 
 - `gd_async_job` COMPLETE_PACKING (tenant 128671) not COMPLETED for more than 2 minutes, or any FAILED / REQUIRES_REVIEW.
