@@ -37,6 +37,19 @@ without `custom_fields_h35azf2l`, so a value typed in the SI form is dropped on 
   - test_cf_box_layout 2.
 - Linter: no new findings.
 
+## PROD DEPLOYED 2026-10-27 02:50-02:58 (user), verified; item 1 RE-PASTED 03:19 (SI_SAVE v49), verified
+
+- Form v203, SO_SAVE v90, SO_Convert_SI v40, GD_Convert_SI v29 and SI_SAVE v48 were each IDENTICAL to their paste file.
+  No look-alike was touched, and prod_health showed only the CHECKs that were already there.
+- **Item 1 (SI_SAVE) re-issued 10-27 ~03:15.** The final review found that the keep-stored guard's CfOut declared its
+  output `cf` as a string. The platform converts a code node's outputs to the declared type, so an SI EDIT could hand the
+  update text instead of the custom-fields object. Creating an SI (the add path) is not affected.
+  - The fix declares `cf` as `any`, like SO_SAVE's live cfwipe guard.
+  - The new `1_SI_SAVE.prod_paste.json` = prod v48 + that one setting. Prod v48 is kept as `1_SI_SAVE.prod_v48_pasted.json`.
+  - No SI_SAVE run happened on prod between 02:57 and the re-issue. Re-paste item 1 once the dev edit test passes.
+- Items 2-3 then got the GD session's cache-key fix on top (prod v30 / v41, 03:14-03:15,
+  `prod-hotfix/2026-10-27-convert-cache-key/`). Only `code_node_YRozjK8Z` differs, and `verify_prod.py` accounts for it.
+
 ## Paste (user), in this order
 
 Every paste file is the prod version live now (the matching `*_base.json`, checked IDENTICAL to prod on 10-27) plus this

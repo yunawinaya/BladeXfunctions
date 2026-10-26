@@ -2,7 +2,8 @@
 
 **Status:**
 - **Dev:** LIVE, v252 (02:53:35), IDENTICAL to the repo.
-- **Prod:** NOT a separate paste. This change is folded into 68's
+- **Prod: LIVE** in GOODS_DELIVERY v183 (03:13:00), 68's combined item 1, IDENTICAL; both SQL nodes checked on prod.
+- **Not a separate paste.** This change is folded into 68's
   `prod-hotfix/2026-10-27-sales-header-cf-gd/1_GOODS_DELIVERY.prod_paste.json` (JSON-identical to `GOODS_DELIVERY.json`
   here, checked 10-27 03:02), so GOODS_DELIVERY is pasted once, with 68's folder. This folder is the record of the change.
 - **After that paste:** verify against 68's item 1, not the file here. 68 rebuilt item 1 at 03:11 (a declared-type fix

@@ -108,6 +108,24 @@ def call(ids, nid, title, wf, params):
     return n
 
 
+def try_catch(nid, title, try_nodes, catch_title, catch_nodes):
+    """GD_BULK_COMMIT's try_catch_P3invCal shape, live since 10-23 (catch-all: Filter, empty list). A caught failure still fails
+    this run for its caller, so the catching run writes the job row itself"""
+    return {"id": nid, "type": "tryCatch", "data": {"title": title},
+            "blocks": [{"type": "tryBlock", "id": nid + "_tryBlock_0", "blocks": try_nodes},
+                       {"type": "catchBlock", "data": {"title": catch_title, "trycatch_type": "Filter", "filter": {"list": []},
+                                                       "expression": {"type": "javascript", "code": ""}, "displayContent": "sdk.form.setCondition"},
+                        "id": nid + "_catchBlock_1", "blocks": catch_nodes}]}
+
+
+# 10-26, Kenhin GD 2097 and LSH GD-2610-1473: a first-use lock seed lost its race inside INVENTORY_BULK_APPLY, whose caught error
+# still failed every calling run; the job sat under its lease with the GD in Processing
+ENGINE_CRASH_JS = ('// GD_EDIT_COMMIT - the INVENTORY_BULK_APPLY call failed (caught, 2026-10-27): E1 decides from the intent rows - a counted\n'
+                   '// wait with the lease released, instead of a crash that leaves the job leased (10-26: Kenhin GD 2097, LSH GD-2610-1473)\n'
+                   'console.log("inventory call failed (caught): E1 decides from the intent rows");\n'
+                   'return { crashed: "YES" };')
+
+
 def rows_update(ids, nid, title, table, src, field, props, labels=None):
     return K.update(ids, nid, title, table, ("id", "in", N(src, "data.%s.id" % field)), [(p, N(src, "data.%s.%s" % (field, p))) for p in ["id"] + props], labels)
 
@@ -621,16 +639,19 @@ return res;"""
                   tail("commitE1In(e, %s)" % part_js("a", "ENGINE"), "commit E1 in", "{ ok: res.ok, call: res.needCall, movements: res.movements.length, why: res.why }",
                        pre=ENTRY + "\n" + NUM), ["ok", "needCall", "operationKey", "movements", "why"], arrays=("movements",)),
             gate(ids, "cor_GXe1call", "Stock to move?", "code_node_GXe1in", "needCall", [
-                call(ids, "workflow_node_GXe1", "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDE|<job> replays on a re-run)", ENGINE, [
-                    ("operation_key", N("code_node_GXe1in", "data.operationKey")), ("mode", "APPLY", "value"), ("organization_id", ORGID),
-                    ("movements", N("code_node_GXe1in", "data.movements"))])]),
+                try_catch("try_catch_GXe1", "try-catch: a failed INVENTORY_BULK_APPLY call is a counted wait decided from its intent rows (no crash, no leased job)", [
+                    call(ids, "workflow_node_GXe1", "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDE|<job> replays on a re-run)", ENGINE, [
+                        ("operation_key", N("code_node_GXe1in", "data.operationKey")), ("mode", "APPLY", "value"), ("organization_id", ORGID),
+                        ("movements", N("code_node_GXe1in", "data.movements"))])],
+                    "The inventory call failed", [K.code("code_node_GXe1crash", "The inventory call failed: mark it (E1 decides from the intent rows)", ENGINE_CRASH_JS, ["crashed"])])]),
             par("condition_all_GXe1read", "E1: the engine's intent rows and E0N's intent (the number to put back)", [
                 ("sql_node_GXe1ops", "E1: this operation's engine intent rows (any = it may have written)", iba, ["intents"]),
                 ("sql_node_GXe1int", "E1: E0N's intent (the Draft number before)", intent("E0N"), SR)]),
-            cnode("code_node_GXe1", "E1 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + unlocks (review once it has intent rows); 400 -> FAILED + unlocks + number back; else review",
+            cnode("code_node_GXe1", "E1 check: 200 -> DONE + SPLIT; 409 or a failed call -> wait, then FAILED + unlocks (review once it has intent rows); 400 -> FAILED + unlocks + number back; else review",
                   C0 + [CM + "e1.js"],
                   tail("commitE1(e, %s, %s, eng, list(%s)[0], %s)" % (d(XG), pick("code_node_GXe1in", ["ok", "needCall", "why"]), d("sql_node_GXe1ops"), d("sql_node_GXe1int")),
-                       "commit E1", pre=ENTRY + "\n" + NUM + "\nconst eng = %s;" % pick("workflow_node_GXe1", ["code", "result_code", "message"])),
+                       "commit E1", pre=ENTRY + "\n" + NUM + "\nconst eng = Object.assign(%s, { crashed: %s });" % (
+                           pick("workflow_node_GXe1", ["code", "result_code", "message"]), d("code_node_GXe1crash", "data.crashed"))),
                   CHK + ["splitRows", "needSplit"], arrays=CHK_ARR + ("splitRows",)),
             end_block("e1", "code_node_GXe1", "IF the stock did not move", unlock=True, restore=True),
             step_done("e1", "code_node_GXe1", "E1_INVENTORY"),

@@ -1,0 +1,108 @@
+{
+ "source": "dev GD_COMPLETE_COMMIT run 2114758965897801730 (GD/20261019/598, 10-27 00:40, phase A, C2 applied)",
+ "entry": {
+  "route": "GO",
+  "phase": "A",
+  "dbNow": "2026-10-27 00:40:02",
+  "jsAt": "1793032802582",
+  "jobId": "2114758926035136514",
+  "organizationId": "1123598813738675201",
+  "gdId": "2112173670296760322",
+  "gdNo": "GD/20261019/598",
+  "idempotencyKey": "GDC|2112173670296760322|3",
+  "jobStatus": "READY_TO_COMMIT",
+  "rowVersion": 2,
+  "attempts": 0,
+  "leaseUntil": "2026-10-27 01:10:02",
+  "unlockOk": "YES",
+  "partPrefix": "P|2b2dcd32|",
+  "manifest": {
+   "v": 1,
+   "prepared_by": "GD_COMPLETE_PREPARE",
+   "job_id": "2114758926035136514",
+   "gd_id": "2112173670296760322",
+   "gd_no": "GD/20261019/598",
+   "organization_id": "1123598813738675201",
+   "plant_id": "1123598813738675202",
+   "source": "LIST",
+   "submitted_by": "2109866916722085890",
+   "nonce": "2b2dcd32",
+   "parts": {
+    "ENGINE": [
+     "P|2b2dcd32|ENGINE|001"
+    ],
+    "RES": [
+     "P|2b2dcd32|RES|001"
+    ],
+    "SO": [
+     "P|2b2dcd32|SO|001"
+    ],
+    "PICK": [
+     "P|2b2dcd32|PICK|001"
+    ],
+    "HU": [
+     "P|2b2dcd32|HU|001"
+    ],
+    "GD": [
+     "P|2b2dcd32|GD|001"
+    ],
+    "SNAP": [
+     "P|2b2dcd32|SNAP|001"
+    ],
+    "AFTER": [
+     "P|2b2dcd32|AFTER|001"
+    ]
+   },
+   "force": 0,
+   "counts": {
+    "lines": 1,
+    "movements": 2,
+    "reservation_updates": 2,
+    "reservation_creates": 0,
+    "gd_line_patches": 0,
+    "so_lines": 1,
+    "hu": 0,
+    "picking_stamps": 0
+   }
+  },
+  "jobRows": [
+   {
+    "id": "2114758926035136514",
+    "job_status": "COMMITTING_GD",
+    "progress_percent": 70,
+    "progress_message": "Delivering 1 line(s)",
+    "attempt_count": 0,
+    "lease_owner": "PUB|df943e29b4964256970b3a1f",
+    "lease_expires_at": "2026-10-27 01:10:02",
+    "row_version": 3
+   }
+  ],
+  "needJobUpd": "YES",
+  "unlockRows": [],
+  "needUnlock": "NO",
+  "needC0": "YES",
+  "needC1": "YES",
+  "needC2": "YES",
+  "needC3": "NO",
+  "needC3H": "NO",
+  "needC4": "NO",
+  "needC5": "NO",
+  "needC6": "NO",
+  "doneC6Reorder": "NO",
+  "doneC6Si": "NO",
+  "result_code": "",
+  "result_message": "phase A",
+  "job_status": "COMMITTING_GD",
+  "needC4P": "NO",
+  "force": ""
+ },
+ "guard": {
+  "route": "CONTINUE",
+  "jobId": "2114758926035136514",
+  "tenantId": "000000",
+  "nonce": "df943e29b4964256970b3a1f",
+  "leaseOwner": "PUB|df943e29b4964256970b3a1f",
+  "result_code": "",
+  "result_message": ""
+ }
+}

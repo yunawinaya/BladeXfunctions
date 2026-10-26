@@ -14,5 +14,9 @@ const workerSplitResume = function workerSplitResume(guard, mid, rows) {
 const guard = [{{node:code_node_XWguard2.data}}][0];
 const mid = [{{node:code_node_XWmid.data}}][0];
 const res = workerSplitResume(guard, mid, [{{node:sql_node_XWsplit.data}}][0]);
+// one stock call per run (LSH 2026-10-26 20:40, two sweeps froze 30 min): a run keeps every key it took until it ends, so once
+// it has called the commit it takes no further job; the next tick or a job's own run takes them
+const pick = [{{node:code_node_XWpick.data}}][0];
+res.nextIndex = String((mid && mid.route) || "").trim() === "PUBLISH" ? 9999 : Number(pick && pick.nextIndex) || 0;
 console.log("worker split", JSON.stringify(res));
 return res;

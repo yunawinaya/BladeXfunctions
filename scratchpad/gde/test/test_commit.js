@@ -27,6 +27,9 @@ const MUTANTS = {
   e6_cf_raw: ["e6.js", "const off = Object.keys(want).filter((c) => !same(c, head[c], want[c]));", "const off = Object.keys(want).filter((c) => !sameVal(head[c], want[c]));"],
   entry_hold: ["entry.js", "if (req && Number(req.hold) === 1 && !released)", "if (false)"],
   e5_no_resolve: ["e5.js", "const pick = p.PICK ? rv.fix(p.PICK) : null;", "const pick = p.PICK || null;"],
+  e1_own_run_tries: ["e1.js", "const tries = ownRun ? OWN_RUN_TRIES : LOCK_WAIT_TRIES;", "const tries = LOCK_WAIT_TRIES;"],
+  e1_crash_review: ["e1.js", "if (s(eng.crashed) === \"YES\") {", "if (false) {"],
+  e1_crash_stale_ops: ["e1.js", "const wrote = num((ops || {}).intents) > 0;", "const wrote = false;"],
   chain_cf_none: ["chain.js", "if (cf && typeof cf === \"object\" && !Array.isArray(cf)) header.custom_fields = cf;", ""],
   chain_cf_null: ["chain.js", "if (cf && typeof cf === \"object\" && !Array.isArray(cf)) header.custom_fields = cf;", "if (cf !== undefined) header.custom_fields = cf;"],
 };
@@ -143,8 +146,40 @@ it("E1: the engine's own operation still running (engine v12, a run that died mi
   assert.deepStrictEqual([w.result_code, w.jobRows[0].error_code, w.jobRows[0].next_attempt_at], ["GDE_STEP_RETRY", "GDE_LOCK_WAIT", "2026-10-15 10:00:15"]);
   const late = call("commitE1", E({ attempts: 7 }), guard, { ok: "YES", needCall: "YES" }, SAME, { intents: 3 }, []);
   assert.deepStrictEqual([late.jobRows[0].error_code, late.jobRows[0].next_attempt_at], ["GDE_LOCK_WAIT", "2026-10-15 10:05:00"]);
-  const gave = call("commitE1", E({ attempts: 8 }), guard, { ok: "YES", needCall: "YES" }, SAME, {}, []);
+  // the engine holds its run marker 20 min after the last heartbeat (dev 633, 10-27: the replay after a caught crash got
+  // "still running (run 1 ...)"): a crash after 4+ earlier waits would use the 8 tries up inside the hold, so the own run waits on
+  const more = call("commitE1", E({ attempts: 8 }), guard, { ok: "YES", needCall: "YES" }, SAME, {}, []);
+  assert.deepStrictEqual([more.result_code, more.jobRows[0].attempt_count, more.jobRows[0].next_attempt_at], ["GDE_STEP_RETRY", 9, "2026-10-15 10:05:00"]);
+  const gave = call("commitE1", E({ attempts: 16 }), guard, { ok: "YES", needCall: "YES" }, SAME, {}, []);
   assert.deepStrictEqual([gave.job_status, gave.unlockRows], ["REQUIRES_REVIEW", []]);
+});
+it("E1: another operation's lock past 8 tries still gives up (FAILED without intents, review with them)", () => {
+  const busy = { code: "409", result_code: "LOCK_BUSY", message: "locked by operation GDC|2100000000000000555" };
+  const f = call("commitE1", E({ attempts: 8 }), guard, { ok: "YES", needCall: "YES" }, busy, {}, []);
+  assert.deepStrictEqual([f.job_status, f.result_code], ["FAILED", "GDE_INVENTORY_LOCK_BUSY"]);
+  const r = call("commitE1", E({ attempts: 8 }), guard, { ok: "YES", needCall: "YES" }, busy, { intents: 1 }, []);
+  assert.strictEqual(r.job_status, "REQUIRES_REVIEW");
+});
+// a failed engine call (caught by try_catch_GXe1): the engine's run failed and answered nothing (10-26, Kenhin GD 2097 and LSH
+// GD-2610-1473: a first-use lock seed lost its race, and the job sat under its lease with the GD in Processing)
+it("E1: a failed engine call (caught) waits like a 409, with the lease released", () => {
+  const r = call("commitE1", E(), guard, { ok: "YES", needCall: "YES" }, { crashed: "YES" }, {}, []);
+  const j = r.jobRows[0];
+  assert.deepStrictEqual([r.result_code, r.job_status, j.error_code, j.attempt_count, j.next_attempt_at, j.lease_owner, j.lease_expires_at],
+    ["GDE_STEP_RETRY", "COMMITTING_GD", "GDE_LOCK_WAIT", 1, "2026-10-15 10:00:15", null, null]);
+  assert.deepStrictEqual(r.unlockRows, []); assert.ok(/failed \(caught\), nothing written/.test(j.error_message), j.error_message);
+});
+it("E1: a failed engine call past the waits, nothing written -> FAILED, the GD unlocked and a Draft's number put back", () => {
+  const intent = [{ step_name: "E0N|I|001", result_ref: JSON.stringify({ delivery_no: "Draft/GD/0007", delivery_no_type: "55" }) }];
+  const r = call("commitE1", E({ attempts: 8, storedStatus: "Draft" }), guard, { ok: "YES", needCall: "YES" }, { crashed: "YES" }, {}, intent);
+  assert.deepStrictEqual([r.job_status, r.result_code, r.unlockRows], ["FAILED", "GDE_INVENTORY_CALL_FAILED", [{ id: "2100000000000000001", gd_status: "Draft" }]]);
+  assert.deepStrictEqual(r.restoreRows, [{ id: "2100000000000000001", delivery_no: "Draft/GD/0007", delivery_no_type: "55" }]);
+});
+it("E1: a failed engine call with intent rows (it may have written) waits, then goes to review - never a clean fail", () => {
+  const w = call("commitE1", E(), guard, { ok: "YES", needCall: "YES" }, { crashed: "YES" }, { intents: 2 }, []);
+  assert.deepStrictEqual([w.result_code, w.jobRows[0].error_code], ["GDE_STEP_RETRY", "GDE_LOCK_WAIT"]);
+  const r = call("commitE1", E({ attempts: 8 }), guard, { ok: "YES", needCall: "YES" }, { crashed: "YES" }, { intents: 2 }, []);
+  assert.deepStrictEqual([r.job_status, r.unlockRows, r.restoreRows], ["REQUIRES_REVIEW", [], []]);
 });
 
 // ---- E2

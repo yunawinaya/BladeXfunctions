@@ -71,6 +71,29 @@ def N(node, path):
     return "{{node:%s.%s}}" % (node, path)
 
 
+def int_out(node, *names):
+    for e in node["data"]["response_json"]:
+        if e["name"] in names:
+            e["bsonType"] = "int"
+    return node
+
+
+def try_catch(nid, title, try_nodes, catch_title, catch_nodes):
+    """the try-catch as the designer saves it (GD_BULK_COMMIT prod v31: no block keys, no try-block data; catch-all: Filter, empty list)"""
+    return {"id": nid, "type": "tryCatch", "data": {"title": title},
+            "blocks": [{"type": "tryBlock", "id": nid + "_tryBlock_0", "blocks": try_nodes},
+                       {"type": "catchBlock",
+                        "data": {"title": catch_title, "trycatch_type": "Filter", "filter": {"list": []},
+                                 "expression": {"type": "javascript", "code": ""}, "displayContent": "sdk.form.setCondition"},
+                        "id": nid + "_catchBlock_1", "blocks": catch_nodes}]}
+
+
+ENGINE_CRASH_JS = ('// %s - the INVENTORY_BULK_APPLY call failed (caught, 2026-10-27): %s decides from the intent rows - a counted\n'
+                   '// retry with the lease released, instead of a crash that leaves the job leased 30 min (10-26: Kenhin GD 2097, LSH GD-2610-1473)\n'
+                   'console.log("inventory call failed (caught): %s decides from the intent rows");\n'
+                   'return { crashed: "YES" };')
+
+
 def raw(path):
     with open(path, encoding="utf-8") as f:
         return f.read().rstrip("\n")
@@ -484,12 +507,13 @@ def build_commit():
         K.if_(ids, "if_XCx2", "IF X2 INVENTORY is due (phase A ends here: SPLIT)", is_(CE, "needX2", "YES"), [
             K.sql("sql_node_XCx2part", "X2: the ENGINE part", part("ENGINE"), ["step_name", "result_ref"]),
             K.code("code_node_XCx2in", "X2: the operation key and the movements", cc(["x2_in.js"]), ["ok", "operationKey", "movements"], arrays=("movements",)),
-            call(ids, "workflow_node_XCx2", "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> replays on a re-run)", ENGINE, [
+            try_catch("try_catch_XCx2", "try-catch: a failed INVENTORY_BULK_APPLY call is a counted retry decided from its intent rows (no crash, no 30-min lease)", [call(ids, "workflow_node_XCx2", "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> replays on a re-run)", ENGINE, [
                 ("operation_key", N("code_node_XCx2in", "data.operationKey")), ("mode", "APPLY", "value"), ("organization_id", N(CE, "data.organizationId")),
-                ("movements", N("code_node_XCx2in", "data.movements"))]),
+                ("movements", N("code_node_XCx2in", "data.movements"))])], "The inventory call failed",
+                [K.code("code_node_XCx2crash", "The inventory call failed: mark it (X2 decides from the intent rows)", ENGINE_CRASH_JS % ("GD_CANCEL_COMMIT", "X2", "X2"), ["crashed"])]),
             K.sql("sql_node_XCx2ops", "X2: this operation's engine intent rows (any = it may have written)",
                   "SELECT COUNT(*) AS intents FROM gd_publish_step st WHERE st.tenant_id = %s AND st.job_id = 'GDX|%s' AND st.step_name LIKE 'IBA|I|%%' AND st.is_deleted = 0" % (T, JOBID), ["intents"]),
-            K.code("code_node_XCx2", "X2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review",
+            K.code("code_node_XCx2", "X2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review; a failed call (caught) -> as 409",
                    cc(["x2.js"]), chk + ["splitRows", "needSplit"], arrays=chk_arr + ("splitRows",)),
             end_block(ids, "x2", "code_node_XCx2", "IF the stock was not released", unlock=True),
             step_done(ids, "x2", "code_node_XCx2", "X2_INVENTORY"),
@@ -920,11 +944,11 @@ def build_worker():
             K.if_(ids, "if_XWpub", "IF the job is to be published / resumed: the ONE GD_CANCEL_COMMIT call", is_("code_node_XWmid", "route", "PUBLISH"),
                   publish("pub", "code_node_XWmid", "publish", "GD_CANCEL_COMMIT (phase A: revalidate, snapshot, inventory; or phase B on a resume)")),
             jobread("sql_node_XWsplit", "The job after the publish call (the split decision)"),
-            K.code("code_node_XWsplit", "Second publish: COMMITTING_GD under a SPLIT| hand-over lease -> PUBLISH again", wcode("split.js"),
-                   ["route", "dbNow", "jobId", "jobStatus", "result_message"]),
+            int_out(K.code("code_node_XWsplit", "Second publish: COMMITTING_GD under a SPLIT| hand-over lease -> PUBLISH again; next index past the plan after a commit call (one stock call per run)", wcode("split.js"),
+                   ["route", "dbNow", "jobId", "jobStatus", "result_message", "nextIndex"]), "nextIndex"),
             K.if_(ids, "if_XWpub2", "IF GD_CANCEL_COMMIT ended SPLIT: the second call (reservations, sales orders, the delivery, after)", is_("code_node_XWsplit", "route", "PUBLISH"),
                   publish("pub2", "code_node_XWsplit", "second publish", "GD_CANCEL_COMMIT again after its SPLIT (phase B)")),
-            K.set_cache("set_cache_XWidxN", "Next loop index", "gdx_wrk_" + N(G, "data.nonce"), N("code_node_XWpick", "data.nextIndex")),
+            K.set_cache("set_cache_XWidxN", "Next loop index", "gdx_wrk_" + N(G, "data.nonce"), N("code_node_XWsplit", "data.nextIndex")),
         ]),
         K.sql("sql_node_XWfinal", "Read-back: the planned jobs (final)", final, ["id", "job_status", "attempt_count", "lease_owner", "error_code", "error_message", "gd_id"]),
         K.code("code_node_XWresult", "Result (DONE)", wcode("result.js", {"__PATH__": "DONE", "__PLAN__": plan_ref, "__ROWS__": "[%s][0]" % N("sql_node_XWfinal", "data")}), res_fields),

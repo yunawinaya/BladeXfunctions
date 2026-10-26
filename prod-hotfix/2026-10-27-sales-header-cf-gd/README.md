@@ -72,6 +72,14 @@ SI on prod. A GD made from several SOs takes the first SO's.
   - test_cf_box_layout 2.
 - Linter: no new findings (the same counts as prod's own versions).
 
+## PROD DEPLOYED 2026-10-27 03:02-03:13 (user), verified
+
+GD form v679, SO_Convert_GD v36, SO_AUTO_GD v22, GD_COMPLETE_SUBMIT v13, GD_BULK_COMMIT v31, GD_BULK_PREPARE v22 and
+GOODS_DELIVERY v183 are each IDENTICAL to their paste file (`verify_prod.py gd`).
+- GOODS_DELIVERY v183 is the combined item 1, re-issued about 03:10 before the paste: the CfOut guards declare `cf` as
+  `any`, and it carries the GD session's tenant fix.
+- prod_health showed only the CHECKs that were already there.
+
 ## Paste (user), in this order
 
 Every paste file is the prod version live now (the matching `*_base.json`, checked IDENTICAL to prod on 10-27) plus this

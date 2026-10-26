@@ -3800,83 +3800,145 @@
        "blocks": []
       },
       {
-       "id": "workflow_node_XCx2",
-       "type": "workflow-node",
+       "id": "try_catch_XCx2",
+       "type": "tryCatch",
        "data": {
-        "workflow_id": "",
-        "workflow_name": "",
-        "input_params": {},
-        "title": "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> replays on a re-run)",
-        "isValidator": true,
-        "nodeName": "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> replays on a re-run)",
-        "name": "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> replays on a re-run)",
-        "workflow": {
-         "source": "INVENTORY_BULK_APPLY:Workflow:2109916822821744641",
-         "rules": {
-          "collectionId": "2109916822821744641",
-          "list": [
-           {
-            "id": 1798600000035,
-            "parentId": 1798600000036,
-            "isTop": true,
-            "prop": "",
-            "operator": "",
-            "valueType": "",
-            "value": "",
-            "type": "leaf",
-            "level": 1
-           }
-          ]
-         }
+        "title": "try-catch: a failed INVENTORY_BULK_APPLY call is a counted retry decided from its intent rows (no crash, no 30-min lease)"
+       },
+       "blocks": [
+        {
+         "type": "tryBlock",
+         "id": "try_catch_XCx2_tryBlock_0",
+         "blocks": [
+          {
+           "id": "workflow_node_XCx2",
+           "type": "workflow-node",
+           "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> replays on a re-run)",
+            "isValidator": true,
+            "nodeName": "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> replays on a re-run)",
+            "name": "INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> replays on a re-run)",
+            "workflow": {
+             "source": "INVENTORY_BULK_APPLY:Workflow:2109916822821744641",
+             "rules": {
+              "collectionId": "2109916822821744641",
+              "list": [
+               {
+                "id": 1798600000035,
+                "parentId": 1798600000036,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+             "list": [
+              {
+               "prop": "operation_key",
+               "propLabel": "operation_key",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_node_XCx2in.data.operationKey}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "mode",
+               "propLabel": "mode",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "value",
+               "valueTypeLabel": "",
+               "value": "APPLY",
+               "valueLabel": ""
+              },
+              {
+               "prop": "organization_id",
+               "propLabel": "organization_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_node_XCentry.data.organizationId}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "movements",
+               "propLabel": "movements",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_node_XCx2in.data.movements}}",
+               "valueLabel": ""
+              }
+             ]
+            }
+           },
+           "blocks": []
+          }
+         ]
         },
-        "remote": true,
-        "remoteType": "innerdatasource",
-        "body_params": {
-         "list": [
-          {
-           "prop": "operation_key",
-           "propLabel": "operation_key",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_node_XCx2in.data.operationKey}}",
-           "valueLabel": ""
+        {
+         "type": "catchBlock",
+         "data": {
+          "title": "The inventory call failed",
+          "trycatch_type": "Filter",
+          "filter": {
+           "list": []
           },
-          {
-           "prop": "mode",
-           "propLabel": "mode",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "value",
-           "valueTypeLabel": "",
-           "value": "APPLY",
-           "valueLabel": ""
+          "expression": {
+           "type": "javascript",
+           "code": ""
           },
+          "displayContent": "sdk.form.setCondition"
+         },
+         "id": "try_catch_XCx2_catchBlock_1",
+         "blocks": [
           {
-           "prop": "organization_id",
-           "propLabel": "organization_id",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_node_XCentry.data.organizationId}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "movements",
-           "propLabel": "movements",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_node_XCx2in.data.movements}}",
-           "valueLabel": ""
+           "id": "code_node_XCx2crash",
+           "type": "code-node",
+           "data": {
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "script": {
+             "type": "javascript",
+             "code": "// GD_CANCEL_COMMIT - the INVENTORY_BULK_APPLY call failed (caught, 2026-10-27): X2 decides from the intent rows - a counted\n// retry with the lease released, instead of a crash that leaves the job leased 30 min (10-26: Kenhin GD 2097, LSH GD-2610-1473)\nconsole.log(\"inventory call failed (caught): X2 decides from the intent rows\");\nreturn { crashed: \"YES\" };"
+            },
+            "response_json": [
+             {
+              "key": "o51x60am",
+              "name": "crashed",
+              "title": "crashed",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ],
+            "title": "The inventory call failed: mark it (X2 decides from the intent rows)",
+            "isValidator": true,
+            "nodeName": "The inventory call failed: mark it (X2 decides from the intent rows)",
+            "name": "The inventory call failed: mark it (X2 decides from the intent rows)"
+           },
+           "blocks": []
           }
          ]
         }
-       },
-       "blocks": []
+       ]
       },
       {
        "id": "sql_node_XCx2ops",
@@ -3916,11 +3978,11 @@
         "timeout": 30000,
         "script": {
          "type": "javascript",
-         "code": "// GD_CANCEL_COMMIT - shared helpers (included into each code node by build_gdcan.py)\nconst MAX_RETRIES = 3;\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// the DB clock now: the run's start (dbNow) + the seconds this run has taken so far\nconst endNow = (entry) => (Number(entry.jsAt) > 0 ? dbAddSeconds(entry.dbNow, Math.max(0, Math.floor((Date.now() - Number(entry.jsAt)) / 1000))) : \"\") || entry.dbNow;\n// a payload part / an intent: its chunk rows (step_name ...|nnn) joined in order\nconst joinChunks = function joinChunks(rows, prefix) {\n  const mine = list(rows).filter((r) => s(r.step_name).indexOf(prefix) === 0).sort((a, b) => (s(a.step_name) < s(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  try {\n    return JSON.parse(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  } catch (e) {\n    return undefined;\n  }\n};\nconst chunkRows = function chunkRows(entry, stepPrefix, value) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += 400000, n++) {\n    out.push({ job_id: entry.jobId, organization_id: entry.organizationId, step_name: stepPrefix + String(n).padStart(3, \"0\"), step_status: \"INTENT\",\n      attempt_count: 0, started_at: entry.dbNow, finished_at: null, inventory_operation_id: \"\", result_ref: text.slice(at, at + 400000), error_code: null, error_message: null });\n  }\n  return out;\n};\nconst slicesOf = function slicesOf(rows, size) {\n  const out = [];\n  for (let i = 0; i < rows.length; i += size) out.push({ n: out.length + 1, rows: rows.slice(i, i + size) });\n  return out;\n};\nconst doneRow = function doneRow(entry, step, ref) {\n  return { job_id: entry.jobId, organization_id: entry.organizationId, step_name: step, step_status: \"DONE\", attempt_count: 1, started_at: entry.dbNow,\n    finished_at: endNow(entry), inventory_operation_id: \"\", result_ref: s(ref).slice(0, 2000), error_code: null, error_message: null };\n};\nconst jobRow = function jobRow(entry, patch) {\n  return Object.assign({ id: entry.jobId, job_status: \"COMMITTING_GD\", progress_percent: 70, progress_message: \"Cancelling the delivery\", attempt_count: entry.attempts,\n    next_attempt_at: null, lease_owner: null, lease_expires_at: null, row_version: entry.rowVersion + 2, error_code: null, error_message: null, error_details: null, finished_at: null }, patch);\n};\n// a step that did not complete: retry with backoff, or REQUIRES_REVIEW (after MAX_RETRIES, or at once when `review`)\nconst stepEnd = function stepEnd(entry, step, why, review) {\n  const n = entry.attempts;\n  if (review || n >= MAX_RETRIES) {\n    const msg = step + \": \" + why + (review ? \"\" : \" (after \" + n + \" retries)\") + \"; the Goods Delivery stays Processing for review\";\n    return { route: \"END\", jobRows: [jobRow(entry, { job_status: \"REQUIRES_REVIEW\", progress_percent: 0, progress_message: \"Under review: the cancel stopped half-way\", error_code: \"GDX_RECONCILIATION_MISMATCH\", error_message: msg, error_details: JSON.stringify({ step: step, why: why }), finished_at: endNow(entry) })], needJobUpd: \"YES\", unlockRows: [], needUnlock: \"NO\", result_code: \"GDX_RECONCILIATION_MISMATCH\", result_message: msg, job_status: \"REQUIRES_REVIEW\" };\n  }\n  return { route: \"END\", jobRows: [jobRow(entry, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(entry.dbNow, Math.ceil(Math.min(30000, 2000 * Math.pow(2, n)) / 1000)), error_code: \"GDX_STEP_RETRY\", error_message: step + \": \" + why, error_details: JSON.stringify({ step: step, why: why, attempt: n + 1 }) })], needJobUpd: \"YES\", unlockRows: [], needUnlock: \"NO\", result_code: \"GDX_STEP_RETRY\", result_message: step + \": \" + why + \" - retry \" + (n + 1) + \" of \" + MAX_RETRIES, job_status: \"COMMITTING_GD\" };\n};\n// before X2 moves the stock nothing was written: FAILED, the GD back to Created\nconst failNoWrite = function failNoWrite(entry, code, why) {\n  return { route: \"END\", jobRows: [jobRow(entry, { job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not cancelled: \" + why).slice(0, 250), error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_CANCEL_COMMIT\", why: why }), finished_at: endNow(entry) })], needJobUpd: \"YES\", unlockRows: entry.unlockOk === \"YES\" ? [{ id: entry.gdId, gd_status: \"Created\" }] : [], needUnlock: entry.unlockOk === \"YES\" ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" };\n};\nconst stepOk = function stepOk(entry, step, ref, message) {\n  return { route: \"OK\", stepRows: [doneRow(entry, step, ref)], needStep: \"YES\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", result_code: \"\", result_message: message || step + \" done\", job_status: \"COMMITTING_GD\" };\n};\n// value comparison for read-backs: \"\" / null / undefined are one nothing; numbers compare at 8 dp; ids and text exactly\nconst sameVal = function sameVal(a, b) {\n  const ea = a === undefined || a === null || a === \"\";\n  const eb = b === undefined || b === null || b === \"\";\n  if (ea || eb) return ea && eb;\n  if (typeof a === \"object\" || typeof b === \"object\") return JSON.stringify(a) === JSON.stringify(b);\n  const na = typeof a === \"number\" || /^-?[0-9]+(\\.[0-9]+)?$/.test(String(a));\n  const nb = typeof b === \"number\" || /^-?[0-9]+(\\.[0-9]+)?$/.test(String(b));\n  if (na && nb && String(a).replace(/\\.0+$/, \"\").length < 16 && String(b).replace(/\\.0+$/, \"\").length < 16) return Math.abs(q8(a) - q8(b)) < 1e-8;\n  return String(a) === String(b);\n};\nconst parseJ = function parseJ(t) {\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// GD_CANCEL_COMMIT - X2 INVENTORY: INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> makes a re-run replay it).\n// 200 -> DONE + the SPLIT hand-over (phase B in the next run); 400 -> FAILED, GD back to Created (the engine wrote nothing);\n// 409 lock busy -> wait for the other operation, then FAILED + GD back to Created - only while this operation has no intent\n// rows (IBA|I|*: with them it may have written, so retry -> review); anything else -> REQUIRES_REVIEW\nconst LOCK_WAIT_TRIES = 8;\nconst lockWait = function lockWait(entry, why) {\n  const n = entry.attempts;\n  return { route: \"END\", jobRows: [jobRow(entry, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(entry.dbNow, Math.min(300, 15 * Math.pow(2, n))), error_code: \"GDX_LOCK_WAIT\",\n    error_message: (\"X2_INVENTORY: \" + why).slice(0, 1000), error_details: JSON.stringify({ step: \"X2_INVENTORY\", why: why.slice(0, 2000), attempt: n + 1 }) })],\n    needJobUpd: \"YES\", unlockRows: [], needUnlock: \"NO\", result_code: \"GDX_STEP_RETRY\",\n    result_message: \"X2_INVENTORY: the stock is locked by another operation - wait \" + (n + 1) + \" of \" + LOCK_WAIT_TRIES, job_status: \"COMMITTING_GD\" };\n};\nconst cancelX2 = function cancelX2(entry, guard, input, eng, ops) {\n  if (s(input.ok) !== \"YES\") return failNoWrite(entry, \"GDX_INVALID_DATA\", \"the inventory part of the prepared payload is missing\");\n  const code = s(eng.code);\n  const why = \"INVENTORY_BULK_APPLY answered \" + (code || \"nothing\") + \" \" + s(eng.result_code) + (s(eng.message) ? \": \" + s(eng.message) : \"\");\n  if (code === \"200\") {\n    const ok = stepOk(entry, \"X2_INVENTORY\", s(eng.result_code) + \" \" + s(eng.message), \"inventory \" + s(eng.result_code));\n    ok.splitRows = [jobRow(entry, { progress_percent: 80, progress_message: \"Stock released; updating the sales orders, Pickings, Packings and the delivery\", lease_owner: \"SPLIT|\" + guard.nonce, lease_expires_at: entry.leaseUntil })];\n    ok.needSplit = \"YES\";\n    return ok;\n  }\n  if (code === \"409\") {\n    // with intent rows this operation holds all its keys: the 409 is engine v12's \"the same operation is still running\" -> wait, then review\n    const wrote = num((ops || {}).intents) > 0;\n    if (entry.attempts >= LOCK_WAIT_TRIES) return wrote ? stepEnd(entry, \"X2_INVENTORY\", why, true) : failNoWrite(entry, \"GDX_INVENTORY_LOCK_BUSY\", \"the stock of its items stayed locked by another operation (\" + why.slice(0, 300) + \"): nothing was written, cancel it again later\");\n    return lockWait(entry, why);\n  }\n  if (code === \"400\") return failNoWrite(entry, \"GDX_INVENTORY_\" + (s(eng.result_code) || \"FAILED\"), why);\n  return stepEnd(entry, \"X2_INVENTORY\", why, true);\n};\nconst eng = { code: [{{node:workflow_node_XCx2.data.code}}][0], result_code: [{{node:workflow_node_XCx2.data.result_code}}][0], message: [{{node:workflow_node_XCx2.data.message}}][0] };\nconst res = cancelX2([{{node:code_node_XCentry.data}}][0], [{{node:code_node_XCguard.data}}][0], { ok: [{{node:code_node_XCx2in.data.ok}}][0] }, eng, list([{{node:sql_node_XCx2ops.data}}][0])[0]);\nconsole.log(\"commit X2\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
+         "code": "// GD_CANCEL_COMMIT - shared helpers (included into each code node by build_gdcan.py)\nconst MAX_RETRIES = 3;\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst list = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r);\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst num = (v) => Number(v || 0);\nconst q8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst dbAddSeconds = function dbAddSeconds(text, seconds) {\n  const m = String(text || \"\").match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);\n  if (!m) return \"\";\n  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), Number(m[4]), Number(m[5]), Number(m[6])) + seconds * 1000);\n  const p = (n) => (n < 10 ? \"0\" : \"\") + n;\n  return d.getUTCFullYear() + \"-\" + p(d.getUTCMonth() + 1) + \"-\" + p(d.getUTCDate()) + \" \" + p(d.getUTCHours()) + \":\" + p(d.getUTCMinutes()) + \":\" + p(d.getUTCSeconds());\n};\n// the DB clock now: the run's start (dbNow) + the seconds this run has taken so far\nconst endNow = (entry) => (Number(entry.jsAt) > 0 ? dbAddSeconds(entry.dbNow, Math.max(0, Math.floor((Date.now() - Number(entry.jsAt)) / 1000))) : \"\") || entry.dbNow;\n// a payload part / an intent: its chunk rows (step_name ...|nnn) joined in order\nconst joinChunks = function joinChunks(rows, prefix) {\n  const mine = list(rows).filter((r) => s(r.step_name).indexOf(prefix) === 0).sort((a, b) => (s(a.step_name) < s(b.step_name) ? -1 : 1));\n  if (!mine.length) return null;\n  try {\n    return JSON.parse(mine.map((r) => (r.result_ref === undefined || r.result_ref === null ? \"\" : String(r.result_ref))).join(\"\"));\n  } catch (e) {\n    return undefined;\n  }\n};\nconst chunkRows = function chunkRows(entry, stepPrefix, value) {\n  const text = JSON.stringify(value);\n  const out = [];\n  for (let at = 0, n = 1; at < text.length || n === 1; at += 400000, n++) {\n    out.push({ job_id: entry.jobId, organization_id: entry.organizationId, step_name: stepPrefix + String(n).padStart(3, \"0\"), step_status: \"INTENT\",\n      attempt_count: 0, started_at: entry.dbNow, finished_at: null, inventory_operation_id: \"\", result_ref: text.slice(at, at + 400000), error_code: null, error_message: null });\n  }\n  return out;\n};\nconst slicesOf = function slicesOf(rows, size) {\n  const out = [];\n  for (let i = 0; i < rows.length; i += size) out.push({ n: out.length + 1, rows: rows.slice(i, i + size) });\n  return out;\n};\nconst doneRow = function doneRow(entry, step, ref) {\n  return { job_id: entry.jobId, organization_id: entry.organizationId, step_name: step, step_status: \"DONE\", attempt_count: 1, started_at: entry.dbNow,\n    finished_at: endNow(entry), inventory_operation_id: \"\", result_ref: s(ref).slice(0, 2000), error_code: null, error_message: null };\n};\nconst jobRow = function jobRow(entry, patch) {\n  return Object.assign({ id: entry.jobId, job_status: \"COMMITTING_GD\", progress_percent: 70, progress_message: \"Cancelling the delivery\", attempt_count: entry.attempts,\n    next_attempt_at: null, lease_owner: null, lease_expires_at: null, row_version: entry.rowVersion + 2, error_code: null, error_message: null, error_details: null, finished_at: null }, patch);\n};\n// a step that did not complete: retry with backoff, or REQUIRES_REVIEW (after MAX_RETRIES, or at once when `review`)\nconst stepEnd = function stepEnd(entry, step, why, review) {\n  const n = entry.attempts;\n  if (review || n >= MAX_RETRIES) {\n    const msg = step + \": \" + why + (review ? \"\" : \" (after \" + n + \" retries)\") + \"; the Goods Delivery stays Processing for review\";\n    return { route: \"END\", jobRows: [jobRow(entry, { job_status: \"REQUIRES_REVIEW\", progress_percent: 0, progress_message: \"Under review: the cancel stopped half-way\", error_code: \"GDX_RECONCILIATION_MISMATCH\", error_message: msg, error_details: JSON.stringify({ step: step, why: why }), finished_at: endNow(entry) })], needJobUpd: \"YES\", unlockRows: [], needUnlock: \"NO\", result_code: \"GDX_RECONCILIATION_MISMATCH\", result_message: msg, job_status: \"REQUIRES_REVIEW\" };\n  }\n  return { route: \"END\", jobRows: [jobRow(entry, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(entry.dbNow, Math.ceil(Math.min(30000, 2000 * Math.pow(2, n)) / 1000)), error_code: \"GDX_STEP_RETRY\", error_message: step + \": \" + why, error_details: JSON.stringify({ step: step, why: why, attempt: n + 1 }) })], needJobUpd: \"YES\", unlockRows: [], needUnlock: \"NO\", result_code: \"GDX_STEP_RETRY\", result_message: step + \": \" + why + \" - retry \" + (n + 1) + \" of \" + MAX_RETRIES, job_status: \"COMMITTING_GD\" };\n};\n// before X2 moves the stock nothing was written: FAILED, the GD back to Created\nconst failNoWrite = function failNoWrite(entry, code, why) {\n  return { route: \"END\", jobRows: [jobRow(entry, { job_status: \"FAILED\", progress_percent: 0, progress_message: (\"Not cancelled: \" + why).slice(0, 250), error_code: code, error_message: why, error_details: JSON.stringify({ step: \"GD_CANCEL_COMMIT\", why: why }), finished_at: endNow(entry) })], needJobUpd: \"YES\", unlockRows: entry.unlockOk === \"YES\" ? [{ id: entry.gdId, gd_status: \"Created\" }] : [], needUnlock: entry.unlockOk === \"YES\" ? \"YES\" : \"NO\", result_code: code, result_message: why, job_status: \"FAILED\" };\n};\nconst stepOk = function stepOk(entry, step, ref, message) {\n  return { route: \"OK\", stepRows: [doneRow(entry, step, ref)], needStep: \"YES\", jobRows: [], needJobUpd: \"NO\", unlockRows: [], needUnlock: \"NO\", result_code: \"\", result_message: message || step + \" done\", job_status: \"COMMITTING_GD\" };\n};\n// value comparison for read-backs: \"\" / null / undefined are one nothing; numbers compare at 8 dp; ids and text exactly\nconst sameVal = function sameVal(a, b) {\n  const ea = a === undefined || a === null || a === \"\";\n  const eb = b === undefined || b === null || b === \"\";\n  if (ea || eb) return ea && eb;\n  if (typeof a === \"object\" || typeof b === \"object\") return JSON.stringify(a) === JSON.stringify(b);\n  const na = typeof a === \"number\" || /^-?[0-9]+(\\.[0-9]+)?$/.test(String(a));\n  const nb = typeof b === \"number\" || /^-?[0-9]+(\\.[0-9]+)?$/.test(String(b));\n  if (na && nb && String(a).replace(/\\.0+$/, \"\").length < 16 && String(b).replace(/\\.0+$/, \"\").length < 16) return Math.abs(q8(a) - q8(b)) < 1e-8;\n  return String(a) === String(b);\n};\nconst parseJ = function parseJ(t) {\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\n// GD_CANCEL_COMMIT - X2 INVENTORY: INVENTORY_BULK_APPLY APPLY (all-or-nothing; GDX|<job> makes a re-run replay it).\n// 200 -> DONE + the SPLIT hand-over (phase B in the next run); 400 -> FAILED, GD back to Created (the engine wrote nothing);\n// 409 lock busy -> wait for the other operation, then FAILED + GD back to Created - only while this operation has no intent\n// rows (IBA|I|*: with them it may have written, so retry -> review); anything else -> REQUIRES_REVIEW\nconst LOCK_WAIT_TRIES = 8;\nconst OWN_RUN_TRIES = 16;\nconst lockWait = function lockWait(entry, why) {\n  const n = entry.attempts;\n  return { route: \"END\", jobRows: [jobRow(entry, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(entry.dbNow, Math.min(300, 15 * Math.pow(2, n))), error_code: \"GDX_LOCK_WAIT\",\n    error_message: (\"X2_INVENTORY: \" + why).slice(0, 1000), error_details: JSON.stringify({ step: \"X2_INVENTORY\", why: why.slice(0, 2000), attempt: n + 1 }) })],\n    needJobUpd: \"YES\", unlockRows: [], needUnlock: \"NO\", result_code: \"GDX_STEP_RETRY\",\n    result_message: \"X2_INVENTORY: the stock is locked by another operation - wait \" + (n + 1) + \" of \" + LOCK_WAIT_TRIES, job_status: \"COMMITTING_GD\" };\n};\nconst cancelX2 = function cancelX2(entry, guard, input, eng, ops) {\n  if (s(input.ok) !== \"YES\") return failNoWrite(entry, \"GDX_INVALID_DATA\", \"the inventory part of the prepared payload is missing\");\n  // a failed call (caught, 10-27): its run failed and answered nothing (10-26, Kenhin GD 2097 and LSH GD-2610-1473: a first-use lock\n  // seed lost its race and the job sat under its 30-min lease). As a 409: retry with the lease released; past the tries, review once\n  // it has intent rows, else nothing was written\n  if (s(eng.crashed) === \"YES\") {\n    const wrote = num((ops || {}).intents) > 0;\n    const failed = \"INVENTORY_BULK_APPLY failed (caught)\" + (wrote ? \", with intent rows\" : \", nothing written\");\n    if (entry.attempts >= LOCK_WAIT_TRIES) return wrote ? stepEnd(entry, \"X2_INVENTORY\", failed, true) : failNoWrite(entry, \"GDX_INVENTORY_CALL_FAILED\", \"the inventory call kept failing: nothing was written, try again later\");\n    return lockWait(entry, failed);\n  }\n  const code = s(eng.code);\n  const why = \"INVENTORY_BULK_APPLY answered \" + (code || \"nothing\") + \" \" + s(eng.result_code) + (s(eng.message) ? \": \" + s(eng.message) : \"\");\n  if (code === \"200\") {\n    const ok = stepOk(entry, \"X2_INVENTORY\", s(eng.result_code) + \" \" + s(eng.message), \"inventory \" + s(eng.result_code));\n    ok.splitRows = [jobRow(entry, { progress_percent: 80, progress_message: \"Stock released; updating the sales orders, Pickings, Packings and the delivery\", lease_owner: \"SPLIT|\" + guard.nonce, lease_expires_at: entry.leaseUntil })];\n    ok.needSplit = \"YES\";\n    return ok;\n  }\n  if (code === \"409\") {\n    // with intent rows this operation holds all its keys: the 409 is engine v12's \"the same operation is still running\" -> wait, then review\n    const wrote = num((ops || {}).intents) > 0;\n    // our own operation's earlier run (e.g. one that crashed) holds it until its heartbeat is 20 min old: wait that out, up to\n    // 16 tries (about an hour, as GD_EDIT_COMMIT E1), then review, never FAILED - so a marker that never clears is seen\n    const ownRun = s(eng.message).indexOf(\"the same operation is still running\") >= 0;\n    if (ownRun && entry.attempts >= OWN_RUN_TRIES) return stepEnd(entry, \"X2_INVENTORY\", why, true);\n    if (entry.attempts >= LOCK_WAIT_TRIES && !ownRun) return wrote ? stepEnd(entry, \"X2_INVENTORY\", why, true) : failNoWrite(entry, \"GDX_INVENTORY_LOCK_BUSY\", \"the stock of its items stayed locked by another operation (\" + why.slice(0, 300) + \"): nothing was written, cancel it again later\");\n    return lockWait(entry, why);\n  }\n  if (code === \"400\") return failNoWrite(entry, \"GDX_INVENTORY_\" + (s(eng.result_code) || \"FAILED\"), why);\n  return stepEnd(entry, \"X2_INVENTORY\", why, true);\n};\nconst eng = { code: [{{node:workflow_node_XCx2.data.code}}][0], result_code: [{{node:workflow_node_XCx2.data.result_code}}][0], message: [{{node:workflow_node_XCx2.data.message}}][0], crashed: [{{node:code_node_XCx2crash.data.crashed}}][0] };\nconst res = cancelX2([{{node:code_node_XCentry.data}}][0], [{{node:code_node_XCguard.data}}][0], { ok: [{{node:code_node_XCx2in.data.ok}}][0] }, eng, list([{{node:sql_node_XCx2ops.data}}][0])[0]);\nconsole.log(\"commit X2\", JSON.stringify({ route: res.route, result: res.result_code, message: res.result_message }));\nreturn res;"
         },
         "response_json": [
          {
-          "key": "r6s73l96",
+          "key": "dkqcn4ye",
           "name": "route",
           "title": "route",
           "description": "",
@@ -3929,7 +3991,7 @@
           "children": []
          },
          {
-          "key": "019wyzhz",
+          "key": "dayz3pb2",
           "name": "stepRows",
           "title": "stepRows",
           "description": "",
@@ -3937,7 +3999,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "zmy7rh51",
+            "key": "l14glkcx",
             "name": "items",
             "title": "",
             "description": "",
@@ -3949,7 +4011,7 @@
           ]
          },
          {
-          "key": "7aw3b5vi",
+          "key": "ngcvw8gg",
           "name": "needStep",
           "title": "needStep",
           "description": "",
@@ -3958,7 +4020,7 @@
           "children": []
          },
          {
-          "key": "7cg7d6a7",
+          "key": "kx303yav",
           "name": "jobRows",
           "title": "jobRows",
           "description": "",
@@ -3966,7 +4028,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "j76asgrd",
+            "key": "3yvp5lcc",
             "name": "items",
             "title": "",
             "description": "",
@@ -3978,7 +4040,7 @@
           ]
          },
          {
-          "key": "23lte0kp",
+          "key": "eww7piba",
           "name": "needJobUpd",
           "title": "needJobUpd",
           "description": "",
@@ -3987,7 +4049,7 @@
           "children": []
          },
          {
-          "key": "jy0revbk",
+          "key": "su5qr9dh",
           "name": "unlockRows",
           "title": "unlockRows",
           "description": "",
@@ -3995,7 +4057,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "8qgxt1iw",
+            "key": "6lfigj0i",
             "name": "items",
             "title": "",
             "description": "",
@@ -4007,7 +4069,7 @@
           ]
          },
          {
-          "key": "p0n3ddcv",
+          "key": "p3gow3k2",
           "name": "needUnlock",
           "title": "needUnlock",
           "description": "",
@@ -4016,7 +4078,7 @@
           "children": []
          },
          {
-          "key": "3j81a422",
+          "key": "c1nyg0ai",
           "name": "result_code",
           "title": "result_code",
           "description": "",
@@ -4025,7 +4087,7 @@
           "children": []
          },
          {
-          "key": "z7657ub4",
+          "key": "jfqlwfih",
           "name": "result_message",
           "title": "result_message",
           "description": "",
@@ -4034,7 +4096,7 @@
           "children": []
          },
          {
-          "key": "2ijtvw55",
+          "key": "o3qyunw4",
           "name": "job_status",
           "title": "job_status",
           "description": "",
@@ -4043,7 +4105,7 @@
           "children": []
          },
          {
-          "key": "4ob4qdeb",
+          "key": "my2xk0qc",
           "name": "splitRows",
           "title": "splitRows",
           "description": "",
@@ -4051,7 +4113,7 @@
           "isExpand": true,
           "children": [
            {
-            "key": "4zyhypb9",
+            "key": "m15betbd",
             "name": "items",
             "title": "",
             "description": "",
@@ -4063,7 +4125,7 @@
           ]
          },
          {
-          "key": "rlukugec",
+          "key": "kywv83ld",
           "name": "needSplit",
           "title": "needSplit",
           "description": "",
@@ -4072,10 +4134,10 @@
           "children": []
          }
         ],
-        "title": "X2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review",
+        "title": "X2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review; a failed call (caught) -> as 409",
         "isValidator": true,
-        "nodeName": "X2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review",
-        "name": "X2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review"
+        "nodeName": "X2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review; a failed call (caught) -> as 409",
+        "name": "X2 check: 200 -> DONE + SPLIT; 409 -> wait, then FAILED + GD back to Created (review once it has intent rows); 400 -> FAILED + GD back to Created; else review; a failed call (caught) -> as 409"
        },
        "blocks": []
       },
