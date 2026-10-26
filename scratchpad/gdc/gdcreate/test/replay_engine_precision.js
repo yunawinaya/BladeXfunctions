@@ -1,5 +1,5 @@
 // replay_engine_precision.js: re-runs INVENTORY_APPLY_OPERATION code nodes on the node outputs recorded by a real run, old
-// (git HEAD) and new (working tree) code side by side. For the precision fix: GUB 900938 run 2114523131413663745 (10-26 09:02,
+// (prod v12) and new (working tree) code side by side. For the precision fix: GUB 900938 run 2114523131413663745 (10-26 09:02,
 // GD-26/10/0528), whose movement check answered a false VERIFICATION_MISMATCH.
 // usage: node replay_engine_precision.js <dir of `wf --prod trace <run> --node <id>` outputs, one <id>.txt per node>
 const fs = require("fs");
@@ -27,7 +27,8 @@ const find = (o, id) => {
   return null;
 };
 const docs = {
-  old: JSON.parse(execFileSync("git", ["show", "HEAD:" + FILE], { cwd: REPO, maxBuffer: 1 << 28 }).toString()),
+  // prod v12, the version the GUB run executed (git HEAD moved on)
+  old: JSON.parse(fs.readFileSync(path.join(REPO, "prod-hotfix/2026-10-26-stock-locks/ROLLBACK_INVENTORY_APPLY_OPERATION_prod_v12.json"), "utf8")),
   new: JSON.parse(fs.readFileSync(path.join(REPO, FILE), "utf8")),
 };
 const recorded = (id) => {

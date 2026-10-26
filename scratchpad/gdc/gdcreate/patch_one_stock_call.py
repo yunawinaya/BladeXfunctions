@@ -1,4 +1,10 @@
-"""patch_one_stock_call.py: stock keys are taken in one ordered call, and a GD worker run makes one stock call (2026-10-26).
+"""patch_one_stock_call.py - WITHDRAWN, do not run (2026-10-26 11:06 incident).
+- The INVENTORY_APPLY_OPERATION part (LNtake one call) froze every operation with more than 25 keys at give-back: LNgive still
+  split into lanes, and a lane cannot release a key the main call took. Prod rolled back to v12; dev back to v14 content (v16).
+- The GD_ASYNC_WORKER part is live (dev v21, prod v17). test/test_one_stock_call.js now checks that TAKE and GIVE split
+  identically.
+
+Original description: stock keys are taken in one ordered call, and a GD worker run makes one stock call (2026-10-26).
 
 Root cause of the 10-26 freeze and the slow TAKEs (prod run timings): the platform keeps the atomic-count lock that
 INVENTORY_LOCK_TOKENS takes on a key until the TOP-LEVEL run ends, not when the engine call ends.
@@ -111,6 +117,7 @@ def load(path):
     return raw, doc
 
 
+sys.exit("WITHDRAWN: see the docstring (the engine part froze give-back on prod 10-26)")
 raw_a, app = load(APPLY)
 raw_w, wk = load(WORKER)
 assert "every key in ONE call" not in raw_a and "nextIndex: nextIndex" not in raw_w, "already patched"

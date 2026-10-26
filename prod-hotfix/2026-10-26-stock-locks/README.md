@@ -1,5 +1,13 @@
 # 2026-10-26 Stock locks: one ordered TAKE, one stock call per GD worker run, verify at the stored scale
 
+> **INVENTORY_APPLY_OPERATION.json here is WITHDRAWN - never paste it again.**
+> - Pasted 11:06:39 as prod v13, then rolled back to v12 (the user re-enabled v12; file ROLLBACK_INVENTORY_APPLY_OPERATION_prod_v12.json).
+> - It took every key in one call but still gave keys back in parallel lanes, and a lane cannot release keys the main call took.
+> - Every operation with more than 25 keys froze at give-back until the 20-min limit: GUB GD-26/10/0544, PACK-2610-1434, PACK-2610-1462.
+> - Their keys came back by themselves when the runs ended (11:30:36, 11:32:58, ~11:39). No SQL was needed; repair_frozen_give.sql was not run.
+> - The other files are live and fine: INVENTORY_OPERATION_RECONCILE v12, GD_ASYNC_WORKER v17.
+> - A future engine fix must make the give-back match the take, and be tested on dev with more than 25 keys first.
+
 Three fixes from the day's open items, one paste. This folder replaces `../2026-10-26-engine-precision-worker-herd/`, which was
 never pasted.
 

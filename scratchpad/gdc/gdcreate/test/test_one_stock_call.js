@@ -1,6 +1,7 @@
-// test_one_stock_call.js: INVENTORY_APPLY_OPERATION takes every key in ONE ordered TAKE call (patch_one_stock_call.py,
-// 2026-10-26). Runs code_node_LNtake from the repo JSON with its placeholder filled as the platform fills it.
-// The GD_ASYNC_WORKER side is in test_worker_sweep_retry.js ("one call:" cases). usage: node test_one_stock_call.js
+// test_one_stock_call.js: INVENTORY_APPLY_OPERATION's lock TAKE and lock GIVE split the keys IDENTICALLY (first call + 9 lanes).
+// 2026-10-26: v13 took every key in one call but still gave keys back in lanes; a lane cannot release a key the main call took,
+// so every operation with more than 25 keys froze at give-back until the 20-min limit (LSH / GUB 11:06-11:39, rolled back).
+// Runs code_node_LNtake and code_node_LNgive from the repo JSON with their placeholders filled. usage: node test_one_stock_call.js
 const fs = require("fs");
 const path = require("path");
 const assert = require("assert");
@@ -21,25 +22,17 @@ const find = (o, id) => {
   }
   return null;
 };
-const code = find(JSON.parse(fs.readFileSync(FILE, "utf8")), "code_node_LNtake").data.script.code;
-const take = (ids) => new Function(code.replace("{{node:code_node_J6YxjhQw.data.ids}}", JSON.stringify(ids)))();
-const lanesEmpty = (o) => [0, 1, 2, 3, 4, 5, 6, 7, 8].every((k) => Array.isArray(o["lane" + k]) && o["lane" + k].length === 0 && o["has" + k] === "NO");
+const doc = JSON.parse(fs.readFileSync(FILE, "utf8"));
+const split = (id, token) => (ids) => new Function(find(doc, id).data.script.code.replace(token, JSON.stringify(ids)))();
+const take = split("code_node_LNtake", "{{node:code_node_J6YxjhQw.data.ids}}");
+const give = split("code_node_LNgive", "{{node:code_node_mkkHs3G9.data.plusIds}}");
+const shape = (o) => JSON.stringify([o.warm].concat([0, 1, 2, 3, 4, 5, 6, 7, 8].map((k) => o["lane" + k] || [])));
 const ids = (n) => Array.from({ length: n }, (_, i) => String(2114000000000000000n + BigInt(i)));
 let n = 0;
-const ok = (name, cond, got) => {
-  assert(cond, name + ": " + JSON.stringify(got).slice(0, 400));
+for (const count of [1, 2, 16, 25, 26, 36, 72, 92, 400, 4000]) {
+  assert.strictEqual(shape(give(ids(count))), shape(take(ids(count))), count + " keys: TAKE and GIVE split differently");
   n++;
-};
-
-let o = take(ids(72));
-ok("72 keys (an LSH GD): all in the first call, in the given order", o.warm.length === 72 && o.warm.join() === ids(72).join() && o.count === "72", o);
-ok("72 keys: every lane empty", lanesEmpty(o), o);
-o = take(ids(10));
-ok("10 keys: all in the first call", o.warm.length === 10 && lanesEmpty(o), o);
-o = take(ids(4000));
-ok("4,000 keys (a 2k-line GD): all in the first call", o.warm.length === 4000 && lanesEmpty(o), o.count);
-o = take(["1", "2", "2"]);
-ok("a key listed twice: one call with every key, as before", o.warm.join() === "1,2,2" && lanesEmpty(o), o);
-o = take("7");
-ok("a single key arriving as a scalar", o.warm.join() === "7" && lanesEmpty(o), o);
-console.log("test_one_stock_call: " + n + " pass");
+}
+assert.strictEqual(shape(give(["1", "2", "2"])), shape(take(["1", "2", "2"])), "a key listed twice: TAKE and GIVE split differently");
+n++;
+console.log("test_one_stock_call: " + n + " pass (TAKE and GIVE split identically)");
