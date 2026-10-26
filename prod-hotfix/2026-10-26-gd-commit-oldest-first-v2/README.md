@@ -1,5 +1,8 @@
 # 2026-10-26 08:21 GD_BULK_COMMIT: oldest-first, corrected
 
+> **SUPERSEDED - do not paste.** Replaced by `../2026-10-26-gd-commit-oldest-first-v3/GD_BULK_COMMIT.json` (prod v28, 08:39), which contains this change. Pasting this folder would undo later fixes.
+
+
 Replaces `../2026-10-26-gd-commit-oldest-first/` (prod v26 at 08:14). One change in `sql_node_kY5OLfvj`:
 an older job counts as waiting while its `P3_INVENTORY_APPLY` step row is STARTED (stock step unfinished), instead of by its
 retry `error_code`.

@@ -1,5 +1,8 @@
 # 2026-10-26 GD creation: retry stock-lock conflicts 20 times instead of 6
 
+> **SUPERSEDED - do not paste.** All three files were replaced the same day. GD_BULK_COMMIT: by `../2026-10-26-gd-commit-oldest-first-v3/` (prod v28). GD_ASYNC_WORKER / GD_JOB_RECONCILE: by `../2026-10-26-gd-create-lock-retries-60/` (prod v15 / v9). Pasting this folder would undo later fixes.
+
+
 ## Why
 LSH (128671) converted about 28 SOs at 06:51 and about 20 more from 07:05.
 - Every GD's stock step needs 42-78 balance keys and holds them about 19 s on average (47 s at most).

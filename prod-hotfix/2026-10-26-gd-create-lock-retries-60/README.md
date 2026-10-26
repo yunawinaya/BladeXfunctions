@@ -1,5 +1,8 @@
 # 2026-10-26 07:35 GD creation: retry stock-lock conflicts 60 times instead of 20
 
+> **PARTLY SUPERSEDED.** GD_ASYNC_WORKER.json and GD_JOB_RECONCILE.json here are what prod runs (v15 / v9). GD_BULK_COMMIT.json here is SUPERSEDED by `../2026-10-26-gd-commit-oldest-first-v3/` (prod v28): do not paste it.
+
+
 Follow-up to `../2026-10-26-gd-create-lock-retries/` (6 -> 20, live 07:19). Same files with one more constant change.
 
 ## Why

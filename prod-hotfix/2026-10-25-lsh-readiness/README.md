@@ -161,3 +161,16 @@ So no fix is stranded on dev. All 41 GD / Picking / Packing repo files match pro
 - 10-25: the worker stall (item 1) and the shared-Picking cancel (item 2). BA report: LSH-GD-Investigation-20261025.
 - 10-25: `IN (SELECT … UNION SELECT …)` in a sql-node is run once per outer row by MySQL (DEPENDENT SUBQUERY); wrap the UNION
   in a derived table (item 2d).
+- 10-26 (GD session): LSH convert bursts (28 SOs at 06:51, then waves of 20-50 to 08:20).
+  - **Retry limit too low.** Each GD's stock call takes 33-81 keys for ~19 s, so GDs on shared products queue behind each
+    other; 15 creations failed GD_TRANSIENT_RETRIES_EXHAUSTED (clean, SO re-convertible). Fix: max_retries 6 -> 20 -> 60
+    (worker / reconcile prod v15 / v9) and 200 for P3 in GD_BULK_COMMIT.
+  - **Frozen key-taking.** Five stock calls froze in INVENTORY_LOCK_TOKENS (platform atomic-count) at 07:30 and were killed at
+    the platform's 20-min child limit (07:51). GD_BULK_COMMIT then moved to a new operation id and stranded 81 keys (33
+    products). Released by `../2026-10-26-lsh-orphan-locks/repair.sql`. Fix: the same operation is retried, so RECOVER
+    releases the keys (prod v25+).
+  - **Starvation.** Big old GDs never found all their keys free while newer GDs kept taking some; GD-2610-1470 waited 70 min.
+    Fix: oldest waiting GD goes first (prod v28, `../2026-10-26-gd-commit-oldest-first-v3/`). v26 / v27 never fired: the
+    platform drops sql-node columns not declared in the node's response_json.
+  - **Rule:** adding a SELECT column to an existing sql-node means adding it to that node's response_json.
+  - lsh_watch.py now alerts on a stock operation past its lease that still holds keys.

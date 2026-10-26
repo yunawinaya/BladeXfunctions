@@ -1,5 +1,8 @@
 # 2026-10-26 08:15 GD_BULK_COMMIT: oldest waiting delivery goes first + P3 retry limit 200
 
+> **SUPERSEDED - do not paste.** Replaced by `../2026-10-26-gd-commit-oldest-first-v3/GD_BULK_COMMIT.json` (prod v28, 08:39), which contains this change. Pasting this folder would undo later fixes.
+
+
 Paste `GD_BULK_COMMIT.json` into **GD_BULK_COMMIT (2104840402446245890)**. It replaces v25, the same-op retry, and keeps it.
 
 ## Why
