@@ -13,7 +13,7 @@ const workerPlan = function workerPlan(guard, rows) {
   const ids = items.map((i) => i.jobId).filter((x) => /^[0-9]{1,20}$/.test(x));
   return { route: items.length ? "WORK" : "IDLE", dbNow: dbNow, runStart: dbNow, items: items, count: items.length, jobIdsSql: ids.length ? ids.join(",") : "0", result_code: "", result_message: items.length ? items.length + " due job(s)" : "no due job" };
 };
-const guard = [{{node:code_node_XWguard2.data}}][0];
+const guard = [{{node:code_node_XWguard3.data}}][0];
 const res = workerPlan(guard, [{{node:sql_node_XWpoll.data}}][0]);
 console.log("worker plan", JSON.stringify({ route: res.route, count: res.count, jobs: res.items.map((i) => i.jobId + ":" + i.jobStatus + (i.deadLease === "YES" ? ":deadLease" : "") + (i.deadClaim === "YES" ? ":deadClaim" : "")) }));
 return res;

@@ -9,7 +9,7 @@ const dir = process.argv[2];
 const files = { GW: dir ? dir + "/GD_COMPLETE_WORKER.json" : R + "CompleteV2/GD_COMPLETE_WORKER.json",
                 XW: dir ? dir + "/GD_CANCEL_WORKER.json" : R + "CancelV2/GD_CANCEL_WORKER.json",
                 RW: dir ? dir + "/GD_REVERT_WORKER.json" : R + "RevertV2/GD_REVERT_WORKER.json" };
-const guardNode = { GW: "code_node_GWguard3", XW: "code_node_XWguard2", RW: "code_node_RWguard3" };
+const guardNode = { GW: "code_node_GWguard3", XW: "code_node_XWguard3", RW: "code_node_RWguard4" };
 const find = (o, id) => {
   if (Array.isArray(o)) { for (const v of o) { const r = find(v, id); if (r) return r; } return null; }
   if (o && typeof o === "object") { if (o.id === id) return o; for (const v of Object.values(o)) { const r = find(v, id); if (r) return r; } }

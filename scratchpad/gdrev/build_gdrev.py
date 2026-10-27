@@ -584,7 +584,7 @@ WJOB_COLS = ["db_now", "id", "job_status", "progress_percent", "progress_message
 def build_worker():
     """GD Completed V2's worker (build_gdc.py build_worker, verbatim) with GD Revert's names: polls REVERT_GD only"""
     ids = K.Ids(1799700000000)
-    G = "code_node_RWguard3"
+    G = "code_node_RWguard4"
     T = N(G, "data.tenantId")
     prep = ("GD_REVERT_PREPARE", wf_id("GD_REVERT_PREPARE"))
     comm = ("GD_REVERT_COMMIT", wf_id("GD_REVERT_COMMIT"))

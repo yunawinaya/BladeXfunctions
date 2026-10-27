@@ -12,7 +12,7 @@ const workerMid = function workerMid(guard, own, rows) {
   if (status === "READY_TO_COMMIT" && s(job.lease_owner) === guard.leaseOwner) return Object.assign(base, { route: "PUBLISH", result_message: "publish" });
   return Object.assign(base, { result_message: "job is " + status + " (lease " + s(job.lease_owner) + "): no publish call" });
 };
-const guard = [{{node:code_node_XWguard2.data}}][0];
+const guard = [{{node:code_node_XWguard3.data}}][0];
 const own = [{{node:code_node_XWown.data}}][0];
 const res = workerMid(guard, own, [{{node:sql_node_XWmid.data}}][0]);
 console.log("worker mid", JSON.stringify(res));

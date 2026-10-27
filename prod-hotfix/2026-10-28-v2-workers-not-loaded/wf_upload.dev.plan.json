@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_EDIT_WORKER",
+   "dataId": "2110618789356687361",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/EditV2/GD_EDIT_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_EDIT_WORKER/v9_20261028-041311.enabled.json"
+  },
+  {
+   "name": "GD_REVERT_WORKER",
+   "dataId": "2112758130420088833",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/RevertV2/GD_REVERT_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/GD_REVERT_WORKER/v7_20261028-041312.enabled.json"
+  }
+ ]
+}

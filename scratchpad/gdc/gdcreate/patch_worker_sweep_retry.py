@@ -62,7 +62,7 @@ assert render(doc) == raw, "the repo file does not round-trip: refusing to re-re
 assert "sql_node_WKwait" not in raw, "already patched"
 K._taken |= set(re.findall(r'"key": "([a-z0-9]{8})"', raw))
 K._rng.seed(202610236)
-JOB = "{{node:code_node_1OvNTk9G2.data.jobId}}"
+JOB = "{{node:code_node_1OvNTk9G3.data.jobId}}"
 
 # 1. the poll: the kicked job, or a stale due job, the kicked one first
 poll = find(doc, "sql_node_RaVfenlh")["data"]["script"]
@@ -105,7 +105,7 @@ const id = String(item.jobId || "");
 return { retryJobId: Number(item.retry || 0) > 0 && /^[0-9]{1,20}$/.test(id) ? id : "0" };"""
 WAIT = """SELECT SLEEP(LEAST(GREATEST(TIMESTAMPDIFF(MICROSECOND, NOW(3), j.next_attempt_at) / 1000000 + 0.2, 0), 8)) AS slept
   FROM gd_async_job j
- WHERE j.tenant_id = '{{node:code_node_1OvNTk9G2.data.tenantId}}'
+ WHERE j.tenant_id = '{{node:code_node_1OvNTk9G3.data.tenantId}}'
    AND j.id = {{node:code_node_WKslot.data.retryJobId}}
    AND j.is_deleted = 0
    AND j.job_status = 'COMMITTING_GD'

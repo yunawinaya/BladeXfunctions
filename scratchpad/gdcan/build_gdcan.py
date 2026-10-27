@@ -773,7 +773,7 @@ WJOB_COLS = ["db_now", "id", "job_status", "progress_percent", "progress_message
 def build_worker():
     """GD Completed V2's worker (build_gdc.py build_worker, verbatim) with GD Cancel's names: polls CANCEL_GD only"""
     ids = K.Ids(1798700000000)
-    G = "code_node_XWguard2"
+    G = "code_node_XWguard3"
     T = N(G, "data.tenantId")
     prep = ("GD_CANCEL_PREPARE", wf_id("GD_CANCEL_PREPARE"))
     comm = ("GD_CANCEL_COMMIT", wf_id("GD_CANCEL_COMMIT"))

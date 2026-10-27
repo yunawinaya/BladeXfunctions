@@ -24,7 +24,7 @@ const workerAfterPublish = function workerAfterPublish(guard, own, mid, resp, ro
   const delayMs = Math.min(PKC.retry.max_delay_ms, PKC.retry.base_delay_ms * Math.pow(2, n));
   return Object.assign(base, { jobRows: [Object.assign({}, row, { attempt_count: n + 1, next_attempt_at: dbAddSeconds(dbNow, Math.ceil(delayMs / 1000)), lease_owner: null, lease_expires_at: null })], needJobUpd: "YES", result_code: "GDX_TRANSIENT", result_message: "GD_CANCEL_COMMIT answered without saving (" + s(r.result_message) + "): retry " + (n + 1) + " of " + PKC.retry.max_retries + " after " + delayMs + " ms" });
 };
-const guard = [{{node:code_node_XWguard2.data}}][0];
+const guard = [{{node:code_node_XWguard3.data}}][0];
 const own = [{{node:code_node_XWown.data}}][0];
 const mid = [{{node:__MID__.data}}][0];
 const res = workerAfterPublish(guard, own, mid, [{{node:__RESP__.data}}][0], [{{node:__BACK__.data}}][0]);

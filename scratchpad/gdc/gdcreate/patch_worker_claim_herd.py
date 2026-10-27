@@ -25,7 +25,7 @@ import sys
 
 P = "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/AsyncV2/GD_ASYNC_WORKER.json"
 PRETTIER = os.path.expanduser("~/.npm/_npx/b388654678d519d9/node_modules/prettier/bin/prettier.cjs")
-T = "'{{node:code_node_1OvNTk9G2.data.tenantId}}'"
+T = "'{{node:code_node_1OvNTk9G3.data.tenantId}}'"
 
 
 def last_claim(indent):
@@ -45,7 +45,7 @@ def last_claim(indent):
 TICK_OLD = "       (cw.id IS NOT NULL AND cw.started_at > n.t - INTERVAL 10 MINUTE) AS claim_live,\n"
 TICK_NEW = TICK_OLD + "       " + last_claim(7) + " AS last_claim_owner,\n"
 WAIT_OLD = "   AND j.next_attempt_at <= NOW(3) + INTERVAL 30 SECOND"
-WAIT_NEW = WAIT_OLD + "\n   AND " + last_claim(3) + " = '{{node:code_node_1OvNTk9G2.data.leaseOwner}}'"
+WAIT_NEW = WAIT_OLD + "\n   AND " + last_claim(3) + " = '{{node:code_node_1OvNTk9G3.data.leaseOwner}}'"
 
 ITEM_OLD = 'opLive: String(row.op_live) === "1" ? "YES" : "NO" };'
 ITEM_NEW = 'opLive: String(row.op_live) === "1" ? "YES" : "NO", lastClaimOwner: s(row.last_claim_owner) };'

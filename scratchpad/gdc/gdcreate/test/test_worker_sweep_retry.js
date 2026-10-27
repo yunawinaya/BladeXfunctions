@@ -18,16 +18,16 @@ const t = (name, ok, got) => { console.log((ok ? "ok   " : "FAIL ") + name + (ok
 
 const row = (id, extra) => Object.assign({ db_now: "2026-10-23 05:00:00", id: id, organization_id: "9", job_status: "COMMITTING_GD", attempt_count: 0, row_version: 7, dead_lease: 0, claim_id: "", lease_live: 0, due_now: 1, op_live: 0, claim_live: 0, rclaim_live: 0, error_code: null }, extra || {});
 const guard = (jobId) => ({ route: "CONTINUE", jobId: jobId, tenantId: "128671", leaseOwner: "WRK|abc" });
-const real = run("code_node_JsJ91wA5", { "code_node_1OvNTk9G2.data": guard("11"), "sql_node_RaVfenlh.data": [row("11"), row("12"), row("13"), row("14")] });
+const real = run("code_node_JsJ91wA5", { "code_node_1OvNTk9G3.data": guard("11"), "sql_node_RaVfenlh.data": [row("11"), row("12"), row("13"), row("14")] });
 t("plan: 4 due jobs -> 4 first passes, no retry passes (2026-10-26: one stock call per run), count 4, ids once",
   real.items.length === 4 && real.count === 4 && real.jobIdsSql === "11,12,13,14" && real.items.every((i) => !i.retry), real.items.map((i) => i.jobId + "/" + (i.retry || 0)));
 // the retry-pass logic stays in Pick / WKslot, dormant: test it on the plan shape it would get (6 passes of the first 3 jobs)
 const plan = Object.assign({}, real, { items: real.items.concat(...[1, 2, 3, 4, 5, 6].map((n) => real.items.slice(0, 3).map((i) => Object.assign({}, i, { retry: n })))) });
-const idle = run("code_node_JsJ91wA5", { "code_node_1OvNTk9G2.data": guard("0"), "sql_node_RaVfenlh.data": [{ db_now: "2026-10-23 05:00:00" }] });
+const idle = run("code_node_JsJ91wA5", { "code_node_1OvNTk9G3.data": guard("0"), "sql_node_RaVfenlh.data": [{ db_now: "2026-10-23 05:00:00" }] });
 t("plan: no due job -> IDLE, no items", idle.route === "IDLE" && idle.items.length === 0, idle);
 
 const pick = (index, fresh, runStart) => run("code_node_Qo8Suk1M", {
-  "code_node_1OvNTk9G2.data": guard("11"), "code_node_JsJ91wA5.data": Object.assign({}, plan, { runStart: runStart || "2026-10-23 05:00:00" }),
+  "code_node_1OvNTk9G3.data": guard("11"), "code_node_JsJ91wA5.data": Object.assign({}, plan, { runStart: runStart || "2026-10-23 05:00:00" }),
   "get_cache_node_JEpzWu86.data": index, "sql_node_oAHg7l6A.data": [fresh],
 });
 let p = pick(0, row("11", { db_now: "2026-10-23 05:00:01" }));
@@ -76,7 +76,7 @@ t("herd: the tick read returns and declares last_claim_owner (the highest W0_CLA
   tickSql.script.code.includes("ORDER BY CAST(SUBSTRING(cl.step_name, 10) AS UNSIGNED) DESC") && tickSql.script.code.includes("LIMIT 1), '') AS last_claim_owner,") &&
   tickSql.response_json.filter((e) => e.name === "last_claim_owner").length === 1, tickSql.response_json.map((e) => e.name));
 t("herd: WKwait sleeps only for the run that claimed the job last",
-  code("sql_node_WKwait").includes("LIMIT 1), '') = '{{node:code_node_1OvNTk9G2.data.leaseOwner}}'"), code("sql_node_WKwait"));
+  code("sql_node_WKwait").includes("LIMIT 1), '') = '{{node:code_node_1OvNTk9G3.data.leaseOwner}}'"), code("sql_node_WKwait"));
 
 const slot = (index) => run("code_node_WKslot", { "code_node_JsJ91wA5.data": plan, "get_cache_node_JEpzWu86.data": index });
 t("slot: a first pass -> 0 (no wait)", slot(0).retryJobId === "0" && slot(3).retryJobId === "0", [slot(0), slot(3)]);
@@ -86,7 +86,7 @@ t("slot: the sixth pass of the third job -> its job; past the end -> 0", slot(21
 t("slot: the real plan has no retry slot", [0, 1, 2, 3, 4].every((i) => run("code_node_WKslot", { "code_node_JsJ91wA5.data": real, "get_cache_node_JEpzWu86.data": i }).retryJobId === "0"), null);
 
 // 2026-10-26 (patch_one_stock_call.py): after an iteration that called GD_BULK_COMMIT the next loop index points past the plan
-const pk = (midRoute, pickNext, jobRow) => run("code_node_PKdec001", { "code_node_1OvNTk9G2.data": guard("11"), "code_node_7UMUXQpd.data": { route: midRoute, jobId: "11" }, "code_node_Qo8Suk1M.data": { nextIndex: pickNext }, "sql_node_PKjob001.data": jobRow ? [jobRow] : [] });
+const pk = (midRoute, pickNext, jobRow) => run("code_node_PKdec001", { "code_node_1OvNTk9G3.data": guard("11"), "code_node_7UMUXQpd.data": { route: midRoute, jobId: "11" }, "code_node_Qo8Suk1M.data": { nextIndex: pickNext }, "sql_node_PKjob001.data": jobRow ? [jobRow] : [] });
 let k = pk("PUBLISH", 1, { id: "11", is_deleted: 0, job_status: "GD_COMMITTED", gd_status: "Created", gd_id: "5" });
 t("one call: a committed job -> PICK, next index 9999 (no further job in this run)", k.route === "PICK" && k.nextIndex === 9999, k);
 k = pk("PUBLISH", 3, { id: "11", is_deleted: 0, job_status: "COMMITTING_GD", gd_status: "Processing", gd_id: "5" });
@@ -100,7 +100,7 @@ t("one call: the loop index cache stores PKdec001's next index", find(W, "set_ca
   find(W, "code_node_PKdec001").data.response_json.filter((e) => e.name === "nextIndex").length === 1, find(W, "set_cache_node_dv5GX4FO").data.custom_wkbocgni);
 
 const readBack = [{ id: "11", job_status: "COMPLETED", error_code: "", gd_id: "1", gd_status: "Created", attempt_count: 1, lease_owner: "" }, { id: "12", job_status: "COMMITTING_GD", error_code: "GD_INVENTORY_IN_PROGRESS", gd_id: "2", gd_status: "Processing", attempt_count: 0, lease_owner: "" }];
-const answer = (jobId) => run("code_node_LdCyuBWM", { "code_node_1OvNTk9G2.data.route": "CONTINUE", "code_node_JsJ91wA5.data.route": "WORK", "code_node_1OvNTk9G2.data": guard(jobId), "code_node_JsJ91wA5.data": plan, "sql_node_CObTsMBI.data": readBack });
+const answer = (jobId) => run("code_node_LdCyuBWM", { "code_node_1OvNTk9G3.data.route": "CONTINUE", "code_node_JsJ91wA5.data.route": "WORK", "code_node_1OvNTk9G3.data": guard(jobId), "code_node_JsJ91wA5.data": plan, "sql_node_CObTsMBI.data": readBack });
 let a = answer("12");
 t("answer: each job listed once (4), the kicked job reported", a.processed === "4" && JSON.parse(a.jobs).length === 4 && a.job_id === "12" && a.job_status === "COMMITTING_GD" && a.result_code === "GD_INVENTORY_IN_PROGRESS", a);
 a = answer("0");
@@ -112,6 +112,6 @@ t("poll: the kicked job, or a stale due job (10 s) that used fewer than 3 attemp
   sql.includes("OR (j.lease_expires_at IS NOT NULL AND j.lease_expires_at <= NOW(3) - INTERVAL 10 SECOND)") &&
   sql.includes("OR (j.next_attempt_at IS NULL AND j.lease_expires_at IS NULL AND j.id < ((UNIX_TIMESTAMP() * 1000 - 10000 - 1288834974657) << 22))"), sql.slice(-1100));
 t("poll: the kicked job first, the sweep in random order, the list's poll oldest first",
-  sql.includes("ORDER BY (j.id = {{node:code_node_1OvNTk9G2.data.jobId}}) DESC, CASE WHEN {{node:code_node_1OvNTk9G2.data.jobId}} = 0 THEN 0 ELSE RAND() END, j.create_time, j.id"), sql.slice(-400));
+  sql.includes("ORDER BY (j.id = {{node:code_node_1OvNTk9G3.data.jobId}}) DESC, CASE WHEN {{node:code_node_1OvNTk9G3.data.jobId}} = 0 THEN 0 ELSE RAND() END, j.create_time, j.id"), sql.slice(-400));
 console.log(fails ? fails + " FAILED" : "ALL PASSED");
 process.exit(fails ? 1 : 0);

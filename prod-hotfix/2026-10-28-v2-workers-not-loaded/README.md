@@ -48,7 +48,11 @@
 - `python3 verify.py`: each enabled version must equal its paste, and its latest runs must be Complete. It also lists
   GD_COMPLETE_WORKER's runs: if a publish can stick a worker that runs at that moment, each paste could stick another one.
 - The two LSH edits should then run on the next GD_EDIT_WORKER kick, and GD-2610-1897 / 1892 leave Processing.
-- **Repo / dev:** the repo JSON and the builders keep the old ids, so `wf --prod deployed` shows DIFFERS for these five until
-  they're synced. The old ids work fine on dev; any id works until the next restart sticks it.
+- **Verified 04:06:** every enabled version equals its paste, and the latest runs of all six GD workers are Complete. Both
+  LSH edits COMPLETED; GD-2610-1897 and 1892 are Created again.
+- **Repo / dev parity:** a dev→prod promotion must not bring an old id back while prod still runs the JVM that stuck it.
+  - **GD_EDIT_WORKER and GD_REVERT_WORKER, done 04:13:** the builders carry the new ids; dev v10 / v8 published with
+    `wf_upload.dev.plan.json`. Repo = dev = prod (IDENTICAL).
+  - **GD_ASYNC_WORKER, GD_PICKING_OUTBOX_CONSUMER and GD_CANCEL_WORKER:** the GD session's, carried by it.
 - **Other V2 workers** (GR / Putaway / IA / SA / LOT / Packing / SO save) haven't run since the restarts. If one shows
   `is not loaded` when users start, the same rename fixes it.

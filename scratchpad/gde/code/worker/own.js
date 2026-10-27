@@ -25,7 +25,7 @@ const workerOwn = function workerOwn(guard, claim, rows) {
   if (status !== expect) return lost("JOB_ILLEGAL_TRANSITION", "job is " + status + " after the claim (expected " + expect + ")");
   return base;
 };
-const guard = [{{node:code_node_GEWguard.data}}][0];
+const guard = [{{node:code_node_GEWguard2.data}}][0];
 const claim = [{{node:code_node_GWclaim.data}}][0];
 const res = workerOwn(guard, claim, [{{node:sql_node_GWown.data}}][0]);
 console.log("worker own", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, result: res.result_code, message: res.result_message }));

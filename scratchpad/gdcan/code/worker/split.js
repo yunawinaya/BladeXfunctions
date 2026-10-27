@@ -11,7 +11,7 @@ const workerSplitResume = function workerSplitResume(guard, mid, rows) {
   if (!split) return Object.assign(base, { result_message: "job is " + s(job.job_status) + (s(job.lease_owner) ? " (lease " + s(job.lease_owner) + ")" : "") + ": no second publish call" });
   return Object.assign(base, { route: "PUBLISH", result_message: "split after the stock moved: the second GD_CANCEL_COMMIT call of this tick" });
 };
-const guard = [{{node:code_node_XWguard2.data}}][0];
+const guard = [{{node:code_node_XWguard3.data}}][0];
 const mid = [{{node:code_node_XWmid.data}}][0];
 const res = workerSplitResume(guard, mid, [{{node:sql_node_XWsplit.data}}][0]);
 // one stock call per run (LSH 2026-10-26 20:40, two sweeps froze 30 min): a run keeps every key it took until it ends, so once

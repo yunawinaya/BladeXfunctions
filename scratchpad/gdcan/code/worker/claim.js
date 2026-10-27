@@ -33,7 +33,7 @@ const workerClaim = function workerClaim(guard, pick) {
   }
   return Object.assign(claimed, { route: status === "READY_TO_COMMIT" ? "PUBLISH" : "PREPARE", result_message: (why ? why + "; " : "") + "claim " + status + (toValidating ? " -> VALIDATING" : "") });
 };
-const guard = [{{node:code_node_XWguard2.data}}][0];
+const guard = [{{node:code_node_XWguard3.data}}][0];
 const pick = [{{node:code_node_XWpick.data}}][0];
 const res = workerClaim(guard, pick);
 console.log("worker claim", JSON.stringify({ route: res.route, job: res.jobId, status: res.jobStatus, attempts: res.attempts, write: res.needClaim, message: res.result_message }));

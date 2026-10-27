@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_CANCEL_WORKER",
+   "dataId": "2112455700319932418",
+   "file": "scratchpad/restart_fix_1028/GD_CANCEL_WORKER.json",
+   "base": "scratchpad/restart_fix_1028/base/GD_CANCEL_WORKER.dev_v6.base.json"
+  }
+ ]
+}

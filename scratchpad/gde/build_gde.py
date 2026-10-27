@@ -960,7 +960,7 @@ def wjob_sql(ten, job_ref):
 
 def build_worker():
     ids = K.Ids(1798300000000)
-    G = "code_node_GEWguard"
+    G = "code_node_GEWguard2"
     TEN = N(G, "data.tenantId")
     prep = ("GD_EDIT_PREPARE", IDS.get("GD_EDIT_PREPARE", "0"))
     comm = ("GD_EDIT_COMMIT", IDS.get("GD_EDIT_COMMIT", "0"))
