@@ -177,6 +177,33 @@ const BASE = [bom("10", "1", 10, [line("2", 20), line("4", 40)]), bom("20", "2",
   r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: ["2", "5"] });
   eq("cycle", r.code, "SC_CYCLE");
   yes("cycle message shows the path", /N2/.test(r.message || "") && /N5/.test(r.message || ""));
+  // per place: the loop's own place can never be ticked (the dialog does not offer it), yet expanding the places above it loops
+  w = world([bom("10", "1", 1, [line("2", 1)]), bom("20", "2", 1, [line("3", 1)]), bom("30", "3", 1, [line("2", 1)])], ITEMS);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["2", "2>3"] });
+  eq("per place: 2 > 3 > 2 expanded down to 3: SC_CYCLE (its BOM points back at 2)", [r.code, /N2 > N3 > N2/.test(r.message || "")], ["SC_CYCLE", true]);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["2"] });
+  eq("per place: 2 expanded, 3 kept: no loop (3 consumed)", [r.ok, r.snapshot && r.snapshot.rows.map((x) => x.itemId)], [true, ["3"]]);
+  // the BA (10-27): the same SFG on two lines of one BOM = two places, each its own choice; a snapshot saved before keeps its meaning
+  {
+    const wd = world([bom("10", "1", 1, [line("2", 1), line("2", 2)]), bom("20", "2", 1, [line("3", 1)])], ITEMS);
+    let rd = await run(wd, ITEMS, { itemId: "1", mode: "FLAT", expand: [] });
+    eq("duplicate lines: each line its own place (2#1, 2#2), in branch order", rd.tree.map((x) => [x.key, x.expandable]), [["2#1", true], ["2#1>3", false], ["2#2", true], ["2#2>3", false]]);
+    rd = await run(wd, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["2#1"], expandAtV: 2 });
+    eq("duplicate lines: line 1 expanded, line 2 stopped: RM 1 and SFG 2", rd.rows.map((x) => [x.item_selection, x.requested_qty]), [["3", 1], ["2", 2]]);
+    eq("duplicate lines: the snapshot keeps line 1's place (v2); the SFG is also consumed, so not in expand", [rd.snapshot.expandAt, rd.snapshot.expandAtV, rd.snapshot.expand], [["2#1"], 2, []]);
+    rd = await run(wd, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["2#2"], expandAtV: 2 });
+    eq("duplicate lines: line 2 expanded, line 1 stopped: SFG 1 and RM 2", rd.rows.map((x) => [x.item_selection, x.requested_qty]), [["2", 1], ["3", 2]]);
+    rd = await run(wd, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["2"] });
+    eq("a snapshot saved before line keys (place 2, no v2): both lines expanded, as it was", [rd.rows.map((x) => [x.item_selection, x.requested_qty]), rd.snapshot.expandAt],
+      [[["3", 3]], ["2#1", "2#2"]]);
+    eq("plain key of a line key", B.scPlainKey("2#2>3>5#1"), "2>3>5");
+  }
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: [] });
+  eq("tree: a place whose BOM names a place above it is not expandable, said why", r.tree.map((x) => [x.key, x.expandable, /a loop in the BOMs/.test(x.reason)]),
+    [["2", true, false], ["2>3", false, true]]);
+  w = world([bom("10", "1", 1, [line("1", 1)])], ITEMS);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["1"] });
+  eq("the item itself on its root BOM, ticked: SC_CYCLE", r.code, "SC_CYCLE");
   const chain = [];
   const CH_ITEMS = [];
   for (let i = 1; i <= 9; i++) {
@@ -217,7 +244,8 @@ const BASE = [bom("10", "1", 10, [line("2", 20), line("4", 40)]), bom("20", "2",
   // ---------------------------------------------------------------- tree (Flat dialog)
   w = world([bom("10", "1", 1, [line("2", 1), line("4", 1), line("6", 1)]), bom("20", "2", 1, [line("3", 2)]), bom("60", "6", 1, [])], ITEMS);
   r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: [] });
-  eq("tree flags", r.tree.map((t) => [t.itemId, t.depth, t.expandable]), [["2", 1, true], ["4", 1, false], ["6", 1, false], ["3", 2, false]]);
+  eq("tree flags, in branch order, each place keyed by its chain", r.tree.map((t) => [t.key, t.itemId, t.depth, t.expandable]),
+    [["2", "2", 1, true], ["2>3", "3", 2, false], ["4", "4", 1, false], ["6", "6", 1, false]]);
   yes("tree reasons", r.tree.filter((t) => t.itemId === "6")[0].reason.length > 0);
   // the tree follows a line's ref_bom_id as the resolve does: the referenced BOM decides, names its version and gives the next level
   w = world([bom("10", "1", 1, [line("2", 1, { bom_type: "reference", ref_bom_id: "21" })]),
@@ -233,13 +261,26 @@ const BASE = [bom("10", "1", 10, [line("2", 20), line("4", 40)]), bom("20", "2",
     bom("30", "3", 1, [line("6", 1)], { parent_mat_is_default: 1 }), bom("31", "3", 1, [line("5", 1)], { parent_mat_bom_version: "V7" })], ITEMS);
   r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: [] });
   eq("tree follows a level-2 reference: 3 through BOM 31 (V7) to 5", r.tree.map((t) => [t.itemId, t.depth, t.version]), [["2", 1, "V1"], ["3", 2, "V7"], ["5", 3, ""]]);
-  // BA handoff FIX-04: a tick applies to every occurrence, so the tree says how many BOM lines use the item, under which parents,
-  // and every BOM version those lines resolve to
+  // one choice per place (the BA, 10-27): item 3 sits directly under 1 (its default BOM V1) and under 2 (a reference to V7) - two places,
+  // each with its own parent and version
   w = world([bom("10", "1", 1, [line("2", 1), line("3", 1)]), bom("20", "2", 1, [line("3", 2, { bom_type: "reference", ref_bom_id: "31" })], { parent_mat_is_default: 1 }),
     bom("30", "3", 1, [line("6", 1)], { parent_mat_is_default: 1 }), bom("31", "3", 1, [line("5", 1)], { parent_mat_bom_version: "V7" })], ITEMS);
   r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: [] });
-  const t3 = r.tree.filter((t) => t.itemId === "3")[0] || {};
-  eq("tree: an item on 2 BOM lines: 2 uses, both parents, both versions", [t3.uses, t3.parents, t3.versions], [2, ["N1", "N2"], ["V1", "V7"]]);
+  eq("tree: an item on 2 BOM lines = 2 places, each its parent and version, in branch order", r.tree.map((t) => [t.key, t.depth, t.parents, t.versions, t.parentKey]),
+    [["2", 1, ["N1"], ["V1"], ""], ["2>3", 2, ["N2"], ["V7"], "2"], ["2>3>5", 3, ["N3"], [], "2>3"], ["3", 1, ["N1"], ["V1"], ""], ["3>6", 2, ["N3"], [], "3"]]);
+  const leaves = (x) => x.snapshot.rows.map((row) => [row.itemId, row.paths.map((p2) => p2.items.join(">"))]);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["3"] });
+  eq("per place: 3 expanded at the top only (2 kept whole): 2, then 6 through V1", leaves(r), [["2", ["2"]], ["6", ["3>6"]]]);
+  eq("per place: expandAt = the place, expand = 3 (expanded at every place it was reached)", [r.snapshot.expandAt, r.snapshot.expand], [["3"], ["3"]]);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["2", "2>3"] });
+  eq("per place: 3 expanded under 2 (V7 -> 5), kept at the top", leaves(r), [["5", ["2>3>5"]], ["3", ["3"]]]);
+  eq("per place: expandAt both places, expand only 2 (3 is also consumed, so its stock line is allowed)", [r.snapshot.expandAt, r.snapshot.expand], [["2", "2>3"], ["2"]]);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expandAt: ["2>3"] });
+  eq("per place: a place under a kept parent is not reached: nothing expanded", [leaves(r), r.snapshot.expandAt, r.snapshot.expand], [[["2", ["2"]], ["3", ["3"]]], [], []]);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: ["2", "3"] });
+  eq("item ticks (an IA prepared before): 3 expanded at every place reached; expandAt lists them", [leaves(r), r.snapshot.expandAt, r.snapshot.expand],
+    [[["5", ["2>3>5"]], ["6", ["3>6"]]], ["2", "2>3", "3"], ["2", "3"]]);
+  r = await run(w, ITEMS, { itemId: "1", mode: "FLAT", expand: [] });
   const t2 = r.tree.filter((t) => t.itemId === "2")[0] || {};
   eq("tree: an item on 1 line: 1 use, its parent, its version", [t2.uses, t2.parents, t2.versions], [1, ["N1"], ["V1"]]);
 
@@ -281,6 +322,27 @@ const BASE = [bom("10", "1", 10, [line("2", 20), line("4", 40)]), bom("20", "2",
   const consumed = lines.concat([{ item_selection: "2", quantity_uom: EA, requested_qty: 0, sc_ref_key: "", total_quantity: 1 }]);
   eq("expanded item consumed", B.scCheck(snap, head, consumed, { completing: true }).code, "SC_EXPANDED_CONSUMED");
 
+  // the server (IA_SAVE / IA_V2_SUBMIT) embeds the frozen copy code/shared/frozen/sc_bom_v1.js (their deployed text, 10-27): every
+  // top-level declaration in it but the resolver (client only) must be the current one, so the save checks what the form prepares
+  {
+    const fs = require("fs");
+    const decls = (text) => {
+      const out = {};
+      let name = null;
+      text.split("\n").forEach((line) => {
+        const m = /^const (\w+) = /.exec(line);
+        if (m) name = m[1];
+        else if (/^if \(typeof module/.test(line)) name = null;
+        if (name) out[name] = (out[name] || "") + line + "\n";
+      });
+      return out;
+    };
+    const frozen = decls(fs.readFileSync(path.join(__dirname, "..", "code/shared/frozen/sc_bom_v1.js"), "utf8"));
+    const now = decls(fs.readFileSync(path.join(__dirname, "..", "code/shared/sc_bom.js"), "utf8"));
+    const differ = Object.keys(frozen).filter((k) => k !== "scResolve" && frozen[k] !== now[k]);
+    eq("frozen server copy: every declaration but scResolve identical to the current sc_bom.js", differ, []);
+    yes("frozen server copy: scCheck, scSnapOf, scRecompute present", ["scCheck", "scSnapOf", "scRecompute"].every((k) => !!frozen[k]));
+  }
   console.log((fails ? "FAILED " + fails : "ok") + " - " + n + " checks");
   process.exit(fails ? 1 : 0);
 })().catch((e) => {

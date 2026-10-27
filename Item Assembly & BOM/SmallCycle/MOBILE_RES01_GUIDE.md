@@ -192,6 +192,9 @@ header's single Output Location fields hold row 1 and `item_qty` stays the total
 - A save without the key may not change a split IA's plant, item or Output bin: IA_SAVE answers 400 "This Item Assembly's output is
   split across bins: change its plant, item or bin on the desktop." Show the message; do not retry.
 - If mobile ever sends `output_split`, send the whole array (ids as strings); `[]` turns the split off.
+- Batches (27 October evening): desktop gives every row of a System-numbered item its own batch (it hides the Group column and sets
+  `os_group` to the row number, 1..n, so the save generates one number per row). A Manual item's rows with the same typed `os_batch_no`
+  are one batch. If mobile ever sends rows of a System-numbered item, set `os_group` to the row number the same way.
 
 ## 9. Checklist
 

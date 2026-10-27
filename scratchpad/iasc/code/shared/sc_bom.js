@@ -87,11 +87,21 @@ const scResolve = async (input, io) => {
   const maxDepth = inp.maxDepth || 6;
   const maxPaths = inp.maxPaths || 5000;
   const maxRows = inp.maxRows || 1000;
+  const maxPlaces = inp.maxPlaces || 2000;
   const expand = mode === "FLAT" ? scUniq(inp.expand) : [];
   const ticked = {};
   expand.forEach((id) => {
     ticked[id] = 1;
   });
+  // one choice per place (the BA, 10-27: "select per SFG occurrence"): the ticked places, each the chain of item ids from the root's
+  // line down to it ("C1>C3"); without them (an IA prepared before) an item's tick applies at every place it is reached
+  const places = mode === "FLAT" && Array.isArray(inp.expandAt) ? scUniq(inp.expandAt) : null;
+  const tickedAt = {};
+  (places || []).forEach((k) => {
+    tickedAt[k] = 1;
+  });
+  const exact = Number(inp.expandAtV) === 2;
+  const isTicked = (code, key) => (places ? !!tickedAt[key] || (!exact && !!tickedAt[scPlainKey(key)]) : !!ticked[code]);
   const itemId = scS(inp.itemId);
   const itemUomId = scS(inp.itemUomId);
   const uomName = typeof inp.uomName === "function" ? inp.uomName : (id) => id;
@@ -153,67 +163,51 @@ const scResolve = async (input, io) => {
     }
     const tree = [];
     if (mode === "FLAT") {
-      const seen = {};
-      seen[itemId] = 1;
-      // a line of bom_type "reference" names its component's BOM (as the walk below reads it); the first such line of an item wins
-      const refsOf = (rows) => {
-        const refs = {};
-        rows.forEach((r) => {
-          const id = scS(r.bom_material_code);
-          if (scS(r.bom_type) === "reference" && scS(r.ref_bom_id) && !refs[id]) refs[id] = scS(r.ref_bom_id);
-        });
-        return refs;
-      };
-      // every BOM line that uses an item (a tick applies to all of them): its parent and the BOM that line resolves to
-      const uses = [];
-      const used = (rows, parentId) => rows.forEach((r) => {
-        uses.push({ itemId: scS(r.bom_material_code), parentId: parentId, refBomId: scS(r.bom_type) === "reference" ? scS(r.ref_bom_id) : "" });
-      });
-      used(rootRows, itemId);
-      const rootRefs = refsOf(rootRows);
-      let frontier = scUniq(rootRows.map((r) => r.bom_material_code)).map((id) => ({ itemId: id, parentItemId: itemId, refBomId: rootRefs[scS(id)] || "" }));
-      frontier.forEach((f) => {
-        seen[f.itemId] = 1;
-      });
+      // every place a component sits, level by level (the reads batched per level), then listed in branch order. A place's BOM is its
+      // line's referenced one, else the item's default; it can be expanded when that BOM is active with components, it is above the
+      // depth limit and it does not loop back. The places under an expandable place are listed with it
+      const keyed = {};
+      const placesOf = (rows, parent) => rows.map((r, i) => ({ itemId: scS(r.bom_material_code), key: (parent ? parent.key + ">" : "") + scSegs(rows)[i],
+        parentKey: parent ? parent.key : "", parentItemId: parent ? parent.itemId : itemId, refBomId: scS(r.bom_type) === "reference" ? scS(r.ref_bom_id) : "",
+        ancestors: parent ? parent.ancestors.concat([parent.itemId]) : [itemId] })).filter((x) => (keyed[x.key] ? false : (keyed[x.key] = 1)));
+      let frontier = placesOf(rootRows, null);
+      const listed = [];
+      let open = 0;
       for (let depth = 1; depth <= maxDepth && frontier.length; depth++) {
-        const ids = frontier.map((f) => f.itemId);
+        const ids = scUniq(frontier.map((f) => f.itemId));
         await readItemsFor(ids);
         if (depth < maxDepth) await readBomsFor(ids);
         const next = [];
         frontier.forEach((f) => {
           const own = bomsByItem[f.itemId] || [];
-          const child = depth >= maxDepth ? null : f.refBomId ? own.filter((b) => scS(b.id) === f.refBomId)[0] || null : scPickBom(own);
+          const loops = f.ancestors.indexOf(f.itemId) >= 0;
+          const child = depth >= maxDepth || loops ? null : f.refBomId ? own.filter((b) => scS(b.id) === f.refBomId)[0] || null : scPickBom(own);
           const usable = child ? scUsableRows(child) : [];
+          // its BOM naming the place itself or one above it: expanding it would loop, so it is taken as it is
+          const back = usable.map((r) => scS(r.bom_material_code)).filter((id) => f.ancestors.concat([f.itemId]).indexOf(id) >= 0)[0] || "";
           let reason = "";
           if (depth >= maxDepth) reason = "at the depth limit of " + maxDepth + " levels";
+          else if (loops) reason = "it loops back to " + nameOf(f.itemId);
           else if (!child) reason = f.refBomId ? "its BOM line points at a BOM that is no longer active" : "no active BOM";
           else if (!usable.length) reason = "its BOM has no components";
-          tree.push({ itemId: f.itemId, name: nameOf(f.itemId), depth: depth, parentItemId: f.parentItemId, expandable: !reason, reason: reason,
-            bomId: child ? scS(child.id) : "", version: child ? scS(child.parent_mat_bom_version) : "" });
-          const refs = refsOf(usable);
-          used(usable, f.itemId);
-          usable.forEach((r) => {
-            const id = scS(r.bom_material_code);
-            if (!seen[id]) {
-              seen[id] = 1;
-              next.push({ itemId: id, parentItemId: f.itemId, refBomId: refs[id] || "" });
-            }
-          });
+          else if (back) reason = "its BOM contains " + nameOf(back) + ", which it is part of (a loop in the BOMs)";
+          listed.push({ key: f.key, itemId: f.itemId, name: nameOf(f.itemId), depth: depth, parentKey: f.parentKey, parentItemId: f.parentItemId, expandable: !reason,
+            reason: reason, bomId: child ? scS(child.id) : "", version: child ? scS(child.parent_mat_bom_version) : "", uses: 1, parents: [nameOf(f.parentItemId)],
+            versions: child ? [scS(child.parent_mat_bom_version)] : [] });
+          if (reason) return;
+          open++;
+          if (open > maxPlaces) throw scFail("SC_TOO_MANY_PLACES", "This BOM has more than " + maxPlaces + " places of sub-assemblies to choose from: prepare it in Standard instead.");
+          placesOf(usable, f).forEach((x) => next.push(x));
         });
         frontier = next;
       }
-      // read once all levels are: the uses, parents and versions of each listed item
-      tree.forEach((t) => {
-        const mine = uses.filter((u) => u.itemId === t.itemId);
-        const own = bomsByItem[t.itemId] || [];
-        const versionOf = (u) => {
-          const b = u.refBomId ? own.filter((x) => scS(x.id) === u.refBomId)[0] : scPickBom(own);
-          return b ? scS(b.parent_mat_bom_version) : "";
-        };
-        t.uses = mine.length;
-        t.parents = scUniq(mine.map((u) => nameOf(u.parentId)));
-        t.versions = scUniq(mine.map(versionOf).filter((v) => v));
+      const kids = {};
+      listed.forEach((x) => (kids[x.parentKey] = kids[x.parentKey] || []).push(x));
+      const visit = (k) => (kids[k] || []).forEach((x) => {
+        tree.push(x);
+        visit(x.key);
       });
+      visit("");
     } else {
       await readItemsFor(rootRows.map((r) => r.bom_material_code));
     }
@@ -222,20 +216,39 @@ const scResolve = async (input, io) => {
     boms[scS(root.id)] = bomInfo(root);
     const dropped = [];
     const leaves = [];
-    const walk = (bom, bomPath, itemPath, ancestors, steps, depth) => {
+    // the places expanded, and per item how often it was reached / expanded: snapshot.expand = the items expanded at every place
+    // (what the save's "expanded, so not also consumed" check reads)
+    const expandedAt = [];
+    const reached = {};
+    const order = [];
+    const walk = (bom, bomPath, itemPath, keyPath, ancestors, steps, depth) => {
+      const segs = scSegs(scUsableRows(bom));
+      let u = -1;
       scBomRows(bom).forEach((row) => {
         const code = scS(row.bom_material_code);
         if (row.consume_type === "REF") {
           dropped.push({ itemId: code, bomId: scS(bom.id), why: "REF" });
           return;
         }
+        u++;
         const it = items[code] || null;
         const uom = scS(row.sub_material_qty_uom) || scS(it && it.based_uom);
         const qty = scS(row.sub_material_qty) || "0";
         const w = String(scNum(row.sub_material_wastage));
-        if (mode === "FLAT" && ticked[code]) {
+        const key = keyPath.concat([segs[u]]).join(">");
+        if (!reached[code]) {
+          reached[code] = [0, 0];
+          order.push(code);
+        }
+        reached[code][0]++;
+        // a line inside an expanded place that points back at a place above it: the BOMs loop
+        if (mode === "FLAT" && depth > 1 && ancestors.indexOf(code) >= 0) {
+          throw scFail("SC_CYCLE", "Expanding " + ancestors.concat([code]).map(nameOf).join(" > ") + " loops back to " + nameOf(code) + ": stop at one of them or fix the BOMs.");
+        }
+        if (mode === "FLAT" && isTicked(code, key)) {
+          reached[code][1]++;
+          if (expandedAt.indexOf(key) < 0) expandedAt.push(key);
           const names = ancestors.concat([code]).map(nameOf).join(" > ");
-          if (ancestors.indexOf(code) >= 0) throw scFail("SC_CYCLE", "Expanding " + names + " loops back to " + nameOf(code) + ": untick one of them or fix the BOMs.");
           if (depth >= maxDepth) throw scFail("SC_TOO_DEEP", "Expanding " + names + " goes deeper than " + maxDepth + " levels.");
           const own = bomsByItem[code] || [];
           let child = null;
@@ -254,14 +267,14 @@ const scResolve = async (input, io) => {
           const f2 = scToBase(it, childBaseUom);
           if (f1 === null || f2 === null) throw noConv(it, uom, childBaseUom);
           boms[scS(child.id)] = bomInfo(child);
-          walk(child, bomPath.concat([scS(child.id)]), itemPath.concat([code]), ancestors.concat([code]), steps.concat([[qty, w, String(f1 / f2 / childBase)]]), depth + 1);
+          walk(child, bomPath.concat([scS(child.id)]), itemPath.concat([code]), keyPath.concat([segs[u]]), ancestors.concat([code]), steps.concat([[qty, w, String(f1 / f2 / childBase)]]), depth + 1);
           return;
         }
         leaves.push({ itemId: code, uomId: uom, row: row, item: it, boms: bomPath, items: itemPath.concat([code]), steps: steps.concat([[qty, w, "1"]]) });
         if (leaves.length > maxPaths) throw scFail("SC_TOO_MANY_PATHS", "This BOM expands into more than " + maxPaths + " component paths: expand fewer sub-assemblies.");
       });
     };
-    walk(root, [scS(root.id)], [], [itemId], [], 1);
+    walk(root, [scS(root.id)], [], [], [itemId], [], 1);
     const s0 = (scNum(inp.outputQty) * rootConv) / rootBase;
     const out = [];
     const byKey = {};
@@ -288,7 +301,8 @@ const scResolve = async (input, io) => {
     if (out.length > maxRows) throw scFail("SC_TOO_MANY_ROWS", "This BOM gives " + out.length + " component lines; at most " + maxRows + " can be assembled and posted at once.");
     const snapshot = { v: 1, mode: mode, itemId: itemId, uomId: itemUomId,
       root: { bomId: scS(root.id), version: rootVersion, baseQty: scS(root.parent_mat_base_quantity), baseUomId: rootBaseUom, conv: String(rootConv) },
-      expand: expand, boms: boms, rows: out, dropped: dropped, preparedAt: scS(inp.preparedAt), preparedBy: scS(inp.preparedBy) };
+      expand: order.filter((id) => reached[id][1] > 0 && reached[id][1] === reached[id][0]), expandAt: expandedAt, expandAtV: 2, boms: boms, rows: out, dropped: dropped,
+      preparedAt: scS(inp.preparedAt), preparedBy: scS(inp.preparedBy) };
     const rows = out.map((r) => ({ key: r.key, item_selection: r.itemId, item_name: r.name, item_desc: r.desc,
       requested_qty: scRowQty(r.paths.reduce((sum, p) => sum + scChain(s0, p.steps), 0), r.serial),
       quantity_uom: r.uomId, item_remark: r.remark, nonStock: r.nonStock, serial: r.serial }));
@@ -299,6 +313,20 @@ const scResolve = async (input, io) => {
   }
 };
 
+// a BOM line's segment of a place key: its item id, with "#n" (its turn among the BOM's lines of that item) when the item is on several
+// lines - each line is its own place (the BA, 10-27); keys of BOMs without such lines are the item-id chains saved before
+const scSegs = (rows) => {
+  const n = {};
+  rows.forEach((r) => (n[scS(r.bom_material_code)] = (n[scS(r.bom_material_code)] || 0) + 1));
+  const k = {};
+  return rows.map((r) => {
+    const id = scS(r.bom_material_code);
+    k[id] = (k[id] || 0) + 1;
+    return n[id] > 1 ? id + "#" + k[id] : id;
+  });
+};
+// a key without the line turns: how a snapshot saved before line keys (expandAtV not 2) named the place
+const scPlainKey = (key) => scS(key).split(">").map((x) => x.split("#")[0]).join(">");
 const scSnapOf = (snapshot) => {
   const s = scParseJ(snapshot);
   if (!s || s.v !== 1 || (s.mode !== "STANDARD" && s.mode !== "FLAT") || !s.root || !scS(s.root.bomId) || !Array.isArray(s.rows)) return null;
@@ -348,4 +376,4 @@ const scCheck = (snapshot, header, lines, opts) => {
   }
   return { ok: true };
 };
-if (typeof module !== "undefined") module.exports = { scS, scNum, scQ8, scParseJ, scPickBom, scToBase, scChain, scResolve, scRecompute, scCheck, scSnapOf };
+if (typeof module !== "undefined") module.exports = { scS, scNum, scQ8, scParseJ, scPickBom, scToBase, scChain, scResolve, scRecompute, scCheck, scSnapOf, scSegs, scPlainKey };

@@ -298,6 +298,21 @@ const h = header(r);
 eq("System split: the header write stores the final rows (numbers, storage locations from the bins)", h[2].output_split.map((x) => [x.os_location_id, x.os_storage_location_id, x.os_batch_no]),
   [[BIN, SL, "B-0001"], [BIN2, SL, "B-0001"], [BIN3, SL2, "B-0002"]]);
 eq("System split: item_qty stays the total", h[2].item_qty, 836);
+// every row its own batch (the user, 10-27: the form hides Group and numbers each row's group by its row): 20 rows = 20 batches
+{
+  const bins = [BIN, BIN2, BIN3];
+  const rows20 = Array.from({ length: 20 }, (_, k) => row(1, bins[k % 3], { os_group: k + 1, os_mfg_date: "2026-10-" + String(k + 1).padStart(2, "0") + " 00:00:00.000" }));
+  const r20 = go(V14, { stored: "Draft", saveAs: "Completed", pageStatus: "Add", items: SYS, allData: record("Add", 3, { item_qty: 20, output_split: rows20 }),
+    genNumbers: rows20.map((_, k) => "B-" + String(k + 1).padStart(4, "0")) });
+  eq("System split, 20 rows / 20 groups: completed", r20.returned.code, "200");
+  eq("System split, 20 rows / 20 groups: GENERATE_BATCH 20 times, each with its row's date", named(r20, "GENERATE_BATCH").map((p) => p.manufacturing_date),
+    rows20.map((x) => x.os_mfg_date));
+  eq("System split, 20 rows / 20 groups: 20 Batch rows of 1 each", batchRows(r20).map((b) => [b.batch_number, b.initial_quantity]),
+    rows20.map((_, k) => ["B-" + String(k + 1).padStart(4, "0"), 1]));
+  const ids20 = batchRows(r20).map((b) => b.id);
+  eq("System split, 20 rows / 20 groups: 20 receipts, each into its own batch and bin", named(r20, "ADD_INVENTORY").map((p) => [p.location_id, p.batch_number, p.batch_id]),
+    rows20.map((x, k) => [x.os_location_id, "B-" + String(k + 1).padStart(4, "0"), ids20[k]]));
+}
 const hu = r.writes.filter((w) => w[0] === "update" && w[1] === "Item Assembly" && w[2].batch_no !== undefined && w[2].location_id !== undefined);
 eq("System split: then its single Output Location fields = row 1 (the IA's id, group 1's number)", hu.map((w) => [w[2].id, w[2].storage_location_id, w[2].location_id,
   w[2].inventory_category, w[2].batch_no, w[2].manufacturing_date, w[2].expired_date]), [[h[2].id, SL, BIN, "Blocked", "B-0001", "2026-10-27 00:00:00.000", "2028-10-27 00:00:00.000"]]);

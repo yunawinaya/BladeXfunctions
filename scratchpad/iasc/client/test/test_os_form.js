@@ -47,14 +47,16 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
     os_location_id: "81", os_category: "Blocked", os_group: 1, os_batch_no: "", os_mfg_date: "2026-10-27 00:00:00.000", os_exp_date: "2028-10-27 00:00:00.000" }]), f.v.output_split);
   check("switch on: the rows and total shown, the header's single fields hidden", shown(t).indexOf("output_split") >= 0 && shown(t).indexOf("output_split_sum") >= 0 &&
     HEADER.every((h) => hidden(t).indexOf(h) >= 0), [shown(t), hidden(t)]);
-  check("switch on (System): group, batch no and dates shown, the number not typed (generated at completion)", ["output_split.os_group", "output_split.os_batch_no",
+  check("switch on (System): batch no and dates shown, the number not typed (generated at completion)", ["output_split.os_batch_no",
     "output_split.os_mfg_date", "output_split.os_exp_date"].every((c) => shown(t).indexOf(c) >= 0) && calls(t, "disabled").some((c) => same(c, [["output_split.os_batch_no"], true])), t);
+  check("switch on (System): the Group column hidden (the user, 10-27: every row is its own batch)", hidden(t).indexOf("output_split.os_group") >= 0 &&
+    shown(t).indexOf("output_split.os_group") < 0, [shown(t), hidden(t)]);
   check("switch on: the total complete", f.v.output_split_sum === "Split total 836 of 836 ✓", f.v.output_split_sum);
-  // ---- Add Row: the previous row's storage / category / group / dates, no bin, what is left
+  // ---- Add Row: the previous row's storage / category / dates, no bin, what is left; System: its own batch (hidden group = its row)
   f.v.output_split.push({});
   t = await f.op({ osOp: "ADD", rowIndex: 1 });
-  check("Add Row with nothing left: no qty, the previous row's storage / category / group / dates, no bin", same(f.v.output_split[1], { os_qty: null, os_storage_location_id: "71",
-    os_location_id: "", os_category: "Blocked", os_group: 1, os_batch_no: "", os_mfg_date: "2026-10-27 00:00:00.000", os_exp_date: "2028-10-27 00:00:00.000" }), f.v.output_split[1]);
+  check("Add Row with nothing left: no qty, the previous row's storage / category / dates, no bin, its own group (2)", same(f.v.output_split[1], { os_qty: null, os_storage_location_id: "71",
+    os_location_id: "", os_category: "Blocked", os_group: 2, os_batch_no: "", os_mfg_date: "2026-10-27 00:00:00.000", os_exp_date: "2028-10-27 00:00:00.000" }), f.v.output_split[1]);
   f.v.output_split[0].os_qty = 500;
   t = await f.op({ osOp: "CELL", field: "os_qty", rowIndex: 0, value: 500 });
   check("a qty changed: the total says what is left", f.v.output_split_sum === "Split total 500 of 836 - 336 still to place", f.v.output_split_sum);
@@ -66,18 +68,14 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   f.v.output_split[2].os_storage_location_id = "72";
   t = await f.op({ osOp: "CELL", field: "os_storage_location_id", rowIndex: 2, value: "72" });
   check("storage location changed: its bin cleared", f.v.output_split[2].os_storage_location_id === "72" && f.v.output_split[2].os_location_id === "", f.v.output_split[2]);
-  // ---- one batch, one date pair: a date on row 1 goes to its group's rows (and the header), a row joining a group takes its dates
+  // ---- System: every row is its own batch with its own dates: a date on row 1 stays row 1's (and the header's)
+  check("System: three rows, three groups (one batch each)", same(rowsOf(f.v, ["os_group"]), [[1], [2], [3]]), rowsOf(f.v, ["os_group"]));
   t = await f.op({ osOp: "CELL", field: "os_mfg_date", rowIndex: 0, value: "2026-11-01 00:00:00.000" });
-  check("a date typed on row 1: its group's rows take it, the header too", rowsOf(f.v, ["os_mfg_date"]).every((x) => x[0] === "2026-11-01 00:00:00.000") &&
-    f.v.manufacturing_date === "2026-11-01 00:00:00.000", [rowsOf(f.v, ["os_mfg_date"]), f.v.manufacturing_date]);
-  f.v.output_split[2].os_group = 2;
-  await f.op({ osOp: "CELL", field: "os_group", rowIndex: 2, value: 2 });
+  check("System: a date typed on row 1 stays row 1's, the header takes it", same(rowsOf(f.v, ["os_mfg_date"]), [["2026-11-01 00:00:00.000"], ["2026-10-27 00:00:00.000"],
+    ["2026-10-27 00:00:00.000"]]) && f.v.manufacturing_date === "2026-11-01 00:00:00.000", [rowsOf(f.v, ["os_mfg_date"]), f.v.manufacturing_date]);
   await f.op({ osOp: "CELL", field: "os_mfg_date", rowIndex: 2, value: "2026-10-20 00:00:00.000" });
-  check("group 2's date stays its own; group 1's rows keep theirs", same(rowsOf(f.v, ["os_group", "os_mfg_date"]), [[1, "2026-11-01 00:00:00.000"], [1, "2026-11-01 00:00:00.000"],
-    [2, "2026-10-20 00:00:00.000"]]), rowsOf(f.v, ["os_group", "os_mfg_date"]));
-  f.v.output_split[1].os_group = 2;
-  await f.op({ osOp: "CELL", field: "os_group", rowIndex: 1, value: 2 });
-  check("a row moved into group 2 takes group 2's dates", f.v.output_split[1].os_mfg_date === "2026-10-20 00:00:00.000", f.v.output_split[1]);
+  check("System: row 3's date its own, rows 1 and 2 keep theirs", same(rowsOf(f.v, ["os_mfg_date"]), [["2026-11-01 00:00:00.000"], ["2026-10-27 00:00:00.000"],
+    ["2026-10-20 00:00:00.000"]]), rowsOf(f.v, ["os_mfg_date"]));
   // ---- row 1's fields stay in the header
   await f.op({ osOp: "CELL", field: "os_location_id", rowIndex: 0, value: "88" });
   check("row 1's bin -> the header's bin", f.v.location_id === "88", f.v.location_id);
@@ -93,6 +91,7 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   f.v.output_split.splice(0, 1);
   t = await f.op({ osOp: "REMOVE" });
   check("row 1 removed: the new row 1 in the header", f.v.location_id === "" && f.v.storage_location_id === "71", [f.v.location_id, f.v.storage_location_id]);
+  check("System, row 1 removed: the groups follow the rows again (1, 2)", same(rowsOf(f.v, ["os_group"]), [[1], [2]]), rowsOf(f.v, ["os_group"]));
   // ---- the switch off: kept when cancelled; confirmed -> row 1 back in the header, the rows gone, the single fields shown
   let g = form({ output_split: [{ os_qty: 500, os_storage_location_id: "72", os_location_id: "85", os_category: "Unrestricted", os_group: 1 }, { os_qty: 336, os_location_id: "86" }],
     output_split_on: 1 }, { confirm: () => "cancel" });
@@ -153,10 +152,22 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   check("Clone: numbers and dates cleared, bins / qty / groups kept, the rows editable", same(rowsOf(g.v, ["os_qty", "os_location_id", "os_group", "os_batch_no", "os_mfg_date"]),
     [[500, "81", 1, "", ""], [336, "82", 2, "", ""]]) && calls(t, "disabled").some((c) => same(c, [["output_split"], false])) && g.v.output_split_on === 1, [g.v.output_split, t]);
   // ---- an editable Edit with a stored split: shown as it is
-  g = form({ page_status: "Edit", item_assembly_status: "Draft", output_split: [{ os_qty: 500, os_group: 1, os_batch_no: "" }, { os_qty: 336, os_group: 1 }] });
+  g = form({ page_status: "Edit", item_assembly_status: "Draft", output_split: [{ os_qty: 500, os_group: 1, os_batch_no: "" }, { os_qty: 336, os_group: 2 }] });
   t = await g.op({ osOp: "MOUNT", item: SYS });
   check("Edit of a Draft with a split: the switch on, the rows shown and editable, the header's fields hidden", g.v.output_split_on === 1 && shown(t).indexOf("output_split") >= 0 &&
     calls(t, "disabled").some((c) => same(c, [["output_split"], false])) && hidden(t).indexOf("location_id") >= 0 && calls(t, "setData").every((c) => !("output_split" in c[0])), t);
+  // a Draft saved while rows could share a group (before 10-27 evening): opened, every row gets its own batch
+  g = form({ page_status: "Edit", item_assembly_status: "Draft", output_split: [{ os_qty: 500, os_group: 1, os_batch_no: "" }, { os_qty: 336, os_group: 1 }] });
+  t = await g.op({ osOp: "MOUNT", item: SYS });
+  check("Edit of a Draft whose rows share a group: renumbered on open (1, 2)", same(rowsOf(g.v, ["os_group"]), [[1], [2]]) &&
+    calls(t, "setData").some((c) => "output_split" in c[0]), [rowsOf(g.v, ["os_group"]), t]);
+  g = form({ page_status: "Edit", item_assembly_status: "Draft", output_split: [{ os_qty: 500, os_group: "1", os_batch_no: "" }, { os_qty: 336, os_group: "2" }] });
+  t = await g.op({ osOp: "MOUNT", item: SYS });
+  check("Edit of a Draft whose groups come back as text (\"1\", \"2\"): already one per row, nothing written", calls(t, "setData").every((c) => !("output_split" in c[0])), t);
+  g = form({ page_status: "Edit", item_assembly_status: "Completed", output_split: [{ os_qty: 500, os_group: 1, os_batch_no: "B-1" }, { os_qty: 336, os_group: 1, os_batch_no: "B-1" }] });
+  t = await g.op({ osOp: "MOUNT", item: SYS });
+  check("a Completed IA whose rows share a group: opened as it is, nothing written", same(rowsOf(g.v, ["os_group"]), [[1], [1]]) &&
+    calls(t, "setData").every((c) => !("output_split" in c[0])), t);
   // ---- a read-only view (Completed / Fully Posted / Processing / View): the rows read-only, only the columns with a value, no switch
   g = form({ page_status: "Edit", item_assembly_status: "Completed", output_split: [{ os_qty: 500, os_group: 1, os_batch_no: "1056-022-0004", os_mfg_date: "D1" },
     { os_qty: 336, os_group: 1, os_batch_no: "1056-022-0004", os_mfg_date: "D1" }] });
@@ -169,14 +180,14 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   g = form({ page_status: "View", output_split: [] });
   t = await g.op({ osOp: "VIEW" });
   check("read-only view of an IA without a split: only the switch hidden, nothing written", hidden(t).indexOf("output_split_on") >= 0 && calls(t, "setData").length === 0, t);
-  // ---- no write loop: a cell's setData re-enters its onChange (fireOnChange): bounded, then quiet
-  g = form({});
-  await g.op({ osOp: "ITEM", item: SYS });
+  // ---- no write loop: a cell's setData re-enters its onChange (fireOnChange): bounded, then quiet (Manual: rows with one number = one batch)
+  g = form({ batch_no: "LOT-A" });
+  await g.op({ osOp: "ITEM", item: MAN });
   await g.op({ osOp: "SWITCH", value: 1 });
   g.v.output_split.push({});
   await g.op({ osOp: "ADD", rowIndex: 1 });
   t = await g.op({ osOp: "CELL", field: "os_exp_date", rowIndex: 0, value: "2031-01-01 00:00:00.000" });
-  check("re-entry: a date synced to its group writes each cell once, then stops", calls(t, "triggerEvent").filter((c) => c[0] === "os_main").length <= 4 &&
+  check("re-entry: a date synced to its batch writes each cell once, then stops", calls(t, "triggerEvent").filter((c) => c[0] === "os_main").length <= 4 &&
     calls(t, "setData").filter((c) => Object.keys(c[0]).some((k) => /os_exp_date$/.test(k))).length === 1 && g.v.output_split[1].os_exp_date === "2031-01-01 00:00:00.000", t);
   // ---- the default bin (the user, 10-27): Add Row and a storage location change give the row its storage location's default bin -
   // the assembled item's own default bin for this plant when it sits there, else the storage location's (the header's rule, onChange_Plant)
@@ -240,6 +251,15 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   d.v.output_split[1].os_category = "Blocked";
   await d.op({ osOp: "CELL", field: "os_category", rowIndex: 1, value: "Blocked" });
   check("the same bin in another category: no warning", d.v.output_split_sum === "Split total 4 of 4 ✓", d.v.output_split_sum);
+  d = form({ issuing_operation_faci: "61", storage_location_id: "79", location_id: "", inventory_category: "Unrestricted", item_qty: 4 }, dbf([{ id: "9001", table_default_bin: [] }]));
+  await d.op({ osOp: "ITEM", item: PLAIN });
+  await d.op({ osOp: "SWITCH", value: 1 });
+  d.v.output_split[0].os_qty = 2;
+  await d.op({ osOp: "CELL", field: "os_qty", rowIndex: 0, value: 2 });
+  d.v.output_split.push({});
+  await d.op({ osOp: "ADD", rowIndex: 1 });
+  check("two rows without a bin yet (same category): no warning until a bin is picked", rowsOf(d.v, ["os_location_id"]).every((x) => x[0] === "") &&
+    d.v.output_split_sum === "Split total 4 of 4 ✓", [rowsOf(d.v, ["os_location_id"]), d.v.output_split_sum]);
   d = form({ issuing_operation_faci: "61", location_id: "91", inventory_category: "Unrestricted", item_qty: 4 }, dbf([{ id: "9001", table_default_bin: [] }]));
   await d.op({ osOp: "ITEM", item: SYS });
   await d.op({ osOp: "SWITCH", value: 1 });
@@ -247,11 +267,8 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   await d.op({ osOp: "CELL", field: "os_qty", rowIndex: 0, value: 2 });
   d.v.output_split.push({});
   await d.op({ osOp: "ADD", rowIndex: 1 });
-  check("System, the same group into the same bin and category: the batch wording", d.v.output_split_sum ===
-    "Split total 4 of 4 ✓ - but rows 1 and 2 put the same batch into the same bin and category: change a bin or merge them", d.v.output_split_sum);
-  d.v.output_split[1].os_group = 2;
-  await d.op({ osOp: "CELL", field: "os_group", rowIndex: 1, value: 2 });
-  check("System, another group (another batch) in the same bin: no warning", d.v.output_split_sum === "Split total 4 of 4 ✓", d.v.output_split_sum);
+  check("System, two rows into the same bin and category: two batches, no warning", d.v.output_split[1].os_location_id === "91" &&
+    same(rowsOf(d.v, ["os_group"]), [[1], [2]]) && d.v.output_split_sum === "Split total 4 of 4 ✓", [rowsOf(d.v, ["os_group", "os_location_id"]), d.v.output_split_sum]);
   d = form({ issuing_operation_faci: "61", location_id: "91", inventory_category: "Unrestricted", item_qty: 4, batch_no: "M-1" }, dbf([{ id: "9001", table_default_bin: [] }]));
   await d.op({ osOp: "ITEM", item: MAN });
   await d.op({ osOp: "SWITCH", value: 1 });

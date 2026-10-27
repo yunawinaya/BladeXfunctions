@@ -78,7 +78,7 @@ NEW_IDS = NEW_IDS + CL_IDS
 
 
 def body(name):
-    shared = "\n".join(V.include_js(CODE, "shared/" + f) for f in ("sc_bom.js", "sc_proj.js", "sc_check.js"))
+    shared = "\n".join(V.include_js(CODE, "shared/" + f) for f in ("frozen/sc_bom_v1.js", "sc_proj.js", "sc_check.js"))
     return shared + "\n" + V.raw(CODE, "submit/" + name)
 
 

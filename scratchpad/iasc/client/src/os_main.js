@@ -8,7 +8,7 @@ const OS_ENABLED = __OS_ENABLED__;
 const osArgs = arguments[0] || {};
 const OS_HEADER = ["storage_location_id", "location_id", "inventory_category", "batch_no", "manufacturing_date", "expired_date"];
 const OS_BASE_COLS = ["os_qty", "os_storage_location_id", "os_location_id", "os_category"];
-const OS_KIND_COLS = { SYSTEM: ["os_group", "os_batch_no", "os_mfg_date", "os_exp_date"], MANUAL: ["os_batch_no", "os_mfg_date", "os_exp_date"], PLAIN: [] };
+const OS_KIND_COLS = { SYSTEM: ["os_batch_no", "os_mfg_date", "os_exp_date"], MANUAL: ["os_batch_no", "os_mfg_date", "os_exp_date"], PLAIN: [] };
 const OS_OPT_COLS = ["os_group", "os_batch_no", "os_mfg_date", "os_exp_date"];
 const osCol = (c) => "output_split." + c;
 const osState = () => ((this.models && this.models["_data"]) || {}).ia_os || {};
@@ -28,6 +28,19 @@ const osEditable = () => {
 const osSame = (a, b) => osS(a) === osS(b);
 // the switch's state: 1 = on; anything else (0, empty, a form without the field) = off
 const osIsOn = () => Number(this.getValue("output_split_on")) === 1;
+// System numbering (the user, 10-27): every row is its own batch - its group (hidden) is its row number, so the save generates one
+// number per row; true when a row's group changed
+const osOwnGroups = (rows, kind) => {
+  if (kind !== "SYSTEM") return false;
+  let changed = false;
+  rows.forEach((r, k) => {
+    if (Number(r.os_group) !== k + 1) {
+      r.os_group = k + 1;
+      changed = true;
+    }
+  });
+  return changed;
+};
 // the date pair of a row's batch (System: its group; Manual: its number, case-insensitive)
 const osBatchKey = (r, kind) => (kind === "SYSTEM" ? osS(r.os_group) && "G" + osS(r.os_group) : kind === "MANUAL" ? osS(r.os_batch_no) && "B" + osS(r.os_batch_no).toLowerCase() : "");
 // the first two rows the save refuses as one (osCheck: the same batch, bin and category), or null; a row without a bin does not count yet
@@ -141,10 +154,14 @@ const osMountOp = (item) => {
   osSetState({ kind: kind });
   const rows = osRows();
   // a Clone is a new production run: its rows keep their bins and quantities, never the source's numbers or dates
+  let write = false;
   if (osS(this.getValue("page_status")) === "Clone" && rows.some((r) => osS(r.os_batch_no) || osS(r.os_mfg_date) || osS(r.os_exp_date))) {
     rows.forEach((r) => Object.assign(r, { os_batch_no: "", os_mfg_date: "", os_exp_date: "" }));
-    osWrite(rows);
+    write = true;
   }
+  // a Draft saved while rows could share a group: every row its own batch again
+  if (osEditable() && osOwnGroups(rows, kind)) write = true;
+  if (write) osWrite(rows);
   osLayout(kind, rows, osEditable());
 };
 const osViewOp = () => {
@@ -201,8 +218,9 @@ const osAddOp = (index) => {
   const prev = rows[i - 1] || rows[i + 1] || {};
   const left = Math.max(0, osQ8(osQ8(this.getValue("item_qty")) - osSum(rows.filter((_, k) => k !== i))));
   rows[i] = Object.assign({}, rows[i], { os_qty: left > 0 ? left : null, os_storage_location_id: prev.os_storage_location_id || this.getValue("storage_location_id") || "",
-    os_location_id: "", os_category: prev.os_category || this.getValue("inventory_category") || "Unrestricted", os_group: kind === "SYSTEM" ? prev.os_group || 1 : null,
+    os_location_id: "", os_category: prev.os_category || this.getValue("inventory_category") || "Unrestricted", os_group: null,
     os_batch_no: kind === "MANUAL" ? osS(prev.os_batch_no) : "", os_mfg_date: kind === "PLAIN" ? "" : prev.os_mfg_date || "", os_exp_date: kind === "PLAIN" ? "" : prev.os_exp_date || "" });
+  osOwnGroups(rows, kind);
   osWrite(rows);
   osTotal(rows);
   return osFillBin(i, rows[i].os_storage_location_id);
@@ -216,6 +234,7 @@ const osRemoveOp = () => {
     osHeaderShow(kind);
     return;
   }
+  if (osOwnGroups(rows, kind)) osWrite(rows);
   osHeaderSync(rows, kind);
   osTotal(rows);
 };

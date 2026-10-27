@@ -50,7 +50,7 @@ const ROW_CLASS = { sc_info_so: "font-bold", sc_info_suggest: "font-bold", sc_in
 const MESSAGE_ROWS = ["sc_info_over", "sc_info_warn"];
 PANEL.flat().forEach(([m]) => (UI[m] = ["text", "sc_info"]));
 const LINE_COLS = ["so_no", "line_no", "customer", "ordered", "delivered", "suggestion", "uom", "line_id", "so_id", "uom_id", "pick"];
-const EXPAND_COLS = ["component", "level", "bom", "under", "uses", "item_id", "expand"];
+const EXPAND_COLS = ["component", "level", "bom", "under", "uses", "item_id", "path", "kind", "expand"];
 // the events ON binds: widget model -> [event, handler name]
 const BOUND = {
   bom_consumption_mode: ["onChange", "sc_onChange_mode"], planned_output_qty: ["onChange", "sc_onChange_planned"], sc_btn_line: ["onClick", "sc_onClick_line"],
@@ -60,7 +60,7 @@ const BOUND = {
 const DIALOG_BOUND = { sc_line_dialog: { onCancel: "sc_onCancel_line" }, sc_expand_dialog: { onCancel: "sc_onCancel_expand", onConfirm: "sc_onConfirm_expand" } };
 const ROW_LINK = ["sc_line_table", "pick", "sc_onClick_pickLine"];
 const NEW_EVENTS = ["sc_main"].concat(Object.values(BOUND).map((b) => b[1]), ["sc_onClick_pickLine", "sc_onCancel_line", "sc_onCancel_expand", "sc_onConfirm_expand",
-  "onClick_saveAsCreated", "onChange_requiredQty"]);
+  "onClick_saveAsCreated", "onChange_requiredQty", "sc_onChange_expandLevel", "sc_onChange_expandTick"]);
 // IA output split (plan 10-27): os_main and its forwarders (the switch, a row added / removed, each column)
 const OS_EVENTS = ["os_main", "os_onChange_switch", "os_onRowAdd", "os_onRowRemove"].concat(["qty", "storage_location_id", "location_id", "category", "group", "batch_no", "mfg_date",
   "exp_date"].map((c) => "os_onChange_" + c));
@@ -135,6 +135,29 @@ const remove = (doc, model) => {
   return walk(doc.list);
 };
 const table = (doc) => H.findModel(doc.list, "stock_movement", "tlm8ve69");
+// the Flat dialog's "Stop at level" (the user, 10-27 evening): not in v47 / v59 - its radio and forwarder taken out
+const OLD_NOTE = "Tick a sub-assembly to make it from its own components in this Item Assembly. A tick applies to every place the item is used (see Used).";
+const NEW_NOTE = "Each row is one place a component is used. Tick a sub-assembly to make it there from its own components (expand: its components appear " +
+  "under it); leave it unticked to take it from stock there (stop here: what is under it is hidden). Rows marked Included have no choice. Stop at level N expands every " +
+  "sub-assembly above level N. Assembly components shows the result.";
+// (and one choice per place, the BA 10-27: the Place column, Used hidden, the Expand column's forwarder)
+const unlevel = (doc) => {
+  const d = H.clone(doc);
+  remove(d, "sc_expand_level");
+  remove(d, "sc_expand_preview");
+  d.config.eventScript = d.config.eventScript.filter((e) => e.name !== "sc_onChange_expandLevel" && e.name !== "sc_onChange_expandTick");
+  const note = H.findModel(d.list, "sc_expand_note");
+  if (note && note.options.defaultValue === NEW_NOTE) note.options.defaultValue = OLD_NOTE;
+  const et = H.findModel(d.list, "sc_expand_table");
+  if (et) {
+    et.tableColumns = et.tableColumns.filter((c) => c.model !== "path" && c.model !== "kind");
+    const uses = et.tableColumns.find((c) => c.model === "uses");
+    if (uses) uses.options.hidden = false;
+    const tick = et.tableColumns.find((c) => c.model === "expand");
+    if (tick) tick.events.onChange = "";
+  }
+  return d;
+};
 // RES-01 Created (BA, 10-22): src/created_patch.json (the handler, mounted, IA V2 and badge pairs, the status option's leaf id)
 const CREATED = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/created_patch.json"), "utf8"));
 // (no Cancel button on the form: Cancel is the list's bulk action, user 10-22 evening)
@@ -565,7 +588,7 @@ for (const key of ["uhn48srb", "wia8s2r9"]) {
   // the designer stores keys in its own order: compare with sorted keys
   const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => Object.assign(o, { [k]: canon(x[k]) }), {}) : x);
   // not published yet: RES-01 R3's widgets (Reserved / Short, the Materials row) and Required named and editable
-  const r3 = unedit(unsink(H.clone(ON)));
+  const r3 = unedit(unsink(unlevel(ON)));
   // nor the output split (plan 10-27): the Output Location section's first column
   H.findModel(r3.list, "sc_output_grid").columns.shift();
   remove(r3, "res_summary");
@@ -580,7 +603,7 @@ for (const key of ["uhn48srb", "wia8s2r9"]) {
   r3req.events.onChange = "";
   check("ON vs v47: the widgets identical but RES-01 R3's (Reserved / Short, the Materials row, Required)", JSON.stringify(canon(r3.list)) === JSON.stringify(canon(LIVE.list)));
   // (the output split, plan 10-27, undone: its events and the blocks that tell os_main)
-  const ONV = unosDoc(ON);
+  const ONV = unosDoc(unlevel(ON));
   const changed = ONV.config.eventScript.filter((e) => JSON.stringify(H.byKey(LIVE, e.key)) !== JSON.stringify(e)).map((e) => e.name).sort();
   // not published yet: RES-01 R3 (switched off): the Draft handler, the add-back in the explode / component quantity / picker, and
   // sc_main (it carries the explode helpers)
@@ -595,8 +618,29 @@ for (const key of ["uhn48srb", "wia8s2r9"]) {
   check("ON vs v47: the form config identical apart from the events", JSON.stringify(canon(Object.assign({}, ON.config, { eventScript: [] }))) ===
     JSON.stringify(canon(Object.assign({}, LIVE.config, { eventScript: [] }))));
   const expandTable = H.findModel(ON.list, "sc_expand_table");
-  check("ON: the Flat dialog's note first, its Used column a whole number", H.findModel(ON.list, "sc_expand_dialog").list[0].model === "sc_expand_note" &&
-    /applies to every place/.test(H.findModel(ON.list, "sc_expand_note").options.defaultValue) && expandTable.tableColumns.find((c) => c.model === "uses").options.precision === 0);
+  const dlg = H.findModel(ON.list, "sc_expand_dialog").list.map((w) => w.model);
+  const lv = H.findModel(ON.list, "sc_expand_level");
+  check("ON: Stop at level: a radio 1-6 in the Flat dialog before Expand All, empty, editable, bound to its forwarder", !!lv && lv.type === "radio" &&
+    same(lv.options.options.map((o) => o.value), [1, 2, 3, 4, 5, 6]) && lv.options.defaultValue === null && lv.options.disabled === false && lv.options.hidden === false &&
+    dlg.indexOf("sc_expand_level") === dlg.indexOf("sc_expand_all") - 1 && (H.byKey(ON, lv.events.onChange) || {}).name === "sc_onChange_expandLevel", [dlg, lv && lv.options]);
+  check("ON: Stop at level's forwarder sends EXPAND_LEVEL with the chosen value", /this\.triggerEvent\("sc_main", \{ scOp: "EXPAND_LEVEL", value: arguments\[0\] && arguments\[0\]\.value \}\);/.test(
+    (H.byName(ON, "sc_onChange_expandLevel") || {}).func || ""));
+  const etb = H.findModel(ON.list, "sc_expand_table");
+  const col = (m) => etb.tableColumns.find((c) => c.model === m) || { options: {}, events: {} };
+  check("ON: one row per place: the Place column hidden after Item ID, Used hidden, the Expand column bound to its forwarder", col("path").options.hidden === true &&
+    col("uses").options.hidden === true && (H.byKey(ON, col("expand").events.onChange) || {}).name === "sc_onChange_expandTick", etb.tableColumns.map((c) => c.model));
+  check("ON: the Expand column's forwarder sends EXPAND_TICK with the row and its value", /this\.triggerEvent\("sc_main", \{ scOp: "EXPAND_TICK", rowIndex: arguments\[0\] && arguments\[0\]\.rowIndex, value: arguments\[0\] && arguments\[0\]\.value \}\);/.test(
+    (H.byName(ON, "sc_onChange_expandTick") || {}).func || ""));
+  check("ON: sc_main wires Stop at level and the place ticks", /EXPAND_LEVEL: scOpExpandLevel, EXPAND_TICK: scOpExpandTick, /.test(H.byName(ON, "sc_main").func));
+  const pv = H.findModel(ON.list, "sc_expand_preview");
+  const dmodels = H.findModel(ON.list, "sc_expand_dialog").list.map((w) => w.model);
+  check("ON: the Assembly components preview: a read-only table (Component, Required Qty, UOM) right after the places", !!pv && pv.type === "table" &&
+    same(pv.tableColumns.map((c) => [c.model, c.options.disabled]), [["component", true], ["qty", true], ["uom", true]]) && pv.options.isAdd === false && pv.options.isDelete === false &&
+    dmodels.indexOf("sc_expand_preview") === dmodels.indexOf("sc_expand_table") + 1, [dmodels, pv && pv.tableColumns.map((c) => c.model)]);
+  check("OFF: the preview there too", !!H.findModel(OFF.list, "sc_expand_preview"));
+  check("OFF: Stop at level's radio there too (unbound)", !!H.findModel(OFF.list, "sc_expand_level") && H.findModel(OFF.list, "sc_expand_level").events.onChange === "");
+  check("ON: the Flat dialog's note first (one row per place), its Used column a whole number (hidden)", H.findModel(ON.list, "sc_expand_dialog").list[0].model === "sc_expand_note" &&
+    /Each row is one place/.test(H.findModel(ON.list, "sc_expand_note").options.defaultValue) && expandTable.tableColumns.find((c) => c.model === "uses").options.precision === 0);
 }
 
 // FIX-05 (BA handoff): ON switches on the platform's field history for the IA's link, plan, output, mode, BOM, snapshot, item and status
@@ -702,7 +746,11 @@ for (const e of added.concat(PATCHED.map((k) => H.byKey(ON, k)))) {
 {
   const LIVE = H.readJSON(path.join(H.IASC, "base/ia_form_v59.json"));
   const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => Object.assign(o, { [k]: canon(x[k]) }), {}) : x);
-  const V = unosDoc(ON);
+  // sc_main's own Flat changes (Stop at level, one choice per place) are the behaviour tests' (test_sc_prepare); here it is v59's
+  const V = unosDoc(unlevel(ON));
+  V.config.eventScript.forEach((e) => {
+    if (e.name === "sc_main") e.func = (H.byName(LIVE, "sc_main") || {}).func;
+  });
   check("ON vs v59: every widget identical once the split's bindings are undone", JSON.stringify(canon(V.list)) === JSON.stringify(canon(LIVE.list)));
   // the browser pass (10-27): the grid had no Add Row and no per-row Delete - the components table's own buttons
   const smo = H.findModel(ON.list, "stock_movement").options;

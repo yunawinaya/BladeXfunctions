@@ -329,7 +329,8 @@ const linkNew = async (values, o) => {
       p.since(0).some((t) => t[0] === "triggerEvent" && t[1] === "sc_main" && t[2].scOp === "PLANT") && !p.since(0).some((t) => t[0] === "sc:setData" && "stock_movement" in t[1]));
   }
   {
-    const flatSnap = Object.assign(snapOf(linked) || {}, { mode: "FLAT", expand: ["C1"] });
+    // an IA prepared before one choice per place (10-27): item ticks, no places
+    const flatSnap = Object.assign(snapOf(linked) || {}, { mode: "FLAT", expand: ["C1"], expandAt: undefined });
     const s = session(Object.assign({}, linked, { id: "4001", item_qty: 5, bom_consumption_mode: "FLAT", bom_snapshot_json: JSON.stringify(flatSnap) }), { this: { isCopy: true } });
     await s.fire("mounted");
     const v = s.v();

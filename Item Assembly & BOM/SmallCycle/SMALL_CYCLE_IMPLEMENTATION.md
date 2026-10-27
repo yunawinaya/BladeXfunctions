@@ -143,10 +143,21 @@ Materials (the component table)
 **Standard and Flat (IA03, BOM01-BOM03)**
 - **Standard** gives the same component lines as today's BOM explosion. Compared over all 899 BOMs of the test tenant, the
   lines were identical.
-- **Choosing Flat** opens a dialog that lists the sub-assemblies with their own active, non-empty BOM: level, the BOM and
-  version actually used, the items it is used under, and how many BOM lines use it (FIX-04). The user ticks the ones to
-  expand ("Expand All" is offered). A tick applies to every place the item is used, as the dialog says. Their components
-  replace them there, recursively, up to 6 levels.
+- **Choosing Flat** opens a dialog with one row per **place** a sub-assembly is used (the BA's "select per SFG occurrence",
+  27 October), in branch order: each row under the place above it, with its level, the BOM and version that place uses and the
+  item it is used under. Tick a place to make it there from its own components (EXPAND); leave it unticked to take it from stock
+  there (STOP HERE). The same item can be expanded in one place and taken from stock in another.
+  - Only the places whose places above are all expanded are shown (the BA's requirement): at first the level-1 SFGs; Expand
+    shows that SFG's immediate children, each starting at Stop here (choose again); Stop here hides and clears every place
+    under it (keep the parent or its descendants, never both). "Expand All" ticks every place.
+  - **Assembly components** (under the choices) shows the resulting component list with required quantities, refreshed on
+    every choice by the same resolver the save uses.
+  - **Stop at level** (1-6) ticks every place above that level and unticks the rest; single places can be changed afterwards.
+  - An IA prepared before 27 October evening saved item ticks: they are read as "every place of the item whose places above
+    it are expanded", the same result as before.
+  - The snapshot keeps the places (`expandAt`); its `expand` lists the items expanded at every place they are used, which is
+    what the save's "expanded, so not also consumed" check reads (IA_SAVE / IA_V2_SUBMIT unchanged: they embed the frozen
+    `code/shared/frozen/sc_bom_v1.js`, whose functions other than the resolver are pinned identical by `test/test_sc_bom.js`).
 - **The ticks are saved** with the IA, so a BOM sync cannot erase them. "Prepare BOM" pre-sets them again.
 - **Expansion rules**
   - Quantities are scaled at every BOM level: the parent's required quantity is converted to the child BOM's base unit.
@@ -160,7 +171,7 @@ Materials (the component table)
   - there is no active BOM, or a BOM is empty;
   - a ticked item has no BOM, or a referenced BOM is missing;
   - a base quantity is 0, or a unit conversion is missing (never assumed 1:1);
-  - the expansion loops back on itself (a cycle), or goes deeper than 6 levels;
+  - the expansion loops back on itself (a cycle: an expanded place's BOM names a place above it), or goes deeper than 6 levels;
   - there are more than 5,000 paths, or more than 1,000 component lines (the posting limit);
   - a database read fails (shown as a failure, never as an empty BOM).
 - **After a failed preparation**, the previous item, mode, quantity and lines stay as they were (SC26).

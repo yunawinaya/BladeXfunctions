@@ -8,7 +8,20 @@ const SC_EPS = 0.0000001;
 const SC_ECHO_MS = 3000;
 const SC_ITEM_FIELDS = "material_name,material_desc,based_uom,serial_number_management,item_batch_management,batch_number_genaration,table_uom_conversion,table_default_bin,stock_control";
 const SC_EDIT_WIDGETS = ["bom_consumption_mode", "planned_output_qty"];
-const SC_EXPAND_NOTE = "Tick a sub-assembly to make it from its own components in this Item Assembly. A tick applies to every place the item is used (see Used).";
+const SC_EXPAND_NOTE = "Each row is one place a component is used. Tick a sub-assembly to make it there from its own components (expand: its components appear " +
+  "under it); leave it unticked to take it from stock there (stop here: what is under it is hidden). Rows marked Included have no choice. Stop at level N expands every " +
+  "sub-assembly above level N. Assembly components shows the result.";
+// the saved choices of a Flat IA: its places, else (prepared before 10-27 evening) its item ticks
+const scSavedTicks = (snap) => (snap && snap.mode === "FLAT" ? { at: Array.isArray(snap.expandAt) ? snap.expandAt : null, items: snap.expand || [], v: Number(snap.expandAtV) || 1 }
+  : { at: null, items: [] });
+// the saved expansion choices compared (the BA, 10-27): a snapshot saved before line keys is read by its plain keys, as it was prepared
+const scChoiceKeys = (s, plain) => (Array.isArray(s.expandAt) ? s.expandAt.map((k) => (plain ? scPlainKey(k) : scS(k))) : (s.expand || []).map(scS)).slice().sort().join("|");
+const scChoicesSame = (oldSnap, snap) => {
+  if (oldSnap.mode !== snap.mode) return false;
+  if (!Array.isArray(oldSnap.expandAt)) return scChoiceKeys(oldSnap, false) === (snap.expand || []).map(scS).slice().sort().join("|");
+  const plain = Number(oldSnap.expandAtV) !== 2;
+  return scChoiceKeys(oldSnap, plain) === scChoiceKeys(snap, plain);
+};
 const SC_BUTTONS = ["sc_btn_line", "sc_btn_unlink", "sc_btn_relink", "sc_btn_suggest", "sc_btn_bom", "sc_btn_refresh"];
 
 // the resolver and the projection (code/shared, verbatim)
@@ -305,7 +318,7 @@ const scRender = async (v) => {
   }
   const snap = scSnap(v);
   if (snap) {
-    const n = (snap.expand || []).length;
+    const n = (Array.isArray(snap.expandAt) ? snap.expandAt : snap.expand || []).length;
     row.sc_info_bom = [snap.mode === "FLAT" ? "Flat" : "Standard", scS(snap.root.version), snap.mode === "FLAT" ? n + (n === 1 ? " sub-assembly" : " sub-assemblies") + " expanded" : "",
       scS(snap.preparedAt) ? "prepared " + scS(snap.preparedAt).slice(0, 10) : ""].filter((x) => x).join(" · ");
   } else if (scLinked(v) || scModeOf(v) === "FLAT") row.sc_info_bom = "not prepared yet" + (editable ? ": press Prepare BOM" : "");
@@ -422,28 +435,41 @@ const scPrepare = async (req) => {
     fg = (await io.readItems([req.itemId]))[0];
     if (!fg) return scFailed(req, "The item could not be read.");
     const input = { mode: req.mode, itemId: scS(req.itemId), itemUomId: req.newItem ? scS(fg.based_uom) : scS(v.item_uom) || scS(fg.based_uom),
-      outputQty: scQ8(v.item_qty), expand: req.expand || [], fg: fg, preparedAt: new Date().toISOString(), preparedBy: scS(this.getVarGlobal("nickname")) };
+      outputQty: scQ8(v.item_qty), expand: req.expand || [], expandAt: Array.isArray(req.expandAt) ? req.expandAt : undefined, expandAtV: req.expandAtV, fg: fg,
+      preparedAt: new Date().toISOString(),
+      preparedBy: scS(this.getVarGlobal("nickname")) };
     r = await scResolve(input, io);
     if (!r.ok) return scFailed(req, r.message);
     if (!scCurrent(seq)) return this.hideLoading();
     if (req.mode === "FLAT" && req.expand === null) {
-      const seen = {};
-      const saved = {};
-      (req.saved || []).forEach((id) => (saved[scS(id)] = 1));
+      const sv = Array.isArray(req.saved) ? { at: null, items: req.saved } : req.saved || { at: null, items: [] };
+      const atSet = {};
+      (sv.at || []).forEach((k) => (atSet[scS(k)] = 1));
+      const itemSet = {};
+      (sv.items || []).forEach((id) => (itemSet[scS(id)] = 1));
+      const on = {};
       const rows = [];
+      // one row per place, in branch order (a place after the one above it): ticked when saved, or (an IA prepared before) when its item
+      // was ticked and the place above it is expanded
+      // every child of a shown place (the BA: Expand shows its immediate children): a sub-assembly to choose (SFG), or a component that
+      // is included as it is (a raw material, or a sub-assembly that cannot be expanded: the reason is shown)
       r.tree.forEach((t) => {
-        if (!t.expandable || seen[t.itemId]) return;
-        seen[t.itemId] = 1;
-        // a tick applies to every BOM line using the item: how many, under which parents, through which BOM versions
-        rows.push({ component: "— ".repeat(Math.max(0, t.depth - 1)) + t.name, level: t.depth, bom: (t.versions || []).join(", ") || scS(t.version), uses: t.uses || 1,
+        const sfg = !!t.expandable;
+        on[t.key] = sfg && (sv.at ? !!atSet[t.key] || (sv.v !== 2 && !!atSet[scPlainKey(t.key)]) : !!itemSet[t.itemId] && (!t.parentKey || !!on[t.parentKey]));
+        rows.push({ component: "— ".repeat(Math.max(0, t.depth - 1)) + t.name, level: t.depth,
+          bom: sfg ? (t.versions || []).join(", ") || scS(t.version) || "Default" : t.reason === "no active BOM" ? "Included" : "Included as it is: " + t.reason, uses: 1,
           under: (t.parents || []).join(", ") || scS(io.items[t.parentItemId] && io.items[t.parentItemId].material_name) || scS(t.parentItemId), item_id: t.itemId,
-          expand: saved[t.itemId] ? 1 : 0 });
+          path: t.key, kind: sfg ? "SFG" : "IN", expand: on[t.key] ? 1 : 0 });
       });
+      if (!rows.some((x) => x.kind === "SFG")) rows.length = 0;
       this.hideLoading();
       if (rows.length) {
-        scStore({ sc_pending: { mode: "FLAT", itemId: scS(req.itemId), newItem: !!req.newItem, prev: req.prev || null, diff: !!req.diffFrom } });
-        await this.setData({ "sc_expand_dialog.sc_expand_table": rows, "sc_expand_dialog.sc_expand_note": SC_EXPAND_NOTE });
+        scStore({ sc_pending: { mode: "FLAT", itemId: scS(req.itemId), newItem: !!req.newItem, prev: req.prev || null, diff: !!req.diffFrom, itemUomId: input.itemUomId,
+          outputQty: input.outputQty }, sc_places: rows });
+        await this.setData({ "sc_expand_dialog.sc_expand_table": scVisible(rows), "sc_expand_dialog.sc_expand_note": SC_EXPAND_NOTE, "sc_expand_dialog.sc_expand_level": null,
+          "sc_expand_dialog.sc_expand_preview": [] });
         await this.openDialog("sc_expand_dialog");
+        await scPreview(rows);
         return;
       }
       this.$message.info("No component of this BOM has a BOM of its own, so Flat lists the same components as Standard.");
@@ -458,7 +484,17 @@ const scPrepare = async (req) => {
       const diff = scDiff(oldSnap, r.snapshot, v.item_qty);
       this.hideLoading();
       if (!diff.length) {
-        this.$message.info("The BOM has not changed since it was prepared.");
+        if (scChoicesSame(oldSnap, r.snapshot)) {
+          this.$message.info("The BOM has not changed since it was prepared.");
+          return;
+        }
+        // only the expansion choices changed (the BA, 10-27): they are saved in the snapshot; the components and quantities are the
+        // same, so the lines and their stock picks are kept
+        await this.setData({ bom_snapshot_json: JSON.stringify(r.snapshot), source_bom_id: scS(r.snapshot.root.bomId) });
+        const kept = this.getValues();
+        scRedisplay(kept);
+        await scRenderOrRead(kept);
+        this.$message.success("Your expansion choices are saved. The components and quantities are the same, so the lines and their stock picks are kept.");
         return;
       }
       const ok = await scAsk("Preparing the BOM again changes the components:<br><br>" + diff.map((d) => "• " + scHtml(d)).join("<br>")
@@ -761,7 +797,7 @@ const scOpMode = async () => {
       return scSetMode(old);
     }
     scStore({ sc_mode: "FLAT" });
-    return scPrepare({ mode: "FLAT", itemId: v.item_id, newItem: false, expand: null, saved: snap && snap.mode === "FLAT" ? snap.expand : [], prev: { bom_consumption_mode: old } });
+    return scPrepare({ mode: "FLAT", itemId: v.item_id, newItem: false, expand: null, saved: scSavedTicks(snap), prev: { bom_consumption_mode: old } });
   }
   if (mode !== "STANDARD") return scSetMode(old);
   // only Flat lines are rebuilt: Standard after legacy / Standard changes no line (a missed echo of our own write lands here too)
@@ -944,26 +980,112 @@ const scOpBom = async () => {
   if (!mode) return;
   if (!scS(v.item_id)) return this.$message.warning("Select the BOM item first.");
   const snap = scSnap(v);
-  return scPrepare({ mode: mode, itemId: v.item_id, newItem: false, expand: mode === "FLAT" ? null : [], saved: snap && snap.mode === "FLAT" ? snap.expand : [],
+  return scPrepare({ mode: mode, itemId: v.item_id, newItem: false, expand: mode === "FLAT" ? null : [], saved: scSavedTicks(snap),
     prev: null, diffFrom: snap ? v.bom_snapshot_json : null });
 };
 const scExpandRowsNow = () => ((this.getValues().sc_expand_dialog || {}).sc_expand_table || []);
-const scOpExpandAll = async () => this.setData({ "sc_expand_dialog.sc_expand_table": scExpandRowsNow().map((r) => Object.assign({}, r, { expand: 1 })) });
+const scTicked = (r) => Number(r && r.expand) === 1 || (r && r.expand) === true;
+const scSfg = (r) => scS(r && r.kind) === "SFG";
+// the places shown (the BA, 10-27): those whose places above are all expanded - Stop here hides what is under it, Expand shows its children
+const scVisible = (places) => {
+  const on = {};
+  places.forEach((p) => {
+    if (scTicked(p)) on[scS(p.path)] = 1;
+  });
+  return places.filter((p) => {
+    const parts = scS(p.path).split(">");
+    for (let k = 1; k < parts.length; k++) if (!on[parts.slice(0, k).join(">")]) return false;
+    return true;
+  });
+};
+// every place of the open dialog, each shown row's own tick first (the table is what the user sees)
+const scPlacesNow = () => {
+  const shown = {};
+  scExpandRowsNow().forEach((r) => (shown[scS(r.path)] = r));
+  const all = scState().sc_places || scExpandRowsNow();
+  return all.map((p) => (shown[scS(p.path)] ? Object.assign({}, p, { expand: scTicked(shown[scS(p.path)]) ? 1 : 0 }) : p));
+};
+// the Assembly components the choices give now: the resolver the save uses (BOM, base quantities, units), on every change; an answer
+// that arrives after a newer change is dropped
+const scPreview = async (places) => {
+  const p = scState().sc_pending;
+  if (!p) return;
+  const n = (scState().sc_pv_seq || 0) + 1;
+  scStore({ sc_pv_seq: n });
+  let rows;
+  let warn = "";
+  try {
+    const io = scIo(scOrg(this.getValues()));
+    const fg = (await io.readItems([p.itemId]))[0];
+    const at = scVisible(places).filter((x) => scSfg(x) && scTicked(x)).map((x) => scS(x.path));
+    const r = await scResolve({ mode: "FLAT", itemId: scS(p.itemId), itemUomId: scS(p.itemUomId), outputQty: p.outputQty, expand: [], expandAt: at, expandAtV: 2, fg: fg }, io);
+    if (r.ok) {
+      const names = await scUomNames(r.rows.map((x) => x.quantity_uom));
+      rows = r.rows.map((x) => ({ component: scS(x.item_name), qty: x.requested_qty, uom: names[scS(x.quantity_uom)] || scS(x.quantity_uom) }));
+    } else {
+      rows = [{ component: "Cannot expand: " + r.message, qty: null, uom: "" }];
+      warn = "Cannot expand: " + r.message;
+    }
+  } catch (e) {
+    rows = [{ component: "The components could not be read: " + scS(e && e.message), qty: null, uom: "" }];
+  }
+  if ((scState().sc_pv_seq || 0) !== n || !scState().sc_pending) return;
+  await this.setData({ "sc_expand_dialog.sc_expand_preview": rows });
+  if (warn) this.$message.warning(warn);
+};
+// keep the places, show the visible ones and refresh the preview; nothing when nothing changed (a table write echoed by its onChange)
+const scPlacesWrite = async (places) => {
+  const sig = (rows) => JSON.stringify(rows.map((r) => [scS(r.path), scTicked(r) ? 1 : 0]));
+  const shown = scVisible(places);
+  const same = sig(shown) === sig(scExpandRowsNow()) && sig(places) === sig(scState().sc_places || []);
+  scStore({ sc_places: places });
+  if (same) return;
+  await this.setData({ "sc_expand_dialog.sc_expand_table": shown });
+  await scPreview(places);
+};
+const scOpExpandAll = async () => scPlacesWrite(scPlacesNow().map((r) => Object.assign({}, r, { expand: scSfg(r) ? 1 : 0 })));
+// one place's tick (the BA, 10-27: EXPAND / STOP HERE per place; only a place whose places above are expanded is shown): stopping a place
+// stops every place under it (keep the parent or its descendants, never both)
+const scOpExpandTick = async () => {
+  const shown = scExpandRowsNow();
+  const i = Number(scArgs.rowIndex);
+  if (!Number.isInteger(i) || !shown[i] || !scS(shown[i].path)) return;
+  const on = Number(scArgs.value) === 1 || scArgs.value === true;
+  const key = scS(shown[i].path);
+  // a component included as it is has no choice: its tick is taken back (only when set, so the echo of that write ends it)
+  if (!scSfg(shown[i])) {
+    if (!on) return;
+    await this.setData({ ["sc_expand_dialog.sc_expand_table." + i + ".expand"]: 0 });
+    this.$message.info(scS(shown[i].component).replace(/^(— )+/, "") + " has no choice here: " + (scS(shown[i].bom) || "Included") + ".");
+    return;
+  }
+  return scPlacesWrite(scPlacesNow().map((r) => {
+    const p = scS(r.path);
+    const want = p === key ? on : !on && p.indexOf(key + ">") === 0 ? false : null;
+    return want === null || scTicked(r) === want ? r : Object.assign({}, r, { expand: want ? 1 : 0 });
+  }));
+};
+// Stop at level N (the user, 10-27): every sub-assembly above level N made from its components, the rest taken from stock; the ticks stay editable
+const scOpExpandLevel = async () => {
+  const level = Number(scArgs.value);
+  if (!Number.isInteger(level) || level < 1) return;
+  return scPlacesWrite(scPlacesNow().map((r) => Object.assign({}, r, { expand: scSfg(r) && Number(r.level) < level ? 1 : 0 })));
+};
 const scOpExpandOk = async () => {
   const p = scState().sc_pending;
-  const ticks = scExpandRowsNow().filter((r) => Number(r.expand) === 1 || r.expand === true).map((r) => scS(r.item_id));
+  const ticks = scVisible(scPlacesNow()).filter((r) => scSfg(r) && scTicked(r)).map((r) => scS(r.path));
   await this.closeDialog("sc_expand_dialog");
-  await this.setData({ "sc_expand_dialog.sc_expand_table": [] });
-  scStore({ sc_pending: null });
+  await this.setData({ "sc_expand_dialog.sc_expand_table": [], "sc_expand_dialog.sc_expand_preview": [] });
+  scStore({ sc_pending: null, sc_places: null });
   if (!p) return;
   const v = this.getValues();
-  return scPrepare({ mode: "FLAT", itemId: p.itemId, newItem: !!p.newItem, expand: ticks, prev: p.prev, diffFrom: p.diff ? v.bom_snapshot_json || null : null });
+  return scPrepare({ mode: "FLAT", itemId: p.itemId, newItem: !!p.newItem, expand: [], expandAt: ticks, expandAtV: 2, prev: p.prev, diffFrom: p.diff ? v.bom_snapshot_json || null : null });
 };
 const scOpExpandClose = async () => {
   const p = scState().sc_pending;
   await this.closeDialog("sc_expand_dialog");
-  await this.setData({ "sc_expand_dialog.sc_expand_table": [] });
-  scStore({ sc_pending: null });
+  await this.setData({ "sc_expand_dialog.sc_expand_table": [], "sc_expand_dialog.sc_expand_preview": [] });
+  scStore({ sc_pending: null, sc_places: null });
   if (p) await scRestore(p);
 };
 // Clone of an enhanced IA: the link, its context and the plan are dropped; FLAT keeps its ticks and is prepared again from
@@ -980,7 +1102,8 @@ const scClone = async (v) => {
   await this.setData(updates);
   scStore({ sc_cloned: 1 });
   if (scModeOf(v) === "FLAT" && scS(v.item_id)) {
-    await scPrepare({ mode: "FLAT", itemId: v.item_id, newItem: false, expand: snap && snap.mode === "FLAT" ? snap.expand : [], prev: null });
+    await scPrepare({ mode: "FLAT", itemId: v.item_id, newItem: false, expand: snap && snap.mode === "FLAT" ? snap.expand : [],
+      expandAt: snap && snap.mode === "FLAT" && Array.isArray(snap.expandAt) ? snap.expandAt : undefined, expandAtV: snap && snap.expandAtV, prev: null });
   }
 };
 // the Sales Order line entry (SO Linked IAs page): the line is checked, the item fields set, the quantity = the suggestion
@@ -1268,7 +1391,7 @@ const scOpMount = async () => {
 (async () => {
   if (!scOn()) return;
   const ops = { QTY: scOpQty, ITEM: scOpItem, MODE: scOpMode, PLANT: scOpPlant, PLANNED: scOpPlanned, SUGGEST: scOpSuggest, SELECT_LINE: scOpSelectLine,
-    PICK_LINE: scOpPickLine, LINE_CLOSE: scCloseLines, RELINK: scOpRelink, UNLINK: scOpUnlink, BOM: scOpBom, EXPAND_ALL: scOpExpandAll, EXPAND_OK: scOpExpandOk,
+    PICK_LINE: scOpPickLine, LINE_CLOSE: scCloseLines, RELINK: scOpRelink, UNLINK: scOpUnlink, BOM: scOpBom, EXPAND_ALL: scOpExpandAll, EXPAND_LEVEL: scOpExpandLevel, EXPAND_TICK: scOpExpandTick, EXPAND_OK: scOpExpandOk,
     EXPAND_CLOSE: scOpExpandClose, REFRESH: async () => scRefresh(this.getValues()), MOUNT: scOpMount };
   const op = ops[scS(scArgs.scOp)];
   if (!op) return console.error("Small Cycle: unknown op", scArgs.scOp);

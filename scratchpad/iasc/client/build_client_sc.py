@@ -117,8 +117,14 @@ ROWS = [("sc_info_so", "Sales Order"), ("sc_info_ordered", "Ordered"), ("sc_info
 LAYOUT = [(12, ["sc_info_so", "sc_info_customer", "sc_info_ordered", "sc_info_delivered"]), (12, ["sc_info_produced", "sc_info_open", "sc_info_suggest", "sc_info_cover"]),
           (24, ["sc_info_bom", "sc_info_over", "sc_info_warn"])]
 # the Flat dialog's note (BA handoff FIX-04: a tick is item-wide)
-EXPAND_NOTE = ("Tick a sub-assembly to make it from its own components in this Item Assembly. A tick applies to every place the item is used "
-               "(see Used).")
+EXPAND_NOTE = ("Each row is one place a component is used. Tick a sub-assembly to make it there from its own components (expand: its components appear "
+               "under it); leave it unticked to take it from stock there (stop here: what is under it is hidden). Rows marked Included have no choice. Stop at "
+               "level N expands every sub-assembly above level N. Assembly components shows the result.")
+# Flat "Stop at level" (the user, 10-27): the dialog's radio and its forwarder, each from its own key sequence so no existing key moves
+LEVEL_FORWARDER = ("sc_onChange_expandLevel", "Stop at level in the Flat dialog", '{ scOp: "EXPAND_LEVEL", value: arguments[0] && arguments[0].value }')
+# one tick per place (the BA, 10-27): the Expand column's onChange keeps the places above / under consistent
+TICK_FORWARDER = ("sc_onChange_expandTick", "a place's Expand tick in the Flat dialog",
+                  '{ scOp: "EXPAND_TICK", rowIndex: arguments[0] && arguments[0].rowIndex, value: arguments[0] && arguments[0].value }')
 # the key rows bold, the two messages (no label) in the app's error style (the Item form's error_msg)
 ROW_CLASS = {"sc_info_so": "font-bold", "sc_info_suggest": "font-bold", "sc_info_over": "error-msg", "sc_info_warn": "error-msg"}
 MESSAGE_ROWS = ("sc_info_over", "sc_info_warn")
@@ -406,6 +412,33 @@ def build_widgets(form, keys, pkeys):
             "planned_output_qty", "sc_section", "sc_collapse", "sc_info"] + [m for m, _ in ROWS] + ["sc_actions", "sc_line_dialog", "sc_expand_dialog", "sc_ref_key"]
 
 
+def build_level_widget(form, lkeys):
+    """Flat "Stop at level" (the user, 10-27, both builds): a radio 1-6 in the Flat dialog before Expand All"""
+    radio = copy.deepcopy(json.load(open(RADIO_TPL, encoding="utf-8")))
+    radio.pop("version", None)
+    radio = widget(radio, lkeys, "sc_expand_level", "Stop at level", hidden=False, disabled=False, defaultValue=None,
+                   options=[{"value": n, "label": str(n), "explain": ""} for n in range(1, 7)])
+    d = find(form["list"], "sc_expand_dialog")[0]
+    d["list"].insert([w.get("model") for w in d["list"]].index("sc_expand_all"), radio)
+    # one row per place (the BA, 10-27): the place's key (hidden); Used is always 1 per place
+    cols = find(form["list"], "sc_expand_table")[0]["tableColumns"]
+    item_col = [c for c in cols if c["model"] == "item_id"][0]
+    cols.insert(cols.index(item_col) + 1, widget(item_col, lkeys, "path", "Place", hidden=True))
+    # SFG = a sub-assembly to choose, IN = a component included as it is (the BA: Expand shows every immediate child)
+    cols.insert(cols.index(item_col) + 2, widget(item_col, lkeys, "kind", "Kind", hidden=True))
+    [c for c in cols if c["model"] == "uses"][0]["options"]["hidden"] = True
+    # the Assembly components preview (the BA, 10-27): what the choices give, with the required quantities; read-only
+    pk = Keys(json.dumps(form), SEED + 14)
+    th = find(form["list"], "table_hu")[0]
+    tc = {c["model"]: c for c in th["tableColumns"]}
+    preview = widget(th, pk, "sc_expand_preview", "Assembly components", isAdd=False, isDelete=False, paging=True, pageSize=10)
+    preview["tableColumns"] = [widget(tc["handling_no"], pk, "component", "Component", disabled=True),
+                               widget(tc["item_quantity"], pk, "qty", "Required Qty", disabled=True),
+                               widget(tc["handling_no"], pk, "uom", "UOM", disabled=True)]
+    d["list"].insert([w.get("model") for w in d["list"]].index("sc_expand_table") + 1, preview)
+    return ["sc_expand_level", "sc_expand_preview"]
+
+
 def build_res_widgets(form, rkeys):
     """RES-01 R1 (both builds): the IA's raw-material hold result and when it was checked (header, hidden, server-owned) and each
     line's requirement required_qty (decision A: from the BOM, follows the output, changed by a hand edit, never by
@@ -673,6 +706,24 @@ def patch_handlers(form, c, keys):
         for ev, name in evs.items():
             assert d["events"].get(ev) == "", (model, ev)
             d["events"][ev] = keyed[name]
+    name, what, op = LEVEL_FORWARDER
+    assert name not in names, name
+    func = "// %s: Small Cycle (scratchpad/iasc), handled by sc_main\nthis.triggerEvent(\"sc_main\", %s);\n" % (what, op)
+    lk = Keys(json.dumps(form), SEED + 11).new()
+    es.append({"key": lk, "name": name, "func": func, "type": "js"})
+    mirrors[name] = func
+    lv = find(form["list"], "sc_expand_level")[0]
+    assert lv["events"].get("onChange") == "", lv["events"]
+    lv["events"]["onChange"] = lk
+    name, what, op = TICK_FORWARDER
+    assert name not in names, name
+    func = "// %s: Small Cycle (scratchpad/iasc), handled by sc_main\nthis.triggerEvent(\"sc_main\", %s);\n" % (what, op)
+    tk = Keys(json.dumps(form), SEED + 13).new()
+    es.append({"key": tk, "name": name, "func": func, "type": "js"})
+    mirrors[name] = func
+    tick = [c for c in find(form["list"], "sc_expand_table")[0]["tableColumns"] if c["model"] == "expand"][0]
+    assert tick["events"].get("onChange") == "", tick["events"]
+    tick["events"]["onChange"] = tk
     lt = find(form["list"], "sc_line_table")[0]
     pick = [x for x in lt["tableColumns"] if x["model"] == "pick"][0]
     assert pick["events"] == {"onClick": ""}
@@ -850,6 +901,7 @@ def build(on):
     added = build_widgets(form, keys, pkeys) + build_res_widgets(form, Keys(raw, SEED + 2))
     added += build_created_widgets(form, Keys(json.dumps(form), SEED + 3))
     added += build_os_widgets(form, Keys(json.dumps(form), SEED + 7))
+    added += build_level_widget(form, Keys(json.dumps(form), SEED + 10))
     mirrors = {}
     if on:
         wf = ids()

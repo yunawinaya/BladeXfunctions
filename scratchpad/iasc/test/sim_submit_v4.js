@@ -458,6 +458,20 @@ if (IS_V6) {
     [[["1", "1016-005-0003", BIN], ["1", "1016-005-0003", RBIN], ["2", "1016-005-0004", BIN3]], "1016-005-0003", BIN, "Blocked", "2026-10-27", "2028-10-27"]);
   rq = C.iaParseJ(m.jobs[0].request_payload);
   eq("v6 System split: movementCount = 60 picks + 3 receipts", rq.movementCount, 63);
+  // every row its own batch (the user, 10-27: the form hides Group, each row's group = its row): 20 rows = 20 numbers
+  {
+    const bins = [BIN, RBIN, BIN3];
+    const rows20 = Array.from({ length: 20 }, (_, k) => ({ os_qty: 0.05, os_location_id: bins[k % 3], os_category: "Blocked", os_group: k + 1,
+      os_mfg_date: "2026-10-" + String(k + 1).padStart(2, "0"), os_exp_date: "2028-10-27" }));
+    const nums = rows20.map((_, k) => "1016-005-" + String(k + 1).padStart(4, "0"));
+    const m20 = new Model();
+    const r20 = go(m20, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6-20"), form: record(lines60(), { output_split: rows20 }) }, { items: SYS, batchNumbers: nums });
+    const h20 = iaOf(m20);
+    eq("v6 System split, 20 rows / 20 groups: QUEUED, GENERATE_BATCH 20 times with each row's date", [r20.error, r20.out && r20.out.route, r20.batchCalls.map((c) => c.manufacturing_date)],
+      [null, "QUEUED", rows20.map((x) => x.os_mfg_date)]);
+    eq("v6 System split, 20 rows / 20 groups: each row carries its own number", (h20.output_split || []).map((x) => [x.os_batch_no, x.os_location_id]), rows20.map((x, k) => [nums[k], x.os_location_id]));
+    eq("v6 System split, 20 rows / 20 groups: movementCount = 60 picks + 20 receipts", C.iaParseJ(m20.jobs[0].request_payload).movementCount, 80);
+  }
   // refusals before any write (and before any number is generated)
   const refused = [
     ["the total is not the output", { output_split: [plain[0], Object.assign({}, plain[1], { os_qty: 0.5 })] }, {}, /The split total 0\.9 is not the output quantity 1/],

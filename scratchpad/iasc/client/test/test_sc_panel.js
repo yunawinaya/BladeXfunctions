@@ -110,7 +110,7 @@ const MINUS = " − ";
   }
   // ---- PN8: a Flat IA unlinked: not linked + its BOM; every figure row hidden again
   {
-    const flat = Object.assign({}, linked, { bom_consumption_mode: "FLAT", bom_snapshot_json: JSON.stringify(Object.assign(snapOf(linked), { mode: "FLAT", expand: ["C1"] })) });
+    const flat = Object.assign({}, linked, { bom_consumption_mode: "FLAT", bom_snapshot_json: JSON.stringify(Object.assign(snapOf(linked), { mode: "FLAT", expand: ["C1"], expandAt: undefined })) });
     const s = session(flat);
     await s.fire("sc_onClick_refresh");
     check("PN8: linked Flat first: every figure row shown", rows(s).length >= 9, s.panel());
