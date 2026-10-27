@@ -49,5 +49,6 @@ ElementPlus.ElMessageBox.alert(${JSON.stringify(msg)}, ${JSON.stringify(title)},
     return cb({ data: { jobs_json: JSON.stringify(jobs), job_lines_json: JSON.stringify(lines) } });
   }, 0),
 };
-const records = ["1", "4", "5", "6"].map((s) => ({ id: s, so_no: "SO/20261026/010" + s, customer_name: { id: "C1" } }));
+const NAMES = { 1: "Kedai Ah Seng", 4: "Restoran Maju Jaya", 5: "Syarikat Lim Bersaudara", 6: "Pasar Mini Sri Aman" };
+const records = ["1", "4", "5", "6"].map((s) => ({ id: s, so_no: "SO/20261026/010" + s, customer_name: { id: "C" + s, customer_com_name: NAMES[s] } }));
 new Function(SRC).call(ctx, { selectedRecords: records, plantID: "P1", organizationID: "O1" });

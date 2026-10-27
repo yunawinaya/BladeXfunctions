@@ -179,8 +179,10 @@ const refusedDetail = (item) => {
       );
     }
   }
-  const title =
-    others.length === 0
+  // headed by the sales order's customer; a row without the name gets the count instead
+  const title = item.customer
+    ? escapeHTML(item.customer)
+    : others.length === 0
       ? `not enough stock for ${total} item${total === 1 ? "" : "s"}`
       : `${total} line${total === 1 ? " needs" : "s need"} correcting`;
   return {
@@ -573,6 +575,17 @@ const handleConvertGDCreated = async (
   } finally {
     this.hideLoading();
     window.__soConvertGdBusy = false;
+  }
+
+  // The customer of each refused sales order, as the list shows it (no fetch: the selected rows carry it)
+  const customers = {};
+  for (const record of selectedRecords) {
+    customers[String(record.so_no)] = String(
+      (record.customer_name && record.customer_name.customer_com_name) || "",
+    ).trim();
+  }
+  for (const item of blocked) {
+    item.customer = customers[String(item.so_no)] || "";
   }
 
   // Per-SO reasons first: the server message carries real text only when a setup gate fired.

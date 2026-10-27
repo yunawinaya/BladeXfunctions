@@ -6,6 +6,8 @@
 const fs = require("fs"), assert = require("assert");
 const SRC = fs.readFileSync(process.argv[2] || "/Users/yunawinaya/Developer/BladeXfunctions/Goods Delivery/GDhandleConvertSOtoGD.js", "utf8");
 const IDS = { AUTO: "2076557490389835777", CHECK: "2112084100104495105", WORKER: "2104840667119411201" };
+// The SO list's rows carry the customer the list shows (customer_name.customer_com_name)
+const CUSTOMERS = { "SO-1": "Kedai Ah Seng", "SO-4": "Restoran Maju Jaya", "SO-5": "Syarikat Lim Bersaudara" };
 
 // The page's document: only what the handler may touch (a style element in head)
 const makeDocument = () => {
@@ -63,7 +65,9 @@ async function convert(opts) {
   global.window = {};
   global.document = opts.document || makeDocument();
   global.db = { collection: () => ({ where: () => ({ get: async () => ({ data: [{ picking_required: 0, convert_gd_created: 1 }] }) }) }) };
-  const records = opts.sos.map((so) => ({ id: so.replace(/\D/g, ""), so_no: so, customer_name: { id: "C1" } }));
+  const names = opts.customers || CUSTOMERS;
+  const records = opts.sos.map((so) => ({ id: so.replace(/\D/g, ""), so_no: so,
+    customer_name: names[so] === undefined ? { id: "C1" } : { id: "C1", customer_id: "CUST-" + so.slice(3), customer_com_name: names[so] } }));
   new Function(code).call(ctx, { selectedRecords: records, plantID: "P1", organizationID: "O1" });
   for (let k = 0; k < 4000 && !log.alerts.length; k++) await new Promise((r) => setTimeout(r, 1));
   return log;
@@ -94,12 +98,12 @@ const ok = (t) => { n++; console.log("ok", t); };
     lines: [stockLine(1, "FG-1001", "Chilli Sauce 340g", "CTN", 50, 40, 40, 40, 25, 40)] } }));
   let a = log.alerts[0];
   assert.strictEqual(a.title, "Converted with Exceptions");
-  assert.ok(/SO-4<\/strong> — not enough stock for 1 item/.test(a.msg), a.msg);
+  assert.ok(/SO-4<\/strong> — Restoran Maju Jaya<div/.test(a.msg) && !/not enough stock/.test(a.msg), a.msg);
   assert.deepStrictEqual(rowsOf(a.msg), [["FG-1001", "Chilli Sauce 340g", "CTN", "50", "40", "40", "25", "15"]]);
   assert.ok(/Created 1 goods delivery/.test(a.msg) && /GD\/1/.test(a.msg), "the created part is unchanged: " + a.msg);
   assert.ok(/Convert one of these on its own to open the form, where you can deliver the available quantity\./.test(a.msg), a.msg);
   assert.deepStrictEqual(log.checks.map((p) => p.job_lines), ["1"], "the follow asks the check for the refused lines");
-  ok("a short line: GD-form columns, quantities in the line's unit, shortfall = remaining demand - available");
+  ok("a short line: headed by the sales order's customer; GD-form columns, quantities in the line's unit, shortfall = remaining demand - available");
 
   // 2. the line is in CTN (12 PCS each): the save reports PCS, the table shows CTN
   log = await convert(oneFailed({ J4: { job_status: "FAILED", error_message: "x",
@@ -112,7 +116,7 @@ const ok = (t) => { n++; console.log("ok", t); };
     stockLine(1, "FG-2040", "Soy Sauce 1L", "CTN", 12, 12, 12, 12, 0, 12),
     stockLine(2, "FG-2041", "Oyster Sauce 500g", "KG", 1, 0.5, 0.5, 0.5, "0.30000000000000004", 0.5)] } }));
   a = log.alerts[0];
-  assert.ok(/SO-4<\/strong> — not enough stock for 2 items/.test(a.msg), a.msg);
+  assert.ok(/SO-4<\/strong> — Restoran Maju Jaya<div/.test(a.msg), a.msg);
   assert.deepStrictEqual(rowsOf(a.msg), [["FG-2040", "Soy Sauce 1L", "CTN", "12", "12", "12", "0", "12"], ["FG-2041", "Oyster Sauce 500g", "KG", "1", "0.5", "0.5", "0.3", "0.2"]]);
   ok("two short lines: two rows; 0.30000000000000004 shows as 0.3, the shortfall as 0.2");
 
@@ -122,7 +126,7 @@ const ok = (t) => { n++; console.log("ok", t); };
     { line_no: "3", code: "GD_INVALID_UOM", item_code: "FG-2", item_name: "Kicap", uom: "BOX", order_qty: "5", undelivered_qty: "5", delivery_qty: "5", base_qty: "5",
       message: "unit CTN has no conversion to the base unit of the material" }] } }));
   a = log.alerts[0];
-  assert.ok(/SO-4<\/strong> — 2 lines need correcting/.test(a.msg), a.msg);
+  assert.ok(/SO-4<\/strong> — Restoran Maju Jaya<div/.test(a.msg) && !/need correcting/.test(a.msg), a.msg);
   assert.deepStrictEqual(rowsOf(a.msg), [["FG-1001", "Chilli Sauce 340g", "CTN", "50", "40", "40", "25", "15"]]);
   assert.ok(/Line 3 \(FG-2\): unit CTN has no conversion to the base unit of the material/.test(a.msg), a.msg);
   ok("mixed refusal: stock lines in the table, the other line listed as Line 3 (FG-2): message");
@@ -133,7 +137,7 @@ const ok = (t) => { n++; console.log("ok", t); };
       message: "allocation 1: unrestricted stock 5 at bin 99 is less than the 8 requested by this delivery" }] } }));
   a = log.alerts[0];
   assert.deepStrictEqual(rowsOf(a.msg), []);
-  assert.ok(/SO-4<\/strong> — 1 line needs correcting/.test(a.msg) && /Line 1 \(FG-9\): allocation 1: unrestricted stock 5 at bin 99 is less than the 8 requested by this delivery/.test(a.msg), a.msg);
+  assert.ok(/SO-4<\/strong> — Restoran Maju Jaya<br>Line 1 \(FG-9\): allocation 1: unrestricted stock 5 at bin 99 is less than the 8 requested by this delivery/.test(a.msg), a.msg);
   assert.ok(!a.opts.customClass, "no table, no wide window");
   ok("a stock message that does not parse: shown as the save wrote it, no table");
 
@@ -142,8 +146,8 @@ const ok = (t) => { n++; console.log("ok", t); };
   log = await convert(oneFailed({ J4: { job_status: "FAILED", error_message: "x", error_count: 14, lines: many } }));
   a = log.alerts[0];
   assert.strictEqual(rowsOf(a.msg).length, 10);
-  assert.ok(/SO-4<\/strong> — not enough stock for 14 items/.test(a.msg) && /… and 4 more/.test(a.msg), a.msg);
-  ok("14 refused lines, 10 sent: 10 rows, the title counts 14, '… and 4 more'");
+  assert.ok(/SO-4<\/strong> — Restoran Maju Jaya<div/.test(a.msg) && /… and 4 more/.test(a.msg), a.msg);
+  ok("14 refused lines, 10 sent: 10 rows, '… and 4 more'");
 
   // 7. a header refusal (credit limit, no line number): today's reason
   log = await convert(oneFailed({ J4: { job_status: "FAILED", error_message: "Credit limit exceeded for this customer",
@@ -166,6 +170,7 @@ const ok = (t) => { n++; console.log("ok", t); };
   a = log.alerts[0];
   assert.strictEqual(a.title, "Could Not Convert to Goods Delivery");
   assert.deepStrictEqual(rowsOf(a.msg), [["FG-1001", "Chilli Sauce 340g", "CTN", "50", "40", "40", "25", "15"]]);
+  assert.ok(/SO-4<\/strong> — Restoran Maju Jaya<div/.test(a.msg), a.msg);
   assert.ok(/SO-5<\/strong><br>Credit limit exceeded/.test(a.msg), a.msg);
   ok("nothing converted: the error window shows the table, other reasons as today");
 
@@ -199,6 +204,23 @@ const ok = (t) => { n++; console.log("ok", t); };
   assert.deepStrictEqual(rowsOf(log.alerts[0].msg), [["FG-1001", "Chilli Sauce 340g", "CTN", "50", "40", "40", "25", "15"]]);
   assert.ok(logged.some((t) => /could not be widened/.test(t)), JSON.stringify(logged));
   ok("no document.head: the table still shows (the window is just not widened, and that is logged)");
+
+  // 13. a row without the customer's name (only its id): today's titles
+  log = await convert(oneFailed({ J4: { job_status: "FAILED", error_message: "x", lines: [stockLine(1, "FG-1001", "Chilli Sauce 340g", "CTN", 50, 40, 40, 40, 25, 40)] } }, { customers: {} }));
+  assert.ok(/SO-4<\/strong> — not enough stock for 1 item/.test(log.alerts[0].msg), log.alerts[0].msg);
+  log = await convert(oneFailed({ J4: { job_status: "FAILED", error_message: "x", lines: [
+    stockLine(1, "FG-1001", "Chilli Sauce 340g", "CTN", 50, 40, 40, 40, 25, 40),
+    { line_no: "3", code: "GD_INVALID_UOM", item_code: "FG-2", item_name: "Kicap", uom: "BOX", order_qty: "5", undelivered_qty: "5", delivery_qty: "5", base_qty: "5",
+      message: "unit CTN has no conversion to the base unit of the material" }] } }, { customers: { "SO-4": "  " } }));
+  assert.ok(/SO-4<\/strong> — 2 lines need correcting/.test(log.alerts[0].msg), log.alerts[0].msg);
+  ok("no customer name on the row (or a blank one): today's 'not enough stock for N items' / 'N lines need correcting'");
+
+  // 14. the customer's name is escaped
+  log = await convert(oneFailed({ J4: { job_status: "FAILED", error_message: "x", lines: [stockLine(1, "FG-1001", "Chilli Sauce 340g", "CTN", 50, 40, 40, 40, 25, 40)] } },
+    { customers: { "SO-4": "Lim & Sons <KL>" } }));
+  a = log.alerts[0];
+  assert.ok(a.msg.includes("SO-4</strong> — Lim &amp; Sons &lt;KL&gt;<div") && !a.msg.includes("<KL>"), a.msg);
+  ok("the customer's name is HTML-escaped");
 
   console.log(n + " passed");
 })().catch((e) => { console.error(e); process.exit(1); });

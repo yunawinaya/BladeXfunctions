@@ -1,0 +1,14 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SO list",
+   "kind": "page",
+   "dataId": "1901872125787099137",
+   "file": "scratchpad/soautogd/shortfall/deploy/SO_list.dev_v536_customer.json",
+   "base": "scratchpad/soautogd/shortfall/deploy/SO_list.dev_v536_base.json",
+   "designingHistoryId": "2114906662256586753"
+  }
+ ]
+}
