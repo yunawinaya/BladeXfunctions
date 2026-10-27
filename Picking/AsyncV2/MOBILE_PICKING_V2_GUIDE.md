@@ -358,3 +358,62 @@ The other parts of this guide apply unchanged: one live kick per job, report-onc
 Revert Completed must refuse a Picking whose latest job (STATUS) has `operation` FORCE_COMPLETE and is COMPLETED
 ("This Picking was force completed: its deliveries were reduced. Create a new delivery from the sales order for the
 rest.").
+
+## Part 11 — Auto Complete GD (stage 1e: server on dev since 2026-10-27; the phone side is this OTA)
+
+**What the server does.** When the organization's Picking Setup has **Auto Complete GD** on, a confirm saved in the
+background ends as usual. Then, after the Picking job is COMPLETED, the server hands each delivery the confirm left fully
+picked to GD Complete V2 and queues its completion. Nothing runs those completions by itself (Part 5), so **the app must
+start each one**.
+- A phone that does not say it can do that stays on classic. SUBMIT answers `NOT_ELIGIBLE` "Auto Complete GD on the
+  phone uses the classic save until the app update", so today's app is unchanged: it runs PICKING_LOOP (Part 3).
+- Force Complete (`PKF:`) with Auto Complete GD stays classic either way (Part 10).
+
+**1. SUBMIT: declare the capability.** Only in the build that also does step 2, add `"caps": ["gd_complete"]` to the
+payload object, beside `lines` and `header_patch`:
+
+```jsonc
+"payload": "{\"lines\":[…],\"header_patch\":{…},\"caps\":[\"gd_complete\"]}"
+```
+
+The idempotency key is unchanged: its hash covers picking_id, update_time, lines and header_patch, not caps. A server
+without stage 1e ignores the key, so the build is safe to ship before the prod paste.
+
+**2. When the job is COMPLETED: start the completions.** STATUS (Part 4) also answers `gd_complete`: an array of
+`{ gd_id, gd_no, status, job_id, code, message }`, one per delivery the server handed over. Accept it as an array or as
+JSON text.
+- **`status: "QUEUED"`** with a `job_id`: call **GD_COMPLETE_WORKER** `2110182645714518018` `{ job_id }` once.
+  - Make it fire-and-forget through a plain fetch, as for PICKING_ASYNC_WORKER (Part 5); never treat its timeout as a
+    failure.
+  - Each call completes one delivery, so with several deliveries make one call per job.
+  - Toast once per job: "Completing GD-x in the background".
+- **`status: "NOT_QUEUED"`**: show once "GD-x was not completed automatically: `message`". The message already ends
+  with "complete it from the Goods Delivery list" (e.g. the credit limit, Packing required, another Picking of the same
+  delivery still confirming).
+- **An empty list**: nothing to do (Auto Complete GD is off, or nothing was left fully picked).
+
+**3. Optional: follow a completion.** `GD_COMPLETE_SUBMIT` `2110182609618337794` `{ operation: "STATUS", gd_id }`
+answers that delivery's completion: `job_status` QUEUED / VALIDATING / READY_TO_COMMIT / COMMITTING_GD means running;
+COMPLETED; FAILED / REQUIRES_REVIEW.
+- While it is running, re-kick GD_COMPLETE_WORKER `{ job_id }` every 15 s, up to 180 s, as for the Picking job.
+- Not required: any desktop with a Goods Delivery list open sweeps queued completions every 2 minutes, and opening the
+  delivery nudges it.
+
+| Workflow | Id (dev = prod) | Call it |
+|---|---|---|
+| GD_COMPLETE_WORKER | `2110182645714518018` | `{ job_id }` per QUEUED entry of `gd_complete` |
+| GD_COMPLETE_SUBMIT | `2110182609618337794` | optional `{ operation: "STATUS", gd_id }` |
+
+**Test plan (dev).** Log in to a tenant whose Picking Setup has Auto Complete GD on and no Loading Bay: 000000 (org
+1123598813738675201, packing not required) or 239760 (org 2048652284978208769).
+1. Confirm a Picking fully **with** `caps`: SUBMIT QUEUED -> STATUS COMPLETED -> `gd_complete` = [QUEUED, job_id] -> the
+   app calls GD_COMPLETE_WORKER -> the delivery is Completed (and a Sales Invoice is made where Auto Complete SI is on).
+2. The same **without** `caps`: NOT_ELIGIBLE -> the classic PICKING_LOOP, as today.
+3. A partial pick: the job is COMPLETED, `gd_complete` is empty, and the delivery stays Created.
+
+The server side was tested on dev 2026-10-27 (GD/20260929/563, desktop path). The classic vs V2 parity on twin deliveries
+was identical except for the item's last transaction date.
+
+**Release order.** The server's stage 1e goes to prod with the user's paste (planned after the 2026-10-27 cut-off). Ship
+the OTA after it, or before it: with the cap, a phone that reaches a server without stage 1e simply gets NOT_ELIGIBLE /
+classic. Once the OTA is on every phone, nothing else changes on the server: the cap is the switch.

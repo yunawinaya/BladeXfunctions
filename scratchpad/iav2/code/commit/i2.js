@@ -1,28 +1,30 @@
 // IA_V2_COMMIT - I2 ISSUE: INVENTORY_BULK_APPLY APPLY of op 1 (IAC|<job>|I; all-or-nothing, replayed on a re-run).
-// 200 (also REPLAYED; "401" skips inside it tolerated, as the classic) or no movement -> DONE + the hand-over: SPLIT (the worker
-// calls phase B now) or, above 1,000 picks, PARK (due now, no lease: the next tick); attempt_count back to 0, progress 75.
+// 200 (also REPLAYED; "401" skips inside it tolerated, as the classic) or no movement -> DONE + the hand-over: PARK (due now, no lease:
+// the next run) after op 1 was called - one stock call per worker run, as a lock lives until the top-level run ends (prod 10-26) -,
+// SPLIT (the worker calls phase B now) only when no stock was issued; attempt_count back to 0, progress 75.
 // engine v12's 409 "the same operation is still running" -> 8 lock waits (even with intent rows) then review; another 409, no answer,
 // or a 400 without a result_code -> intent rows ? retry (review once spent) : 8 lock waits then FAILED;
 // 400 with a result_code -> FAILED (LABELS-worded); 500 or anything else -> REQUIRES_REVIEW. FAILED unlocks the IA and
 // soft-deletes this job's Batch row (I1's)
 const commitI2 = function commitI2(entry, guard, input, ans, ops, labelRows, i1) {
-  const ours = entry.batchId ? [entry.batchId] : digits((i1 || {}).batchId) ? [s(i1.batchId)] : [];
+  // I1's Batch row(s): the entry's, else this pass's (one, or one per output split group)
+  const ours = iaBatchIdsOf(entry).length ? iaBatchIdsOf(entry) : iaBatchIdsOf({}, i1);
   if (s(input.ok) !== "YES") return failNoWrite(entry, "IA_INVALID_DATA", MSG.invalid, s(input.why) + ": nothing was moved", ours);
-  const handOver = (ok) => {
-    const park = Math.max(num(entry.movementsI), num(input.count)) > IA_PARK_PICKS;
+  const handOver = (ok, called) => {
+    const park = called || Math.max(num(entry.movementsI), num(input.count)) > IA_PARK_PICKS;
     ok.splitRows = [jobRow(entry, park ? { progress_percent: 75, progress_message: P75, attempt_count: 0, next_attempt_at: entry.dbNow }
       : { progress_percent: 75, progress_message: P75, attempt_count: 0, lease_owner: "SPLIT|" + guard.nonce, lease_expires_at: entry.leaseUntil })];
     ok.needSplit = "YES";
     ok.path = park ? "PARK" : "SPLIT";
     return ok;
   };
-  if (s(input.needCall) !== "YES") return handOver(stepOk(entry, "I2_ISSUE", JSON.stringify({ called: "NO", movements: 0 }), "no stock pick to issue"));
+  if (s(input.needCall) !== "YES") return handOver(stepOk(entry, "I2_ISSUE", JSON.stringify({ called: "NO", movements: 0 }), "no stock pick to issue"), false);
   const code = s(ans.code);
   const why = engineWhy("INVENTORY_BULK_APPLY (" + iaOpKey(entry.jobId, "I") + ")", ans);
   if (code === "200") {
     const sum = ans.summary && typeof ans.summary === "object" ? ans.summary : {};
     return handOver(stepOk(entry, "I2_ISSUE", JSON.stringify({ called: "YES", code: code, result_code: s(ans.result_code), summary: sum }), "components issued (" + s(ans.result_code) + ", "
-      + num(sum.movements) + " movement(s)" + (num(sum.skipped) ? ", " + num(sum.skipped) + " skipped" : "") + ")"));
+      + num(sum.movements) + " movement(s)" + (num(sum.skipped) ? ", " + num(sum.skipped) + " skipped" : "") + ")"), true);
   }
   if (code === "400" && s(ans.result_code)) {
     const labels = iaJoinChunks(labelRows, entry.partPrefix + "LABELS|");

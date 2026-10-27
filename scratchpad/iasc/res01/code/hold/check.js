@@ -27,8 +27,14 @@ const hdCheck = function hdCheck(g, rows) {
     return now - at < HD_LEASE_MS ? out("RUNNING", "", HD_CHECK_TEXT.RUNNING) : out("INTERRUPTED", "", HD_CHECK_TEXT.INTERRUPTED + HD_REVIEW);
   }
   if (ref.indexOf("PARTIAL|") === 0) {
-    const step = ref.slice(8);
-    return out("PARTIAL", step, (HD_CHECK_TEXT[step] || "This completion did not finish.") + HD_REVIEW);
+    // IA output split (IA_SAVE v14): RECEIPT|<k>/<n> = output row k of n refused (0 = its batches were not created)
+    const parts = ref.slice(8).split("|");
+    const step = parts[0];
+    const kn = /^([0-9]+)\/([0-9]+)$/.exec(parts[1] || "");
+    const k = kn ? Number(kn[1]) : 0;
+    const split = !kn ? "" : k === 0 ? " Split receipt (" + kn[2] + " rows): its output batches could not be created; no output row was received." :
+      " Split receipt: output row " + k + " of " + kn[2] + " was refused; " + (k > 1 ? "rows 1 to " + (k - 1) + " were received." : "no output row was received.");
+    return out("PARTIAL", step, (HD_CHECK_TEXT[step] || "This completion did not finish.") + split + HD_REVIEW);
   }
   return ref === "DONE" || ref === "V2" ? out("DONE", "", "") : out("UNKNOWN", "", "");
 };

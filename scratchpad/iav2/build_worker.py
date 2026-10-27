@@ -203,7 +203,7 @@ def build():
                           prev_col=IA_PREV_COL, corr_offset=4, id_alias="gr_id", prepare=("IA_V2_PREPARE", IDS["IA_V2_PREPARE"]),
                           commit=("IA_V2_COMMIT", IDS["IA_V2_COMMIT"]),
                           unlock=V.status_unlock(IA_TABLE, "item_assembly_status", {"item_assembly_status": "Item Assembly Status"}),
-                          cache_prefix="ia_wrk_", renames=RENAMES)
+                          cache_prefix="ia_wrk_", renames=RENAMES, one_commit_per_run=True)
     doc = V.build_worker(cfg)
     for nid in JSAT_NODES:
         declare_field(doc, nid, "jsAt", "dbNow")

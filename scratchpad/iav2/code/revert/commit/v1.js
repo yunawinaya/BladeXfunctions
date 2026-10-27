@@ -1,8 +1,9 @@
-// IA_REVERT_V2_COMMIT - V1: APPLY IAV|<job> (all or nothing, replayed on a rerun) -> SPLIT / PARK; refusals as RV7
+// IA_REVERT_V2_COMMIT - V1: APPLY IAV|<job> (all or nothing, replayed on a rerun) -> PARK after an APPLY (one lock call per worker run, as a
+// lock lives until the top-level run ends, prod 10-26: V2 takes its own keys in the next run), SPLIT only with nothing to take back; refusals as RV7
 const commitV1 = function commitV1(entry, guard, input, ans, ops, labelRows) {
   if (s(input.ok) !== "YES") return failNoWrite(entry, "IA_RV_INVALID_DATA", RV_TEXT.invalid, s(input.why) + ": no stock was moved");
-  const handOver = (ok) => {
-    const park = Math.max(num(entry.movementCount), num(input.count)) > IA_PARK_PICKS;
+  const handOver = (ok, called) => {
+    const park = called || Math.max(num(entry.movementCount), num(input.count)) > IA_PARK_PICKS;
     ok.splitRows = [jobRow(entry, park
       ? { progress_percent: 80, progress_message: "Stock taken back; restoring the costing rows", attempt_count: 0, next_attempt_at: entry.dbNow }
       : { progress_percent: 80, progress_message: "Stock taken back; restoring the costing rows", attempt_count: 0, lease_owner: "SPLIT|" + guard.nonce, lease_expires_at: entry.leaseUntil })];
@@ -10,10 +11,10 @@ const commitV1 = function commitV1(entry, guard, input, ans, ops, labelRows) {
     ok.path = park ? "PARK" : "SPLIT";
     return ok;
   };
-  if (s(input.needCall) !== "YES") return handOver(stepOk(entry, "V1_INVENTORY", "no stock movement", "no stock to take back"));
+  if (s(input.needCall) !== "YES") return handOver(stepOk(entry, "V1_INVENTORY", "no stock movement", "no stock to take back"), false);
   const code = s(ans.code);
   const why = "INVENTORY_BULK_APPLY answered " + (code || "nothing") + " " + s(ans.result_code) + (s(ans.message) ? ": " + s(ans.message) : "");
-  if (code === "200") return handOver(stepOk(entry, "V1_INVENTORY", s(ans.result_code) + " " + s(ans.message), "inventory " + s(ans.result_code)));
+  if (code === "200") return handOver(stepOk(entry, "V1_INVENTORY", s(ans.result_code) + " " + s(ans.message), "inventory " + s(ans.result_code)), true);
   // a real refusal (a plan result_code): nothing was written -> FAILED + back to Completed with the LABELS-mapped message
   if (code === "400" && s(ans.result_code)) {
     const labels = iaJoinChunks(labelRows, entry.partPrefix + "LABELS|");

@@ -3,11 +3,75 @@
 // ours -> FAILED IA_BATCH_DUPLICATE (GENERATE_BATCH's own check: batch_number_config has no lock); else the intent row (before
 // the insert) and ONE Batch row with add_node_F9KqZLfd's columns
 const BATCH_COLS = __BATCHCOLS__;
+// IA output split (plan 10-27): a BATCH part of one row per group ({rows}): the intent = every identity, ours adopted per identity, the
+// rest inserted (a number held by another row -> FAILED IA_BATCH_DUPLICATE, ours found so far removed); every receipt names a planned row
+const commitI1DecideSplit = function commitI1DecideSplit(entry, part, eng, batchRows, base) {
+  const rows = batchRowsOf(part);
+  const mvs = eng && typeof eng === "object" && Array.isArray(eng.movements) ? eng.movements : [];
+  const batchOf = eng && eng.batchOf && typeof eng.batchOf === "object" ? eng.batchOf : {};
+  const bad = [];
+  if (s(part.mode) !== "insert" || !rows.length) bad.push("the BATCH part is missing or not mode insert");
+  rows.forEach((row, i) => {
+    const at = "the planned Batch row " + (i + 1);
+    if (!s(row.batch_number)) bad.push(at + " has no number");
+    if (s(row.material_id) !== entry.parentItemId) bad.push(at + " is for item " + s(row.material_id) + ", the assembled item is " + entry.parentItemId);
+    if (s(row.organization_id) !== entry.organizationId || !digits(row.plant_id)) bad.push(at + "'s organization / plant");
+    if (s(row.transaction_no) !== entry.iaNo) bad.push(at + "'s transaction_no " + s(row.transaction_no) + " is not " + entry.iaNo);
+  });
+  const keys = rows.map((r) => batchKey(r.batch_number));
+  if (keys.some((k, i) => keys.indexOf(k) !== i)) bad.push("two planned Batch rows share a number");
+  if (!mvs.length || s(eng.operation_key) !== iaOpKey(entry.jobId, "R") || s(eng.organization_id) !== entry.organizationId ||
+    mvs.some((m, i) => s(m.movement_key) !== "R" + (i + 1) || s(m.direction) !== "ADD")) {
+    bad.push("the ENGINE_R part is missing or not this job's");
+  } else {
+    if (mvs.some((m) => keys.indexOf(batchKey(batchOf[s(m.movement_key)])) < 0)) bad.push("a receipt names a batch the BATCH part does not plan");
+    if (keys.some((k) => !mvs.some((m) => batchKey(batchOf[s(m.movement_key)]) === k))) bad.push("a planned Batch row that no receipt takes");
+  }
+  if (bad.length) return Object.assign(base, failNoWrite(entry, "IA_INVALID_DATA", MSG.invalid, bad.join("; ") + ": no stock was moved", []));
+  if (entry.hasIntent === "BAD") return Object.assign(base, reviewEnd(entry, "I1_BATCH", "IA_RECONCILIATION_MISMATCH", "the recorded I1|I|001 intent cannot be read"));
+  const idts = rows.map(identityOf);
+  const intent = entry.hasIntent === "YES" ? intentsOf(entry.intent) : null;
+  if (intent && (intent.length !== idts.length || idts.some((x, i) => !sameIdentity(intent[i], x)))) {
+    return Object.assign(base, reviewEnd(entry, "I1_BATCH", "IA_RECONCILIATION_MISMATCH", "the recorded intent " + JSON.stringify(intent) + " is not the BATCH part's rows"));
+  }
+  const out = { identity: idts[0], identities: idts, r1: mvs[0], receipts: mvs, batchOf: batchOf, opKeyR: s(eng.operation_key) };
+  const oursBy = {};
+  const found = [];
+  let twice = false;
+  for (const x of intent ? idts : []) {
+    const o = oursOf(batchRows, x, entry.jobId);
+    o.forEach((id) => found.indexOf(id) < 0 && found.push(id));
+    if (o.length > 1) twice = true;
+    else if (o.length === 1) oursBy[batchKey(x.batch_number)] = o[0];
+  }
+  if (twice) return Object.assign(base, out, failNoWrite(entry, "IA_BATCH_FAILED", MSG.batchTwice, "a Batch row of this job was inserted twice (" + found.join(", ") + "): nothing was moved", found));
+  const todo = idts.filter((x) => !oursBy[batchKey(x.batch_number)]);
+  for (const x of todo) {
+    const taken = iaRows(batchRows).filter((o) => batchKey(o.batch_number) === batchKey(x.batch_number) && found.indexOf(s(o.id)) < 0);
+    if (taken.length) {
+      return Object.assign(base, out, failNoWrite(entry, "IA_BATCH_DUPLICATE", IA_TEXT.batchDuplicate, "batch number " + x.batch_number + " is held by Batch row " + s(taken[0].id) + " (" +
+        (s(taken[0].transaction_no) || "no transaction") + "): no stock was moved", found));
+    }
+  }
+  const ins = todo.map((x) => {
+    const row = rows[idts.indexOf(x)];
+    const r = {};
+    for (const k of BATCH_COLS) r[k] = row[k] === undefined ? null : row[k];
+    r.initial_quantity = iaQtyStr(row.initial_quantity);
+    return r;
+  });
+  // every group's identity (~170 characters each, 20 groups ~3,500): stored whole - result_ref is longtext, doneRow's 2,000-character cut would
+  // leave a re-run an unreadable intent (review 10-27)
+  const intentRows = intent ? [] : [Object.assign(doneRow(entry, "I1|I|001", ""), { step_status: "INTENT", result_ref: JSON.stringify(idts) })];
+  return Object.assign(base, out, { ours: found, oursByKey: oursBy, intentRows: intentRows, needIntent: intentRows.length ? "YES" : "NO", insertRows: ins, needInsert: ins.length ? "YES" : "NO",
+    result_message: ins.length + " of " + idts.length + " Batch rows to insert" + (found.length ? " (" + found.length + " of an earlier pass adopted)" : "") });
+};
 const commitI1Decide = function commitI1Decide(entry, partRows, engRRows, batchRows) {
   const base = Object.assign({ route: "GO", identity: {}, ours: [], intentRows: [], needIntent: "NO", insertRows: [], needInsert: "NO", r1: {}, opKeyR: "", jobRows: [], needJobUpd: "NO",
-    result_code: "", result_message: "", job_status: "COMMITTING_IA" }, END_EMPTY);
+    result_code: "", result_message: "", job_status: "COMMITTING_IA", identities: [], receipts: [], batchOf: {}, oursByKey: {} }, END_EMPTY);
   const part = iaJoinChunks(partRows, entry.partPrefix + "BATCH|");
   const eng = iaJoinChunks(engRRows, entry.partPrefix + "ENGINE_R|");
+  if (part && typeof part === "object" && Array.isArray(part.rows)) return commitI1DecideSplit(entry, part, eng, batchRows, base);
   const row = part && typeof part === "object" && part.row && typeof part.row === "object" ? part.row : null;
   const r1 = eng && typeof eng === "object" && Array.isArray(eng.movements) && eng.movements.length === 1 ? eng.movements[0] : null;
   const bad = [];

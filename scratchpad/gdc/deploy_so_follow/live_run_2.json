@@ -1,0 +1,44 @@
+{
+ "alerts": [
+  {
+   "title": "Converted to Goods Deliveries",
+   "msg": "<strong>Created 2 goods deliveries:</strong><br>GD/20261027/645 <span style=\"color:#909399\">(SO/20260701-002)</span><br>GD/20261027/646 <span style=\"color:#909399\">(SO/20260626-104)</span><br><br><strong>Being created in the background (2):</strong><br>SO/20260706-009<br>SO/20260710-021<br>They appear in the Goods Delivery list when done. Keep this list open until then."
+  }
+ ],
+ "log": [
+  "0.0s converting SO/20260710-021, SO/20260706-009, SO/20260701-002, SO/20260626-104",
+  "0.2s GD_SO_CONVERT_CHECK (207 ms) {\"code\":\"200\",\"message\":\"\",\"busy_json\":\"[]\",\"busy_count\":\"0\",\"jobs_json\":\"[]\",\"jobs_count\":\"0\",\"run_json\":\"null\",\"job_lines_json\":\"[]\"}",
+  "0.2s confirm: Sales Order Conversion -> cancel (one GD per SO)",
+  "0.2s loading: Converting to Goods Delivery...",
+  "1.2s SO_AUTO_GD (946 ms) {\"code\":\"200\",\"message\":\"Created 0 goods deliveries, 4 being created in the background.\",\"created\":[],\"blocked\":[],\"queued\":[{\"so_no\":\"SO/20260626-104\",\"job_id\":\"2114999414823501825\",\"gd_no\":\"\"},{\"so_no\":\"SO/20260701-002\",\"job_id\":\"2114999415482007554\",\"gd_no\":\"\"},{\"so_no\":\"SO/20260706-009\",\"job_id\"",
+  "1.2s loading: Creating goods deliveries in the background: 0 of 4 done...",
+  "4.3s GD_SO_CONVERT_CHECK (117 ms) 501825:COMMITTING_GD 007554:COMMITTING_GD 617089:COMMITTING_GD 265217:COMMITTING_GD",
+  "4.3s loading: Creating goods deliveries in the background: 0 of 4 done...",
+  "4.3s GD_ASYNC_WORKER (3161 ms) job 2114999416912265217 -> WORKED COMMITTING_GD GD_INVENTORY_IN_PROGRESS",
+  "4.4s GD_ASYNC_WORKER (3258 ms) job 2114999416358617089 -> WORKED COMMITTING_GD GD_INVENTORY_IN_PROGRESS",
+  "7.2s GD_ASYNC_WORKER (6060 ms) job 2114999415482007554 -> WORKED COMPLETED ",
+  "7.4s GD_SO_CONVERT_CHECK (96 ms) 501825:COMMITTING_GD 007554:COMPLETED 617089:COMMITTING_GD 265217:COMMITTING_GD",
+  "7.4s loading: Creating goods deliveries in the background: 1 of 4 done...",
+  "9.5s GD_ASYNC_WORKER (8373 ms) job 2114999414823501825 -> WORKED COMPLETED ",
+  "10.5s GD_SO_CONVERT_CHECK (81 ms) 501825:COMPLETED 617089:COMMITTING_GD 265217:COMMITTING_GD",
+  "10.5s loading: Creating goods deliveries in the background: 2 of 4 done...",
+  "13.5s GD_SO_CONVERT_CHECK (73 ms) 617089:COMMITTING_GD 265217:COMMITTING_GD",
+  "13.5s loading: Creating goods deliveries in the background: 2 of 4 done...",
+  "16.6s GD_SO_CONVERT_CHECK (84 ms) 617089:COMMITTING_GD 265217:COMMITTING_GD",
+  "16.6s loading: Creating goods deliveries in the background: 2 of 4 done...",
+  "16.8s GD_ASYNC_WORKER (200 ms) job 2114999416358617089 -> IDLE  ",
+  "19.7s GD_SO_CONVERT_CHECK (84 ms) 617089:COMMITTING_GD 265217:COMMITTING_GD",
+  "19.7s loading: Creating goods deliveries in the background: 2 of 4 done...",
+  "22.8s GD_SO_CONVERT_CHECK (90 ms) 617089:COMMITTING_GD 265217:COMMITTING_GD",
+  "22.8s refresh",
+  "22.8s ALERT Converted to Goods Deliveries |  Created 2 goods deliveries: GD/20261027/645 (SO/20260701-002) GD/20261027/646 (SO/20260626-104) Being created in the background (2): SO/20260706-009 SO/20260710-021 They appear in the Goods Delivery list when done. Keep this list open until then.",
+  "23.0s GD_ASYNC_WORKER (152 ms) job 2114999416358617089 -> IDLE  ",
+  "23.1s summary shown; background continues",
+  "38.0s GD_SO_CONVERT_CHECK (159 ms) 617089:COMMITTING_GD 265217:COMMITTING_GD",
+  "41.7s GD_ASYNC_WORKER (3710 ms) job 2114999416358617089 -> WORKED COMPLETED ",
+  "53.1s GD_SO_CONVERT_CHECK (120 ms) 617089:COMPLETED 265217:COMMITTING_GD",
+  "56.7s GD_ASYNC_WORKER (3616 ms) job 2114999416912265217 -> WORKED COMPLETED ",
+  "68.2s GD_SO_CONVERT_CHECK (108 ms) 265217:COMPLETED",
+  "103.1s end: no worker start for 45 s (or 8 min passed)"
+ ]
+}

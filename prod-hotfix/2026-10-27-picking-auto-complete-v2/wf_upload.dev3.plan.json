@@ -1,0 +1,10 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  { "name": "Picking form (transfer_order)", "kind": "form", "dataId": "1935556443668959233",
+    "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/PickingFullJSON.json", "base": "/Users/yunawinaya/Developer/BladeXfunctions/prod-hotfix/2026-10-27-picking-auto-complete-v2/PickingFullJSON.dev_v438.base.json" },
+  { "name": "Picking list page", "kind": "page", "dataId": "1935635853539348481",
+    "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/PickingListPageFullJSON.json", "base": "/Users/yunawinaya/Developer/BladeXfunctions/prod-hotfix/2026-10-27-picking-auto-complete-v2/PickingListPageFullJSON.dev_v224.base.json" }
+ ]
+}

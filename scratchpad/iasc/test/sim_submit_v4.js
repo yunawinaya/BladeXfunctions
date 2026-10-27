@@ -11,6 +11,10 @@ const { Engine } = require(path.join(IAV2, "lib", "sim", "engine.js"));
 const F = require(path.join(IAV2, "code", "shared", "fingerprint.js"));
 const C = require(path.join(IAV2, "code", "shared", "ia_common.js"));
 const BUILT = process.env.IA_V4 || path.join(__dirname, "..", "..", "..", "Item Assembly & BOM", "SmallCycle", "IA_V2_SUBMIT.json");
+// v5 (phase 1: a split goes to the classic save) / v6 (phase 2: the background completion receives it, plan 10-27)
+const IS_V5 = /iaOsIneligible/.test(fs.readFileSync(BUILT, "utf8"));
+const IS_V6 = /code_node_ISosFinal/.test(fs.readFileSync(BUILT, "utf8"));
+const V6P = IS_V6 ? 1 : 0;
 // MIN-02 (BA 10-22): the completion claim has its own switch (shipped ON); the v3 / Small Cycle cases pin write orders with it off, its own
 // cases run with it on
 const CLAIM_SWITCH = /const IA_CLAIM_ENABLED = (true|false);/g;
@@ -158,13 +162,13 @@ class Model {
     const job = sql.match(/ia_v2_job_id = '([0-9]+)'/)[1];
     return Object.keys(this.ia).filter((id) => this.ia[id].ia_v2_job_id === job).sort();
   }
-  header(id) {
+  header(id, withSplit) {
     const h = this.ia[id];
-    return { j: JSON.stringify({ id: id, item_id: h.item_id, item_qty: q8s(h.item_qty), item_uom: h.item_uom, location_id: h.location_id, inventory_category: h.inventory_category,
+    return { j: JSON.stringify(Object.assign(withSplit ? { output_split: h.output_split === undefined ? null : h.output_split } : {}, { id: id, item_id: h.item_id, item_qty: q8s(h.item_qty), item_uom: h.item_uom, location_id: h.location_id, inventory_category: h.inventory_category,
       batch_no: h.batch_no, issuing_operation_faci: h.issuing_operation_faci, organization_id: h.organization_id, stock_movement_no: h.stock_movement_no,
       stock_movement_no_type: String(h.stock_movement_no_type), item_assembly_status: h.item_assembly_status, posted_status: h.posted_status || null, table_hu: null,
       item_assembly_date: h.item_assembly_date ? h.item_assembly_date + " 00:00:00" : null, manufacturing_date: null, expired_date: null, remarks: h.remarks,
-      remarks_2: h.remarks_2, remarks_3: h.remarks_3, ia_v2_job_id: h.ia_v2_job_id || null }) };
+      remarks_2: h.remarks_2, remarks_3: h.remarks_3, ia_v2_job_id: h.ia_v2_job_id || null })) };
   }
   lineRows(id) {
     return this.ia[id].lines.map((l) => ({ j: JSON.stringify({ id: l.id, line_index: String(l.line_index), item_selection: l.item_selection, quantity_uom: l.quantity_uom,
@@ -203,10 +207,31 @@ class Sim extends Engine {
       sql_node_ISitems: () => items(),
       sql_node_IScost: () => sc.cost || [],
       sql_node_ISwa: () => sc.wa || [],
-      sql_node_ISdup: () => sc.dup || [],
+      // the screen answers only for the (material, bin) / (material, bin, batch) tuples its SQL names (code_node_ISkeys)
+      sql_node_ISdup: (q) => {
+        const lists = [...q.matchAll(/JSON_TABLE\('(\[[^']*\])'/g)].map((x) => C.iaParseJ(x[1]).map((tu) => tu.map(String).join("|")));
+        return (sc.dup || []).filter((r) => {
+          const x = JSON.parse(r.j);
+          return x.t === "B" ? lists[0].indexOf(x.material_id + "|" + x.location_id) >= 0 : lists[1].indexOf(x.material_id + "|" + x.location_id + "|" + x.batch_id) >= 0;
+        });
+      },
       sql_node_IShdr: (q) => model.byJob(q).map((id) => ({ id: id, stock_movement_no: model.ia[id].stock_movement_no, item_assembly_status: model.ia[id].item_assembly_status,
         ia_v2_job_id: model.ia[id].ia_v2_job_id })),
-      sql_node_ISheader: (q) => model.byJob(q).slice(0, 1).map((id) => model.header(id)),
+      sql_node_ISheader: (q) => model.byJob(q).slice(0, 1).map((id) => model.header(id, /'output_split', h\.output_split/.test(q))),
+      // v6: the split rows' bins - the payload's (b2.id IN) + the stored IA's rows (h2.id = <ia>); sc.bins overrides a bin's plant / sl / active -
+      // and the stored IA's split, plant, item and bin
+      sql_node_ISosRead: (q) => {
+        model.osBinSql = (model.osBinSql || []).concat([q]);
+        const ids = ((q.match(/b2\.id IN \(([0-9,]+)\)/) || [])[1] || "").split(",").filter((x) => x && x !== "0");
+        const ia = (q.match(/h2\.id = ([0-9]+) AND h2\.is_deleted = 0/) || [])[1];
+        const h = ia && ia !== "0" ? model.ia[ia] : null;
+        const rows = h && Array.isArray(h.output_split) ? h.output_split : [];
+        const all = ids.concat(rows.map((r) => String(r.os_location_id))).filter((x, i, a) => a.indexOf(x) === i);
+        if (q.indexOf("b.tenant_id = '" + T + "'") < 0) throw new Error("bins SQL without the tenant: " + q);
+        const stored = h ? { output_split: h.output_split === undefined ? null : h.output_split, plant: h.issuing_operation_faci, item_id: h.item_id, bin: h.location_id } : null;
+        return [{ j: JSON.stringify({ bins: all.length ? all.map((id) => Object.assign({ id: id, plant: PLANT, sl: "2018912759311265793", active: 1 }, (sc.bins || {})[id] || {})) : null,
+          stored: stored }) }];
+      },
       sql_node_ISlines: (q) => model.byJob(q).slice(0, 1).reduce((a, id) => a.concat(model.lineRows(id)), []),
       sql_node_ISback: (q) => model.back(q),
       sql_node_ISsc: (q) => model.scSource(q, sc),
@@ -237,6 +262,7 @@ class Sim extends Engine {
     if (name === "GENERATE_BATCH") {
       this.batchCalls.push(JSON.parse(JSON.stringify(params)));
       if (this.sc.batchRefuse) throw new Error("执行工作流节点[Generate Batch]报错[" + this.sc.batchRefuse + "]");
+      if (Array.isArray(this.sc.batchNumbers)) return { returned: { batch_number: this.sc.batchNumbers[this.batchCalls.length - 1] }, ctx: null };
       return { returned: { batch_number: "batchNumber" in this.sc ? this.sc.batchNumber : "1016-005-0003" }, ctx: null };
     }
     return super.run(name, params);
@@ -287,7 +313,7 @@ eq("Add: the job linked, due now, its final request", [m.jobs[0].correlation_id,
   ["IA|" + ia1, ia1, "2026-10-19 10:00:00", 60]);
 const req1 = C.iaParseJ(m.jobs[0].request_payload);
 eq("Add: request iaId / iaNo / issuedNo / lineFingerprint from the read-back", [req1.iaId, req1.iaNo, req1.issuedNo, req1.lineFingerprint],
-  [ia1, "IA-2610-0042", "IA-2610-0042", F.iaLineFingerprint(m.lineRows(ia1), [m.header(ia1)])]);
+  [ia1, "IA-2610-0042", "IA-2610-0042", F.iaLineFingerprint(m.lineRows(ia1), [m.header(ia1, IS_V6)])]);
 eq("Add: the lock is the key", [m.steps[0].job_id, m.steps[0].step_name, m.steps[0].result_ref, m.steps[0].step_status], ["IAC|" + ia1, "LOCK|1", keyOf("new-a1"), "LOCK"]);
 eq("Add: answer ia_id", r.out.ia_id, ia1);
 // the same key again (a lost answer re-sent): that job's STATUS, nothing written
@@ -314,11 +340,11 @@ eq("stored Draft: QUEUED", r.error || [r.out.route, r.out.ia_id, r.out.ia_no], [
 eq("stored Draft: the write order (lock first)", writesOf(m), ["insert GD Publish Step LOCK|3", "insert GD Async Job", "update Item Assembly", "update GD Async Job"]);
 const upd = m.writes[2][2];
 eq("stored Draft: the update carries Processing, the job, the key, the number sentinel, no posted_status", [upd.item_assembly_status, upd.ia_v2_job_id, upd.ia_idem_key,
-  upd.stock_movement_no, "posted_status" in upd, Object.keys(upd).filter((k) => k !== "__id").length], ["Processing", m.jobs[0].id, keyOf(ID), "issued", false, 34]);
+  upd.stock_movement_no, "posted_status" in upd, Object.keys(upd).filter((k) => k !== "__id").length], ["Processing", m.jobs[0].id, keyOf(ID), "issued", false, 34 + V6P]);
 eq("stored Draft: existing line ids kept (an update, not new rows)", m.ia[ID].lines.map((l) => l.id).join(), stored().stock_movement.map((l) => l.id).join());
 const req2 = C.iaParseJ(m.jobs[0].request_payload);
 eq("stored Draft: due wrote the final request", [m.jobs[0].next_attempt_at, req2.iaId, req2.iaNo, req2.issuedNo, req2.lineFingerprint, m.jobs[0].correlation_id],
-  ["2026-10-19 10:00:00", ID, "IA-2610-0042", "IA-2610-0042", F.iaLineFingerprint(m.lineRows(ID), [m.header(ID)]), "IA|" + ID]);
+  ["2026-10-19 10:00:00", ID, "IA-2610-0042", "IA-2610-0042", F.iaLineFingerprint(m.lineRows(ID), [m.header(ID, IS_V6)]), "IA|" + ID]);
 // the job FAILED later (unlocked to Draft): a resubmit with gen 2 keeps the number that job issued
 m.jobs[0].job_status = "FAILED";
 m.ia[ID].item_assembly_status = "Draft";
@@ -326,7 +352,7 @@ r = go(m, { pageStatus: "Edit", ia_id: ID, idempotency_key: keyOf(ID, 2), form: 
 const upd2 = m.writes.filter((w) => w[1] === "Item Assembly").slice(-1)[0][2];
 eq("number rule: after a FAILED job, the number it issued is kept (no number props)", [r.out.route, "stock_movement_no" in upd2, "stock_movement_no_type" in upd2,
   m.ia[ID].stock_movement_no, C.iaParseJ(m.jobs[1].request_payload).issuedNo, Object.keys(upd2).filter((k) => k !== "__id").length],
-["QUEUED", false, false, "IA-2610-0042", "", 32]);
+["QUEUED", false, false, "IA-2610-0042", "", 32 + V6P]);
 // it COMPLETED and was reverted to Draft: the next completion issues a new number
 m.jobs[1].job_status = "COMPLETED";
 m.ia[ID].item_assembly_status = "Draft";
@@ -363,6 +389,140 @@ for (const [label, sc, req, want] of [
   m = new Model();
   r = go(m, Object.assign({ pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-x"), form: record(lines60()) }, req), sc);
   eq(label + ": answered, nothing written", [r.error, r.out && r.out.route, m.writes.length, Object.values(r.out || {}).every((v) => typeof v === "string")], [null, want, 0, true]);
+}
+
+// 4b. IA output split, phase 1 (v5, plan 10-27): a split completion goes to the classic save (NOT_ELIGIBLE); above its 250 picks a STOP
+// naming the reason; no split rows (or none sent) = the background completion as before. Run on a v5 build (the repo's must be one); a v4
+// build (IA_V4: mutants_v4.py) skips them
+eq("the repo's IA_V2_SUBMIT is v6 (the output split in the background)", IS_V6 || !!process.env.IA_V4, true);
+if (IS_V5) {
+  const split = [{ os_qty: 0.5, os_location_id: BIN }, { os_qty: 0.5, os_location_id: RBIN }];
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-os1"), form: record(lines60(), { output_split: split }) });
+  eq("v5 output split: NOT_ELIGIBLE (300), nothing written, no number generated", [r.error, r.out && r.out.route, r.out && r.out.code, m.writes.length, r.batchCalls.length],
+    [null, "NOT_ELIGIBLE", "300", 0, 0]);
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-os2"), form: record(lines60(), { output_split: JSON.stringify(split) }) });
+  eq("v5 output split as JSON text: NOT_ELIGIBLE", r.out && r.out.route, "NOT_ELIGIBLE");
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-os3"), form: record(Array.from({ length: 65 }, (_, i) => lineOf(i, 4)), { output_split: split }) });
+  eq("v5 output split above 250 picks: STOP IA_TOO_BIG naming the split, nothing written", [r.out && r.out.route, r.out && r.out.error_code,
+    /260 stock picks .*\(its output is split across bins\); the classic save handles at most 250 picks/.test((r.out && r.out.message) || ""), m.writes.length], ["STOP", "IA_TOO_BIG", true, 0]);
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-os4"), form: record(lines60(), { output_split: [] }) });
+  eq("v5 no split rows: queued in the background as before", r.out && r.out.route, "QUEUED");
+}
+
+// 4c. IA output split, phase 2 (v6, plan 10-27): the background completion receives a split (System Settings batch or no batch): the rows
+// checked as IA_SAVE v14's completion before any write, a System split numbered per group, the rows stored with their numbers, row 1 in the
+// header's single fields, the request's fingerprint and movement count cover the split. Manual stays the classic's (NOT_ELIGIBLE)
+if (IS_V6) {
+  const SL = "2018912759311265793";
+  const BIN3 = "2018912822846583001";
+  const SYS = [itemRow(PARENT, { item_batch_management: 1, batch_number_genaration: "According To System Settings" })].concat(ITEMS.slice(1));
+  const MAN = [itemRow(PARENT, { item_batch_management: 1, batch_number_genaration: "Manual Input" })].concat(ITEMS.slice(1));
+  const plain = [{ os_qty: 0.4, os_storage_location_id: SL, os_location_id: BIN, os_category: "Unrestricted" },
+    { os_qty: 0.6, os_storage_location_id: SL, os_location_id: RBIN, os_category: "Blocked" }];
+  const sys3 = [{ os_qty: 0.5, os_location_id: BIN, os_category: "Blocked", os_group: 1, os_mfg_date: "2026-10-27", os_exp_date: "2028-10-27" },
+    { os_qty: 0.3, os_location_id: RBIN, os_category: "Blocked", os_group: 1, os_mfg_date: "2026-10-27", os_exp_date: "2028-10-27" },
+    { os_qty: 0.2, os_location_id: BIN3, os_category: "Unrestricted", os_group: 2, os_mfg_date: "2026-10-20", os_exp_date: "2028-10-20" }];
+  const split = (o) => Object.assign({ output_split: plain }, o || {});
+  const iaOf = (mm) => mm.ia[Object.keys(mm.ia)[0]] || {};
+  // a non-batch split: QUEUED, the Add's writes as before, the rows stored, row 1 in the header, the split in the fingerprint and the count
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6a"), form: record(lines60(), split({ location_id: RBIN, inventory_category: "Blocked" })) });
+  eq("v6 non-batch split: QUEUED, the Add's write order", [r.error, r.out && r.out.route, writesOf(m)],
+    [null, "QUEUED", ["insert GD Async Job", "insert Item Assembly", "insert GD Publish Step LOCK|1", "update GD Async Job", "update GD Async Job"]]);
+  let h = iaOf(m);
+  eq("v6 non-batch split: the rows stored (storage location from the bin), row 1 in the header, no batch, no number generated",
+    [h.output_split, h.location_id, h.inventory_category, h.storage_location_id, h.batch_no, r.batchCalls.length],
+    [[{ os_qty: 0.4, os_storage_location_id: SL, os_location_id: BIN, os_category: "Unrestricted", os_group: "", os_batch_no: "", os_mfg_date: "", os_exp_date: "" },
+      { os_qty: 0.6, os_storage_location_id: SL, os_location_id: RBIN, os_category: "Blocked", os_group: "", os_batch_no: "", os_mfg_date: "", os_exp_date: "" }],
+    BIN, "Unrestricted", SL, "", 0]);
+  let rq = C.iaParseJ(m.jobs[0].request_payload);
+  const idA = Object.keys(m.ia)[0];
+  eq("v6 non-batch split: the request's fingerprint covers the split, movementCount = picks + receipts",
+    [rq.lineFingerprint === F.iaLineFingerprint(m.lineRows(idA), [m.header(idA, true)]), rq.lineFingerprint !== F.iaLineFingerprint(m.lineRows(idA), [m.header(idA, false)]), rq.movementCount],
+    [true, true, 62]);
+  eq("v6: the bins read takes the payload's bins, by tenant", /b2\.id IN \(0,2018912822846582786,2018912822846582999\)/.test((m.osBinSql || [""])[0]), true);
+  // a System split: one GENERATE_BATCH per group (its dates, the organization), the numbers on the rows, row 1's in the header
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6b"), form: record(lines60(), { output_split: sys3 }) },
+    { items: SYS, batchNumbers: ["1016-005-0003", "1016-005-0004"] });
+  h = iaOf(m);
+  eq("v6 System split: QUEUED, GENERATE_BATCH once per group with its dates and the organization",
+    [r.error, r.out && r.out.route, r.batchCalls.map((c) => [c.item_id, c.manufacturing_date, c.expired_date, c.organization_id])],
+    [null, "QUEUED", [[PARENT, "2026-10-27", "2028-10-27", ORG], [PARENT, "2026-10-20", "2028-10-20", ORG]]]);
+  eq("v6 System split: the rows carry their group's number, the header row 1's number, bin, category and dates",
+    [(h.output_split || []).map((x) => [x.os_group, x.os_batch_no, x.os_location_id]), h.batch_no, h.location_id, h.inventory_category, h.manufacturing_date, h.expired_date],
+    [[["1", "1016-005-0003", BIN], ["1", "1016-005-0003", RBIN], ["2", "1016-005-0004", BIN3]], "1016-005-0003", BIN, "Blocked", "2026-10-27", "2028-10-27"]);
+  rq = C.iaParseJ(m.jobs[0].request_payload);
+  eq("v6 System split: movementCount = 60 picks + 3 receipts", rq.movementCount, 63);
+  // refusals before any write (and before any number is generated)
+  const refused = [
+    ["the total is not the output", { output_split: [plain[0], Object.assign({}, plain[1], { os_qty: 0.5 })] }, {}, /The split total 0\.9 is not the output quantity 1/],
+    ["one row", { output_split: [Object.assign({}, plain[0], { os_qty: 1 })] }, {}, /at least 2 rows/],
+    ["a bin of another plant", split(), { bins: { [RBIN]: { plant: "999" } } }, /Output row 2: its bin location is not a bin of this plant/],
+    ["an inactive bin", split(), { bins: { [RBIN]: { active: 0 } } }, /Output row 2: its bin location is not active/],
+    ["a System group without its group number", { output_split: [sys3[0], Object.assign({}, sys3[1], { os_group: "" }), sys3[2]] }, { items: SYS }, /Output row 2: enter a group number/],
+    ["a System group with two date pairs", { output_split: [sys3[0], Object.assign({}, sys3[1], { os_mfg_date: "2026-10-01" }), sys3[2]] }, { items: SYS }, /are one batch \(group 1\) with different dates/],
+  ];
+  for (const [label, extra, sc, re] of refused) {
+    m = new Model();
+    r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6r"), form: record(lines60(), extra) }, sc);
+    eq("v6 split refused (" + label + "): STOP 400 IA_OS_INVALID, nothing written, no number", [r.error, r.out && r.out.route, r.out && r.out.code, r.out && r.out.error_code,
+      re.test((r.out && r.out.message) || ""), m.writes.length, r.batchCalls.length], [null, "STOP", "400", "IA_OS_INVALID", true, 0, 0]);
+  }
+  // the numbering refused: one number twice, none for group 2; a date the configuration needs missing on group 2 (before any call)
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6n1"), form: record(lines60(), { output_split: sys3 }) }, { items: SYS, batchNumbers: ["1016-005-0003", "1016-005-0003"] });
+  eq("v6 System split: the same number for both groups: STOP 400, nothing written", [r.out && r.out.route, r.out && r.out.code, /the same number 1016-005-0003/.test((r.out && r.out.message) || ""),
+    m.writes.length], ["STOP", "400", true, 0]);
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6n2"), form: record(lines60(), { output_split: sys3 }) }, { items: SYS, batchNumbers: ["1016-005-0003", ""] });
+  eq("v6 System split: no number for group 2: STOP 400, nothing written", [r.out && r.out.route, r.out && r.out.code,
+    /Could not generate a batch number for group 2/.test((r.out && r.out.message) || ""), m.writes.length], ["STOP", "400", true, 0]);
+  m = new Model({ batchCfg: JSON.stringify({ n: 1, level: "Organization Level", date_format: "Manufacturing Date" }) });
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6n3"), form: record(lines60(), { output_split: [sys3[0], sys3[1], Object.assign({}, sys3[2], { os_mfg_date: "" })] }) },
+    { items: SYS, batchNumbers: ["1016-005-0003", "1016-005-0004"] });
+  eq("v6 System split: group 2 without the Manufacturing Date its numbering needs: STOP 400 before any call", [r.out && r.out.route, r.out && r.out.code,
+    /Manufacturing Date is required/.test((r.out && r.out.message) || ""), m.writes.length, r.batchCalls.length], ["STOP", "400", true, 0, 0]);
+  // a duplicate balance at a split row's bin: the classic's (NOT_ELIGIBLE), as at the header's bin
+  m = new Model();
+  // the header's bin is row 1's (BIN): only the split's row 2 meets the duplicate
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6d"), form: record(lines60(), split({ location_id: BIN })) },
+    { dup: [{ j: JSON.stringify({ t: "B", material_id: PARENT, location_id: RBIN, batch_id: "", n: 2 }) }] });
+  eq("v6 split: a duplicate balance at row 2's bin: NOT_ELIGIBLE, nothing written", [r.out && r.out.route, r.out && r.out.code, m.writes.length], ["NOT_ELIGIBLE", "300", 0]);
+  // a Manual batch output: the classic's split (NOT_ELIGIBLE by the Manual rule); above 250 picks a STOP naming it
+  m = new Model();
+  r = go(m, { pageStatus: "Add", ia_id: "", idempotency_key: keyOf("new-v6m"), form: record(lines60(), { output_split: [{ os_qty: 0.5, os_location_id: BIN, os_category: "Unrestricted",
+    os_batch_no: "M-1" }, { os_qty: 0.5, os_location_id: RBIN, os_category: "Unrestricted", os_batch_no: "M-2" }] }) }, { items: MAN });
+  eq("v6 Manual split: NOT_ELIGIBLE (the classic's), nothing written", [r.out && r.out.route, m.writes.length, r.batchCalls.length], ["NOT_ELIGIBLE", 0, 0]);
+  // a stored Draft split, completed from a tab that sends no output_split (an old form): the stored rows are received; moving its bin is refused
+  const SID = "2112073133161849999";
+  const mk = () => {
+    const mm = new Model();
+    mm.ia[SID] = Object.assign(record(lines60(), { page_status: "Edit", item_assembly_status: "Draft", stock_movement_no: "IA-2610-0009", location_id: BIN }), { lines: [],
+      output_split: plain.map((x) => Object.assign({}, x)) });
+    mm.writeLines(mm.ia[SID], lines60().map((l, i) => Object.assign(l, { line_index: i + 1 })));
+    mm.lockYoung = 0;
+    return mm;
+  };
+  const noKey = (o) => {
+    const f = Object.assign(record(m.ia[SID].lines.map((l) => Object.assign({}, l)), { id: SID, page_status: "Edit", item_assembly_status: "Draft", stock_movement_no: "IA-2610-0009",
+      location_id: BIN }), o || {});
+    delete f.output_split;
+    return f;
+  };
+  m = mk();
+  r = go(m, { pageStatus: "Edit", ia_id: SID, idempotency_key: keyOf(SID), form: noKey() });
+  eq("v6 stored split, no output_split sent: QUEUED with the stored rows", [r.error, r.out && r.out.route, (m.ia[SID].output_split || []).map((x) => [x.os_qty, x.os_location_id])],
+    [null, "QUEUED", [[0.4, BIN], [0.6, RBIN]]]);
+  eq("v6: the bins read also takes the stored IA's rows", /h2\.id = 2112073133161849999 AND h2\.is_deleted = 0/.test((m.osBinSql || [""])[0]), true);
+  m = mk();
+  r = go(m, { pageStatus: "Edit", ia_id: SID, idempotency_key: keyOf(SID), form: noKey({ location_id: BIN3 }) });
+  eq("v6 stored split, no output_split sent, its bin moved: STOP 400, nothing written", [r.out && r.out.route, r.out && r.out.code,
+    /output is split across bins: change its plant, item or bin on the desktop/.test((r.out && r.out.message) || ""), m.writes.length], ["STOP", "400", true, 0]);
 }
 
 // 5. twins and crashes

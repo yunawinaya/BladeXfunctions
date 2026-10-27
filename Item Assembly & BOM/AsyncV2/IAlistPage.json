@@ -2811,7 +2811,7 @@
             },
             {
               "title": "Cancel",
-              "permission": "ia_save_draft",
+              "permission": "ia_cancel",
               "icon": "x-circle",
               "type": "custom",
               "showBottomBar": 1,
@@ -2824,7 +2824,14 @@
                   "key": "iacncl01",
                   "name": "onItemAssemblyCancel"
                 }
-              ]
+              ],
+              "styleType": "Link",
+              "btnIcon": "",
+              "hidden": "",
+              "disabled": "",
+              "eventsPrint": [],
+              "segmented_fzl86zm3": "center",
+              "dialog_top": ""
             },
             {
               "title": "Post",
@@ -2841,7 +2848,14 @@
                   "key": "z4qy8mae",
                   "name": "onItemAssemblyPostfunc_z4qy8mae"
                 }
-              ]
+              ],
+              "styleType": "Link",
+              "btnIcon": "",
+              "hidden": "",
+              "disabled": "",
+              "eventsPrint": [],
+              "segmented_fzl86zm3": "center",
+              "dialog_top": ""
             },
             {
               "title": "Print",
@@ -2961,7 +2975,9 @@
           "multipleView": [],
           "calendarConfig": {},
           "isScrollbar": false,
-          "summaryColor": "#fafafa"
+          "summaryColor": "#fafafa",
+          "is_no_drag": false,
+          "is_no_copy": false
         },
         "remoteFunc": "func_ad19kn8a",
         "remoteOption": "option_ad19kn8a",
@@ -4079,7 +4095,7 @@
         "key": "iaprcf01",
         "name": "onItemAssemblyPrintTemplateConfirm",
         "type": "js",
-        "func": "// dialog_print_template > onConfirm.\n(async () => {\n  try {\n    const accessId = this.getValue(\"dialog_print_template.print_template_id\");\n    const allowed = this.getValue(\"ia_print_templates\");\n    const template = Array.isArray(allowed) && allowed.find(t => t.id === accessId);\n    if (!template) {\n      this.$message.error(\"Please select a print template.\");\n      return;\n    }\n    const templateId = template.print_template_id;\n    const ids = this.getValue(\"ia_print_ids\");\n    if (typeof ids !== \"string\" || !ids) throw new Error(\"Please select Item Assembly records again.\");\n\n    if (template.template_type === \"Template\") {\n      const query = new URLSearchParams({ item_assembly_id: ids, name: \"Item Assembly\" });\n      const tab = window.open(`/sucode/openpage/${encodeURIComponent(templateId)}?${query}`, \"_blank\");\n      if (!tab) throw new Error(\"Please allow pop-ups and try again.\");\n      await this.closeDialog(\"dialog_print_template\");\n      return;\n    }\n    if (template.template_type !== \"Label\") throw new Error(\"Unsupported print template type.\");\n\n    const lines = [];\n    for (const id of ids.split(\",\")) {\n      // Load saved header fields; the list does not declare batch_no as a column.\n      const result = await db.collection(\"sm_item_assembly\").where({ id }).get();\n      if (result?.success === false || !Array.isArray(result?.data) ||\n          result.data.length !== 1 || result.data[0].id !== id) {\n        throw new Error(\"Could not load the selected Item Assembly.\");\n      }\n      const ia = result.data[0];\n      if (String(ia.is_deleted ?? \"0\") !== \"0\") throw new Error(\"An Item Assembly was deleted. Please refresh.\");\n      const batch = String(ia.batch_no || \"\").trim();\n      // Match MSR's batch-label policy, also excluding blank batch values.\n      if (!batch || batch === \"-\") continue;\n      const itemId = ia.item_id?.id ?? ia.item_id;\n      if (typeof itemId !== \"string\" || !itemId) throw new Error(\"The assembled item ID could not be resolved.\");\n      lines.push({\n        ia_id: id,\n        ia_number: ia.stock_movement_no,\n        item_id: itemId,\n        item_name: ia.item_name,\n        batch_no: batch,\n        assembled_quantity: ia.item_qty,\n        quantity: 1\n      });\n    }\n    if (!lines.length) {\n      this.$message.error(\"All selected Item Assembly records have no batch number.\");\n      return;\n    }\n    await this.openDialog(\"dialog_enter_qty\");\n    this.setData({\n      \"dialog_enter_qty.ia_line\": lines,\n      \"dialog_enter_qty.selected_template_id\": templateId\n    });\n    await this.closeDialog(\"dialog_print_template\");\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"Unable to prepare printing.\");\n  }\n})();\n"
+        "func": "// dialog_print_template > onConfirm.\n// IA output split (plan 10-27): the rows of a split receipt that carry a batch, from the json column (or its text)\nconst iaLabelRows = (v) => {\n  let rows = v;\n  if (typeof rows === \"string\") {\n    try {\n      rows = JSON.parse(rows);\n    } catch (e) {\n      rows = null;\n    }\n  }\n  return (Array.isArray(rows) ? rows : []).map((r) => ({ batch: String((r && r.os_batch_no) || \"\").trim(), qty: r ? r.os_qty : null }))\n    .filter((r) => r.batch && r.batch !== \"-\");\n};\n(async () => {\n  try {\n    const accessId = this.getValue(\"dialog_print_template.print_template_id\");\n    const allowed = this.getValue(\"ia_print_templates\");\n    const template = Array.isArray(allowed) && allowed.find(t => t.id === accessId);\n    if (!template) {\n      this.$message.error(\"Please select a print template.\");\n      return;\n    }\n    const templateId = template.print_template_id;\n    const ids = this.getValue(\"ia_print_ids\");\n    if (typeof ids !== \"string\" || !ids) throw new Error(\"Please select Item Assembly records again.\");\n\n    if (template.template_type === \"Template\") {\n      const query = new URLSearchParams({ item_assembly_id: ids, name: \"Item Assembly\" });\n      const tab = window.open(`/sucode/openpage/${encodeURIComponent(templateId)}?${query}`, \"_blank\");\n      if (!tab) throw new Error(\"Please allow pop-ups and try again.\");\n      await this.closeDialog(\"dialog_print_template\");\n      return;\n    }\n    if (template.template_type !== \"Label\") throw new Error(\"Unsupported print template type.\");\n\n    const lines = [];\n    for (const id of ids.split(\",\")) {\n      // Load saved header fields; the list does not declare batch_no as a column.\n      const result = await db.collection(\"sm_item_assembly\").where({ id }).get();\n      if (result?.success === false || !Array.isArray(result?.data) ||\n          result.data.length !== 1 || result.data[0].id !== id) {\n        throw new Error(\"Could not load the selected Item Assembly.\");\n      }\n      const ia = result.data[0];\n      if (String(ia.is_deleted ?? \"0\") !== \"0\") throw new Error(\"An Item Assembly was deleted. Please refresh.\");\n      const batch = String(ia.batch_no || \"\").trim();\n      // a split receipt: one label line per row that has a batch (its batch, its quantity)\n      const splitRows = iaLabelRows(ia.output_split);\n      // Match MSR's batch-label policy, also excluding blank batch values.\n      if (!splitRows.length && (!batch || batch === \"-\")) continue;\n      const itemId = ia.item_id?.id ?? ia.item_id;\n      if (typeof itemId !== \"string\" || !itemId) throw new Error(\"The assembled item ID could not be resolved.\");\n      for (const part of splitRows.length ? splitRows : [{ batch: batch, qty: ia.item_qty }]) {\n        lines.push({\n          ia_id: id,\n          ia_number: ia.stock_movement_no,\n          item_id: itemId,\n          item_name: ia.item_name,\n          batch_no: part.batch,\n          assembled_quantity: part.qty,\n          quantity: 1\n        });\n      }\n    }\n    if (!lines.length) {\n      this.$message.error(\"All selected Item Assembly records have no batch number.\");\n      return;\n    }\n    await this.openDialog(\"dialog_enter_qty\");\n    this.setData({\n      \"dialog_enter_qty.ia_line\": lines,\n      \"dialog_enter_qty.selected_template_id\": templateId\n    });\n    await this.closeDialog(\"dialog_print_template\");\n  } catch (error) {\n    console.error(error);\n    this.$message.error(error.message || \"Unable to prepare printing.\");\n  }\n})();\n"
       },
       {
         "key": "iaprqt01",

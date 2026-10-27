@@ -64,6 +64,9 @@ const lockWait = function lockWait(entry, why) {
 // before op 1 moved stock (phase A): FAILED, the IA back to its prevStatus while this job owns it, and this job's own Batch
 // rows (`ours`: the ids its I1 inserted) soft-deleted; an owned IA whose prevStatus is not Draft / Created -> REQUIRES_REVIEW, nothing else written.
 // Op 1 already has engine rows (a run died after its APPLY, before I2 DONE) -> REQUIRES_REVIEW, nothing else written (ruling 10 R2)
+// this job's Batch rows: I1's one (batchId) or, for an output split, one per group (batchIds); `more` = this pass's I1 output (plan 10-27)
+const iaBatchIdsOf = (entry, more) => [entry, more].reduce((out, x) => out.concat(x && x.batchIds && typeof x.batchIds === "object" ? Object.values(x.batchIds) : [],
+  x && x.batchId ? [x.batchId] : []), []).map((v) => (v === undefined || v === null ? "" : String(v))).filter((v, i, a) => /^[0-9]{1,20}$/.test(v) && a.indexOf(v) === i);
 const failNoWrite = function failNoWrite(entry, code, message, why, ours) {
   if (entry.op1Wrote === "YES") {
     return reviewEnd(entry, "I2_ISSUE", "IA_RECONCILIATION_MISMATCH", "op 1 (" + iaOpKey(entry.jobId, "I") + ") already has engine rows, so " + code + " (" + s(why || message)

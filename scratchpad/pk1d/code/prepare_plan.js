@@ -67,7 +67,7 @@ const planConfirm = function planConfirm(entry, hdrRows, lineRows, gdRows, uomRo
   // Loading Bay is the setup's flag, as classic PICKING passes it to GOODS_DELIVERY (its auto-complete clash: classic's text)
   const bay = num(hdr.setup_loading_bay) === 1;
   if (bay && num(hdr.auto_completed_gd) === 1) return fail("PK_BAY_AUTO_COMPLETE", "Picking Setup has both Loading Bay and Auto Complete GD enabled. Auto Complete GD skips the Created state that the loading bay move depends on, which would strand the reserved stock at the source bin. Please turn off Auto Complete GD.");
-  if (num(hdr.auto_completed_gd) === 1) return fail("PK_NOT_SUPPORTED", "Auto Complete GD is on: not handled by the background save yet");
+  // Auto Complete GD (stage 1e): planned like any confirm; COMMIT P7 hands the deliveries it leaves fully picked to GD Complete V2
 
   const rows = list(lineRows).filter((r) => s(r.id));
   const byId = {};

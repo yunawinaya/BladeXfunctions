@@ -36,7 +36,7 @@ function seed(nLines, opts) {
 
 const engine = (db, faults) => {
   const e = new Engine({ dir: DIR, db: db, mocks: mocks(), faults: faults });
-  install(e);
+  e.st = install(e);
   switches(e, ON);
   return e;
 };
@@ -146,11 +146,53 @@ st = e.run("PICKING_ASYNC_SUBMIT", { picking_id: "9001", organization_id: ORG, o
 eq("STATUS of a failed job: its reason", [st.job_status, st.result_code, /changed after it was queued/.test(st.result_message)], ["FAILED", "PK_STALE", true]);
 eq("P0 stale: FAILED, lock released, no record", [job(db, r.job_id).job_status, job(db, r.job_id).error_code, db.t.picking[0].is_processing, db.t.records.length], ["FAILED", "PK_STALE", 0, 0]);
 
-// ---------------------------------------------------------------- 7. not eligible: auto complete GD -> the form runs the old save
-db = seed(2, { autoGd: 1 });
+// ---------------------------------------------------------------- 7. auto complete GD (stage 1e): a desktop confirm is V2; after P6
+// (the job COMPLETED, the Picking unlocked) P7 hands the delivery it left fully picked to GD Complete V2. A phone confirm stays classic
+const autoDb = () => {
+  const d = seed(2, { autoGd: 1, shell: false });
+  d.t.psetup[0].packing_required = 0; // LSH's setup: no Packing
+  return d;
+};
+db = autoDb();
 e = engine(db);
-r = submit(e, "CONFIRM", [{ row_id: "800000", qty: 1 }], "KEY-0000000000000009");
-eq("auto complete GD -> NOT_ELIGIBLE, nothing written", [r.route, r.result_code, db.t.job.length, db.t.picking[0].is_processing], ["NOT_ELIGIBLE", "NOT_ELIGIBLE", 0, 0]);
+r = submit(e, "CONFIRM", [{ row_id: "800000", qty: 1 }, { row_id: "800001", qty: 2 }], "PK-9001-autocomplete1");
+eq("auto complete GD, the desktop: QUEUED", [r.route, r.result_code], ["QUEUED", "200"]);
+work(e, r.job_id);
+eq("auto complete GD: the job COMPLETED, then the delivery went to GD_COMPLETE_SUBMIT once (source PICKING, needCL auto)",
+  [job(db, r.job_id).job_status, db.t.picking[0].is_processing, e.st.gdComplete.map((p) => [p.operation, p.gd_id, p.source, p.answers.needCL, p.causation_id])],
+  ["COMPLETED", 0, [["SUBMIT", "5001", "PICKING", "auto", "PICKING|" + r.job_id]]]);
+eq("auto complete GD: GD Complete V2 has its job (the GD Processing), the P7 step names it",
+  [db.t.gd[0].gd_status, db.t.step.filter((s) => s.job_id === r.job_id && /^P7\|/.test(s.step_name)).map((s) => [s.step_name, s.step_status, s.result_ref === (db.t.job.find((j) => j.command === "COMPLETE_GD") || {}).id])],
+  ["Processing", [["P7|5001", "QUEUED", true]]]);
+st = e.run("PICKING_ASYNC_SUBMIT", { picking_id: "9001", organization_id: ORG, operation: "STATUS" }).returned;
+eq("auto complete GD: STATUS lists the queued completion for the screen", (st.gd_complete || []).map((g) => [g.gd_id, g.gd_no, g.status]), [["5001", "GD/1", "QUEUED"]]);
+
+db = autoDb();
+e = engine(db);
+r = submit(e, "CONFIRM", [{ row_id: "800000", qty: 1 }], "PKC:" + ORG + ":9001:3f2a9c1e5b7d4a60:1");
+eq("auto complete GD, a phone confirm -> NOT_ELIGIBLE (classic until the app update), nothing written",
+  [r.route, r.result_message, db.t.job.length, db.t.picking[0].is_processing], ["NOT_ELIGIBLE", "Auto Complete GD on the phone uses the classic save until the app update", 0, 0]);
+
+// GD_COMPLETE_SUBMIT fails (two Pickings of one GD finishing together): caught - the Picking stays saved, the delivery is recorded
+// for a manual completion, and COMMIT's run still fails its caller (a caught error marks the run)
+db = autoDb();
+e = engine(db);
+e.st.gdCompleteCrash = 1;
+r = submit(e, "CONFIRM", [{ row_id: "800000", qty: 1 }, { row_id: "800001", qty: 2 }], "PK-9001-autocomplete2");
+let caught = "";
+try { work(e, r.job_id); } catch (x) { caught = x.constructor.name; }
+eq("auto complete GD, the call fails: caught, the run fails for the worker, the Picking saved, the delivery left Created",
+  [caught, job(db, r.job_id).job_status, db.t.picking[0].is_processing, db.t.gd[0].gd_status], ["CaughtRun", "COMPLETED", 0, "Created"]);
+eq("auto complete GD, the call fails: the fill records it for a manual completion",
+  db.t.step.filter((s) => s.job_id === r.job_id && /^P7\|/.test(s.step_name)).map((s) => [s.step_name, s.step_status, s.error_code]), [["P7|5001", "NOT_QUEUED", "CALL_FAILED"]]);
+
+// the setup off: nothing is handed over
+db = seed(2, { autoGd: 0, shell: false });
+db.t.psetup[0].packing_required = 0;
+e = engine(db);
+r = submit(e, "CONFIRM", [{ row_id: "800000", qty: 1 }, { row_id: "800001", qty: 2 }], "PK-9001-autocomplete3");
+work(e, r.job_id);
+eq("auto complete GD off: the delivery stays Created, no request", [job(db, r.job_id).job_status, db.t.gd[0].gd_status, (e.st.gdComplete || []).length], ["COMPLETED", "Created", 0]);
 
 // ---------------------------------------------------------------- 8. 2,000 lines: confirm 3, then the rest
 db = seed(2000);

@@ -1,0 +1,7 @@
+{
+  "profile": "dev-write",
+  "tableId": "1856231112670498818",
+  "items": [
+    { "name": "PO_LINE_IMPORT", "dataId": "2110564093187756034", "file": "prod-hotfix/2026-10-27-po-import-uom-hint/PO_LINE_IMPORT.prod_paste.json", "base": "prod-hotfix/2026-10-27-po-import-uom-hint/PO_LINE_IMPORT.prod_v4_base.json" }
+  ]
+}

@@ -26,7 +26,7 @@ const strip = (text, parts) => parts.reduce((t, [a, b]) => {
 }, text);
 const newKeys = (doc, base) => doc.config.eventScript.map((e) => e.key).filter((k) => !base.config.eventScript.some((e) => e.key === k));
 const CHANGED_FORM = ["mounted", "wv07g9xe", "iacqty01", "iaitem01", "iabcnf01", "evhzkk8e", "e9ib2r8i"];
-const CHANGED_LIST = ["mounted", "oh26x9gl", "8r9xuzc4", "z4qy8mae"];
+const CHANGED_LIST = ["mounted", "oh26x9gl", "8r9xuzc4", "z4qy8mae", "iaprcf01"];
 
 const sameEvents = (name, a, b, changed, added) => {
   const kb = b.config.eventScript.map((e) => e.key);
@@ -188,6 +188,15 @@ for (const [label, A, B] of [["list (shipped)", L0, L1], ["list (ON preview)", L
   // the Cancel button right after Retry Reservation (undone with it)
   check(label + ": one Cancel button right after Retry Reservation", ucp.toolbar.filter((x) => x.title === "Cancel").length === 1 && ucp.toolbar[rt + 1].title === "Cancel");
   ucp.toolbar.splice(rt, 2);
+  // the product owner's designer save (list v29, 10-22 20:22): the designer's defaults appended to Post, two customProps flags (undone here)
+  const DESIGNER = { styleType: "Link", btnIcon: "", hidden: "", disabled: "", eventsPrint: [], segmented_fzl86zm3: "center", dialog_top: "" };
+  const post = ucp.toolbar[rt];
+  const tail = (o, n) => JSON.stringify(Object.keys(o).slice(-n).map((k) => [k, o[k]]));
+  check(label + ": list v29 kept: Post ends with the designer's defaults, customProps ends with is_no_drag / is_no_copy false", post.title === "Post" &&
+    tail(post, 7) === JSON.stringify(Object.entries(DESIGNER)) && tail(ucp, 2) === JSON.stringify([["is_no_drag", false], ["is_no_copy", false]]), [post, tail(ucp, 2)]);
+  Object.keys(DESIGNER).forEach((k) => delete post[k]);
+  delete ucp.is_no_drag;
+  delete ucp.is_no_copy;
   check(label + ": every widget byte-identical but the Edit action's hidden (and the Created badge, the Reservation column, the Retry button)", JSON.stringify(u.list) === JSON.stringify(A.list) &&
     JSON.stringify(Object.assign({}, u.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, A.config, { eventScript: [] })));
   check(label + ": mounted became a js event", H.byName(B, "mounted").type === "js" && H.byName(A, "mounted").func === "");
@@ -213,13 +222,36 @@ for (const [label, B] of [["list (shipped)", L1], ["list (ON preview)", LON]]) {
   }
 }
 
+// ---- the list's label print (IA output split, plan 10-27): the base text plus exactly its three insertions (the split rows helper, a split's
+// rows instead of the header batch, one line per row); undone -> the base
+for (const [label, B] of [["list (shipped)", L1], ["list (ON preview)", LON]]) {
+  const undo = [["// dialog_print_template > onConfirm.\n// IA output split (plan 10-27): the rows of a split receipt that carry a batch, from the json column (or its text)\n",
+    "// dialog_print_template > onConfirm.\n"],
+  ["      // a split receipt: one label line per row that has a batch (its batch, its quantity)\n      const splitRows = iaLabelRows(ia.output_split);\n", ""],
+  ["if (!splitRows.length && (!batch || batch === \"-\")) continue;", "if (!batch || batch === \"-\") continue;"],
+  ["      for (const part of splitRows.length ? splitRows : [{ batch: batch, qty: ia.item_qty }]) {\n        lines.push({\n          ia_id: id,\n          ia_number: ia.stock_movement_no,\n" +
+    "          item_id: itemId,\n          item_name: ia.item_name,\n          batch_no: part.batch,\n          assembled_quantity: part.qty,\n          quantity: 1\n        });\n      }\n",
+  "      lines.push({\n        ia_id: id,\n        ia_number: ia.stock_movement_no,\n        item_id: itemId,\n        item_name: ia.item_name,\n        batch_no: batch,\n" +
+    "        assembled_quantity: ia.item_qty,\n        quantity: 1\n      });\n"]];
+  let text = H.byKey(B, "iaprcf01").func;
+  let ok = true;
+  try {
+    text = strip(text, undo);
+    const helper = text.slice(text.indexOf("const iaLabelRows = (v) => {"), text.indexOf("};\n", text.indexOf("const iaLabelRows = (v) => {")) + 3);
+    text = text.replace(helper, "");
+  } catch (e) {
+    ok = String(e.message);
+  }
+  check(label + ": label print = the base handler plus the split's three insertions", ok === true && text === H.byKey(L0, "iaprcf01").func, ok);
+}
 // ---- the repo mirrors are the embedded strings
 const mirrors = [["iaV2_onClick_completed.js", H.byName(F1, "iaV2_onClick_completed").func], ["iaV2_onClick_completed_post.js", H.byName(F1, "iaV2_onClick_completed_post").func],
   ["iaForm_mounted.js", H.byName(F1, "mounted").func], ["iaForm_onChange_assembledItem.js", H.byKey(F1, "wv07g9xe").func], ["iaForm_onChange_componentQty.js", H.byKey(F1, "iacqty01").func],
   ["iaForm_onAfterUpdate_item.js", H.byKey(F1, "iaitem01").func], ["iaForm_onConfirm_batchAddItem.js", H.byKey(F1, "iabcnf01").func],
   ["iaForm_onClick_select_stock.js", H.byKey(F1, "evhzkk8e").rules[1].options.func], ["iaForm_onRowRemove_item.js", H.byName(F1, "onRowRemove_item").func],
   ["iaList_mounted.js", H.byName(L1, "mounted").func], ["iaList_delete.js", H.byKey(L1, "oh26x9gl").func], ["iaList_IArevertCompleted.js", H.byKey(L1, "8r9xuzc4").func],
-  ["iaForm_onClick_post.js", H.byKey(F1, "e9ib2r8i").func], ["iaList_onItemAssemblyPostfunc_z4qy8mae.js", H.byKey(L1, "z4qy8mae").func]];
+  ["iaForm_onClick_post.js", H.byKey(F1, "e9ib2r8i").func], ["iaList_onItemAssemblyPostfunc_z4qy8mae.js", H.byKey(L1, "z4qy8mae").func],
+  ["iaList_onItemAssemblyPrintTemplateConfirm.js", H.byKey(L1, "iaprcf01").func]];
 for (const [f, text] of mirrors) check("mirror " + f, read(path.join(OUT, f)) === text);
 
 // ---- shipped OFF with the ids.json ids; ON preview ON with the same ids; no placeholder, no platform token; every script compiles
@@ -227,7 +259,8 @@ const scripts = (F, L) => [["iaV2_onClick_completed", H.byName(F, "iaV2_onClick_
   ["form mounted", H.byName(F, "mounted").func, false], ["onChange_assembledItem", H.byKey(F, "wv07g9xe").func, false], ["onChange_componentQty", H.byKey(F, "iacqty01").func, false],
   ["onAfterUpdate_item", H.byKey(F, "iaitem01").func, false], ["onConfirm_batchAddItem", H.byKey(F, "iabcnf01").func, false], ["onClick_select_stock", H.sourceOf(H.byKey(F, "evhzkk8e")), true],
   ["onRowRemove_item", H.byName(F, "onRowRemove_item").func, false], ["list mounted", H.byName(L, "mounted").func, false], ["list delete", H.byKey(L, "oh26x9gl").func, false],
-  ["list IArevertCompleted", H.byKey(L, "8r9xuzc4").func, false], ["form onClick_post", H.byKey(F, "e9ib2r8i").func, false], ["list bulk Post", H.byKey(L, "z4qy8mae").func, false]];
+  ["list IArevertCompleted", H.byKey(L, "8r9xuzc4").func, false], ["form onClick_post", H.byKey(F, "e9ib2r8i").func, false], ["list bulk Post", H.byKey(L, "z4qy8mae").func, false],
+  ["list label print", H.byKey(L, "iaprcf01").func, false]];
 for (const [label, F, L, on] of [["shipped", F1, L1, H.EXPECT_ON], ["ON preview", FON, LON, true]]) {
   for (const [name, code, isRule] of scripts(F, L)) {
     let ok = true;

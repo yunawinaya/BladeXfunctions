@@ -96,7 +96,7 @@ def commit_sql(sub, T, JOBID, IAID, ITEM, ORG, OURS_ITEM, OURS_ORG, PFX):
         "payload": sub(PAYLOAD, **tok),
         "ia": sub(IA, **tok),
         "own": sub(OWN, **tok),
-        "hdr": sub(SH.FP_HEADER, T=T, IA=IAID),
+        "hdr": sub(SH.FP_HEADER_OS, T=T, IA=IAID),
         "lines": sub(SH.FP_LINES, T=T, IA=IAID),
         "owner": sub(SH.OWNER, T=T, IA=IAID),
         "batchrows": sub(SH.BATCH_ROWS, T=T, ORG=ORG, ITEM=ITEM),

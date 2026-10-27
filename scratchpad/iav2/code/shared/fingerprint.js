@@ -47,10 +47,20 @@ const iaFpCanonRows = function iaFpCanonRows(lines) {
   canon.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
   return canon;
 };
+// IA output split (plan 10-27): a split's rows in order (qty, bin, category, group, batch number, dates); only an IA with rows gets them,
+// so every other IA's fingerprint stays as it was
+const iaFpSplit = function iaFpSplit(v) {
+  const rows = iaFpEntries(v);
+  if (typeof rows === "string") return rows;
+  return rows.map((r) => (r && typeof r === "object" ? [iaFpQ8(r.os_qty), iaFpId(r.os_location_id), iaFpS(r.os_category), iaFpS(r.os_group), iaFpS(r.os_batch_no),
+    iaFpS(r.os_mfg_date), iaFpS(r.os_exp_date)] : ["?", iaFpS(r)]));
+};
 const iaFpCanonHeader = function iaFpCanonHeader(header) {
   const h = iaFpRows(header)[0] || {};
-  return [iaFpS(h.item_id), iaFpQ8(h.item_qty), iaFpId(h.item_uom), iaFpId(h.location_id), iaFpS(h.inventory_category) || "Unrestricted", iaFpS(h.batch_no),
+  const base = [iaFpS(h.item_id), iaFpQ8(h.item_qty), iaFpId(h.item_uom), iaFpId(h.location_id), iaFpS(h.inventory_category) || "Unrestricted", iaFpS(h.batch_no),
     iaFpId(h.issuing_operation_faci)];
+  const split = iaFpSplit(h.output_split);
+  return split.length ? base.concat([split]) : base;
 };
 const iaLineFingerprint = function iaLineFingerprint(lines, header) {
   const rows = iaFpCanonRows(lines);

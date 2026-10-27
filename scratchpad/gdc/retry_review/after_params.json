@@ -1,0 +1,25 @@
+{
+ "tenant": "000000",
+ "job_id": "2114989713092165634",
+ "gd_no": "GD/20261027/642",
+ "op_row_id": "2114989729617723394",
+ "op_id": "GD|2114989713092165634|1",
+ "organization_id": "1123598813738675201",
+ "p3_step_id": "2114989727080169474",
+ "apply_nonce": "828dad762765494a952c43b4",
+ "n_effects": 3,
+ "mutation_started_utc": "2026-10-27 07:57:01",
+ "attempt": 1,
+ "mode": "after_balance_write",
+ "undo": {
+  "item_balance": [
+   [
+    "2091805385114464357",
+    {
+     "reserved_qty": "10",
+     "unrestricted_qty": "-10"
+    }
+   ]
+  ]
+ }
+}

@@ -16,7 +16,14 @@ SELECT CAST(j.id AS CHAR) AS id,
                      AND (e.lease_expires_at IS NULL OR e.lease_expires_at <= NOW(3))
                      AND e.is_deleted = 0 AND e.command = 'EDIT_GD' AND e.causation_id = 'PICKING_FC'
                      AND CAST(JSON_UNQUOTE(JSON_EXTRACT(e.request_payload, '$.causation_job_id')) AS UNSIGNED) = j.id)
-       END AS kick
+       END AS kick,
+       -- stage 1e: the deliveries this confirm handed to GD Complete V2 (its P7|<gd> steps); the screen starts each QUEUED job
+       (SELECT CAST(JSON_ARRAYAGG(JSON_OBJECT('gd_id', SUBSTRING(p.step_name, 4), 'gd_no', IFNULL(g.delivery_no, ''), 'status', p.step_status,
+                                             'job_id', IFNULL(p.result_ref, ''), 'code', IFNULL(p.error_code, ''), 'message', IFNULL(p.error_message, ''))) AS CHAR)
+          FROM gd_publish_step p
+          LEFT JOIN goods_delivery g ON g.id = CAST(SUBSTRING(p.step_name, 4) AS UNSIGNED) AND g.tenant_id = p.tenant_id AND g.is_deleted = 0
+         WHERE p.tenant_id = j.tenant_id AND p.job_id = CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci
+           AND p.step_name LIKE 'P7|%' AND p.is_deleted = 0) AS gd_complete
   FROM gd_async_job j
  WHERE j.tenant_id = '{{node:code_node_PSguard.data.tenantId}}'
    AND j.organization_id = '{{node:code_node_PSguard.data.organizationId}}'

@@ -241,7 +241,7 @@ const buildCreatedSummary = (created, blocked, pending = []) => {
     sections.push(
       `<strong>Being created in the background (${pending.length}):</strong><br>${pending
         .map((item) => escapeHTML(item.so_no))
-        .join("<br>")}<br>They appear in the Goods Delivery list when done.`,
+        .join("<br>")}<br>They appear in the Goods Delivery list when done. Keep this list open until then.`,
     );
   }
 
@@ -362,8 +362,11 @@ const attachRefusedLines = (jobs, data) => {
   }
 };
 
+// a check whose answer never comes back (a run the platform did not send) is given up after 20 s, so the follow goes on
+const READ_GIVE_UP_MS = 20000;
 const readJobs = (jobIds) =>
   new Promise((resolve) => {
+    setTimeout(() => resolve(null), READ_GIVE_UP_MS);
     try {
       this.runWorkflow(
         SO_CONVERT_CHECK_WORKFLOW_ID,
@@ -435,10 +438,46 @@ const followBackground = async (queued, created, blocked) => {
       }
     }
     pending = still;
-    // a worker run that ended before its job did (stock locks held by another save) is started again
-    if (++round % 5 === 0) pending.forEach((item) => kickWorker(item.job_id));
+    // a worker run that ended before its job did (stock locks held by another save) is started again: one run, for the oldest
+    // waiting job (the run goes on to the other due jobs) - one run per waiting job collided on the worker's claim (LSH 10-27:
+    // a red "CLAIM GATE ... Duplicate entry" toast each)
+    if (++round % 5 === 0 && pending.length > 0) kickWorker(pending[0].job_id);
   }
   return pending;
+};
+
+// What the follow leaves (a batch that shares stock goes one delivery at a time, ~30 s each: Kenhin 10-27, 12 of 13 sat in
+// Processing until a list was opened) is started again in the background while this page stays on the list - no loading
+// screen, no refresh - until each job ends or KEEP_MS passes. One run per beat, for the oldest waiting job, as in the follow
+const KEEP_MS = 1800000;
+const KEEP_EVERY_MS = 15000;
+const ENDED_STATES = CREATED_STATES.concat(["FAILED", "CANCELLED", "REQUIRES_REVIEW", "AWAITING_CONFIRMATION"]);
+const keepFollowing = (pending) => {
+  const here = () => {
+    try {
+      return window.location.pathname;
+    } catch (error) {
+      return null;
+    }
+  };
+  const home = here();
+  const until = Date.now() + KEEP_MS;
+  let left = pending.slice();
+  const beat = async () => {
+    if (!home || here() !== home || left.length === 0 || Date.now() > until) return;
+    kickWorker(left[0].job_id);
+    await new Promise((resolve) => setTimeout(resolve, KEEP_EVERY_MS));
+    const jobs = await readJobs(left.map((item) => item.job_id));
+    if (jobs) {
+      const ended = {};
+      jobs.forEach((job) => {
+        if (ENDED_STATES.indexOf(job.job_status) >= 0) ended[String(job.job_id)] = true;
+      });
+      left = left.filter((item) => !ended[String(item.job_id)]);
+    }
+    beat();
+  };
+  beat();
 };
 
 // A batch whose answer was lost (its call outlived the request: 90 s seen on prod) is looked up in the record of its
@@ -571,6 +610,7 @@ const handleConvertGDCreated = async (
 
     if (queued.length > 0) {
       pending = await followBackground(queued, created, blocked);
+      if (pending.length > 0) keepFollowing(pending);
     }
   } finally {
     this.hideLoading();

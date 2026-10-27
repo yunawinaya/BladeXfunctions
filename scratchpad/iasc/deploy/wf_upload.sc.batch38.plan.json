@@ -1,0 +1,21 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_V2_COMMIT",
+   "dataId": "2112141346016501762",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_COMMIT/v7_20261027-150255.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_INVALID_DATA"
+    }
+   }
+  }
+ ]
+}

@@ -21,13 +21,24 @@ const DATA = {
   bom_snapshot_json: ["textarea", ""], bom_consumption_mode: ["radio", "grid_x46134mc"], planned_output_qty: ["number", "grid_x46134mc"],
   // RES-01 R1: the IA's raw-material hold result (server-owned) and when it was last checked
   material_hold_status: ["input", ""], material_hold_at: ["input", ""],
+  // IA output split (plan 10-27): the receipt rows (one json column, no child table) and the Split receipt switch
+  output_split: ["table", ""], output_split_on: ["switch", ""],
 };
 const UI = {
   sc_section: ["grid", ""], sc_collapse: ["collapse", "sc_section"], sc_info: ["grid", "sc_collapse"], sc_actions: ["flex", "sc_collapse"], sc_btn_line: ["button", "sc_actions"], sc_btn_unlink: ["button", "sc_actions"],
   sc_btn_relink: ["button", "sc_actions"], sc_btn_suggest: ["button", "sc_actions"], sc_btn_bom: ["button", "sc_actions"], sc_btn_refresh: ["button", "sc_actions"],
   sc_line_dialog: ["dialog", ""], sc_line_table: ["table", "sc_line_dialog"], sc_expand_dialog: ["dialog", ""], sc_expand_note: ["text", "sc_expand_dialog"], sc_expand_all: ["button", "sc_expand_dialog"],
   sc_expand_table: ["table", "sc_expand_dialog"],
+  // IA output split: the split total line
+  output_split_sum: ["text", ""],
 };
+// IA output split (plan 10-27): the switch, the total and the rows, top level right after sc_section (ON: the Output Location section's
+// first, full-width column); the grid's columns: model -> [type, label]
+const OS = ["output_split_on", "output_split_sum", "output_split"];
+const OS_COLS = [["os_qty", "number", "Qty"], ["os_storage_location_id", "select", "Storage Location"], ["os_location_id", "select", "Bin Location"],
+  ["os_category", "select", "Category"], ["os_group", "number", "Group"], ["os_batch_no", "input", "Batch No"], ["os_mfg_date", "date", "Manufacturing Date"],
+  ["os_exp_date", "date", "Expired Date"]];
+const OS_BIN_FORMULA = "{{value:output_split}}.map(item => item.os_storage_location_id)[arguments[0].rowIndex]";
 // the info rows (sc_info): the line on the left, the production figures on the right, then full width the BOM and the messages;
 // model -> label; each a read-only text shown only when it has a fact
 const PANEL = [
@@ -50,6 +61,37 @@ const DIALOG_BOUND = { sc_line_dialog: { onCancel: "sc_onCancel_line" }, sc_expa
 const ROW_LINK = ["sc_line_table", "pick", "sc_onClick_pickLine"];
 const NEW_EVENTS = ["sc_main"].concat(Object.values(BOUND).map((b) => b[1]), ["sc_onClick_pickLine", "sc_onCancel_line", "sc_onCancel_expand", "sc_onConfirm_expand",
   "onClick_saveAsCreated", "onChange_requiredQty"]);
+// IA output split (plan 10-27): os_main and its forwarders (the switch, a row added / removed, each column)
+const OS_EVENTS = ["os_main", "os_onChange_switch", "os_onRowAdd", "os_onRowRemove"].concat(["qty", "storage_location_id", "location_id", "category", "group", "batch_no", "mfg_date",
+  "exp_date"].map((c) => "os_onChange_" + c));
+// the split's marked blocks in the patched handlers and the mount's widened item read; unosDoc = the form without the split's handlers
+const OS_BLOCK_RE = /[ ]*\/\/ IA output split \(scratchpad\/iasc os_main\):[^\n]*\n[ ]*this\.triggerEvent\("os_main", \{ osOp: "[A-Z]+"(?:, item: item \|\| null)? \}\);\n[ ]*\/\/ -- end output split --\n/g;
+const OS_FIELDS = ['.field("item_batch_management,batch_number_genaration,serial_number_management,stock_control")', '.field("item_batch_management,batch_number_genaration")'];
+const unos = (t) => String(t).replace(OS_BLOCK_RE, "").replace(OS_FIELDS[0], OS_FIELDS[1]).replace(', "output_split_sum"];', "];");
+const unosDoc = (doc) => {
+  const d = H.clone(doc);
+  const keys = d.config.eventScript.filter((e) => OS_EVENTS.indexOf(e.name) >= 0).map((e) => e.key);
+  d.config.eventScript = d.config.eventScript.filter((e) => keys.indexOf(e.key) < 0);
+  // the IA V2 wait's park kick (10-27): not in v59 either
+  d.config.eventScript.forEach((e) => {
+    if (e.func) e.func = unpark(e.key, unos(e.func));
+  });
+  const walk = (n) => {
+    if (Array.isArray(n)) n.forEach(walk);
+    else if (n && typeof n === "object") {
+      if (n.events) Object.keys(n.events).forEach((k) => keys.indexOf(n.events[k]) >= 0 && (n.events[k] = ""));
+      Object.values(n).forEach(walk);
+    }
+  };
+  walk(d.list);
+  // the grid's Add Row / Delete buttons (10-27, the browser pass): not in v59
+  const g = H.findModel(d.list, "output_split");
+  if (g && g.options) {
+    if (g.options.customProps && Array.isArray(g.options.customProps.toolbar)) g.options.customProps.toolbar = g.options.customProps.toolbar.filter((x) => x.type !== "addBtn");
+    if (Array.isArray(g.options.rowActions)) g.options.rowActions = g.options.rowActions.filter((x) => x.type !== "delBtn");
+  }
+  return d;
+};
 // + onFormChange (empty in the base): RES-01 MIN-06's unsaved-changes marker (BA 10-22)
 const PATCHED = ["wv07g9xe", "iaqty01x", "fgivan7v", "mounted", "iasvcomp", "aymq6q8z", "uhn48srb", "wia8s2r9", "iasvdrft", "iacqty01", "evhzkk8e", "onFormChange"];
 const VARIANCE = ["iasvcomp", "aymq6q8z", "uhn48srb", "wia8s2r9"];
@@ -127,6 +169,8 @@ const unregroup = (doc) => {
     Object.keys(n).forEach((k) => k !== "options" && k !== "events" && collect(n[k]));
   };
   collect(d.list);
+  // the output split widgets: from the Output Location section's first column back to the top level after sc_section
+  const os = OS.map((m) => H.findModel(d.list, m));
   const back = (model) => {
     const off = H.findModel(OFF.list, model);
     const mine = H.findModel(d.list, model);
@@ -134,6 +178,7 @@ const unregroup = (doc) => {
     else mine.list = off.list.map((w) => byModel[w.model]);
   };
   d.list = d.list.filter((w) => UI01.indexOf(w.model) < 0);
+  if (os.every(Boolean)) d.list.splice(d.list.findIndex((w) => w.model === "sc_section") + 1, 0, ...os);
   ["grid_x46134mc", "sc_info", "sc_actions"].forEach(back);
   byModel.item_qty.name = H.findModel(OFF.list, "item_qty").name;
   SC_HISTORY.forEach((m) => byModel[m] && delete byModel[m].options.history);
@@ -248,6 +293,51 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
     x.events && x.events.onChange === "" && x.options.color === ""));
   check(label + ": the row classes: the key rows bold, the messages in the error style, the rest plain", rowWidgets.every((x) => x.options.customClass === (ROW_CLASS[x.model] || "")),
     rowWidgets.map((x) => [x.model, x.options.customClass]));
+  // IA output split: the switch, the total and the rows grid (hidden, nothing bound), right after sc_section
+  const osTop = B.list.map((w) => w.model);
+  check(label + ": output split: switch, total, rows right after sc_section", same(osTop.slice(osTop.indexOf("sc_section") + 1, osTop.indexOf("sc_section") + 4), OS),
+    osTop.slice(osTop.indexOf("sc_section"), osTop.indexOf("sc_section") + 4));
+  const osSwitch = H.findModel(B.list, "output_split_on");
+  check(label + ": output split: the switch is 'Split receipt', a plain switch (no checkbox), 0 by default, dataBind, hidden", !!osSwitch && osSwitch.name === "Split receipt" &&
+    osSwitch.options.checkboxMode === false && osSwitch.options.tableColumn === false && osSwitch.options.defaultValue === 0 && osSwitch.options.dataBind === true &&
+    osSwitch.options.hidden === true, osSwitch && osSwitch.options);
+  const osTotal = H.findModel(B.list, "output_split_sum");
+  check(label + ": output split: the total is a hidden display text, no label, empty", !!osTotal && osTotal.options.dataBind === false && osTotal.options.hideLabel === true &&
+    osTotal.options.defaultValue === "" && osTotal.options.customClass === "");
+  const osGrid = H.findModel(B.list, "output_split");
+  const hu = H.findModel(B.list, "table_hu");
+  check(label + ": output split: the rows grid = a hidden json grid (generateSubTable false, as table_hu), Add / Delete row, no paging, empty by default", !!osGrid &&
+    osGrid.options.generateSubTable === false && osGrid.options.dataBind === true && osGrid.options.hidden === true && osGrid.options.isAdd === true &&
+    osGrid.options.isDelete === true && osGrid.options.paging === false && same(osGrid.options.defaultValue, []) && same(Object.keys(osGrid.events), Object.keys(hu.events)),
+    osGrid && osGrid.options);
+  const oc = (osGrid && osGrid.tableColumns) || [];
+  check(label + ": output split: the columns, their types and labels", same(oc.map((c) => [c.model, c.type, c.name]), OS_COLS), oc.map((c) => [c.model, c.type, c.name]));
+  check(label + ": output split: every column shown, editable, not required, a table column, its own remote ids", oc.every((c) => c.options.hidden === false &&
+    c.options.disabled === false && c.options.required === false && c.options.tableColumn === true && c.options.remoteFunc === "func_" + c.key));
+  const ocm = Object.fromEntries(oc.map((c) => [c.model, c]));
+  const hdr = (m, k) => H.findModel(B.list, m, k).options;
+  check(label + ": output split: Qty p8, Group p0, no default", !!ocm.os_qty && ocm.os_qty.options.precision === 8 && ocm.os_group.options.precision === 0 &&
+    ocm.os_qty.options.defaultValue === null && ocm.os_group.options.defaultValue === null);
+  check(label + ": output split: Storage Location = the header's list (the plant's active storage locations)", !!ocm.os_storage_location_id &&
+    same(ocm.os_storage_location_id.options.datasource, hdr("storage_location_id", "37cazpwp").datasource) &&
+    same(ocm.os_storage_location_id.options.props, hdr("storage_location_id", "37cazpwp").props));
+  const binDs = H.clone(hdr("location_id", "06a87twh").datasource);
+  binDs.rules.list[0].children.filter((x) => x.prop === "storage_location_id").forEach((x) => Object.assign(x, { valueType: "formula", value: OS_BIN_FORMULA }));
+  check(label + ": output split: Bin = the header's list but the row's own storage location (Misc Receipt's table_split formula)", !!ocm.os_location_id &&
+    same(ocm.os_location_id.options.datasource, binDs) && same(ocm.os_location_id.options.props, hdr("location_id", "06a87twh").props) &&
+    JSON.stringify(ocm.os_location_id.options.datasource).indexOf(OS_BIN_FORMULA) > 0);
+  check(label + ": output split: Category = Unrestricted / Blocked, static, no default (the row takes the header's)", !!ocm.os_category && ocm.os_category.options.remote === false &&
+    same(ocm.os_category.options.options.map((o) => o.value), ["Unrestricted", "Blocked"]) && ocm.os_category.options.defaultValue === "" &&
+    same(ocm.os_category.options.datasource, hdr("inventory_category", "iainvcat").datasource));
+  const osName = (key) => (H.byKey(B, key) || {}).name || "";
+  if (label === "OFF") {
+    check(label + ": output split: no event bound on the grid or a column", !!osGrid && !!osSwitch && Object.values(osGrid.events).every((v) => v === "") &&
+      oc.every((c) => Object.values(c.events || {}).every((v) => v === "")) && Object.values(osSwitch.events).every((v) => v === ""));
+  } else {
+    check(label + ": output split: the switch, the rows (added / removed) and every column bound to their forwarders", !!osGrid && osName(osSwitch.events.onChange) === "os_onChange_switch" &&
+      osName(osGrid.events.onRowAdd) === "os_onRowAdd" && osName(osGrid.events.onRowRemove) === "os_onRowRemove" && oc.every((c) => osName(c.events.onChange) === "os_onChange_" + c.model.slice(3)) &&
+      Object.keys(osGrid.events).filter((k) => k !== "onRowAdd" && k !== "onRowRemove").every((k) => osGrid.events[k] === ""), [osGrid && osGrid.events, oc.map((c) => c.events)]);
+  }
   const top = B.list.map((w) => w.model);
   check(label + ": the hidden data fields right after ia_idem_key", same(top.slice(top.indexOf("ia_idem_key") + 1, top.indexOf("ia_idem_key") + 8), ["source_so_id", "source_so_line_id",
     "source_so_context_json", "source_bom_id", "bom_snapshot_json", "material_hold_status", "material_hold_at"]));
@@ -318,7 +408,7 @@ check("OFF and ON have the same widgets apart from the new widgets' events", (()
 // ON: the events
 const evOn = ON.config.eventScript;
 const added = evOn.filter((e) => !F0.config.eventScript.some((x) => x.key === e.key));
-check("ON: the added events are sc_main and its forwarders, at the end, all js", same(added.map((e) => e.name).sort(), NEW_EVENTS.slice().sort()) && added.every((e) => e.type === "js") &&
+check("ON: the added events are sc_main and its forwarders (and the split's), at the end, all js", same(added.map((e) => e.name).sort(), NEW_EVENTS.concat(OS_EVENTS).sort()) && added.every((e) => e.type === "js") &&
   same(evOn.slice(0, F0.config.eventScript.length).map((e) => e.key), F0.config.eventScript.map((e) => e.key)));
 for (const [m, [ev, name]] of Object.entries(BOUND)) {
   const w = H.findModel(ON.list, m);
@@ -335,15 +425,20 @@ for (const e of F0.config.eventScript) {
   check("ON: v36 event " + e.name + " byte-identical", JSON.stringify(H.byKey(ON, e.key)) === JSON.stringify(e));
 }
 // each forwarder only hands its op to sc_main
-for (const e of added.filter((x) => x.name !== "sc_main" && x.name !== "onClick_saveAsCreated" && x.name !== "onClick_cancelIA" && x.name !== "onChange_requiredQty")) {
+for (const e of added.filter((x) => x.name !== "sc_main" && x.name !== "onClick_saveAsCreated" && x.name !== "onClick_cancelIA" && x.name !== "onChange_requiredQty" &&
+  OS_EVENTS.indexOf(x.name) < 0)) {
   check("ON: forwarder " + e.name + " is one triggerEvent of sc_main", /^\/\/ [^\n]+\nthis\.triggerEvent\("sc_main", \{ scOp: "[A-Z_]+"[^\n]*\}\);\n?$/.test(e.func), e.func);
+}
+// the split's forwarders only hand their op to os_main (a removed row a moment later, once it is gone)
+for (const e of added.filter((x) => OS_EVENTS.indexOf(x.name) > 0)) {
+  check("ON: forwarder " + e.name + " is one triggerEvent of os_main", /^\/\/ [^\n]+\n(this\.triggerEvent\("os_main", \{ osOp: "[A-Z]+"[^\n]*\}\);|setTimeout\(\(\) => this\.triggerEvent\("os_main", \{ osOp: "REMOVE" \}\), 50\);)\n$/.test(e.func), e.func);
 }
 
 // the patched handlers: undo the insertions -> v36 exactly
 const base = (key) => H.byKey(F0, key).func;
 // the classic save handlers' double-click guard (src/classic_double_patch.json, 10-22): undone here, checked on its own below
 const CLASSIC_DOUBLE = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/classic_double_patch.json"), "utf8"));
-const raw = (key) => H.byKey(ON, key).func;
+const raw = (key) => unos(H.byKey(ON, key).func);
 const built = (key) => {
   let t = CLASSIC_DOUBLE.handlers.indexOf(key) >= 0 ? CLASSIC_DOUBLE.patch.reduce((x, d) => x.replace(d.now, d.was), raw(key)) : raw(key);
   if (CREATED.v2Keys.indexOf(key) >= 0) t = CREATED.v2.reduce((x, d) => x.replace(d.now, d.was), t);
@@ -353,6 +448,10 @@ const built = (key) => {
 // the IA V2 click handlers' double-click patch (src/v2_double_patch.json, bladexfunctions-8c 10-21): each pair applied once
 const DOUBLE = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/v2_double_patch.json"), "utf8"));
 const undouble = (key, t) => (DOUBLE.handlers.indexOf(key) >= 0 ? DOUBLE.patch.reduce((x, d) => x.replace(d.now, d.was), t) : t);
+// IA V2 one stock call per run (src/v2_park_patch.json, 10-27): the wait kicks a parked job at once; the build applies it after the
+// double-click patch, so it is undone first
+const PARK = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/v2_park_patch.json"), "utf8"));
+const unpark = (key, t) => (PARK.handlers.indexOf(key) >= 0 ? PARK.patch.reduce((x, d) => x.replace(d.now, d.was), t) : t);
 // RES-01 R4: the four completion handlers close the holds once the completion answered (src/res_close_patch.json): undo = drop the block
 // at the top, revert the call
 const CLOSE = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/res_close_patch.json"), "utf8"));
@@ -415,7 +514,7 @@ const V36_VARIANCE = (() => {
 for (const key of VARIANCE) {
   check("v36: " + key + " holds the same confirmBomVariance", base(key).indexOf(V36_VARIANCE) >= 0);
   check("ON: " + key + ": RES-01's close block first, its call once", built(key).indexOf(CLOSE_MARK) === 0 && closePairs(key).every((d) => built(key).split(d.now).length === 2));
-  const t = unclose(key, undouble(key, built(key)));
+  const t = unclose(key, undouble(key, unpark(key, built(key))));
   const block = between(t, PRO_START, PRO_END);
   const renamed = V36_VARIANCE.replace("const confirmBomVariance = async (data) => {", "const scBaseConfirmBomVariance = async (data) => {");
   check("ON: " + key + ": the v36 confirmBomVariance renamed, verbatim, followed by the Small Cycle wrapper", !!block && t.indexOf(renamed + "\n\n" + block) >= 0 &&
@@ -446,12 +545,16 @@ for (const key of DOUBLE.handlers) {
   check("ON: " + key + ": the double-click patch applied once per pair", DOUBLE.patch.every((d) => built(key).split(d.now).length === 2 && base(key).split(d.was).length === 2 &&
     (d.now.indexOf(d.was) >= 0 || built(key).indexOf(d.was) < 0)));
 }
+for (const key of PARK.handlers) {
+  check("ON: " + key + ": the park-kick patch applied once per pair", PARK.patch.every((d) => built(key).split(d.now).length === 2 && base(key).split(d.was).length === 2));
+}
 for (const key of ["uhn48srb", "wia8s2r9"]) {
   const grab = (t) => JSON.parse(/const IA_NOT_RECORD = (\[[\s\S]*?\]);/.exec(t)[1].replace(/\n/g, " "));
   const was = grab(base(key));
   const now = grab(built(key));
   // getValues keys: widgets in a layout container (grid, flex) are top-level keys, a dialog's children are under the dialog
-  const ui = Object.keys(UI).filter((m) => ["", "grid_x46134mc", "sc_actions", "sc_info", "sc_section", "sc_collapse"].indexOf(UI[m][1]) >= 0).concat(UI01_NEW);
+  // (built() undoes the split: its total in IA_NOT_RECORD is checked with the v59 comparison)
+  const ui = Object.keys(UI).filter((m) => ["", "grid_x46134mc", "sc_actions", "sc_info", "sc_section", "sc_collapse"].indexOf(UI[m][1]) >= 0 && OS.indexOf(m) < 0).concat(UI01_NEW);
   check("ON: " + key + " IA_NOT_RECORD = v36 + the top-level UI models, never a data key", same(now.slice(0, was.length), was) && same(now.slice(was.length).sort(), ui.slice().sort()) &&
     Object.keys(DATA).every((m) => now.indexOf(m) < 0));
 }
@@ -463,6 +566,8 @@ for (const key of ["uhn48srb", "wia8s2r9"]) {
   const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => Object.assign(o, { [k]: canon(x[k]) }), {}) : x);
   // not published yet: RES-01 R3's widgets (Reserved / Short, the Materials row) and Required named and editable
   const r3 = unedit(unsink(H.clone(ON)));
+  // nor the output split (plan 10-27): the Output Location section's first column
+  H.findModel(r3.list, "sc_output_grid").columns.shift();
   remove(r3, "res_summary");
   remove(r3, "completion_check");
   CREATED_WIDGETS.forEach((m) => remove(r3, m));
@@ -474,14 +579,16 @@ for (const key of ["uhn48srb", "wia8s2r9"]) {
   r3req.options.disabled = true;
   r3req.events.onChange = "";
   check("ON vs v47: the widgets identical but RES-01 R3's (Reserved / Short, the Materials row, Required)", JSON.stringify(canon(r3.list)) === JSON.stringify(canon(LIVE.list)));
-  const changed = ON.config.eventScript.filter((e) => JSON.stringify(H.byKey(LIVE, e.key)) !== JSON.stringify(e)).map((e) => e.name).sort();
+  // (the output split, plan 10-27, undone: its events and the blocks that tell os_main)
+  const ONV = unosDoc(ON);
+  const changed = ONV.config.eventScript.filter((e) => JSON.stringify(H.byKey(LIVE, e.key)) !== JSON.stringify(e)).map((e) => e.name).sort();
   // not published yet: RES-01 R3 (switched off): the Draft handler, the add-back in the explode / component quantity / picker, and
   // sc_main (it carries the explode helpers)
   const createdKey = (H.byName(ON, "onClick_saveAsCreated") || {}).key;
   const reqQtyKey = (H.byName(ON, "onChange_requiredQty") || {}).key;
   check("ON vs v47: the same events but the Created handler (added at the end), only the RES-01 R3 / R4 and Created handlers changed",
-    same(ON.config.eventScript.map((e) => e.key).filter((k) => k !== createdKey && k !== reqQtyKey), LIVE.config.eventScript.map((e) => e.key)) &&
-    same(ON.config.eventScript.slice(-2).map((e) => e.key), [createdKey, reqQtyKey]) &&
+    same(ONV.config.eventScript.map((e) => e.key).filter((k) => k !== createdKey && k !== reqQtyKey), LIVE.config.eventScript.map((e) => e.key)) &&
+    same(ONV.config.eventScript.slice(-2).map((e) => e.key), [createdKey, reqQtyKey]) &&
     same(changed, ["iaV2_onClick_completed", "iaV2_onClick_completed_post", "mounted", "onChange_assembledItem", "onChange_componentQty", "onChange_requiredQty",
       "onClick_saveAsCompleted", "onClick_saveAsCompletedPost", "onClick_saveAsCreated", "onClick_saveAsDraft", "onClick_select_stock", "onFormChange",
       "sc_main"]), changed);
@@ -537,8 +644,9 @@ for (const key of ["uhn48srb", "wia8s2r9"]) {
   check("UI-01: Production = FG, name, description, mode | planned output, output to receive, actual received, UOM | the BOM and its buttons full width",
     same(colsOf("sc_sec_production"), [[12, ["item_id", "item_name", "item_desc", "bom_consumption_mode"]], [12, ["planned_output_qty", "item_qty", "sc_actual", "item_uom"]],
       [24, ["sc_info_bom", "sc_prod_actions"]]]), colsOf("sc_sec_production"));
-  check("UI-01: Output Location = storage location, category, manufacturing date | bin, batch, expiry",
-    same(colsOf("sc_sec_output"), [[12, ["storage_location_id", "inventory_category", "manufacturing_date"]], [12, ["location_id", "batch_no", "expired_date"]]]), colsOf("sc_sec_output"));
+  check("UI-01: Output Location = the output split full width (plan 10-27) | storage location, category, manufacturing date | bin, batch, expiry",
+    same(colsOf("sc_sec_output"), [[24, OS], [12, ["storage_location_id", "inventory_category", "manufacturing_date"]], [12, ["location_id", "batch_no", "expired_date"]]]),
+    colsOf("sc_sec_output"));
   check("UI-01: Additional Details = project, documents | remarks 1-3", same(colsOf("sc_sec_more"), [[12, ["project_id", "reference_documents"]], [12, ["remarks", "remarks_2", "remarks_3"]]]),
     colsOf("sc_sec_more"));
   // the plant stays first, at the top: changing it clears the materials (v36 onChange_Plant), so it is chosen before the item
@@ -585,23 +693,41 @@ for (const e of evOn) {
 }
 const mirrorDir = path.join(H.IASC, "client/out/on");
 for (const e of added.concat(PATCHED.map((k) => H.byKey(ON, k)))) {
-  const f = path.join(mirrorDir, (e.name.indexOf("sc_") === 0 ? "" : "iaForm_") + e.name + ".js");
+  const f = path.join(mirrorDir, (e.name.indexOf("sc_") === 0 || e.name.indexOf("os_") === 0 ? "" : "iaForm_") + e.name + ".js");
   // a rule event's mirror is its js action
   check("ON: mirror " + path.basename(f) + " = the embedded script", fs.existsSync(f) && read(f) === (e.type === "rule" ? ruleJs(ON, e.key) : e.func));
 }
-// ON vs the live dev v57 (base/ia_form_v57.json, published 2026-10-22 19:52): the same form but the Cancel button and its handler gone
-// (Cancel is the list's bulk action, user 10-22 evening) and mounted's Created branch without the button
+// ON vs the live dev v59 (base/ia_form_v59.json, published 2026-10-27 12:09: the split's widgets, hidden and unbound): the same form once the
+// split's handlers are undone (its 12 events, the blocks that tell os_main, the mount's two extra flags, the total in IA_NOT_RECORD, its bindings)
 {
-  const LIVE = H.readJSON(path.join(H.IASC, "base/ia_form_v57.json"));
+  const LIVE = H.readJSON(path.join(H.IASC, "base/ia_form_v59.json"));
   const canon = (x) => (Array.isArray(x) ? x.map(canon) : x && typeof x === "object" ? Object.keys(x).sort().reduce((o, k) => Object.assign(o, { [k]: canon(x[k]) }), {}) : x);
-  const live = H.clone(LIVE);
-  const dropped = remove(live, "button_cancel");
-  check("ON vs v57: the widgets identical once v57's Cancel button is taken out", dropped && JSON.stringify(canon(ON.list)) === JSON.stringify(canon(live.list)));
-  check("ON vs v57: the form config identical apart from the events", JSON.stringify(canon(Object.assign({}, ON.config, { eventScript: [] }))) ===
-    JSON.stringify(canon(Object.assign({}, LIVE.config, { eventScript: [] }))));
-  const liveKeys = LIVE.config.eventScript.filter((e) => e.name !== "onClick_cancelIA").map((e) => e.key);
-  const diff = ON.config.eventScript.filter((e) => JSON.stringify(canon(H.byKey(LIVE, e.key))) !== JSON.stringify(canon(e))).map((e) => e.name);
-  check("ON vs v57: the same events less onClick_cancelIA, only mounted changed (its Created branch shows no Cancel)", same(ON.config.eventScript.map((e) => e.key), liveKeys) &&
-    same(diff, ["mounted"]) && !!H.byName(LIVE, "onClick_cancelIA"), diff);
+  const V = unosDoc(ON);
+  check("ON vs v59: every widget identical once the split's bindings are undone", JSON.stringify(canon(V.list)) === JSON.stringify(canon(LIVE.list)));
+  // the browser pass (10-27): the grid had no Add Row and no per-row Delete - the components table's own buttons
+  const smo = H.findModel(ON.list, "stock_movement").options;
+  const ogo = H.findModel(ON.list, "output_split").options;
+  const addOf = (o) => ((o.customProps || {}).toolbar || []).filter((x) => x.type === "addBtn");
+  const delOf = (o) => (o.rowActions || []).filter((x) => x.type === "delBtn");
+  check("ON: the split grid has Add Row (a toolbar addBtn, as the components table's)", addOf(ogo).length === 1 && addOf(ogo)[0].title === "Add Row" &&
+    same(Object.assign({}, addOf(ogo)[0], { title: "" }), Object.assign({}, addOf(smo)[0], { title: "" })) && ogo.customProps.toolbar[0].type === "addBtn", ogo.customProps);
+  check("ON: the split grid has a Delete row action (the components table's delBtn)", delOf(ogo).length === 1 && same(delOf(ogo)[0], delOf(smo)[0]), ogo.rowActions);
+  check("ON vs v59: the form config identical once the split's events and blocks are undone", JSON.stringify(canon(V.config)) === JSON.stringify(canon(LIVE.config)));
+  const changed = ON.config.eventScript.filter((e) => H.byKey(LIVE, e.key) && JSON.stringify(H.byKey(LIVE, e.key)) !== JSON.stringify(e)).map((e) => e.name).sort();
+  check("ON vs v59: the split's 12 events at the end; changed only the handlers that tell os_main and IA V2's IA_NOT_RECORD",
+    same(ON.config.eventScript.slice(-OS_EVENTS.length).map((e) => e.name), OS_EVENTS) && same(changed, ["iaV2_onClick_completed", "iaV2_onClick_completed_post", "mounted",
+      "onChange_Plant", "onChange_assembledItem", "onChange_itemQty", "sc_main"]), changed);
+  // where the handlers tell os_main
+  const fn = (name) => (H.byName(ON, name) || {}).func || "";
+  check("ON: an item change tells os_main inside applyBatchFields (and sc_main's copy of it)", ["onChange_assembledItem", "sc_main"].every((n) =>
+    fn(n).indexOf("const applyBatchFields = (item) => {\n  // IA output split (scratchpad/iasc os_main):") >= 0 && fn(n).indexOf('this.triggerEvent("os_main", { osOp: "ITEM", item: item || null });') > 0));
+  check("ON: the mount's item read asks the kind's flags and tells os_main; a read-only view tells it too", fn("mounted").indexOf(OS_FIELDS[0]) > 0 &&
+    /const item = res\.data\?\.\[0\];\n  \/\/ IA output split[^\n]*\n  this\.triggerEvent\("os_main", \{ osOp: "MOUNT", item: item \|\| null \}\);/.test(fn("mounted")) &&
+    /const showFilledBatchFields = \(\) => \{\n  \/\/ IA output split[^\n]*\n  this\.triggerEvent\("os_main", \{ osOp: "VIEW" \}\);/.test(fn("mounted")));
+  check("ON: the output quantity tells os_main first (before the Small Cycle prologue), the plant last", fn("onChange_itemQty").indexOf("// IA output split (scratchpad/iasc os_main):") === 0 &&
+    /this\.triggerEvent\("os_main", \{ osOp: "PLANT" \}\);\n\/\/ -- end output split --\n$/.test(fn("onChange_Plant")));
+  const notRecord = (n) => fn(n).slice(fn(n).indexOf("const IA_NOT_RECORD"), fn(n).indexOf("];", fn(n).indexOf("const IA_NOT_RECORD")) + 2);
+  check("ON: IA V2's IA_NOT_RECORD strips the split's total, never the rows or the switch", ["iaV2_onClick_completed", "iaV2_onClick_completed_post"].every((n) =>
+    /"output_split_sum"\];$/.test(notRecord(n)) && notRecord(n).indexOf('"output_split"') < 0 && notRecord(n).indexOf('"output_split_on"') < 0));
 }
 H.done("test_sc_json");

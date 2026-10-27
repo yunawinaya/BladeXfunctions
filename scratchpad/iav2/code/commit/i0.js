@@ -3,7 +3,7 @@
 // else FAILED + the IA back to Draft
 const commitI0 = function commitI0(entry, headerRows, lineRows) {
   const h = iaRows(headerRows)[0] || null;
-  const ours = entry.batchId ? [entry.batchId] : [];
+  const ours = iaBatchIdsOf(entry);
   if (!h) return failNoWrite(entry, "IA_NOT_LOCKED", IA_TEXT.notLocked, "the Item Assembly is missing (deleted?): no stock was moved", ours);
   if (s(h.item_assembly_status) !== "Processing" || s(h.ia_v2_job_id) !== entry.jobId) {
     return failNoWrite(entry, "IA_NOT_LOCKED", IA_TEXT.notLocked, "the Item Assembly is " + (s(h.item_assembly_status) || "without a status") + " under job " + (s(h.ia_v2_job_id) || "(none)") + ": no stock was moved", ours);

@@ -113,3 +113,6 @@ if (SC_ENABLED === true && /^[1-9][0-9]{0,19}$/.test(SC_WF_PROJECTION) && /^[1-9
   }
 }
 // -- end Small Cycle --
+// IA output split (scratchpad/iasc os_main): the plant changed: its bins belong to the old plant, so the split is cleared
+this.triggerEvent("os_main", { osOp: "PLANT" });
+// -- end output split --

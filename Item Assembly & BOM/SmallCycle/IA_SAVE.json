@@ -966,7 +966,7 @@
         "name": "Small Cycle: the stored fields and the linked SO line + header",
         "script": {
          "type": "sql",
-         "code": "SELECT JSON_OBJECT(\n       'member', (SELECT COUNT(*) FROM blade_dept p\n          WHERE p.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND p.is_deleted = 0 AND {{node:code_node_SCin.data.org}} > 0 AND (p.id = {{node:code_node_SCin.data.org}} OR FIND_IN_SET('{{node:code_node_SCin.data.org}}',\n\t\tp.ancestors) > 0)\n            AND FIND_IN_SET(CAST(p.id AS CHAR) COLLATE utf8mb4_general_ci,\n                  (SELECT COALESCE(u.dept_id, '') FROM blade_user u WHERE u.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND u.is_deleted = 0 AND u.id = {{node:code_node_SCin.data.uid}} LIMIT 1)) > 0),\n       'stored', IF(h.id IS NULL, NULL, JSON_OBJECT('source_so_id', h.source_so_id, 'source_so_line_id', h.source_so_line_id,\n         'source_so_context_json', h.source_so_context_json, 'bom_consumption_mode', h.bom_consumption_mode, 'source_bom_id', h.source_bom_id,\n         'bom_snapshot_json', h.bom_snapshot_json, 'planned_output_qty', CAST(h.planned_output_qty AS CHAR), 'item_id', h.item_id)),\n       'line', IF(l.id IS NULL, NULL, JSON_OBJECT('id', CAST(l.id AS CHAR), 'sales_order_id', CAST(l.sales_order_id AS CHAR),\n         'item_name', l.item_name, 'so_quantity', CAST(l.so_quantity AS CHAR), 'so_item_uom', CAST(l.so_item_uom AS CHAR),\n         'delivered_qty', CAST(l.delivered_qty AS CHAR), 'line_status', l.line_status, 'is_deleted', l.is_deleted, 'line_index', l.line_index)),\n       'header', IF(s.id IS NULL, NULL, JSON_OBJECT('id', CAST(s.id AS CHAR), 'so_no', s.so_no, 'so_status', s.so_status,\n         'organization_id', s.organization_id, 'customer_id', CAST(s.customer_name AS CHAR), 'is_deleted', s.is_deleted)),\n       'hold', h.material_hold_status,\n       'keys', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(x.id AS CHAR), 'k', x.sc_ref_key, 'r', CAST(x.required_qty AS CHAR), 'q', CAST(x.requested_qty AS CHAR),\n                'm', x.required_manual)) FROM sm_item_assembly_tlm8ve69_sub x\n         WHERE x.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND x.id IN ({{node:code_node_SCin.data.lineIds}}) AND x.sm_item_assembly_id = {{node:code_node_SCin.data.iaId}} AND x.is_deleted = 0)) AS j\n  FROM (SELECT 1 AS one) d\n  LEFT JOIN sm_item_assembly h ON h.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND h.id = {{node:code_node_SCin.data.iaId}} AND h.is_deleted = 0\n  LEFT JOIN sales_order_axszx8cj_sub l ON l.tenant_id = '{{node:code_node_SCin.data.tenantId}}'\n   AND l.id = IF({{node:code_node_SCin.data.lineId}} > 0, {{node:code_node_SCin.data.lineId}}, IF(h.source_so_line_id REGEXP '^[0-9]{1,20}$', CAST(h.source_so_line_id AS UNSIGNED),\n\t\t0))\n  LEFT JOIN sales_order s ON s.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND s.id = l.sales_order_id"
+         "code": "SELECT JSON_OBJECT(\n       'member', (SELECT COUNT(*) FROM blade_dept p\n          WHERE p.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND p.is_deleted = 0 AND {{node:code_node_SCin.data.org}} > 0 AND (p.id = {{node:code_node_SCin.data.org}} OR FIND_IN_SET('{{node:code_node_SCin.data.org}}',\n\t\tp.ancestors) > 0)\n            AND FIND_IN_SET(CAST(p.id AS CHAR) COLLATE utf8mb4_general_ci,\n                  (SELECT COALESCE(u.dept_id, '') FROM blade_user u WHERE u.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND u.is_deleted = 0 AND u.id = {{node:code_node_SCin.data.uid}} LIMIT 1)) > 0),\n       'stored', IF(h.id IS NULL, NULL, JSON_OBJECT('source_so_id', h.source_so_id, 'source_so_line_id', h.source_so_line_id,\n         'source_so_context_json', h.source_so_context_json, 'bom_consumption_mode', h.bom_consumption_mode, 'source_bom_id', h.source_bom_id,\n         'bom_snapshot_json', h.bom_snapshot_json, 'planned_output_qty', CAST(h.planned_output_qty AS CHAR), 'item_id', h.item_id,\n         'output_split', h.output_split, 'plant', CAST(h.issuing_operation_faci AS CHAR), 'bin', CAST(h.location_id AS CHAR))),\n       'line', IF(l.id IS NULL, NULL, JSON_OBJECT('id', CAST(l.id AS CHAR), 'sales_order_id', CAST(l.sales_order_id AS CHAR),\n         'item_name', l.item_name, 'so_quantity', CAST(l.so_quantity AS CHAR), 'so_item_uom', CAST(l.so_item_uom AS CHAR),\n         'delivered_qty', CAST(l.delivered_qty AS CHAR), 'line_status', l.line_status, 'is_deleted', l.is_deleted, 'line_index', l.line_index)),\n       'header', IF(s.id IS NULL, NULL, JSON_OBJECT('id', CAST(s.id AS CHAR), 'so_no', s.so_no, 'so_status', s.so_status,\n         'organization_id', s.organization_id, 'customer_id', CAST(s.customer_name AS CHAR), 'is_deleted', s.is_deleted)),\n       'hold', h.material_hold_status,\n       'keys', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(x.id AS CHAR), 'k', x.sc_ref_key, 'r', CAST(x.required_qty AS CHAR), 'q', CAST(x.requested_qty AS CHAR),\n                'm', x.required_manual)) FROM sm_item_assembly_tlm8ve69_sub x\n         WHERE x.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND x.id IN ({{node:code_node_SCin.data.lineIds}}) AND x.sm_item_assembly_id = {{node:code_node_SCin.data.iaId}} AND x.is_deleted = 0)) AS j\n  FROM (SELECT 1 AS one) d\n  LEFT JOIN sm_item_assembly h ON h.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND h.id = {{node:code_node_SCin.data.iaId}} AND h.is_deleted = 0\n  LEFT JOIN sales_order_axszx8cj_sub l ON l.tenant_id = '{{node:code_node_SCin.data.tenantId}}'\n   AND l.id = IF({{node:code_node_SCin.data.lineId}} > 0, {{node:code_node_SCin.data.lineId}}, IF(h.source_so_line_id REGEXP '^[0-9]{1,20}$', CAST(h.source_so_line_id AS UNSIGNED),\n\t\t0))\n  LEFT JOIN sales_order s ON s.tenant_id = '{{node:code_node_SCin.data.tenantId}}' AND s.id = l.sales_order_id"
         },
         "response_json": [
          {
@@ -1183,6 +1183,187 @@
     },
     {
      "id": "if_SCfailed_f",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_OSmerge",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "Output split: the rows this save writes (no key = the stored ones) and the mobile guard",
+    "isValidator": true,
+    "nodeName": "Output split: the rows this save writes (no key = the stored ones) and the mobile guard",
+    "name": "Output split: the rows this save writes (no key = the stored ones) and the mobile guard",
+    "script": {
+     "type": "javascript",
+     "code": "const OS_MAX_ROWS = 20;\nconst osS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst osQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst osDigits = (v) => /^[0-9]{1,20}$/.test(osS(v));\nconst osDate = (v) => (typeof v === \"number\" && isFinite(v) ? v : osS(v));\nconst osParse = function osParse(v) {\n  if (v === undefined || v === null || v === \"\") return [];\n  if (Array.isArray(v)) return v;\n  if (typeof v !== \"string\") return null;\n  try {\n    const p = JSON.parse(v);\n    return Array.isArray(p) ? p : p === null ? [] : null;\n  } catch (e) {\n    return null;\n  }\n};\nconst osNorm = function osNorm(rows, kind) {\n  const batch = kind === \"SYSTEM\" || kind === \"MANUAL\";\n  return (rows || []).map((r) => {\n    const x = r && typeof r === \"object\" ? r : {};\n    return { os_qty: osQ8(x.os_qty), os_storage_location_id: osS(x.os_storage_location_id), os_location_id: osS(x.os_location_id), os_category: osS(x.os_category),\n      os_group: kind === \"SYSTEM\" ? osS(x.os_group) : \"\", os_batch_no: batch ? osS(x.os_batch_no) : \"\", os_mfg_date: batch ? osDate(x.os_mfg_date) : \"\",\n      os_exp_date: batch ? osDate(x.os_exp_date) : \"\" };\n  });\n};\nconst osJ = function osJ(rows) {\n  const r = Array.isArray(rows) ? rows[0] : rows;\n  const v = r && r.j !== undefined ? r.j : null;\n  if (v && typeof v === \"object\") return v;\n  const t = osS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst osMerge = function osMerge(a, stored, opts) {\n  const o = opts || {};\n  const x = a || {};\n  const has = Object.prototype.hasOwnProperty.call(x, \"output_split\");\n  const out = (route, message, rows) => ({ route: route, message: message, split: rows.length ? \"YES\" : \"NO\", output_split: rows, count: String(rows.length),\n    binIds: rows.map((r) => r.os_location_id).filter(osDigits).join(\",\") || \"0\", tenantId: osDigits(o.tenantId) ? osS(o.tenantId) : \"0\" });\n  const stop = (message) => out(\"STOP\", message, []);\n  if (!has && o.edit && !stored) return stop(\"The stored output split could not be read: open the Item Assembly again and save.\");\n  const kept = stored ? osParse(stored.output_split) : [];\n  const given = has ? osParse(x.output_split) : kept;\n  if (given === null) return stop(\"The output split could not be read: open the Item Assembly again and save.\");\n  if (given.length > OS_MAX_ROWS) return stop(\"A split receipt can have at most \" + OS_MAX_ROWS + \" rows.\");\n  if (!has && given.length && (osS(x.issuing_operation_faci) !== osS(stored.plant) || osS(x.item_id) !== osS(stored.item_id) || osS(x.location_id) !== osS(stored.bin))) {\n    return stop(\"This Item Assembly's output is split across bins: change its plant, item or bin on the desktop.\");\n  }\n  return out(\"OK\", \"\", osNorm(given, \"SYSTEM\"));\n};\n// IA_SAVE v14 - output split (plan 10-27, shared/os_split.js osMerge): the rows this save writes - the payload's, or the stored ones\n// when it leaves the key out (mobile), which it may then not move; STOP = 400 before any write. A completion checks them next\nconst a = [{{node:code_fillback.data.allData}}][0] || {};\nconst page = [{{workflowparams:pageStatus}}][0];\nconst src = osJ([{{node:sql_node_SCsource.data}}][0]);\nconst res = osMerge(a, src ? src.stored : null, { edit: page === \"Edit\" && /^[0-9]{1,20}$/.test(osS(a.id)), tenantId: [{{system:tenantId}}][0] });\nconsole.log(\"ia output split\", JSON.stringify({ route: res.route, split: res.split, rows: res.count }));\nreturn { route: res.route, message: res.message, split: res.split, output_split: res.output_split, count: res.count, binIds: res.binIds, tenantId: res.tenantId };"
+    },
+    "response_json": [
+     {
+      "key": "jdimm0go",
+      "name": "route",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "bb5009cf",
+      "name": "message",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "1o5nqylm",
+      "name": "split",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "5u0iqxuf",
+      "name": "output_split",
+      "title": "output_split",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "ahnrt8mr",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "ftj7yuxg",
+      "name": "count",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "yyuw1sjc",
+      "name": "binIds",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "py6vtmd7",
+      "name": "tenantId",
+      "title": "",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_OSfailed",
+   "type": "if",
+   "data": {
+    "title": "IF the output split was refused (unreadable, too many rows, a mobile save moving a split)",
+    "isValidator": true,
+    "nodeName": "IF the output split was refused (unreadable, too many rows, a mobile save moving a split)",
+    "name": "IF the output split was refused (unreadable, too many rows, a mobile save moving a split)",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1792400000001,
+       "parentId": 1792400000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_OSmerge.data.route}}' == 'STOP'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "if_OSfailed_t",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "return_node_OS400",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Refused 400 (output split)",
+        "isValidator": true,
+        "nodeName": "Return Refused 400 (output split)",
+        "name": "Return Refused 400 (output split)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "value",
+           "valueTypeLabel": "",
+           "value": "400",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_OSmerge.data.message}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "if_OSfailed_f",
      "type": "ifBlock",
      "data": {
       "title": "false"
@@ -1412,6 +1593,305 @@
         },
         {
          "id": "if_validate_failed_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "if_OSbinsRead",
+       "type": "if",
+       "data": {
+        "title": "IF a split completion: its rows' bins to read",
+        "isValidator": true,
+        "nodeName": "IF a split completion: its rows' bins to read",
+        "name": "IF a split completion: its rows' bins to read",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1792400000003,
+           "parentId": 1792400000004,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_node_OSmerge.data.split}}' == 'YES'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_OSbinsRead_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "sql_node_OSbins",
+           "type": "sql-node",
+           "data": {
+            "database_id": "",
+            "sql": "",
+            "params": {},
+            "title": "Output split: the rows' bins (plant, storage location, active)",
+            "isValidator": true,
+            "nodeName": "Output split: the rows' bins (plant, storage location, active)",
+            "name": "Output split: the rows' bins (plant, storage location, active)",
+            "script": {
+             "type": "sql",
+             "code": "SELECT JSON_OBJECT('bins', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(b.id AS CHAR), 'plant', CAST(b.plant_id AS CHAR),\n       'sl', CAST(b.storage_location_id AS CHAR), 'active', b.bin_status)) FROM bin_location b WHERE b.id IN ({{node:code_node_OSmerge.data.binIds}}) AND b.is_deleted = 0)) AS j"
+            },
+            "response_json": [
+             {
+              "key": "7dob4i8i",
+              "name": "j",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_OSbinsRead_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "code_node_OScheck",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Output split: the rows for the item (qty total, bins, batches, dates) and the groups to number",
+        "isValidator": true,
+        "nodeName": "Output split: the rows for the item (qty total, bins, batches, dates) and the groups to number",
+        "name": "Output split: the rows for the item (qty total, bins, batches, dates) and the groups to number",
+        "script": {
+         "type": "javascript",
+         "code": "const OS_MAX_ROWS = 20;\nconst OS_EPS = 5e-9;\nconst OS_CATEGORIES = [\"Unrestricted\", \"Blocked\"];\nconst osS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst osQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst osDigits = (v) => /^[0-9]{1,20}$/.test(osS(v));\nconst osDate = (v) => (typeof v === \"number\" && isFinite(v) ? v : osS(v));\nconst osKind = function osKind(item) {\n  const it = item || {};\n  if (Number(it.serial_number_management) === 1) return \"SERIAL\";\n  if (it.stock_control === 0 || it.stock_control === \"0\") return \"NONSTOCK\";\n  if (it.item_batch_management === 1) return it.batch_number_genaration === \"According To System Settings\" ? \"SYSTEM\" : \"MANUAL\";\n  return \"PLAIN\";\n};\nconst osNorm = function osNorm(rows, kind) {\n  const batch = kind === \"SYSTEM\" || kind === \"MANUAL\";\n  return (rows || []).map((r) => {\n    const x = r && typeof r === \"object\" ? r : {};\n    return { os_qty: osQ8(x.os_qty), os_storage_location_id: osS(x.os_storage_location_id), os_location_id: osS(x.os_location_id), os_category: osS(x.os_category),\n      os_group: kind === \"SYSTEM\" ? osS(x.os_group) : \"\", os_batch_no: batch ? osS(x.os_batch_no) : \"\", os_mfg_date: batch ? osDate(x.os_mfg_date) : \"\",\n      os_exp_date: batch ? osDate(x.os_exp_date) : \"\" };\n  });\n};\nconst osBaseFactor = function osBaseFactor(item, uom) {\n  const conv = ((item && item.table_uom_conversion) || []).filter((c) => c && c.alt_uom_id === uom)[0];\n  return conv ? parseFloat(conv.base_qty) || 0 : 1;\n};\nconst osGroupKey = (row, kind) => (kind === \"SYSTEM\" ? \"G\" + osS(row.os_group) : kind === \"MANUAL\" ? \"B\" + osS(row.os_batch_no).toLowerCase() : \"\");\nconst osGroups = function osGroups(rows, kind, item, uom) {\n  if (kind !== \"SYSTEM\" && kind !== \"MANUAL\") return [];\n  const f = osBaseFactor(item, uom);\n  const groups = [];\n  const at = {};\n  rows.forEach((r, i) => {\n    const key = osGroupKey(r, kind);\n    if (at[key] === undefined) {\n      at[key] = groups.length;\n      groups.push({ key: key, label: kind === \"SYSTEM\" ? \"group \" + r.os_group : \"batch \" + r.os_batch_no, rows: [], qty: 0, base: 0,\n        batch_no: kind === \"MANUAL\" ? r.os_batch_no : \"\", mfg: r.os_mfg_date, exp: r.os_exp_date });\n    }\n    const g = groups[at[key]];\n    g.rows.push(i);\n    g.qty = osQ8(g.qty + r.os_qty);\n    g.base = osQ8(g.base + osQ8(r.os_qty * f));\n  });\n  return groups;\n};\nconst osSum = (rows) => osQ8((rows || []).reduce((s, r) => s + osQ8(r && r.os_qty), 0));\nconst osCheck = function osCheck(input, ctx) {\n  const kind = ctx.kind;\n  const rows = osNorm(input, kind);\n  const res = (message, groups) => ({ ok: message === \"\", message: message, split: rows.length > 0, rows: rows, groups: groups || [] });\n  if (rows.length === 0) return res(\"\");\n  if (kind === \"SERIAL\") return res(\"Serial-numbered items cannot be split across bins: switch Split receipt off.\");\n  if (kind === \"NONSTOCK\") return res(\"This item is not stock-controlled: there is no receipt to split. Switch Split receipt off.\");\n  if (rows.length > OS_MAX_ROWS) return res(\"A split receipt can have at most \" + OS_MAX_ROWS + \" rows.\");\n  if (!ctx.completing) return res(\"\", osGroups(rows, kind, ctx.item, ctx.item_uom));\n  if (rows.length < 2) return res(\"A split receipt needs at least 2 rows: add a row or switch Split receipt off.\");\n  for (let i = 0; i < rows.length; i++) {\n    const r = rows[i];\n    const at = \"Output row \" + (i + 1) + \": \";\n    if (!(r.os_qty > 0)) return res(at + \"enter a quantity above 0.\");\n    if (!osDigits(r.os_location_id)) return res(at + \"choose a bin location.\");\n    if (OS_CATEGORIES.indexOf(r.os_category) < 0) return res(at + \"choose Unrestricted or Blocked.\");\n    if (kind === \"SYSTEM\" && !/^[1-9][0-9]?$/.test(r.os_group)) return res(at + \"enter a group number (rows with the same group share one batch).\");\n    if (kind === \"MANUAL\" && r.os_batch_no === \"\") return res(at + \"enter a batch number.\");\n  }\n  const total = osSum(rows);\n  const want = osQ8(ctx.item_qty);\n  if (Math.abs(total - want) > OS_EPS) return res(\"The split total \" + total + \" is not the output quantity \" + want + \": adjust the rows.\");\n  const groups = osGroups(rows, kind, ctx.item, ctx.item_uom);\n  for (let g = 0; g < groups.length; g++) {\n    const first = rows[groups[g].rows[0]];\n    const other = groups[g].rows.filter((i) => String(rows[i].os_mfg_date) !== String(first.os_mfg_date) || String(rows[i].os_exp_date) !== String(first.os_exp_date))[0];\n    if (other !== undefined) {\n      return res(\"Output rows \" + (groups[g].rows[0] + 1) + \" and \" + (other + 1) + \" are one batch (\" + groups[g].label + \") with different dates: \" +\n        \"give a batch one manufacturing and one expiry date.\");\n    }\n    if (kind === \"MANUAL\") groups[g].rows.forEach((i) => (rows[i].os_batch_no = groups[g].batch_no));\n  }\n  const seen = {};\n  for (let i = 0; i < rows.length; i++) {\n    const key = osGroupKey(rows[i], kind) + \"|\" + rows[i].os_location_id + \"|\" + rows[i].os_category;\n    if (seen[key] !== undefined) {\n      return res(\"Output rows \" + (seen[key] + 1) + \" and \" + (i + 1) + (kind === \"PLAIN\" ? \" go to the same bin and category\" : \" put the same batch into the same bin and category\") +\n        \": merge them into one row.\");\n    }\n    seen[key] = i;\n  }\n  return res(\"\", groups);\n};\nconst osJ = function osJ(rows) {\n  const r = Array.isArray(rows) ? rows[0] : rows;\n  const v = r && r.j !== undefined ? r.j : null;\n  if (v && typeof v === \"object\") return v;\n  const t = osS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst osBinCheck = function osBinCheck(rows, bins, plant) {\n  const by = {};\n  (bins || []).forEach((b) => {\n    if (b && osS(b.id)) by[osS(b.id)] = b;\n  });\n  for (let i = 0; i < rows.length; i++) {\n    const b = by[rows[i].os_location_id];\n    if (!b || osS(b.plant) !== osS(plant)) return { ok: false, message: \"Output row \" + (i + 1) + \": its bin location is not a bin of this plant: choose it again.\", rows: rows };\n    if (Number(b.active) !== 1) return { ok: false, message: \"Output row \" + (i + 1) + \": its bin location is not active: choose another.\", rows: rows };\n  }\n  return { ok: true, message: \"\", rows: rows.map((r) => Object.assign({}, r, { os_storage_location_id: osS(by[r.os_location_id].sl) })) };\n};\nconst osCompletion = function osCompletion(merged, a, items, read, uid) {\n  const none = { route: \"OK\", message: \"\", kind: \"\", split: \"NO\", output_split: [], groups: [], gen: \"NO\", genGroups: [], cacheKey: \"\" };\n  const rows = (merged && merged.output_split) || [];\n  if (!rows.length) return none;\n  const h = a || {};\n  const item = (items || []).filter((it) => it && osS(it.id) === osS(h.item_id))[0] || null;\n  const kind = osKind(item);\n  const stop = (message) => Object.assign({}, none, { route: \"STOP\", message: message, kind: kind, split: \"YES\" });\n  const chk = osCheck(rows, { kind: kind, item_qty: h.item_qty, item: item, item_uom: h.item_uom, completing: true });\n  if (!chk.ok) return stop(chk.message);\n  const bc = osBinCheck(chk.rows, (read && read.bins) || [], h.issuing_operation_faci);\n  if (!bc.ok) return stop(bc.message);\n  const gen = kind === \"SYSTEM\";\n  return { route: \"OK\", message: \"\", kind: kind, split: \"YES\", output_split: bc.rows, groups: chk.groups, gen: gen ? \"YES\" : \"NO\",\n    genGroups: gen ? chk.groups.map((g, i) => ({ index: i, label: g.label, item_id: osS(h.item_id), document_date: h.item_assembly_date || null,\n      manufacturing_date: g.mfg || null, expired_date: g.exp || null })) : [],\n    cacheKey: gen ? osS(uid) + \"_\" + Date.now() + \"_\" + Math.random().toString(36).slice(2, 8) : \"\" };\n};\n// IA_SAVE v14 - a completion's output split (osCompletion): the rows checked for the item, every bin a live bin of the IA's plant;\n// STOP = 401 before any write. A System Settings split numbers its groups next (one GENERATE_BATCH call each)\nconst m = [{{node:code_node_OSmerge.data}}][0] || {};\nconst a = [{{node:code_fillback.data.allData}}][0] || {};\nconst items = [{{node:search_items.data.data}}][0] || [];\nconst res = osCompletion(m, a, items, osJ([{{node:sql_node_OSbins.data}}][0]), [{{system:uid}}][0]);\nconsole.log(\"ia output split check\", JSON.stringify({ route: res.route, kind: res.kind, gen: res.gen, groups: res.groups.length }));\nreturn { route: res.route, message: res.message, kind: res.kind, split: res.split, output_split: res.output_split, groups: res.groups, gen: res.gen,\n  genGroups: res.genGroups, cacheKey: res.cacheKey };"
+        },
+        "response_json": [
+         {
+          "key": "ptmro3f8",
+          "name": "route",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "u8vyzzvh",
+          "name": "message",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "zws5677a",
+          "name": "kind",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "eh7o73w4",
+          "name": "split",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "cksdvioe",
+          "name": "output_split",
+          "title": "output_split",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "6pon73si",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "isArrayItem": true,
+            "children": []
+           }
+          ]
+         },
+         {
+          "key": "8ywmc6qi",
+          "name": "groups",
+          "title": "groups",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "v70ko6an",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "isArrayItem": true,
+            "children": []
+           }
+          ]
+         },
+         {
+          "key": "uxfl047a",
+          "name": "gen",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "jhwzgaui",
+          "name": "genGroups",
+          "title": "genGroups",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "7rkpl3kx",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "isArrayItem": true,
+            "children": []
+           }
+          ]
+         },
+         {
+          "key": "dqs9l5lj",
+          "name": "cacheKey",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_OScheckFailed",
+       "type": "if",
+       "data": {
+        "title": "IF the output split was refused (401, before any write)",
+        "isValidator": true,
+        "nodeName": "IF the output split was refused (401, before any write)",
+        "name": "IF the output split was refused (401, before any write)",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1792400000005,
+           "parentId": 1792400000006,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_node_OScheck.data.route}}' == 'STOP'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_OScheckFailed_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "return_node_OS401",
+           "type": "return-node",
+           "data": {
+            "return_data": {},
+            "status_code": 200,
+            "title": "Return Refused 401 (output split)",
+            "isValidator": true,
+            "nodeName": "Return Refused 401 (output split)",
+            "name": "Return Refused 401 (output split)",
+            "response_value": {
+             "list": [
+              {
+               "prop": "code",
+               "propLabel": "code",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "value",
+               "valueTypeLabel": "",
+               "value": "401",
+               "valueLabel": ""
+              },
+              {
+               "prop": "message",
+               "propLabel": "message",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_node_OScheck.data.message}}",
+               "valueLabel": ""
+              }
+             ]
+            },
+            "return_raw_data": 0
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_OScheckFailed_f",
          "type": "ifBlock",
          "data": {
           "title": "false"
@@ -2583,7 +3063,7 @@
         },
         "expression": {
          "type": "javascript",
-         "code": "{{node:code_batch_decide.data.needsGen}} == 1"
+         "code": "{{node:code_batch_decide.data.needsGen}} == 1 && '{{node:code_node_OSmerge.data.split}}' != 'YES'"
         }
        },
        "blocks": [
@@ -2811,6 +3291,678 @@
         },
         {
          "id": "if_needs_batch_gen_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "if_OSgen",
+       "type": "if",
+       "data": {
+        "title": "IF a System Settings split: one batch number per group",
+        "isValidator": true,
+        "nodeName": "IF a System Settings split: one batch number per group",
+        "name": "IF a System Settings split: one batch number per group",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1792400000013,
+           "parentId": 1792400000014,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_node_OScheck.data.gen}}' == 'YES'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_OSgen_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "set_OSbatchesInit",
+           "type": "set-cache-node",
+           "data": {
+            "cache_key": "",
+            "cache_value": "",
+            "expire_time": 3600,
+            "title": "Output split: no number yet",
+            "isValidator": true,
+            "nodeName": "Output split: no number yet",
+            "name": "Output split: no number yet",
+            "custom_wkbocgni": {
+             "type": "javascript",
+             "code": "[]"
+            },
+            "redis_key": "iaOsBatches_{{node:code_node_OScheck.data.cacheKey}}"
+           },
+           "blocks": []
+          },
+          {
+           "id": "loop_OSgen",
+           "type": "loop",
+           "data": {
+            "title": "Output split: a batch number per group (GENERATE_BATCH)",
+            "isValidator": true,
+            "nodeName": "Output split: a batch number per group (GENERATE_BATCH)",
+            "name": "Output split: a batch number per group (GENERATE_BATCH)",
+            "loopType": "Var",
+            "loopSeletSource": {
+             "datasource": {
+              "rules": {
+               "collectionId": "",
+               "list": [
+                {
+                 "id": 1792400000011,
+                 "parentId": 1792400000012,
+                 "isTop": true,
+                 "prop": "",
+                 "operator": "",
+                 "valueType": "",
+                 "value": "",
+                 "type": "leaf",
+                 "level": 1
+                }
+               ]
+              }
+             },
+             "auto_refresh": 1,
+             "auto_refresh_debounce": 100,
+             "options": [],
+             "props": {
+              "value": "",
+              "label": "",
+              "image": "",
+              "icon": "",
+              "explain": ""
+             },
+             "remote": false,
+             "remoteType": "datasource"
+            },
+            "loopSeletVar": {
+             "type": "markdown",
+             "code": "{{node:code_node_OScheck.data.genGroups}}"
+            }
+           },
+           "blocks": [
+            {
+             "id": "code_OSgenPick",
+             "type": "code-node",
+             "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "Output split: this group",
+              "isValidator": true,
+              "nodeName": "Output split: this group",
+              "name": "Output split: this group",
+              "script": {
+               "type": "javascript",
+               "code": "const g = {{node:loop_OSgen}};\nreturn { index: g.index, label: g.label, item_id: g.item_id, document_date: g.document_date || null, manufacturing_date: g.manufacturing_date || null,\n  expired_date: g.expired_date || null };"
+              },
+              "response_json": [
+               {
+                "key": "yikjzklf",
+                "name": "index",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "y2tgbhul",
+                "name": "label",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "grfgu0m6",
+                "name": "item_id",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "kmusg242",
+                "name": "document_date",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "k31f6hif",
+                "name": "manufacturing_date",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "f5o4cll1",
+                "name": "expired_date",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               }
+              ]
+             },
+             "blocks": []
+            },
+            {
+             "id": "wf_OSgenerate",
+             "type": "workflow-node",
+             "data": {
+              "workflow_id": "",
+              "workflow_name": "",
+              "input_params": {},
+              "title": "Output split: Generate Batch (this group)",
+              "isValidator": true,
+              "nodeName": "Output split: Generate Batch (this group)",
+              "name": "Output split: Generate Batch (this group)",
+              "workflow": {
+               "source": "GENERATE_BATCH:Workflow:2060178784435535873",
+               "rules": {
+                "collectionId": "2060178784435535873",
+                "list": [
+                 {
+                  "id": 1792400000007,
+                  "parentId": 1792400000008,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                 }
+                ]
+               }
+              },
+              "remote": true,
+              "remoteType": "innerdatasource",
+              "body_params": {
+               "list": [
+                {
+                 "prop": "item_id",
+                 "propLabel": "item_id",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_OSgenPick.data.item_id}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "document_date",
+                 "propLabel": "document_date",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_OSgenPick.data.document_date}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "manufacturing_date",
+                 "propLabel": "manufacturing_date",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_OSgenPick.data.manufacturing_date}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "expired_date",
+                 "propLabel": "expired_date",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_OSgenPick.data.expired_date}}",
+                 "valueLabel": ""
+                }
+               ]
+              }
+             },
+             "blocks": []
+            },
+            {
+             "id": "code_OSgenNorm",
+             "type": "code-node",
+             "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "Output split: this group's number",
+              "isValidator": true,
+              "nodeName": "Output split: this group's number",
+              "name": "Output split: this group's number",
+              "script": {
+               "type": "javascript",
+               "code": "const raw = {{node:wf_OSgenerate.data}};\nconst batchNumber = raw && raw.batch_number ? String(raw.batch_number) : '';\nconst label = {{node:code_OSgenPick.data.label}};\n\nreturn {\n  batchNumber: batchNumber,\n  isError: batchNumber === '' ? 1 : 0,\n  message: batchNumber === ''\n    ? 'Could not generate a batch number for ' + label + ' of the output split. Check the Batch Number Configuration for this item.'\n    : ''\n};"
+              },
+              "response_json": [
+               {
+                "key": "l0w9uocn",
+                "name": "batchNumber",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "7wlbrczi",
+                "name": "isError",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "46tw7t12",
+                "name": "message",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               }
+              ]
+             },
+             "blocks": []
+            },
+            {
+             "id": "if_OSgenFailed",
+             "type": "if",
+             "data": {
+              "title": "IF no number for this group",
+              "isValidator": true,
+              "nodeName": "IF no number for this group",
+              "name": "IF no number for this group",
+              "condition_type": "Expression",
+              "filter": {
+               "list": [
+                {
+                 "id": 1792400000009,
+                 "parentId": 1792400000010,
+                 "isTop": true,
+                 "prop": "",
+                 "operator": "",
+                 "valueType": "",
+                 "value": "",
+                 "type": "leaf",
+                 "level": 1
+                }
+               ]
+              },
+              "expression": {
+               "type": "javascript",
+               "code": "{{node:code_OSgenNorm.data.isError}} == 1"
+              }
+             },
+             "blocks": [
+              {
+               "id": "if_OSgenFailed_t",
+               "type": "ifBlock",
+               "data": {
+                "title": "true"
+               },
+               "blocks": [
+                {
+                 "id": "return_node_OSgen400",
+                 "type": "return-node",
+                 "data": {
+                  "return_data": {},
+                  "status_code": 200,
+                  "title": "Return Data (output split: no batch number)",
+                  "isValidator": true,
+                  "nodeName": "Return Data (output split: no batch number)",
+                  "name": "Return Data (output split: no batch number)",
+                  "response_value": {
+                   "list": [
+                    {
+                     "prop": "code",
+                     "propLabel": "code",
+                     "operator": "",
+                     "operatorLabel": "",
+                     "valueType": "value",
+                     "valueTypeLabel": "",
+                     "value": "400",
+                     "valueLabel": ""
+                    },
+                    {
+                     "prop": "message",
+                     "propLabel": "message",
+                     "operator": "",
+                     "operatorLabel": "",
+                     "valueType": "field",
+                     "valueTypeLabel": "",
+                     "value": "{{node:code_OSgenNorm.data.message}}",
+                     "valueLabel": ""
+                    }
+                   ]
+                  },
+                  "return_raw_data": 0
+                 },
+                 "blocks": []
+                }
+               ]
+              },
+              {
+               "id": "if_OSgenFailed_f",
+               "type": "ifBlock",
+               "data": {
+                "title": "false"
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "get_OSbatches",
+             "type": "get-cache-node",
+             "data": {
+              "cache_key": "",
+              "title": "Output split: the numbers so far",
+              "isValidator": true,
+              "nodeName": "Output split: the numbers so far",
+              "name": "Output split: the numbers so far",
+              "redis_key": "iaOsBatches_{{node:code_node_OScheck.data.cacheKey}}"
+             },
+             "blocks": []
+            },
+            {
+             "id": "code_OSgenAppend",
+             "type": "code-node",
+             "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "Output split: this group's number added",
+              "isValidator": true,
+              "nodeName": "Output split: this group's number added",
+              "name": "Output split: this group's number added",
+              "script": {
+               "type": "javascript",
+               "code": "const cachedRaw = {{node:get_OSbatches.data}};\nconst arr = Array.isArray(cachedRaw) ? cachedRaw : (cachedRaw ? JSON.parse(cachedRaw) : []);\n\narr.push({\n  index: {{node:code_OSgenPick.data.index}},\n  batch_number: {{node:code_OSgenNorm.data.batchNumber}}\n});\n\nreturn { generated: arr };"
+              },
+              "response_json": [
+               {
+                "key": "0l953hmb",
+                "name": "generated",
+                "title": "generated",
+                "description": "",
+                "bsonType": "array",
+                "isExpand": true,
+                "children": [
+                 {
+                  "key": "3kckbo2z",
+                  "name": "items",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "any",
+                  "isExpand": false,
+                  "isArrayItem": true,
+                  "children": []
+                 }
+                ]
+               }
+              ]
+             },
+             "blocks": []
+            },
+            {
+             "id": "set_OSbatches",
+             "type": "set-cache-node",
+             "data": {
+              "cache_key": "",
+              "cache_value": "",
+              "expire_time": 3600,
+              "title": "Output split: the numbers so far (+ this one)",
+              "isValidator": true,
+              "nodeName": "Output split: the numbers so far (+ this one)",
+              "name": "Output split: the numbers so far (+ this one)",
+              "custom_wkbocgni": {
+               "type": "javascript",
+               "code": "{{node:code_OSgenAppend.data.generated}}"
+              },
+              "redis_key": "iaOsBatches_{{node:code_node_OScheck.data.cacheKey}}"
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "get_OSbatchesFinal",
+           "type": "get-cache-node",
+           "data": {
+            "cache_key": "",
+            "title": "Output split: every group's number",
+            "isValidator": true,
+            "nodeName": "Output split: every group's number",
+            "name": "Output split: every group's number",
+            "redis_key": "iaOsBatches_{{node:code_node_OScheck.data.cacheKey}}"
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_OSgen_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
+      },
+      {
+       "id": "code_node_OSfinal",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Output split: the final rows (a System split's numbers on its groups)",
+        "isValidator": true,
+        "nodeName": "Output split: the final rows (a System split's numbers on its groups)",
+        "name": "Output split: the final rows (a System split's numbers on its groups)",
+        "script": {
+         "type": "javascript",
+         "code": "const osS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst osAssign = function osAssign(rows, groups, numbers) {\n  const nums = (numbers || []).map(osS);\n  const res = (message) => ({ ok: message === \"\", message: message, rows: rows, groups: groups });\n  for (let g = 0; g < groups.length; g++) {\n    if (!nums[g]) return res(\"Could not generate a batch number for \" + groups[g].label + \". Check the Batch Number Configuration for this item.\");\n    const twin = nums.indexOf(nums[g]);\n    if (twin < g) return res(\"Batch numbering gave \" + groups[twin].label + \" and \" + groups[g].label + \" the same number \" + nums[g] + \": save again.\");\n  }\n  const outRows = rows.map((r) => Object.assign({}, r));\n  const outGroups = groups.map((g, i) => Object.assign({}, g, { batch_no: nums[i] }));\n  outGroups.forEach((g) => g.rows.forEach((i) => (outRows[i].os_batch_no = g.batch_no)));\n  return { ok: true, message: \"\", rows: outRows, groups: outGroups };\n};\nconst osFinal = function osFinal(chk, generated) {\n  const c = chk || {};\n  const base = { route: \"OK\", message: \"\", split: c.split === \"YES\" ? \"YES\" : \"NO\", kind: osS(c.kind), output_split: c.output_split || [], groups: c.groups || [] };\n  if (base.split !== \"YES\" || c.gen !== \"YES\") return base;\n  let list = generated;\n  if (typeof list === \"string\") {\n    try {\n      list = JSON.parse(list);\n    } catch (e) {\n      list = null;\n    }\n  }\n  const nums = [];\n  (Array.isArray(list) ? list : []).forEach((x) => {\n    if (x && x.index !== undefined && x.index !== null) nums[Number(x.index)] = x.batch_number;\n  });\n  const as = osAssign(base.output_split, base.groups, base.groups.map((g, i) => nums[i]));\n  if (!as.ok) return Object.assign({}, base, { route: \"STOP\", message: as.message });\n  return Object.assign({}, base, { output_split: as.rows, groups: as.groups });\n};\n// IA_SAVE v14 - the completion's final output split (osFinal): a System Settings split's groups take their generated numbers (all\n// present, all different); the rows the header write stores. STOP = 400 before the claim and any write\nconst res = osFinal([{{node:code_node_OScheck.data}}][0], [{{node:get_OSbatchesFinal.data}}][0]);\nconsole.log(\"ia output split final\", JSON.stringify({ route: res.route, split: res.split, batches: res.groups.map((g) => g.batch_no) }));\nreturn { route: res.route, message: res.message, split: res.split, kind: res.kind, output_split: res.output_split, groups: res.groups };"
+        },
+        "response_json": [
+         {
+          "key": "jmbjwwhw",
+          "name": "route",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "3b2bfctb",
+          "name": "message",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "fyudqbs9",
+          "name": "split",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ylx2y8mz",
+          "name": "kind",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "8ys5p7c3",
+          "name": "output_split",
+          "title": "output_split",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "6qspi6wq",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "isArrayItem": true,
+            "children": []
+           }
+          ]
+         },
+         {
+          "key": "xzpnmg7z",
+          "name": "groups",
+          "title": "groups",
+          "description": "",
+          "bsonType": "array",
+          "isExpand": true,
+          "children": [
+           {
+            "key": "vohk3dha",
+            "name": "items",
+            "title": "",
+            "description": "",
+            "bsonType": "any",
+            "isExpand": false,
+            "isArrayItem": true,
+            "children": []
+           }
+          ]
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_OSfinalFailed",
+       "type": "if",
+       "data": {
+        "title": "IF the split's numbers are missing or repeat (400, before the claim)",
+        "isValidator": true,
+        "nodeName": "IF the split's numbers are missing or repeat (400, before the claim)",
+        "name": "IF the split's numbers are missing or repeat (400, before the claim)",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1792400000015,
+           "parentId": 1792400000016,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_node_OSfinal.data.route}}' == 'STOP'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_OSfinalFailed_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "return_node_OSfinal400",
+           "type": "return-node",
+           "data": {
+            "return_data": {},
+            "status_code": 200,
+            "title": "Return Data (output split: batch numbers)",
+            "isValidator": true,
+            "nodeName": "Return Data (output split: batch numbers)",
+            "name": "Return Data (output split: batch numbers)",
+            "response_value": {
+             "list": [
+              {
+               "prop": "code",
+               "propLabel": "code",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "value",
+               "valueTypeLabel": "",
+               "value": "400",
+               "valueLabel": ""
+              },
+              {
+               "prop": "message",
+               "propLabel": "message",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_node_OSfinal.data.message}}",
+               "valueLabel": ""
+              }
+             ]
+            },
+            "return_raw_data": 0
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_OSfinalFailed_f",
          "type": "ifBlock",
          "data": {
           "title": "false"
@@ -3877,6 +5029,14 @@
                "operator": "",
                "valueLabel": "",
                "propLabel": "planned_output_qty"
+              },
+              {
+               "prop": "output_split",
+               "valueType": "field",
+               "value": "{{node:code_node_OSfinal.data.output_split}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "output_split"
               }
              ]
             }
@@ -4212,6 +5372,14 @@
                "operator": "",
                "valueLabel": "",
                "propLabel": "planned_output_qty"
+              },
+              {
+               "prop": "output_split",
+               "valueType": "field",
+               "value": "{{node:code_node_OSfinal.data.output_split}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "output_split"
               }
              ]
             }
@@ -4268,6 +5436,243 @@
         ]
        },
        "blocks": []
+      },
+      {
+       "id": "code_node_OShead",
+       "type": "code-node",
+       "data": {
+        "language": "javascript",
+        "code": "",
+        "timeout": 30000,
+        "title": "Output split: the header's Output Location fields (row 1)",
+        "isValidator": true,
+        "nodeName": "Output split: the header's Output Location fields (row 1)",
+        "name": "Output split: the header's Output Location fields (row 1)",
+        "script": {
+         "type": "javascript",
+         "code": "const osS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst osHeader = function osHeader(rows, header, kind) {\n  const h = header || {};\n  const r = rows && rows[0];\n  const own = { storage_location_id: h.storage_location_id, location_id: h.location_id, inventory_category: h.inventory_category, batch_no: h.batch_no,\n    manufacturing_date: h.manufacturing_date, expired_date: h.expired_date };\n  if (!r) return own;\n  const batch = kind !== \"PLAIN\";\n  return { storage_location_id: r.os_storage_location_id, location_id: r.os_location_id, inventory_category: r.os_category,\n    batch_no: batch ? r.os_batch_no : own.batch_no, manufacturing_date: batch ? r.os_mfg_date : own.manufacturing_date, expired_date: batch ? r.os_exp_date : own.expired_date };\n};\n// IA_SAVE v14 - a split's header: its single Output Location fields = row 1 (osHeader; single-value readers keep working, item_qty stays\n// the total), written right after the header write once the IA's id is known\nconst f = [{{node:code_node_OSfinal.data}}][0] || {};\nconst p = [{{node:code_persisted.data}}][0] || {};\nconst a = [{{node:code_fillback.data.allData}}][0] || {};\nconst h = osHeader(f.output_split || [], a, f.kind);\nreturn { need: f.split === \"YES\" && osS(p.docId) !== \"\" ? \"YES\" : \"NO\", id: osS(p.docId), storage_location_id: h.storage_location_id, location_id: h.location_id,\n  inventory_category: h.inventory_category, batch_no: h.batch_no, manufacturing_date: h.manufacturing_date || null, expired_date: h.expired_date || null };"
+        },
+        "response_json": [
+         {
+          "key": "0zmciwf7",
+          "name": "need",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "ndou60c1",
+          "name": "id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "fhg227q9",
+          "name": "storage_location_id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "z3mkgskv",
+          "name": "location_id",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "9m031d3r",
+          "name": "inventory_category",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "44p90mie",
+          "name": "batch_no",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "r8duz1o7",
+          "name": "manufacturing_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "8aogqqbg",
+          "name": "expired_date",
+          "title": "",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         }
+        ]
+       },
+       "blocks": []
+      },
+      {
+       "id": "if_OShead",
+       "type": "if",
+       "data": {
+        "title": "IF a split: its header's Output Location fields to set",
+        "isValidator": true,
+        "nodeName": "IF a split: its header's Output Location fields to set",
+        "name": "IF a split: its header's Output Location fields to set",
+        "condition_type": "Expression",
+        "filter": {
+         "list": [
+          {
+           "id": 1792400000019,
+           "parentId": 1792400000020,
+           "isTop": true,
+           "prop": "",
+           "operator": "",
+           "valueType": "",
+           "value": "",
+           "type": "leaf",
+           "level": 1
+          }
+         ]
+        },
+        "expression": {
+         "type": "javascript",
+         "code": "'{{node:code_node_OShead.data.need}}' == 'YES'"
+        }
+       },
+       "blocks": [
+        {
+         "id": "if_OShead_t",
+         "type": "ifBlock",
+         "data": {
+          "title": "true"
+         },
+         "blocks": [
+          {
+           "id": "update_node_OShead",
+           "type": "update-node",
+           "data": {
+            "table_id": {
+             "source": "Item Assembly:Table:2098256587713404929",
+             "rules": {
+              "collectionId": "2098256587713404929",
+              "list": [
+               {
+                "id": 1792400000017,
+                "parentId": 1792400000018,
+                "isTop": true,
+                "prop": "id",
+                "operator": "in",
+                "valueType": "field",
+                "value": "{{node:code_node_OShead.data.id}}",
+                "type": "leaf",
+                "level": 1,
+                "propLabel": "id",
+                "valueLabel": "",
+                "operatorLabel": "in"
+               }
+              ]
+             }
+            },
+            "fields": [],
+            "condition": {},
+            "title": "Output split: the header's Output Location fields = row 1",
+            "isValidator": true,
+            "nodeName": "Output split: the header's Output Location fields = row 1",
+            "name": "Output split: the header's Output Location fields = row 1",
+            "props": {
+             "modelName": "",
+             "list": [
+              {
+               "prop": "id",
+               "valueType": "field",
+               "value": "{{node:code_node_OShead.data.id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "id"
+              },
+              {
+               "prop": "storage_location_id",
+               "valueType": "field",
+               "value": "{{node:code_node_OShead.data.storage_location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "storage_location_id"
+              },
+              {
+               "prop": "location_id",
+               "valueType": "field",
+               "value": "{{node:code_node_OShead.data.location_id}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "location_id"
+              },
+              {
+               "prop": "inventory_category",
+               "valueType": "field",
+               "value": "{{node:code_node_OShead.data.inventory_category}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "inventory_category"
+              },
+              {
+               "prop": "batch_no",
+               "valueType": "field",
+               "value": "{{node:code_node_OShead.data.batch_no}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "batch_no"
+              },
+              {
+               "prop": "manufacturing_date",
+               "valueType": "field",
+               "value": "{{node:code_node_OShead.data.manufacturing_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "manufacturing_date"
+              },
+              {
+               "prop": "expired_date",
+               "valueType": "field",
+               "value": "{{node:code_node_OShead.data.expired_date}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "expired_date"
+              }
+             ]
+            }
+           },
+           "blocks": []
+          }
+         ]
+        },
+        {
+         "id": "if_OShead_f",
+         "type": "ifBlock",
+         "data": {
+          "title": "false"
+         },
+         "blocks": []
+        }
+       ]
       },
       {
        "id": "loop_issue_lines",
@@ -5222,248 +6627,19 @@
        "blocks": []
       },
       {
-       "id": "wf_add",
-       "type": "workflow-node",
-       "data": {
-        "workflow_id": "",
-        "workflow_name": "",
-        "input_params": {},
-        "title": "Add Inventory",
-        "isValidator": true,
-        "nodeName": "Add Inventory",
-        "name": "Add Inventory",
-        "workflow": {
-         "source": "ADD_INVENTORY:Workflow:2012005532688723970",
-         "rules": {
-          "collectionId": "2012005532688723970",
-          "list": [
-           {
-            "id": 1790000000053,
-            "parentId": 1790000000054,
-            "isTop": true,
-            "prop": "",
-            "operator": "",
-            "valueType": "",
-            "value": "",
-            "type": "leaf",
-            "level": 1
-           }
-          ]
-         }
-        },
-        "remote": true,
-        "remoteType": "innerdatasource",
-        "body_params": {
-         "list": [
-          {
-           "prop": "plant_id",
-           "propLabel": "plant_id",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.plant_id}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "organization_id",
-           "propLabel": "organization_id",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.organization_id}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "material_id",
-           "propLabel": "material_id",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.material_id}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "quantity",
-           "propLabel": "quantity",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.quantity}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "material_uom",
-           "propLabel": "material_uom",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.material_uom}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "transaction_type",
-           "propLabel": "transaction_type",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "value",
-           "valueTypeLabel": "",
-           "value": "IA",
-           "valueLabel": ""
-          },
-          {
-           "prop": "trx_no",
-           "propLabel": "trx_no",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.trx_no}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "inventory_category",
-           "propLabel": "inventory_category",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.inventory_category}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "location_id",
-           "propLabel": "location_id",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.location_id}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "batch_number",
-           "propLabel": "batch_number",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.batch_number}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "unit_price",
-           "propLabel": "unit_price",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.unit_price}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "doc_date",
-           "propLabel": "doc_date",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.doc_date}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "manufacturing_date",
-           "propLabel": "manufacturing_date",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.manufacturing_date}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "expired_date",
-           "propLabel": "expired_date",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.expired_date}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "remark",
-           "propLabel": "remark",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.remark}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "remark2",
-           "propLabel": "remark2",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.remark2}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "remark3",
-           "propLabel": "remark3",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.remark3}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "itemData",
-           "propLabel": "itemData",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "field",
-           "valueTypeLabel": "",
-           "value": "{{node:code_receipt_prep.data.itemData}}",
-           "valueLabel": ""
-          },
-          {
-           "prop": "isMovingInv",
-           "propLabel": "isMovingInv",
-           "operator": "",
-           "operatorLabel": "",
-           "valueType": "value",
-           "valueTypeLabel": "",
-           "value": "0",
-           "valueLabel": ""
-          }
-         ]
-        }
-       },
-       "blocks": []
-      },
-      {
-       "id": "if_add_failed",
+       "id": "if_OSsplit",
        "type": "if",
        "data": {
-        "title": "IF Add Failed",
+        "title": "IF a split receipt (else the single receipt)",
         "isValidator": true,
-        "nodeName": "IF Add Failed",
-        "name": "IF Add Failed",
+        "nodeName": "IF a split receipt (else the single receipt)",
+        "name": "IF a split receipt (else the single receipt)",
         "condition_type": "Expression",
         "filter": {
          "list": [
           {
-           "id": 1790000000055,
-           "parentId": 1790000000056,
+           "id": 1792400000041,
+           "parentId": 1792400000042,
            "isTop": true,
            "prop": "",
            "operator": "",
@@ -5476,203 +6652,1786 @@
         },
         "expression": {
          "type": "javascript",
-         "code": "'{{node:wf_add.data.code}}' == '400'"
+         "code": "'{{node:code_node_OSmerge.data.split}}' == 'YES'"
         }
        },
        "blocks": [
         {
-         "id": "if_add_failed_t",
+         "id": "if_OSsplit_t",
          "type": "ifBlock",
          "data": {
           "title": "true"
          },
          "blocks": [
           {
-           "id": "cor_IAclaimFreeAdd",
-           "type": "condition-or-node",
+           "id": "code_node_OSplan",
+           "type": "code-node",
            "data": {
-            "title": "MIN-02: our completion claim to free (Add)?",
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Output split: the Batch rows to insert (one per batch)",
+            "isValidator": true,
+            "nodeName": "Output split: the Batch rows to insert (one per batch)",
+            "name": "Output split: the Batch rows to insert (one per batch)",
+            "script": {
+             "type": "javascript",
+             "code": "const osS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst osBatchRows = function osBatchRows(groups, header, trxNo) {\n  const h = header || {};\n  return groups.map((g) => ({ batch_number: g.batch_no, material_id: osS(h.item_id), initial_quantity: g.base, transaction_no: osS(trxNo), plant_id: osS(h.issuing_operation_faci),\n    organization_id: osS(h.organization_id), remark: osS(h.remarks), remark2: osS(h.remarks_2), remark3: osS(h.remarks_3), manufacturing_date: g.mfg || null,\n    expired_date: g.exp || null }));\n};\n// IA_SAVE v14 - a split receipt: one Batch row per batch (ADD_INVENTORY's columns, the IA number, the batch's base qty); none for a\n// non-batch item\nconst f = [{{node:code_node_OSfinal.data}}][0] || {};\nconst p = [{{node:code_persisted.data}}][0] || {};\nconst a = [{{node:code_fillback.data.allData}}][0] || {};\nconst batch = f.kind === \"SYSTEM\" || f.kind === \"MANUAL\";\nreturn { needBatch: batch ? \"YES\" : \"NO\", batchRows: batch ? osBatchRows(f.groups || [], a, p.stock_movement_no) : [], tenantId: /^[0-9]{1,20}$/.test(osS([{{system:tenantId}}][0])) ? osS([{{system:tenantId}}][0]) : \"0\" };"
+            },
+            "response_json": [
+             {
+              "key": "x7n69syh",
+              "name": "needBatch",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "1821wz5p",
+              "name": "batchRows",
+              "title": "batchRows",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+               {
+                "key": "khvflah2",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+               }
+              ]
+             },
+             {
+              "key": "dva6ra6t",
+              "name": "tenantId",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_OSbatchIns",
+           "type": "if",
+           "data": {
+            "title": "IF a batch item: its Batch rows to insert",
+            "isValidator": true,
+            "nodeName": "IF a batch item: its Batch rows to insert",
+            "name": "IF a batch item: its Batch rows to insert",
+            "condition_type": "Expression",
             "filter": {
-             "list": []
+             "list": [
+              {
+               "id": 1792400000025,
+               "parentId": 1792400000026,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
             },
             "expression": {
-             "code": ""
-            },
-            "displayContent": "sdk.form.setCondition"
+             "type": "javascript",
+             "code": "'{{node:code_node_OSplan.data.needBatch}}' == 'YES'"
+            }
            },
            "blocks": [
             {
-             "id": "cori_YIAclaimFreeAdd",
-             "type": "condition-or-node-item",
+             "id": "if_OSbatchIns_t",
+             "type": "ifBlock",
              "data": {
-              "title": "YES",
-              "filter": {
-               "list": [
-                {
-                 "id": 1792300000015,
-                 "parentId": 1792300000016,
-                 "isTop": true,
-                 "prop": "node.code_node_IAclaimWin.data.needExit",
-                 "operator": "equal",
-                 "valueType": "value",
-                 "value": "YES",
-                 "type": "leaf",
-                 "level": 1,
-                 "propLabel": "needExit",
-                 "valueLabel": "",
-                 "operatorLabel": "Equal"
-                }
-               ]
-              },
-              "expression": {
-               "code": ""
-              },
-              "displayContent": "sdk.form.setCondition",
-              "isValidator": true,
-              "nodeName": "YES",
-              "name": "YES",
-              "condition_type": "ConditionRule"
+              "title": "true"
              },
              "blocks": [
               {
-               "id": "update_node_IAclaimFreeAdd",
-               "type": "update-node",
+               "id": "add_node_OSbatch",
+               "type": "add-node",
                "data": {
                 "table_id": {
-                 "source": "GD Publish Step:Table:2105131615547461634",
+                 "source": "Batch:Table:1902719754154655746",
                  "rules": {
-                  "collectionId": "2105131615547461634",
+                  "collectionId": "1902719754154655746",
                   "list": [
                    {
-                    "id": 1792300000013,
-                    "parentId": 1792300000014,
+                    "id": 1792400000021,
+                    "parentId": 1792400000022,
                     "isTop": true,
-                    "prop": "id",
-                    "operator": "in",
-                    "valueType": "field",
-                    "value": "{{node:code_node_IAclaimExit.data.add.id}}",
+                    "prop": "",
+                    "operator": "",
+                    "valueType": "",
+                    "value": "",
                     "type": "leaf",
-                    "level": 1,
-                    "propLabel": "主键ID",
-                    "valueLabel": "",
-                    "operatorLabel": "In"
+                    "level": 1
                    }
                   ]
                  }
                 },
                 "fields": [],
-                "condition": {},
-                "title": "GD Publish Step: our completion claim FREE, how it ended (Add)",
+                "title": "Output split: the Batch rows, one per batch (ADD_INVENTORY add_node_F9KqZLfd's columns)",
                 "isValidator": true,
-                "nodeName": "GD Publish Step: our completion claim FREE, how it ended (Add)",
-                "name": "GD Publish Step: our completion claim FREE, how it ended (Add)",
+                "nodeName": "Output split: the Batch rows, one per batch (ADD_INVENTORY add_node_F9KqZLfd's columns)",
+                "name": "Output split: the Batch rows, one per batch (ADD_INVENTORY add_node_F9KqZLfd's columns)",
                 "props": {
                  "modelName": "",
                  "list": [
                   {
-                   "prop": "id",
+                   "prop": "batch_number",
                    "operator": "",
                    "valueType": "field",
-                   "value": "{{node:code_node_IAclaimExit.data.add.id}}",
+                   "value": "{{node:code_node_OSplan.data.batchRows.batch_number}}",
                    "valueLabel": "",
-                   "propLabel": "主键ID"
+                   "propLabel": "batch_number"
                   },
                   {
-                   "prop": "step_status",
+                   "prop": "material_id",
                    "operator": "",
                    "valueType": "field",
-                   "value": "{{node:code_node_IAclaimExit.data.add.step_status}}",
+                   "value": "{{node:code_node_OSplan.data.batchRows.material_id}}",
                    "valueLabel": "",
-                   "propLabel": "step_status"
+                   "propLabel": "material_id"
                   },
                   {
-                   "prop": "finished_at",
+                   "prop": "initial_quantity",
                    "operator": "",
                    "valueType": "field",
-                   "value": "{{node:code_node_IAclaimExit.data.add.finished_at}}",
+                   "value": "{{node:code_node_OSplan.data.batchRows.initial_quantity}}",
                    "valueLabel": "",
-                   "propLabel": "finished_at"
+                   "propLabel": "initial_quantity"
                   },
                   {
-                   "prop": "result_ref",
+                   "prop": "transaction_no",
                    "operator": "",
                    "valueType": "field",
-                   "value": "{{node:code_node_IAclaimExit.data.add.result_ref}}",
+                   "value": "{{node:code_node_OSplan.data.batchRows.transaction_no}}",
                    "valueLabel": "",
-                   "propLabel": "result_ref"
+                   "propLabel": "transaction_no"
+                  },
+                  {
+                   "prop": "plant_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_OSplan.data.batchRows.plant_id}}",
+                   "valueLabel": "",
+                   "propLabel": "plant_id"
+                  },
+                  {
+                   "prop": "organization_id",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_OSplan.data.batchRows.organization_id}}",
+                   "valueLabel": "",
+                   "propLabel": "organization_id"
+                  },
+                  {
+                   "prop": "remark",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_OSplan.data.batchRows.remark}}",
+                   "valueLabel": "",
+                   "propLabel": "remark"
+                  },
+                  {
+                   "prop": "remark2",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_OSplan.data.batchRows.remark2}}",
+                   "valueLabel": "",
+                   "propLabel": "remark2"
+                  },
+                  {
+                   "prop": "remark3",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_OSplan.data.batchRows.remark3}}",
+                   "valueLabel": "",
+                   "propLabel": "remark3"
+                  },
+                  {
+                   "prop": "manufacturing_date",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_OSplan.data.batchRows.manufacturing_date}}",
+                   "valueLabel": "",
+                   "propLabel": "manufacturing_date"
+                  },
+                  {
+                   "prop": "expired_date",
+                   "operator": "",
+                   "valueType": "field",
+                   "value": "{{node:code_node_OSplan.data.batchRows.expired_date}}",
+                   "valueLabel": "",
+                   "propLabel": "expired_date"
                   }
                  ]
                 }
+               },
+               "blocks": []
+              },
+              {
+               "id": "code_node_OSbatchIds",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "Output split: the inserted Batch rows' ids",
+                "isValidator": true,
+                "nodeName": "Output split: the inserted Batch rows' ids",
+                "name": "Output split: the inserted Batch rows' ids",
+                "script": {
+                 "type": "javascript",
+                 "code": "const osS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n// IA_SAVE v14 - the ids of the Batch rows the add-node just inserted (read back next)\nconst ins = [{{node:add_node_OSbatch.data}}][0];\nconst ids = (Array.isArray(ins) ? ins : ins ? [ins] : []).map((r) => osS(r && typeof r === \"object\" ? r.id : r)).filter((v) => /^[0-9]{1,20}$/.test(v));\nreturn { ids: ids.join(\",\") || \"0\", count: String(ids.length) };"
+                },
+                "response_json": [
+                 {
+                  "key": "mxme2qo3",
+                  "name": "ids",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false,
+                  "children": []
+                 },
+                 {
+                  "key": "k1kjykxo",
+                  "name": "count",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false,
+                  "children": []
+                 }
+                ]
+               },
+               "blocks": []
+              },
+              {
+               "id": "sql_node_OSbatchRead",
+               "type": "sql-node",
+               "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "Output split: the inserted Batch rows read back",
+                "isValidator": true,
+                "nodeName": "Output split: the inserted Batch rows read back",
+                "name": "Output split: the inserted Batch rows read back",
+                "script": {
+                 "type": "sql",
+                 "code": "SELECT JSON_OBJECT('rows', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(b.id AS CHAR), 'batch_number', b.batch_number,\n       'material_id', CAST(b.material_id AS CHAR))) FROM batch b WHERE b.tenant_id = '{{node:code_node_OSplan.data.tenantId}}' AND b.id IN ({{node:code_node_OSbatchIds.data.ids}}) AND b.is_deleted = 0)) AS j"
+                },
+                "response_json": [
+                 {
+                  "key": "fih0c4jz",
+                  "name": "j",
+                  "title": "",
+                  "description": "",
+                  "bsonType": "string",
+                  "isExpand": false,
+                  "children": []
+                 }
+                ]
                },
                "blocks": []
               }
              ]
             },
             {
-             "id": "cori_NIAclaimFreeAdd",
-             "type": "condition-or-node-item",
+             "id": "if_OSbatchIns_f",
+             "type": "ifBlock",
              "data": {
-              "title": "NO",
-              "isDefault": true,
-              "filter": {
-               "list": []
-              },
-              "expression": {
-               "code": ""
-              },
-              "displayContent": "sdk.form.otherCondition"
+              "title": "false"
              },
              "blocks": []
             }
            ]
           },
           {
-           "id": "return_add_400",
-           "type": "return-node",
+           "id": "code_node_OSreceipts",
+           "type": "code-node",
            "data": {
-            "return_data": {},
-            "status_code": 200,
-            "title": "Return Data",
+            "language": "javascript",
+            "code": "",
+            "timeout": 30000,
+            "title": "Output split: the receipts (one per row, its batch's id)",
             "isValidator": true,
-            "nodeName": "Return Data",
-            "name": "Return Data",
-            "response_value": {
+            "nodeName": "Output split: the receipts (one per row, its batch's id)",
+            "name": "Output split: the receipts (one per row, its batch's id)",
+            "script": {
+             "type": "javascript",
+             "code": "const osS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst osReceipts = function osReceipts(rows, groups, kind, ids, header) {\n  const batch = kind === \"SYSTEM\" || kind === \"MANUAL\";\n  const h = header || {};\n  const map = ids || {};\n  return rows.map((r, i) => {\n    const id = batch ? map[r.os_batch_no.toLowerCase()] : null;\n    return { row: i + 1, location_id: r.os_location_id, inventory_category: r.os_category, quantity: r.os_qty, batch_number: batch ? r.os_batch_no : \"-\",\n      batch_id: id ? osS(id) : null, manufacturing_date: batch ? r.os_mfg_date || null : h.manufacturing_date || null,\n      expired_date: batch ? r.os_exp_date || null : h.expired_date || null };\n  });\n};\nconst osJ = function osJ(rows) {\n  const r = Array.isArray(rows) ? rows[0] : rows;\n  const v = r && r.j !== undefined ? r.j : null;\n  if (v && typeof v === \"object\") return v;\n  const t = osS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst osReceiptPlan = function osReceiptPlan(final, plan, read, header) {\n  const f = final || {};\n  const h = header || {};\n  const rows = f.output_split || [];\n  const groups = f.groups || [];\n  const n = rows.length;\n  const ids = {};\n  if ((plan || {}).needBatch === \"YES\") {\n    const got = (read && Array.isArray(read.rows) ? read.rows : []).filter((b) => b && osS(b.material_id) === osS(h.item_id));\n    const count = {};\n    got.forEach((b) => {\n      const k = osS(b.batch_number).toLowerCase();\n      count[k] = (count[k] || 0) + 1;\n      ids[k] = osS(b.id);\n    });\n    const bad = groups.filter((g) => count[osS(g.batch_no).toLowerCase()] !== 1)[0];\n    if (bad || got.length !== groups.length) {\n      return { route: \"STOP\", message: \"The output batches could not be created (\" + (bad ? bad.label : \"a batch\") + \"): no output was received. This Item Assembly needs review.\",\n        receipts: [], n: String(n), marker: \"0/\" + n };\n    }\n  }\n  return { route: \"OK\", message: \"\", receipts: osReceipts(rows, groups, f.kind, ids, h), n: String(n), marker: \"\" };\n};\n// IA_SAVE v14 - the split's receipts (osReceiptPlan): its Batch rows read back, one ADD_INVENTORY call per row with its batch's id;\n// STOP = the batches are not all there (PARTIAL|RECEIPT|0/n: the header says Completed, the components are issued)\nconst res = osReceiptPlan([{{node:code_node_OSfinal.data}}][0], [{{node:code_node_OSplan.data}}][0], osJ([{{node:sql_node_OSbatchRead.data}}][0]),\n  [{{node:code_fillback.data.allData}}][0]);\nconsole.log(\"ia output split receipts\", JSON.stringify({ route: res.route, n: res.n }));\nreturn { route: res.route, message: res.message, receipts: res.receipts, n: res.n, marker: res.marker };"
+            },
+            "response_json": [
+             {
+              "key": "fkzo2oxw",
+              "name": "route",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "i05fugyi",
+              "name": "message",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "x8s5akct",
+              "name": "receipts",
+              "title": "receipts",
+              "description": "",
+              "bsonType": "array",
+              "isExpand": true,
+              "children": [
+               {
+                "key": "a042imlb",
+                "name": "items",
+                "title": "",
+                "description": "",
+                "bsonType": "any",
+                "isExpand": false,
+                "isArrayItem": true,
+                "children": []
+               }
+              ]
+             },
+             {
+              "key": "mnsyp7wl",
+              "name": "n",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             },
+             {
+              "key": "aupg9lft",
+              "name": "marker",
+              "title": "",
+              "description": "",
+              "bsonType": "string",
+              "isExpand": false,
+              "children": []
+             }
+            ]
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_OSreceiptsFailed",
+           "type": "if",
+           "data": {
+            "title": "IF the split's batches are not all there (PARTIAL|RECEIPT|0/n)",
+            "isValidator": true,
+            "nodeName": "IF the split's batches are not all there (PARTIAL|RECEIPT|0/n)",
+            "name": "IF the split's batches are not all there (PARTIAL|RECEIPT|0/n)",
+            "condition_type": "Expression",
+            "filter": {
              "list": [
               {
-               "prop": "code",
-               "propLabel": "code",
+               "id": 1792400000031,
+               "parentId": 1792400000032,
+               "isTop": true,
+               "prop": "",
                "operator": "",
-               "operatorLabel": "",
-               "valueType": "value",
-               "valueTypeLabel": "",
-               "value": "400",
-               "valueLabel": ""
-              },
-              {
-               "prop": "message",
-               "propLabel": "message",
-               "operator": "",
-               "operatorLabel": "",
-               "valueType": "field",
-               "valueTypeLabel": "",
-               "value": "{{node:wf_add.data.errorMessage}}",
-               "valueLabel": ""
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
               }
              ]
             },
-            "return_raw_data": 0
+            "expression": {
+             "type": "javascript",
+             "code": "'{{node:code_node_OSreceipts.data.route}}' == 'STOP'"
+            }
            },
-           "blocks": []
+           "blocks": [
+            {
+             "id": "if_OSreceiptsFailed_t",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "code_node_OSexitBatch",
+               "type": "code-node",
+               "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "title": "C2: the claim's outcome (output split: no batch)",
+                "isValidator": true,
+                "nodeName": "C2: the claim's outcome (output split: no batch)",
+                "name": "C2: the claim's outcome (output split: no batch)",
+                "script": {
+                 "type": "javascript",
+                 "code": "// IA_SAVE v14 - C2: the split's batches are not all there: the claim records PARTIAL|RECEIPT|0/<n> (nothing of the output received)\nconst win = [{{node:code_node_IAclaimWin.data}}][0] || {};\nconst ref = \"PARTIAL|RECEIPT|\" + {{node:code_node_OSreceipts.data.marker}};\nreturn { rows: (Array.isArray(win.exitRows) ? win.exitRows : []).map((r) => Object.assign({}, r, { result_ref: ref })) };"
+                },
+                "response_json": [
+                 {
+                  "key": "hz6cm158",
+                  "name": "rows",
+                  "title": "rows",
+                  "description": "",
+                  "bsonType": "array",
+                  "isExpand": true,
+                  "children": [
+                   {
+                    "key": "vals6taf",
+                    "name": "items",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "any",
+                    "isExpand": false,
+                    "isArrayItem": true,
+                    "children": []
+                   }
+                  ]
+                 }
+                ]
+               },
+               "blocks": []
+              },
+              {
+               "id": "cor_IAclaimFreeOSb",
+               "type": "condition-or-node",
+               "data": {
+                "title": "MIN-02: our completion claim to free (output split batches)?",
+                "filter": {
+                 "list": []
+                },
+                "expression": {
+                 "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+               },
+               "blocks": [
+                {
+                 "id": "cori_YIAclaimFreeOSb",
+                 "type": "condition-or-node-item",
+                 "data": {
+                  "title": "YES",
+                  "filter": {
+                   "list": [
+                    {
+                     "id": 1792400000029,
+                     "parentId": 1792400000030,
+                     "isTop": true,
+                     "prop": "node.code_node_IAclaimWin.data.needExit",
+                     "operator": "equal",
+                     "valueType": "value",
+                     "value": "YES",
+                     "type": "leaf",
+                     "level": 1,
+                     "propLabel": "needExit",
+                     "valueLabel": "",
+                     "operatorLabel": "Equal"
+                    }
+                   ]
+                  },
+                  "expression": {
+                   "code": ""
+                  },
+                  "displayContent": "sdk.form.setCondition",
+                  "isValidator": true,
+                  "nodeName": "YES",
+                  "name": "YES",
+                  "condition_type": "ConditionRule"
+                 },
+                 "blocks": [
+                  {
+                   "id": "update_node_IAclaimFreeOSb",
+                   "type": "update-node",
+                   "data": {
+                    "table_id": {
+                     "source": "GD Publish Step:Table:2105131615547461634",
+                     "rules": {
+                      "collectionId": "2105131615547461634",
+                      "list": [
+                       {
+                        "id": 1792400000027,
+                        "parentId": 1792400000028,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_OSexitBatch.data.rows.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       }
+                      ]
+                     }
+                    },
+                    "fields": [],
+                    "condition": {},
+                    "title": "GD Publish Step: our completion claim FREE, how it ended (output split batches)",
+                    "isValidator": true,
+                    "nodeName": "GD Publish Step: our completion claim FREE, how it ended (output split batches)",
+                    "name": "GD Publish Step: our completion claim FREE, how it ended (output split batches)",
+                    "props": {
+                     "modelName": "",
+                     "list": [
+                      {
+                       "prop": "id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_OSexitBatch.data.rows.id}}",
+                       "valueLabel": "",
+                       "propLabel": "主键ID"
+                      },
+                      {
+                       "prop": "step_status",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_OSexitBatch.data.rows.step_status}}",
+                       "valueLabel": "",
+                       "propLabel": "step_status"
+                      },
+                      {
+                       "prop": "finished_at",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_OSexitBatch.data.rows.finished_at}}",
+                       "valueLabel": "",
+                       "propLabel": "finished_at"
+                      },
+                      {
+                       "prop": "result_ref",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_OSexitBatch.data.rows.result_ref}}",
+                       "valueLabel": "",
+                       "propLabel": "result_ref"
+                      }
+                     ]
+                    }
+                   },
+                   "blocks": []
+                  }
+                 ]
+                },
+                {
+                 "id": "cori_NIAclaimFreeOSb",
+                 "type": "condition-or-node-item",
+                 "data": {
+                  "title": "NO",
+                  "isDefault": true,
+                  "filter": {
+                   "list": []
+                  },
+                  "expression": {
+                   "code": ""
+                  },
+                  "displayContent": "sdk.form.otherCondition"
+                 },
+                 "blocks": []
+                }
+               ]
+              },
+              {
+               "id": "return_node_OSbatch400",
+               "type": "return-node",
+               "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data (output split: the batches)",
+                "isValidator": true,
+                "nodeName": "Return Data (output split: the batches)",
+                "name": "Return Data (output split: the batches)",
+                "response_value": {
+                 "list": [
+                  {
+                   "prop": "code",
+                   "propLabel": "code",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "value",
+                   "valueTypeLabel": "",
+                   "value": "400",
+                   "valueLabel": ""
+                  },
+                  {
+                   "prop": "message",
+                   "propLabel": "message",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "field",
+                   "valueTypeLabel": "",
+                   "value": "{{node:code_node_OSreceipts.data.message}}",
+                   "valueLabel": ""
+                  }
+                 ]
+                },
+                "return_raw_data": 0
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_OSreceiptsFailed_f",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          },
+          {
+           "id": "loop_OSadd",
+           "type": "loop",
+           "data": {
+            "title": "Output split: one receipt per row (ADD_INVENTORY)",
+            "isValidator": true,
+            "nodeName": "Output split: one receipt per row (ADD_INVENTORY)",
+            "name": "Output split: one receipt per row (ADD_INVENTORY)",
+            "loopType": "Var",
+            "loopSeletSource": {
+             "datasource": {
+              "rules": {
+               "collectionId": "",
+               "list": [
+                {
+                 "id": 1792400000039,
+                 "parentId": 1792400000040,
+                 "isTop": true,
+                 "prop": "",
+                 "operator": "",
+                 "valueType": "",
+                 "value": "",
+                 "type": "leaf",
+                 "level": 1
+                }
+               ]
+              }
+             },
+             "auto_refresh": 1,
+             "auto_refresh_debounce": 100,
+             "options": [],
+             "props": {
+              "value": "",
+              "label": "",
+              "image": "",
+              "icon": "",
+              "explain": ""
+             },
+             "remote": false,
+             "remoteType": "datasource"
+            },
+            "loopSeletVar": {
+             "type": "markdown",
+             "code": "{{node:code_node_OSreceipts.data.receipts}}"
+            }
+           },
+           "blocks": [
+            {
+             "id": "code_node_OSaddPick",
+             "type": "code-node",
+             "data": {
+              "language": "javascript",
+              "code": "",
+              "timeout": 30000,
+              "title": "Output split: this row's receipt",
+              "isValidator": true,
+              "nodeName": "Output split: this row's receipt",
+              "name": "Output split: this row's receipt",
+              "script": {
+               "type": "javascript",
+               "code": "const r = {{node:loop_OSadd}};\nreturn { row: r.row, n: {{node:code_node_OSreceipts.data.n}}, location_id: r.location_id, inventory_category: r.inventory_category, quantity: r.quantity,\n  batch_number: r.batch_number, batch_id: r.batch_id, manufacturing_date: r.manufacturing_date, expired_date: r.expired_date };"
+              },
+              "response_json": [
+               {
+                "key": "869o1av8",
+                "name": "row",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "ipjb9ab1",
+                "name": "n",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "t4ypjhte",
+                "name": "location_id",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "p6yl6omy",
+                "name": "inventory_category",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "t5ykb90w",
+                "name": "quantity",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "1wx6od00",
+                "name": "batch_number",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "2sz5lebx",
+                "name": "batch_id",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "8qnf8fiy",
+                "name": "manufacturing_date",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               },
+               {
+                "key": "t64dz0ft",
+                "name": "expired_date",
+                "title": "",
+                "description": "",
+                "bsonType": "string",
+                "isExpand": false,
+                "children": []
+               }
+              ]
+             },
+             "blocks": []
+            },
+            {
+             "id": "wf_OSadd",
+             "type": "workflow-node",
+             "data": {
+              "workflow_id": "",
+              "workflow_name": "",
+              "input_params": {},
+              "title": "Output split: Add Inventory (this row)",
+              "isValidator": true,
+              "nodeName": "Output split: Add Inventory (this row)",
+              "name": "Output split: Add Inventory (this row)",
+              "workflow": {
+               "source": "ADD_INVENTORY:Workflow:2012005532688723970",
+               "rules": {
+                "collectionId": "2012005532688723970",
+                "list": [
+                 {
+                  "id": 1792400000023,
+                  "parentId": 1792400000024,
+                  "isTop": true,
+                  "prop": "",
+                  "operator": "",
+                  "valueType": "",
+                  "value": "",
+                  "type": "leaf",
+                  "level": 1
+                 }
+                ]
+               }
+              },
+              "remote": true,
+              "remoteType": "innerdatasource",
+              "body_params": {
+               "list": [
+                {
+                 "prop": "plant_id",
+                 "propLabel": "plant_id",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.plant_id}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "organization_id",
+                 "propLabel": "organization_id",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.organization_id}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "material_id",
+                 "propLabel": "material_id",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.material_id}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "quantity",
+                 "propLabel": "quantity",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_node_OSaddPick.data.quantity}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "material_uom",
+                 "propLabel": "material_uom",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.material_uom}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "transaction_type",
+                 "propLabel": "transaction_type",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "value",
+                 "valueTypeLabel": "",
+                 "value": "IA",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "trx_no",
+                 "propLabel": "trx_no",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.trx_no}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "inventory_category",
+                 "propLabel": "inventory_category",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_node_OSaddPick.data.inventory_category}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "location_id",
+                 "propLabel": "location_id",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_node_OSaddPick.data.location_id}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "batch_number",
+                 "propLabel": "batch_number",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_node_OSaddPick.data.batch_number}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "unit_price",
+                 "propLabel": "unit_price",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.unit_price}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "doc_date",
+                 "propLabel": "doc_date",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.doc_date}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "manufacturing_date",
+                 "propLabel": "manufacturing_date",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_node_OSaddPick.data.manufacturing_date}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "expired_date",
+                 "propLabel": "expired_date",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_node_OSaddPick.data.expired_date}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "remark",
+                 "propLabel": "remark",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.remark}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "remark2",
+                 "propLabel": "remark2",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.remark2}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "remark3",
+                 "propLabel": "remark3",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.remark3}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "itemData",
+                 "propLabel": "itemData",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_receipt_prep.data.itemData}}",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "isMovingInv",
+                 "propLabel": "isMovingInv",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "value",
+                 "valueTypeLabel": "",
+                 "value": "0",
+                 "valueLabel": ""
+                },
+                {
+                 "prop": "batch_id",
+                 "propLabel": "batch_id",
+                 "operator": "",
+                 "operatorLabel": "",
+                 "valueType": "field",
+                 "valueTypeLabel": "",
+                 "value": "{{node:code_node_OSaddPick.data.batch_id}}",
+                 "valueLabel": ""
+                }
+               ]
+              }
+             },
+             "blocks": []
+            },
+            {
+             "id": "if_OSaddFailed",
+             "type": "if",
+             "data": {
+              "title": "IF this row's receipt was refused (PARTIAL|RECEIPT|k/n)",
+              "isValidator": true,
+              "nodeName": "IF this row's receipt was refused (PARTIAL|RECEIPT|k/n)",
+              "name": "IF this row's receipt was refused (PARTIAL|RECEIPT|k/n)",
+              "condition_type": "Expression",
+              "filter": {
+               "list": [
+                {
+                 "id": 1792400000037,
+                 "parentId": 1792400000038,
+                 "isTop": true,
+                 "prop": "",
+                 "operator": "",
+                 "valueType": "",
+                 "value": "",
+                 "type": "leaf",
+                 "level": 1
+                }
+               ]
+              },
+              "expression": {
+               "type": "javascript",
+               "code": "'{{node:wf_OSadd.data.code}}' == '400'"
+              }
+             },
+             "blocks": [
+              {
+               "id": "if_OSaddFailed_t",
+               "type": "ifBlock",
+               "data": {
+                "title": "true"
+               },
+               "blocks": [
+                {
+                 "id": "code_node_OSexitRow",
+                 "type": "code-node",
+                 "data": {
+                  "language": "javascript",
+                  "code": "",
+                  "timeout": 30000,
+                  "title": "C2: the claim's outcome (output split: row k of n)",
+                  "isValidator": true,
+                  "nodeName": "C2: the claim's outcome (output split: row k of n)",
+                  "name": "C2: the claim's outcome (output split: row k of n)",
+                  "script": {
+                   "type": "javascript",
+                   "code": "// IA_SAVE v14 - C2: output row k of n was refused: the claim records PARTIAL|RECEIPT|<k>/<n> (rows 1 to k-1 received)\nconst win = [{{node:code_node_IAclaimWin.data}}][0] || {};\nconst r = [{{node:code_node_OSaddPick.data}}][0] || {};\nconst add = [{{node:wf_OSadd.data}}][0] || {};\nconst k = Number(r.row) || 0;\nconst n = Number(r.n) || 0;\nconst ref = \"PARTIAL|RECEIPT|\" + k + \"/\" + n;\nconst why = add.errorMessage || add.message || \"\";\nreturn { rows: (Array.isArray(win.exitRows) ? win.exitRows : []).map((x) => Object.assign({}, x, { result_ref: ref })),\n  message: \"Output row \" + k + \" of \" + n + \" could not be received\" + (why ? \": \" + why : \"\") + \". \" + (k > 1 ? \"Rows 1 to \" + (k - 1) + \" were received; \" :\n    \"No output row was received; \") + \"this Item Assembly needs review.\" };"
+                  },
+                  "response_json": [
+                   {
+                    "key": "77mjkv7s",
+                    "name": "rows",
+                    "title": "rows",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                     {
+                      "key": "d45dtlge",
+                      "name": "items",
+                      "title": "",
+                      "description": "",
+                      "bsonType": "any",
+                      "isExpand": false,
+                      "isArrayItem": true,
+                      "children": []
+                     }
+                    ]
+                   },
+                   {
+                    "key": "1pmna7ml",
+                    "name": "message",
+                    "title": "",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                   }
+                  ]
+                 },
+                 "blocks": []
+                },
+                {
+                 "id": "cor_IAclaimFreeOSa",
+                 "type": "condition-or-node",
+                 "data": {
+                  "title": "MIN-02: our completion claim to free (output split row)?",
+                  "filter": {
+                   "list": []
+                  },
+                  "expression": {
+                   "code": ""
+                  },
+                  "displayContent": "sdk.form.setCondition"
+                 },
+                 "blocks": [
+                  {
+                   "id": "cori_YIAclaimFreeOSa",
+                   "type": "condition-or-node-item",
+                   "data": {
+                    "title": "YES",
+                    "filter": {
+                     "list": [
+                      {
+                       "id": 1792400000035,
+                       "parentId": 1792400000036,
+                       "isTop": true,
+                       "prop": "node.code_node_IAclaimWin.data.needExit",
+                       "operator": "equal",
+                       "valueType": "value",
+                       "value": "YES",
+                       "type": "leaf",
+                       "level": 1,
+                       "propLabel": "needExit",
+                       "valueLabel": "",
+                       "operatorLabel": "Equal"
+                      }
+                     ]
+                    },
+                    "expression": {
+                     "code": ""
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "YES",
+                    "name": "YES",
+                    "condition_type": "ConditionRule"
+                   },
+                   "blocks": [
+                    {
+                     "id": "update_node_IAclaimFreeOSa",
+                     "type": "update-node",
+                     "data": {
+                      "table_id": {
+                       "source": "GD Publish Step:Table:2105131615547461634",
+                       "rules": {
+                        "collectionId": "2105131615547461634",
+                        "list": [
+                         {
+                          "id": 1792400000033,
+                          "parentId": 1792400000034,
+                          "isTop": true,
+                          "prop": "id",
+                          "operator": "in",
+                          "valueType": "field",
+                          "value": "{{node:code_node_OSexitRow.data.rows.id}}",
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "主键ID",
+                          "valueLabel": "",
+                          "operatorLabel": "In"
+                         }
+                        ]
+                       }
+                      },
+                      "fields": [],
+                      "condition": {},
+                      "title": "GD Publish Step: our completion claim FREE, how it ended (output split row)",
+                      "isValidator": true,
+                      "nodeName": "GD Publish Step: our completion claim FREE, how it ended (output split row)",
+                      "name": "GD Publish Step: our completion claim FREE, how it ended (output split row)",
+                      "props": {
+                       "modelName": "",
+                       "list": [
+                        {
+                         "prop": "id",
+                         "operator": "",
+                         "valueType": "field",
+                         "value": "{{node:code_node_OSexitRow.data.rows.id}}",
+                         "valueLabel": "",
+                         "propLabel": "主键ID"
+                        },
+                        {
+                         "prop": "step_status",
+                         "operator": "",
+                         "valueType": "field",
+                         "value": "{{node:code_node_OSexitRow.data.rows.step_status}}",
+                         "valueLabel": "",
+                         "propLabel": "step_status"
+                        },
+                        {
+                         "prop": "finished_at",
+                         "operator": "",
+                         "valueType": "field",
+                         "value": "{{node:code_node_OSexitRow.data.rows.finished_at}}",
+                         "valueLabel": "",
+                         "propLabel": "finished_at"
+                        },
+                        {
+                         "prop": "result_ref",
+                         "operator": "",
+                         "valueType": "field",
+                         "value": "{{node:code_node_OSexitRow.data.rows.result_ref}}",
+                         "valueLabel": "",
+                         "propLabel": "result_ref"
+                        }
+                       ]
+                      }
+                     },
+                     "blocks": []
+                    }
+                   ]
+                  },
+                  {
+                   "id": "cori_NIAclaimFreeOSa",
+                   "type": "condition-or-node-item",
+                   "data": {
+                    "title": "NO",
+                    "isDefault": true,
+                    "filter": {
+                     "list": []
+                    },
+                    "expression": {
+                     "code": ""
+                    },
+                    "displayContent": "sdk.form.otherCondition"
+                   },
+                   "blocks": []
+                  }
+                 ]
+                },
+                {
+                 "id": "return_node_OSadd400",
+                 "type": "return-node",
+                 "data": {
+                  "return_data": {},
+                  "status_code": 200,
+                  "title": "Return Data (output split: a row's receipt)",
+                  "isValidator": true,
+                  "nodeName": "Return Data (output split: a row's receipt)",
+                  "name": "Return Data (output split: a row's receipt)",
+                  "response_value": {
+                   "list": [
+                    {
+                     "prop": "code",
+                     "propLabel": "code",
+                     "operator": "",
+                     "operatorLabel": "",
+                     "valueType": "value",
+                     "valueTypeLabel": "",
+                     "value": "400",
+                     "valueLabel": ""
+                    },
+                    {
+                     "prop": "message",
+                     "propLabel": "message",
+                     "operator": "",
+                     "operatorLabel": "",
+                     "valueType": "field",
+                     "valueTypeLabel": "",
+                     "value": "{{node:code_node_OSexitRow.data.message}}",
+                     "valueLabel": ""
+                    }
+                   ]
+                  },
+                  "return_raw_data": 0
+                 },
+                 "blocks": []
+                }
+               ]
+              },
+              {
+               "id": "if_OSaddFailed_f",
+               "type": "ifBlock",
+               "data": {
+                "title": "false"
+               },
+               "blocks": []
+              }
+             ]
+            }
+           ]
           }
          ]
         },
         {
-         "id": "if_add_failed_f",
+         "id": "if_OSsplit_f",
          "type": "ifBlock",
          "data": {
           "title": "false"
          },
-         "blocks": []
+         "blocks": [
+          {
+           "id": "wf_add",
+           "type": "workflow-node",
+           "data": {
+            "workflow_id": "",
+            "workflow_name": "",
+            "input_params": {},
+            "title": "Add Inventory",
+            "isValidator": true,
+            "nodeName": "Add Inventory",
+            "name": "Add Inventory",
+            "workflow": {
+             "source": "ADD_INVENTORY:Workflow:2012005532688723970",
+             "rules": {
+              "collectionId": "2012005532688723970",
+              "list": [
+               {
+                "id": 1790000000053,
+                "parentId": 1790000000054,
+                "isTop": true,
+                "prop": "",
+                "operator": "",
+                "valueType": "",
+                "value": "",
+                "type": "leaf",
+                "level": 1
+               }
+              ]
+             }
+            },
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "body_params": {
+             "list": [
+              {
+               "prop": "plant_id",
+               "propLabel": "plant_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.plant_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "organization_id",
+               "propLabel": "organization_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.organization_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "material_id",
+               "propLabel": "material_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.material_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "quantity",
+               "propLabel": "quantity",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.quantity}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "material_uom",
+               "propLabel": "material_uom",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.material_uom}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "transaction_type",
+               "propLabel": "transaction_type",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "value",
+               "valueTypeLabel": "",
+               "value": "IA",
+               "valueLabel": ""
+              },
+              {
+               "prop": "trx_no",
+               "propLabel": "trx_no",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.trx_no}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "inventory_category",
+               "propLabel": "inventory_category",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.inventory_category}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "location_id",
+               "propLabel": "location_id",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.location_id}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "batch_number",
+               "propLabel": "batch_number",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.batch_number}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "unit_price",
+               "propLabel": "unit_price",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.unit_price}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "doc_date",
+               "propLabel": "doc_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.doc_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "manufacturing_date",
+               "propLabel": "manufacturing_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.manufacturing_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "expired_date",
+               "propLabel": "expired_date",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.expired_date}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "remark",
+               "propLabel": "remark",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.remark}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "remark2",
+               "propLabel": "remark2",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.remark2}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "remark3",
+               "propLabel": "remark3",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.remark3}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "itemData",
+               "propLabel": "itemData",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "field",
+               "valueTypeLabel": "",
+               "value": "{{node:code_receipt_prep.data.itemData}}",
+               "valueLabel": ""
+              },
+              {
+               "prop": "isMovingInv",
+               "propLabel": "isMovingInv",
+               "operator": "",
+               "operatorLabel": "",
+               "valueType": "value",
+               "valueTypeLabel": "",
+               "value": "0",
+               "valueLabel": ""
+              }
+             ]
+            }
+           },
+           "blocks": []
+          },
+          {
+           "id": "if_add_failed",
+           "type": "if",
+           "data": {
+            "title": "IF Add Failed",
+            "isValidator": true,
+            "nodeName": "IF Add Failed",
+            "name": "IF Add Failed",
+            "condition_type": "Expression",
+            "filter": {
+             "list": [
+              {
+               "id": 1790000000055,
+               "parentId": 1790000000056,
+               "isTop": true,
+               "prop": "",
+               "operator": "",
+               "valueType": "",
+               "value": "",
+               "type": "leaf",
+               "level": 1
+              }
+             ]
+            },
+            "expression": {
+             "type": "javascript",
+             "code": "'{{node:wf_add.data.code}}' == '400'"
+            }
+           },
+           "blocks": [
+            {
+             "id": "if_add_failed_t",
+             "type": "ifBlock",
+             "data": {
+              "title": "true"
+             },
+             "blocks": [
+              {
+               "id": "cor_IAclaimFreeAdd",
+               "type": "condition-or-node",
+               "data": {
+                "title": "MIN-02: our completion claim to free (Add)?",
+                "filter": {
+                 "list": []
+                },
+                "expression": {
+                 "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+               },
+               "blocks": [
+                {
+                 "id": "cori_YIAclaimFreeAdd",
+                 "type": "condition-or-node-item",
+                 "data": {
+                  "title": "YES",
+                  "filter": {
+                   "list": [
+                    {
+                     "id": 1792300000015,
+                     "parentId": 1792300000016,
+                     "isTop": true,
+                     "prop": "node.code_node_IAclaimWin.data.needExit",
+                     "operator": "equal",
+                     "valueType": "value",
+                     "value": "YES",
+                     "type": "leaf",
+                     "level": 1,
+                     "propLabel": "needExit",
+                     "valueLabel": "",
+                     "operatorLabel": "Equal"
+                    }
+                   ]
+                  },
+                  "expression": {
+                   "code": ""
+                  },
+                  "displayContent": "sdk.form.setCondition",
+                  "isValidator": true,
+                  "nodeName": "YES",
+                  "name": "YES",
+                  "condition_type": "ConditionRule"
+                 },
+                 "blocks": [
+                  {
+                   "id": "update_node_IAclaimFreeAdd",
+                   "type": "update-node",
+                   "data": {
+                    "table_id": {
+                     "source": "GD Publish Step:Table:2105131615547461634",
+                     "rules": {
+                      "collectionId": "2105131615547461634",
+                      "list": [
+                       {
+                        "id": 1792300000013,
+                        "parentId": 1792300000014,
+                        "isTop": true,
+                        "prop": "id",
+                        "operator": "in",
+                        "valueType": "field",
+                        "value": "{{node:code_node_IAclaimExit.data.add.id}}",
+                        "type": "leaf",
+                        "level": 1,
+                        "propLabel": "主键ID",
+                        "valueLabel": "",
+                        "operatorLabel": "In"
+                       }
+                      ]
+                     }
+                    },
+                    "fields": [],
+                    "condition": {},
+                    "title": "GD Publish Step: our completion claim FREE, how it ended (Add)",
+                    "isValidator": true,
+                    "nodeName": "GD Publish Step: our completion claim FREE, how it ended (Add)",
+                    "name": "GD Publish Step: our completion claim FREE, how it ended (Add)",
+                    "props": {
+                     "modelName": "",
+                     "list": [
+                      {
+                       "prop": "id",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_IAclaimExit.data.add.id}}",
+                       "valueLabel": "",
+                       "propLabel": "主键ID"
+                      },
+                      {
+                       "prop": "step_status",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_IAclaimExit.data.add.step_status}}",
+                       "valueLabel": "",
+                       "propLabel": "step_status"
+                      },
+                      {
+                       "prop": "finished_at",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_IAclaimExit.data.add.finished_at}}",
+                       "valueLabel": "",
+                       "propLabel": "finished_at"
+                      },
+                      {
+                       "prop": "result_ref",
+                       "operator": "",
+                       "valueType": "field",
+                       "value": "{{node:code_node_IAclaimExit.data.add.result_ref}}",
+                       "valueLabel": "",
+                       "propLabel": "result_ref"
+                      }
+                     ]
+                    }
+                   },
+                   "blocks": []
+                  }
+                 ]
+                },
+                {
+                 "id": "cori_NIAclaimFreeAdd",
+                 "type": "condition-or-node-item",
+                 "data": {
+                  "title": "NO",
+                  "isDefault": true,
+                  "filter": {
+                   "list": []
+                  },
+                  "expression": {
+                   "code": ""
+                  },
+                  "displayContent": "sdk.form.otherCondition"
+                 },
+                 "blocks": []
+                }
+               ]
+              },
+              {
+               "id": "return_add_400",
+               "type": "return-node",
+               "data": {
+                "return_data": {},
+                "status_code": 200,
+                "title": "Return Data",
+                "isValidator": true,
+                "nodeName": "Return Data",
+                "name": "Return Data",
+                "response_value": {
+                 "list": [
+                  {
+                   "prop": "code",
+                   "propLabel": "code",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "value",
+                   "valueTypeLabel": "",
+                   "value": "400",
+                   "valueLabel": ""
+                  },
+                  {
+                   "prop": "message",
+                   "propLabel": "message",
+                   "operator": "",
+                   "operatorLabel": "",
+                   "valueType": "field",
+                   "valueTypeLabel": "",
+                   "value": "{{node:wf_add.data.errorMessage}}",
+                   "valueLabel": ""
+                  }
+                 ]
+                },
+                "return_raw_data": 0
+               },
+               "blocks": []
+              }
+             ]
+            },
+            {
+             "id": "if_add_failed_f",
+             "type": "ifBlock",
+             "data": {
+              "title": "false"
+             },
+             "blocks": []
+            }
+           ]
+          }
+         ]
         }
        ]
       },
@@ -6494,6 +9253,14 @@
                "operator": "",
                "valueLabel": "",
                "propLabel": "planned_output_qty"
+              },
+              {
+               "prop": "output_split",
+               "valueType": "field",
+               "value": "{{node:code_node_OSmerge.data.output_split}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "output_split"
               }
              ]
             }
@@ -6787,6 +9554,14 @@
                "operator": "",
                "valueLabel": "",
                "propLabel": "planned_output_qty"
+              },
+              {
+               "prop": "output_split",
+               "valueType": "field",
+               "value": "{{node:code_node_OSmerge.data.output_split}}",
+               "operator": "",
+               "valueLabel": "",
+               "propLabel": "output_split"
               }
              ]
             }

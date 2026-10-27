@@ -33,6 +33,7 @@ BASE_MD5 = "3fd73ecbf835c0db1b729b76a19519e3"
 RADIO_TPL = os.path.join(HERE, "tpl", "radio_msi_type.json")
 TEXT_TPL = os.path.join(HERE, "tpl", "text_so_delivery_method.json")  # the SO form's delivery_method_text (v1240): a display-only text set by setData
 COLLAPSE_TPL = os.path.join(HERE, "tpl", "collapse_so_basic_info.json")  # the SO form's "Basic Info" section (v1240)
+SWITCH_TPL = os.path.join(HERE, "tpl", "switch_so_is_accurate.json")  # the SO form's is_accurate (v1240): a plain on / off switch, 0 / 1
 SRC = os.environ.get("SC_SRC") or os.path.join(HERE, "src")
 CODE = os.environ.get("SC_CODE") or os.path.join(IASC, "code")
 IDS_FILE = os.environ.get("SC_IDS") or os.path.join(IASC, "ids.json")
@@ -73,6 +74,9 @@ EXPLODE_HELPERS_END = "// The BOM is a template: once the table has been edited 
 # and both posted on COMPLETED; src/v2_double_patch.json (also read by test_sc_json.js) claims the click before its first await
 # and posts a job once while still unposted
 DOUBLE = [(p["was"], p["now"]) for p in json.load(open(os.path.join(SRC, "v2_double_patch.json"), encoding="utf-8"))["patch"]]
+# IA V2 one stock call per run (10-27): the worker parks a job at 75 % after the components' run; src/v2_park_patch.json (also read by
+# test_sc_json.js) has the two handlers' wait kick it once at the park instead of at its next 15 s kick
+PARK = json.load(open(os.path.join(SRC, "v2_park_patch.json"), encoding="utf-8"))
 # the classic save handlers (10-22): a double click saved twice; src/classic_double_patch.json (also read by test_sc_json.js) claims the
 # click before the first await with the same form flag and frees it in a finally
 CLASSIC_DOUBLE = json.load(open(os.path.join(SRC, "classic_double_patch.json"), encoding="utf-8"))
@@ -139,6 +143,36 @@ UI_TOP = (["sc_section", "sc_collapse", "sc_info"] + [m for m, _ in ROWS] + ["sc
 
 # RES-01 Created (BA, 10-22): the Created status next to Draft (src/created_patch.json: the handler, mounted, IA V2 and badge pairs)
 CREATED = json.load(open(os.path.join(SRC, "created_patch.json"), encoding="utf-8"))
+# IA output split (plan 10-27, code/shared/os_split.js): the Split receipt switch, the split total and the rows grid; a grid with
+# generateSubTable false = one json column sm_item_assembly.output_split, no child table. OFF = hidden, nothing bound
+OS_WIDGETS = ["output_split_on", "output_split_sum", "output_split"]
+OS_COLS = ["os_qty", "os_storage_location_id", "os_location_id", "os_category", "os_group", "os_batch_no", "os_mfg_date", "os_exp_date"]
+# the Misc Receipt split table's bin filter (table_split): the row's own storage location
+OS_BIN_FORMULA = "{{value:output_split}}.map(item => item.os_storage_location_id)[arguments[0].rowIndex]"
+# ON: the split's own handler (src/os_main.js) and switch; its display-only total stripped from IA V2 payloads (IA_NOT_RECORD; the switch is a column)
+OS_ENABLED = True
+OS_UI = ["output_split_sum"]
+OS_START = "// IA output split (scratchpad/iasc os_main):"
+OS_END = "// -- end output split --\n"
+OS_LABELS = {"os_qty": "Qty", "os_storage_location_id": "Storage Location", "os_location_id": "Bin Location", "os_category": "Category", "os_group": "Group",
+             "os_batch_no": "Batch No", "os_mfg_date": "Manufacturing Date", "os_exp_date": "Expired Date"}
+OS_FORWARDERS = ([("os_onChange_switch", "Split receipt switched", 'this.triggerEvent("os_main", { osOp: "SWITCH", value: arguments[0] && arguments[0].value });'),
+                  ("os_onRowAdd", "a split row added", 'this.triggerEvent("os_main", { osOp: "ADD", rowIndex: arguments[0] && arguments[0].rowIndex });'),
+                  # read once the row is gone (the components table's onRowRemove waits the same way)
+                  ("os_onRowRemove", "a split row removed", 'setTimeout(() => this.triggerEvent("os_main", { osOp: "REMOVE" }), 50);')] +
+                 [("os_onChange_" + c[3:], "a split row's " + OS_LABELS[c] + " changed",
+                   'this.triggerEvent("os_main", { osOp: "CELL", field: "%s", rowIndex: arguments[0] && arguments[0].rowIndex, value: arguments[0] && arguments[0].value });' % c)
+                  for c in OS_COLS])
+# where the patched handlers tell os_main (blocks marked OS_START ... OS_END; the field list is the mount read's, widened)
+OS_ITEM_AT = "const applyBatchFields = (item) => {\n"
+OS_MOUNT_FIELDS = ('.field("item_batch_management,batch_number_genaration")\n    .get();\n  const item = res.data?.[0];\n',
+                   '.field("item_batch_management,batch_number_genaration,serial_number_management,stock_control")\n    .get();\n  const item = res.data?.[0];\n')
+OS_VIEW_AT = "const showFilledBatchFields = () => {\n"
+
+
+def os_block(why, op, indent=""):
+    return "%s%s %s\n%sthis.triggerEvent(\"os_main\", { osOp: \"%s\"%s });\n%s%s" % (indent, OS_START, why, indent, op, ", item: item || null" if op in ("ITEM", "MOUNT") else "",
+                                                                                    indent, OS_END)
 
 
 def read(path):
@@ -460,6 +494,84 @@ def build_created_widgets(form, ckeys):
     return ["button_created", "created_status", "cancelled_status"]
 
 
+def build_os_widgets(form, okeys):
+    """IA output split (both builds): the switch, the total line and the output_split grid, hidden and unbound, top level right after
+    sc_section; the grid's columns cloned from this form's own tables, its selects filtered as the header's Output Location fields (the
+    bin also by the row's storage location, as Misc Receipt's table_split). Keys from their own stream, so every earlier key stays"""
+    top = form["list"]
+    H = {m: find(top, m, k)[0] for m, k in (("storage_location_id", "37cazpwp"), ("location_id", "06a87twh"), ("inventory_category", "iainvcat"))}
+    th = find(top, "table_hu")[0]
+    col = {c["model"]: c for c in th["tableColumns"]}
+    bal = {c["model"]: c for c in find(top, "table_item_balance")[0]["tableColumns"]}
+    switch_tpl = json.load(open(SWITCH_TPL, encoding="utf-8"))
+    text_tpl = json.load(open(TEXT_TPL, encoding="utf-8"))
+    assert (switch_tpl["type"], switch_tpl["options"]["checkboxMode"], switch_tpl["options"]["tableColumn"], switch_tpl["options"]["defaultValue"]) == ("switch", False, False, 0)
+    assert (th["type"], th["options"]["generateSubTable"], th["options"]["dataBind"]) == ("table", False, True)
+    for c, want in ((col["item_quantity"], "number"), (col["handling_no"], "input"), (col["storage_location_id"], "select"), (col["location_id"], "select"),
+                    (bal["dialog_manufacturing_date"], "date"), (bal["dialog_expired_date"], "date")):
+        assert c["type"] == want and c["options"]["tableColumn"] is True, (c["model"], c["type"])
+    assert (H["inventory_category"]["options"]["remote"], [o["value"] for o in H["inventory_category"]["options"]["options"]]) == (False, ["Unrestricted", "Blocked"])
+    switch = widget(switch_tpl, okeys, "output_split_on", "Split receipt", hidden=True, defaultValue=0)
+    total = widget(text_tpl, okeys, "output_split_sum", "Split total", hidden=True, defaultValue="", customClass="", hideLabel=True, color="")
+    grid = widget(th, okeys, "output_split", "Output Split", hidden=True, isAdd=True, isDelete=True, paging=False, defaultValue=[])
+    # the rows' Add Row and per-row Delete (the browser pass, 10-27): table_hu, the grid's template, has neither; the components
+    # table's own toolbar addBtn and delBtn row action
+    sm = find(top, "stock_movement")[0]["options"]
+    add = [x for x in sm["customProps"]["toolbar"] if x.get("type") == "addBtn"]
+    dele = [x for x in sm["rowActions"] if x.get("type") == "delBtn"]
+    assert len(add) == 1 and len(dele) == 1, "the components table's Add / Delete buttons moved"
+    go = grid["options"]
+    assert not [x for x in go["customProps"]["toolbar"] if x.get("type") == "addBtn"] and go["rowActions"] == []
+    go["customProps"]["toolbar"].insert(0, dict(copy.deepcopy(add[0]), title="Add Row"))
+    go["rowActions"] = [copy.deepcopy(dele[0])]
+
+    def column(tpl, model, name, **opts):
+        return widget(tpl, okeys, model, name, hidden=False, disabled=False, required=False, **opts)
+
+    def ds(model):
+        return copy.deepcopy(H[model]["options"]["datasource"])
+
+    bins = ds("location_id")
+    leaf = [x for x in bins["rules"]["list"][0]["children"] if x["prop"] == "storage_location_id"]
+    assert len(leaf) == 1 and (leaf[0]["valueType"], leaf[0]["value"]) == ("field", "{{value:storage_location_id}}"), leaf
+    leaf[0].update({"valueType": "formula", "value": OS_BIN_FORMULA})
+    cat = H["inventory_category"]["options"]
+    grid["tableColumns"] = [
+        column(col["item_quantity"], "os_qty", "Qty", precision=8, defaultValue=None),
+        column(col["storage_location_id"], "os_storage_location_id", "Storage Location", defaultValue="", datasource=ds("storage_location_id"),
+               props=copy.deepcopy(H["storage_location_id"]["options"]["props"])),
+        column(col["location_id"], "os_location_id", "Bin Location", defaultValue="", datasource=bins, props=copy.deepcopy(H["location_id"]["options"]["props"])),
+        column(col["location_id"], "os_category", "Category", defaultValue="", auto_refresh=0, remote=False, remoteType=cat["remoteType"],
+               datasource=copy.deepcopy(cat["datasource"]), options=copy.deepcopy(cat["options"]), props=copy.deepcopy(cat["props"])),
+        column(col["item_quantity"], "os_group", "Group", precision=0, defaultValue=None),
+        column(col["handling_no"], "os_batch_no", "Batch No", defaultValue=""),
+        column(bal["dialog_manufacturing_date"], "os_mfg_date", "Manufacturing Date", defaultValue=""),
+        column(bal["dialog_expired_date"], "os_exp_date", "Expired Date", defaultValue="")]
+    assert [c["model"] for c in grid["tableColumns"]] == OS_COLS
+    at = [w.get("model") for w in top].index("sc_section")
+    top[at + 1:at + 1] = [switch, total, grid]
+    return OS_WIDGETS
+
+
+def os_place(form):
+    """ON: the split widgets into the Output Location section, a full-width first column (the switch on top, the total, the rows);
+    its key from a fresh stream drawn after every other key"""
+    top = form["list"]
+    moved = []
+    for m in OS_WIDGETS:
+        w, holder = find(top, m)
+        assert holder is top, m
+        top.remove(w)
+        moved.append(w)
+    grid = find(top, "sc_output_grid")[0]
+    assert len(grid["columns"]) == 2
+    c = {k: copy.deepcopy(v) for k, v in grid["columns"][0].items() if k != "list"}
+    c["key"] = Keys(json.dumps(form), SEED + 8).new()
+    c["options"].update({"span": 24, "xs": 24, "sm": 24, "md": 24, "lg": 24, "xl": 24})
+    c["list"] = moved
+    grid["columns"].insert(0, c)
+
+
 def regroup(form, pkeys):
     """UI-01, ON only: the header fields moved (the same widgets, keys kept) into the stacked sections of SECTIONS; the BOM row,
     Use Suggestion and Prepare BOM into Production; a read-only Actual Received row beside Quantity, which reads Output to Receive
@@ -511,6 +623,10 @@ def patch_handlers(form, c, keys):
     for key, pin in PINS.items():
         assert sha(k[key]["func"]) == pin, "the v36 handler %s (%s) changed: re-derive the Small Cycle patch" % (k[key]["name"], key)
     names = {e["name"] for e in es}
+    # IA output split: an item change tells os_main (inside applyBatchFields, before the explode helpers are copied: sc_main's copy too)
+    w = k["wv07g9xe"]["func"]
+    assert w.count(OS_ITEM_AT) == 1, "applyBatchFields moved"
+    k["wv07g9xe"]["func"] = w.replace(OS_ITEM_AT, OS_ITEM_AT + os_block("the item changed: its split is cleared, the switch shown for its kind", "ITEM", "  "))
     # RES-01: the IA's own holds added back where it reads free stock (src/res_own_patch.json), before the explode helpers are copied
     own_patch = json.load(open(os.path.join(SRC, "res_own_patch.json"), encoding="utf-8"))
     own = fill(js(own_patch["block"]), c)
@@ -592,7 +708,7 @@ def patch_handlers(form, c, keys):
         t = t.replace(v36, v36.replace(VARIANCE_HEAD, VARIANCE_RENAMED) + "\n\n" + var_block)
         if key in NOT_RECORD:
             assert t.count(NOT_RECORD_TAIL) == 1
-            t = t.replace(NOT_RECORD_TAIL, '"item_assembly_tittle", ' + ", ".join('"%s"' % m_ for m_ in UI_TOP) + "];")
+            t = t.replace(NOT_RECORD_TAIL, '"item_assembly_tittle", ' + ", ".join('"%s"' % m_ for m_ in UI_TOP + OS_UI) + "];")
             for was, now in DOUBLE:
                 assert t.count(was) == 1, (key, was[:60])
                 t = t.replace(was, now)
@@ -614,6 +730,12 @@ def patch_handlers(form, c, keys):
             assert t.count(pair["was"]) == 1, (key, pair["was"][:60])
             t = t.replace(pair["was"], pair["now"])
         k[key]["func"] = t
+    for key in PARK["handlers"]:
+        t = k[key]["func"]
+        for pair in PARK["patch"]:
+            assert t.count(pair["was"]) == 1, (key, pair["was"][:60])
+            t = t.replace(pair["was"], pair["now"])
+        k[key]["func"] = t
     # RES-01 Created (BA, 10-22): the Created button's handler (from the final Draft handler), the mounted and IA V2 patches
     m = k["mounted"]["func"]
     for d in CREATED["mount"]:
@@ -622,6 +744,10 @@ def patch_handlers(form, c, keys):
     for d in CREATED["cancel"]["mount"]:
         assert m.count(d["was"]) == 1, ("mounted cancel", d["was"][:70])
         m = m.replace(d["was"], d["now"])
+    # IA output split: the mount's item read (Clone, an editable Edit) also tells os_main, with the flags its kind needs; a read-only view too
+    assert m.count(OS_MOUNT_FIELDS[0]) == 1 and m.count(OS_VIEW_AT) == 1, "the mount's batch-field reads moved"
+    m = m.replace(OS_MOUNT_FIELDS[0], OS_MOUNT_FIELDS[1] + os_block("the rows, the switch and the columns for this item", "MOUNT", "  "))
+    m = m.replace(OS_VIEW_AT, OS_VIEW_AT + os_block("a read-only view shows the split's rows", "VIEW", "  "))
     k["mounted"]["func"] = m
     for key in CREATED["v2Keys"]:
         for d in CREATED["v2"]:
@@ -656,6 +782,28 @@ def patch_handlers(form, c, keys):
     fc["type"] = "js"
     fc["func"] = dirty
     mirrors["iaForm_onFormChange"] = dirty
+    # IA output split: the output quantity (before the Small Cycle prologue, which may end the handler) and the plant (after it) tell os_main;
+    # os_main and its forwarders bound to the switch, the rows table and every column
+    k["iaqty01x"]["func"] = os_block("the output quantity changed: the split's rows follow it", "QTY") + k["iaqty01x"]["func"]
+    assert k["fgivan7v"]["func"].endswith("\n")
+    k["fgivan7v"]["func"] = k["fgivan7v"]["func"] + os_block("the plant changed: its bins belong to the old plant, so the split is cleared", "PLANT")
+    okeys = Keys(json.dumps(form), SEED + 9)
+    osm = fill(js("os_main.js"), {"OS_ENABLED": "true" if OS_ENABLED else "false"},
+               {"/*@@OS_SPLIT@@*/": shared("os_split.js", ["OS_MAX_ROWS", "OS_EPS", "osS", "osQ8", "osDigits", "osKind", "osSum"])})
+    assert osm.count("{{") == 0
+    os_keys = {}
+    for name, what, body in [("os_main", None, osm)] + OS_FORWARDERS:
+        assert name not in names, name
+        func = body if what is None else "// %s: IA output split (scratchpad/iasc), handled by os_main\n%s\n" % (what, body)
+        os_keys[name] = okeys.new()
+        es.append({"key": os_keys[name], "name": name, "func": func, "type": "js"})
+        mirrors[name] = func
+    sw = find(form["list"], "output_split_on")[0]
+    tb = find(form["list"], "output_split")[0]
+    for widget_, ev, name in [(sw, "onChange", "os_onChange_switch"), (tb, "onRowAdd", "os_onRowAdd"), (tb, "onRowRemove", "os_onRowRemove")] + \
+            [(c, "onChange", "os_onChange_" + c["model"][3:]) for c in tb["tableColumns"]]:
+        assert widget_["events"].get(ev) == "", (widget_["model"], ev)
+        widget_["events"][ev] = os_keys[name]
     # a js event's func goes through the platform's replaceVariables ({{type:x}} tokens): none may be in our code
     base = by_key(json.loads(read(BASE)))
     for key in PINS:
@@ -701,6 +849,7 @@ def build(on):
     pkeys = Keys(raw, SEED + 1)
     added = build_widgets(form, keys, pkeys) + build_res_widgets(form, Keys(raw, SEED + 2))
     added += build_created_widgets(form, Keys(json.dumps(form), SEED + 3))
+    added += build_os_widgets(form, Keys(json.dumps(form), SEED + 7))
     mirrors = {}
     if on:
         wf = ids()
@@ -709,6 +858,7 @@ def build(on):
         mirrors = patch_handlers(form, c, keys)
         regroup(form, pkeys)
         track_history(form)
+        os_place(form)
     user_v55(form)
     sink_hidden(form)
     every = []

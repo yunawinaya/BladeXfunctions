@@ -9,7 +9,8 @@
   IA_REVERT_V2_WORKER   lib/v2build.build_worker on REVERT_IA (JS: tpl/sav2/code/worker made the revert's, code/revert/worker)
   IA_REVERT_V2_SUBMIT   the list's Revert: STATUS / BUSY / STALE / the lifted prep's refusals / min_picks / eligibility, then
                         LOCK|n+1 -> job -> header Processing -> read back -> due
-  IA_REVERT             base/IA_REVERT.v4.json + the 250-live-row guard (revert/classic_v5.py) + RES-01 R5 (revert/classic_v6.py)
+  IA_REVERT             base/IA_REVERT.v4.json + the 250-live-row guard (revert/classic_v5.py) + RES-01 R5 (revert/classic_v6.py) + the output
+                        split's WA batch match (revert/classic_v7.py)
 
 usage: python3 scratchpad/iav2/build_revert.py [--write] [NAME ...]   (or scratchpad/iav2/build_ia.py, which imports BUILDERS)
 Shell ids come from ids.json ("0" until the user creates the shells). Writes <repo>/Item Assembly & BOM/AsyncV2/<NAME>.json.
@@ -36,7 +37,7 @@ def _load(path, name):
 
 
 RSQL = _load(os.path.join(HERE, "revert", "sql.py"), "iarv_revert_sql")
-CLASSIC = _load(os.path.join(HERE, "revert", "classic_v6.py"), "iarv_classic_v6")
+CLASSIC = _load(os.path.join(HERE, "revert", "classic_v7.py"), "iarv_classic_v7")
 # RES-01 R5 (scratchpad/iasc/res01): its holds read (RES_OWN_HOLD) and the shared core resRevertAdds
 IASC_SQL = _load(os.path.join(HERE, "..", "iasc", "code", "shared", "sql.py"), "iasc_sql_for_revert")
 RES_CODE = os.environ.get("HD_CODE") or os.path.join(HERE, "..", "iasc", "res01", "code")
@@ -621,7 +622,7 @@ def build_worker():
     cfg = V.worker_config(name="IA_REVERT_V2_WORKER", code_dir=WDST, ids_base=1798840000000, command="REVERT_IA",
                           states=["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_REVERT"], lock_join=IA_LOCK_JOIN, id_col=IA_ID_COL, prev_col=IA_PREV_COL,
                           corr_offset=4, id_alias="gr_id", prepare=("IA_REVERT_V2_PREPARE", IDS["IA_REVERT_V2_PREPARE"]), commit=("IA_REVERT_V2_COMMIT", IDS["IA_REVERT_V2_COMMIT"]),
-                          unlock=STATUS_UNLOCK, cache_prefix="iarv_wrk_", renames=WRENAMES)
+                          unlock=STATUS_UNLOCK, cache_prefix="iarv_wrk_", renames=WRENAMES, one_commit_per_run=True)
     doc = V.build_worker(cfg)
     for nid in JSAT_NODES:
         declare_field(doc, nid, "jsAt", "dbNow")

@@ -7,10 +7,11 @@ import json, os, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLIENT = os.path.dirname(HERE)
-TESTS = ["test_sc_legacy.js", "test_sc_link.js", "test_sc_prepare.js", "test_sc_qty.js", "test_sc_variance.js", "test_sc_panel.js", "test_v2_double.js", "test_res_draft.js", "test_res_own.js", "test_res_mount.js", "test_res_close.js", "test_classic_double.js", "test_created.js", "test_cancel.js", "test_res_dirty.js", "test_res_manual.js"]
+TESTS = ["test_os_form.js", "test_sc_legacy.js", "test_sc_link.js", "test_sc_prepare.js", "test_sc_qty.js", "test_sc_variance.js", "test_sc_panel.js", "test_v2_double.js", "test_v2_park.js", "test_res_draft.js", "test_res_own.js", "test_res_mount.js", "test_res_close.js", "test_classic_double.js", "test_created.js", "test_cancel.js", "test_res_dirty.js", "test_res_manual.js"]
 # the double-click patch is JSON (src/v2_double_patch.json): its anchors are written as JSON string text
 J = lambda s: json.dumps(s)[1:-1]
 D = "v2_double_patch.json"
+PK = "v2_park_patch.json"
 O = "sc_res_own.js"
 OP = "res_own_patch.json"
 CD = "classic_double_patch.json"
@@ -65,7 +66,8 @@ MUTANTS = [
     ("explode: no add-back", OP, J(") + resOwnHeld(reservationRes.data, resIa(), "), J(") + 0 * resOwnHeld(reservationRes.data, resIa(), ")),
     ("explode: the IA id never read", OP, J("const resIa = () => (resIaMemo === null ? (resIaMemo = resOwnIdOf(reservationRes.data, () => this.getValues() || {})) : resIaMemo);"),
      J('const resIa = () => "";')),
-    ("component quantity: no add-back", OP, J(") + resOwnHeld(reservationRes.data, resOwnId(allData), "), J(") + 0 * resOwnHeld(reservationRes.data, resOwnId(allData), ")),
+    ("component quantity: no add-back", OP, J(" +\n              resOwnHeld(reservationRes.data, resOwnId(allData), "),
+     J(" +\n              0 * resOwnHeld(reservationRes.data, resOwnId(allData), ")),
     ("component quantity: no conversions read", OP, J(' + (resOwnId(allData) ? ",based_uom,table_uom_conversion" : "")'), ""),
     ("picker: the reserved not reduced", OP, J("            row.reserved_qty = Math.max(0, (parseFloat(row.reserved_qty) || 0) - own);\n"), ""),
     # RES-01 R3: the reservation started after a Draft save
@@ -262,6 +264,50 @@ MUTANTS = [
     ("projection: a refusal's reason dropped", M, '      if (scS(d.code) === "400") scStore({ sc_refused: scS(d.message) });\n', ""),
     ("projection: an old refusal kept", M, '  scStore({ sc_refused: "" });\n  try {\n    const res = await scRun(SC_WF_PROJECTION', '  try {\n    const res = await scRun(SC_WF_PROJECTION'),
     ("Select SO Line: the refusal's reason not shown", M, 'scAlert(scHtml(scWhyNot("The Sales Order lines could not be read.', 'scAlert(scHtml(("The Sales Order lines could not be read.'),
+    # IA output split (plan 10-27): os_main
+    ("os: a cell's typed value not written", "os_main.js", "  if (value !== undefined) put(i, field, value);\n", ""),
+    ("os: a storage change keeps the bin", "os_main.js", 'if (field === "os_storage_location_id" && value !== undefined) put(i, "os_location_id", "");', ""),
+    ("os: a batch's date not shared", "os_main.js", 'if (key && (field === "os_mfg_date" || field === "os_exp_date")) rows.forEach(', "if (false) rows.forEach("),
+    ("os: a row joining a batch keeps its dates", "os_main.js", '    if (mate) {\n      put(i, "os_mfg_date"', '    if (false) {\n      put(i, "os_mfg_date"'),
+    ("os: row 1 not kept in the header", "os_main.js", "  osHeaderSync(rows, kind);\n  osTotal(rows);\n  // another storage location: its default bin", "  osTotal(rows);\n  // another storage location: its default bin"),
+    ("os: the switch for a serial item", "os_main.js", 'const osAllowed = (kind) => kind === "SYSTEM" || kind === "MANUAL" || kind === "PLAIN";', 'const osAllowed = (kind) => kind !== "";'),
+    ("os: a Manual batch case-sensitive", "os_main.js", 'osS(r.os_batch_no) && "B" + osS(r.os_batch_no).toLowerCase()', 'osS(r.os_batch_no) && "B" + osS(r.os_batch_no)'),
+    ("os: a Manual batch case-sensitive in a clash", "os_main.js", 'kind === "MANUAL" ? "B" + osS(r.os_batch_no).toLowerCase() : "") + "|"',
+     'kind === "MANUAL" ? "B" + osS(r.os_batch_no) : "") + "|"'),
+    ("os: row 1 without the header's bin", "os_main.js", 'os_location_id: this.getValue("location_id") || "",\n      os_category', 'os_location_id: "",\n      os_category'),
+    ("os: Add Row without what is left", "os_main.js", "os_qty: left > 0 ? left : null,", "os_qty: null,"),
+    ("os: a 21st row kept", "os_main.js", "if (!osEditable() || rows.length > OS_MAX_ROWS) {", "if (!osEditable()) {"),
+    ("os: a read-only Add Row kept", "os_main.js", "if (!osEditable() || rows.length > OS_MAX_ROWS) {", "if (rows.length > OS_MAX_ROWS) {"),
+    ("os: a Clone keeps the numbers", "os_main.js", 'if (osS(this.getValue("page_status")) === "Clone" && rows.some(', "if (false && rows.some("),
+    ("os: the last row never follows the quantity", "os_main.js", "  if (v > 0 && !osSame(rows[last].os_qty, v)) {", "  if (false) {"),
+    ("os: an item change keeps the split", "os_main.js", "  osClear(kind);\n  osLayout(kind, [], osEditable());", "  osLayout(kind, osRows(), osEditable());"),
+    ("os: a plant change keeps the split", "os_main.js", 'const osPlantOp = () => osClear(osState().kind || "");', "const osPlantOp = () => false;"),
+    ("os: switched off without asking", "os_main.js", '    await this.$confirm("Receive the whole output', '    void ("Receive the whole output'),
+    ("os: switched off, row 1 not back in the header", "os_main.js", "  osHeaderSync(rows, kind);\n  osClear(kind);\n};", "  osClear(kind);\n};"),
+    ("os: read-only rows editable", "os_main.js", '  this.disabled(["output_split"], !editable);', '  this.disabled(["output_split"], false);'),
+    ("os: a System number typed", "os_main.js", '  if (editable) this.disabled([osCol("os_batch_no")], kind !== "MANUAL");\n', ""),
+    ("os: every cell rewritten (a write loop)", "os_main.js", "    if (!osSame(rows[k][f], v)) {\n      rows[k][f] = v;", "    if (true) {\n      rows[k][f] = v;"),
+    ("os: works while switched off", "os_main.js", "  if (!OS_ENABLED) return;\n", ""),
+    ("os: the total never written", "os_main.js", '  if (!osSame(this.getValue("output_split_sum"), text)) this.setData({ output_split_sum: text });', ""),
+    ("os: the header's single fields left shown", "os_main.js", "  this.hide(OS_HEADER);\n", ""),
+    ("os: a read-only view shows the empty columns", "os_main.js", '.filter((c) => c !== "os_group" && rows.some((r) => osS(r[c]) !== ""))', '.filter((c) => c !== "os_group")'),
+    # the default bin (the user, 10-27)
+    ("os: Add Row without its default bin", "os_main.js", "  return osFillBin(i, rows[i].os_storage_location_id);\n", "  return;\n"),
+    ("os: a storage location change without its default bin", "os_main.js", '  if (field === "os_storage_location_id" && value !== undefined) return osFillBin(i, value);\n', ""),
+    ("os: the item's own default bin ignored", "os_main.js", "    if (own) bin = osS(own.bin_location);", "    if (false) bin = osS(own.bin_location);"),
+    ("os: a bin picked meanwhile overwritten", "os_main.js", ' || osS(r.os_location_id) !== "" ||', " ||"),
+    ("os: the default bin read every time", "os_main.js", "  if (known[key] !== undefined) return known[key];\n", ""),
+    # the total line's warning (IA-2610-014)
+    ("os: no warning of a clash", "os_main.js", "  const clash = osClash(rows, kind);\n", "  const clash = null;\n"),
+    ("os: the batch ignored in a clash", "os_main.js", '(kind === "SYSTEM" ? "G" + osS(r.os_group) : kind === "MANUAL" ? "B" + osS(r.os_batch_no).toLowerCase() : "")', '""'),
+    ("os: the category ignored in a clash", "os_main.js", '+ "|" + osS(r.os_location_id) + "|" + osS(r.os_category);', '+ "|" + osS(r.os_location_id);'),
+    ("os: a row without a bin clashes", "os_main.js", "    if (!osS(r.os_location_id)) continue;\n", ""),
+    # IA V2 one stock call per run (10-27): the wait kicks a parked job (75 %) once, then keeps its 15 s cadence
+    ("park: never kicked", PK, J('    if (!parkKicked && js === "COMMITTING_IA"'), J('    if (false && js === "COMMITTING_IA"')),
+    ("park: kicked at every status at 75 %", PK, J('    if (!parkKicked && js === "COMMITTING_IA"'), J('    if (js === "COMMITTING_IA"')),
+    ("park: kicked at any progress", PK, J("Number(st.progress_percent) === 75) {"), J("Number(st.progress_percent) >= 0) {")),
+    ("park: the 15 s cadence not restarted", PK, J("      parkKicked = true;\n      kickedAt = Date.now();\n"), J("      parkKicked = true;\n")),
+    ("park: Complete & Post left out", PK, '  "uhn48srb",\n  "wia8s2r9"\n', '  "uhn48srb"\n'),
 ]
 
 # MUT_ONLY=<prefix>: only the mutants whose name starts with it

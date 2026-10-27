@@ -1474,3 +1474,55 @@
 +    }
  
      if (resAI && resAI.data && resAI.data.length > 0) {
+
+--- base/list_onItemAssemblyPrintTemplateConfirm.js
++++ built/list_onItemAssemblyPrintTemplateConfirm.js
+@@ -1,3 +1,16 @@
+ // dialog_print_template > onConfirm.
++// IA output split (plan 10-27): the rows of a split receipt that carry a batch, from the json column (or its text)
++const iaLabelRows = (v) => {
++  let rows = v;
++  if (typeof rows === "string") {
++    try {
++      rows = JSON.parse(rows);
++    } catch (e) {
++      rows = null;
++    }
++  }
++  return (Array.isArray(rows) ? rows : []).map((r) => ({ batch: String((r && r.os_batch_no) || "").trim(), qty: r ? r.os_qty : null }))
++    .filter((r) => r.batch && r.batch !== "-");
++};
+ (async () => {
+   try {
+@@ -33,17 +46,21 @@
+       if (String(ia.is_deleted ?? "0") !== "0") throw new Error("An Item Assembly was deleted. Please refresh.");
+       const batch = String(ia.batch_no || "").trim();
++      // a split receipt: one label line per row that has a batch (its batch, its quantity)
++      const splitRows = iaLabelRows(ia.output_split);
+       // Match MSR's batch-label policy, also excluding blank batch values.
+-      if (!batch || batch === "-") continue;
++      if (!splitRows.length && (!batch || batch === "-")) continue;
+       const itemId = ia.item_id?.id ?? ia.item_id;
+       if (typeof itemId !== "string" || !itemId) throw new Error("The assembled item ID could not be resolved.");
+-      lines.push({
+-        ia_id: id,
+-        ia_number: ia.stock_movement_no,
+-        item_id: itemId,
+-        item_name: ia.item_name,
+-        batch_no: batch,
+-        assembled_quantity: ia.item_qty,
+-        quantity: 1
+-      });
++      for (const part of splitRows.length ? splitRows : [{ batch: batch, qty: ia.item_qty }]) {
++        lines.push({
++          ia_id: id,
++          ia_number: ia.stock_movement_no,
++          item_id: itemId,
++          item_name: ia.item_name,
++          batch_no: part.batch,
++          assembled_quantity: part.qty,
++          quantity: 1
++        });
++      }
+     }
+     if (!lines.length) {

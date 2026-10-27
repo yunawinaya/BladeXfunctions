@@ -1,0 +1,75 @@
+{
+  "arrayData": [
+    {
+      "plant_id": "1123598813738675202",
+      "di_freight_charges": 0,
+      "so_no": "SO/20260929-085",
+      "to_no": [],
+      "delivery_cost": 0,
+      "di_shipping_method": "1912507382171500546",
+      "id": "2104739747412643841",
+      "to_id_type": "2021039073025282049",
+      "create_time": "2026-09-29 09:07:14.595",
+      "ref_doc_type": "Goods Delivery",
+      "create_dept": "1123598813738675202",
+      "movement_type": "Picking",
+      "organization_id": "1123598813738675201",
+      "gd_no": [
+        "2104739626134343682"
+      ],
+      "create_user": "2015606952982085634",
+      "table_picking_items": [
+        {
+          "item_code": "2070758892513914881",
+          "gd_line_id": "2104739745059639298",
+          "line_status": "Open",
+          "hu_select": 0,
+          "so_no": "SO/20260929-085",
+          "net_weight": 0,
+          "packing_uom": "2018906563477008389",
+          "qty_to_pick": 1,
+          "packing_qty": 1,
+          "item_uom": "2018906563477008389",
+          "so_id": "2104739417266393089",
+          "id": "2104739747450392579",
+          "to_pick_alt": 0,
+          "packing_conversion": 1,
+          "pending_alt": 0,
+          "weight_conversion": 0,
+          "row_type": "item",
+          "source_bin": "2018912822846582786",
+          "so_line_id": "2104739417287364611",
+          "gd_id": "2104739626134343682",
+          "pending_process_qty": 1,
+          "item_name": "ITEM-ZX-PRICE-TAG",
+          "is_serialized_item": 0,
+          "picking_base_qty": 0,
+          "gd_no": "GD/20260929/561",
+          "order_base_qty": 0,
+          "picked_qty": 1
+        }
+      ],
+      "tenant_id": "000000",
+      "created_at": "2026-09-29 00:00:00.000",
+      "to_id": "PI-20260929-0329",
+      "update_time": "2026-09-29 09:07:14.595",
+      "di_vehicle_number": "2021848516230508546",
+      "is_deleted": 0,
+      "update_user": "2015606952982085634",
+      "to_status": "Created",
+      "ss_freight_charges": 0,
+      "table_picking_records": [],
+      "is_processing": 0,
+      "assigned_to": [],
+      "delivery_no": "GD/20260929/561",
+      "is_loading_bay": 0,
+      "freight_charges": 0,
+      "customer_id": [
+        "2086719200473055234"
+      ]
+    }
+  ],
+  "saveAs": "Completed",
+  "pageStatus": "Edit",
+  "confirmed_by": "parity-classic"
+}

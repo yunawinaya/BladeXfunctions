@@ -32,6 +32,58 @@ const pkV2Call = (workflowId, params) =>
     }
   });
 
+// Auto Complete GD (stage 1e): COMMIT hands each delivery this confirm left fully picked to GD Complete V2. The screen follows the
+// job through STATUS - not the worker's answer, which a long run can lose in the browser (Kenhin 10-27) - and starts each queued
+// completion once (GD_COMPLETE_WORKER, one call per job). P7 adds its entries just after the job is COMPLETED, so the follow stays
+// until the list stops growing. The GD and Picking lists' sweeps are the safety net
+const PK_V2_GD_COMPLETE_WORKER = "2110182645714518018";
+const PK_V2_POLL_MS = 3000;
+const PK_V2_POLL_MAX = 50;
+const gdCompleteList = (raw) => {
+  let list = Array.isArray(raw) ? raw : [];
+  if (typeof raw === "string") {
+    try {
+      list = JSON.parse(raw || "[]");
+    } catch (e) {
+      list = [];
+    }
+  }
+  return Array.isArray(list) ? list : [];
+};
+const followGdCompletes = async (pickingId, organizationId) => {
+  const run = this.runWorkflow.bind(this);
+  const msg = this.$message;
+  const started = {};
+  const named = {};
+  let lastSize = -1;
+  let stable = 0;
+  for (let i = 0; i < PK_V2_POLL_MAX; i++) {
+    await new Promise((r) => setTimeout(r, PK_V2_POLL_MS));
+    const st = await pkV2Call(PK_V2_WF.SUBMIT, { picking_id: String(pickingId), organization_id: String(organizationId), operation: "STATUS" });
+    if (!st.ok) continue;
+    const js = String(st.data.job_status || "");
+    if (js === "FAILED" || js === "REQUIRES_REVIEW") return;
+    if (js !== "COMPLETED") continue;
+    const list = gdCompleteList(st.data.gd_complete);
+    const fresh = list.filter((g) => g && g.status === "QUEUED" && g.job_id && !started[g.job_id]);
+    for (const g of fresh) {
+      started[g.job_id] = 1;
+      try {
+        run(PK_V2_GD_COMPLETE_WORKER, { job_id: String(g.job_id) }, () => {}, (e) => console.error("GD Complete V2: start failed - the lists' sweep picks it up", e));
+      } catch (e) {
+        console.error("GD Complete V2: could not be started", e);
+      }
+    }
+    if (fresh.length) msg.success("Completing " + fresh.map((g) => g.gd_no || g.gd_id).join(", ") + " in the background.");
+    const waiting = list.filter((g) => g && g.status === "NOT_QUEUED" && !named[g.gd_id]);
+    for (const g of waiting) named[g.gd_id] = 1;
+    if (waiting.length) msg.warning("Not completed automatically: " + waiting.map((g) => (g.gd_no || g.gd_id) + " - " + (g.message || g.code)).join("; "));
+    stable = list.length === lastSize ? stable + 1 : 0;
+    lastSize = list.length;
+    if (stable >= 3) return;
+  }
+};
+
 const runPickingWorkflow = async (data) => {
   return new Promise((resolve, reject) => {
     this.runWorkflow(
@@ -196,6 +248,7 @@ const fillRows = (rows) => {
         if (sub.data.route !== "NOT_ELIGIBLE") {
           if (String(sub.data.result_code) === "200" && sub.data.job_id) {
             results.push({ to_id: pickingItem.to_id, success: true, queued: true });
+            followGdCompletes(id, pickingItem.organization_id || organizationId);
             try {
               this.runWorkflow(PK_V2_WF.WORKER, { job_id: String(sub.data.job_id) }, () => {
                 this.refresh();

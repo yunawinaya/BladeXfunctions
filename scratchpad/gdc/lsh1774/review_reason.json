@@ -1,0 +1,2164 @@
+{
+ "mutation_plan": {
+  "balances": [
+   {
+    "after": {
+     "balance_quantity": "43",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "43",
+     "unrestricted_qty": "0"
+    },
+    "batch_id": "2113415595960700929",
+    "before": {
+     "balance_quantity": "43",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "37",
+     "unrestricted_qty": "6"
+    },
+    "id": "2113415596237524993",
+    "location_id": "2079490917475160065",
+    "material_id": "2113378412969205772",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "555",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "43",
+     "unrestricted_qty": "512"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "555",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "37",
+     "unrestricted_qty": "518"
+    },
+    "id": "2113415596350771201",
+    "location_id": "2079490917475160065",
+    "material_id": "2113378412969205772",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "23",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "21"
+    },
+    "batch_id": "2113415595960700929",
+    "before": {
+     "balance_quantity": "23",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "23"
+    },
+    "id": "2113434941416148993",
+    "location_id": "2108721631730995201",
+    "material_id": "2113378412969205772",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "23",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "21"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "23",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "23"
+    },
+    "id": "2113434941349040129",
+    "location_id": "2108721631730995201",
+    "material_id": "2113378412969205772",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "142",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "8",
+     "unrestricted_qty": "134"
+    },
+    "batch_id": "2113415650100776962",
+    "before": {
+     "balance_quantity": "142",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "141"
+    },
+    "id": "2113415650377601025",
+    "location_id": "2079488944373895170",
+    "material_id": "2113378551171522567",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "142",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "8",
+     "unrestricted_qty": "134"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "142",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "141"
+    },
+    "id": "2113415650490847234",
+    "location_id": "2079488944373895170",
+    "material_id": "2113378551171522567",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "275",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "20",
+     "unrestricted_qty": "255"
+    },
+    "batch_id": "2113415683181252610",
+    "before": {
+     "balance_quantity": "275",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "10",
+     "unrestricted_qty": "265"
+    },
+    "id": "2113415683466465282",
+    "location_id": "2079489450206957570",
+    "material_id": "2113378565906112523",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1111",
+     "block_qty": "836",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "20",
+     "unrestricted_qty": "255"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "1111",
+     "block_qty": "836",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "10",
+     "unrestricted_qty": "265"
+    },
+    "id": "2113415683579711489",
+    "location_id": "2079489450206957570",
+    "material_id": "2113378565906112523",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "14",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "13"
+    },
+    "batch_id": "2113415701795573762",
+    "before": {
+     "balance_quantity": "14",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "14"
+    },
+    "id": "2113415702068203521",
+    "location_id": "2079489450206957570",
+    "material_id": "2113378580141580297",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "14",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "13"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "14",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "14"
+    },
+    "id": "2113415702185644033",
+    "location_id": "2079489450206957570",
+    "material_id": "2113378580141580297",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1315",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "158",
+     "unrestricted_qty": "1157"
+    },
+    "batch_id": "2113415744594251778",
+    "before": {
+     "balance_quantity": "1315",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "138",
+     "unrestricted_qty": "1177"
+    },
+    "id": "2113415744887853058",
+    "location_id": "2079487564737286146",
+    "material_id": "2113378594486099984",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1815",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "158",
+     "unrestricted_qty": "1657"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "1815",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "138",
+     "unrestricted_qty": "1677"
+    },
+    "id": "2113415745013682177",
+    "location_id": "2079487564737286146",
+    "material_id": "2113378594486099984",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "278",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "276"
+    },
+    "batch_id": "2113415746724958209",
+    "before": {
+     "balance_quantity": "278",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "278"
+    },
+    "id": "2113415747014365185",
+    "location_id": "2079487564737286146",
+    "material_id": "2113378609786920963",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "278",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "276"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "278",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "278"
+    },
+    "id": "2113415747136000001",
+    "location_id": "2079487564737286146",
+    "material_id": "2113378609786920963",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1409",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "28",
+     "unrestricted_qty": "1381"
+    },
+    "batch_id": "2113416075566780417",
+    "before": {
+     "balance_quantity": "1409",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "4",
+     "unrestricted_qty": "1405"
+    },
+    "id": "2113416075847798786",
+    "location_id": "2079480469874937858",
+    "material_id": "2113378924909174792",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1409",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "28",
+     "unrestricted_qty": "1381"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "1409",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "4",
+     "unrestricted_qty": "1405"
+    },
+    "id": "2113416075961044994",
+    "location_id": "2079480469874937858",
+    "material_id": "2113378924909174792",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1357",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "12",
+     "unrestricted_qty": "1345"
+    },
+    "batch_id": "2113416160623071233",
+    "before": {
+     "balance_quantity": "1357",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "8",
+     "unrestricted_qty": "1349"
+    },
+    "id": "2113416160895700994",
+    "location_id": "2079771323965509634",
+    "material_id": "2113378990931714054",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1357",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "12",
+     "unrestricted_qty": "1345"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "1357",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "8",
+     "unrestricted_qty": "1349"
+    },
+    "id": "2113416161008947201",
+    "location_id": "2079771323965509634",
+    "material_id": "2113378990931714054",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "227",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "5",
+     "unrestricted_qty": "222"
+    },
+    "batch_id": "2113416191170187266",
+    "before": {
+     "balance_quantity": "227",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "226"
+    },
+    "id": "2113416191493148673",
+    "location_id": "2079772064318885890",
+    "material_id": "2113379004387041291",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "527",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "5",
+     "unrestricted_qty": "522"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "527",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "526"
+    },
+    "id": "2113416191707058178",
+    "location_id": "2079772064318885890",
+    "material_id": "2113379004387041291",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1660",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "15",
+     "unrestricted_qty": "1645"
+    },
+    "batch_id": "2113416426516779010",
+    "before": {
+     "balance_quantity": "1660",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "12",
+     "unrestricted_qty": "1648"
+    },
+    "id": "2113416426781020162",
+    "location_id": "2079488044926373890",
+    "material_id": "2113379239737827341",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1660",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "15",
+     "unrestricted_qty": "1645"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "1660",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "12",
+     "unrestricted_qty": "1648"
+    },
+    "id": "2113416426902654978",
+    "location_id": "2079488044926373890",
+    "material_id": "2113379239737827341",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "2482",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "30",
+     "unrestricted_qty": "2452"
+    },
+    "batch_id": "2113416459790192642",
+    "before": {
+     "balance_quantity": "2482",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "18",
+     "unrestricted_qty": "2464"
+    },
+    "id": "2113416460067016706",
+    "location_id": "2079488044926373890",
+    "material_id": "2113379277184573443",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "2482",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "30",
+     "unrestricted_qty": "2452"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "2482",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "18",
+     "unrestricted_qty": "2464"
+    },
+    "id": "2113416460176068609",
+    "location_id": "2079488044926373890",
+    "material_id": "2113379277184573443",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "423",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "4",
+     "unrestricted_qty": "419"
+    },
+    "batch_id": "2113416609732366337",
+    "before": {
+     "balance_quantity": "423",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "421"
+    },
+    "id": "2113416610000801793",
+    "location_id": "2079489450206957570",
+    "material_id": "2113379431568515080",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "423",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "4",
+     "unrestricted_qty": "419"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "423",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "421"
+    },
+    "id": "2113416610114048001",
+    "location_id": "2079489450206957570",
+    "material_id": "2113379431568515080",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "275",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "10",
+     "unrestricted_qty": "265"
+    },
+    "batch_id": "2113416611913404417",
+    "before": {
+     "balance_quantity": "275",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "7",
+     "unrestricted_qty": "268"
+    },
+    "id": "2113416612202811394",
+    "location_id": "2079489450206957570",
+    "material_id": "2113379431568515081",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "275",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "10",
+     "unrestricted_qty": "265"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "275",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "7",
+     "unrestricted_qty": "268"
+    },
+    "id": "2113416612316057601",
+    "location_id": "2079489450206957570",
+    "material_id": "2113379431568515081",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "226",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "224"
+    },
+    "batch_id": "2113416618292940801",
+    "before": {
+     "balance_quantity": "226",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "225"
+    },
+    "id": "2113416618569764866",
+    "location_id": "2079756903033999362",
+    "material_id": "2113379431568515084",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "226",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "224"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "226",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "225"
+    },
+    "id": "2113416618687205378",
+    "location_id": "2079756903033999362",
+    "material_id": "2113379431568515084",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "189",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "38",
+     "unrestricted_qty": "151"
+    },
+    "batch_id": "2113416642628292610",
+    "before": {
+     "balance_quantity": "189",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "35",
+     "unrestricted_qty": "154"
+    },
+    "id": "2113416642905116674",
+    "location_id": "2079480469874937858",
+    "material_id": "2113379448924545033",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "189",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "38",
+     "unrestricted_qty": "151"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "189",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "35",
+     "unrestricted_qty": "154"
+    },
+    "id": "2113416643018362881",
+    "location_id": "2079480469874937858",
+    "material_id": "2113379448924545033",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "33",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "31"
+    },
+    "batch_id": "2113416650559721474",
+    "before": {
+     "balance_quantity": "33",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "33"
+    },
+    "id": "2113416650823962626",
+    "location_id": "2079489385195245569",
+    "material_id": "2113379448924545036",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "33",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "2",
+     "unrestricted_qty": "31"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "33",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "33"
+    },
+    "id": "2113416650937208833",
+    "location_id": "2079489385195245569",
+    "material_id": "2113379448924545036",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "55",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "5",
+     "unrestricted_qty": "50"
+    },
+    "batch_id": "2113416654707888130",
+    "before": {
+     "balance_quantity": "55",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "55"
+    },
+    "id": "2113416654984712193",
+    "location_id": "2079489450206957570",
+    "material_id": "2113379448924545038",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "55",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "5",
+     "unrestricted_qty": "50"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "55",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "55"
+    },
+    "id": "2113416655093764098",
+    "location_id": "2079489450206957570",
+    "material_id": "2113379448924545038",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "111",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "110"
+    },
+    "batch_id": "2113416668825915394",
+    "before": {
+     "balance_quantity": "111",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "111"
+    },
+    "id": "2113416669115322370",
+    "location_id": "2079479743325016065",
+    "material_id": "2113379464749654026",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "111",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "110"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "111",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "111"
+    },
+    "id": "2113416669232762882",
+    "location_id": "2079479743325016065",
+    "material_id": "2113379464749654026",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "79",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "9",
+     "unrestricted_qty": "70"
+    },
+    "batch_id": "2113416683006857218",
+    "before": {
+     "balance_quantity": "79",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "7",
+     "unrestricted_qty": "72"
+    },
+    "id": "2113416683292069890",
+    "location_id": "2079756903033999362",
+    "material_id": "2113379478473416706",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "479",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "9",
+     "unrestricted_qty": "470"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "479",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "7",
+     "unrestricted_qty": "472"
+    },
+    "id": "2113416683409510401",
+    "location_id": "2079756903033999362",
+    "material_id": "2113379478473416706",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "39",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "10",
+     "unrestricted_qty": "29"
+    },
+    "batch_id": "2113416726963163137",
+    "before": {
+     "balance_quantity": "39",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "39"
+    },
+    "id": "2113416727235792897",
+    "location_id": "2079771807015112706",
+    "material_id": "2113379507032432644",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "39",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "10",
+     "unrestricted_qty": "29"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "39",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "39"
+    },
+    "id": "2113416727349039105",
+    "location_id": "2079771807015112706",
+    "material_id": "2113379507032432644",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "926",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "17",
+     "unrestricted_qty": "909"
+    },
+    "batch_id": "2113416912837939201",
+    "before": {
+     "balance_quantity": "926",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "925"
+    },
+    "id": "2113416913114763265",
+    "location_id": "2079771323965509634",
+    "material_id": "2113379680626286602",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "926",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "17",
+     "unrestricted_qty": "909"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "926",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "925"
+    },
+    "id": "2113416913223815170",
+    "location_id": "2079771323965509634",
+    "material_id": "2113379680626286602",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "767",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "25",
+     "unrestricted_qty": "742"
+    },
+    "batch_id": "2113417037064835073",
+    "before": {
+     "balance_quantity": "767",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "21",
+     "unrestricted_qty": "746"
+    },
+    "id": "2113417037337464833",
+    "location_id": "2079488854498349057",
+    "material_id": "2113379789082599427",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "767",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "25",
+     "unrestricted_qty": "742"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "767",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "21",
+     "unrestricted_qty": "746"
+    },
+    "id": "2113417037450711041",
+    "location_id": "2079488854498349057",
+    "material_id": "2113379789082599427",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "59",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "4",
+     "unrestricted_qty": "55"
+    },
+    "batch_id": "2113417298927816706",
+    "before": {
+     "balance_quantity": "59",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "58"
+    },
+    "id": "2113417299200446466",
+    "location_id": "2079487564737286146",
+    "material_id": "2113379973657141255",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "119",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "4",
+     "unrestricted_qty": "115"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "119",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "118"
+    },
+    "id": "2113417299326275585",
+    "location_id": "2079487564737286146",
+    "material_id": "2113379973657141255",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1165",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "103",
+     "unrestricted_qty": "1062"
+    },
+    "batch_id": "2113799679660658690",
+    "before": {
+     "balance_quantity": "1165",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "67",
+     "unrestricted_qty": "1098"
+    },
+    "id": "2113799680092672001",
+    "location_id": "2079487564737286146",
+    "material_id": "2113379973657141263",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "2365",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "103",
+     "unrestricted_qty": "2262"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "2365",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "67",
+     "unrestricted_qty": "2298"
+    },
+    "id": "2113417305865195521",
+    "location_id": "2079487564737286146",
+    "material_id": "2113379973657141263",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "28",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "27"
+    },
+    "batch_id": "2113417530654724097",
+    "before": {
+     "balance_quantity": "28",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "28"
+    },
+    "id": "2113417530944131073",
+    "location_id": "2079771323965509634",
+    "material_id": "2113380192780165131",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "28",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "1",
+     "unrestricted_qty": "27"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "28",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "28"
+    },
+    "id": "2113417531057377281",
+    "location_id": "2079771323965509634",
+    "material_id": "2113380192780165131",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "96",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "10",
+     "unrestricted_qty": "86"
+    },
+    "batch_id": "2113418047938236418",
+    "before": {
+     "balance_quantity": "96",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "96"
+    },
+    "id": "2113418048219254786",
+    "location_id": "2079488294403575810",
+    "material_id": "2113380540605407241",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "96",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "10",
+     "unrestricted_qty": "86"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "96",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "96"
+    },
+    "id": "2113418048340889601",
+    "location_id": "2079488294403575810",
+    "material_id": "2113380540605407241",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "640",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "105",
+     "unrestricted_qty": "535"
+    },
+    "batch_id": "2114882048287182849",
+    "before": {
+     "balance_quantity": "640",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "73",
+     "unrestricted_qty": "567"
+    },
+    "id": "2114882048874385409",
+    "location_id": "2079756903033999362",
+    "material_id": "2113381033859751949",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "1417",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "105",
+     "unrestricted_qty": "1312"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "1417",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "73",
+     "unrestricted_qty": "1344"
+    },
+    "id": "2113418437668769794",
+    "location_id": "2079756903033999362",
+    "material_id": "2113381033859751949",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "214",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "17",
+     "unrestricted_qty": "197"
+    },
+    "batch_id": "2113418512126054401",
+    "before": {
+     "balance_quantity": "214",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "12",
+     "unrestricted_qty": "202"
+    },
+    "id": "2113418512415461378",
+    "location_id": "2079490998899183618",
+    "material_id": "2113381048611119108",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "214",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "17",
+     "unrestricted_qty": "197"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "214",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "12",
+     "unrestricted_qty": "202"
+    },
+    "id": "2113418512532901889",
+    "location_id": "2079490998899183618",
+    "material_id": "2113381048611119108",
+    "table": "item_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "21",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "4",
+     "unrestricted_qty": "17"
+    },
+    "batch_id": "2113418899637800962",
+    "before": {
+     "balance_quantity": "21",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "21"
+    },
+    "id": "2113418899927207938",
+    "location_id": "2079489794563510274",
+    "material_id": "2113381216685269002",
+    "table": "item_batch_balance"
+   },
+   {
+    "after": {
+     "balance_quantity": "21",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "4",
+     "unrestricted_qty": "17"
+    },
+    "batch_id": "",
+    "before": {
+     "balance_quantity": "21",
+     "block_qty": "0",
+     "intransit_qty": "0",
+     "qualityinsp_qty": "0",
+     "reserved_qty": "0",
+     "unrestricted_qty": "21"
+    },
+    "id": "2113418900040454145",
+    "location_id": "2079489794563510274",
+    "material_id": "2113381216685269002",
+    "table": "item_balance"
+   }
+  ],
+  "checks": [
+   {
+    "base_qty": "4",
+    "effect_key": "1.1.RESERVATION.IN",
+    "id": "2114978946478116866",
+    "item_uom": "2113378399719399443",
+    "open_qty": "4.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "10",
+    "effect_key": "2.1.RESERVATION.IN",
+    "id": "2114978946478116867",
+    "item_uom": "2113378399719399443",
+    "open_qty": "10.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "4",
+    "effect_key": "3.1.RESERVATION.IN",
+    "id": "2114978946478116868",
+    "item_uom": "2113378399719399443",
+    "open_qty": "4.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "5",
+    "effect_key": "4.1.RESERVATION.IN",
+    "id": "2114978946478116869",
+    "item_uom": "2113378399719399443",
+    "open_qty": "5.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "1",
+    "effect_key": "5.1.RESERVATION.IN",
+    "id": "2114978946478116870",
+    "item_uom": "2113378399719399443",
+    "open_qty": "1.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "10",
+    "effect_key": "6.1.RESERVATION.IN",
+    "id": "2114978946478116871",
+    "item_uom": "2113378399719399443",
+    "open_qty": "10.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "2",
+    "effect_key": "7.1.RESERVATION.IN",
+    "id": "2114978946478116872",
+    "item_uom": "2113378399719399463",
+    "open_qty": "2.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "2",
+    "effect_key": "8.1.RESERVATION.IN",
+    "id": "2114978946478116873",
+    "item_uom": "2113378399719399443",
+    "open_qty": "2.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "4",
+    "effect_key": "9.1.RESERVATION.IN",
+    "id": "2114978946478116874",
+    "item_uom": "2113378399719399443",
+    "open_qty": "4.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "5",
+    "effect_key": "10.1.RESERVATION.IN",
+    "id": "2114978946478116875",
+    "item_uom": "2113378399719399443",
+    "open_qty": "5.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "3",
+    "effect_key": "11.1.RESERVATION.IN",
+    "id": "2114978946478116876",
+    "item_uom": "2113378399719399464",
+    "open_qty": "3.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "2",
+    "effect_key": "12.1.RESERVATION.IN",
+    "id": "2114978946478116877",
+    "item_uom": "2113378399719399443",
+    "open_qty": "2.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "3",
+    "effect_key": "13.1.RESERVATION.IN",
+    "id": "2114978946478116878",
+    "item_uom": "2113378399719399443",
+    "open_qty": "3.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "1",
+    "effect_key": "14.1.RESERVATION.IN",
+    "id": "2114978946478116879",
+    "item_uom": "2113378399719399460",
+    "open_qty": "1.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "3",
+    "effect_key": "15.1.RESERVATION.IN",
+    "id": "2114978946478116880",
+    "item_uom": "2113378399719399463",
+    "open_qty": "3.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "1",
+    "effect_key": "16.1.RESERVATION.IN",
+    "id": "2114978946478116881",
+    "item_uom": "2113378399719399466",
+    "open_qty": "1.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "2",
+    "effect_key": "17.1.RESERVATION.IN",
+    "id": "2114978946478116882",
+    "item_uom": "2113378399719399466",
+    "open_qty": "2.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "7",
+    "effect_key": "18.1.RESERVATION.IN",
+    "id": "2114978946478116883",
+    "item_uom": "2113378399719399464",
+    "open_qty": "7.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "24",
+    "effect_key": "19.1.RESERVATION.IN",
+    "id": "2114978946478116884",
+    "item_uom": "2113378399719399449",
+    "open_qty": "24.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "12",
+    "effect_key": "20.1.RESERVATION.IN",
+    "id": "2114978946478116885",
+    "item_uom": "2113378399719399449",
+    "open_qty": "12.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "16",
+    "effect_key": "21.1.RESERVATION.IN",
+    "id": "2114978946478116886",
+    "item_uom": "2113378399719399443",
+    "open_qty": "16.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "1",
+    "effect_key": "22.1.RESERVATION.IN",
+    "id": "2114978946478116887",
+    "item_uom": "2113378399719399443",
+    "open_qty": "1.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "6",
+    "effect_key": "23.1.RESERVATION.IN",
+    "id": "2114978946478116888",
+    "item_uom": "2113378399719399453",
+    "open_qty": "6.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "2",
+    "effect_key": "23.2.RESERVATION.IN",
+    "id": "2114978946478116889",
+    "item_uom": "2113378399719399453",
+    "open_qty": "2.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "32",
+    "effect_key": "24.1.RESERVATION.IN",
+    "id": "2114978946478116890",
+    "item_uom": "2113378399719399459",
+    "open_qty": "8.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "10",
+    "effect_key": "25.1.RESERVATION.IN",
+    "id": "2114978946478116891",
+    "item_uom": "2113378399719399443",
+    "open_qty": "10.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "3",
+    "effect_key": "26.1.RESERVATION.IN",
+    "id": "2114978946478116892",
+    "item_uom": "2113378399719399466",
+    "open_qty": "3.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "36",
+    "effect_key": "27.1.RESERVATION.IN",
+    "id": "2114978946478116893",
+    "item_uom": "2113378399719399443",
+    "open_qty": "36.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "20",
+    "effect_key": "28.1.RESERVATION.IN",
+    "id": "2114978946478116894",
+    "item_uom": "2113378399719399443",
+    "open_qty": "20.00000000",
+    "table": "on_reserved_gd"
+   },
+   {
+    "base_qty": "4",
+    "effect_key": "29.1.RESERVATION.IN",
+    "id": "2114978946478116895",
+    "item_uom": "2113378399719399465",
+    "open_qty": "4.00000000",
+    "table": "on_reserved_gd"
+   }
+  ],
+  "movement_keys": [
+   "1996787068457861121|GD|2114978878563946498|2|1.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|1.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|10.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|10.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|11.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|11.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|12.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|12.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|13.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|13.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|14.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|14.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|15.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|15.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|16.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|16.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|17.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|17.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|18.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|18.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|19.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|19.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|2.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|2.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|20.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|20.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|21.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|21.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|22.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|22.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|23.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|23.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|23.2.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|23.2.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|24.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|24.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|25.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|25.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|26.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|26.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|27.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|27.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|28.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|28.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|29.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|29.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|3.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|3.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|4.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|4.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|5.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|5.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|6.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|6.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|7.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|7.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|8.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|8.1.BATCH.OUT",
+   "1996787068457861121|GD|2114978878563946498|2|9.1.BATCH.IN",
+   "1996787068457861121|GD|2114978878563946498|2|9.1.BATCH.OUT"
+  ],
+  "priced": [
+   [
+    "23.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "23.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "23.2.BATCH.IN",
+    "0",
+    "First In First Out",
+    "",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "23.2.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "18.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "18.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "25.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "25.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "22.1.BATCH.IN",
+    "16.9636",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "22.1.BATCH.OUT",
+    "16.9636",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "28.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "28.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "8.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "8.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "19.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "19.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "1.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "1.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "3.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "3.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "11.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "11.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "20.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "20.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "12.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "12.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "13.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "13.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "16.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "16.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "15.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "15.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "7.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "7.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "10.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "10.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "5.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "5.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "17.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "17.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "2.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "2.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "21.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "21.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "29.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "29.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "26.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "26.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "27.1.BATCH.IN",
+    "2.85",
+    "First In First Out",
+    "2026-10-24 00:00:00",
+    "2027-10-24 00:00:00"
+   ],
+   [
+    "27.1.BATCH.OUT",
+    "2.85",
+    "First In First Out",
+    "2026-10-24 00:00:00",
+    "2027-10-24 00:00:00"
+   ],
+   [
+    "14.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "14.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "6.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "6.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "24.1.BATCH.IN",
+    "26",
+    "First In First Out",
+    "",
+    "2026-10-22 00:00:00"
+   ],
+   [
+    "24.1.BATCH.OUT",
+    "26",
+    "First In First Out",
+    "",
+    "2026-10-22 00:00:00"
+   ],
+   [
+    "4.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "4.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "9.1.BATCH.IN",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ],
+   [
+    "9.1.BATCH.OUT",
+    "0",
+    "First In First Out",
+    "2027-03-10 00:00:00",
+    "2026-10-23 00:00:00"
+   ]
+  ],
+  "scale": {
+   "columns": {},
+   "price": {
+    "dp": 4,
+    "rule": "1"
+   },
+   "qty": {
+    "dp": 3,
+    "rule": "1"
+   }
+  }
+ },
+ "review": {
+  "at": "2026-10-27 07:15:37",
+  "by": "INVENTORY_APPLY_OPERATION",
+  "code": "VERIFICATION_MISMATCH",
+  "facts": {
+   "balance_rows": {
+    "AFTER": 59,
+    "BEFORE": 0,
+    "MISSING": 0,
+    "OTHER": 1,
+    "SAME": 0
+   },
+   "problem_count": 1,
+   "problems": [
+    {
+     "diffs": [
+      {
+       "after": "4",
+       "before": "1",
+       "column": "reserved_qty",
+       "stored": "3.00000000"
+      },
+      {
+       "after": "119",
+       "before": "119",
+       "column": "balance_quantity",
+       "stored": "118.00000000"
+      }
+     ],
+     "id": "2113417299326275585",
+     "state": "OTHER",
+     "table": "item_balance"
+    }
+   ],
+   "standing": []
+  },
+  "reason": "balance rows do not hold the planned values after the write ({\"AFTER\":59,\"BEFORE\":0,\"SAME\":0,\"OTHER\":1,\"MISSING\":0})",
+  "run": "RUN|72657045ae0742aa86581204",
+  "stage": "AFTER_BALANCE_WRITE"
+ },
+ "v": 1
+}

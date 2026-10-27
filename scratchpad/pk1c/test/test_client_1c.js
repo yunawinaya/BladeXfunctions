@@ -5,9 +5,9 @@ const { eq, done } = require("../../gdc/pkv2tools/harness.js");
 
 const SRC = fs.readFileSync("/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/pkV2_onSave_Completed.js", "utf8")
   .replace("2109531449614647297", "111").replace("2109531412499251201", "222")
-  .replace("(async () => {\n  const data", "return (async () => {\n  const data");
+  .replace("(async () => {\n  const data", "return (async () => {\n  const data").replace("PK_V2_POLL_MS = 3000", "PK_V2_POLL_MS = 1");
 
-async function click(values, answers) {
+async function click(values, answers, opts) {
   const log = { calls: [], events: [], msgs: [], closed: 0, refreshed: 0 };
   const queue = (answers || []).slice();
   const ctx = {
@@ -22,7 +22,10 @@ async function click(values, answers) {
     parentGenerateForm: { $refs: { SuPageDialogRef: { hide: () => log.closed++ } }, refresh: () => log.refreshed++, hide: () => {} },
     runWorkflow: (id, params, ok, fail) => {
       log.calls.push({ id, params });
-      const a = id === "222" ? { ok: { data: {} } } : queue.shift();
+      // the worker answers at once, or (opts.workerAnswers false) never: a long run's answer lost in the browser (Kenhin 10-27)
+      if (id === "222") return (opts || {}).workerAnswers === false ? undefined : ok({ data: {} });
+      if (id === "2110182645714518018") return undefined; // GD_COMPLETE_WORKER: fire-and-forget
+      const a = queue.shift();
       if (a && a.ok) ok(a.ok);
       else fail(a ? a.fail : "no answer");
     },
@@ -69,5 +72,33 @@ const sentTargets = (log) => (log.calls[0] ? JSON.parse(log.calls[0].params.payl
 
   log = await click(form([row("1", 2)]), [{ fail: "timeout" }, { fail: "timeout" }]);
   eq("no answer twice: one retry with the same key, then a message", [log.calls.length, log.calls[0].params.idempotency_key === log.calls[1].params.idempotency_key, /did not complete/.test(log.msgs[0])], [2, true, true]);
+
+  // Auto Complete GD (stage 1e, hardened 10-27): the form follows the job through STATUS itself - a long worker run's answer can
+  // be lost in the browser (Kenhin 14:50) - starts each queued completion once, names the ones left for a manual completion,
+  // and stops a few polls after the list stops growing (P7 adds its entries just after the job is COMPLETED)
+  const settle = () => new Promise((r) => setTimeout(r, 80));
+  const st = (job_status, list) => ({ ok: { data: { route: "STATUS", job_status: job_status, gd_complete: list } } });
+  const Q = (id, job) => ({ gd_id: id, gd_no: "GD-" + id, status: "QUEUED", job_id: job });
+  const two = [Q("51", "881"), Q("52", "882")];
+  log = await click(form([row("1", 2)]), [queued, st("COMMITTING_PICKING", []), st("COMPLETED", [Q("51", "881")]), st("COMPLETED", two), st("COMPLETED", two),
+    st("COMPLETED", two), st("COMPLETED", two)], { workerAnswers: false });
+  await settle();
+  eq("auto complete: with the worker's answer lost, each queued completion is still started, once",
+    log.calls.filter((c) => c.id === "2110182645714518018").map((c) => c.params.job_id), ["881", "882"]);
+  eq("auto complete: the follow stops once the list is stable", log.calls.filter((c) => c.params.operation === "STATUS").length, 6);
+  eq("auto complete: each started delivery is named once", log.msgs.filter((m) => /^S Completing/.test(m)), ["S Completing GD-51 in the background.", "S Completing GD-52 in the background."]);
+  const nq = { gd_id: "53", gd_no: "GD-53", status: "NOT_QUEUED", job_id: "", code: "STOP 402", message: "Credit limit exceeded: complete it from the Goods Delivery list" };
+  log = await click(form([row("1", 2)]), [queued, st("COMPLETED", [nq]), st("COMPLETED", [nq]), st("COMPLETED", [nq]), st("COMPLETED", [nq])]);
+  await settle();
+  eq("auto complete: a delivery left for a manual completion is named once, nothing started",
+    [log.msgs.filter((m) => /^W /.test(m)), log.calls.filter((c) => c.id === "2110182645714518018").length],
+    [["W Not completed automatically: GD-53 - Credit limit exceeded: complete it from the Goods Delivery list"], 0]);
+  log = await click(form([row("1", 2)]), [queued, st("COMPLETED", []), st("COMPLETED", []), st("COMPLETED", []), st("COMPLETED", [])]);
+  await settle();
+  eq("no Auto Complete GD (nothing handed over): 4 STATUS reads, no GD worker", [log.calls.filter((c) => c.params.operation === "STATUS").length,
+    log.calls.filter((c) => c.id === "2110182645714518018").length], [4, 0]);
+  log = await click(form([row("1", 2)]), [queued, st("FAILED", [])]);
+  await settle();
+  eq("a FAILED job ends the follow at once", log.calls.filter((c) => c.params.operation === "STATUS").length, 1);
   done();
 })();

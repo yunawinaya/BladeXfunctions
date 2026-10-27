@@ -202,10 +202,16 @@ let A = null;
   // RV2: one open job per IA whatever it does - a revert of it now answers BUSY with the completion's job
   const rb = revertSubmit(w, iaId, "click1a");
   ok(!rb.err && rb.out.route === "BUSY" && rb.out.error_code === "IA_RV_BUSY" && rb.out.job_id === job.id && w.jobs.length === 1, "1a IA_REVERT_V2_SUBMIT while the completion is open -> BUSY (its job)", rb.err || rb.out);
+  // one stock call per worker run (prod 10-26: a lock lives until the top-level run ends): tick 1 = PREPARE + COMMIT A (op 1), PARK;
+  // tick 2 = COMMIT B (op 2)
+  const t1 = kick(w, job.id);
+  ok(!t1.err && t1.out.worker_route === "WORKED" && t1.out.job_status === "COMMITTING_IA" && job.progress_percent === 75 && job.lease_owner === null,
+    "1a tick 1 (the form's kick): PREPARE + COMMIT A, PARKed at 75 for the next run", t1.err || t1.out);
   const t = kick(w, job.id);
-  ok(!t.err && t.out.worker_route === "WORKED" && t.out.job_id === job.id && t.out.job_status === "COMPLETED" && t.out.ia_id === iaId, "1a one worker tick (the form's kick) -> COMPLETED", t.err || t.out);
-  const order = t.calls.filter((c) => /^IA_V2_|INVENTORY_BULK_APPLY/.test(c.to)).map((c) => c.to + (c.to === "INVENTORY_BULK_APPLY" ? "" : ""));
-  ok(JSON.stringify(t.calls.filter((c) => c.from === "IA_V2_WORKER").map((c) => c.to)) === '["IA_V2_PREPARE","IA_V2_COMMIT","IA_V2_COMMIT"]', "1a the tick: PREPARE, COMMIT A (SPLIT), COMMIT B", order);
+  ok(!t.err && t.out.worker_route === "WORKED" && t.out.job_id === job.id && t.out.job_status === "COMPLETED" && t.out.ia_id === iaId, "1a tick 2 (the next kick) -> COMPLETED", t.err || t.out);
+  const byWorker = (x) => JSON.stringify(x.calls.filter((c) => c.from === "IA_V2_WORKER").map((c) => c.to));
+  ok(byWorker(t1) === '["IA_V2_PREPARE","IA_V2_COMMIT"]' && byWorker(t) === '["IA_V2_COMMIT"]', "1a tick 1: PREPARE, COMMIT A; tick 2: COMMIT B (one stock call each)",
+    [byWorker(t1), byWorker(t)]);
   const eng = w.engineCalls.map((c) => c.op.replace(job.id, "<job>") + " " + c.mode + " " + c.n);
   ok(JSON.stringify(eng) === JSON.stringify(["IAC|<job>|I PLAN 56", "IAC|<job>|R PLAN 1", "IAC|<job>|I APPLY 56", "IAC|<job>|R APPLY 1"]), "1a the engine: PLAN op 1 + op 2 (PREPARE), APPLY op 1 (I2), APPLY op 2 (I3)", eng);
   ok(job.job_status === "COMPLETED" && job.progress_percent === 100 && job.lease_owner === null && ia.item_assembly_status === "Completed" && ia.posted_status === "Unposted",
@@ -263,10 +269,12 @@ let A = null;
   ok(kick(w, "").out.worker_route === "IDLE" && rjob.job_status === "QUEUED", "2 IA_V2_WORKER leaves the REVERT_IA job alone");
   const fst = status(w, iaId, "");
   ok(!fst.err && fst.out.route === "STATUS" && fst.out.action === "REVERT" && fst.out.job_id === rjob.id, "2 the form's STATUS (IA_V2_SUBMIT) names the revert job: action REVERT (D's mounted kicks the revert worker)", fst.out);
+  const rt1 = run(w, "IA_REVERT_V2_WORKER", { job_id: "" });
   const rt = run(w, "IA_REVERT_V2_WORKER", { job_id: "" });
-  ok(!rt.err && rt.out.worker_route === "WORKED" && rjob.job_status === "COMPLETED", "2 one IA_REVERT_V2_WORKER tick (the list's drain) -> COMPLETED", rt.err || rt.out);
-  ok(JSON.stringify(rt.calls.filter((c) => c.from === "IA_REVERT_V2_WORKER").map((c) => c.to)) === '["IA_REVERT_V2_PREPARE","IA_REVERT_V2_COMMIT","IA_REVERT_V2_COMMIT"]',
-    "2 the tick: PREPARE, COMMIT A (SPLIT), COMMIT B", rt.calls.map((c) => c.from + ">" + c.to));
+  ok(!rt1.err && !rt.err && rt.out.worker_route === "WORKED" && rjob.job_status === "COMPLETED", "2 two IA_REVERT_V2_WORKER ticks (the list's drain) -> COMPLETED", rt.err || rt.out);
+  const byRw = (x) => JSON.stringify(x.calls.filter((c) => c.from === "IA_REVERT_V2_WORKER").map((c) => c.to));
+  ok(byRw(rt1) === '["IA_REVERT_V2_PREPARE","IA_REVERT_V2_COMMIT"]' && byRw(rt) === '["IA_REVERT_V2_COMMIT"]', "2 tick 1: PREPARE, COMMIT A (V1, PARK); tick 2: COMMIT B (V2 .. V4)",
+    [byRw(rt1), byRw(rt)]);
   const h = w.ia(iaId);
   ok(h.item_assembly_status === "Draft" && h.posted_status === "" && h.stock_movement_no === no, "2 the IA back to Draft, number kept, posted_status ''", h);
   ok(JSON.stringify(stepsOf(w, rjob.id, /^V[0-9]_/)) === JSON.stringify(["V0_REVALIDATE:DONE", "V1_INVENTORY:DONE", "V2_COST:DONE", "V4_FINISH:DONE"]),
@@ -283,6 +291,7 @@ let A = null;
   const job2 = jobOf(w, key2);
   ok(!r2.err && r2.out.route === "QUEUED" && w.ia(iaId).stock_movement_no === "IA-2610-0043" && JSON.parse(job2.request_payload).issuedNo === "IA-2610-0043"
     && w.latestLock(iaId).step_name === "LOCK|3", "2 completed again (stored Draft): LOCK|3, a NEW number IA-2610-0043 (the old one had a COMPLETED job)", r2.err || r2.out);
+  kick(w, job2.id);
   const t2 = kick(w, job2.id);
   ok(!t2.err && job2.job_status === "COMPLETED" && w.ia(iaId).item_assembly_status === "Completed" && movesOf(w, "IAC|" + job2.id + "|I").every((x) => x.trx_no === "IA-2610-0043"),
     "2 the second completion COMPLETED under the new number", t2.err || job2);
@@ -308,8 +317,9 @@ let A = null;
     && ia.batch_no === "1019-001-0001", "1b GENERATE_BATCH once (classic params + organization_id), its number in batch_no", { calls: w.batchCalls, batch_no: ia.batch_no });
   ok(w.writes.slice(0, 3).join(" | ").indexOf("insert GD Publish Step x1 (LOCK|1) | insert GD Async Job x1 | update Item Assembly") === 0 && ia.stock_movement_no === "IA-2610-0042",
     "1b write order: LOCK|1 first, then the job, then the document (a new number: no earlier job issued 0040)", w.writes.slice(0, 5));
+  kick(w, job.id);
   const t = kick(w, job.id);
-  ok(!t.err && job.job_status === "COMPLETED" && ia.item_assembly_status === "Completed", "1b one tick -> COMPLETED", t.err || job);
+  ok(!t.err && job.job_status === "COMPLETED" && ia.item_assembly_status === "Completed", "1b two ticks (COMMIT A, PARK; COMMIT B) -> COMPLETED", t.err || job);
   ok(JSON.stringify(stepsOf(w, job.id, /^I[0-9]_|^I1\|/)) === JSON.stringify(["I0_REVALIDATE:DONE", "I1_BATCH:DONE", "I1|I|001:INTENT", "I2_ISSUE:DONE", "I3_RECEIPT:DONE", "I4_FINISH:DONE"]),
     "1b I0, I1 (intent + DONE), I2, I3, I4", stepsOf(w, job.id, /^I/));
   const mine = live(w.batch).filter((x) => x.material_id === m.parent.id);
@@ -325,6 +335,7 @@ let A = null;
   // and Revert V2 brings the batch parent back (its Batch row soft-deleted by V3)
   const rs = revertSubmit(w, iaId, "click1b");
   const rjob = w.jobs.find((j) => j.command === "REVERT_IA");
+  run(w, "IA_REVERT_V2_WORKER", { job_id: "" });
   run(w, "IA_REVERT_V2_WORKER", { job_id: "" });
   ok(!rs.err && rs.out.route === "QUEUED" && rjob.job_status === "COMPLETED" && w.ia(iaId).item_assembly_status === "Draft" && live(w.batch).filter((x) => x.material_id === m.parent.id).length === 0
     && stockDiff(snapshot(w), before).length === 0, "1b reverted by Revert V2: Draft, I1's Batch row soft-deleted, stock as before", { rs: rs.out, job: rjob && rjob.job_status, diff: stockDiff(snapshot(w), before).slice(0, 2) });
@@ -384,6 +395,7 @@ function completeV2(w, m, tag) {
   const key = iaKey("new-" + tag, "0a1b2c3d4e5f6a70");
   const r = submit(w, "Add", "", key, record(m));
   const job = jobOf(w, key);
+  kick(w, job && job.id);
   const t = kick(w, job && job.id);
   return { r: r, t: t, job: job, iaId: r.out && r.out.ia_id };
 }
@@ -418,6 +430,7 @@ const classicRevert = (w, iaId) => run(w, "IA_REVERT", { ia_id: iaId, ia_no: w.i
   ok(c3.job.job_status === "COMPLETED" && !cr3.err && String(cr3.out.code) === "400" && cr3.out.message === SH.IA_TEXT.rvClassicTooBig(252, 250) && w3.ia(c3.iaId).item_assembly_status === "Completed",
     "3c 251 picks: the classic v5 refuses (252 stock rows; at most 250), the IA stays Completed", cr3.err || cr3.out);
   const rs3 = revertSubmit(w3, c3.iaId, "click3c");
+  run(w3, "IA_REVERT_V2_WORKER", { job_id: "" });
   run(w3, "IA_REVERT_V2_WORKER", { job_id: "" });
   ok(!rs3.err && rs3.out.route === "QUEUED" && w3.ia(c3.iaId).item_assembly_status === "Draft", "3c ... and Revert V2 takes it back (so COMPLETE may be ON only with REVERT ON)", rs3.err || rs3.out);
   console.log("ok   3 classic IA_REVERT v5 on V2 completions: 3 picks via the list's NOT_ELIGIBLE route, a batch parent; 252 rows refused, Revert V2 takes it");

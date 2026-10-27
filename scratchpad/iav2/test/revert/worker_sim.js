@@ -84,13 +84,32 @@ const revertJob = (z) => z.w.jobs.filter((j) => j.command === "REVERT_IA").sort(
   console.log("ok   SUBMIT: QUEUED (LOCK|n+1, job, Processing, due) / STATUS / BUSY / NOT_ELIGIBLE (min_picks, serial) / STALE / STOP (refused, too big, split) / STOP 500 / INVALID");
 }
 
+// ---------------------------------------------------------------- WORKER: one stock call per run (prod 10-26: a lock lives until the top-level run ends)
+{
+  const doc = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "..", "..", "..", "Item Assembly & BOM", "AsyncV2", "IA_REVERT_V2_WORKER.json"), "utf8"));
+  const all = [];
+  const walk = (ns) => (ns || []).forEach((n) => {
+    all.push(n);
+    walk(n.blocks);
+  });
+  walk(doc.nodes);
+  // the revert worker's ids: RW -> IVW (build_revert WRENAMES)
+  const next = all.filter((n) => n.id === "code_node_IVWnext")[0];
+  const idx = all.filter((n) => n.id === "set_cache_IVWidxN")[0];
+  ok(!!next && /\{\{node:code_node_IVWmid\.data\.route\}\}/.test(next.data.script.code) && /called \? 9999 : next/.test(next.data.script.code) && !!idx &&
+    /code_node_IVWnext\.data\.nextIndex/.test(J(idx.data)), "WORKER: after an iteration that called IA_REVERT_V2_COMMIT the loop index goes past the plan (one stock call per run)",
+  next ? next.data.script.code : "no code_node_IVWnext");
+}
 // ---------------------------------------------------------------- WORKER: one tick end to end
 {
   const z = S.completed({});
   const s = submit(z);
   const j = revertJob(z);
+  // one lock call per worker run: tick 1 = claim, PREPARE, COMMIT A (V1, PARK); tick 2 = COMMIT B (V2 .. V4)
+  const t1 = worker(z, j.id);
+  ok(!t1.err && t1.out.worker_route === "WORKED" && t1.out.job_status === "COMMITTING_REVERT", "WORKER: tick 1 -> V1 done, PARKed", { s: s.out, t: t1.out, err: t1.err });
   const t = worker(z, j.id);
-  ok(!t.err && t.out.worker_route === "WORKED" && t.out.processed === "1" && t.out.job_status === "COMPLETED" && t.out.ia_id === z.ia.id, "WORKER: one tick -> COMPLETED", { s: s.out, t: t.out, err: t.err });
+  ok(!t.err && t.out.worker_route === "WORKED" && t.out.processed === "1" && t.out.job_status === "COMPLETED" && t.out.ia_id === z.ia.id, "WORKER: tick 2 -> COMPLETED", { t: t.out, err: t.err });
   const ia = z.w.ia(z.ia.id);
   ok(ia.item_assembly_status === "Draft" && ia.posted_status === "", "WORKER: the IA Draft", ia);
   const after = S.snapshot(z.w);
@@ -98,15 +117,17 @@ const revertJob = (z) => z.w.jobs.filter((j) => j.command === "REVERT_IA").sort(
   ok(after[z.parent.id].qty === 0 && after[z.parent.id].fifoQty === 0, "WORKER: the assembled item taken back, its layer removed", after[z.parent.id]);
   ok(z.w.violations.length === 0 && z.w.locks.every((l) => Number(l.free_token) === 1 && !l.owner_operation_id), "WORKER: the ordering rule held, every lock given back", z.w.locks);
   const jobs = JSON.parse(t.out.jobs);
-  ok(jobs.length === 1 && jobs[0].before === "QUEUED" && jobs[0].job_status === "COMPLETED", "WORKER: its jobs answer", jobs);
-  console.log("ok   WORKER: SUBMIT -> one tick (claim, PREPARE, COMMIT A SPLIT, COMMIT B) -> COMPLETED; stock and FIFO back, the IA Draft");
+  ok(jobs.length === 1 && jobs[0].before === "COMMITTING_REVERT" && jobs[0].job_status === "COMPLETED", "WORKER: its jobs answer", jobs);
+  console.log("ok   WORKER: SUBMIT -> tick 1 (claim, PREPARE, COMMIT A, PARK), tick 2 (COMMIT B) -> COMPLETED; stock and FIFO back, the IA Draft");
 }
 {
   // a poll takes only REVERT_IA jobs (the completion's COMPLETED job of the IA is never touched)
   const z = S.completed({});
   submit(z);
+  worker(z, "");
   const t = worker(z, "");
-  ok(!t.err && t.out.processed === "1" && revertJob(z).job_status === "COMPLETED" && z.w.jobs.find((x) => x.command === "COMPLETE_IA").job_status === "COMPLETED", "WORKER poll: the REVERT_IA job only", t.out);
+  ok(!t.err && t.out.processed === "1" && revertJob(z).job_status === "COMPLETED" && z.w.jobs.find((x) => x.command === "COMPLETE_IA").job_status === "COMPLETED",
+    "WORKER poll (two ticks: V1, then V2 .. V4): the REVERT_IA job only", t.out);
   const idle = worker(z, "");
   ok(idle.out.worker_route === "IDLE" && idle.out.processed === "0", "WORKER poll: nothing due -> IDLE", idle.out);
 }

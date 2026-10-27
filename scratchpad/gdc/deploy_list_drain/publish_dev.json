@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD list",
+   "kind": "page",
+   "dataId": "1902688873696313346",
+   "file": "scratchpad/gdc/deploy_list_drain/GD_list.dev_drain.json",
+   "base": "scratchpad/gdc/deploy_list_drain/GD_list.dev_v402_base.json"
+  }
+ ]
+}

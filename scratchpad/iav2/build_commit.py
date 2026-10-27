@@ -121,7 +121,7 @@ def build():
     part = lambda nid, title, name: K.sql(nid, title, S["part"](name), ["step_name", "result_ref"])
     br = lambda tag, items: K.parallel("condition_all_IAC%s" % tag, "Reads in parallel", [("cai_IAC%s%d" % (tag, i), t, [n]) for i, (t, n) in enumerate(items)])
     entry_fields = ["route", "phase", "dbNow", "jsAt", "jobId", "tenantId", "organizationId", "plantId", "iaId", "iaNo", "parentItemId", "prevStatus", "idempotencyKey", "jobStatus",
-                    "rowVersion", "attempts", "leaseUntil", "progress", "progressMessage", "unlockOk", "partPrefix", "batchMode", "movementsI", "lineFingerprint", "batchId", "batchNumber",
+                    "rowVersion", "attempts", "leaseUntil", "progress", "progressMessage", "unlockOk", "partPrefix", "batchMode", "movementsI", "lineFingerprint", "batchId", "batchNumber", "batchIds",
                     "i2DoneAt", "i2Called", "op1Wrote", "waitFrom", "intent", "hasIntent", "needOursRead", "oursItem", "oursOrg", "jobRows", "needJobUpd", "unlockRows", "needUnlock",
                     "batchDelRows", "needBatchDel",
                     "needI0", "needI1", "needI2", "needI3", "needI4", "result_code", "result_message", "job_status"]
@@ -154,7 +154,7 @@ def build():
                                           S["op1"], ["intents", "review", "done_summary"])]),
         ]),
         code(CE, "Entry: what this run does (phase A: I0 I1 I2, SPLIT / PARK; phase B: I3 I4, COMPLETED), the lease claim", ccode("entry.js"),
-             entry_fields, arrays=("jobRows", "unlockRows", "batchDelRows"), objects=("rowVersion", "attempts", "progress", "movementsI", "intent")),
+             entry_fields, arrays=("jobRows", "unlockRows", "batchDelRows"), objects=("rowVersion", "attempts", "progress", "movementsI", "intent", "batchIds")),
         K.if_(ids, "if_IACnowrite", "IF this run may not write: answer only", is_(CE, "route", "NO_WRITE"), cres("nw", CE, "NO_WRITE")),
         K.if_(ids, "if_IACentryend", "IF the manifest is unusable or the Item Assembly lost its lock: FAILED (+ back to Draft) or REQUIRES_REVIEW",
               "%s || %s" % (is_(CE, "route", "FAIL"), is_(CE, "route", "REVIEW")), [
@@ -183,8 +183,8 @@ def build():
                           ("Batch rows", sq("sql_node_IACi1rows", "I1: the organization's live Batch rows of the assembled item (BATCH_ROWS)", "batchrows"))]),
             code(I1D, "I1 decide: ours -> adopt; the number held by another row -> FAILED IA_BATCH_DUPLICATE; else the intent + ONE Batch row",
                  ccode("i1_decide.js", (), ("_i1.js",), {"__BATCHCOLS__": json.dumps(BATCH_COLS)}),
-                 chk + ["identity", "ours", "intentRows", "needIntent", "insertRows", "needInsert", "r1", "opKeyR"], arrays=chk_arr + ("ours", "intentRows", "insertRows"),
-                 objects=("identity", "r1")),
+                 chk + ["identity", "ours", "intentRows", "needIntent", "insertRows", "needInsert", "r1", "opKeyR", "identities", "receipts", "batchOf", "oursByKey"],
+                 arrays=chk_arr + ("ours", "intentRows", "insertRows", "identities", "receipts"), objects=("identity", "r1", "batchOf", "oursByKey")),
             end_a(ids, "i1de", I1D, "IF the Batch row cannot be planned (FAILED)"),
             gate(ids, "cor_IACi1intent", "Intent to record (BEFORE the insert)?", I1D, "needIntent", [
                 step_add(ids, "add_node_IACi1intent", "I1 INTENT: I1|I|001 = the planned Batch row's identity (unique job / step)", I1D, "intentRows")]),
@@ -193,15 +193,16 @@ def build():
             gate(ids, "cor_IACi1back", "Inserted: read it back?", I1D, "needInsert", [
                 sq("sql_node_IACi1back", "I1 read-back: the assembled item's live Batch rows inserted after the job (BATCH_ROWS, id > job)", "batchback")]),
             code(I1C, "I1 check: exactly one Batch row of ours -> the receipt re-PLAN with its batch_id; two -> FAILED; none -> retry", ccode("i1_check.js", (), ("_i1.js",)),
-                 chk + ["ours", "batchId", "batchNumber", "needPlan", "planKey", "planMovements", "keys"], arrays=chk_arr + ("ours", "planMovements", "keys")),
+                 chk + ["ours", "batchId", "batchNumber", "batchIds", "needPlan", "planKey", "planMovements", "keys"], arrays=chk_arr + ("ours", "planMovements", "keys"),
+                 objects=("batchIds",)),
             end_a(ids, "i1ck", I1C, "IF the Batch row did not read back (retry / FAILED)"),
             gate(ids, "cor_IACi1plan", "Receipt re-PLAN to run?", I1C, "needPlan", [
                 call(ids, "workflow_node_IACi1plan", "INVENTORY_BULK_APPLY PLAN of the receipt (IAC|<job>|R, our batch_id, unit_price 0; writes nothing)", ENGINE, [
                     ("operation_key", N(I1C, "data.planKey")), ("mode", "PLAN", "value"), ("organization_id", N(CE, "data.organizationId")), ("movements", N(I1C, "data.planMovements"))])]),
-            code(I1A, "I1: the re-PLAN's answer (R1's code; LABELS to read for a refusal?)", ccode("i1_ans.js"), ["code", "result_code", "message", "r1Code", "r1Message", "needLabels"]),
+            code(I1A, "I1: the re-PLAN's answer (R1's code; LABELS to read for a refusal?)", ccode("i1_ans.js"), ["code", "result_code", "message", "r1Code", "r1Message", "r1Key", "needLabels"]),
             gate(ids, "cor_IACi1lab", "A refusal: the LABELS part to read?", I1A, "needLabels", [part("sql_node_IACi1labels", "I1: the LABELS part (movement_key -> line, item, bin)", "LABELS")]),
             code(I1, "I1 BATCH: 200 + R1 200 -> DONE {batch_id, batch_number}; a refusal -> FAILED + back to Draft + our Batch row soft-deleted",
-                 ccode("i1.js", ("movekey",)), chk + ["batchId"], arrays=chk_arr),
+                 ccode("i1.js", ("movekey",)), chk + ["batchId", "batchIds"], arrays=chk_arr, objects=("batchIds",)),
             end_a(ids, "i1", I1, "IF the receipt would be refused (FAILED)"),
             V.step_done(ids, "IAC", "i1", I1, "I1_BATCH"),
         ]),
@@ -231,14 +232,14 @@ def build():
             # op 1's engine rows come from the entry's read of this pass (nothing writes them in phase B)
             br("i3read", [("ENGINE_R part", part("sql_node_IACi3engr", "I3: the ENGINE_R part (R1, receiptBaseQty, assemblyCost)", "ENGINE_R")),
                           ("OUT totals", K.sql("sql_node_IACi3out", "I3: op 1's stored OUT rows, counted and summed (OUT_TOTALS: id > job, operation_effect_key IAC|<job>|I|%)", S["out"], ["n", "total"]))]),
-            code(I3P, "I3 plan: op 1 DONE, no review, stored rows = its code-200 results; the price; R1 with it and I1's batch_id", ccode("i3_plan.js", ("price",)),
+            code(I3P, "I3 plan: op 1 DONE, no review, stored rows = its code-200 results; the price; R1 with it and I1's batch_id", ccode("i3_plan.js", ("price",), ("_i1.js",)),
                  ["route", "needCall", "operationKey", "movements", "price", "outCount", "outTotal", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "batchDelRows",
                   "needBatchDel", "result_code", "result_message", "job_status"], arrays=("movements", "stepRows", "jobRows", "unlockRows", "batchDelRows"), objects=("price", "outCount")),
             end_b(ids, "i3pl", I3P, "IF op 2 may not start (REQUIRES_REVIEW)"),
             gate(ids, "cor_IACi3call", "Receipt to apply?", I3P, "needCall", [
                 call(ids, "workflow_node_IACi3", "INVENTORY_BULK_APPLY APPLY op 2 (IAC|<job>|R: R1 at the computed price; replayed on a re-run)", ENGINE, [
                     ("operation_key", N(I3P, "data.operationKey")), ("mode", "APPLY", "value"), ("organization_id", N(CE, "data.organizationId")), ("movements", N(I3P, "data.movements"))])]),
-            code(I3A, "I3: op 2's answer (R1's code; transient -> read op 2's intent rows)", ccode("i3_ans.js"), ["code", "result_code", "message", "r1Code", "r1Message", "r1Price", "needOps"]),
+            code(I3A, "I3: op 2's answer (R1's code; transient -> read op 2's intent rows)", ccode("i3_ans.js"), ["code", "result_code", "message", "r1Code", "r1Message", "r1Price", "r1Key", "needOps"]),
             gate(ids, "cor_IACi3ops", "Transient: op 2's intent rows to read?", I3A, "needOps", [
                 sq("sql_node_IACi3op2", "I3: op 2's engine rows (intents, IBA|REVIEW, the IBA|DONE summary)", "op2", ["intents", "review", "done_summary"])]),
             code(I3, "I3 check: 200 + R1 200 -> DONE + progress 80; transient -> wait 10 s until 30 min after I2, then review; else review", ccode("i3.js"),

@@ -259,9 +259,13 @@ const page = async (doc, handler, selected, o) => {
     // by their stored status (a list row can be stale); IA_HOLD releases what each holds and only then sets it Cancelled; one summary
     const tc = tb.findIndex((x) => x.title === "Cancel");
     const cx = H.byName(BUILT, "onItemAssemblyCancel");
-    check("toolbar: Cancel right after Retry Reservation, the form Cancel's permission (ia_save_draft), bound to its handler, the IA_HOLD id filled", tc === ti + 1 &&
-      tb[tc].type === "custom" && tb[tc].permission === "ia_save_draft" && !!cx && cx.type === "js" && same(tb[tc].events, [{ key: cx.key, name: "onItemAssemblyCancel" }]) &&
+    check("toolbar: Cancel right after Retry Reservation, its own permission ia_cancel (the product owner's designer save, list v29), bound to its handler, the IA_HOLD id filled", tc === ti + 1 &&
+      tb[tc].type === "custom" && tb[tc].permission === "ia_cancel" && !!cx && cx.type === "js" && same(tb[tc].events, [{ key: cx.key, name: "onItemAssemblyCancel" }]) &&
       cx.func.indexOf('const RES_HOLD = "' + HOLD + '"') >= 0, [tc, tb[tc]]);
+    const DESIGNER = { styleType: "Link", btnIcon: "", hidden: "", disabled: "", eventsPrint: [], segmented_fzl86zm3: "center", dialog_top: "" };
+    const cpb = BUILT.list[0].options.customProps;
+    check("list v29 kept: the designer's defaults on Cancel and Post, is_no_drag / is_no_copy false", tb[tc + 1].title === "Post" &&
+      [tb[tc], tb[tc + 1]].every((b) => Object.keys(DESIGNER).every((k) => same(b[k], DESIGNER[k]))) && cpb.is_no_drag === false && cpb.is_no_copy === false, [tb[tc + 1], cpb.is_no_drag, cpb.is_no_copy]);
     const ORGX = "1996787068457861121";
     const cancel = async (selected, rows, answer, o) => {
       o = o || {};
@@ -467,6 +471,34 @@ const page = async (doc, handler, selected, o) => {
     const badges = (content.match(/scope\.value==='[^']+'/g) || []).map((x) => x.slice(15, -1));
     check("list: a Created badge right after Draft's, in Created's colours", same(badges, ["Pending Approval", "Fully Posted", "Issued", "Draft", "Created", "Completed", "Processing", "Cancelled"]) &&
       /<div v-if="scope\.value==='Created'" style="[^"]*border: 2px solid #036DF8; background-color: #C6DFFF;[^"]*">\{\{scope\.value\}\}<\/div>/.test(content), badges);
+  }
+  // ---- label print (IA output split, plan 10-27): a split receipt prints one label line per row that has a batch (its batch, its quantity);
+  // an IA without a split prints its header batch as before; no batch anywhere -> skipped
+  {
+    const pc = H.byName(BUILT, "onItemAssemblyPrintTemplateConfirm");
+    const TPL = [{ id: "a1", print_template_id: "t1", template_type: "Label" }];
+    const printOf = async (records) => {
+      const w = H.world({ db: H.tableDb({ sm_item_assembly: records }) });
+      const self = H.makeThis(w, BUILT, { values: { dialog_print_template: { print_template_id: "a1" }, ia_print_templates: TPL, ia_print_ids: records.map((r) => r.id).join(",") } });
+      self.openDialog = (k) => (w.rec("openDialog", k), Promise.resolve());
+      H.compile(w, pc.func, false).call(self, {});
+      await H.drain(w);
+      const set = w.trace.filter((x) => x[0] === "setData").map((x) => x[1])[0] || {};
+      return { lines: set["dialog_enter_qty.ia_line"] || null, errors: w.trace.filter((x) => x[0] === "$message.error").map((x) => x[1]) };
+    };
+    const ia = (id, extra) => Object.assign({ id: id, is_deleted: 0, stock_movement_no: "IA-" + id, item_id: "9001", item_name: "FG", item_qty: 836, batch_no: "" }, extra || {});
+    const rowsOf = (p) => (p.lines || []).map((l) => [l.ia_id, l.batch_no, l.assembled_quantity, l.quantity]);
+    let p = await printOf([ia("1", { batch_no: "1056-022-0004" })]);
+    check("label print: no split = the header batch, the IA's quantity (as before)", same(rowsOf(p), [["1", "1056-022-0004", 836, 1]]), p);
+    p = await printOf([ia("2", { batch_no: "B-1", output_split: [{ os_qty: 500, os_batch_no: "B-1" }, { os_qty: 300, os_batch_no: "B-1" }, { os_qty: 36, os_batch_no: "B-2" }] })]);
+    check("label print: a split = one line per row with its batch and quantity", same(rowsOf(p), [["2", "B-1", 500, 1], ["2", "B-1", 300, 1], ["2", "B-2", 36, 1]]), p);
+    p = await printOf([ia("3", { batch_no: "B-1", output_split: JSON.stringify([{ os_qty: 4, os_batch_no: " B-1 " }, { os_qty: 6, os_batch_no: "" }]) })]);
+    check("label print: the rows as text; a row without a batch prints nothing", same(rowsOf(p), [["3", "B-1", 4, 1]]), p);
+    p = await printOf([ia("4", { output_split: [{ os_qty: 5, os_batch_no: "" }, { os_qty: 5, os_batch_no: "-" }] })]);
+    check("label print: a split without batches (a Draft, a non-batch item) and no header batch -> nothing to print", p.lines === null &&
+      same(p.errors, ["All selected Item Assembly records have no batch number."]), p);
+    p = await printOf([ia("5", { batch_no: "H-1", output_split: [] }), ia("6", { output_split: [{ os_qty: 1, os_batch_no: "S-1" }, { os_qty: 2, os_batch_no: "S-2" }] })]);
+    check("label print: two IAs, one plain one split, in selection order", same(rowsOf(p), [["5", "H-1", 836, 1], ["6", "S-1", 1, 1], ["6", "S-2", 2, 1]]), p);
   }
   H.done("lists");
 })().catch((e) => {

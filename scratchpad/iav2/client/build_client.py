@@ -51,6 +51,7 @@ RETRY_EVENT = ("iarsrv01", "onItemAssemblyRetryReservation")
 # RES-01 Cancel from the list (user 10-22, like the GD list): the selected Created IAs cancelled (toolbar, after Retry Reservation, the
 # form Cancel's permission)
 CANCEL_EVENT = ("iacncl01", "onItemAssemblyCancel")
+DESIGNER_BUTTON_DEFAULTS = {"styleType": "Link", "btnIcon": "", "hidden": "", "disabled": "", "eventsPrint": [], "segmented_fzl86zm3": "center", "dialog_top": ""}
 RES_BADGES = [("RESERVING", "Pending", "#FFBB00", "#FFFCDD", "#8F6A04"), ("FULL", "Fully reserved", "#00AE00", "#C5F5C5", "#016701"),
               ("PARTIAL", "Partially reserved", "#ea580c", "#ffedd5", "#9a3412"), ("SHORT", "Nothing reserved", "#ea580c", "#ffedd5", "#9a3412"),
               ("NONE", "None", "#8C95A4", "#D0D5DD", "#4D5A74"), ("REVIEW", "Needs review", "#F90A0A", "#FDC4C4", "#A30505"),
@@ -68,6 +69,8 @@ LIST_PATCHED = {
     "oh26x9gl": ("delete", "ia_list_delete.js", "ccc7d3bdf7024073ec39d6ba4d3ef5d6c99bfd434091db5b316d2e905f0bf357"),
     "8r9xuzc4": ("IArevertCompleted", "ia_list_revertCompleted.js", "b4bf9a3af5ce8d620cdb714bd5bdc16c5154fd3ae333375305ce25bddbe3b990"),
     "z4qy8mae": ("onItemAssemblyPostfunc_z4qy8mae", "ia_list_post.js", "f09db8a2564ab4b8f82fcb6b2bee52f32eb2f36d676ac24f7c6ded50e49eb0b6"),
+    # IA output split (plan 10-27): a split receipt's label lines, one per row with a batch
+    "iaprcf01": ("onItemAssemblyPrintTemplateConfirm", "ia_list_printConfirm.js", "cf75d2921ed26936dfe6fee62132b7335dba57057d375c7605dd053414def14f"),
 }
 # the button models -> (the classic handler base v34 binds, its key, the new handler, does the button post)
 BUTTONS = [
@@ -421,8 +424,15 @@ def build_list(c):
     events.append({"key": RETRY_EVENT[0], "name": RETRY_EVENT[1], "func": func, "type": "js"})
     mirrors["iaList_%s.js" % RETRY_EVENT[1]] = func
     cancel = copy.deepcopy(tb[at])
-    cancel.update({"title": "Cancel", "permission": "ia_save_draft", "icon": "x-circle", "events": [{"key": CANCEL_EVENT[0], "name": CANCEL_EVENT[1]}]})
+    cancel.update({"title": "Cancel", "permission": "ia_cancel", "icon": "x-circle", "events": [{"key": CANCEL_EVENT[0], "name": CANCEL_EVENT[1]}]})
     tb.insert(at + 2, cancel)
+    # the product owner's designer save of 10-22 20:22 (live list v29): its own permission on Cancel, the designer's defaults on Cancel + Post
+    assert tb[at + 3]["title"] == "Post"
+    for b in (cancel, tb[at + 3]):
+        assert not set(DESIGNER_BUTTON_DEFAULTS) & set(b), b
+        b.update(DESIGNER_BUTTON_DEFAULTS)
+    assert "is_no_drag" not in cp and "is_no_copy" not in cp
+    cp.update({"is_no_drag": False, "is_no_copy": False})
     assert CANCEL_EVENT[0] not in [x["key"] for x in events]
     func = fill(src("ia_list_cancel.js", c), {})
     events.append({"key": CANCEL_EVENT[0], "name": CANCEL_EVENT[1], "func": func, "type": "js"})
@@ -521,6 +531,7 @@ def expected_paths(fa, fb, la, lb, added):
     kb_list = [x["key"] for x in lb["config"]["eventScript"]]
     e_list.add("/config/eventScript/[key=%s] (added at %d: %s)" % (RETRY_EVENT[0], kb_list.index(RETRY_EVENT[0]), RETRY_EVENT[1]))
     e_list.add("/config/eventScript/[key=%s] (added at %d: %s)" % (CANCEL_EVENT[0], kb_list.index(CANCEL_EVENT[0]), CANCEL_EVENT[1]))
+    e_list |= {"/list/[key=s6wz5vvo]/options/customProps/is_no_drag (added)", "/list/[key=s6wz5vvo]/options/customProps/is_no_copy (added)"}
     return e_form, e_list
 
 

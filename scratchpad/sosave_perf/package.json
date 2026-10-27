@@ -1,0 +1,8 @@
+{
+  "name": "sosave-perf",
+  "private": true,
+  "description": "SO Save V2 speed builder tools (scratchpad/sosave_perf): the shared-library trimmer and its tests",
+  "dependencies": {
+    "acorn": "^8.19.0"
+  }
+}

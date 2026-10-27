@@ -221,6 +221,15 @@ function mocks() {
   const claim = (db, j) => db.t.step.find((c) => c.job_id === j.id && c.step_name === "W0_CLAIM_" + j.row_version && !c.is_deleted);
   const setupOf = (db, org) => db.t.setup.filter((x) => x.organization_id === org).sort((a, b) => (a.id < b.id ? -1 : 1))[0] || {};
   const psetupOf = (db, org) => db.t.psetup.filter((x) => x.organization_id === org).sort((a, b) => (a.id < b.id ? -1 : 1))[0] || {};
+  // P7: a delivery's open COMPLETE_GD job and this job's P7|<gd> answer
+  const P7_OPEN = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_GD", "REQUIRES_REVIEW"];
+  const p7Facts = (db, jobId, g) => {
+    const open = db.t.job.filter((j) => !j.is_deleted && j.command === "COMPLETE_GD" && j.correlation_id === "GD|" + g.id && P7_OPEN.includes(j.job_status))
+      .sort((a, b) => (a.id < b.id ? 1 : -1))[0];
+    const step = db.t.step.find((x) => x.job_id === String(jobId) && x.step_name === "P7|" + g.id && !x.is_deleted);
+    return { gd_id: g.id, delivery_no: g.delivery_no || null, gd_status: g.gd_status, picking_status: g.picking_status || null, open_job: open ? open.id : null,
+      p7: step ? step.step_status : null };
+  };
   const lineRow = (l) => ({
     id: l.id, parent_id: S(l.parent_id), item_code: S(l.item_code), item_name: l.item_name, item_desc: l.item_desc, more_desc: l.more_desc, item_uom: S(l.item_uom),
     qty_to_pick: n8(l.qty_to_pick), pending_process_qty: n8(l.pending_process_qty), line_status: l.line_status, gd_id: S(l.gd_id), gd_no: l.gd_no, gd_line_id: S(l.gd_line_id),
@@ -250,7 +259,15 @@ function mocks() {
     sql_node_PSstatus: (text, ctx, e) => {
       const g = out(ctx, "code_node_PSguard");
       const j = e.db.t.job.filter((x) => x.command === "CONFIRM_PICKING" && x.organization_id === g.organizationId && x.picking_id === g.pickingId && !x.is_deleted).sort((a, b) => (a.id < b.id ? 1 : -1))[0];
-      return j ? [{ id: j.id, job_status: j.job_status, progress_message: j.progress_message, error_code: j.error_code || null, error_message: j.error_message || null }] : [];
+      if (!j) return [];
+      // stage 1e: the job's P7|<gd> steps, as JSON text (JSON_ARRAYAGG ... AS CHAR); none -> null
+      const p7 = e.db.t.step.filter((x) => x.job_id === j.id && /^P7\|/.test(x.step_name) && !x.is_deleted).map((x) => {
+        const gdId = x.step_name.slice(3);
+        const g = e.db.t.gd.find((y) => y.id === gdId) || {};
+        return { gd_id: gdId, gd_no: g.delivery_no || "", status: x.step_status, job_id: x.result_ref || "", code: x.error_code || "", message: x.error_message || "" };
+      });
+      return [{ id: j.id, job_status: j.job_status, progress_message: j.progress_message, error_code: j.error_code || null, error_message: j.error_message || null,
+        gd_complete: p7.length ? JSON.stringify(p7) : null }];
     },
     sql_node_PSback: (text, ctx, e) => {
       const g = out(ctx, "code_node_PSguard");
@@ -428,6 +445,22 @@ function mocks() {
       const rows = e.db.t.lines.filter((l) => l.transfer_order_id === id && !l.is_deleted);
       return [{ to_status: p.to_status, live_rows: String(rows.filter((l) => (l.line_status || "") !== "Cancelled").length),
         completed_rows: String(rows.filter((l) => (l.line_status || "") === "Completed").length) }];
+    },
+    // P7 (stage 1e): the Picking's deliveries while Auto Complete GD is on (the organization's first setup row), and the read-back
+    sql_node_PCp7gds: (text, ctx, e) => {
+      const en = out(ctx, "code_node_PCentry");
+      if (Number(setupOf(e.db, en.organizationId).auto_completed_gd || 0) !== 1) return [];
+      const ids = [...new Set(e.db.t.lines.filter((l) => l.transfer_order_id === en.pickingId && !l.is_deleted && (l.line_status || "") !== "Cancelled" && l.gd_id)
+        .map((l) => S(l.gd_id)))];
+      return e.db.t.gd.filter((g) => ids.includes(g.id) && !g.is_deleted).sort((a, b) => (a.id < b.id ? -1 : 1)).map((g) => p7Facts(e.db, en.jobId, g));
+    },
+    sql_node_PCp7back: (text, ctx, e) => {
+      const en = out(ctx, "code_node_PCentry");
+      const want = String(out(ctx, "code_node_PCp7plan").plannedSql).split(",");
+      return e.db.t.gd.filter((g) => want.includes(g.id) && !g.is_deleted).map((g) => {
+        const f = p7Facts(e.db, en.jobId, g);
+        return { gd_id: f.gd_id, open_job: f.open_job, p7: f.p7 };
+      });
     },
     sql_node_PCp5lines: (text, ctx, e) => e.db.t.lines.filter((l) => l.transfer_order_id === out(ctx, "code_node_PCentry").pickingId).map((l) => ({ gd_id: S(l.gd_id), gd_no: l.gd_no, so_id: S(l.so_id), so_no: l.so_no, customer_id: S(l.customer_id), qty_to_pick: n8(l.qty_to_pick), pending_process_qty: n8(l.pending_process_qty), line_status: l.line_status, item_bundle_id: S(l.item_bundle_id), item_code: S(l.item_code), handling_unit_id: S(l.handling_unit_id), row_type: l.row_type })),
     // stage 1b reads the records of one chunk of deliveries; stage 1a read all of the Picking's

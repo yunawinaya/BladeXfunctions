@@ -48,6 +48,11 @@ for (const [label, sc] of [["two lines", sc0], ["PICK_ALL_REMAINING", Object.ass
 }
 // a batch swap only
 eq("batch swap: MOVE", run(NEW, Object.assign({}, clone(sc0), { entry: ENTRY([{ row_id: "11", qty: 2, target_batch_id: "2002" }]) })).route, "MOVE");
+// stage 1e (2026-10-27): Auto Complete GD without a loading bay is planned like any confirm; COMMIT P7 hands the deliveries it
+// leaves fully picked to GD Complete V2 (the phone stays classic: SUBMIT)
+eq("Auto Complete GD (no bay) is planned", run(NEW, Object.assign({}, clone(sc0), { hdr: Object.assign({}, HDR, { auto_completed_gd: "1" }) })).route, "OK");
+eq("Auto Complete GD + a move is planned too", run(NEW, Object.assign({}, clone(sc0), { hdr: Object.assign({}, HDR, { auto_completed_gd: "1" }),
+  entry: ENTRY([{ row_id: "11", qty: 2, target_location_id: "4002" }]) })).route, "MOVE");
 // a stored target, PICK_ALL_REMAINING (list Auto Pick)
 eq("stored target, Auto Pick: MOVE", run(NEW, Object.assign({}, clone(sc0), { entry: ENTRY([], "PICK_ALL_REMAINING"), rows: [ROW("11", { target_location: "4002" }), ROW("12")] })).route, "MOVE");
 // Loading Bay

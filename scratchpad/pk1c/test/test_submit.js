@@ -3,7 +3,8 @@
 const fs = require("fs");
 const path = require("path");
 const { runBody, eq, done } = require("../../gdc/pkv2tools/harness.js");
-const read = (f) => fs.readFileSync(process.env[f === "submit_decide.js" ? "DECIDE_JS" : "GUARD_JS"] || path.join(__dirname, "..", "code", f), "utf8");
+// the deployed SUBMIT is built from pk1d's copies (stage 1d + 1e); pk1c's are the older 1c stage
+const read = (f) => fs.readFileSync(process.env[f === "submit_decide.js" ? "DECIDE_JS" : "GUARD_JS"] || path.join(__dirname, "..", "..", "pk1d", "code", f), "utf8");
 const GUARD = read("submit_guard.js");
 const DECIDE = read("submit_decide.js");
 // shipped ON since the 2026-10-16 live tests (batch f); OFF = the switch-off state a release could fall back to
@@ -20,6 +21,10 @@ const guard = (payload, op) => runBody(GUARD, {
 {
   const g = guard({ lines: [{ row_id: "11", qty: 2, target_location_id: "501", target_batch_id: "" }, { row_id: "12", qty: 1 }, { row_id: "13", qty: 0, target_location_id: "502" }] });
   eq("guard: CONTINUE", g.route, "CONTINUE");
+  // stage 1e: an app that starts GD Complete V2 itself says so in the payload; only known tokens pass
+  eq("guard: no caps sent -> none", [g.caps], [""]);
+  const capped = guard({ lines: [{ row_id: "11", qty: 1 }], caps: ["gd_complete", "x'); DROP", 7, "gd_complete"] });
+  eq("guard: caps keep the known tokens, once", [capped.route, capped.caps], ["CONTINUE", "gd_complete"]);
   eq("guard: moveRowsJson sent / sent empty / not sent; a zero line is not a picked line", JSON.parse(g.moveRowsJson),
     [{ r: "11", l: "501", b: "0" }, { r: "12", l: null, b: null }]);
   const all = guard({}, "PICK_ALL_REMAINING");
@@ -36,7 +41,7 @@ const FACTS = { db_now: "2026-10-16 12:00:00", id: "9001", to_id: "PI-1", to_sta
 const R = (o) => Object.assign({ kind: "R", row_id: "11", gd_id: "5001", moved: 1, bay_bad: 0, hu: null, label: "Item A" }, o);
 const GD = (o) => Object.assign({ kind: "G", gd_id: "5001", delivery_no: "GD/1", line_count: "3", serial_items: "0", select_picking: "0", linked: "0", other_job: "0" }, o);
 const decide = (code, facts, move, g) => runBody(code, { "node:code_node_PSguard.data": Object.assign({}, G, g || {}), "node:sql_node_PSfacts.data": [Object.assign({}, FACTS, facts || {})],
-  "node:sql_node_PSmove.data": move || [] }, "decide");
+  "node:sql_node_PSmove.data": move || [], "node:sql_node_PSfc.data": [] }, "decide");
 const route = (r) => [r.route, r.result_message];
 
 // switches as shipped (off): every move and Loading Bay goes to the classic save, as before
@@ -74,7 +79,19 @@ eq("GD busy", route(decide(ON, { gd_busy: "GD/9" }, [R()])), ["REJECT", "Goods D
 eq("Draft", decide(ON, { to_status: "Draft" }, []).route, "NOT_ELIGIBLE");
 eq("open job", decide(ON, { open_job: "70|QUEUED" }, []).route, "REJECT");
 eq("Picking Plan", route(decide(ON, { picking_after: "Sales Order" }, [])), ["NOT_ELIGIBLE", "Picking Plan pickings use the classic save"]);
-eq("Auto Complete GD (not bay)", route(decide(ON, { auto_completed_gd: "1" }, [])), ["NOT_ELIGIBLE", "Auto Complete GD uses the classic save"]);
+// stage 1e (2026-10-27): Auto Complete GD on the desktop is V2 (COMMIT P7 hands each fully picked delivery to GD Complete V2 and
+// the screen starts it); the phone does not start it yet, so a phone confirm (PKC: / PKF: keys) stays classic until the app update
+eq("Auto Complete GD (not bay), the form", decide(ON, { auto_completed_gd: "1" }, []).route, "CREATE");
+eq("Auto Complete GD, the list's Auto Pick", decide(ON, { auto_completed_gd: "1" }, [], { idempotencyKey: "PKA-9001-abcdefgh", operation: "PICK_ALL_REMAINING" }).route, "CREATE");
+eq("Auto Complete GD, a phone confirm", route(decide(ON, { auto_completed_gd: "1" }, [], { idempotencyKey: "PKC:1901545950162329602:9001:3f2a9c1e5b7d4a60:1" })),
+  ["NOT_ELIGIBLE", "Auto Complete GD on the phone uses the classic save until the app update"]);
+eq("Auto Complete GD, the switch off", route(decide(DECIDE.replace("AUTO_COMPLETE_GD: true", "AUTO_COMPLETE_GD: false"), { auto_completed_gd: "1" }, [])),
+  ["NOT_ELIGIBLE", "Auto Complete GD uses the classic save"]);
+eq("a phone confirm without Auto Complete GD is V2 as before", decide(ON, {}, [], { idempotencyKey: "PKC:1901545950162329602:9001:3f2a9c1e5b7d4a60:1" }).route, "CREATE");
+eq("Auto Complete GD, a phone that starts the completions itself (caps gd_complete) -> V2",
+  decide(ON, { auto_completed_gd: "1" }, [], { idempotencyKey: "PKC:1901545950162329602:9001:3f2a9c1e5b7d4a60:1", caps: "gd_complete" }).route, "CREATE");
+eq("Auto Complete GD, a phone with other caps only -> classic",
+  decide(ON, { auto_completed_gd: "1" }, [], { idempotencyKey: "PKC:1901545950162329602:9001:3f2a9c1e5b7d4a60:1", caps: "other" }).route, "NOT_ELIGIBLE");
 eq("CREATE carries the job row", decide(ON, {}, []).jobRows.map((j) => [j.command, j.job_status, j.picking_id]), [["CONFIRM_PICKING", "QUEUED", "9001"]]);
 
 // the job's request records whether the switches cleared its moves: PREPARE refuses a move (one that appears after SUBMIT) on a job they did not

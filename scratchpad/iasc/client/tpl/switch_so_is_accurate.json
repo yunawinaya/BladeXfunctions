@@ -1,0 +1,50 @@
+{
+ "name": "Is Accurate",
+ "type": "switch",
+ "mainIcon": "开关",
+ "typeIcon": "开关",
+ "icon": "icon-switch",
+ "group": "Select",
+ "groupSort": 8,
+ "enableScopes": [
+  "Component",
+  "Table",
+  "Page"
+ ],
+ "options": {
+  "defaultValue": 0,
+  "required": false,
+  "requiredMessage": "",
+  "validatorCheck": false,
+  "validator": "",
+  "disabled": false,
+  "customClass": "",
+  "labelWidth": 100,
+  "isLabelWidth": false,
+  "hidden": true,
+  "dataBind": true,
+  "width": "",
+  "customProps": {},
+  "tip": "",
+  "booleanValueMode": false,
+  "alignright": false,
+  "checkboxMode": false,
+  "remoteFunc": "func_fkwdec3s",
+  "remoteOption": "option_fkwdec3s",
+  "tableColumn": false,
+  "subform": false,
+  "select-card_n7ge7fmb": [],
+  "left": 3,
+  "right": 4,
+  "pad": "*",
+  "desensitization_pattern": "",
+  "desensitization_replace": ""
+ },
+ "events": {
+  "onChange": ""
+ },
+ "novalid": {},
+ "key": "fkwdec3s",
+ "model": "is_accurate",
+ "rules": []
+}

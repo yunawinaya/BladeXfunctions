@@ -2,7 +2,7 @@
 // this key already made, NOT_ELIGIBLE (the form runs the old save instead) or REJECT (a message, nothing written).
 // Stage switches: a case whose stage is off goes back to the old save. 1c (LOADING_BAY, BIN_MOVES): sql_node_PSmove's rows.
 const ASYNC_PICKING_ENABLED = true;
-const STAGE = { FULL_PICKING: true, LOADING_BAY: true, BIN_MOVES: true, AUTO_COMPLETE_GD: false, PICKING_PLAN: false, FORCE_COMPLETE: true };
+const STAGE = { FULL_PICKING: true, LOADING_BAY: true, BIN_MOVES: true, AUTO_COMPLETE_GD: true, PICKING_PLAN: false, FORCE_COMPLETE: true };
 const LOCK_STALE_SEC = 900;
 const MAX_MOVED_GDS = 25;
 const MAX_MOVED_LINES = 500;
@@ -86,7 +86,11 @@ const submitDecide = function submitDecide(guard, rows, moveRows, fcRows) {
   const bay = n(f.setup_loading_bay) === 1;
   if (!STAGE.LOADING_BAY && (bay || n(f.is_loading_bay) === 1)) return old("Loading Bay uses the classic save");
   if (bay && n(f.auto_completed_gd) === 1) return reject("Picking Setup has both Loading Bay and Auto Complete GD enabled. Auto Complete GD skips the Created state that the loading bay move depends on, which would strand the reserved stock at the source bin. Please turn off Auto Complete GD.");
-  if (n(f.auto_completed_gd) === 1 && !STAGE.AUTO_COMPLETE_GD) return old("Auto Complete GD uses the classic save");
+  // Auto Complete GD (stage 1e): COMMIT P7 hands each fully picked delivery to GD Complete V2 and the screen starts it. A phone
+  // confirm (PKC: / PKF: keys) stays classic unless its app starts the completions itself (caps gd_complete, the OTA)
+  const phone = /^PK[CF]:/.test(s(guard.idempotencyKey)) && s(guard.caps).split(",").indexOf("gd_complete") < 0;
+  if (n(f.auto_completed_gd) === 1 && (!STAGE.AUTO_COMPLETE_GD || phone))
+    return old(STAGE.AUTO_COMPLETE_GD ? "Auto Complete GD on the phone uses the classic save until the app update" : "Auto Complete GD uses the classic save");
   const mv = (Array.isArray(moveRows) ? moveRows : moveRows ? [moveRows] : []).filter((r) => r);
   const R = mv.filter((r) => s(r.kind) === "R");
   const GDS = mv.filter((r) => s(r.kind) === "G");

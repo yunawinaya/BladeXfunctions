@@ -45,8 +45,9 @@ for (const [name, o] of Object.entries(CASES)) {
   const c = X.makeCase(o);
   const w = world(c);
   const a = runCommit(w);
-  ok(!a.err && a.out.path === "SPLIT" && w.job.job_status === "COMMITTING_IA" && /^SPLIT\|/.test(w.job.lease_owner) && w.job.progress_percent === 75 && w.job.attempt_count === 0,
-    name + ": phase A ends SPLIT at 75", { a, job: w.job });
+  // one stock call per worker run (prod 10-26): op 1 issued -> PARK (due now, no lease), op 2 in the next run
+  ok(!a.err && a.out.path === "PARK" && w.job.job_status === "COMMITTING_IA" && w.job.lease_owner === null && w.job.next_attempt_at === fmt(w.now) && w.job.progress_percent === 75 &&
+    w.job.attempt_count === 0, name + ": phase A ends PARK at 75 (due now, no lease)", { a, job: w.job });
   ok(w.ia.item_assembly_status === "Processing" && outRows(w).length === c.movements.length && inRows(w).length === 0, name + ": after phase A op 1 moved, op 2 not yet, the IA Processing");
   const b = runCommit(w);
   ok(!b.err && b.out.path === "DONE" && b.out.job_status === "COMPLETED", name + ": phase B -> DONE", b);
@@ -359,6 +360,101 @@ const failed = (w, code, label) => {
     rows.push(label + " picks: A " + mb(A.out) + " / " + mb(A.out + A.in) + " MB, B " + mb(B.out) + " / " + mb(B.out + B.in) + " MB");
   }
   console.log("ok   node data (outputs / with recorded inputs): " + rows.join("; "));
+}
+
+// ------------------------------------------------------------------ 7. IA output split (plan 10-27): one receipt per row, one Batch row per batch
+{
+  const BIN2 = "2111800000000000502";
+  const BIN3 = "2111800000000000503";
+  const SPLITS = {
+    split: { batch: true, itemQty: 9, split: [{ qty: 3, bin: X.BIN0, number: X.BATCH_NO }, { qty: 2, bin: BIN2, cat: "Blocked", number: X.BATCH_NO }, { qty: 4, bin: BIN3, number: X.BATCH_NO + "-2" }] },
+    splitPlain: { itemQty: 5, split: [{ qty: 1.5, bin: X.BIN0 }, { qty: 3.5, bin: BIN2, cat: "Blocked" }] },
+  };
+  const cleanS = {};
+  const expectSplit = (w, c, label) => {
+    const sp = c.o.split;
+    ok(w.job.job_status === "COMPLETED" && w.ia.item_assembly_status === "Completed" && w.ia.posted_status === "Unposted", label + ": COMPLETED, the IA Completed / Unposted", { job: w.job, ia: w.ia });
+    ok(w.engine.applied["IAC|" + JOB + "|I"] === 1 && w.engine.applied["IAC|" + JOB + "|R"] === 1, label + ": op 1 and op 2 each applied exactly once", w.engine.applied);
+    const ins = inRows(w);
+    ok(J(ins.map((m) => m.operation_effect_key.split("|").pop())) === J(sp.map((x, i) => "R" + (i + 1))), label + ": one IN row per split row, in row order", ins.map((m) => m.operation_effect_key));
+    ok(ins.every((m, i) => m.bin_location_id === sp[i].bin && m.inventory_category === (sp[i].cat || "Unrestricted") && Number(m.base_qty) === sp[i].qty),
+      label + ": each IN row into its row's bin / category / qty", ins.map((m) => [m.bin_location_id, m.inventory_category, m.base_qty]));
+    const price = Number(X.C.iaQ8(priceOf(w, c)).toFixed(4));
+    ok(ins.every((m) => Math.abs(Number(m.unit_price) - price) < 1e-9), label + ": every receipt at the one price (" + priceOf(w, c) + ")", ins.map((m) => m.unit_price));
+    const live = liveBatches(w, PARENT);
+    if (c.o.batch) {
+      const nums = sp.map((x) => x.number).filter((x, i, a) => a.indexOf(x) === i);
+      ok(J(live.map((b) => b.batch_number)) === J(nums) && live.every((b) => b.transaction_no === IANO), label + ": one live Batch row per batch number", live);
+      ok(J(live.map((b) => Number(b.initial_quantity))) === J(nums.map((n) => sp.filter((x) => x.number === n).reduce((t, x) => t + x.qty, 0))), label + ": initial_quantity = the batch's total",
+        live.map((b) => b.initial_quantity));
+      ok(ins.every((m, i) => m.batch_number_id === live[nums.indexOf(sp[i].number)].id), label + ": each receipt on its batch's row", ins.map((m) => m.batch_number_id));
+    } else ok(live.length === 0 && ins.every((m) => m.batch_number_id === null), label + ": no Batch row for a non-batch split", live);
+    ok(J(stepNames(w)) === J(doneSteps(c)) && w.violations.length === 0, label + ": step rows, no forbidden write", { steps: stepNames(w), v: w.violations });
+  };
+  for (const [name, o] of Object.entries(SPLITS)) {
+    const c = X.makeCase(o);
+    const w = world(c);
+    const a = runCommit(w);
+    ok(!a.err && a.out.path === "PARK" && inRows(w).length === 0, name + ": phase A ends PARK, no receipt yet", a);
+    const plans = opCalls(w, "R", "PLAN");
+    ok(plans.length === (o.batch ? 1 : 0) && (!o.batch || JSON.parse(plans[0].text).length === o.split.length), name + ": I1 re-PLANs every receipt (batch splits only)",
+      plans.map((x) => x.text.slice(0, 200)));
+    const b = runCommit(w);
+    ok(!b.err && b.out.path === "DONE", name + ": phase B -> DONE", b);
+    expectSplit(w, c, name);
+    cleanS[name] = { c, state: state(w), writes: w.writes.slice(), opR: opCalls(w, "R", "APPLY").map((x) => x.text) };
+    console.log("ok   " + name + ": " + o.split.length + " receipts at " + inRows(w)[0].unit_price + ", " + liveBatches(w, PARENT).length + " Batch rows, " + w.writes.length + " writes");
+  }
+  // a crash right after every write of the batch split, then the resume: the clean run's end state, op 2's request identical
+  const total = cleanS.split.writes.length;
+  for (let k = 1; k <= total; k++) {
+    const c = X.makeCase(SPLITS.split);
+    const w = world(c, { crashAfter: k });
+    drive(w);
+    expectSplit(w, c, "split crash@" + k + " (" + w.crashed + ")");
+    const st = state(w);
+    for (const key of Object.keys(st)) ok(J(st[key]) === J(cleanS.split.state[key]), "split crash@" + k + ": " + key + " = the clean run's", { got: st[key], want: cleanS.split.state[key] });
+    const reqs = opCalls(w, "R", "APPLY").map((x) => x.text);
+    ok(reqs.length >= 1 && reqs.every((t) => t === cleanS.split.opR[0]), "split crash@" + k + ": op 2's request byte-identical", reqs.map((t) => t.slice(0, 200)));
+  }
+  // I2 refuses: FAILED, back to Draft, BOTH Batch rows soft-deleted, nothing moved
+  const wf = world(X.makeCase(SPLITS.split), { faults: { ["IAC|" + JOB + "|I|APPLY"]: ["400"] } });
+  drive(wf);
+  failed(wf, "IA_INVENTORY_INSUFFICIENT", "split I2 400");
+  ok(wf.batchDeletes.length === 2, "split I2 400: both inserted Batch rows soft-deleted", wf.batchDeletes);
+  // one of the two numbers already held by another document: FAILED before any insert
+  const wd = world(X.makeCase(SPLITS.split), { batches: [{ id: "2111900000000000001", batch_number: X.BATCH_NO + "-2", material_id: PARENT, plant_id: X.PLANT, organization_id: ORG,
+    transaction_no: "GR-2610-0007", is_deleted: 0, initial_quantity: "5.00000000" }] });
+  drive(wd);
+  failed(wd, "IA_BATCH_DUPLICATE", "split duplicate number");
+  ok(wd.batches.length === 1 && wd.engine.calls.length === 0, "split duplicate number: nothing inserted, no engine call", wd.batches);
+  // the Batch rows inserted, the run died before I1's DONE, then the IA lost its lock: the entry finds BOTH by the intent and removes them
+  const wo = world(X.makeCase(SPLITS.split), { crashAfter: cleanS.split.writes.indexOf("batch insert x2") + 1 });
+  runCommit(wo);
+  ok(wo.crashed === "batch insert x2" && liveBatches(wo, PARENT).length === 2, "split: crash right after the two Batch inserts", wo.crashed);
+  wo.ia.is_deleted = 1;
+  wo.now += 11 * 60000;
+  wo.crashAfter = 0;
+  runCommit(wo);
+  ok(wo.job.job_status === "FAILED" && wo.job.error_code === "IA_NOT_LOCKED" && liveBatches(wo, PARENT).length === 0 && wo.batchDeletes.length === 2 && wo.violations.length === 0,
+    "split: the next pass FAILED, both intent-identified Batch rows soft-deleted", { job: wo.job, batches: wo.batches });
+  // review 10-27 (1): 14 batches (an intent longer than 2,000 characters): a crash right after the intent, then the resume -> the clean run's end state
+  const BIG = { batch: true, itemQty: 14, split: Array.from({ length: 14 }, (_, i) => ({ qty: 1, bin: String(2111800000000000600n + BigInt(i)), number: X.BATCH_NO + "-" + (i + 1) })) };
+  const cb = X.makeCase(BIG);
+  const wbig = world(cb);
+  drive(wbig);
+  expectSplit(wbig, cb, "14 batches");
+  const at = wbig.writes.indexOf("step I1|I|001") + 1;
+  ok(at > 0, "14 batches: the intent is a write of its own", wbig.writes);
+  for (const k of [at, at + 1]) {
+    const cc = X.makeCase(BIG);
+    const wc = world(cc, { crashAfter: k });
+    drive(wc);
+    expectSplit(wc, cc, "14 batches crash@" + k + " (" + wc.crashed + ")");
+    ok(J(liveBatches(wc, PARENT).map((x) => x.batch_number)) === J(liveBatches(wbig, PARENT).map((x) => x.batch_number)), "14 batches crash@" + k + ": the clean run's Batch rows",
+      liveBatches(wc, PARENT).length);
+  }
+  console.log("ok   output split: crash after each of the " + total + " writes -> the clean end state; I2 400 removes both Batch rows; a taken number -> FAILED before any write; orphans after a crash removed");
 }
 
 console.log(checks + " checks passed");

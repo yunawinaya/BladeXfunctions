@@ -12,7 +12,7 @@ const commitI3 = function commitI3(entry, plan, ans, ops) {
     const ok = stepOk(entry, "I3_RECEIPT", JSON.stringify({ unit_price: plan.price, out_rows: num(plan.outCount), out_total: s(plan.outTotal), result_code: rc }), "assembled item received at " + plan.price);
     return Object.assign(ok, { progressRows: [jobRow(entry, { progress_percent: 80, progress_message: P80 })], needProgress: "YES" });
   }
-  if (code === "200") return Object.assign(reviewEnd(entry, "I3_RECEIPT", "IA_RECEIPT_REFUSED", why + "; R1 answered " + (s(ans.r1Code) || "nothing") + (s(ans.r1Message) ? ": " + s(ans.r1Message) : ""),
+  if (code === "200") return Object.assign(reviewEnd(entry, "I3_RECEIPT", "IA_RECEIPT_REFUSED", why + "; " + (s(ans.r1Key) || "R1") + " answered " + (s(ans.r1Code) || "nothing") + (s(ans.r1Message) ? ": " + s(ans.r1Message) : ""),
     { r1: s(ans.r1Code) }), extra);
   if (code === "409" || code === "" || (code === "400" && !rc)) {
     const intents = num((ops || {}).intents);

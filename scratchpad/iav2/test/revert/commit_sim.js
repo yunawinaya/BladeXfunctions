@@ -82,8 +82,8 @@ const clean = {};
   const z = prepared({});
   ok(job(z).job_status === "READY_TO_COMMIT" && job(z).progress_percent === 60 && job(z).lease_owner, "clean: PREPARE -> READY_TO_COMMIT (the worker's lease kept)", job(z));
   const a = commit(z);
-  ok(!a.err && a.out.path === "SPLIT" && job(z).job_status === "COMMITTING_REVERT" && /^SPLIT\|/.test(job(z).lease_owner) && job(z).progress_percent === 80 && job(z).attempt_count === 0,
-    "clean: phase A ends SPLIT (progress 80)", { out: a.out, err: a.err, job: job(z) });
+  ok(!a.err && a.out.path === "PARK" && job(z).job_status === "COMMITTING_REVERT" && !job(z).lease_owner && job(z).progress_percent === 80 && job(z).attempt_count === 0,
+    "clean: phase A ends PARK (progress 80; V2's lock call in the next run)", { out: a.out, err: a.err, job: job(z) });
   ok(z.w.ia(z.ia.id).item_assembly_status === "Processing" && applied(z) === 1, "clean: after phase A the stock moved, the IA still Processing");
   const b = commit(z);
   ok(!b.err && b.out.path === "DONE", "clean: phase B -> DONE", b);
@@ -296,8 +296,11 @@ const clean = {};
   commit(z);
   ok(job(z).job_status === "REQUIRES_REVIEW" && !v1Done(z), "runbook: V1 500 -> REQUIRES_REVIEW, V1 not DONE", job(z));
   reset(z);
+  // one lock call per worker run: V1 in this kick (PARK), V2 .. V4 in the next
   let k = kick(z);
-  ok(!k.err && job(z).job_status === "COMPLETED", "runbook: reset after V1 500 -> the worker resumes at V1 and finishes", { k: k.out || k.err, job: job(z) });
+  ok(!k.err && job(z).job_status === "COMMITTING_REVERT" && !job(z).lease_owner && !!v1Done(z), "runbook: reset after V1 500 -> the worker resumes at V1 and PARKs", { k: k.out || k.err, job: job(z) });
+  k = kick(z);
+  ok(!k.err && job(z).job_status === "COMPLETED", "runbook: ... and the next kick finishes", { k: k.out || k.err, job: job(z) });
   expectReverted(z, "reset after V1 500");
   z = prepared({});
   commit(z);

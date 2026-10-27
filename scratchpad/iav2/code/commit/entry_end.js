@@ -3,7 +3,8 @@
 const commitEntryEnd = function commitEntryEnd(entry, oursRows) {
   const del = list(entry.batchDelRows).map((r) => s(r.id)).filter(digits);
   if (s(entry.needOursRead) === "YES" && entry.intent && typeof entry.intent === "object") {
-    for (const id of oursOf(oursRows, identityOf(entry.intent), entry.jobId)) if (del.indexOf(id) < 0) del.push(id);
+    // one identity, or one per output split group (plan 10-27)
+    for (const idt of intentsOf(entry.intent)) for (const id of oursOf(oursRows, identityOf(idt), entry.jobId)) if (del.indexOf(id) < 0) del.push(id);
   }
   const rows = s(entry.job_status) === "FAILED" ? del.map((id) => ({ id: id, is_deleted: 1 })) : [];
   return { route: s(entry.route), jobRows: list(entry.jobRows), needJobUpd: s(entry.needJobUpd), unlockRows: list(entry.unlockRows), needUnlock: s(entry.needUnlock), batchDelRows: rows,

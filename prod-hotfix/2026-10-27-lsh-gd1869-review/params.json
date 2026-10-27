@@ -1,0 +1,244 @@
+{
+ "tenant": "128671",
+ "job_id": "2115002387512037378",
+ "gd_no": "GD-2610-1869",
+ "op_row_id": "2115002983610716161",
+ "op_id": "GD|2115002387512037378|1",
+ "organization_id": "1996787068457861121",
+ "p3_step_id": "2115002434710540289",
+ "apply_nonce": "c96c7f9dfa224465b4e71a79",
+ "n_effects": 48,
+ "mutation_started_utc": "2026-10-27 08:49:43",
+ "attempt": 1,
+ "mode": "after_balance_write",
+ "undo": {
+  "item_batch_balance": [
+   [
+    "2113434941416148993",
+    {
+     "reserved_qty": "1",
+     "unrestricted_qty": "-1"
+    }
+   ],
+   [
+    "2113415652437004289",
+    {
+     "reserved_qty": "2",
+     "unrestricted_qty": "-2"
+    }
+   ],
+   [
+    "2113416090204901377",
+    {
+     "reserved_qty": "4",
+     "unrestricted_qty": "-4"
+    }
+   ],
+   [
+    "2113416160895700994",
+    {
+     "reserved_qty": "14",
+     "unrestricted_qty": "-14"
+    }
+   ],
+   [
+    "2113416277325385730",
+    {
+     "reserved_qty": "36",
+     "unrestricted_qty": "-36"
+    }
+   ],
+   [
+    "2113416533807075329",
+    {
+     "reserved_qty": "36",
+     "unrestricted_qty": "-36"
+    }
+   ],
+   [
+    "2113416910988251138",
+    {
+     "reserved_qty": "16",
+     "unrestricted_qty": "-16"
+    }
+   ],
+   [
+    "2113417000284983297",
+    {
+     "reserved_qty": "6",
+     "unrestricted_qty": "-6"
+    }
+   ],
+   [
+    "2113417037337464833",
+    {
+     "reserved_qty": "1",
+     "unrestricted_qty": "-1"
+    }
+   ],
+   [
+    "2113799680092672001",
+    {
+     "reserved_qty": "24",
+     "unrestricted_qty": "-24"
+    }
+   ],
+   [
+    "2113417357358665730",
+    {
+     "reserved_qty": "3",
+     "unrestricted_qty": "-3"
+    }
+   ],
+   [
+    "2113417628235206658",
+    {
+     "reserved_qty": "1",
+     "unrestricted_qty": "-1"
+    }
+   ],
+   [
+    "2113803356374962177",
+    {
+     "reserved_qty": "4",
+     "unrestricted_qty": "-4"
+    }
+   ],
+   [
+    "2113418584876257281",
+    {
+     "reserved_qty": "3",
+     "unrestricted_qty": "-3"
+    }
+   ],
+   [
+    "2113418851453636610",
+    {
+     "reserved_qty": "3",
+     "unrestricted_qty": "-3"
+    }
+   ],
+   [
+    "2113812053088145409",
+    {
+     "reserved_qty": "1",
+     "unrestricted_qty": "-1"
+    }
+   ]
+  ],
+  "item_balance": [
+   [
+    "2113434941349040129",
+    {
+     "reserved_qty": "1",
+     "unrestricted_qty": "-1"
+    }
+   ],
+   [
+    "2113415652558639105",
+    {
+     "reserved_qty": "2",
+     "unrestricted_qty": "-2"
+    }
+   ],
+   [
+    "2113416090313953281",
+    {
+     "reserved_qty": "4",
+     "unrestricted_qty": "-4"
+    }
+   ],
+   [
+    "2113416161008947201",
+    {
+     "reserved_qty": "14",
+     "unrestricted_qty": "-14"
+    }
+   ],
+   [
+    "2113416277442826242",
+    {
+     "reserved_qty": "36",
+     "unrestricted_qty": "-36"
+    }
+   ],
+   [
+    "2113416533920321537",
+    {
+     "reserved_qty": "36",
+     "unrestricted_qty": "-36"
+    }
+   ],
+   [
+    "2113416911097303041",
+    {
+     "reserved_qty": "16",
+     "unrestricted_qty": "-16"
+    }
+   ],
+   [
+    "2113417000406618113",
+    {
+     "reserved_qty": "6",
+     "unrestricted_qty": "-6"
+    }
+   ],
+   [
+    "2113417037450711041",
+    {
+     "reserved_qty": "1",
+     "unrestricted_qty": "-1"
+    }
+   ],
+   [
+    "2113417305865195521",
+    {
+     "reserved_qty": "24",
+     "unrestricted_qty": "-24"
+    }
+   ],
+   [
+    "2113417357476106242",
+    {
+     "reserved_qty": "3",
+     "unrestricted_qty": "-3"
+    }
+   ],
+   [
+    "2113417628356841474",
+    {
+     "reserved_qty": "1",
+     "unrestricted_qty": "-1"
+    }
+   ],
+   [
+    "2113418541821726721",
+    {
+     "reserved_qty": "4",
+     "unrestricted_qty": "-4"
+    }
+   ],
+   [
+    "2113418584997892097",
+    {
+     "reserved_qty": "3",
+     "unrestricted_qty": "-3"
+    }
+   ],
+   [
+    "2113418851571077121",
+    {
+     "reserved_qty": "3",
+     "unrestricted_qty": "-3"
+    }
+   ],
+   [
+    "2113812053000065026",
+    {
+     "reserved_qty": "1",
+     "unrestricted_qty": "-1"
+    }
+   ]
+  ]
+ }
+}

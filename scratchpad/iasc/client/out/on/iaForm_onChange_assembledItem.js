@@ -152,6 +152,9 @@ const clearComponents = () => {
 // Batch No is typed only under Manual Input; a System Settings batch is generated
 // on completion. Any batch item takes the dates.
 const applyBatchFields = (item) => {
+  // IA output split (scratchpad/iasc os_main): the item changed: its split is cleared, the switch shown for its kind
+  this.triggerEvent("os_main", { osOp: "ITEM", item: item || null });
+  // -- end output split --
   const isBatch = item?.item_batch_management === 1;
   const isManual =
     isBatch && item.batch_number_genaration !== "According To System Settings";

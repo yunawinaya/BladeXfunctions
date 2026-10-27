@@ -1,0 +1,136 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_HOLD",
+   "dataId": "2112752274794217473",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_HOLD.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_HOLD/v12_20261027-124610.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "organization_id": "1",
+     "operation": "CHECK",
+     "source": "FORM"
+    },
+    "expect": {
+     "key": "code",
+     "equals": "200"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT",
+   "dataId": "2099319746652852225",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT/v8_20261027-124610.enabled.json",
+   "smoke": {
+    "request": {
+     "ia_id": "1",
+     "ia_no": "IAV2-SMOKE",
+     "organization_id": "1123598813738675201"
+    },
+    "expect": {
+     "key": "code",
+     "equals": "400"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_PREPARE",
+   "dataId": "2112141455206817794",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_PREPARE/v6_20261027-124611.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_RV_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_SUBMIT",
+   "dataId": "2112141384234999809",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_SUBMIT/v4_20261027-124612.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "ia_id": "2112143339233648642",
+     "idempotency_key": "",
+     "source": "LIST",
+     "min_picks": "",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  },
+  {
+   "name": "IA_SAVE",
+   "dataId": "2098335576774463489",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SAVE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_SAVE/v25_20261027-124612.enabled.json",
+   "smoke": {
+    "request": {
+     "allData": {
+      "page_status": "Add",
+      "organization_id": "1",
+      "issuing_operation_faci": "1",
+      "item_id": "1",
+      "item_qty": 1,
+      "item_uom": "1",
+      "storage_location_id": "1",
+      "location_id": "1",
+      "stock_movement_no": "",
+      "stock_movement_no_type": "1",
+      "stock_movement": [
+       {
+        "item_selection": "1",
+        "requested_qty": 1,
+        "total_quantity": 1,
+        "quantity_uom": "1",
+        "temp_qty_data": "",
+        "temp_hu_data": ""
+       }
+      ],
+      "output_split": "[{"
+     },
+     "saveAs": "Draft",
+     "pageStatus": "Add"
+    },
+    "expect": {
+     "key": "message",
+     "equals": "The output split could not be read: open the Item Assembly again and save."
+    }
+   }
+  },
+  {
+   "name": "IA_V2_SUBMIT",
+   "dataId": "2112141238600376321",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_SUBMIT/v13_20261027-124613.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "",
+     "ia_id": "2112143339233648642",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  }
+ ]
+}

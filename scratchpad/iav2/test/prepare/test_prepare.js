@@ -536,6 +536,89 @@ section("RES-01 R4: the held part of each pick issued from Reserved");
 }
 
 // ------------------------------------------------------------------------------------------------ sizes
+section("IA output split (plan 10-27): one receipt per row, one price, a Batch row per group (System); the split checked again");
+{
+  const SYSF = { 0: { code: "FG", batch: 1, conv: [[S.UOM, 1], [S.UOM_BOX, 12]] }, 1: { code: "RM1" } };
+  const PLAINF = { 0: { code: "FG" }, 1: { code: "RM1" } };
+  const lines = [{ item: 1, picks: [{ bin: 1, qty: 2 }] }];
+  const split3 = [{ qty: 5, bin: 21, cat: "Blocked", group: 1, batch: "B-0001", mfg: "2026-10-27 00:00:00", exp: "2028-10-27 00:00:00" },
+    { qty: 3, bin: 22, cat: "Blocked", group: 1, batch: "B-0001", mfg: "2026-10-27 00:00:00", exp: "2028-10-27 00:00:00" },
+    { qty: 2, bin: 23, cat: "Unrestricted", group: 2, batch: "B-0002", mfg: "2026-10-20 00:00:00", exp: "2028-10-20 00:00:00" }];
+  let d = S.synth({ items: SYSF, parent: 0, header: { item_qty: 10, batch_no: "B-0001", location_id: S.BIN(21), inventory_category: "Blocked" }, lines: lines, split: split3 });
+  let r = L.runPrepare(d.spec);
+  truthy("System split: READY", !!r.ready, r.failed);
+  const mr = (r.parts.ENGINE_R || {}).movements || [];
+  eq("System split: R1..R3, each row's bin, category, qty and its batch's dates", mr.map((m) => [m.movement_key, m.location_id, m.inventory_category, m.quantity, m.manufacturing_date,
+    m.expired_date]), [["R1", S.BIN(21), "Blocked", 5, "2026-10-27 00:00:00", "2028-10-27 00:00:00"], ["R2", S.BIN(22), "Blocked", 3, "2026-10-27 00:00:00", "2028-10-27 00:00:00"],
+    ["R3", S.BIN(23), "Unrestricted", 2, "2026-10-20 00:00:00", "2028-10-20 00:00:00"]]);
+  eq("System split: one price over the whole output (receiptBaseQty = 10), no batch id yet, the rows' batches named", [r.parts.ENGINE_R.receiptBaseQty, mr.every((m) => m.batch_id === null && m.unit_price === 0),
+    r.parts.ENGINE_R.batchOf], [10, true, { R1: "B-0001", R2: "B-0001", R3: "B-0002" }]);
+  eq("System split: BATCH = one row per group, its base qty, its dates", (r.parts.BATCH.rows || []).map((b) => [b.batch_number, b.initial_quantity, b.manufacturing_date, b.transaction_no]),
+    [["B-0001", "8.00000000", "2026-10-27 00:00:00", "IA-SYN-001"], ["B-0002", "2.00000000", "2026-10-20 00:00:00", "IA-SYN-001"]]);
+  eq("System split: the receipt PLAN sends the three", r.calls.filter((c) => /\|R$/.test(c.params.operation_key)).map((c) => c.params.movements.length), [3]);
+  eq("System split: LABELS R1..R3 (their bins)", ["R1", "R2", "R3"].map((k) => r.parts.LABELS[k] && r.parts.LABELS[k].bin_id), [S.BIN(21), S.BIN(22), S.BIN(23)]);
+  eq("System split: the manifest counts the receipts", [r.manifest.counts.movementsR, r.manifest.batchMode], [3, "insert"]);
+  // the grid's date cells hold "YYYY-MM-DD" (date-type date): the receipts and the Batch rows get the header read's "YYYY-MM-DD HH:MM:SS"
+  d = S.synth({ items: SYSF, parent: 0, header: { item_qty: 10, batch_no: "B-0001", location_id: S.BIN(21) }, lines: lines,
+    split: [{ qty: 6, bin: 21, group: 1, batch: "B-0001", mfg: "2026-10-27", exp: "2028-10-27" }, { qty: 4, bin: 22, group: 1, batch: "B-0001", mfg: "2026-10-27", exp: "2028-10-27" }] });
+  r = L.runPrepare(d.spec);
+  eq("System split with grid dates: receipts and Batch row dated YYYY-MM-DD 00:00:00", [((r.parts.ENGINE_R || {}).movements || []).map((m) => [m.manufacturing_date, m.expired_date]),
+    ((r.parts.BATCH || {}).rows || []).map((b) => [b.manufacturing_date, b.expired_date])],
+  [[["2026-10-27 00:00:00", "2028-10-27 00:00:00"], ["2026-10-27 00:00:00", "2028-10-27 00:00:00"]], [["2026-10-27 00:00:00", "2028-10-27 00:00:00"]]]);
+  // a CTN output: the Batch rows' base quantities in the base UOM
+  d = S.synth({ items: SYSF, parent: 0, header: { item_qty: 1.5, item_uom: S.UOM_BOX, batch_no: "B-0001", location_id: S.BIN(21) }, lines: lines,
+    split: [{ qty: 1, bin: 21, group: 1, batch: "B-0001" }, { qty: 0.5, bin: 22, group: 1, batch: "B-0001" }] });
+  r = L.runPrepare(d.spec);
+  eq("System split in CTN: one Batch row of 18 (1.5 x 12), receiptBaseQty 18", [(r.parts.BATCH.rows || []).map((b) => b.initial_quantity), r.parts.ENGINE_R.receiptBaseQty], [["18.00000000"], 18]);
+  // non-batch: bins only, no BATCH part
+  d = S.synth({ items: PLAINF, parent: 0, header: { item_qty: 2, location_id: S.BIN(21), manufacturing_date: "2026-01-01 00:00:00" }, lines: lines,
+    split: [{ qty: 1.2, bin: 21 }, { qty: 0.8, bin: 22, cat: "Blocked" }] });
+  r = L.runPrepare(d.spec);
+  eq("non-batch split: READY, R1 / R2, no BATCH part, the header's dates", [!!r.ready, (r.parts.ENGINE_R.movements || []).map((m) => [m.movement_key, m.location_id, m.quantity, m.inventory_category,
+    m.manufacturing_date]), !!r.parts.BATCH], [true, [["R1", S.BIN(21), 1.2, "Unrestricted", "2026-01-01 00:00:00"], ["R2", S.BIN(22), 0.8, "Blocked", "2026-01-01 00:00:00"]], false]);
+  // no split: exactly as before (one R1, the header's bin)
+  d = S.synth({ items: PLAINF, parent: 0, header: { item_qty: 2, location_id: S.BIN(21) }, lines: lines, split: [] });
+  r = L.runPrepare(d.spec);
+  eq("no split rows: one R1 at the header's bin", (r.parts.ENGINE_R.movements || []).map((m) => [m.movement_key, m.location_id, m.quantity]), [["R1", S.BIN(21), 2]]);
+  // the split checked again: a total that is not the output, another plant's bin, a group without its number, the item serial
+  const fails = [
+    ["the total is not the output", { items: PLAINF, header: { item_qty: 2, location_id: S.BIN(21) }, split: [{ qty: 1, bin: 21 }, { qty: 0.5, bin: 22 }] }, /split total 1.5 is not the output quantity 2/],
+    ["another plant's bin", { items: PLAINF, header: { item_qty: 2, location_id: S.BIN(21) }, split: [{ qty: 1, bin: 21 }, { qty: 1, bin: 22 }], binsExtra: { 22: { plant: "999" } } },
+      /Output row 2: its bin location is not a bin of this plant/],
+    ["an inactive bin", { items: PLAINF, header: { item_qty: 2, location_id: S.BIN(21) }, split: [{ qty: 1, bin: 21 }, { qty: 1, bin: 22 }], binsExtra: { 22: { active: 0 } } },
+      /Output row 2: its bin location is not active/],
+    ["one row", { items: PLAINF, header: { item_qty: 2, location_id: S.BIN(21) }, split: [{ qty: 2, bin: 21 }] }, /at least 2 rows/]];
+  for (const [label, o, re] of fails) {
+    d = S.synth(Object.assign({ parent: 0, lines: lines }, o));
+    r = L.runPrepare(d.spec);
+    truthy("split refused (" + label + "): FAILED, its reason, the IA unlocked", !r.ready && r.failed && r.failed.job_status === "FAILED" && re.test(r.failed.error_message || "") &&
+      r.unlocks.length === 1, r.failed);
+  }
+  d = S.synth({ items: SYSF, parent: 0, header: { item_qty: 10, batch_no: "B-0001", location_id: S.BIN(21) }, lines: lines,
+    split: [{ qty: 5, bin: 21, group: 1, batch: "B-0001" }, { qty: 5, bin: 22, group: 2, batch: "" }] });
+  r = L.runPrepare(d.spec);
+  truthy("System split without group 2's number (SUBMIT writes them): not prepared", !r.ready && r.failed && /group 2 has no single batch number/.test(r.failed.error_message || ""), r.failed);
+  d = S.synth({ items: SYSF, parent: 0, header: { item_qty: 10, batch_no: "B-0001", location_id: S.BIN(21) }, lines: lines,
+    split: [{ qty: 5, bin: 21, group: 1, batch: "B-0001" }, { qty: 5, bin: 22, group: 1, batch: "B-0003" }] });
+  r = L.runPrepare(d.spec);
+  truthy("System split: group 1's rows with two numbers: not prepared", !r.ready && r.failed && /group 1 has no single batch number/.test(r.failed.error_message || ""), r.failed);
+  d = S.synth({ items: SYSF, parent: 0, header: { item_qty: 10, batch_no: "B-0001", location_id: S.BIN(21) }, lines: lines,
+    split: [{ qty: 5, bin: 21, group: 1, batch: "B-0001" }, { qty: 5, bin: 22, group: 2, batch: "b-0001" }] });
+  r = L.runPrepare(d.spec);
+  truthy("System split: two groups with one number: not prepared", !r.ready && r.failed && /two groups of the output split have one batch number/.test(r.failed.error_message || ""), r.failed);
+  // a Manual Input batch output's split is the classic save's (SUBMIT routes it there): PREPARE's Manual parent rule refuses it first
+  d = S.synth({ items: { 0: { code: "FG", batch: 1, rule: "Manual Input" }, 1: { code: "RM1" } }, parent: 0, header: { item_qty: 2, batch_no: "M-1", location_id: S.BIN(21) }, lines: lines,
+    split: [{ qty: 1, bin: 21, batch: "M-1" }, { qty: 1, bin: 22, batch: "M-2" }] });
+  r = L.runPrepare(d.spec);
+  truthy("Manual batch split: FAILED (the Manual parent rule, before the split), the IA unlocked", !r.ready && r.failed && r.failed.job_status === "FAILED" &&
+    /batch number is entered manually/.test(r.failed.error_message || "") && r.unlocks.length === 1, r.failed);
+  // the request's fingerprint covers the split: a row changed after SUBMIT -> IA_LINES_CHANGED
+  d = S.synth({ items: PLAINF, parent: 0, header: { item_qty: 2, location_id: S.BIN(21) }, lines: lines, split: [{ qty: 1.2, bin: 21 }, { qty: 0.8, bin: 22 }] });
+  const moved = S.synth({ items: PLAINF, parent: 0, header: { item_qty: 2, location_id: S.BIN(21) }, lines: lines, split: [{ qty: 1.2, bin: 21 }, { qty: 0.8, bin: 23 }] });
+  r = L.runPrepare(Object.assign({}, moved.spec, { request: d.spec.request }));
+  truthy("a split row moved after SUBMIT: IA_LINES_CHANGED", !r.ready && r.failed && r.failed.error_code === "IA_LINES_CHANGED", r.failed);
+}
+
 section("size: node data and time of one PREPARE run (sim)");
 for (const n of [830, 2000]) {
   const d = S.synth({ items: Object.fromEntries([[0, { code: "FG" }]].concat([...Array(n).keys()].map((i) => [i + 1, { code: "RM-" + i }]))), parent: 0,

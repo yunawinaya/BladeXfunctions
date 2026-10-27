@@ -49,6 +49,11 @@ prep = B.index(out)["code_node_iaRvPrep"]["data"]["script"]
 if prep["code"].count(B6.LIFT.PAIR_NOW) != 1:
     problems.append("code_node_iaRvPrep does not pair a component without its category")
 prep["code"] = prep["code"].replace(B6.LIFT.PAIR_NOW, B6.LIFT.PAIR_WAS)
+# and code_node_iaRvBuild's WA batch match as the base has it (v7, revert/classic_v7.py: the output split's WA row by its own quantity first)
+build_ = B.index(out)["code_node_iaRvBuild"]["data"]["script"]
+if build_["code"].count(B6.LIFT.WA_NOW) != 1:
+    problems.append("code_node_iaRvBuild does not match a WA batch row by its quantity first (v7)")
+build_["code"] = build_["code"].replace(B6.LIFT.WA_NOW, B6.LIFT.WA_WAS)
 if list(out) != list(base):
     problems.append("top-level keys / order differ: %s vs %s" % (list(out), list(base)))
 for k in ("request_json", "response_json", "config", "edges"):
@@ -90,7 +95,7 @@ ret = oi["return_node_iaRvCap"]["data"]
 if (ret["status_code"], [(p["prop"], p["valueType"], p["value"]) for p in ret["response_value"]["list"]]) != (
         200, [("code", "value", "400"), ("message", "field", "{{node:code_node_iaRvCap.data.message}}"), ("conflicts", "value", "[]")]):
     problems.append("the guard's answer is not the classic's refusal shape { code 400, message, conflicts [] }: %s" % ret)
-print("== IA_REVERT v6 = v5 + RES-01 R5  (%s)" % os.path.relpath(out_path, os.path.join(IAV2, "..", "..")))
+print("== IA_REVERT v7 = v5 + RES-01 R5 + the output split's WA batch match  (%s)" % os.path.relpath(out_path, os.path.join(IAV2, "..", "..")))
 print("   base IA_REVERT.v4.json md5 %s: %d nodes, identical (JSON + key order): %d" % (B.BASE_MD5[:8], len(bi), len(bi) - len(changed)))
 print("   new nodes %d: %s" % (len(new), ", ".join(new)))
 print("   top level: ... %s > %s > %s > %s ... (%d; base %d)" % (B.AFTER, B.TOP_IDS[0], B.TOP_IDS[1], top_out[at + 2], len(top_out), len(top_base)))

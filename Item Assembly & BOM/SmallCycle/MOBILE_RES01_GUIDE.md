@@ -112,7 +112,9 @@ Cancelled IA is read-only: IA_SAVE refuses any save of it (`409`, "This Item Ass
 Mobile: show Cancelled read-only (no save / complete).
 
 Mobile matches desktop (user 22 October evening): **no Cancel on the IA's own view**; Cancel is a bulk action on the IA list (selected
-Created IAs, one at a time, as `../AsyncV2/IAlistPage.json`'s `onItemAssemblyCancel`), with source `"LIST"`. Each call, after one confirm:
+Created IAs, one at a time, as `../AsyncV2/IAlistPage.json`'s `onItemAssemblyCancel`), with source `"LIST"`. Show it only to users with
+the **`ia_cancel`** permission (the desktop list button's own key since 22 October 20:22, the product owner's change; not `ia_save_draft`).
+Each call, after one confirm:
 
 ```js
 const res = await runWorkflow("2112752274794217473", { ia_id, organization_id, operation: "CANCEL", source: "LIST" });
@@ -179,6 +181,18 @@ const r = res.data.code === "200" && res.data.result_json ? JSON.parse(res.data.
 // show r.message (a warning) only when r.outcome is "PARTIAL", "INTERRUPTED" or "RUNNING"; DONE / NONE / UNKNOWN / NOT_COMPLETED: nothing
 ```
 
+## 8b. Output split (27 October): the finished good received into several bins / batches
+
+Desktop can split an IA's output across rows (`output_split`: a JSON array on the header; each row `os_qty`, `os_storage_location_id`,
+`os_location_id`, `os_category` and, for a batch item, `os_group` / `os_batch_no` / `os_mfg_date` / `os_exp_date`). When it is split the
+header's single Output Location fields hold row 1 and `item_qty` stays the total. Mobile needs no change:
+
+- Leave `output_split` out of the save payload. IA_SAVE keeps the stored rows: a mobile completion of a split IA receives every row
+  (one ADD_INVENTORY per row, each batch's Batch row created once).
+- A save without the key may not change a split IA's plant, item or Output bin: IA_SAVE answers 400 "This Item Assembly's output is
+  split across bins: change its plant, item or bin on the desktop." Show the message; do not retry.
+- If mobile ever sends `output_split`, send the whole array (ids as strings); `[]` turns the split off.
+
 ## 9. Checklist
 
 - [ ] A Created save = `saveAs: "Draft"` + `allData.ia_target_status: "Created"`; never `saveAs: "Created"`.
@@ -192,4 +206,5 @@ const r = res.data.code === "200" && res.data.result_json ? JSON.parse(res.data.
 - [ ] `required_manual` "1" / "" only when the app lets the user type Required; otherwise leave the property out.
 - [ ] Cancel only from the IA list (bulk, IA_HOLD CANCEL, source LIST), never on the IA's own view; optional: the completion check on a completed IA.
 - [ ] Ids as strings everywhere; `organization_id` sent with every IA_HOLD call.
+- [ ] Leave `output_split` out of IA saves (a split IA keeps its rows; moving its plant / item / bin answers 400).
 - [ ] Optional display: `material_hold_status` label; per line Required / Reserved / Short.

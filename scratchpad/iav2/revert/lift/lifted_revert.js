@@ -415,7 +415,8 @@ for (const k of Object.keys(rowsByTuple)) {
             S(w.batch_id) === batchId &&
             Math.abs(num(w.wa_cost_price) - num(r.unit_price)) <= PRICE_EPS
         );
-        const hit = nearest(candidates, r.id);
+        const exact = candidates.filter((w) => Math.abs(num(w.wa_quantity) - num(r.base_qty)) <= EPS);
+        const hit = nearest(exact.length ? exact : candidates, r.id);
         if (!hit) {
           flag("wa_row_missing", itemId, "No costing row matches the batch of " + nameOf(itemId) + " this assembly produced.");
           continue;

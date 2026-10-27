@@ -320,4 +320,32 @@ console.log("ok   PREPARE hard code -> FAILED + Draft; prevStatus Completed / In
   ok(J(v.unlocks) === J([IA1 + ":Draft"]), "control claim EXHAUST: a live IA is unlocked to Draft", v.unlocks);
   console.log("ok   ruling 5: a soft-deleted IA reads as not owned - after_prepare / claim EXHAUST / after_publish write no unlock (a live IA still does)");
 }
+// one stock call per run (prod 10-26: a lock lives until the top-level run ends): after an iteration that called IA_V2_COMMIT the run
+// takes no further job; the next one goes to the next run
+{
+  const w = world();
+  addJob(w, JOB1, IA1);
+  addJob(w, JOB2, IA2);
+  w.commit[JOB1] = "park";
+  w.commit[JOB2] = "park";
+  let r = tick(w);
+  ok(J(w.calls) === J(["PREPARE:" + JOB1, "COMMIT:" + JOB1]) && w.jobs[JOB2].job_status === "QUEUED", "two due jobs: this run's one COMMIT call, the second job left for the next run",
+    { calls: w.calls, job2: w.jobs[JOB2].job_status });
+  w.now += 3000;
+  r = tick(w);
+  ok(J(w.calls.slice(2)) === J(["COMMIT:" + JOB1]) && w.jobs[JOB1].job_status === "COMPLETED" && w.jobs[JOB2].job_status === "QUEUED",
+    "the next run: the parked job's phase B (its one COMMIT call), still nothing for the second", w.calls);
+  w.now += 3000;
+  r = tick(w);
+  ok(J(w.calls.slice(3)) === J(["PREPARE:" + JOB2, "COMMIT:" + JOB2]), "then the second job, one COMMIT call", w.calls);
+  // a PREPARE-only iteration (refused before any COMMIT) does not end the run: the next job still runs
+  const v = world();
+  addJob(v, JOB1, IA1);
+  addJob(v, JOB2, IA2);
+  v.prepare[JOB1] = "hard";
+  v.commit[JOB2] = "park";
+  tick(v);
+  ok(J(v.calls) === J(["PREPARE:" + JOB1, "PREPARE:" + JOB2, "COMMIT:" + JOB2]), "a job refused in PREPARE (no stock call) lets the run take the next job", v.calls);
+  console.log("ok   one COMMIT call per run: the second due job and a parked phase B go to later runs");
+}
 console.log(checks + " checks passed");

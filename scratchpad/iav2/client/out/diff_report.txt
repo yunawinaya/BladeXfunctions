@@ -20,6 +20,7 @@
 -- IAlistPage.json vs base ia_list_v20
     /config/eventScript/[key=8r9xuzc4]/func
     /config/eventScript/[key=iacncl01] (added at 19: onItemAssemblyCancel)
+    /config/eventScript/[key=iaprcf01]/func
     /config/eventScript/[key=iarsrv01] (added at 18: onItemAssemblyRetryReservation)
     /config/eventScript/[key=mounted]/func
     /config/eventScript/[key=mounted]/type (added)
@@ -27,6 +28,8 @@
     /config/eventScript/[key=z4qy8mae]/func
     /list/[key=s6wz5vvo]/options/customProps/columns/[key=4cjp73ay]/configCustom/content
     /list/[key=s6wz5vvo]/options/customProps/columns/[key=wsldpopa] (added at 2: material_hold_status)
+    /list/[key=s6wz5vvo]/options/customProps/is_no_copy (added)
+    /list/[key=s6wz5vvo]/options/customProps/is_no_drag (added)
     /list/[key=s6wz5vvo]/options/customProps/rowActions/1/hidden
     /list/[key=s6wz5vvo]/options/customProps/toolbar (length 9 -> 11)
 -- NOT_RECORD: 19 keys; none read by IA_SAVE v11; every recorded payload key is a column or stripped; stripped columns (display-only badges, never written by the classic): ['completed_status', 'draft_status', 'fullyposted_status', 'ia_idem_key', 'ia_v2_job_id', 'issued_status']
@@ -53,6 +56,7 @@
 -- IAlistPage.json vs base ia_list_v20
     /config/eventScript/[key=8r9xuzc4]/func
     /config/eventScript/[key=iacncl01] (added at 19: onItemAssemblyCancel)
+    /config/eventScript/[key=iaprcf01]/func
     /config/eventScript/[key=iarsrv01] (added at 18: onItemAssemblyRetryReservation)
     /config/eventScript/[key=mounted]/func
     /config/eventScript/[key=mounted]/type (added)
@@ -60,6 +64,8 @@
     /config/eventScript/[key=z4qy8mae]/func
     /list/[key=s6wz5vvo]/options/customProps/columns/[key=4cjp73ay]/configCustom/content
     /list/[key=s6wz5vvo]/options/customProps/columns/[key=wsldpopa] (added at 2: material_hold_status)
+    /list/[key=s6wz5vvo]/options/customProps/is_no_copy (added)
+    /list/[key=s6wz5vvo]/options/customProps/is_no_drag (added)
     /list/[key=s6wz5vvo]/options/customProps/rowActions/1/hidden
     /list/[key=s6wz5vvo]/options/customProps/toolbar (length 9 -> 11)
 -- NOT_RECORD: 19 keys; none read by IA_SAVE v11; every recorded payload key is a column or stripped; stripped columns (display-only badges, never written by the classic): ['completed_status', 'draft_status', 'fullyposted_status', 'ia_idem_key', 'ia_v2_job_id', 'issued_status']

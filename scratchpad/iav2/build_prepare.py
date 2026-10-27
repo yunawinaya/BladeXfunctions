@@ -19,8 +19,8 @@ NAME = "IA_V2_PREPARE"
 IA_TABLE = "Item Assembly:Table:2098256587713404929"
 RES = ["job_id", "job_status", "result_code", "result_message", "evidence"]
 READS = [("owner", "The lock facts: status, ia_v2_job_id, the latest IAC| LOCK row (code/shared/sql.py OWNER)"),
-         ("hdr", "The stored header (FP_HEADER)"), ("lines", "The stored component lines (FP_LINES)"),
-         ("items", "The parent + component items (ITEMS; ids from the stored rows)"), ("bins", "The bins of the header and of every pick (LABELS)"),
+         ("hdr", "The stored header (FP_HEADER_OS: + the output split's rows)"), ("lines", "The stored component lines (FP_LINES)"),
+         ("items", "The parent + component items (ITEMS; ids from the stored rows)"), ("bins", "The bins of the header, every pick and every output split row (LABELS; the split's plant check)"),
          ("res", "RES-01: the IA's own holds, its running hold tickets, its hold status (scratchpad/iasc res01)")]
 PLAN_FIELDS = ["route", "code", "message", "payload", "partRows", "lineCount", "pickCount", "movementCount", "unlockOk", "organizationId", "opKeyI", "opKeyR",
                "movementsI", "movementsR", "labels"]
@@ -69,7 +69,8 @@ def build_prepare():
         "  movementsR: res.movementsR, labels: res.labels };",
     ])
     plan_code = "\n".join([shared("ia_common.js"), shared("fingerprint.js"), shared("price.js"), src("lib/lift/runtime.js"), src("lift/lifted_prepare.js"),
-                           src("code/prepare/adapter.js"), V.include_js(os.path.join(HERE, "..", "iasc", "res01", "code"), "shared/split.js"), src("code/prepare/plan.js"),
+                           src("code/prepare/adapter.js"), V.include_js(os.path.join(HERE, "..", "iasc", "res01", "code"), "shared/split.js"),
+                           V.include_js(os.path.join(HERE, "..", "iasc", "code"), "shared/os_split.js"), src("code/prepare/plan.js"),
                            plan_tail])
     assert "{{" not in plan_code.replace(plan_tail, ""), "a platform token outside the plan tail"
     ready_fields = ["route", "needParts", "needReady", "readyRows", "needJobUpd", "jobRows", "needLink", "linkRows", "needUnlock", "unlockRows", "result_code", "result_message",

@@ -87,14 +87,20 @@ const queued = (c, o) => {
 {
   const c = X.makeCase({ batch: true });
   const w = queued(c);
-  const r = tick(w);
-  ok(!r.err && r.out.worker_route === "WORKED" && r.out.job_status === "COMPLETED" && r.out.ia_id === IAID && w.prepares === 1 && w.commitRuns === 2, "one tick: PREPARE, COMMIT A (SPLIT), COMMIT B -> COMPLETED",
+  // one stock call per worker run (prod 10-26): tick 1 = PREPARE + COMMIT A (op 1), PARK; tick 2 = COMMIT B (op 2)
+  let r = tick(w);
+  ok(!r.err && r.out.worker_route === "WORKED" && w.prepares === 1 && w.commitRuns === 1 && w.job.job_status === "COMMITTING_IA" && w.job.lease_owner === null &&
+    w.job.progress_percent === 75 && w.engine.applied["IAC|" + JOB + "|I"] === 1 && w.engine.applied["IAC|" + JOB + "|R"] === undefined,
+  "tick 1: PREPARE + COMMIT A (op 1 only), PARKed at 75 for the next run", { r, prepares: w.prepares, commits: w.commitRuns, job: w.job });
+  w.now += 2000;
+  r = tick(w);
+  ok(!r.err && r.out.worker_route === "WORKED" && r.out.job_status === "COMPLETED" && r.out.ia_id === IAID && w.prepares === 1 && w.commitRuns === 2, "tick 2: COMMIT B (op 2) -> COMPLETED",
     { r, prepares: w.prepares, commits: w.commitRuns });
   ok(w.ia.item_assembly_status === "Completed" && w.engine.applied["IAC|" + JOB + "|I"] === 1 && w.engine.applied["IAC|" + JOB + "|R"] === 1 && liveBatches(w).length === 1
     && w.job.progress_percent === 100 && w.job.lease_owner === null, "the IA Completed, both operations once, one Batch row", w.job);
   ok(w.steps.some((s) => s.job_id === JOB && s.step_name === "W0_CLAIM_0"), "the worker's claim row");
   ok(tick(w).out.worker_route === "IDLE", "the next tick is idle");
-  console.log("ok   e2e: one worker tick completes a 12-pick batch IA (2 COMMIT runs)");
+  console.log("ok   e2e: two worker ticks complete a 12-pick batch IA (one stock call each)");
 }
 {
   const c = X.makeCase({ lines: 501, picks: 2, nonStock: 1 });
@@ -127,8 +133,12 @@ const queued = (c, o) => {
   w.crashAfter = 0;
   w.now += 11 * 60000;
   r = tick(w);
+  ok(!r.err && w.job.job_status === "COMMITTING_IA" && w.job.progress_percent === 75 && w.job.lease_owner === null && w.engine.applied["IAC|" + JOB + "|I"] === 1 &&
+    w.engine.applied["IAC|" + JOB + "|R"] === undefined, "after a crash at '" + what + "' the next tick resumes op 1 (replayed once) and PARKs", { job: w.job, applied: w.engine.applied });
+  w.now += 2000;
+  r = tick(w);
   ok(!r.err && w.job.job_status === "COMPLETED" && w.engine.applied["IAC|" + JOB + "|I"] === 1 && w.engine.applied["IAC|" + JOB + "|R"] === 1 && w.ia.item_assembly_status === "Completed",
-    "after a crash at '" + what + "' the next tick resumes to COMPLETED, each operation once", { job: w.job, applied: w.engine.applied });
+    "... and the tick after it receives -> COMPLETED, each operation once", { job: w.job, applied: w.engine.applied });
   ok(/engine APPLY IAC\|[0-9]+\|I$/.test(String(what)) && opCalls(w, "I").length === 2, "the crash came right after op 1; the resume replayed it (REPLAYED)", { what, calls: opCalls(w, "I").length });
   console.log("ok   e2e: a COMMIT crash inside the tick -> the next tick resumes (" + what + ")");
 }

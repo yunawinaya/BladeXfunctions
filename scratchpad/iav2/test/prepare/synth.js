@@ -21,7 +21,8 @@ function itemRow(n, it) {
     purchase_unit_price: it.purchase_unit_price === undefined ? 0 : it.purchase_unit_price, assembly_cost: it.assembly_cost === undefined ? 0 : it.assembly_cost,
     based_uom: it.base_uom || UOM, table_uom_conversion: (it.conv || [[UOM, 1]]).map(([u, q]) => ({ alt_uom_id: u, base_qty: q })) };
 }
-// spec = { items, parent: <n>, header: {...}, lines: [{ item: <n>, uom, total, picks: [{ bin, batch, qty, cat, mfg, exp, hu }] , raw }] }
+// spec = { items, parent: <n>, header: {...}, lines: [{ item: <n>, uom, total, picks: [{ bin, batch, qty, cat, mfg, exp, hu }] , raw }],
+//          split: [{ qty, bin, cat, group, batch, mfg, exp }] (the IA output split as SUBMIT stored it), binsExtra: { <bin n>: { plant, active } } }
 function synth(spec) {
   const h = Object.assign({ item_qty: 2, item_uom: UOM, item_assembly_date: "2026-10-20 00:00:00", batch_no: "", manufacturing_date: null, expired_date: null,
     location_id: BIN(90), inventory_category: "Unrestricted", remarks: "synthetic", remarks_2: "", remarks_3: "", stock_movement_no: "IA-SYN-001", stock_movement_no_type: -9999 },
@@ -43,12 +44,17 @@ function synth(spec) {
     batch_no: h.batch_no, issuing_operation_faci: PLANT, organization_id: ORG, stock_movement_no: h.stock_movement_no, stock_movement_no_type: String(h.stock_movement_no_type),
     item_assembly_status: "Processing", posted_status: null, table_hu: spec.tableHu || [], item_assembly_date: h.item_assembly_date, manufacturing_date: h.manufacturing_date,
     expired_date: h.expired_date, remarks: h.remarks, remarks_2: h.remarks_2, remarks_3: h.remarks_3, ia_v2_job_id: L.JOB };
+  // IA output split (plan 10-27): the rows as the platform stored them (ids as JSON numbers: the SQL text keeps them exact)
+  if (spec.split) fpHeader.output_split = spec.split.map((r) => Object.assign({ os_qty: r.qty, os_storage_location_id: "2113000000000000400", os_location_id: BIN(r.bin),
+    os_category: r.cat || "Unrestricted" }, r.group === undefined ? {} : { os_group: r.group }, { os_batch_no: r.batch || "" }, r.mfg ? { os_mfg_date: r.mfg } : {}, r.exp ? { os_exp_date: r.exp } : {}));
   const fpLines = lines.map((l) => ({ id: l.id, line_index: String(l.line_index), item_selection: l.item_selection, quantity_uom: l.quantity_uom, total_quantity: C.iaQ8(l.total_quantity),
     temp_qty_data: l.temp_qty_data, temp_hu_data: l.temp_hu_data, item_name: l.item_name }));
   const itemsSql = items.map((it) => Object.assign({}, it, { assembly_cost: Number(it.assembly_cost).toFixed(2), purchase_unit_price: Number(it.purchase_unit_price).toFixed(4) }));
   const binIds = new Set([h.location_id]);
   for (const l of lines) for (const p of C.iaJsonList(l.temp_qty_data)) if (p && p.location_id) binIds.add(p.location_id);
-  const bins = [...binIds].map((id) => ({ id: id, bin: "BIN-" + id.slice(-3) }));
+  for (const r of spec.split || []) binIds.add(BIN(r.bin));
+  const extra = (id) => ((spec.binsExtra || {})[Number(BigInt(id) - 2113000000000000500n)] || {});
+  const bins = [...binIds].map((id) => ({ id: id, bin: "BIN-" + id.slice(-3), plant: extra(id).plant || PLANT, sl: "2113000000000000400", active: extra(id).active === undefined ? 1 : extra(id).active }));
   const hdr = [L.jrow(fpHeader)];
   const fl = fpLines.map(L.jrow);
   return { form: form, stored: Object.assign({}, form), items: items, hdr: hdr, lines: fl, itemsSql: itemsSql.map(L.jrow), bins: bins.map(L.jrow),

@@ -177,12 +177,15 @@ def worker_config(**kw):
     unlock          f(ids, nid, title, src, field) -> the lock-release node (status_unlock(...))
     cache_prefix    redis key prefix of the loop index (grc_wrk_)
     renames         text replacements applied to the finished JSON (build_pwv2.build_worker's renames), in order
+    one_commit_per_run  True: an iteration that called the commit ends the run's loop (a stock lock lives until the TOP-LEVEL run
+                    ends, prod 10-26: one stock call per run); default False = every planned job (the GR / LOT / SA workers' tick)
     """
     need = ["name", "code_dir", "ids_base", "command", "states", "lock_join", "id_col", "prev_col", "corr_offset", "id_alias", "prepare", "commit", "unlock",
             "cache_prefix"]
     missing = [k for k in need if k not in kw]
     assert not missing, missing
     kw.setdefault("renames", [])
+    kw.setdefault("one_commit_per_run", False)
     return kw
 
 
@@ -410,7 +413,14 @@ def build_worker(cfg):
                    ["route", "dbNow", "jobId", "jobStatus", "result_message"]),
             K.if_(ids, "if_RWpub2", "IF %s ended SPLIT: the second call (purchase orders, putaway, the receipt)" % comm[0], is_("code_node_RWsplit", "route", "PUBLISH"),
                   publish("pub2", "code_node_RWsplit", "second publish", "%s again after its SPLIT (phase B)" % comm[0])),
-            K.set_cache("set_cache_RWidxN", "Next loop index", cfg["cache_prefix"] + N(G, "data.nonce"), N("code_node_RWpick", "data.nextIndex")),
+        ] + ([K.code("code_node_RWnext", "Next loop index: past the plan after an iteration that called %s (one stock call per run)" % comm[0],
+                      "// one stock call per run (prod 10-26: a stock lock lives until the TOP-LEVEL run ends): an iteration that called the commit\n"
+                      "// ends the run's loop; the next job goes to the next run (its own kick, the list's tick)\n"
+                      "const next = [%s][0];\nconst called = [%s][0] === \"PUBLISH\";\nconst res = { nextIndex: called ? 9999 : next };\n"
+                      "console.log(\"worker next\", JSON.stringify({ called: called, nextIndex: res.nextIndex }));\nreturn { nextIndex: res.nextIndex };"
+                      % (N("code_node_RWpick", "data.nextIndex"), N("code_node_RWmid", "data.route")), ["nextIndex"])] if cfg["one_commit_per_run"] else []) + [
+            K.set_cache("set_cache_RWidxN", "Next loop index", cfg["cache_prefix"] + N(G, "data.nonce"),
+                        N("code_node_RWnext" if cfg["one_commit_per_run"] else "code_node_RWpick", "data.nextIndex")),
         ]),
         K.sql("sql_node_RWfinal", "Read-back: the planned jobs (final)", final, ["id", "job_status", "attempt_count", "lease_owner", "error_code", "error_message", cfg["id_alias"]]),
         K.code("code_node_RWresult", "Result (DONE)", wcode(cfg, "result.js", {"__PATH__": "DONE", "__PLAN__": plan_ref, "__ROWS__": "[%s][0]" % N("sql_node_RWfinal", "data")}), res_fields),

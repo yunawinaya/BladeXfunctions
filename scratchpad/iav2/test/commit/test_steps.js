@@ -285,14 +285,18 @@ const identity = { batch_number: X.BATCH_NO, material_id: PARENT, plant_id: PLAN
   ok(J(ans({ code: "200", result_code: "OK", summary: J({ movements: 3, skipped: 1 }) }).summary) === J({ movements: 3, skipped: 1 }), "I2 answer: the summary (object or text)");
   const input = Object.assign({}, inp);
   let r = commitI2(e(), guard, input, { code: "200", result_code: "OK", summary: { movements: 12, skipped: 0 } }, null, [], null);
-  ok(r.route === "OK" && r.path === "SPLIT" && r.splitRows[0].lease_owner === "SPLIT|" + guard.nonce && r.splitRows[0].progress_percent === 75 && r.splitRows[0].attempt_count === 0
-    && J(JSON.parse(r.stepRows[0].result_ref)) === J({ called: "YES", code: "200", result_code: "OK", summary: { movements: 12, skipped: 0 } }), "I2: 200 -> DONE (op 1's summary) + SPLIT at 75, attempts 0", r);
+  // one stock call per worker run (prod 10-26: a lock lives until the top-level run ends): after op 1 the receipt (op 2) goes to the next run
+  ok(r.route === "OK" && r.path === "PARK" && r.splitRows[0].lease_owner === null && r.splitRows[0].next_attempt_at === DB_NOW && r.splitRows[0].progress_percent === 75 &&
+    r.splitRows[0].attempt_count === 0 && J(JSON.parse(r.stepRows[0].result_ref)) === J({ called: "YES", code: "200", result_code: "OK", summary: { movements: 12, skipped: 0 } }),
+  "I2: 200 -> DONE (op 1's summary) + PARK at 75 (due now, no lease: op 2 in the next run), attempts 0", r);
   r = commitI2(e({ attempts: 5 }), guard, input, { code: "200", result_code: "REPLAYED", summary: { movements: 11, skipped: 1 } }, null, [], null);
-  ok(r.route === "OK" && r.splitRows[0].attempt_count === 0 && /1 skipped/.test(r.result_message), "I2: REPLAYED with a 401 skip -> DONE, attempts reset", r.result_message);
+  ok(r.route === "OK" && r.path === "PARK" && r.splitRows[0].attempt_count === 0 && /1 skipped/.test(r.result_message), "I2: REPLAYED with a 401 skip -> DONE + PARK, attempts reset",
+    r.result_message);
   r = commitI2(e({ movementsI: 1001 }), guard, input, { code: "200", result_code: "OK" }, null, [], null);
   ok(r.path === "PARK" && r.splitRows[0].lease_owner === null && r.splitRows[0].next_attempt_at === DB_NOW, "I2: above 1,000 picks -> PARK (due now, no lease)");
   r = commitI2(e(), guard, Object.assign({}, input, { needCall: "NO", count: 0 }), {}, null, [], null);
-  ok(r.route === "OK" && J(JSON.parse(r.stepRows[0].result_ref)) === J({ called: "NO", movements: 0 }), "I2: no stock pick -> DONE without a call");
+  ok(r.route === "OK" && J(JSON.parse(r.stepRows[0].result_ref)) === J({ called: "NO", movements: 0 }) && r.path === "SPLIT" && r.splitRows[0].lease_owner === "SPLIT|" + guard.nonce,
+    "I2: no stock pick -> DONE without a call + SPLIT (op 2 is then this run's only stock call)", r);
   r = commitI2(e(), guard, input, { code: "400", result_code: "INSUFFICIENT", message: "Insufficient quantity (movement M3)" }, null, rowsOf(c, "LABELS"), null);
   ok(r.job_status === "FAILED" && r.result_code === "IA_INVENTORY_INSUFFICIENT" && /line 2 \(RM-0002\), bin A1-B2/.test(r.jobRows[0].error_message) && J(r.batchDelRows) === J([{ id: "2113000000000000008", is_deleted: 1 }])
     && r.needUnlock === "YES", "I2: 400 -> FAILED, worded, Draft, the Batch row removed", r);
@@ -347,7 +351,7 @@ const identity = { batch_number: X.BATCH_NO, material_id: PARENT, plant_id: PLAN
   ok(p.movements[0].batch_id === null, "I3 plan: a non-batch parent's R1 keeps batch_id null");
   const plan = { price: want, outCount: 12, outTotal: "49.12340000" };
   ok(J(commitI3Ans({ needCall: "YES" }, { code: "200", result_code: "OK", results: [{ movement_key: "R1", code: "200", unit_price: 2.8875 }] })) === J({ code: "200", result_code: "OK", message: "", r1Code: "200",
-    r1Message: "", r1Price: "2.8875", needOps: "NO" }), "I3 answer: R1's code");
+    r1Message: "", r1Key: "R1", r1Price: "2.8875", needOps: "NO" }), "I3 answer: R1's code");
   ok(commitI3Ans({ needCall: "YES" }, { code: "200", results: J([{ movement_key: "R1", code: "401" }]) }).r1Code === "401" && commitI3Ans({ needCall: "YES" }, {}).needOps === "YES", "I3 answer: results as text; no answer -> transient");
   let r = commitI3(e(), plan, { code: "200", result_code: "OK", r1Code: "200" }, null);
   ok(r.route === "OK" && r.needProgress === "YES" && r.progressRows[0].progress_percent === 80 && r.progressRows[0].progress_message === "Assembled item received; finishing"
@@ -372,6 +376,113 @@ const identity = { batch_number: X.BATCH_NO, material_id: PARENT, plant_id: PLAN
   ok(commitI3(e(), plan, { code: "400", result_code: "UNSUPPORTED_PRICE" }, null).result_code === "IA_RECEIPT_REFUSED" && commitI3(e(), plan, { code: "500", result_code: "REQUIRES_REVIEW" }, null).result_code === "IA_RECEIPT_REFUSED",
     "I3: 400 with a code / 500 -> REQUIRES_REVIEW IA_RECEIPT_REFUSED");
   ok(commitI3(e(), plan, { code: 400, msg: "envelope" }, null).result_code === "IA_WAIT", "I3: the envelope (400 without a code) -> wait");
+}
+
+// ------------------------------------------------------------------ I1 / I3: the IA output split (plan 10-27): a Batch row per group, one receipt per row
+{
+  const { commitI1Decide } = L("code_node_IACi1decide", ["commitI1Decide"]);
+  const { commitI1Check } = L("code_node_IACi1check", ["commitI1Check"]);
+  const { commitI1Ans } = L("code_node_IACi1ans", ["commitI1Ans"]);
+  const { commitI1 } = L("code_node_IACi1", ["commitI1"]);
+  const { commitI3Plan } = L("code_node_IACi3plan", ["commitI3Plan"]);
+  const { commitI3Ans } = L("code_node_IACi3ans", ["commitI3Ans"]);
+  const B1 = "1016-005-0003";
+  const B2 = "1016-005-0004";
+  const c = X.makeCase({ batch: true, itemQty: 10, split: [{ qty: 5, bin: X.BIN0, number: B1 }, { qty: 3, bin: "2113000000000000611", number: B1 },
+    { qty: 2, bin: "2113000000000000612", cat: "Blocked", number: B2 }] });
+  const e = (p) => entryOf(c, p);
+  const idt = (n) => ({ batch_number: n, material_id: PARENT, plant_id: PLANT, organization_id: ORG, transaction_no: IANO });
+  const row = (id, n, o) => batchRow(id, Object.assign({ batch_number: n }, o || {}));
+  let d = commitI1Decide(e(), rowsOf(c, "BATCH"), rowsOf(c, "ENGINE_R"), []);
+  ok(d.route === "GO" && d.needIntent === "YES" && d.needInsert === "YES" && J(JSON.parse(d.intentRows[0].result_ref)) === J([idt(B1), idt(B2)]) &&
+    J(d.insertRows.map((r) => [r.batch_number, r.initial_quantity])) === J([[B1, "8.00000000"], [B2, "2.00000000"]]), "split I1 decide: the intent = both identities, one row per group", d);
+  d = commitI1Decide(e({ hasIntent: "YES", intent: [idt(B1), idt(B2)] }), rowsOf(c, "BATCH"), rowsOf(c, "ENGINE_R"), [row("2113000000000000008", B1)]);
+  ok(d.route === "GO" && d.needIntent === "NO" && J(d.insertRows.map((r) => r.batch_number)) === J([B2]) && J(d.ours) === J(["2113000000000000008"]),
+    "split I1 decide: an earlier pass inserted group 1's row -> adopt it, insert group 2's only", d);
+  d = commitI1Decide(e({ hasIntent: "YES", intent: [idt(B1), idt(B2)] }), rowsOf(c, "BATCH"), rowsOf(c, "ENGINE_R"), [row("2113000000000000008", B1), row("2113000000000000009", B2)]);
+  ok(d.route === "GO" && d.needInsert === "NO" && J(d.ours.slice().sort()) === J(["2113000000000000008", "2113000000000000009"]), "split I1 decide: both adopted -> nothing to insert", d);
+  d = commitI1Decide(e(), rowsOf(c, "BATCH"), rowsOf(c, "ENGINE_R"), [row("2111000000000000001", B2)]);
+  ok(d.job_status === "FAILED" && d.result_code === "IA_BATCH_DUPLICATE" && /1016-005-0004/.test(d.result_message), "split I1 decide: group 2's number held by another row -> FAILED IA_BATCH_DUPLICATE", d);
+  d = commitI1Decide(e({ hasIntent: "YES", intent: [idt(B1)] }), rowsOf(c, "BATCH"), rowsOf(c, "ENGINE_R"), []);
+  ok(d.job_status === "REQUIRES_REVIEW", "split I1 decide: an intent naming other rows -> REQUIRES_REVIEW", d);
+  // each naming rule on its own: R2 names a batch nobody planned (B1 and B2 still taken); every receipt on B1 (B2 planned, taken by none)
+  const engOf = (batchOf) => X.partRows(JOB, "ENGINE_R", Object.assign({}, c.parts.ENGINE_R, { batchOf: batchOf }));
+  d = commitI1Decide(e(), rowsOf(c, "BATCH"), engOf({ R1: B1, R2: "X-1", R3: B2 }), []);
+  ok(d.result_code === "IA_INVALID_DATA" && J(d).indexOf("a receipt names a batch the BATCH part does not plan") >= 0 && J(d).indexOf("that no receipt takes") < 0,
+    "split I1 decide: a receipt naming a batch the BATCH part lacks -> FAILED (that rule)", d);
+  d = commitI1Decide(e(), rowsOf(c, "BATCH"), engOf({ R1: B1, R2: B1, R3: B1 }), []);
+  ok(d.result_code === "IA_INVALID_DATA" && J(d).indexOf("a planned Batch row that no receipt takes") >= 0 && J(d).indexOf("does not plan") < 0,
+    "split I1 decide: a planned Batch row no receipt takes -> FAILED (that rule)", d);
+  d = commitI1Decide(e(), rowsOf(c, "BATCH"), rowsOf(c, "ENGINE_R"), []);
+  let k = commitI1Check(e(), d, [row("2113000000000000008", B1), row("2113000000000000009", B2)]);
+  ok(k.route === "GO" && k.needPlan === "YES" && J(k.planMovements.map((m) => [m.movement_key, m.batch_id, m.unit_price, m.location_id])) ===
+    J([["R1", "2113000000000000008", 0, X.BIN0], ["R2", "2113000000000000008", 0, "2113000000000000611"], ["R3", "2113000000000000009", 0, "2113000000000000612"]]) &&
+    J(k.keys) === J(["R1", "R2", "R3"]) && J(k.batchIds) === J({ [B1.toLowerCase()]: "2113000000000000008", [B2.toLowerCase()]: "2113000000000000009" }),
+  "split I1 check: both read back -> the re-PLAN of R1..R3, each with its group's batch_id", k);
+  k = commitI1Check(e(), d, [row("2113000000000000008", B1)]);
+  ok(k.result_code === "IA_STEP_RETRY", "split I1 check: group 2's row not read back -> retry", k);
+  k = commitI1Check(e(), d, [row("2113000000000000008", B1), row("2113000000000000009", B2), row("2113000000000000010", B2)]);
+  ok(k.job_status === "FAILED" && k.batchDelRows.length === 3, "split I1 check: group 2 inserted twice -> FAILED, all three removed", k);
+  const chk = commitI1Check(e(), d, [row("2113000000000000008", B1), row("2113000000000000009", B2)]);
+  const ans = (results) => commitI1Ans({ needPlan: "YES", keys: ["R1", "R2", "R3"] }, { code: "200", result_code: "OK", results: results });
+  ok(ans([{ movement_key: "R1", code: "200" }, { movement_key: "R2", code: "200" }, { movement_key: "R3", code: "200" }]).r1Code === "200", "split I1 answer: every receipt 200 -> 200");
+  ok(ans([{ movement_key: "R1", code: "200" }, { movement_key: "R2", code: "401", message: "no" }, { movement_key: "R3", code: "200" }]).r1Code === "401", "split I1 answer: R2 401 -> 401");
+  ok(ans([{ movement_key: "R1", code: "200" }, { movement_key: "R2", code: "200" }]).r1Code === "", "split I1 answer: R3 missing -> no code");
+  let r = commitI1(e(), chk, { code: "200", result_code: "OK", r1Code: "200" }, []);
+  ok(r.route === "OK" && J(JSON.parse(r.stepRows[0].result_ref).batch_ids) === J({ [B1.toLowerCase()]: "2113000000000000008", [B2.toLowerCase()]: "2113000000000000009" }) &&
+    J(r.batchIds) === J(JSON.parse(r.stepRows[0].result_ref).batch_ids), "split I1: DONE with every group's batch id", r);
+  r = commitI1(e(), chk, { code: "200", result_code: "OK", r1Code: "401", r1Message: "Skipping" }, []);
+  ok(r.job_status === "FAILED" && r.batchDelRows.length === 2, "split I1: a receipt refused -> FAILED, both Batch rows removed", r);
+  // I3: one price, every receipt with it and its group's batch id
+  const e3 = (p) => entryOf(c, Object.assign({ phase: "B", progress: 75, batchId: "2113000000000000008", batchIds: { [B1.toLowerCase()]: "2113000000000000008", [B2.toLowerCase()]: "2113000000000000009" },
+    i2DoneAt: "2026-10-20 09:50:00", i2Called: "YES", unlockOk: "NO" }, p || {}));
+  const op1 = [{ intents: 1, review: 0, done_summary: J({ movements: 12, skipped: 0 }) }];
+  const p = commitI3Plan(e3(), rowsOf(c, "ENGINE_R"), [{ n: 12, total: "40.00000000" }], op1);
+  const price = X.C.iaQ8(40 / 10 + 1.25);
+  ok(p.route === "GO" && p.needCall === "YES" && J(p.movements.map((m) => [m.movement_key, m.unit_price, m.batch_id, m.quantity])) ===
+    J([["R1", price, "2113000000000000008", 5], ["R2", price, "2113000000000000008", 3], ["R3", price, "2113000000000000009", 2]]), "split I3 plan: one price over the whole output, each receipt its batch", p);
+  ok(commitI3Plan(e3({ batchIds: { [B1.toLowerCase()]: "2113000000000000008" } }), rowsOf(c, "ENGINE_R"), [{ n: 12, total: "40" }], op1).job_status === "REQUIRES_REVIEW",
+    "split I3 plan: a group without its I1 batch id -> REQUIRES_REVIEW");
+  const a3 = (results) => commitI3Ans({ needCall: "YES", keys: ["R1", "R2", "R3"] }, { code: "200", result_code: "OK", results: results });
+  ok(a3([{ movement_key: "R1", code: "200" }, { movement_key: "R2", code: "200" }, { movement_key: "R3", code: "200" }]).r1Code === "200" &&
+    a3([{ movement_key: "R1", code: "200" }, { movement_key: "R2", code: "200" }, { movement_key: "R3", code: "401" }]).r1Code === "401" &&
+    a3([{ movement_key: "R1", code: "200" }]).r1Code === "", "split I3 answer: every receipt 200 / one refused / one missing");
+  // a non-batch split: I3 receipts without batch ids, no I1
+  const nb = X.makeCase({ itemQty: 4, split: [{ qty: 3, bin: X.BIN0 }, { qty: 1, bin: "2113000000000000611" }] });
+  const pn = commitI3Plan(entryOf(nb, { phase: "B", i2Called: "YES", i2DoneAt: "2026-10-20 09:50:00" }), rowsOf(nb, "ENGINE_R"), [{ n: 12, total: "8" }], op1);
+  ok(pn.route === "GO" && J(pn.movements.map((m) => [m.movement_key, m.batch_id, m.quantity])) === J([["R1", null, 3], ["R2", null, 1]]), "split I3 plan (non-batch): R1 / R2, no batch", pn);
+  // review 10-27 (1): the I1 intent holds every group's identity - 20 groups (the split's row cap) stored whole and read back by the entry
+  const many = X.makeCase({ batch: true, itemQty: 20, split: Array.from({ length: 20 }, (_, i) => ({ qty: 1, bin: String(2113000000000000700n + BigInt(i)),
+    number: "1016-005-" + String(100 + i).padStart(4, "0") })) });
+  const dm = commitI1Decide(entryOf(many), rowsOf(many, "BATCH"), rowsOf(many, "ENGINE_R"), []);
+  const refOf = (x) => (x.intentRows[0] || {}).result_ref || "";
+  let back = null;
+  try {
+    back = JSON.parse(refOf(dm));
+  } catch (x) {
+    back = null;
+  }
+  ok(dm.needIntent === "YES" && Array.isArray(back) && back.length === 20 && back[19].batch_number === "1016-005-0119",
+    "split I1 decide: 20 groups -> the whole intent stored (" + refOf(dm).length + " characters)", refOf(dm).slice(-80));
+  const { commitEntry } = L("code_node_IACentry", ["commitEntry"]);
+  const jobRows = [{ db_now: DB_NOW, lease_until: "2026-10-20 10:10:00", id: JOB, organization_id: ORG, command: "COMPLETE_IA", job_status: "COMMITTING_IA", progress_percent: 70, attempt_count: 0,
+    row_version: 5, idempotency_key: KEY, correlation_id: "IA|" + IAID, is_deleted: 0, lease_owner: "", lease_live: 0, due: 1, prev_status: "Draft", req_action: "DIRECT" }];
+  const iaRows = [{ ia_id: IAID, item_assembly_status: "Processing", ia_v2_job_id: JOB, stock_movement_no: IANO, item_id: PARENT, lock_ref: KEY }];
+  const en = commitEntry(guard, jobRows, [], [{ step_name: "I1|I|001", step_status: "INTENT", result_ref: refOf(dm) }], [{ prepared_payload: J(many.manifest) }], iaRows);
+  ok(en.hasIntent === "YES" && Array.isArray(en.intent) && en.intent.length === 20, "entry: a 20-group intent reads back whole (hasIntent YES)", { hasIntent: en.hasIntent, route: en.route });
+  // review 10-27 (3): a refused receipt is named by its own key and row, not R1's
+  const labRows = rowsOf(c, "LABELS");
+  const ans3 = ans([{ movement_key: "R1", code: "200" }, { movement_key: "R2", code: "200" }, { movement_key: "R3", code: "401", message: "Skipping: not stock controlled" }]);
+  r = commitI1(e(), chk, ans3, labRows);
+  const msgOf = (x) => ((x.jobRows || [])[0] || {}).error_message || "";
+  ok(r.job_status === "FAILED" && /into bin FG-3/.test(msgOf(r)) && !/FG-1\b/.test(msgOf(r)) && /R3 401/.test(r.result_message), "split I1: R3 refused -> the message names R3's row",
+    [msgOf(r), r.result_message]);
+  r = commitI1(e(), chk, { code: "400", result_code: "INSUFFICIENT", message: "movements[2] Insufficient quantity" }, labRows);
+  ok(r.job_status === "FAILED" && /into bin FG-3/.test(msgOf(r)), "split I1: a 400 naming movements[2] -> R3's row", msgOf(r));
+  const { commitI3 } = L("code_node_IACi3", ["commitI3"]);
+  const a33 = a3([{ movement_key: "R1", code: "200" }, { movement_key: "R2", code: "200" }, { movement_key: "R3", code: "401", message: "Skipping" }]);
+  r = commitI3(e3(), p, a33, null);
+  ok(r.job_status === "REQUIRES_REVIEW" && /R3 answered 401/.test(J(r)) && !/R1 answered/.test(J(r)), "split I3: R3 refused -> the review names R3", J(r).slice(0, 300));
 }
 
 // ------------------------------------------------------------------ I4

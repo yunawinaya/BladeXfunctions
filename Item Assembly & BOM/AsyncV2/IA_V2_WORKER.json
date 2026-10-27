@@ -1,7 +1,7 @@
 {
  "request_json": [
   {
-   "key": "varfuve8",
+   "key": "7k3chqe7",
    "name": "job_id",
    "title": "job_id",
    "description": "optional: gd_async_job.id (digits) to drive this job only (the form's kick after a submit); empty: the oldest due jobs of the session tenant (at most 5 per tick)",
@@ -12,7 +12,7 @@
  ],
  "response_json": [
   {
-   "key": "7k3chqe7",
+   "key": "v42i3f7i",
    "name": "worker_route",
    "title": "worker_route",
    "description": "",
@@ -20,7 +20,7 @@
    "isExpand": false
   },
   {
-   "key": "v42i3f7i",
+   "key": "w1g94p78",
    "name": "processed",
    "title": "processed",
    "description": "",
@@ -28,7 +28,7 @@
    "isExpand": false
   },
   {
-   "key": "w1g94p78",
+   "key": "xbdkorgl",
    "name": "jobs",
    "title": "jobs",
    "description": "",
@@ -36,7 +36,7 @@
    "isExpand": false
   },
   {
-   "key": "xbdkorgl",
+   "key": "znbrh41l",
    "name": "job_id",
    "title": "job_id",
    "description": "",
@@ -44,7 +44,7 @@
    "isExpand": false
   },
   {
-   "key": "znbrh41l",
+   "key": "533co8cj",
    "name": "job_status",
    "title": "job_status",
    "description": "",
@@ -52,7 +52,7 @@
    "isExpand": false
   },
   {
-   "key": "533co8cj",
+   "key": "nco465ds",
    "name": "result_code",
    "title": "result_code",
    "description": "",
@@ -60,7 +60,7 @@
    "isExpand": false
   },
   {
-   "key": "nco465ds",
+   "key": "mvkqrofo",
    "name": "result_message",
    "title": "result_message",
    "description": "",
@@ -68,7 +68,7 @@
    "isExpand": false
   },
   {
-   "key": "mvkqrofo",
+   "key": "z6wo25ax",
    "name": "ia_id",
    "title": "ia_id",
    "description": "",
@@ -76,7 +76,7 @@
    "isExpand": false
   },
   {
-   "key": "z6wo25ax",
+   "key": "mgn0ec24",
    "name": "evidence",
    "title": "evidence",
    "description": "",
@@ -5692,6 +5692,35 @@
      ]
     },
     {
+     "id": "code_node_IWnext",
+     "type": "code-node",
+     "data": {
+      "language": "javascript",
+      "code": "",
+      "timeout": 30000,
+      "script": {
+       "type": "javascript",
+       "code": "// one stock call per run (prod 10-26: a stock lock lives until the TOP-LEVEL run ends): an iteration that called the commit\n// ends the run's loop; the next job goes to the next run (its own kick, the list's tick)\nconst next = [{{node:code_node_IWpick.data.nextIndex}}][0];\nconst called = [{{node:code_node_IWmid.data.route}}][0] === \"PUBLISH\";\nconst res = { nextIndex: called ? 9999 : next };\nconsole.log(\"worker next\", JSON.stringify({ called: called, nextIndex: res.nextIndex }));\nreturn { nextIndex: res.nextIndex };"
+      },
+      "response_json": [
+       {
+        "key": "0jtyis1e",
+        "name": "nextIndex",
+        "title": "nextIndex",
+        "description": "",
+        "bsonType": "string",
+        "isExpand": false,
+        "children": []
+       }
+      ],
+      "title": "Next loop index: past the plan after an iteration that called IA_V2_COMMIT (one stock call per run)",
+      "isValidator": true,
+      "nodeName": "Next loop index: past the plan after an iteration that called IA_V2_COMMIT (one stock call per run)",
+      "name": "Next loop index: past the plan after an iteration that called IA_V2_COMMIT (one stock call per run)"
+     },
+     "blocks": []
+    },
+    {
      "id": "set_cache_IWidxN",
      "type": "set-cache-node",
      "data": {
@@ -5704,7 +5733,7 @@
       "name": "Next loop index",
       "custom_wkbocgni": {
        "type": "javascript",
-       "code": "{{node:code_node_IWpick.data.nextIndex}}"
+       "code": "{{node:code_node_IWnext.data.nextIndex}}"
       },
       "redis_key": "ia_wrk_{{node:code_node_IWguard.data.nonce}}"
      },
@@ -5729,7 +5758,7 @@
     },
     "response_json": [
      {
-      "key": "0jtyis1e",
+      "key": "fd0ttaym",
       "name": "id",
       "title": "id",
       "description": "",
@@ -5738,7 +5767,7 @@
       "children": []
      },
      {
-      "key": "fd0ttaym",
+      "key": "s03xa749",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -5747,7 +5776,7 @@
       "children": []
      },
      {
-      "key": "s03xa749",
+      "key": "ndvuprts",
       "name": "attempt_count",
       "title": "attempt_count",
       "description": "",
@@ -5756,7 +5785,7 @@
       "children": []
      },
      {
-      "key": "ndvuprts",
+      "key": "iiwvkgvl",
       "name": "lease_owner",
       "title": "lease_owner",
       "description": "",
@@ -5765,7 +5794,7 @@
       "children": []
      },
      {
-      "key": "iiwvkgvl",
+      "key": "xiz2cdky",
       "name": "error_code",
       "title": "error_code",
       "description": "",
@@ -5774,7 +5803,7 @@
       "children": []
      },
      {
-      "key": "xiz2cdky",
+      "key": "fg8kcf3v",
       "name": "error_message",
       "title": "error_message",
       "description": "",
@@ -5783,7 +5812,7 @@
       "children": []
      },
      {
-      "key": "fg8kcf3v",
+      "key": "g6qaal06",
       "name": "ia_id",
       "title": "ia_id",
       "description": "",
@@ -5808,7 +5837,7 @@
     },
     "response_json": [
      {
-      "key": "g6qaal06",
+      "key": "ixewjxt6",
       "name": "worker_route",
       "title": "worker_route",
       "description": "",
@@ -5817,7 +5846,7 @@
       "children": []
      },
      {
-      "key": "ixewjxt6",
+      "key": "i59njey2",
       "name": "processed",
       "title": "processed",
       "description": "",
@@ -5826,7 +5855,7 @@
       "children": []
      },
      {
-      "key": "i59njey2",
+      "key": "67ehb54x",
       "name": "jobs",
       "title": "jobs",
       "description": "",
@@ -5835,7 +5864,7 @@
       "children": []
      },
      {
-      "key": "67ehb54x",
+      "key": "wie29v3j",
       "name": "job_id",
       "title": "job_id",
       "description": "",
@@ -5844,7 +5873,7 @@
       "children": []
      },
      {
-      "key": "wie29v3j",
+      "key": "ui3f3ywb",
       "name": "job_status",
       "title": "job_status",
       "description": "",
@@ -5853,7 +5882,7 @@
       "children": []
      },
      {
-      "key": "ui3f3ywb",
+      "key": "h6es78b0",
       "name": "result_code",
       "title": "result_code",
       "description": "",
@@ -5862,7 +5891,7 @@
       "children": []
      },
      {
-      "key": "h6es78b0",
+      "key": "k0e0ruog",
       "name": "result_message",
       "title": "result_message",
       "description": "",
@@ -5871,7 +5900,7 @@
       "children": []
      },
      {
-      "key": "k0e0ruog",
+      "key": "ulbadafo",
       "name": "ia_id",
       "title": "ia_id",
       "description": "",
@@ -5880,7 +5909,7 @@
       "children": []
      },
      {
-      "key": "ulbadafo",
+      "key": "varfuve8",
       "name": "evidence",
       "title": "evidence",
       "description": "",

@@ -61,24 +61,31 @@ ITEM_IDS = """SELECT k.v
                          UNION
                          SELECT CAST(l.item_selection AS UNSIGNED) FROM %s AND l.item_selection REGEXP '^[0-9]{1,20}$') k""" % (HEADER_OF, LINES_OF)
 
-BINS_SQL = """SELECT JSON_OBJECT('id', CAST(b.id AS CHAR), 'bin', b.bin_location_combine) AS j
+# + the IA output split's rows' bins (plan 10-27), with their plant, storage location and status (the split's own check)
+BINS_SQL = """SELECT JSON_OBJECT('id', CAST(b.id AS CHAR), 'bin', b.bin_location_combine, 'plant', CAST(b.plant_id AS CHAR), 'sl', CAST(b.storage_location_id AS CHAR),
+       'active', b.bin_status) AS j
   FROM (SELECT DISTINCT k.v
           FROM (SELECT h.location_id AS v FROM %s
                 UNION ALL
                 SELECT CAST(t.loc AS UNSIGNED)
                   FROM sm_item_assembly_tlm8ve69_sub l,
                        JSON_TABLE(IF(JSON_VALID(l.temp_qty_data), l.temp_qty_data, '[]'), '$[*]' COLUMNS (loc VARCHAR(32) PATH '$.location_id')) t
-                 WHERE l.tenant_id = '%s' AND l.sm_item_assembly_id = %s AND l.is_deleted = 0 AND t.loc REGEXP '^[0-9]{1,20}$') k) x
+                 WHERE l.tenant_id = '%s' AND l.sm_item_assembly_id = %s AND l.is_deleted = 0 AND t.loc REGEXP '^[0-9]{1,20}$'
+                UNION ALL
+                SELECT CAST(s.loc AS UNSIGNED)
+                  FROM sm_item_assembly h2,
+                       JSON_TABLE(IF(JSON_VALID(h2.output_split), h2.output_split, '[]'), '$[*]' COLUMNS (loc VARCHAR(32) PATH '$.os_location_id')) s
+                 WHERE h2.tenant_id = '%s' AND h2.id = %s AND h2.is_deleted = 0 AND s.loc REGEXP '^[0-9]{1,20}$') k) x
   JOIN bin_location b
     ON b.id = x.v
  WHERE b.tenant_id = '%s'
    AND b.is_deleted = 0
- ORDER BY b.id""" % (HEADER_OF, ET, IA, ET)
+ ORDER BY b.id""" % (HEADER_OF, ET, IA, ET, IA, ET)
 
 OWNER_COLS = ["db_now", "ia_id", "item_assembly_status", "ia_v2_job_id", "stock_movement_no", "lock_ref", "lock_step"]
 READS = {
     "owner": (V.sub(SHARED.OWNER, T=ET, IA=IA), OWNER_COLS),
-    "hdr": (V.sub(SHARED.FP_HEADER, T=ET, IA=IA), ["j"]),
+    "hdr": (V.sub(SHARED.FP_HEADER_OS, T=ET, IA=IA), ["j"]),
     "lines": (V.sub(SHARED.FP_LINES, T=ET, IA=IA), ["j"]),
     "items": (V.sub(SHARED.ITEMS, T=ET, ITEMS=ITEM_IDS), ["j"]),
     "bins": (BINS_SQL, ["j"]),

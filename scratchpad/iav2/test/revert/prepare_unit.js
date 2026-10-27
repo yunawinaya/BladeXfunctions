@@ -54,6 +54,31 @@ function plan(z, extra, track) {
   const a = plan(all);
   H.ok(a.parts.COST.waRestate[0].after.wa_quantity === "0.000" && a.parts.COST.waRestate[0].after.wa_cost_price === "6.00000000",
     "WA: all of it was this assembly's -> the classic's '0.000' at the old price, verbatim", a.parts.COST.waRestate[0]);
+  // IA output split (plan 10-27): one Weighted Average batch received 5 + 3 into two bins at one price leaves two WA rows (ADD inserts
+  // one per receipt); each IN row takes the WA row of its own quantity first, then the nearest. The WA rows' ids lie the wrong way round
+  // here, so the nearest alone would pair 5 with 3 (wa_qty_short)
+  const sp = synth({ parent: { method: "Weighted Average", batch: true, qty: 8, price: 5 } });
+  const FG2 = "2018912822846582798";
+  const in1 = sp.S.moves.find((m) => m.movement === "IN");
+  const in2 = Object.assign({}, in1, { id: String(BigInt(in1.id) + 1000n), bin_location_id: FG2, quantity: X.d8 ? X.d8(3) : "3.00000000", base_qty: "3.00000000",
+    total_price: "15.00000000" });
+  Object.assign(in1, { quantity: "5.00000000", base_qty: "5.00000000", total_price: "25.00000000" });
+  sp.S.moves.push(in2);
+  const w0 = sp.S.wa[0];
+  sp.S.wa = [Object.assign({}, w0, { id: String(BigInt(in1.id) + 500n), wa_quantity: "3.00000000" }), Object.assign({}, w0, { id: String(BigInt(in2.id) + 500n), wa_quantity: "5.00000000" })];
+  const reBin = (row, bin, q, off) => {
+    const o = JSON.parse(row.j);
+    return { j: JSON.stringify(Object.assign({}, o, { id: String(BigInt(o.id) + off), location_id: bin, unrestricted_qty: q, balance_quantity: q })) };
+  };
+  sp.S.itemBal = [reBin(sp.S.itemBal[0], in1.bin_location_id, 5, 0n), reBin(sp.S.itemBal[0], FG2, 3, 3000n)];
+  sp.S.batchBal = [reBin(sp.S.batchBal[0], in1.bin_location_id, 5, 0n), reBin(sp.S.batchBal[0], FG2, 3, 3000n)];
+  sp.S.bins = sp.S.bins.concat([{ j: JSON.stringify({ id: FG2, bin_location_combine: "FG-02" }) }]);
+  sp.S.hdr = [{ j: JSON.stringify(Object.assign(JSON.parse(sp.S.hdr[0].j), { item_qty: "8.00000000" })) }];
+  const s2 = plan(sp);
+  const del = (s2.parts && s2.parts.COST.waDelete) || [];
+  H.ok(s2.P && s2.P.route === "READY" && del.length === 2 && del.map((x) => x.before.wa_quantity).sort().join(",") === "3.00000000,5.00000000",
+    "WA batch split into two bins: READY, both WA rows removed, each by the IN row of its own quantity (not the nearest)", [s2.pr && s2.pr.route, s2.P && s2.P.route,
+      s2.P && s2.P.message, del]);
   const fixed = synth({ parent: { method: "Fixed Cost" } });
   const f = plan(fixed);
   H.ok(f.P.route === "READY" && f.parts.COST.fifo.length + f.parts.COST.waDelete.length + f.parts.COST.waRestate.length === 0, "Fixed Cost parent: no costing row to restore", f.parts.COST);

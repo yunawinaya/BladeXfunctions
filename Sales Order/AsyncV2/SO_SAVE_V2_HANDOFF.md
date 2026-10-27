@@ -1,5 +1,11 @@
 # SO Save V2 (with the SO → GD cascade): hand-off
 
+> **Since 2026-10-27 the live SO_SAVE_SUBMIT / WORKER / PREPARE / COMMIT / RUN and CREDIT_LIMIT_CHECK are built by
+> `scratchpad/sosave_perf/build.py`** from their live JSON, not by the original `scripts/build-so-save-v2.mjs`. Their code
+> nodes are trimmed: each holds only the shared helpers it used when built. Change them there and rebuild; a call added in
+> the designer to a helper a node does not hold fails on that path alone. What changed and why:
+> `prod-hotfix/2026-10-27-so-save-speed/` and `prod-hotfix/2026-10-27-so-save-v2-speed/`.
+
 Prepared 2026-10-21 by bladexfunctions-af (the GD Completed / Created / Cancel V2 session) for the developer who builds it.
 
 **Decision (user):**

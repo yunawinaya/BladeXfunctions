@@ -13,7 +13,7 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, intentRows, p
   const base = {
     route: "NO_WRITE", phase: "", dbNow: dbNow, jsAt: String(Date.now()), jobId: guard.jobId, tenantId: guard.tenantId, organizationId: "0", plantId: "0", iaId: "0", iaNo: "", parentItemId: "0",
     prevStatus: "", idempotencyKey: "", jobStatus: job ? s(job.job_status) : "", rowVersion: job ? Number(job.row_version) || 0 : 0, attempts: job ? Number(job.attempt_count) || 0 : 0,
-    leaseUntil: job ? s(job.lease_until) : "", progress: 0, progressMessage: "", unlockOk: "NO", partPrefix: "", batchMode: "", movementsI: 0, lineFingerprint: "", batchId: "", batchNumber: "",
+    leaseUntil: job ? s(job.lease_until) : "", progress: 0, progressMessage: "", unlockOk: "NO", partPrefix: "", batchMode: "", movementsI: 0, lineFingerprint: "", batchId: "", batchNumber: "", batchIds: {},
     i2DoneAt: "", i2Called: "", op1Wrote: "NO", waitFrom: "", intent: null, hasIntent: "NO", needOursRead: "NO", oursItem: "0", oursOrg: "0", jobRows: [], needJobUpd: "NO", unlockRows: [],
     needUnlock: "NO", batchDelRows: [], needBatchDel: "NO", needI0: "NO", needI1: "NO", needI2: "NO", needI3: "NO", needI4: "NO", result_code: "", result_message: "",
     job_status: job ? s(job.job_status) : "",
@@ -62,7 +62,9 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, intentRows, p
     idempotencyKey: s(job.idempotency_key), dbNow: dbNow, jsAt: String(Date.now()), attempts: Number(job.attempt_count) || 0, rowVersion: Number(job.row_version) || 0, leaseUntil: s(job.lease_until),
     progress: progress, progressMessage: phase === "A" ? "Issuing the components (" + picks + " stock pick" + (picks === 1 ? "" : "s") + ")" : done.I3_RECEIPT ? P80 : P75,
     partPrefix: valid ? "P|" + s(m.nonce) + "|" : "", batchMode: valid ? s(m.batchMode) : "", movementsI: picks, lineFingerprint: valid ? s(m.lineFingerprint) : "",
-    batchId: i1 && digits(i1.batch_id) ? s(i1.batch_id) : "", batchNumber: i1 ? s(i1.batch_number) : "", i2DoneAt: done.I2_ISSUE ? done.I2_ISSUE.at : "",
+    batchId: i1 && digits(i1.batch_id) ? s(i1.batch_id) : "", batchNumber: i1 ? s(i1.batch_number) : "",
+    // an output split (plan 10-27): every group's Batch row id by number
+    batchIds: i1 && i1.batch_ids && typeof i1.batch_ids === "object" ? i1.batch_ids : {}, i2DoneAt: done.I2_ISSUE ? done.I2_ISSUE.at : "",
     i2Called: done.I2_ISSUE ? (i2 && s(i2.called) === "NO" ? "NO" : "YES") : "", intent: intent && typeof intent === "object" ? intent : null,
     hasIntent: intent === undefined ? "BAD" : intent && typeof intent === "object" ? "YES" : "NO",
     // R2: op 1 has engine rows (an intent or its DONE) -> stock may have moved, so no phase-A failure may claim it did not
@@ -71,14 +73,16 @@ const commitEntry = function commitEntry(guard, jobRows, stepRows, intentRows, p
   const wait = s(job.error_code) === "IA_WAIT" ? iaParseJ(job.error_details) : null;
   entry.waitFrom = wait && typeof wait === "object" && s(wait.step) === "I3_RECEIPT" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(s(wait.waitFrom)) ? s(wait.waitFrom) : "";
   if (entry.intent) {
-    entry.oursItem = digits(entry.intent.material_id) ? s(entry.intent.material_id) : "0";
-    entry.oursOrg = digits(entry.intent.organization_id) ? s(entry.intent.organization_id) : "0";
+    // one identity, or one per output split group (plan 10-27): one item and organization
+    const first = Array.isArray(entry.intent) ? entry.intent[0] || {} : entry.intent;
+    entry.oursItem = digits(first.material_id) ? s(first.material_id) : "0";
+    entry.oursOrg = digits(first.organization_id) ? s(first.organization_id) : "0";
   }
   // the job owns the IA: Processing, its ia_v2_job_id, and the latest IAC| LOCK row carries the job's key (CONTRACT section 4)
   const keyed = iaId !== "0" && s(ia.ia_id) === iaId && s(ia.lock_ref) !== "" && s(ia.lock_ref) === entry.idempotencyKey && s(ia.ia_v2_job_id) === guard.jobId;
   const lockMine = keyed && s(ia.item_assembly_status) === "Processing";
   entry.unlockOk = phase === "A" && lockMine ? "YES" : "NO";
-  const ours = entry.batchId ? [entry.batchId] : [];
+  const ours = iaBatchIdsOf(entry);
   const fail = (code, message, why) => {
     const f = failNoWrite(entry, code, message, why, ours);
     // an I1 that inserted without recording DONE: its row is found by the intent's identity before the failure is written

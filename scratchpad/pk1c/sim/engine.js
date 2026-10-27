@@ -12,6 +12,14 @@ class Stop {
   constructor(value) { this.value = value; }
 }
 
+// a run whose try-catch caught an error: complete, its writes kept, but failed for its caller (verified on dev 10-16 / 10-23)
+class CaughtRun extends Error {
+  constructor(name, caught, res) {
+    super(name + ": a caught error marks the run - " + caught);
+    this.res = res;
+  }
+}
+
 // a value reached THROUGH an array (rows.id) is one value per row: the platform zips such props by index
 class Mapped extends Array {}
 
@@ -51,16 +59,20 @@ class Engine {
   run(name, params) {
     const wf = this.load(name);
     const ctx = { name, params: params || {}, out: {}, loops: {}, uuid: (++this.uuidN).toString(16).padStart(8, "0") + "a".repeat(24), bytes: 0, bytesIn: 0 };
+    let res;
     try {
       this.block(wf.nodes, ctx);
-      return { returned: null, ctx };
+      res = { returned: null, ctx };
     } catch (e) {
-      if (e instanceof Stop) return { returned: e.value, ctx };
-      throw e;
+      if (!(e instanceof Stop)) throw e;
+      res = { returned: e.value, ctx };
     } finally {
       this.sizes[name] = Math.max(this.sizes[name] || 0, ctx.bytes);
       this.sizesIn[name] = Math.max(this.sizesIn[name] || 0, ctx.bytesIn);
     }
+    // the platform: a caught error still marks the run, so its caller's workflow-node fails (the run's writes stay)
+    if (ctx.caught) throw new CaughtRun(name, ctx.caught, res);
+    return res;
   }
 
   resolve(ref, ctx) {
@@ -262,10 +274,22 @@ class Engine {
         for (const f of d.response_value.list) out[f.prop] = this.value(f.value, ctx);
         throw new Stop(out);
       }
+      case "tryCatch": {
+        const [tryB, catchB] = n.blocks || [];
+        try {
+          this.block(tryB ? tryB.blocks : [], ctx);
+        } catch (err) {
+          if (err instanceof Stop) throw err;
+          ctx.caught = ctx.caught || String(err.message || err).slice(0, 200);
+          this.trace.push(ctx.name + " " + n.id + " caught: " + ctx.caught);
+          this.block(catchB ? catchB.blocks : [], ctx);
+        }
+        return;
+      }
       default:
         throw new Error("node type " + n.type + " not simulated (" + n.id + ")");
     }
   }
 }
 
-module.exports = { Engine, getPath, Mapped };
+module.exports = { Engine, getPath, Mapped, CaughtRun };

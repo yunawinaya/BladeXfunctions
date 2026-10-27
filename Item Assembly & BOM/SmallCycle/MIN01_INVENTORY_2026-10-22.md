@@ -63,6 +63,18 @@ same-bin category move takes and releases the key twice, so an engine run can ta
 4. GD_PROCESS_REVERT should read `errorMessage` (3f's workflow).
 Until then the lock stays OFF; with it OFF, behaviour is today's (silent lost updates, no refusals).
 
+**27 Oct: the per-child lock must NOT be switched ON as built (new top blocker).** Production on 26 Oct showed that the
+atomic-count lock is held until the TOP-LEVEL run ends, child runs included, with no wait timeout (memory
+`project_lowcode_atomiccount_semantics`). The 22 Oct "classic calls queue safely" result came from test runs where each child call
+was its own top-level run. Real classic callers call the children in per-line loops inside ONE run. With `CL_LOCK_ENABLED` ON:
+- every key a document touches would stay locked until the whole document ends, not for the ~200 ms critical section;
+- the keys would be taken in line order, not key order, so two classic documents (or a document and an engine operation) with
+  overlapping keys can deadlock until the platform's 20-min run limit;
+- the queue rule (take behind a CL| holder, v62+) waits instead of refusing, which makes that worse.
+A safe ON needs the engine's rule: all of a document's keys taken once, in key order, in one call, with one stock call per top-level
+run. That is document-level locking in each classic caller (in effect the engine model), not the per-child lock. State on 27 Oct:
+switches OFF in all five workflows on DEV and PROD (checked in the enabled script_json); nothing takes a lock while OFF.
+
 **BLOCKERS for switching the classic lock ON** (owners' answers, 22 Oct; the engine owner recommends OFF until 1-3 exist and 4 passes):
 
 | # | Blocker | Who | State |

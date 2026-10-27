@@ -29,6 +29,16 @@ STANDIN = {
 NAMES = ["IA_V2_PREPARE", "IA_V2_COMMIT", "IA_V2_WORKER", "IA_V2_SUBMIT", "IA_SAVE", "IA_REVERT_V2_PREPARE", "IA_REVERT_V2_COMMIT",
          "IA_REVERT_V2_WORKER", "IA_REVERT_V2_SUBMIT", "IA_REVERT"]
 GEN = [os.path.join(IAV2, "code", "worker"), os.path.join(IAV2, "code", "revert", "worker")]
+# IA_V2_SUBMIT's and IA_SAVE's repo files are frozen since 10-21: Small Cycle's patch_v4 / patch_v13 build the shipped SUBMIT / IA_SAVE
+# from them (SmallCycle/), so a fresh build no longer equals them (10-22: IA_PREV_STATUSES gained Created; 10-27: the shared fingerprint.js
+# gained the output split). The runs use the frozen files with their shell ids swapped for the stand-ins
+FROZEN = ("IA_V2_SUBMIT", "IA_SAVE")
+# Revert V2 builds that differ from their repo files (= DEV) only by shared code they never call (10-22 IA_PREV_STATUSES + Created; 10-27
+# the output split in fingerprint.js: Revert V2 reads iaMovesFingerprint only): the runs use the repo files; every changed script line must
+# be one of those, anything else fails. The drift ships with the next revert rebuild
+DRIFT = ("IA_REVERT_V2_PREPARE", "IA_REVERT_V2_SUBMIT", "IA_REVERT_V2_COMMIT", "IA_REVERT_V2_WORKER")
+DRIFT_LINE = re.compile(r"iaFp|IA_PREV_STATUSES = |// RES-01 Created \(BA, 10-22\)|// IA output split \(plan 10-27\): a split's rows|// so every other IA's fingerprint|^\};$"
+                        r"|^  if \(typeof rows === \"string\"\) return rows;$|^  return split\.length \? base\.concat\(\[split\]\) : base;$")
 ZERO = "--zero" in sys.argv
 sys.path.insert(0, os.path.join(IAV2, "lib"))
 sys.path.insert(0, IAV2)
@@ -85,6 +95,33 @@ def zeroed(text, ids=None):
     return text
 
 
+def drift_lines(repo_doc, built_doc):
+    """the script lines a build changed against the repo file, + every node whose non-script data changed"""
+    import difflib
+    out = []
+
+    def walk(ns, acc):
+        for n in ns or []:
+            acc[n["id"]] = n
+            walk(n.get("blocks"), acc)
+    ra, rb = {}, {}
+    walk(repo_doc["nodes"], ra)
+    walk(built_doc["nodes"], rb)
+    if sorted(ra) != sorted(rb):
+        return ["node set: " + ", ".join(sorted(set(ra) ^ set(rb)))]
+    for k in ra:
+        da, db = ra[k].get("data") or {}, rb[k].get("data") or {}
+        if json.dumps(da, sort_keys=True) == json.dumps(db, sort_keys=True):
+            continue
+        x, y = (da.get("script") or {}).get("code"), (db.get("script") or {}).get("code")
+        rest = lambda d: json.dumps({kk: vv for kk, vv in d.items() if kk != "script"}, sort_keys=True)
+        if x is None or y is None or rest(da) != rest(db):
+            out.append(k + ": non-script data")
+            continue
+        out += [l[1:] for l in difflib.unified_diff(x.split("\n"), y.split("\n"), lineterm="", n=0) if l[:1] in "+-" and l[:3] not in ("+++", "---")]
+    return out
+
+
 def callees(doc):
     found = []
 
@@ -101,6 +138,8 @@ def zero(built):
     """ids.json's ids: every workflow and D's outputs as the builders make them in ONE process = the repo files, byte for byte"""
     check(sorted(built) == sorted(NAMES), "all 10 workflows built in one process (build_ia.builders(), publish order)")
     for name in NAMES:
+        if name in FROZEN or name in DRIFT:
+            continue
         text = json.dumps(built[name], ensure_ascii=False, indent=1) + "\n"
         repo = open(os.path.join(OUT, name + ".json"), encoding="utf-8").read()
         check(text == repo, "%s: byte for byte = the repo file (%d chars)" % (name, len(text)))
@@ -144,7 +183,25 @@ def main():
         check(all(v not in open(os.path.join(OUT, n + ".json"), encoding="utf-8").read() for n in NAMES), "stand-in id " + v + " is not a real id in the repo")
     warnings = []
     real = {k: str(json.load(open(os.path.join(IAV2, "ids.json"), encoding="utf-8"))[k]) for k in STANDIN}
+    for name in FROZEN:
+        text = open(os.path.join(OUT, name + ".json"), encoding="utf-8").read()
+        for k, v in real.items():
+            if v and v != "0":
+                text = text.replace(v, STANDIN[k])
+        built[name] = json.loads(text)
+        checks.append(name + ": the frozen repo file (Small Cycle's base), its shell ids swapped for the stand-ins")
+    for name in DRIFT:
+        raw = open(os.path.join(OUT, name + ".json"), encoding="utf-8").read()
+        bad = [l for l in drift_lines(json.loads(zeroed(raw, real)), json.loads(zeroed(json.dumps(built[name], ensure_ascii=False)))) if not DRIFT_LINE.search(l)]
+        check(not bad, name + ": the build differs from the repo file only by the declared shared drift" + ("" if not bad else " - not: " + " | ".join(bad[:5])))
+        for k, v in real.items():
+            if v and v != "0":
+                raw = raw.replace(v, STANDIN[k])
+        built[name] = json.loads(raw)
+        warnings.append(name + ": the repo file (= DEV) runs; the build adds only the declared shared drift")
     for name in NAMES:
+        if name in FROZEN:
+            continue
         text = json.dumps(built[name], ensure_ascii=False, indent=1) + "\n"
         repo = zeroed(open(os.path.join(OUT, name + ".json"), encoding="utf-8").read(), real)
         if zeroed(text) == repo:

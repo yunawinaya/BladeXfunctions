@@ -32,6 +32,11 @@ FP_HEADER = """SELECT JSON_OBJECT('id', CAST(h.id AS CHAR), 'item_id', h.item_id
    AND h.id = @IA
    AND h.is_deleted = 0"""
 
+# IA output split (plan 10-27): the same + the stored split rows (output_split): the completion's workflows (SUBMIT's read-back, PREPARE,
+# COMMIT I0) fingerprint and plan them; the reverts keep FP_HEADER
+FP_HEADER_OS = FP_HEADER.replace("'ia_v2_job_id', h.ia_v2_job_id) AS j", "'ia_v2_job_id', h.ia_v2_job_id, 'output_split', h.output_split) AS j", 1)
+assert FP_HEADER_OS != FP_HEADER
+
 # lock ownership (CONTRACT.md section 4): the status, the job link and the latest IAC|<ia> LOCK row of one IA
 OWNER = """SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
        CAST(h.id AS CHAR) AS ia_id, h.item_assembly_status, h.ia_v2_job_id AS ia_v2_job_id, h.stock_movement_no,

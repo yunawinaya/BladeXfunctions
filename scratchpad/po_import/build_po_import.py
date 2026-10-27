@@ -39,6 +39,7 @@ def items_sql():
     conv = ", ".join("'%s', %s" % (c, "CAST(c.`%s` AS CHAR)" % c if k == "id" else "c.`%s`" % c) for c, k in CONV)
     return sub("""SELECT JSON_OBJECT('id', CAST(i.id AS CHAR), 'material_code', i.material_code, 'material_name', i.material_name, 'material_desc', i.material_desc,
        'item_category', i.item_category, 'further_description', i.further_description, 'based_uom', CAST(i.based_uom AS CHAR),
+       'based_uom_name', (SELECT bu.uom_name FROM unit_of_measurement bu WHERE bu.id = i.based_uom AND bu.is_deleted = 0 LIMIT 1),
        'mat_purchase_tax_id', CAST(i.mat_purchase_tax_id AS CHAR), 'is_active', i.is_active,
        'conv', COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT(@CONV, 'uom_name', u.uom_name))
                            OVER (ORDER BY c.id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)

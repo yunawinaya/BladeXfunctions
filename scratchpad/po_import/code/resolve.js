@@ -12,6 +12,14 @@ const importResolve = function importResolve(guard, itemRows) {
   const s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
   const base = { route: "STOP", code: "400", message: "", errors: [], errorsShown: [], lines: [], itemData: [], altUomJson: "{}", count: 0 };
   const key = (c) => s(c).toLowerCase();
+  // what the file should say instead: the item's base UOM, then its other units
+  const uomHint = (item, conv) => {
+    const baseRow = conv.find((c) => s(c.alt_uom_id) === s(item.based_uom));
+    const baseName = s(item.based_uom_name) || s(baseRow && baseRow.uom_name);
+    const others = [...new Set(conv.map((c) => s(c.uom_name)).filter((n) => n && key(n) !== key(baseName)))];
+    if (baseName) return ". Use its base UOM " + baseName + (others.length ? " (or " + others.join(", ") + ")" : "");
+    return others.length ? ". Its units: " + others.join(", ") : "";
+  };
   const byCode = {};
   for (const r of Array.isArray(itemRows) ? itemRows : itemRows ? [itemRows] : []) {
     const o = r && (typeof r.j === "string" ? parseJ(r.j) : r.j || r);
@@ -44,7 +52,7 @@ const importResolve = function importResolve(guard, itemRows) {
     if (row.uom) {
       const named = conv.filter((c) => key(c.uom_name) === key(row.uom));
       if (named.length !== 1) {
-        err(named.length ? "UOM " + row.uom + " matches " + named.length + " units of item " + row.code : "UOM " + row.uom + " is not a unit of item " + row.code);
+        err(named.length ? "UOM " + row.uom + " matches " + named.length + " units of item " + row.code : "UOM " + row.uom + " is not a unit of item " + row.code + uomHint(item, conv));
         continue;
       }
       uom = named[0];

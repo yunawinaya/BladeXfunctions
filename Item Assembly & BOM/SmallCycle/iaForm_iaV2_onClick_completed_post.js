@@ -53,7 +53,7 @@ const IA_TERMINAL = ["COMPLETED", "FAILED", "REQUIRES_REVIEW", "CANCELLED"];
 // not record fields: the job's own fields, the stock dialog, buttons, badges, layout widgets, platform keys
 const IA_NOT_RECORD = ["ia_v2_job_id", "ia_idem_key", "_data", "$_v", "_vts", "isTrusted", "sm_item_balance", "button_draft",
   "button_completed", "comp_post_button", "button_post", "draft_status", "issued_status", "completed_status", "fullyposted_status",
-  "processing_status", "flex_2det1nd2", "flex_t6y2yh5r", "item_assembly_tittle", "sc_section", "sc_collapse", "sc_info", "sc_info_so", "sc_info_ordered", "sc_info_produced", "sc_info_open", "sc_info_suggest", "sc_info_cover", "sc_info_bom", "sc_info_warn", "sc_info_customer", "sc_info_delivered", "sc_info_over", "sc_actions", "sc_btn_line", "sc_btn_unlink", "sc_btn_relink", "sc_btn_suggest", "sc_btn_bom", "sc_btn_refresh", "sc_line_dialog", "sc_expand_dialog", "sc_sec_production", "sc_prod_grid", "sc_sec_output", "sc_output_grid", "sc_sec_more", "sc_more_grid", "sc_actual", "sc_prod_actions"];
+  "processing_status", "flex_2det1nd2", "flex_t6y2yh5r", "item_assembly_tittle", "sc_section", "sc_collapse", "sc_info", "sc_info_so", "sc_info_ordered", "sc_info_produced", "sc_info_open", "sc_info_suggest", "sc_info_cover", "sc_info_bom", "sc_info_warn", "sc_info_customer", "sc_info_delivered", "sc_info_over", "sc_actions", "sc_btn_line", "sc_btn_unlink", "sc_btn_relink", "sc_btn_suggest", "sc_btn_bom", "sc_btn_refresh", "sc_line_dialog", "sc_expand_dialog", "sc_sec_production", "sc_prod_grid", "sc_sec_output", "sc_output_grid", "sc_sec_more", "sc_more_grid", "sc_actual", "sc_prod_actions", "output_split_sum"];
 
 // IA V2 shared helpers (CONTRACT.md section 6): every name ia / IA_-prefixed so it concatenates with a step's own helpers
 const iaS = (v) => (v === undefined || v === null ? "" : String(v)).trim();
@@ -680,6 +680,7 @@ const follow = async (ctx, q) => {
   this.showLoading("Completing " + name + "...");
   kick(job.jobId);
   let kickedAt = Date.now();
+  let parkKicked = false;
   const deadline = Date.now() + IA_WAIT_MS;
   while (Date.now() < deadline) {
     await sleep(IA_POLL_MS);
@@ -729,6 +730,12 @@ const follow = async (ctx, q) => {
     if (ctx.mode !== "POST" && js === "COMMITTING_IA" && Number(st.progress_percent) >= 80) {
       const text = ctx.mode === "COMPLETE" ? name + ": the stock has moved; it is being finished in the background." : name + ": " + IA_TEXT.postLater;
       return finish(job, text, true, name);
+    }
+    // parked at 75 %: the components are issued and the receipt needs the next worker run (one stock call per run); start it now
+    if (!parkKicked && js === "COMMITTING_IA" && Number(st.progress_percent) === 75) {
+      parkKicked = true;
+      kickedAt = Date.now();
+      kick(job.jobId);
     }
   }
   release();

@@ -1,0 +1,38 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PICKING_ASYNC_SUBMIT",
+   "dataId": "2109531449614647297",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_ASYNC_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING_ASYNC_SUBMIT/v11_20261027-125213.enabled.json"
+  },
+  {
+   "name": "PICKING_BULK_PREPARE",
+   "dataId": "2109531157594619905",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_BULK_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING_BULK_PREPARE/v13_20261027-125214.enabled.json"
+  },
+  {
+   "name": "PICKING_BULK_COMMIT",
+   "dataId": "2109531367339180034",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_BULK_COMMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING_BULK_COMMIT/v16_20261027-125215.enabled.json"
+  },
+  {
+   "name": "Picking form (transfer_order)",
+   "kind": "form",
+   "dataId": "1935556443668959233",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/PickingFullJSON.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3731ab84-dcf9-43a7-bf40-fad956296903/scratchpad/pk1e_out/PickingFullJSON.v437.json"
+  },
+  {
+   "name": "Picking list page",
+   "kind": "page",
+   "dataId": "1935635853539348481",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/PickingListPageFullJSON.json",
+   "base": "/private/tmp/claude-501/-Users-yunawinaya-Developer-BladeXfunctions/3731ab84-dcf9-43a7-bf40-fad956296903/scratchpad/pk1e_out/list_v223.json"
+  }
+ ]
+}

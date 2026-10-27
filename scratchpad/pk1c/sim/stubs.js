@@ -140,9 +140,35 @@ function install(e) {
       return { returned: r, ctx: { bytes: 0 } };
     }
     if (name === "INVENTORY_BULK_APPLY") return { returned: ibaStub(e.db, params, st), ctx: { bytes: 0 } };
+    if (name === "GD_COMPLETE_SUBMIT") return { returned: gdCompleteStub(e.db, params, st), ctx: { bytes: 0 } };
     return run0(name, params);
   };
   return st;
+}
+
+// GD_COMPLETE_SUBMIT as GD Complete V2 answers a Picking's request (stage 1e): STOP for a GD not Created, BUSY on its own open
+// completion ("already being completed") or on an open CONFIRM_PICKING of one of its Pickings, else QUEUED + the job, GD Processing
+function gdCompleteStub(db, params, st) {
+  const S = (v) => (v === undefined || v === null ? "" : String(v));
+  st.gdComplete = st.gdComplete || [];
+  st.gdComplete.push(JSON.parse(JSON.stringify(params)));
+  if (st.gdCompleteCrash > 0) {
+    st.gdCompleteCrash--;
+    throw new Error("injected GD_COMPLETE_SUBMIT failure (the LOCK insert of a twin request)");
+  }
+  const gd = db.t.gd.find((g) => g.id === String(params.gd_id) && !g.is_deleted);
+  if (!gd) return { route: "STOP", code: "400", message: "Goods Delivery not found", job_id: "" };
+  const OPEN = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_GD", "REQUIRES_REVIEW"];
+  const own = db.t.job.find((j) => !j.is_deleted && j.command === "COMPLETE_GD" && j.correlation_id === "GD|" + gd.id && OPEN.includes(j.job_status));
+  if (own) return { route: "BUSY", code: "409", message: "This delivery is already being completed", job_id: own.id };
+  if (gd.gd_status !== "Created") return { route: "STOP", code: "400", message: "the Goods Delivery is " + gd.gd_status, job_id: "" };
+  const picks = new Set(db.t.lines.filter((l) => S(l.gd_id) === gd.id && !l.is_deleted && (l.line_status || "") !== "Cancelled").map((l) => l.transfer_order_id));
+  const confirming = db.t.job.find((j) => !j.is_deleted && j.command === "CONFIRM_PICKING" && picks.has(j.picking_id) && !["COMPLETED", "FAILED", "CANCELLED"].includes(j.job_status));
+  if (confirming) return { route: "BUSY", code: "409", message: "Its Picking is being confirmed", job_id: "" };
+  const id = String(9300000000000000000n + BigInt(st.gdComplete.length));
+  db.t.job.push({ id: id, command: "COMPLETE_GD", job_status: "QUEUED", correlation_id: "GD|" + gd.id, causation_id: params.causation_id, organization_id: gd.organization_id, is_deleted: 0 });
+  gd.gd_status = "Processing";
+  return { route: "QUEUED", code: "200", message: "queued", job_id: id, job_status: "QUEUED" };
 }
 
 // SUBMIT's 1c stage switches set to on / off, whatever the file ships

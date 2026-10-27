@@ -1,0 +1,66 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_V2_COMMIT",
+   "dataId": "2112141346016501762",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_COMMIT/v8_20261027-182821.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_V2_WORKER",
+   "dataId": "2112141277456408577",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_V2_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_WORKER/v4_20261027-182822.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": ""
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_COMMIT",
+   "dataId": "2112141490329919490",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_COMMIT/v5_20261027-182822.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_RV_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_REVERT_V2_WORKER",
+   "dataId": "2112141417890095105",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_REVERT_V2_WORKER.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_REVERT_V2_WORKER/v3_20261027-182824.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": ""
+    },
+    "expect": {
+     "key": "worker_route",
+     "equals": "IDLE"
+    }
+   }
+  }
+ ]
+}

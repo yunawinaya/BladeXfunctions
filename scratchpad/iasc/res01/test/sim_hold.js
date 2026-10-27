@@ -542,6 +542,16 @@ eq("the kept row points at the first released one", w.live().filter((x) => x.sta
     ["PARTIAL", "SUBTRACT", true, true]);
   x = chk("Completed", [c(1, "FREE", "PARTIAL|RECEIPT")]);
   eq("CHECK: stopped at the receipt -> PARTIAL, step RECEIPT", [x.r.result.outcome, /output receipt/.test(x.r.message)], ["PARTIAL", true]);
+  // IA output split (plan 10-27): IA_SAVE v14 names the row of the split receipt that was refused (k of n; 0 = its batches)
+  x = chk("Completed", [c(1, "FREE", "PARTIAL|RECEIPT|2/3")]);
+  eq("CHECK: a split receipt stopped at row 2 of 3 -> PARTIAL, step RECEIPT, the row named, rows 1-1 received", [x.r.result.outcome, x.r.result.step, x.r.message],
+    ["PARTIAL", "RECEIPT", "This completion stopped at the output receipt: its components are issued but the output may not be received. Split receipt: output row 2 of 3 " +
+      "was refused; rows 1 to 1 were received. Needs review: check this Item Assembly's stock movements before correcting it."]);
+  x = chk("Completed", [c(1, "FREE", "PARTIAL|RECEIPT|1/3")]);
+  eq("CHECK: a split receipt stopped at row 1 -> no output row received", /output row 1 of 3 was refused; no output row was received\./.test(x.r.message), true);
+  x = chk("Completed", [c(1, "FREE", "PARTIAL|RECEIPT|0/3")]);
+  eq("CHECK: a split receipt whose batches were not created -> no output row received", [x.r.result.step, /Split receipt \(3 rows\): its output batches could not be created; no output row was received\./.test(x.r.message)],
+    ["RECEIPT", true]);
   x = chk("Completed", [c(1, "HELD", "", "2026-10-21 11:40:00")]);
   eq("CHECK: a claim still HELD past the lease -> INTERRUPTED", [x.r.result.outcome, /interrupted/.test(x.r.message)], ["INTERRUPTED", true]);
   x = chk("Completed", [c(1, "HELD", "", "2026-10-21 11:58:00")]);

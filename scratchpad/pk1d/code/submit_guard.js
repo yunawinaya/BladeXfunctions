@@ -9,12 +9,12 @@ const submitGuard = function submitGuard(input) {
   const org = s(inp.organizationId);
   const op = s(inp.operation).toUpperCase() || "CONFIRM";
   const key = s(inp.idempotencyKey);
-  const bad = (why) => ({ route: "REJECT", tenantId: "0", pickingId: "0", organizationId: "0", operation: op, idempotencyKey: "", request: "", lineCount: 0, moveRowsJson: "[]", result_code: "400", result_message: why });
+  const bad = (why) => ({ route: "REJECT", tenantId: "0", pickingId: "0", organizationId: "0", operation: op, idempotencyKey: "", request: "", lineCount: 0, moveRowsJson: "[]", caps: "", result_code: "400", result_message: why });
   if (!/^[0-9]{1,20}$/.test(tenantId)) return bad("no session tenant");
   if (!/^[0-9]{1,20}$/.test(pickingId)) return bad("picking_id: digits only");
   if (!/^[0-9]{1,20}$/.test(org)) return bad("organization_id: digits only");
   // STATUS: read-only, the Picking's latest job for the form (the browser cannot read gd_async_job itself)
-  if (op === "STATUS") return { route: "STATUS", tenantId: tenantId, pickingId: pickingId, organizationId: org, operation: op, idempotencyKey: "", request: "", lineCount: 0, moveRowsJson: "[]", result_code: "", result_message: "" };
+  if (op === "STATUS") return { route: "STATUS", tenantId: tenantId, pickingId: pickingId, organizationId: org, operation: op, idempotencyKey: "", request: "", lineCount: 0, moveRowsJson: "[]", caps: "", result_code: "", result_message: "" };
   if (!/^[A-Za-z0-9:_|-]{16,128}$/.test(key)) return bad("idempotency_key: 16-128 of A-Z a-z 0-9 : _ | -");
   if (op !== "CONFIRM" && op !== "PICK_ALL_REMAINING" && op !== "FORCE_COMPLETE") return bad("operation must be CONFIRM, PICK_ALL_REMAINING or FORCE_COMPLETE");
   let payload = inp.payload;
@@ -50,7 +50,9 @@ const submitGuard = function submitGuard(input) {
   // sql_node_PSmove's input, digits only: a sent target ("0" = sent empty, no move) or null (not sent: the stored line's)
   const sent = (o, k) => (Object.prototype.hasOwnProperty.call(o, k) ? o[k] || "0" : null);
   const moveRows = request.lines.map((l) => ({ r: l.row_id, l: sent(l, "target_location_id"), b: sent(l, "target_batch_id") }));
-  return { route: "CONTINUE", tenantId: tenantId, pickingId: pickingId, organizationId: org, operation: op, idempotencyKey: key, request: JSON.stringify(request), lineCount: request.lines.length, moveRowsJson: JSON.stringify(moveRows), result_code: "", result_message: "" };
+  // stage 1e: what the client does itself - an app that starts GD Complete V2's worker sends "gd_complete"; known tokens only
+  const caps = (Array.isArray(payload.caps) ? payload.caps : []).map(s).filter((c, i, a) => ["gd_complete"].indexOf(c) >= 0 && a.indexOf(c) === i);
+  return { route: "CONTINUE", tenantId: tenantId, pickingId: pickingId, organizationId: org, operation: op, idempotencyKey: key, request: JSON.stringify(request), lineCount: request.lines.length, moveRowsJson: JSON.stringify(moveRows), caps: caps.join(","), result_code: "", result_message: "" };
 };
 const res = submitGuard({ pickingId: [{{workflowparams:picking_id}}][0], organizationId: [{{workflowparams:organization_id}}][0], operation: [{{workflowparams:operation}}][0], idempotencyKey: [{{workflowparams:idempotency_key}}][0], payload: [{{workflowparams:payload}}][0], confirmedBy: [{{workflowparams:confirmed_by}}][0], systemTenantId: [{{system:tenantId}}][0] });
 console.log("submit guard", JSON.stringify({ route: res.route, picking: res.pickingId, op: res.operation, lines: res.lineCount, message: res.result_message }));

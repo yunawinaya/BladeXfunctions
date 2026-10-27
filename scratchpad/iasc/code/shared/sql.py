@@ -208,3 +208,33 @@ CLAIM_READ = """SELECT JSON_OBJECT(
                  AND p.is_deleted = 0),
        'status', (SELECT h.item_assembly_status FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = '@IAQ' AND h.is_deleted = 0),
        'now', DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'), '%Y-%m-%d %H:%i:%s')) AS j"""
+
+# IA output split (plan 10-27), IA_SAVE v14: the stored row's split, plant and bin (the mobile guard; a payload without output_split keeps
+# the stored rows), added to the Small Cycle source read every Edit already makes (no read of its own)
+OS_SC_STORED = ("'item_id', h.item_id)),\n",
+                "'item_id', h.item_id,\n         'output_split', h.output_split, 'plant', CAST(h.issuing_operation_faci AS CHAR), 'bin', CAST(h.location_id AS CHAR))),\n")
+# a split completion: its rows' bins by primary key (bin_location has no tenant column; the plant is compared in code_node_OScheck);
+# @IDS = digits (code_node_OSmerge binIds, "0" = none)
+OS_BINS = """SELECT JSON_OBJECT('bins', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(b.id AS CHAR), 'plant', CAST(b.plant_id AS CHAR),
+       'sl', CAST(b.storage_location_id AS CHAR), 'active', b.bin_status)) FROM bin_location b WHERE b.id IN (@IDS) AND b.is_deleted = 0)) AS j"""
+# the Batch rows the split's add-node just inserted, by primary key (@T, @IDS digits: code_node_OSbatchIds)
+OS_BATCH_READ = """SELECT JSON_OBJECT('rows', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(b.id AS CHAR), 'batch_number', b.batch_number,
+       'material_id', CAST(b.material_id AS CHAR))) FROM batch b WHERE b.tenant_id = '@T' AND b.id IN (@IDS) AND b.is_deleted = 0)) AS j"""
+# IA_V2_SUBMIT v6 (plan 10-27, phase 2): the split rows' bins (the payload's by primary key + the stored IA's rows) and the stored IA's
+# split, plant, item and bin (osMerge: a payload without the key keeps the stored rows and may not move them); @T tenant, @IA the stored
+# IA ("0" = an Add), @IDS digits (code_node_ISkeys osBinIds, "0" = none)
+OS_SUBMIT_READ = """SELECT JSON_OBJECT(
+       'bins', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(b.id AS CHAR), 'plant', CAST(b.plant_id AS CHAR), 'sl', CAST(b.storage_location_id AS CHAR),
+                       'active', b.bin_status))
+                  FROM (SELECT DISTINCT k.v
+                          FROM (SELECT b2.id AS v FROM bin_location b2 WHERE b2.id IN (@IDS)
+                                UNION ALL
+                                SELECT CAST(s.loc AS UNSIGNED)
+                                  FROM sm_item_assembly h2,
+                                       JSON_TABLE(IF(JSON_VALID(h2.output_split), h2.output_split, '[]'), '$[*]' COLUMNS (loc VARCHAR(32) PATH '$.os_location_id')) s
+                                 WHERE h2.tenant_id = '@T' AND h2.id = @IA AND h2.is_deleted = 0 AND s.loc REGEXP '^[0-9]{1,20}$') k) x
+                  JOIN bin_location b ON b.id = x.v
+                 WHERE b.tenant_id = '@T' AND b.is_deleted = 0),
+       'stored', (SELECT JSON_OBJECT('output_split', h.output_split, 'plant', CAST(h.issuing_operation_faci AS CHAR), 'item_id', h.item_id,
+                         'bin', CAST(h.location_id AS CHAR))
+                    FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = @IA AND h.is_deleted = 0)) AS j"""

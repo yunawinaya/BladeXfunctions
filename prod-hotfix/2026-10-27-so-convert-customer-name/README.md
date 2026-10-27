@@ -59,6 +59,12 @@ python3 scratchpad/prod_health.py
 
 Paste `RESTORE_func_handleConvertGD.js` (prod v262's handler) back the same way.
 
+This works only while this paste is the latest change to the handler. On 10-27 the GD session started changing
+`followBackground` in the same handler (re-kicking the worker while following). Once their paste lands, this file would
+wipe their change too, so remove only the customer lines instead.
+
+Prod v265 (10:38, a designer edit to the column display) and the v266 being designed at 12:50 still carry this handler.
+
 ## Tests
 
 - `scratchpad/soautogd/shortfall/test_shortfall_client.js`: 14 cases pass. Two are new: a row without a name keeps the

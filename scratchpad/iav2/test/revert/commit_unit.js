@@ -116,12 +116,13 @@ const guard = { jobId: JOB, tenantId: "000000", leaseOwner: "PUB|ff", nonce: "00
   const labels = partRows("LABELS", { M1: { item_code: "FG-1", bin: "FG-01", category: "Blocked", side: "out" } });
   const V1 = (e, a, ops, cnt) => F("commitV1", e, guard, { ok: "YES", needCall: "YES", why: "", keys: ["M1", "M2"], count: cnt || 2 }, a, ops || { intents: "0" }, labels);
   let r = V1(entryA(), { code: "200", result_code: "APPLIED", message: "2 movements" });
-  ok(r.route === "OK" && r.path === "SPLIT" && r.splitRows[0].lease_owner === "SPLIT|00ff00ff" && r.splitRows[0].lease_expires_at === "2026-10-19 12:10:10" && r.splitRows[0].progress_percent === 80
-    && r.splitRows[0].attempt_count === 0 && r.stepRows[0].step_name === "V1_INVENTORY", "V1 200 -> DONE + SPLIT, progress 80", r);
+  // one lock call per worker run (prod 10-26: a lock lives until the top-level run ends): V2's own TAKE goes to the next run
+  ok(r.route === "OK" && r.path === "PARK" && r.splitRows[0].lease_owner === null && r.splitRows[0].next_attempt_at === "2026-10-19 12:00:10" && r.splitRows[0].progress_percent === 80
+    && r.splitRows[0].attempt_count === 0 && r.stepRows[0].step_name === "V1_INVENTORY", "V1 200 -> DONE + PARK (due now, no lease: V2 in the next run), progress 80", r);
   r = V1(entryA({ movementCount: 1001 }), { code: "200", result_code: "REPLAYED" });
   ok(r.path === "PARK" && r.splitRows[0].lease_owner === null && r.splitRows[0].next_attempt_at === "2026-10-19 12:00:10", "V1 above 1,000 movements -> PARK (due now, no lease)", r.splitRows[0]);
   r = F("commitV1", entryA(), guard, { ok: "YES", needCall: "NO", why: "", keys: [], count: 0 }, {}, {}, []);
-  ok(r.route === "OK" && r.path === "SPLIT", "V1 nothing to take back -> DONE + SPLIT", r);
+  ok(r.route === "OK" && r.path === "SPLIT", "V1 nothing to take back -> DONE + SPLIT (V2's TAKE is then the run's only lock call)", r);
   r = V1(entryA(), { code: "400", result_code: "INSUFFICIENT", message: "Insufficient quantity (movement M1)" });
   ok(r.route === "END" && r.result_code === "IA_RV_INVENTORY_INSUFFICIENT" && r.jobRows[0].error_message === "Insufficient quantity - FG-1, bin FG-01 (Blocked)" && r.unlockRows[0].item_assembly_status === "Completed",
     "V1 400 -> FAILED IA_RV_INVENTORY_<code>, mapped, Completed again", r);

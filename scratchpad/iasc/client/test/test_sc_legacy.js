@@ -10,8 +10,16 @@ const { check, same } = H;
 
 const V36 = H.readJSON(H.FILES.formBase);
 const ON = H.scVariant(H.readJSON(H.FILES.formOn), true, H.SC_TEST_IDS);
-const OFF_SWITCH = H.scVariant(H.readJSON(H.FILES.formOn), false, H.SC_TEST_IDS);
-const OFF_IDS = H.scVariant(H.readJSON(H.FILES.formOn), true, H.SC_OFF_IDS);
+// the output split (plan 10-27) has its own switch: off with the Small Cycle's in the exact variants, where its notifications
+// (triggerEvent os_main, which then does nothing) are the one call the patched handlers make on top of v36
+const osOff = (doc) => {
+  const d = H.clone(doc);
+  const e = H.byName(d, "os_main");
+  if (e) e.func = e.func.replace("const OS_ENABLED = true;", "const OS_ENABLED = false;");
+  return d;
+};
+const OFF_SWITCH = osOff(H.scVariant(H.readJSON(H.FILES.formOn), false, H.SC_TEST_IDS));
+const OFF_IDS = osOff(H.scVariant(H.readJSON(H.FILES.formOn), true, H.SC_OFF_IDS));
 // the IA V2 handlers ship ON in v36 (real ids): their workflow calls are answered by the default
 const IA_V2_IDS = ["2112141238600376321", "2112141277456408577"];
 
@@ -36,8 +44,11 @@ const compare = async (what, name, values, args, o, docs) => {
     const b = await run(doc, name, values, args, o);
     // RES-01 Created review 1 (10-22): a new IA whose background save did not answer hides the Created button with the Draft one; the one
     // call where the build differs from v36 on purpose (a superset: the extra button is hidden by default)
-    const t0 = b.trace.map((t) => (t[0] === "hide" && JSON.stringify(t[1]) === '["button_draft","button_created"]' ? ["hide", ["button_draft"]] : t));
-    const tb = exact ? t0 : H.legacyTrace(t0);
+    // and the output split (plan 10-27): the mount's item read asks two more flags (its kind), the same read
+    const OS_FIELDS = "item_batch_management,batch_number_genaration,serial_number_management,stock_control";
+    const t0 = b.trace.map((t) => (t[0] === "hide" && JSON.stringify(t[1]) === '["button_draft","button_created"]' ? ["hide", ["button_draft"]] :
+      t[0] === "db.get" && t[1] && t[1].collection === "item" && t[1].field === OS_FIELDS ? ["db.get", Object.assign({}, t[1], { field: "item_batch_management,batch_number_genaration" })] : t));
+    const tb = exact ? t0.filter((t) => !(t[0] === "triggerEvent" && t[1] === "os_main")) : H.legacyTrace(t0);
     const firstDiff = tb.findIndex((t, i) => JSON.stringify(t) !== JSON.stringify(a.trace[i]));
     check(what + " [" + label + "]: v36 call for call" + (exact ? " (nothing removed)" : ""), same(tb, a.trace), { at: firstDiff, v36: a.trace[firstDiff], built: tb[firstDiff], lengths: [a.trace.length, tb.length] });
     const bv = H.clone(b.values);

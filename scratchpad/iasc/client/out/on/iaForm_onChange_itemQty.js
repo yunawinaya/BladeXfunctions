@@ -1,3 +1,6 @@
+// IA output split (scratchpad/iasc os_main): the output quantity changed: the split's rows follow it
+this.triggerEvent("os_main", { osOp: "QTY" });
+// -- end output split --
 // Small Cycle (scratchpad/iasc): on an Item Assembly linked to a Sales Order line, in Flat mode, or holding a BOM snapshot, a new
 // quantity recomputes the references from the saved snapshot (the event sc_main, op QTY), never the BOM re-scale below.
 const SC_ENABLED = true;

@@ -11,6 +11,12 @@ J = lambda s: json.dumps(s)[1:-1]
 RETRY = J("// RES-01 MIN-03 (BA 10-22): Retry Reservation, the list's worklist action")
 CANCEL = J("// RES-01 Cancel from the list (user 10-22, like the Goods Delivery list)")
 MUTANTS = [
+    # label print (IA output split, plan 10-27): a split receipt's lines, one per row with a batch
+    ("print: a split's rows ignored", J("      const splitRows = iaLabelRows(ia.output_split);\n"), J("      const splitRows = [];\n")),
+    ("print: every line the header batch", J("          batch_no: part.batch,\n"), J("          batch_no: batch,\n")),
+    ("print: every line the IA's quantity", J("          assembled_quantity: part.qty,\n"), J("          assembled_quantity: ia.item_qty,\n")),
+    ("print: a row without a batch printed", J(".filter((r) => r.batch && r.batch !== \"-\");"), J(".filter((r) => true);")),
+    ("print: the rows' text not read", J("      rows = JSON.parse(rows);\n"), J("      rows = null;\n")),
     # Retry Reservation
     ("retry: the stale row trusted", J("      const ia = byId[id];\n"), J("      const ia = row;\n"), RETRY),
     ("retry: the stored read without the hold status", J('.field("id,stock_movement_no,item_assembly_status,material_hold_status,organization_id")'), J('.field("id")')),

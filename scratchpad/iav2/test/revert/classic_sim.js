@@ -93,8 +93,10 @@ for (const [label, spec] of [["FIFO", {}], ["WA running average", { parent: { me
   const zb = Object.assign({}, z, { w: b });
   const s = runWorkflow(b, "IA_REVERT_V2_SUBMIT", { operation: "SUBMIT", ia_id: z.ia.id, idempotency_key: z.key, source: "LIST", min_picks: "0", form: Object.assign({}, z.row) });
   const job = b.jobs.find((j) => j.command === "REVERT_IA");
+  // one lock call per worker run: V1 in the first tick (PARK), V2 .. V4 in the second
+  runWorkflow(b, "IA_REVERT_V2_WORKER", { job_id: job.id });
   const t = runWorkflow(b, "IA_REVERT_V2_WORKER", { job_id: job.id });
-  ok(!s.err && s.out.route === "QUEUED" && !t.err && job.job_status === "COMPLETED", label + " twin: V2 reverts (QUEUED, one tick, COMPLETED)", { s: s.out, t: t.out || t.err, job: job.job_status });
+  ok(!s.err && s.out.route === "QUEUED" && !t.err && job.job_status === "COMPLETED", label + " twin: V2 reverts (QUEUED, two ticks, COMPLETED)", { s: s.out, t: t.out || t.err, job: job.job_status });
   const sa = state(a, z);
   const sb = state(b, zb);
   for (const k of ["ia", "stock", "fifo", "wa", "batch", "mv"]) ok(J(sa[k]) === J(sb[k]), label + " twin: " + k + " classic = V2", { classic: sa[k], v2: sb[k] });

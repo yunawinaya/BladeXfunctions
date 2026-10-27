@@ -1,0 +1,20 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA form (output split ON: the Split receipt switch, its rows and total)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v59.json"
+  },
+  {
+   "name": "IA list (label print: one line per split row with a batch)",
+   "kind": "page",
+   "dataId": "2098312073316716546",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iav2/base/ia_list_v29.json"
+  }
+ ]
+}

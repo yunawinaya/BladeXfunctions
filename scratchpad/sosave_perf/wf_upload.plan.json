@@ -1,0 +1,88 @@
+{
+  "profile": "dev-main-write",
+  "tableId": "1856231112670498818",
+  "note": "SO_SAVE_SUBMIT's smoke is a 3-line Add form payload expecting route NOT_ELIGIBLE (test/live_payload.py --mode add --lines 3); kept out of the repo",
+  "items": [
+    {
+      "name": "SO_SAVE_COMMIT",
+      "dataId": "2112758624899170305",
+      "file": "scratchpad/sosave_perf/out/SO_SAVE_COMMIT.json",
+      "base": "Sales Order/AsyncV2/SO_SAVE_COMMIT.json",
+      "smoke": {
+        "request": {
+          "job_id": "",
+          "row_version": 0
+        },
+        "expect": {
+          "key": "route",
+          "equals": "REJECT"
+        }
+      }
+    },
+    {
+      "name": "SO_SAVE_PREPARE",
+      "dataId": "2112758585934086146",
+      "file": "scratchpad/sosave_perf/out/SO_SAVE_PREPARE.json",
+      "base": "Sales Order/AsyncV2/SO_SAVE_PREPARE.json",
+      "smoke": {
+        "request": {
+          "job_id": "",
+          "row_version": 0
+        },
+        "expect": {
+          "key": "route",
+          "equals": "REJECT"
+        }
+      }
+    },
+    {
+      "name": "SO_SAVE_WORKER",
+      "dataId": "2112758538274209793",
+      "file": "scratchpad/sosave_perf/out/SO_SAVE_WORKER.json",
+      "base": "Sales Order/AsyncV2/SO_SAVE_WORKER.json",
+      "smoke": {
+        "request": {
+          "job_id": ""
+        },
+        "expect": {
+          "key": "route",
+          "equals": "REJECT"
+        }
+      }
+    },
+    {
+      "name": "SO_SAVE_RUN",
+      "dataId": "2113116286771331073",
+      "file": "scratchpad/sosave_perf/out/SO_SAVE_RUN.json",
+      "base": "Sales Order/AsyncV2/SO_SAVE_RUN.json",
+      "smoke": {
+        "request": {
+          "job_id": "1"
+        }
+      }
+    },
+    {
+      "name": "SO_SAVE_SUBMIT",
+      "dataId": "2112758477792346114",
+      "file": "scratchpad/sosave_perf/out/SO_SAVE_SUBMIT.json",
+      "base": "Sales Order/AsyncV2/SO_SAVE_SUBMIT.json"
+    },
+    {
+      "name": "CREDIT_LIMIT_CHECK",
+      "dataId": "1990247316342333442",
+      "file": "scratchpad/sosave_perf/out/CREDIT_LIMIT_CHECK.json",
+      "base": "GlobalCreditLimitCheckWorkflow.json",
+      "smoke": {
+        "request": {
+          "customer_id": "2079045417172258818",
+          "total": 50000,
+          "document_type": "Sales Orders"
+        },
+        "expect": {
+          "key": "result",
+          "equals": "failed"
+        }
+      }
+    }
+  ]
+}

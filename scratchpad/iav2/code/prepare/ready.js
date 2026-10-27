@@ -49,7 +49,9 @@ const prepareReady = function prepareReady(entry, plan, planI, planR) {
   if (s(p.route) !== "PLAN") return end("FAILED", s(p.code) || "IA_PLAN_FAILED", s(p.message) || "The completion could not be prepared.", mineIa);
   const labels = p.labels && typeof p.labels === "object" ? p.labels : {};
   const keysI = Object.keys(labels).filter((k) => /^M[0-9]+$/.test(k));
-  const v = iaPlanVerdict("I", planI, Number(p.movementCount) || 0, labels, keysI) || iaPlanVerdict("R", planR, 1, labels, ["R1"]);
+  // the receipts: R1, or one per output split row (R1..Rn)
+  const keysR = Object.keys(labels).filter((k) => /^R[0-9]+$/.test(k));
+  const v = iaPlanVerdict("I", planI, Number(p.movementCount) || 0, labels, keysI) || iaPlanVerdict("R", planR, keysR.length || 1, labels, keysR.length ? keysR : ["R1"]);
   if (v) return end("FAILED", v.code, v.message, mineIa, v.details);
   return Object.assign(base, {
     route: "OK", needParts: "YES", needReady: "YES",

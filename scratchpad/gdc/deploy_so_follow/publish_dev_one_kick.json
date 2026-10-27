@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SO list",
+   "kind": "page",
+   "dataId": "1901872125787099137",
+   "file": "scratchpad/gdc/deploy_so_follow/SO_list.dev_one_kick.json",
+   "base": "scratchpad/gdc/deploy_so_follow/SO_list.dev_v538_base.json"
+  }
+ ]
+}

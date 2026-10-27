@@ -1,0 +1,17 @@
+{
+ "why": "IA V2 one stock call per run (10-27, prod-hotfix/2026-10-27-ia-output-split): the worker issues the components in one run and parks the job at 75 % (due now, no lease); the receipt is the next run's. The Completed / Complete & Post wait kicks the worker once when it sees the park, instead of at its next 15 s kick",
+ "handlers": [
+  "uhn48srb",
+  "wia8s2r9"
+ ],
+ "patch": [
+  {
+   "was": "  kick(job.jobId);\n  let kickedAt = Date.now();\n  const deadline = Date.now() + IA_WAIT_MS;\n",
+   "now": "  kick(job.jobId);\n  let kickedAt = Date.now();\n  let parkKicked = false;\n  const deadline = Date.now() + IA_WAIT_MS;\n"
+  },
+  {
+   "was": "      return finish(job, text, true, name);\n    }\n  }\n  release();\n",
+   "now": "      return finish(job, text, true, name);\n    }\n    // parked at 75 %: the components are issued and the receipt needs the next worker run (one stock call per run); start it now\n    if (!parkKicked && js === \"COMMITTING_IA\" && Number(st.progress_percent) === 75) {\n      parkKicked = true;\n      kickedAt = Date.now();\n      kick(job.jobId);\n    }\n  }\n  release();\n"
+  }
+ ]
+}

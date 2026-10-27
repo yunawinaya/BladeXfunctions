@@ -62,6 +62,13 @@ r = importResolve(G0([{ "Item Code": "Z9", Quantity: 1 }, { "Item Code": "A1", Q
   [item(), item({ id: "2001", material_code: "B1", is_active: 0 }), item({ id: "3001", material_code: "D1" }), item({ id: "3002", material_code: "D1" }), item({ id: "4001", material_code: "E1", conv: [conv({ alt_uom_id: "U8", uom_name: "x" })], based_uom: "U1" })]);
 ok(r.route === "STOP" && r.errors.length === 5 && r.lines.length === 0, "resolve: every problem listed, nothing goes on", r.errors);
 ok(/Z9 was not found/.test(r.errors[0].message) && /Crate is not a unit of item A1/.test(r.errors[1].message) && /B1 is inactive/.test(r.errors[2].message) && /matches 2 items/.test(r.errors[3].message) && /no purchase UOM/.test(r.errors[4].message), "resolve: messages", r.errors);
+ok(r.errors[1].message === "UOM Crate is not a unit of item A1. Use its base UOM PCS (or Box)", "resolve: a wrong UOM names the base UOM, then the other units", r.errors[1].message);
+r = importResolve(G0([{ "Item Code": "A1", Quantity: 1, UOM: "kg" }]), [item({ conv: [conv({ alt_uom_id: "U1", uom_name: "PCS" })] })]);
+ok(r.errors[0].message === "UOM kg is not a unit of item A1. Use its base UOM PCS", "resolve: base UOM only", r.errors[0].message);
+r = importResolve(G0([{ "Item Code": "A1", Quantity: 1, UOM: "kg" }]), [item({ based_uom: "U9", based_uom_name: "Each", conv: [conv({ alt_uom_id: "U2", uom_name: "Box" })] })]);
+ok(r.errors[0].message === "UOM kg is not a unit of item A1. Use its base UOM Each (or Box)", "resolve: base UOM name from the item when its conversion rows lack it", r.errors[0].message);
+r = importResolve(G0([{ "Item Code": "A1", Quantity: 1, UOM: "kg" }]), [item({ based_uom: "U9", conv: [conv({ alt_uom_id: "U2", uom_name: "Box" })] })]);
+ok(r.errors[0].message === "UOM kg is not a unit of item A1. Its units: Box", "resolve: no base UOM name -> the item's units", r.errors[0].message);
 r = importResolve(G0([{ "Item Code": "d1", Quantity: 1 }]), [item({ id: "3001", material_code: "d1" }), item({ id: "3002", material_code: "D1" })]);
 ok(r.route === "GO" && r.lines[0].line.item_id === "3001", "resolve: an exact-case match settles two codes the database compares equal", r.lines[0] && r.lines[0].line.item_id);
 r = importResolve(G0([{ "Item Code": "A1", Quantity: 1 }]), [item({ mat_purchase_tax_id: "H1" })]);

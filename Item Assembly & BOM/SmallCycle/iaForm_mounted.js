@@ -47,9 +47,12 @@ const showBatchFields = async (itemId) => {
   const res = await db
     .collection("item")
     .where({ id: itemId })
-    .field("item_batch_management,batch_number_genaration")
+    .field("item_batch_management,batch_number_genaration,serial_number_management,stock_control")
     .get();
   const item = res.data?.[0];
+  // IA output split (scratchpad/iasc os_main): the rows, the switch and the columns for this item
+  this.triggerEvent("os_main", { osOp: "MOUNT", item: item || null });
+  // -- end output split --
   if (item?.item_batch_management !== 1) return;
 
   const fields = ["manufacturing_date", "expired_date"];
@@ -61,6 +64,9 @@ const showBatchFields = async (itemId) => {
 
 // Past Draft the fields are read-only, so only the ones holding a value are shown.
 const showFilledBatchFields = () => {
+  // IA output split (scratchpad/iasc os_main): a read-only view shows the split's rows
+  this.triggerEvent("os_main", { osOp: "VIEW" });
+  // -- end output split --
   const filled = ["batch_no", "manufacturing_date", "expired_date"].filter(
     (field) => this.getValue(field)
   );

@@ -59,3 +59,37 @@ try {
 } catch (e) {
   console.error("Picking V2: the workers could not be started", e);
 }
+
+// Auto Complete GD (stage 1e): an open Picking list also starts queued delivery completions (GD_COMPLETE_WORKER, the tenant's due
+// jobs) at once and about once a minute per browser. A worker's answer can be lost on a long run (Kenhin 10-27), so nothing waits on it
+(() => {
+  const KEY = "pkv2_gdc_kick_at";
+  const kick = () => {
+    let last = 0;
+    try {
+      last = Number(localStorage.getItem(KEY) || 0);
+    } catch (e) {}
+    if (Date.now() - last < 55000) return;
+    try {
+      localStorage.setItem(KEY, String(Date.now()));
+    } catch (e) {}
+    try {
+      this.runWorkflow("2110182645714518018", {}, () => {}, (e) => console.error("GD Complete V2: sweep failed", e));
+    } catch (e) {
+      console.error("GD Complete V2: sweep could not be started", e);
+    }
+  };
+  kick();
+  if (typeof window.setInterval !== "function") return;
+  // one beat per window: a re-mounted list replaces it; it stops once the page leaves the list
+  const home = new URL(window.location.href).pathname;
+  if (window.pkV2GdcBeat) window.clearInterval(window.pkV2GdcBeat);
+  window.pkV2GdcBeat = window.setInterval(() => {
+    if (new URL(window.location.href).pathname !== home) {
+      window.clearInterval(window.pkV2GdcBeat);
+      window.pkV2GdcBeat = null;
+      return;
+    }
+    kick();
+  }, 60000);
+})();

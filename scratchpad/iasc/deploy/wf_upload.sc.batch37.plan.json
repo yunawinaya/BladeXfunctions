@@ -1,0 +1,57 @@
+{
+ "profile": "dev-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_V2_PREPARE",
+   "dataId": "2112141312130719745",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_V2_PREPARE.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_PREPARE/v5_20261027-141912.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_V2_COMMIT",
+   "dataId": "2112141346016501762",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/AsyncV2/IA_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_COMMIT/v6_20261027-141913.enabled.json",
+   "smoke": {
+    "request": {
+     "job_id": "x"
+    },
+    "expect": {
+     "key": "result_code",
+     "equals": "IA_INVALID_DATA"
+    }
+   }
+  },
+  {
+   "name": "IA_V2_SUBMIT",
+   "dataId": "2112141238600376321",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/IA_V2_SUBMIT/v14_20261027-141914.enabled.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "",
+     "ia_id": "2112143339233648642",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": ""
+    },
+    "expect": {
+     "key": "route",
+     "equals": "STATUS"
+    }
+   }
+  }
+ ]
+}

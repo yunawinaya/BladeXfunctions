@@ -64,6 +64,41 @@ const iaPlanReceipt = function iaPlanReceipt(r) {
     remark3: iaPlanText(r.remark3), isMovingInv: 0, handling_unit_id: null };
 };
 
+// a split row's date as the header read gives one (DATE_FORMAT '%Y-%m-%d %H:%i:%s'): the grid's date cells hold "YYYY-MM-DD"
+const iaPlanDate = (v) => {
+  const t = iaS(v).trim();
+  const m = t.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}:\d{2}:\d{2}))?/);
+  return !t ? null : m ? m[1] + " " + (m[2] || "00:00:00") : t;
+};
+// IA output split (plan 10-27, scratchpad/iasc os_split.js): the stored rows checked again (as IA_SAVE v14's completion), one receipt
+// per row (its bin, category, qty; a System batch's dates), each named with its group's number (SUBMIT generated them); null = no split
+const iaPlanSplit = function iaPlanSplit(hdr, parent, r1, binRows, plantId) {
+  const raw = osParse(hdr.output_split);
+  if (raw === null) return { why: "its output split cannot be read." };
+  if (!raw.length) return null;
+  const kind = osKind(parent);
+  if (kind !== "SYSTEM" && kind !== "PLAIN") return { why: "its output split is for a " + kind.toLowerCase() + " item (the background completion takes a System Settings batch or no batch)." };
+  const chk = osCheck(raw, { kind: kind, item_qty: hdr.item_qty, item: parent, item_uom: hdr.item_uom, completing: true });
+  if (!chk.ok) return { why: chk.message };
+  const bc = osBinCheck(chk.rows, binRows, plantId);
+  if (!bc.ok) return { why: bc.message };
+  const rows = bc.rows;
+  const batchOf = {};
+  if (kind === "SYSTEM") {
+    for (const g of chk.groups) {
+      const nums = g.rows.map((i) => rows[i].os_batch_no);
+      if (!nums[0] || nums.some((x) => x !== nums[0])) return { broken: "the output split's " + g.label + " has no single batch number (SUBMIT writes them)." };
+      g.batch_no = nums[0];
+    }
+    const all = chk.groups.map((g) => g.batch_no.toLowerCase());
+    if (all.some((x, i) => all.indexOf(x) !== i)) return { broken: "two groups of the output split have one batch number." };
+    rows.forEach((r, i) => (batchOf["R" + (i + 1)] = r.os_batch_no));
+  }
+  const movements = rows.map((r, i) => Object.assign({}, r1, { movement_key: "R" + (i + 1), quantity: r.os_qty, location_id: r.os_location_id, inventory_category: r.os_category },
+    kind === "SYSTEM" ? { manufacturing_date: iaPlanDate(r.os_mfg_date), expired_date: iaPlanDate(r.os_exp_date) } : {}));
+  return { kind: kind, rows: rows, groups: chk.groups, movements: movements, batchOf: batchOf };
+};
+
 const iaPrepPlan = function iaPrepPlan(entry, S, own) {
   const s = iaS;
   const jobId = s(entry.jobId);
@@ -170,8 +205,15 @@ const iaPrepPlan = function iaPrepPlan(entry, S, own) {
   if (IA_OK_CATEGORIES.indexOf(r1.inventory_category) < 0) return failed("the assembled item is received as " + r1.inventory_category + " stock.");
   const receiptBaseQty = iaUomOf(parent, r1.quantity, r1.material_uom).baseQty;
   if (!(receiptBaseQty > 0)) return broken("the receipt's base quantity is " + receiptBaseQty + ".");
-  labels.R1 = { line_index: "", line_id: "", item_code: s(parent.material_code), item_name: s(parent.material_name), bin: bins[r1.location_id] || r1.location_id,
-    bin_id: r1.location_id, category: r1.inventory_category, side: "in" };
+  const binRows = iaRows(S.bins).map((b) => ({ id: s(b.id), plant: s(b.plant), sl: s(b.sl), active: b.active }));
+  const split = iaPlanSplit(hdr, parent, r1, binRows, plantId);
+  if (split && split.why) return failed(split.why);
+  if (split && split.broken) return broken(split.broken);
+  const receipts = split ? split.movements : [r1];
+  for (const mv of receipts) {
+    labels[mv.movement_key] = { line_index: "", line_id: "", item_code: s(parent.material_code), item_name: s(parent.material_name), bin: bins[mv.location_id] || mv.location_id,
+      bin_id: mv.location_id, category: mv.inventory_category, side: "in" };
+  }
   const opI = iaOpKey(jobId, "I");
   const opR = iaOpKey(jobId, "R");
   const itemDates = [];
@@ -180,15 +222,15 @@ const iaPrepPlan = function iaPrepPlan(entry, S, own) {
 
   const parts = {
     ENGINE_I: { operation_key: opI, mode: "APPLY", organization_id: orgId, movements: movements },
-    ENGINE_R: { operation_key: opR, mode: "APPLY", organization_id: orgId, receiptBaseQty: receiptBaseQty, assemblyCost: iaQ8(parent.assembly_cost), movements: [r1] },
+    ENGINE_R: Object.assign({ operation_key: opR, mode: "APPLY", organization_id: orgId, receiptBaseQty: receiptBaseQty, assemblyCost: iaQ8(parent.assembly_cost),
+      movements: receipts }, split && split.kind === "SYSTEM" ? { batchOf: split.batchOf } : {}),
     LABELS: labels,
     ITEMS: { itemDates: itemDates },
   };
-  if (isBatch) {
-    parts.BATCH = { mode: "insert", row: { batch_number: iaPlanText(hdr.batch_no), material_id: r1.material_id, initial_quantity: iaQtyStr(receiptBaseQty), transaction_no: trxNo,
-      plant_id: plantId, organization_id: orgId, remark: r1.remark, remark2: r1.remark2, remark3: r1.remark3, manufacturing_date: r1.manufacturing_date,
-      expired_date: r1.expired_date } };
-  }
+  const batchRow = (number, baseQty, mfg, exp) => ({ batch_number: number, material_id: r1.material_id, initial_quantity: iaQtyStr(baseQty), transaction_no: trxNo, plant_id: plantId,
+    organization_id: orgId, remark: r1.remark, remark2: r1.remark2, remark3: r1.remark3, manufacturing_date: mfg, expired_date: exp });
+  if (isBatch && split) parts.BATCH = { mode: "insert", rows: split.groups.map((g) => batchRow(g.batch_no, g.base, iaPlanDate(g.mfg), iaPlanDate(g.exp))) };
+  else if (isBatch) parts.BATCH = { mode: "insert", row: batchRow(iaPlanText(hdr.batch_no), receiptBaseQty, r1.manufacturing_date, r1.expired_date) };
   const nonce = (s(entry.nonce).replace(/[^0-9A-Za-z]/g, "") + "00000000").slice(0, 8);
   const partRows = [];
   const manifestParts = {};
@@ -201,11 +243,13 @@ const iaPrepPlan = function iaPrepPlan(entry, S, own) {
   const manifest = {
     v: 1, prepared_by: "IA_V2_PREPARE", job_id: jobId, ia_id: iaId, ia_no: trxNo, action: "DIRECT", prevStatus: s(entry.prevStatus), saveAs: "Completed",
     organization_id: orgId, plant_id: plantId, nonce: nonce, lineFingerprint: s(req.lineFingerprint), batchMode: isBatch ? "insert" : "none", parts: manifestParts,
-    counts: { lines: lines.length, picks: run.issues.length, movementsI: movements.length, nonStockLines: nonStock, items: itemDates.length },
+    counts: Object.assign({ lines: lines.length, picks: run.issues.length, movementsI: movements.length, nonStockLines: nonStock, items: itemDates.length },
+      split ? { movementsR: receipts.length } : {}),
   };
   return Object.assign(base, {
-    route: "PLAN", code: "200", message: movements.length + " component picks from " + lines.length + " lines, 1 receipt" + (isBatch ? " (batch " + s(hdr.batch_no) + ")" : ""),
+    route: "PLAN", code: "200", message: movements.length + " component picks from " + lines.length + " lines, " + (split ? receipts.length + " receipts (output split)" +
+      (isBatch ? " (batches " + split.groups.map((g) => g.batch_no).join(", ") + ")" : "") : "1 receipt" + (isBatch ? " (batch " + s(hdr.batch_no) + ")" : "")),
     payload: JSON.stringify(manifest), partRows: partRows, lineCount: lines.length, pickCount: run.issues.length, movementCount: movements.length, organizationId: orgId,
-    opKeyI: opI, opKeyR: opR, movementsI: movements, movementsR: [r1], labels: labels,
+    opKeyI: opI, opKeyR: opR, movementsI: movements, movementsR: receipts, labels: labels,
   });
 };

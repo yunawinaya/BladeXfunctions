@@ -18090,6 +18090,1058 @@
               "blocks": []
             },
             {
+              "id": "sql_node_PCp7gds",
+              "type": "sql-node",
+              "data": {
+                "database_id": "",
+                "sql": "",
+                "params": {},
+                "title": "P7: the Picking's deliveries while Auto Complete GD is on (status, open completion, this job's answer)",
+                "isValidator": true,
+                "nodeName": "P7: the Picking's deliveries while Auto Complete GD is on (status, open completion, this job's answer)",
+                "name": "P7: the Picking's deliveries while Auto Complete GD is on (status, open completion, this job's answer)",
+                "script": {
+                  "type": "sql",
+                  "code": "SELECT CAST(g.id AS CHAR) AS gd_id, g.delivery_no, g.gd_status, g.picking_status,\n       -- P7: the deliveries of this Picking (its live rows), read only while the organization's Auto Complete GD is on (the setup's\n       -- first row, as SUBMIT and PREPARE read it): their status, an open completion, this job's P7 answer if a re-run already gave one\n       (SELECT CAST(o.id AS CHAR) FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_PCguard.data.tenantId}}' AND o.is_deleted = 0 AND o.command = 'COMPLETE_GD'\n           AND o.correlation_id = CONCAT('GD|', g.id) COLLATE utf8mb4_general_ci AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'REQUIRES_REVIEW')\n         ORDER BY o.id DESC LIMIT 1) AS open_job,\n       (SELECT s.step_status FROM gd_publish_step s\n         WHERE s.tenant_id = '{{node:code_node_PCguard.data.tenantId}}' AND s.job_id = '{{node:code_node_PCentry.data.jobId}}'\n           AND s.step_name = CONCAT('P7|', g.id) COLLATE utf8mb4_general_ci AND s.is_deleted = 0 LIMIT 1) AS p7\n  FROM (SELECT DISTINCT r.gd_id FROM transfer_order_jz8m9w3h_sub r\n         WHERE r.tenant_id = '{{node:code_node_PCguard.data.tenantId}}' AND r.transfer_order_id = {{node:code_node_PCentry.data.pickingId}}\n           AND r.is_deleted = 0 AND IFNULL(r.line_status, '') <> 'Cancelled' AND r.gd_id IS NOT NULL) d\n  JOIN goods_delivery g ON g.id = d.gd_id AND g.tenant_id = '{{node:code_node_PCguard.data.tenantId}}' AND g.is_deleted = 0\n WHERE (SELECT ps.auto_completed_gd FROM picking_setup ps\n         WHERE ps.tenant_id = '{{node:code_node_PCguard.data.tenantId}}' AND ps.organization_id = '{{node:code_node_PCentry.data.organizationId}}' AND ps.is_deleted = 0\n         ORDER BY ps.id LIMIT 1) = 1\n ORDER BY g.id"
+                },
+                "response_json": [
+                  {
+                    "key": "ounqb0wg",
+                    "name": "gd_id",
+                    "title": "gd_id",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "62r200cf",
+                    "name": "delivery_no",
+                    "title": "delivery_no",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "83ll5k3h",
+                    "name": "gd_status",
+                    "title": "gd_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "xplbva09",
+                    "name": "picking_status",
+                    "title": "picking_status",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "6id1kp0o",
+                    "name": "open_job",
+                    "title": "open_job",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "e5z0azwe",
+                    "name": "p7",
+                    "title": "p7",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ]
+              },
+              "blocks": []
+            },
+            {
+              "id": "code_node_PCp7plan",
+              "type": "code-node",
+              "data": {
+                "language": "javascript",
+                "code": "",
+                "timeout": 30000,
+                "script": {
+                  "type": "javascript",
+                  "code": "// PICKING_BULK_COMMIT - P7 AUTO COMPLETE GD (Picking V2 stage 1e, 2026-10-27). After P6 - the job COMPLETED and the Picking\n// unlocked earlier in this run, so GD_COMPLETE_SUBMIT's open-Picking-job fact sees this job closed - each delivery this Picking\n// left fully picked and still Created goes to GD Complete V2 (source PICKING, needCL auto: classic PICKING's GOODS_DELIVERY call).\n// One step row P7|<gd> per delivery records the answer; STATUS returns them and the desktop screens start GD_COMPLETE_WORKER.\nconst P7_MAX_GDS = 25;\nconst P7_MANUAL = \": complete it from the Goods Delivery list\";\nconst p7S = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst p7List = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r && typeof r === \"object\");\nconst p7Row = function p7Row(entry, gdId, status, jobId, code, message) {\n  return { job_id: p7S(entry.jobId), organization_id: p7S(entry.organizationId), step_name: \"P7|\" + gdId, step_status: status, attempt_count: 1,\n    started_at: p7S(entry.dbNow), finished_at: p7S(entry.dbNow), inventory_operation_id: \"\", result_ref: p7S(jobId).slice(0, 500),\n    error_code: code ? p7S(code).slice(0, 100) : null, error_message: message ? p7S(message).slice(0, 1000) : null };\n};\n// rows: sql_node_PCp7gds - the Picking's deliveries, read only while the organization's Auto Complete GD is on\nconst p7Plan = function p7Plan(entry, rows) {\n  const items = [];\n  const direct = [];\n  for (const r of p7List(rows)) {\n    const gd = p7S(r.gd_id);\n    if (!/^[0-9]{1,20}$/.test(gd) || p7S(r.p7)) continue;\n    if (p7S(r.gd_status) !== \"Created\" || p7S(r.picking_status) !== \"Completed\") continue;\n    if (p7S(r.open_job)) direct.push(p7Row(entry, gd, \"QUEUED\", r.open_job, \"ALREADY_QUEUED\", \"its completion is already queued\"));\n    else if (items.length >= P7_MAX_GDS) direct.push(p7Row(entry, gd, \"NOT_QUEUED\", \"\", \"P7_TOO_MANY\", \"more than \" + P7_MAX_GDS + \" deliveries finished in one Picking\" + P7_MANUAL));\n    else items.push({ gd_id: gd, delivery_no: p7S(r.delivery_no), operation: \"SUBMIT\", source: \"PICKING\", answers: { needCL: \"auto\" }, causation_id: \"PICKING|\" + p7S(entry.jobId) });\n  }\n  return { items: items, needLoop: items.length ? \"YES\" : \"NO\", directRows: direct, needDirect: direct.length ? \"YES\" : \"NO\",\n    plannedSql: items.length ? items.map((i) => i.gd_id).join(\",\") : \"0\" };\n};\n// GD_COMPLETE_SUBMIT's answer (route / code / message / job_id) -> the delivery's P7 row. BUSY on its own open completion\n// (\"already being completed\", job_id = that job) is the same queued job; anything else waits for a manual completion\nconst p7Answer = function p7Answer(entry, item, ans) {\n  const a = ans && typeof ans === \"object\" ? ans : {};\n  const route = p7S(a.route), code = p7S(a.code || a.result_code), msg = p7S(a.message || a.result_message), job = p7S(a.job_id);\n  const gd = p7S((item || {}).gd_id);\n  if (route === \"QUEUED\" && job) return { rows: [p7Row(entry, gd, \"QUEUED\", job, \"\", \"\")] };\n  if (route === \"BUSY\" && job && /already being completed/i.test(msg)) return { rows: [p7Row(entry, gd, \"QUEUED\", job, \"ALREADY_QUEUED\", msg)] };\n  return { rows: [p7Row(entry, gd, \"NOT_QUEUED\", \"\", (route + \" \" + code).trim() || \"NO_ANSWER\", (msg || \"GD_COMPLETE_SUBMIT gave no answer\") + P7_MANUAL)] };\n};\n// after the loop - a caught failure ends it: each planned delivery still without a P7 row gets one from a fresh read, the\n// completion open now (this run's call before the failure, or a sibling Picking's) or NOT_QUEUED\nconst p7Fill = function p7Fill(entry, plan, backRows, crashed) {\n  const back = {};\n  for (const r of p7List(backRows)) back[p7S(r.gd_id)] = r;\n  const rows = [];\n  for (const gd of p7List((plan || {}).items).map((i) => p7S(i.gd_id))) {\n    const b = back[gd] || {};\n    if (p7S(b.p7)) continue;\n    rows.push(p7S(b.open_job)\n      ? p7Row(entry, gd, \"QUEUED\", b.open_job, \"ALREADY_QUEUED\", \"its completion is queued\")\n      : p7Row(entry, gd, \"NOT_QUEUED\", \"\", crashed ? \"CALL_FAILED\" : \"NO_ANSWER\", \"the completion request \" + (crashed ? \"failed\" : \"got no answer\") + P7_MANUAL));\n  }\n  return { fillRows: rows, needFill: rows.length ? \"YES\" : \"NO\" };\n};\nconst res = p7Plan({ jobId: [{{node:code_node_PCentry.data.jobId}}][0], organizationId: [{{node:code_node_PCentry.data.organizationId}}][0], dbNow: [{{node:code_node_PCentry.data.dbNow}}][0] }, [{{node:sql_node_PCp7gds.data}}][0]);\nconsole.log(\"P7 plan\", JSON.stringify({ requests: res.items.length, direct: res.directRows.length, gds: res.plannedSql }));\nreturn res;"
+                },
+                "response_json": [
+                  {
+                    "key": "oqfouvdm",
+                    "name": "items",
+                    "title": "items",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "x8sclpue",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "odlykt83",
+                    "name": "needLoop",
+                    "title": "needLoop",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "i8a8mh8i",
+                    "name": "directRows",
+                    "title": "directRows",
+                    "description": "",
+                    "bsonType": "array",
+                    "isExpand": true,
+                    "children": [
+                      {
+                        "key": "ldzmwlct",
+                        "name": "items",
+                        "title": "",
+                        "description": "",
+                        "bsonType": "any",
+                        "isExpand": false,
+                        "isArrayItem": true,
+                        "children": []
+                      }
+                    ]
+                  },
+                  {
+                    "key": "sgvt3h6t",
+                    "name": "needDirect",
+                    "title": "needDirect",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  },
+                  {
+                    "key": "918s8nxz",
+                    "name": "plannedSql",
+                    "title": "plannedSql",
+                    "description": "",
+                    "bsonType": "string",
+                    "isExpand": false,
+                    "children": []
+                  }
+                ],
+                "title": "P7 plan: the deliveries left fully picked and Created -> GD_COMPLETE_SUBMIT requests (<= 25)",
+                "isValidator": true,
+                "nodeName": "P7 plan: the deliveries left fully picked and Created -> GD_COMPLETE_SUBMIT requests (<= 25)",
+                "name": "P7 plan: the deliveries left fully picked and Created -> GD_COMPLETE_SUBMIT requests (<= 25)"
+              },
+              "blocks": []
+            },
+            {
+              "id": "cor_PCp7direct",
+              "type": "condition-or-node",
+              "data": {
+                "title": "P7 answers known without a call (an open completion, over 25)?",
+                "filter": {
+                  "list": []
+                },
+                "expression": {
+                  "code": ""
+                },
+                "displayContent": "sdk.form.setCondition"
+              },
+              "blocks": [
+                {
+                  "id": "cori_YPCp7direct",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "YES",
+                    "filter": {
+                      "list": [
+                        {
+                          "id": 1796500000003,
+                          "parentId": 1796500000004,
+                          "isTop": true,
+                          "prop": "node.code_node_PCp7plan.data.needDirect",
+                          "operator": "equal",
+                          "valueType": "value",
+                          "value": "YES",
+                          "type": "leaf",
+                          "level": 1,
+                          "propLabel": "needDirect",
+                          "valueLabel": "",
+                          "operatorLabel": "Equal"
+                        }
+                      ]
+                    },
+                    "expression": {
+                      "code": ""
+                    },
+                    "displayContent": "sdk.form.setCondition",
+                    "isValidator": true,
+                    "nodeName": "YES",
+                    "name": "YES",
+                    "condition_type": "ConditionRule"
+                  },
+                  "blocks": [
+                    {
+                      "id": "add_node_PCp7direct",
+                      "type": "add-node",
+                      "data": {
+                        "table_id": {
+                          "source": "GD Publish Step:Table:2105131615547461634",
+                          "rules": {
+                            "collectionId": "2105131615547461634",
+                            "list": [
+                              {
+                                "id": 1796500000001,
+                                "parentId": 1796500000002,
+                                "isTop": true,
+                                "prop": "",
+                                "operator": "",
+                                "valueType": "",
+                                "value": "",
+                                "type": "leaf",
+                                "level": 1
+                              }
+                            ]
+                          }
+                        },
+                        "fields": [],
+                        "title": "P7 WRITE: the answers known without a call",
+                        "isValidator": true,
+                        "nodeName": "P7 WRITE: the answers known without a call",
+                        "name": "P7 WRITE: the answers known without a call",
+                        "props": {
+                          "modelName": "",
+                          "list": [
+                            {
+                              "prop": "job_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.job_id}}",
+                              "valueLabel": "",
+                              "propLabel": "job_id"
+                            },
+                            {
+                              "prop": "organization_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.organization_id}}",
+                              "valueLabel": "",
+                              "propLabel": "Organization"
+                            },
+                            {
+                              "prop": "step_name",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.step_name}}",
+                              "valueLabel": "",
+                              "propLabel": "step_name"
+                            },
+                            {
+                              "prop": "step_status",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.step_status}}",
+                              "valueLabel": "",
+                              "propLabel": "step_status"
+                            },
+                            {
+                              "prop": "attempt_count",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.attempt_count}}",
+                              "valueLabel": "",
+                              "propLabel": "attempt_count"
+                            },
+                            {
+                              "prop": "started_at",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.started_at}}",
+                              "valueLabel": "",
+                              "propLabel": "started_at"
+                            },
+                            {
+                              "prop": "finished_at",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.finished_at}}",
+                              "valueLabel": "",
+                              "propLabel": "finished_at"
+                            },
+                            {
+                              "prop": "inventory_operation_id",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.inventory_operation_id}}",
+                              "valueLabel": "",
+                              "propLabel": "inventory_operation_id"
+                            },
+                            {
+                              "prop": "result_ref",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.result_ref}}",
+                              "valueLabel": "",
+                              "propLabel": "result_ref"
+                            },
+                            {
+                              "prop": "error_code",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.error_code}}",
+                              "valueLabel": "",
+                              "propLabel": "error_code"
+                            },
+                            {
+                              "prop": "error_message",
+                              "operator": "",
+                              "valueType": "field",
+                              "value": "{{node:code_node_PCp7plan.data.directRows.error_message}}",
+                              "valueLabel": "",
+                              "propLabel": "error_message"
+                            }
+                          ]
+                        }
+                      },
+                      "blocks": []
+                    }
+                  ]
+                },
+                {
+                  "id": "cori_NPCp7direct",
+                  "type": "condition-or-node-item",
+                  "data": {
+                    "title": "NO",
+                    "isDefault": true,
+                    "filter": {
+                      "list": []
+                    },
+                    "expression": {
+                      "code": ""
+                    },
+                    "displayContent": "sdk.form.otherCondition"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
+              "id": "if_PCp7go",
+              "type": "if",
+              "data": {
+                "title": "IF P7 has deliveries to hand to GD Complete V2",
+                "isValidator": true,
+                "nodeName": "IF P7 has deliveries to hand to GD Complete V2",
+                "name": "IF P7 has deliveries to hand to GD Complete V2",
+                "condition_type": "Expression",
+                "filter": {
+                  "list": [
+                    {
+                      "id": 1796500000021,
+                      "parentId": 1796500000022,
+                      "isTop": true,
+                      "prop": "",
+                      "operator": "",
+                      "valueType": "",
+                      "value": "",
+                      "type": "leaf",
+                      "level": 1
+                    }
+                  ]
+                },
+                "expression": {
+                  "type": "javascript",
+                  "code": "'{{node:code_node_PCp7plan.data.needLoop}}' == 'YES'"
+                }
+              },
+              "blocks": [
+                {
+                  "id": "ifBlock_TPCp7go",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "true"
+                  },
+                  "blocks": [
+                    {
+                      "id": "try_catch_PCp7",
+                      "type": "tryCatch",
+                      "data": {
+                        "title": "try-catch: a failed GD_COMPLETE_SUBMIT call ends the loop, not this run (the Picking is already saved)"
+                      },
+                      "blocks": [
+                        {
+                          "type": "tryBlock",
+                          "id": "try_catch_PCp7_tryBlock_0",
+                          "blocks": [
+                            {
+                              "id": "loop_PCp7",
+                              "type": "loop",
+                              "data": {
+                                "title": "Each delivery to complete: GD_COMPLETE_SUBMIT, its answer as a P7|<gd> step",
+                                "isValidator": true,
+                                "nodeName": "Each delivery to complete: GD_COMPLETE_SUBMIT, its answer as a P7|<gd> step",
+                                "name": "Each delivery to complete: GD_COMPLETE_SUBMIT, its answer as a P7|<gd> step",
+                                "loopType": "Var",
+                                "loopSeletSource": {
+                                  "datasource": {
+                                    "rules": {
+                                      "collectionId": "",
+                                      "list": [
+                                        {
+                                          "id": 1796500000011,
+                                          "parentId": 1796500000012,
+                                          "isTop": true,
+                                          "prop": "",
+                                          "operator": "",
+                                          "valueType": "",
+                                          "value": "",
+                                          "type": "leaf",
+                                          "level": 1
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "auto_refresh": 1,
+                                  "auto_refresh_debounce": 100,
+                                  "options": [],
+                                  "props": {
+                                    "value": "",
+                                    "label": "",
+                                    "image": "",
+                                    "icon": "",
+                                    "explain": ""
+                                  },
+                                  "remote": false,
+                                  "remoteType": "datasource"
+                                },
+                                "loopSeletVar": {
+                                  "type": "markdown",
+                                  "code": "{{node:code_node_PCp7plan.data.items}}"
+                                }
+                              },
+                              "blocks": [
+                                {
+                                  "id": "workflow_node_PCp7submit",
+                                  "type": "workflow-node",
+                                  "data": {
+                                    "workflow_id": "",
+                                    "workflow_name": "",
+                                    "input_params": {},
+                                    "title": "GD_COMPLETE_SUBMIT: complete this delivery in the background (source PICKING, needCL auto)",
+                                    "isValidator": true,
+                                    "nodeName": "GD_COMPLETE_SUBMIT: complete this delivery in the background (source PICKING, needCL auto)",
+                                    "name": "GD_COMPLETE_SUBMIT: complete this delivery in the background (source PICKING, needCL auto)",
+                                    "workflow": {
+                                      "source": "GD_COMPLETE_SUBMIT:Workflow:2110182609618337794",
+                                      "rules": {
+                                        "collectionId": "2110182609618337794",
+                                        "list": [
+                                          {
+                                            "id": 1796500000007,
+                                            "parentId": 1796500000008,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "remote": true,
+                                    "remoteType": "innerdatasource",
+                                    "body_params": {
+                                      "list": [
+                                        {
+                                          "prop": "operation",
+                                          "propLabel": "operation",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:loop_PCp7.operation}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "gd_id",
+                                          "propLabel": "gd_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:loop_PCp7.gd_id}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "source",
+                                          "propLabel": "source",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:loop_PCp7.source}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "answers",
+                                          "propLabel": "answers",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:loop_PCp7.answers}}",
+                                          "valueLabel": ""
+                                        },
+                                        {
+                                          "prop": "causation_id",
+                                          "propLabel": "causation_id",
+                                          "operator": "",
+                                          "operatorLabel": "",
+                                          "valueType": "field",
+                                          "valueTypeLabel": "",
+                                          "value": "{{node:loop_PCp7.causation_id}}",
+                                          "valueLabel": ""
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "code_node_PCp7ans",
+                                  "type": "code-node",
+                                  "data": {
+                                    "language": "javascript",
+                                    "code": "",
+                                    "timeout": 30000,
+                                    "script": {
+                                      "type": "javascript",
+                                      "code": "// PICKING_BULK_COMMIT - P7 AUTO COMPLETE GD (Picking V2 stage 1e, 2026-10-27). After P6 - the job COMPLETED and the Picking\n// unlocked earlier in this run, so GD_COMPLETE_SUBMIT's open-Picking-job fact sees this job closed - each delivery this Picking\n// left fully picked and still Created goes to GD Complete V2 (source PICKING, needCL auto: classic PICKING's GOODS_DELIVERY call).\n// One step row P7|<gd> per delivery records the answer; STATUS returns them and the desktop screens start GD_COMPLETE_WORKER.\nconst P7_MAX_GDS = 25;\nconst P7_MANUAL = \": complete it from the Goods Delivery list\";\nconst p7S = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst p7List = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r && typeof r === \"object\");\nconst p7Row = function p7Row(entry, gdId, status, jobId, code, message) {\n  return { job_id: p7S(entry.jobId), organization_id: p7S(entry.organizationId), step_name: \"P7|\" + gdId, step_status: status, attempt_count: 1,\n    started_at: p7S(entry.dbNow), finished_at: p7S(entry.dbNow), inventory_operation_id: \"\", result_ref: p7S(jobId).slice(0, 500),\n    error_code: code ? p7S(code).slice(0, 100) : null, error_message: message ? p7S(message).slice(0, 1000) : null };\n};\n// rows: sql_node_PCp7gds - the Picking's deliveries, read only while the organization's Auto Complete GD is on\nconst p7Plan = function p7Plan(entry, rows) {\n  const items = [];\n  const direct = [];\n  for (const r of p7List(rows)) {\n    const gd = p7S(r.gd_id);\n    if (!/^[0-9]{1,20}$/.test(gd) || p7S(r.p7)) continue;\n    if (p7S(r.gd_status) !== \"Created\" || p7S(r.picking_status) !== \"Completed\") continue;\n    if (p7S(r.open_job)) direct.push(p7Row(entry, gd, \"QUEUED\", r.open_job, \"ALREADY_QUEUED\", \"its completion is already queued\"));\n    else if (items.length >= P7_MAX_GDS) direct.push(p7Row(entry, gd, \"NOT_QUEUED\", \"\", \"P7_TOO_MANY\", \"more than \" + P7_MAX_GDS + \" deliveries finished in one Picking\" + P7_MANUAL));\n    else items.push({ gd_id: gd, delivery_no: p7S(r.delivery_no), operation: \"SUBMIT\", source: \"PICKING\", answers: { needCL: \"auto\" }, causation_id: \"PICKING|\" + p7S(entry.jobId) });\n  }\n  return { items: items, needLoop: items.length ? \"YES\" : \"NO\", directRows: direct, needDirect: direct.length ? \"YES\" : \"NO\",\n    plannedSql: items.length ? items.map((i) => i.gd_id).join(\",\") : \"0\" };\n};\n// GD_COMPLETE_SUBMIT's answer (route / code / message / job_id) -> the delivery's P7 row. BUSY on its own open completion\n// (\"already being completed\", job_id = that job) is the same queued job; anything else waits for a manual completion\nconst p7Answer = function p7Answer(entry, item, ans) {\n  const a = ans && typeof ans === \"object\" ? ans : {};\n  const route = p7S(a.route), code = p7S(a.code || a.result_code), msg = p7S(a.message || a.result_message), job = p7S(a.job_id);\n  const gd = p7S((item || {}).gd_id);\n  if (route === \"QUEUED\" && job) return { rows: [p7Row(entry, gd, \"QUEUED\", job, \"\", \"\")] };\n  if (route === \"BUSY\" && job && /already being completed/i.test(msg)) return { rows: [p7Row(entry, gd, \"QUEUED\", job, \"ALREADY_QUEUED\", msg)] };\n  return { rows: [p7Row(entry, gd, \"NOT_QUEUED\", \"\", (route + \" \" + code).trim() || \"NO_ANSWER\", (msg || \"GD_COMPLETE_SUBMIT gave no answer\") + P7_MANUAL)] };\n};\n// after the loop - a caught failure ends it: each planned delivery still without a P7 row gets one from a fresh read, the\n// completion open now (this run's call before the failure, or a sibling Picking's) or NOT_QUEUED\nconst p7Fill = function p7Fill(entry, plan, backRows, crashed) {\n  const back = {};\n  for (const r of p7List(backRows)) back[p7S(r.gd_id)] = r;\n  const rows = [];\n  for (const gd of p7List((plan || {}).items).map((i) => p7S(i.gd_id))) {\n    const b = back[gd] || {};\n    if (p7S(b.p7)) continue;\n    rows.push(p7S(b.open_job)\n      ? p7Row(entry, gd, \"QUEUED\", b.open_job, \"ALREADY_QUEUED\", \"its completion is queued\")\n      : p7Row(entry, gd, \"NOT_QUEUED\", \"\", crashed ? \"CALL_FAILED\" : \"NO_ANSWER\", \"the completion request \" + (crashed ? \"failed\" : \"got no answer\") + P7_MANUAL));\n  }\n  return { fillRows: rows, needFill: rows.length ? \"YES\" : \"NO\" };\n};\nconst res = p7Answer({ jobId: [{{node:code_node_PCentry.data.jobId}}][0], organizationId: [{{node:code_node_PCentry.data.organizationId}}][0], dbNow: [{{node:code_node_PCentry.data.dbNow}}][0] }, [{{node:loop_PCp7}}][0], { route: [{{node:workflow_node_PCp7submit.data.route}}][0], code: [{{node:workflow_node_PCp7submit.data.code}}][0], message: [{{node:workflow_node_PCp7submit.data.message}}][0], job_id: [{{node:workflow_node_PCp7submit.data.job_id}}][0] });\nconsole.log(\"P7 answer\", JSON.stringify(res.rows[0]));\nreturn res;"
+                                    },
+                                    "response_json": [
+                                      {
+                                        "key": "laqyym8x",
+                                        "name": "rows",
+                                        "title": "rows",
+                                        "description": "",
+                                        "bsonType": "array",
+                                        "isExpand": true,
+                                        "children": [
+                                          {
+                                            "key": "ciyuo5yk",
+                                            "name": "items",
+                                            "title": "",
+                                            "description": "",
+                                            "bsonType": "any",
+                                            "isExpand": false,
+                                            "isArrayItem": true,
+                                            "children": []
+                                          }
+                                        ]
+                                      }
+                                    ],
+                                    "title": "P7 answer: QUEUED (or its own open completion) -> the job; else the reason, for a manual completion",
+                                    "isValidator": true,
+                                    "nodeName": "P7 answer: QUEUED (or its own open completion) -> the job; else the reason, for a manual completion",
+                                    "name": "P7 answer: QUEUED (or its own open completion) -> the job; else the reason, for a manual completion"
+                                  },
+                                  "blocks": []
+                                },
+                                {
+                                  "id": "add_node_PCp7step",
+                                  "type": "add-node",
+                                  "data": {
+                                    "table_id": {
+                                      "source": "GD Publish Step:Table:2105131615547461634",
+                                      "rules": {
+                                        "collectionId": "2105131615547461634",
+                                        "list": [
+                                          {
+                                            "id": 1796500000009,
+                                            "parentId": 1796500000010,
+                                            "isTop": true,
+                                            "prop": "",
+                                            "operator": "",
+                                            "valueType": "",
+                                            "value": "",
+                                            "type": "leaf",
+                                            "level": 1
+                                          }
+                                        ]
+                                      }
+                                    },
+                                    "fields": [],
+                                    "title": "P7 WRITE: this delivery's answer",
+                                    "isValidator": true,
+                                    "nodeName": "P7 WRITE: this delivery's answer",
+                                    "name": "P7 WRITE: this delivery's answer",
+                                    "props": {
+                                      "modelName": "",
+                                      "list": [
+                                        {
+                                          "prop": "job_id",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.job_id}}",
+                                          "valueLabel": "",
+                                          "propLabel": "job_id"
+                                        },
+                                        {
+                                          "prop": "organization_id",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.organization_id}}",
+                                          "valueLabel": "",
+                                          "propLabel": "Organization"
+                                        },
+                                        {
+                                          "prop": "step_name",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.step_name}}",
+                                          "valueLabel": "",
+                                          "propLabel": "step_name"
+                                        },
+                                        {
+                                          "prop": "step_status",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.step_status}}",
+                                          "valueLabel": "",
+                                          "propLabel": "step_status"
+                                        },
+                                        {
+                                          "prop": "attempt_count",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.attempt_count}}",
+                                          "valueLabel": "",
+                                          "propLabel": "attempt_count"
+                                        },
+                                        {
+                                          "prop": "started_at",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.started_at}}",
+                                          "valueLabel": "",
+                                          "propLabel": "started_at"
+                                        },
+                                        {
+                                          "prop": "finished_at",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.finished_at}}",
+                                          "valueLabel": "",
+                                          "propLabel": "finished_at"
+                                        },
+                                        {
+                                          "prop": "inventory_operation_id",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.inventory_operation_id}}",
+                                          "valueLabel": "",
+                                          "propLabel": "inventory_operation_id"
+                                        },
+                                        {
+                                          "prop": "result_ref",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.result_ref}}",
+                                          "valueLabel": "",
+                                          "propLabel": "result_ref"
+                                        },
+                                        {
+                                          "prop": "error_code",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.error_code}}",
+                                          "valueLabel": "",
+                                          "propLabel": "error_code"
+                                        },
+                                        {
+                                          "prop": "error_message",
+                                          "operator": "",
+                                          "valueType": "field",
+                                          "value": "{{node:code_node_PCp7ans.data.rows.error_message}}",
+                                          "valueLabel": "",
+                                          "propLabel": "error_message"
+                                        }
+                                      ]
+                                    }
+                                  },
+                                  "blocks": []
+                                }
+                              ]
+                            }
+                          ]
+                        },
+                        {
+                          "type": "catchBlock",
+                          "data": {
+                            "title": "A GD_COMPLETE_SUBMIT call failed",
+                            "trycatch_type": "Filter",
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "type": "javascript",
+                              "code": ""
+                            },
+                            "displayContent": "sdk.form.setCondition"
+                          },
+                          "id": "try_catch_PCp7_catchBlock_1",
+                          "blocks": [
+                            {
+                              "id": "code_node_PCp7crash",
+                              "type": "code-node",
+                              "data": {
+                                "language": "javascript",
+                                "code": "",
+                                "timeout": 30000,
+                                "script": {
+                                  "type": "javascript",
+                                  "code": "// P7 - a GD_COMPLETE_SUBMIT call failed (caught; e.g. two Pickings of one delivery finishing together, the second's lock insert\n// fails): the loop ends here, and the fill after it records every planned delivery still without an answer\nconsole.log(\"P7: a GD_COMPLETE_SUBMIT call failed (caught) - the fill records the rest\");\nreturn { crashed: \"YES\" };"
+                                },
+                                "response_json": [
+                                  {
+                                    "key": "933ir3kx",
+                                    "name": "crashed",
+                                    "title": "crashed",
+                                    "description": "",
+                                    "bsonType": "string",
+                                    "isExpand": false,
+                                    "children": []
+                                  }
+                                ],
+                                "title": "P7: a GD_COMPLETE_SUBMIT call failed (caught) - the loop ends, the fill records the rest",
+                                "isValidator": true,
+                                "nodeName": "P7: a GD_COMPLETE_SUBMIT call failed (caught) - the loop ends, the fill records the rest",
+                                "name": "P7: a GD_COMPLETE_SUBMIT call failed (caught) - the loop ends, the fill records the rest"
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      "id": "sql_node_PCp7back",
+                      "type": "sql-node",
+                      "data": {
+                        "database_id": "",
+                        "sql": "",
+                        "params": {},
+                        "title": "P7 read-back: the planned deliveries (open completion, this job's answer)",
+                        "isValidator": true,
+                        "nodeName": "P7 read-back: the planned deliveries (open completion, this job's answer)",
+                        "name": "P7 read-back: the planned deliveries (open completion, this job's answer)",
+                        "script": {
+                          "type": "sql",
+                          "code": "SELECT CAST(g.id AS CHAR) AS gd_id,\n       -- P7 read-back: the planned deliveries after the calls (or a caught failure): an open completion, this job's P7 answer\n       (SELECT CAST(o.id AS CHAR) FROM gd_async_job o\n         WHERE o.tenant_id = '{{node:code_node_PCguard.data.tenantId}}' AND o.is_deleted = 0 AND o.command = 'COMPLETE_GD'\n           AND o.correlation_id = CONCAT('GD|', g.id) COLLATE utf8mb4_general_ci AND o.job_status IN ('QUEUED', 'VALIDATING', 'READY_TO_COMMIT', 'COMMITTING_GD', 'REQUIRES_REVIEW')\n         ORDER BY o.id DESC LIMIT 1) AS open_job,\n       (SELECT s.step_status FROM gd_publish_step s\n         WHERE s.tenant_id = '{{node:code_node_PCguard.data.tenantId}}' AND s.job_id = '{{node:code_node_PCentry.data.jobId}}'\n           AND s.step_name = CONCAT('P7|', g.id) COLLATE utf8mb4_general_ci AND s.is_deleted = 0 LIMIT 1) AS p7\n  FROM goods_delivery g\n WHERE g.tenant_id = '{{node:code_node_PCguard.data.tenantId}}' AND g.id IN ({{node:code_node_PCp7plan.data.plannedSql}}) AND g.is_deleted = 0"
+                        },
+                        "response_json": [
+                          {
+                            "key": "sa7fkwsm",
+                            "name": "gd_id",
+                            "title": "gd_id",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "0zb323i9",
+                            "name": "open_job",
+                            "title": "open_job",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          },
+                          {
+                            "key": "s2ftoqe7",
+                            "name": "p7",
+                            "title": "p7",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ]
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "code_node_PCp7fill",
+                      "type": "code-node",
+                      "data": {
+                        "language": "javascript",
+                        "code": "",
+                        "timeout": 30000,
+                        "script": {
+                          "type": "javascript",
+                          "code": "// PICKING_BULK_COMMIT - P7 AUTO COMPLETE GD (Picking V2 stage 1e, 2026-10-27). After P6 - the job COMPLETED and the Picking\n// unlocked earlier in this run, so GD_COMPLETE_SUBMIT's open-Picking-job fact sees this job closed - each delivery this Picking\n// left fully picked and still Created goes to GD Complete V2 (source PICKING, needCL auto: classic PICKING's GOODS_DELIVERY call).\n// One step row P7|<gd> per delivery records the answer; STATUS returns them and the desktop screens start GD_COMPLETE_WORKER.\nconst P7_MAX_GDS = 25;\nconst P7_MANUAL = \": complete it from the Goods Delivery list\";\nconst p7S = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst p7List = (x) => (Array.isArray(x) ? x : x ? [x] : []).filter((r) => r && typeof r === \"object\");\nconst p7Row = function p7Row(entry, gdId, status, jobId, code, message) {\n  return { job_id: p7S(entry.jobId), organization_id: p7S(entry.organizationId), step_name: \"P7|\" + gdId, step_status: status, attempt_count: 1,\n    started_at: p7S(entry.dbNow), finished_at: p7S(entry.dbNow), inventory_operation_id: \"\", result_ref: p7S(jobId).slice(0, 500),\n    error_code: code ? p7S(code).slice(0, 100) : null, error_message: message ? p7S(message).slice(0, 1000) : null };\n};\n// rows: sql_node_PCp7gds - the Picking's deliveries, read only while the organization's Auto Complete GD is on\nconst p7Plan = function p7Plan(entry, rows) {\n  const items = [];\n  const direct = [];\n  for (const r of p7List(rows)) {\n    const gd = p7S(r.gd_id);\n    if (!/^[0-9]{1,20}$/.test(gd) || p7S(r.p7)) continue;\n    if (p7S(r.gd_status) !== \"Created\" || p7S(r.picking_status) !== \"Completed\") continue;\n    if (p7S(r.open_job)) direct.push(p7Row(entry, gd, \"QUEUED\", r.open_job, \"ALREADY_QUEUED\", \"its completion is already queued\"));\n    else if (items.length >= P7_MAX_GDS) direct.push(p7Row(entry, gd, \"NOT_QUEUED\", \"\", \"P7_TOO_MANY\", \"more than \" + P7_MAX_GDS + \" deliveries finished in one Picking\" + P7_MANUAL));\n    else items.push({ gd_id: gd, delivery_no: p7S(r.delivery_no), operation: \"SUBMIT\", source: \"PICKING\", answers: { needCL: \"auto\" }, causation_id: \"PICKING|\" + p7S(entry.jobId) });\n  }\n  return { items: items, needLoop: items.length ? \"YES\" : \"NO\", directRows: direct, needDirect: direct.length ? \"YES\" : \"NO\",\n    plannedSql: items.length ? items.map((i) => i.gd_id).join(\",\") : \"0\" };\n};\n// GD_COMPLETE_SUBMIT's answer (route / code / message / job_id) -> the delivery's P7 row. BUSY on its own open completion\n// (\"already being completed\", job_id = that job) is the same queued job; anything else waits for a manual completion\nconst p7Answer = function p7Answer(entry, item, ans) {\n  const a = ans && typeof ans === \"object\" ? ans : {};\n  const route = p7S(a.route), code = p7S(a.code || a.result_code), msg = p7S(a.message || a.result_message), job = p7S(a.job_id);\n  const gd = p7S((item || {}).gd_id);\n  if (route === \"QUEUED\" && job) return { rows: [p7Row(entry, gd, \"QUEUED\", job, \"\", \"\")] };\n  if (route === \"BUSY\" && job && /already being completed/i.test(msg)) return { rows: [p7Row(entry, gd, \"QUEUED\", job, \"ALREADY_QUEUED\", msg)] };\n  return { rows: [p7Row(entry, gd, \"NOT_QUEUED\", \"\", (route + \" \" + code).trim() || \"NO_ANSWER\", (msg || \"GD_COMPLETE_SUBMIT gave no answer\") + P7_MANUAL)] };\n};\n// after the loop - a caught failure ends it: each planned delivery still without a P7 row gets one from a fresh read, the\n// completion open now (this run's call before the failure, or a sibling Picking's) or NOT_QUEUED\nconst p7Fill = function p7Fill(entry, plan, backRows, crashed) {\n  const back = {};\n  for (const r of p7List(backRows)) back[p7S(r.gd_id)] = r;\n  const rows = [];\n  for (const gd of p7List((plan || {}).items).map((i) => p7S(i.gd_id))) {\n    const b = back[gd] || {};\n    if (p7S(b.p7)) continue;\n    rows.push(p7S(b.open_job)\n      ? p7Row(entry, gd, \"QUEUED\", b.open_job, \"ALREADY_QUEUED\", \"its completion is queued\")\n      : p7Row(entry, gd, \"NOT_QUEUED\", \"\", crashed ? \"CALL_FAILED\" : \"NO_ANSWER\", \"the completion request \" + (crashed ? \"failed\" : \"got no answer\") + P7_MANUAL));\n  }\n  return { fillRows: rows, needFill: rows.length ? \"YES\" : \"NO\" };\n};\nconst res = p7Fill({ jobId: [{{node:code_node_PCentry.data.jobId}}][0], organizationId: [{{node:code_node_PCentry.data.organizationId}}][0], dbNow: [{{node:code_node_PCentry.data.dbNow}}][0] }, [{{node:code_node_PCp7plan.data}}][0], [{{node:sql_node_PCp7back.data}}][0], [{{node:code_node_PCp7crash.data.crashed}}][0]);\nconsole.log(\"P7 fill\", JSON.stringify({ rows: res.fillRows.length }));\nreturn res;"
+                        },
+                        "response_json": [
+                          {
+                            "key": "ttaktv3i",
+                            "name": "fillRows",
+                            "title": "fillRows",
+                            "description": "",
+                            "bsonType": "array",
+                            "isExpand": true,
+                            "children": [
+                              {
+                                "key": "lb28kc1k",
+                                "name": "items",
+                                "title": "",
+                                "description": "",
+                                "bsonType": "any",
+                                "isExpand": false,
+                                "isArrayItem": true,
+                                "children": []
+                              }
+                            ]
+                          },
+                          {
+                            "key": "0yi8w69p",
+                            "name": "needFill",
+                            "title": "needFill",
+                            "description": "",
+                            "bsonType": "string",
+                            "isExpand": false,
+                            "children": []
+                          }
+                        ],
+                        "title": "P7 fill: a planned delivery without an answer -> its open completion, else NOT_QUEUED",
+                        "isValidator": true,
+                        "nodeName": "P7 fill: a planned delivery without an answer -> its open completion, else NOT_QUEUED",
+                        "name": "P7 fill: a planned delivery without an answer -> its open completion, else NOT_QUEUED"
+                      },
+                      "blocks": []
+                    },
+                    {
+                      "id": "cor_PCp7fill",
+                      "type": "condition-or-node",
+                      "data": {
+                        "title": "P7 answers to fill?",
+                        "filter": {
+                          "list": []
+                        },
+                        "expression": {
+                          "code": ""
+                        },
+                        "displayContent": "sdk.form.setCondition"
+                      },
+                      "blocks": [
+                        {
+                          "id": "cori_YPCp7fill",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "YES",
+                            "filter": {
+                              "list": [
+                                {
+                                  "id": 1796500000017,
+                                  "parentId": 1796500000018,
+                                  "isTop": true,
+                                  "prop": "node.code_node_PCp7fill.data.needFill",
+                                  "operator": "equal",
+                                  "valueType": "value",
+                                  "value": "YES",
+                                  "type": "leaf",
+                                  "level": 1,
+                                  "propLabel": "needFill",
+                                  "valueLabel": "",
+                                  "operatorLabel": "Equal"
+                                }
+                              ]
+                            },
+                            "expression": {
+                              "code": ""
+                            },
+                            "displayContent": "sdk.form.setCondition",
+                            "isValidator": true,
+                            "nodeName": "YES",
+                            "name": "YES",
+                            "condition_type": "ConditionRule"
+                          },
+                          "blocks": [
+                            {
+                              "id": "add_node_PCp7fill",
+                              "type": "add-node",
+                              "data": {
+                                "table_id": {
+                                  "source": "GD Publish Step:Table:2105131615547461634",
+                                  "rules": {
+                                    "collectionId": "2105131615547461634",
+                                    "list": [
+                                      {
+                                        "id": 1796500000015,
+                                        "parentId": 1796500000016,
+                                        "isTop": true,
+                                        "prop": "",
+                                        "operator": "",
+                                        "valueType": "",
+                                        "value": "",
+                                        "type": "leaf",
+                                        "level": 1
+                                      }
+                                    ]
+                                  }
+                                },
+                                "fields": [],
+                                "title": "P7 WRITE: the filled answers",
+                                "isValidator": true,
+                                "nodeName": "P7 WRITE: the filled answers",
+                                "name": "P7 WRITE: the filled answers",
+                                "props": {
+                                  "modelName": "",
+                                  "list": [
+                                    {
+                                      "prop": "job_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.job_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "job_id"
+                                    },
+                                    {
+                                      "prop": "organization_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.organization_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "Organization"
+                                    },
+                                    {
+                                      "prop": "step_name",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.step_name}}",
+                                      "valueLabel": "",
+                                      "propLabel": "step_name"
+                                    },
+                                    {
+                                      "prop": "step_status",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.step_status}}",
+                                      "valueLabel": "",
+                                      "propLabel": "step_status"
+                                    },
+                                    {
+                                      "prop": "attempt_count",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.attempt_count}}",
+                                      "valueLabel": "",
+                                      "propLabel": "attempt_count"
+                                    },
+                                    {
+                                      "prop": "started_at",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.started_at}}",
+                                      "valueLabel": "",
+                                      "propLabel": "started_at"
+                                    },
+                                    {
+                                      "prop": "finished_at",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.finished_at}}",
+                                      "valueLabel": "",
+                                      "propLabel": "finished_at"
+                                    },
+                                    {
+                                      "prop": "inventory_operation_id",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.inventory_operation_id}}",
+                                      "valueLabel": "",
+                                      "propLabel": "inventory_operation_id"
+                                    },
+                                    {
+                                      "prop": "result_ref",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.result_ref}}",
+                                      "valueLabel": "",
+                                      "propLabel": "result_ref"
+                                    },
+                                    {
+                                      "prop": "error_code",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.error_code}}",
+                                      "valueLabel": "",
+                                      "propLabel": "error_code"
+                                    },
+                                    {
+                                      "prop": "error_message",
+                                      "operator": "",
+                                      "valueType": "field",
+                                      "value": "{{node:code_node_PCp7fill.data.fillRows.error_message}}",
+                                      "valueLabel": "",
+                                      "propLabel": "error_message"
+                                    }
+                                  ]
+                                }
+                              },
+                              "blocks": []
+                            }
+                          ]
+                        },
+                        {
+                          "id": "cori_NPCp7fill",
+                          "type": "condition-or-node-item",
+                          "data": {
+                            "title": "NO",
+                            "isDefault": true,
+                            "filter": {
+                              "list": []
+                            },
+                            "expression": {
+                              "code": ""
+                            },
+                            "displayContent": "sdk.form.otherCondition"
+                          },
+                          "blocks": []
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "ifBlock_FPCp7go",
+                  "type": "ifBlock",
+                  "data": {
+                    "title": "false"
+                  },
+                  "blocks": []
+                }
+              ]
+            },
+            {
               "id": "sql_node_PCback",
               "type": "sql-node",
               "data": {

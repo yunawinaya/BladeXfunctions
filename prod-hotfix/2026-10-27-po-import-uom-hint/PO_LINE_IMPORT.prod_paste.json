@@ -1,0 +1,949 @@
+{
+ "request_json": [
+  {
+   "key": "ocem3qof",
+   "name": "rows",
+   "title": "rows",
+   "description": "the upload's parsed rows (header -> value)",
+   "bsonType": "any",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "emz84h0a",
+   "name": "organization_id",
+   "title": "organization_id",
+   "description": "the purchase order's organization",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "9t7cqxdk",
+   "name": "supplier_id",
+   "title": "supplier_id",
+   "description": "the purchase order's supplier",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  },
+  {
+   "key": "fxgevexh",
+   "name": "plant_id",
+   "title": "plant_id",
+   "description": "the purchase order's plant",
+   "bsonType": "string",
+   "isExpand": false,
+   "children": []
+  }
+ ],
+ "response_json": [
+  {
+   "key": "ydwed2bd",
+   "name": "code",
+   "title": "code",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "oki2rvv8",
+   "name": "message",
+   "title": "message",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "qja58pmr",
+   "name": "rows",
+   "title": "rows",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "n8ep3rdi",
+   "name": "alt_uom",
+   "title": "alt_uom",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "csq8r8s9",
+   "name": "tax_open",
+   "title": "tax_open",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "ip0rwo28",
+   "name": "count",
+   "title": "count",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "kznb8nhy",
+   "name": "errors",
+   "title": "errors",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  },
+  {
+   "key": "vo4acvw5",
+   "name": "error_count",
+   "title": "error_count",
+   "description": "",
+   "bsonType": "string",
+   "isExpand": false
+  }
+ ],
+ "config": {},
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "title": "Start Node",
+    "isValidator": true,
+    "nodeName": "Start Node",
+    "name": "Start Node"
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_PIguard",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// PO_LINE_IMPORT - Guard: the Excel rows as the PO form's upload parsed them, each checked on its own (headers matched\n// without case, spaces or punctuation), and the distinct item codes for the item read\nconst IMPORT_MAX_ROWS = 2500;\nconst ERRORS_SHOWN = 30;\nconst s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst digits = (v) => /^[0-9]{1,20}$/.test(s(v));\nconst normKey = (k) => String(k || \"\").toLowerCase().replace(/[^a-z0-9]/g, \"\");\nconst HEADERS = {\n  code: [\"itemcode\", \"code\", \"materialcode\", \"item\"],\n  qty: [\"quantity\", \"qty\"],\n  uom: [\"uom\", \"unit\", \"unitofmeasure\", \"unitofmeasurement\", \"quantityuom\"],\n  price: [\"unitprice\", \"price\"],\n  discount: [\"discount\"],\n  discountType: [\"discounttype\", \"discountuom\"],\n  desc: [\"description\", \"itemdescription\"],\n  remark1: [\"remark1\", \"remark\", \"remarks\", \"lineremark1\"],\n  remark2: [\"remark2\", \"lineremark2\"],\n  date: [\"requireddeliverydate\", \"deliverydate\", \"expecteddeliverydate\", \"requireddate\"],\n};\nconst FIELD_OF = {};\nfor (const f of Object.keys(HEADERS)) for (const h of HEADERS[f]) FIELD_OF[h] = f;\nconst TEMPLATE = \"Item Code, Quantity, UOM, Unit Price, Discount, Discount Type, Description, Remark 1, Remark 2, Required Delivery Date\";\n// a number as Excel or a person writes it: 1,250.5 -> 1250.5; blank -> null; anything else -> NaN\nconst numOf = (v) => {\n  if (typeof v === \"number\") return isFinite(v) ? v : NaN;\n  const t = s(v).replace(/,/g, \"\");\n  if (t === \"\") return null;\n  return /^[+-]?(\\d+(\\.\\d*)?|\\.\\d+)$/.test(t) ? Number(t) : NaN;\n};\nconst MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, sept: 9, oct: 10, nov: 11, dec: 12 };\n// a calendar date -> \"YYYY-MM-DD\"; blank -> \"\"; not a date -> null. Excel day numbers, ISO, day-month-year with - / or .,\n// \"1 Jan 2026\" and \"Jan 1, 2026\"\nconst dateOf = (v) => {\n  const p2 = (n) => (n < 10 ? \"0\" : \"\") + n;\n  const ymd = (y, m, d) => {\n    if (!(y >= 1900 && y <= 2999 && m >= 1 && m <= 12 && d >= 1)) return null;\n    const last = new Date(Date.UTC(y, m, 0)).getUTCDate();\n    return d <= last ? y + \"-\" + p2(m) + \"-\" + p2(d) : null;\n  };\n  if (typeof v === \"number\") {\n    if (!(v >= 1 && v < 2958466)) return null;\n    const t = new Date(Date.UTC(1899, 11, 30) + Math.floor(v) * 86400000);\n    return ymd(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());\n  }\n  const t = s(v);\n  if (t === \"\") return \"\";\n  let m = t.match(/^(\\d{4})[-/.](\\d{1,2})[-/.](\\d{1,2})(?:[ T].*)?$/);\n  if (m) return ymd(+m[1], +m[2], +m[3]);\n  m = t.match(/^(\\d{1,2})[-/.](\\d{1,2})[-/.](\\d{4})$/);\n  if (m) return ymd(+m[3], +m[2], +m[1]);\n  m = t.match(/^(\\d{1,2})[\\s-]+([A-Za-z]{3,9})[\\s,-]+(\\d{4})$/);\n  if (m && MONTHS[m[2].slice(0, 4).toLowerCase()] !== undefined) return ymd(+m[3], MONTHS[m[2].slice(0, 4).toLowerCase()], +m[1]);\n  if (m && MONTHS[m[2].slice(0, 3).toLowerCase()] !== undefined) return ymd(+m[3], MONTHS[m[2].slice(0, 3).toLowerCase()], +m[1]);\n  m = t.match(/^([A-Za-z]{3,9})\\s+(\\d{1,2}),?\\s+(\\d{4})$/);\n  if (m && MONTHS[m[1].slice(0, 3).toLowerCase()] !== undefined) return ymd(+m[3], MONTHS[m[1].slice(0, 3).toLowerCase()], +m[2]);\n  return null;\n};\nconst sqlText = (v) => String(v).replace(/\\\\/g, \"\\\\\\\\\").replace(/'/g, \"''\");\n\nconst importGuard = function importGuard(input) {\n  const base = { route: \"STOP\", code: \"400\", message: \"\", errors: [], rows: [], codesSql: \"[]\", count: 0, tenantId: \"\", organizationId: \"\", supplierId: \"\", plantId: \"\" };\n  const stop = (message, errors) => Object.assign(base, { message: message, errors: errors || [] });\n  if (!digits(input.tenantId)) return stop(\"No session tenant.\");\n  if (!digits(input.organizationId)) return stop(\"The organization of this purchase order is not set.\");\n  if (s(input.supplierId) !== \"\" && !digits(input.supplierId)) return stop(\"The supplier of this purchase order is not valid.\");\n  if (s(input.plantId) !== \"\" && !digits(input.plantId)) return stop(\"The plant of this purchase order is not valid.\");\n  let raw = input.rows;\n  if (typeof raw === \"string\") {\n    try {\n      raw = JSON.parse(raw);\n    } catch (e) {\n      return stop(\"The uploaded file could not be read.\");\n    }\n  }\n  if (!Array.isArray(raw)) return stop(\"The uploaded file could not be read.\");\n  const out = [];\n  const errors = [];\n  const unknownHeaders = {};\n  let sawCode = false;\n  raw.forEach((r, i) => {\n    if (!r || typeof r !== \"object\") return;\n    const n = i + 2; // row 1 is the header row\n    const v = {};\n    for (const k of Object.keys(r)) {\n      const f = FIELD_OF[normKey(k)];\n      if (f) {\n        if (f === \"code\") sawCode = true;\n        if (v[f] === undefined || s(v[f]) === \"\") v[f] = r[k];\n      } else if (s(r[k]) !== \"\") unknownHeaders[k] = true;\n    }\n    if (Object.keys(v).every((f) => s(v[f]) === \"\")) return; // a blank row\n    const err = (msg) => errors.push({ row: n, message: msg });\n    const code = s(v.code);\n    if (!code) return err(\"Item Code is empty\");\n    if (code.length > 255) return err(\"Item Code is longer than 255 characters\");\n    const qty = numOf(v.qty);\n    if (qty === null) return err(\"Quantity is empty\");\n    if (!(qty > 0)) return err(\"Quantity must be a number above 0 (\" + s(v.qty) + \")\");\n    const price = numOf(v.price);\n    if (price !== null && !(price >= 0)) return err(\"Unit Price must be a number, 0 or above (\" + s(v.price) + \")\");\n    const discount = numOf(v.discount);\n    if (discount !== null && !(discount >= 0)) return err(\"Discount must be a number, 0 or above (\" + s(v.discount) + \")\");\n    let discountType = \"\";\n    const dt = normKey(v.discountType);\n    if (s(v.discountType)) {\n      if (s(v.discountType) === \"%\" || dt === \"percent\" || dt === \"percentage\" || dt === \"pct\") discountType = \"%\";\n      else if (dt === \"amount\" || dt === \"amt\" || dt === \"value\") discountType = \"Amount\";\n      else return err(\"Discount Type must be % or Amount (\" + s(v.discountType) + \")\");\n    }\n    if (discountType === \"%\" && discount !== null && discount > 100) return err(\"Discount above 100%\");\n    const date = dateOf(v.date);\n    if (date === null) return err(\"Required Delivery Date is not a date (\" + s(v.date) + \")\");\n    out.push({ n: n, code: code, qty: qty, uom: s(v.uom), price: price, discount: discount, discountType: discountType, desc: s(v.desc), remark1: s(v.remark1),\n      remark2: s(v.remark2), date: date });\n  });\n  if (!sawCode) return stop(\"The file has no Item Code column. The template's columns are: \" + TEMPLATE + \".\");\n  if (out.length + errors.length === 0) return stop(\"The file has no lines.\");\n  if (out.length + errors.length > IMPORT_MAX_ROWS) return stop(\"The file has \" + (out.length + errors.length) + \" lines. At most \" + IMPORT_MAX_ROWS + \" lines can be imported at once.\");\n  if (errors.length) return stop(errors.length + \" line(s) cannot be imported - nothing was added.\", errors);\n  const codes = [...new Set(out.map((r) => r.code))];\n  const parts = [];\n  for (let i = 0; i < codes.length; i += 50) parts.push(codes.slice(i, i + 50).map((c) => JSON.stringify({ c: c })).join(\",\"));\n  return Object.assign(base, { route: \"GO\", code: \"200\", message: Object.keys(unknownHeaders).length ? \"Columns not imported: \" + Object.keys(unknownHeaders).join(\", \") : \"\",\n    rows: out, codesSql: sqlText(\"[\" + parts.join(\",\\n\") + \"]\"), count: out.length, tenantId: s(input.tenantId), organizationId: s(input.organizationId),\n    supplierId: s(input.supplierId), plantId: s(input.plantId) });\n};\nconst res = importGuard({ rows: [{{workflowparams:rows}}][0], tenantId: [{{system:tenantId}}][0], organizationId: [{{workflowparams:organization_id}}][0],\n  supplierId: [{{workflowparams:supplier_id}}][0], plantId: [{{workflowparams:plant_id}}][0] });\nres.errorsShown = res.errors.slice(0, ERRORS_SHOWN);\nres.errorsJson = JSON.stringify(res.errorsShown);\nres.errorCount = String(res.errors.length);\nconsole.log(\"import guard\", JSON.stringify({ route: res.route, count: res.count, errors: res.errors.length, message: res.message }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "0adac97e",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ozdko99o",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "e8u1h8if",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "vr2esgfz",
+      "name": "errors",
+      "title": "errors",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "39vescas",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "izu7j03e",
+      "name": "errorsShown",
+      "title": "errorsShown",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "s6cz7qfo",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "umdgx17c",
+      "name": "errorsJson",
+      "title": "errorsJson",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "4lv0k44m",
+      "name": "errorCount",
+      "title": "errorCount",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "fyf6fbuk",
+      "name": "rows",
+      "title": "rows",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "ojq43qbj",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "o1b3aohd",
+      "name": "codesSql",
+      "title": "codesSql",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "kbim0l5a",
+      "name": "count",
+      "title": "count",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "m9tlo71q",
+      "name": "tenantId",
+      "title": "tenantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "x2j9vagm",
+      "name": "organizationId",
+      "title": "organizationId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "bn182ku0",
+      "name": "supplierId",
+      "title": "supplierId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "32uzcvig",
+      "name": "plantId",
+      "title": "plantId",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Guard: the file's rows checked one by one, the distinct item codes",
+    "isValidator": true,
+    "nodeName": "Guard: the file's rows checked one by one, the distinct item codes",
+    "name": "Guard: the file's rows checked one by one, the distinct item codes"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_PIguard",
+   "type": "if",
+   "data": {
+    "title": "IF the file cannot be imported: 400 with every bad row, nothing added",
+    "isValidator": true,
+    "nodeName": "IF the file cannot be imported: 400 with every bad row, nothing added",
+    "name": "IF the file cannot be imported: 400 with every bad row, nothing added",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799100000001,
+       "parentId": 1799100000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_PIguard.data.route}}' == 'STOP'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TPIguard",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "return_node_PIguard",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return 400 (guard)",
+        "isValidator": true,
+        "nodeName": "Return 400 (guard)",
+        "name": "Return 400 (guard)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PIguard.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PIguard.data.message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "errors",
+           "propLabel": "errors",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PIguard.data.errorsJson}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_count",
+           "propLabel": "error_count",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PIguard.data.errorCount}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FPIguard",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "sql_node_PIitems",
+   "type": "sql-node",
+   "data": {
+    "database_id": "",
+    "sql": "",
+    "params": {},
+    "title": "The file's items (code as the database compares it, this organization), their UOMs (+ names) and this supplier's descriptions",
+    "isValidator": true,
+    "nodeName": "The file's items (code as the database compares it, this organization), their UOMs (+ names) and this supplier's descriptions",
+    "name": "The file's items (code as the database compares it, this organization), their UOMs (+ names) and this supplier's descriptions",
+    "script": {
+     "type": "sql",
+     "code": "SELECT JSON_OBJECT('id', CAST(i.id AS CHAR), 'material_code', i.material_code, 'material_name', i.material_name, 'material_desc', i.material_desc,\n       'item_category', i.item_category, 'further_description', i.further_description, 'based_uom', CAST(i.based_uom AS CHAR),\n       'based_uom_name', (SELECT bu.uom_name FROM unit_of_measurement bu WHERE bu.id = i.based_uom AND bu.is_deleted = 0 LIMIT 1),\n       'mat_purchase_tax_id', CAST(i.mat_purchase_tax_id AS CHAR), 'is_active', i.is_active,\n       'conv', COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(c.`id` AS CHAR), 'alt_qty', c.`alt_qty`, 'alt_uom_id', CAST(c.`alt_uom_id` AS CHAR), 'text_b4j8h211',\n\t\tc.`text_b4j8h211`, 'base_qty', c.`base_qty`, 'base_uom_id', CAST(c.`base_uom_id` AS CHAR), 'purchase_unit_price', c.`purchase_unit_price`, 'mat_purchase_tax_id',\n\t\tCAST(c.`mat_purchase_tax_id` AS CHAR), 'purchase_max_price', c.`purchase_max_price`, 'over_delivery_tolerance', c.`over_delivery_tolerance`, 'purchase_default_uom',\n\t\tc.`purchase_default_uom`, 'over_receive_tolerance', c.`over_receive_tolerance`, 'purchase_tax_percent', c.`purchase_tax_percent`, 'sales_tax_percent', c.`sales_tax_percent`,\n\t\t'sales_min_price', c.`sales_min_price`, 'purchase_min_price', c.`purchase_min_price`, 'mat_sales_tax_id', CAST(c.`mat_sales_tax_id` AS CHAR), 'sales_unit_price',\n\t\tc.`sales_unit_price`, 'sales_max_price', c.`sales_max_price`, 'min_purchase_qty', c.`min_purchase_qty`, 'sales_default_uom', c.`sales_default_uom`, 'sales_price_1',\n\t\tc.`sales_price_1`, 'sales_price_6', c.`sales_price_6`, 'sales_price_2', c.`sales_price_2`, 'sales_price_5', c.`sales_price_5`, 'sales_price_4', c.`sales_price_4`,\n\t\t'sales_price_3', c.`sales_price_3`, 'sales_tariff_id', CAST(c.`sales_tariff_id` AS CHAR), 'purchase_tariff_id', CAST(c.`purchase_tariff_id` AS CHAR), 'max_purchase_qty',\n\t\tc.`max_purchase_qty`, 'max_sales_qty', c.`max_sales_qty`, 'min_sales_qty', c.`min_sales_qty`, 'item_barcode', c.`item_barcode`, 'uom_name', u.uom_name))\n                           OVER (ORDER BY c.id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n                           FROM item_mji552rc_sub c LEFT JOIN unit_of_measurement u ON u.id = c.alt_uom_id AND u.is_deleted = 0\n                          WHERE c.Item_id = i.id AND c.is_deleted = 0 LIMIT 1), JSON_ARRAY()),\n       'binds', COALESCE((SELECT JSON_ARRAYAGG(JSON_OBJECT('supplier_id', b.supplier_id, 'item_description', b.item_description))\n                            OVER (ORDER BY b.id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)\n                            FROM item_eimnda1q_sub b\n                           WHERE b.Item_id = i.id AND b.is_deleted = 0 AND b.supplier_id = '{{node:code_node_PIguard.data.supplierId}}' LIMIT 1), JSON_ARRAY())) AS j\n  FROM item i\n WHERE i.tenant_id = '{{node:code_node_PIguard.data.tenantId}}' AND i.organization_id = '{{node:code_node_PIguard.data.organizationId}}' AND i.is_deleted = 0\n   AND i.material_code IN (SELECT (t.c COLLATE utf8mb4_general_ci) FROM JSON_TABLE('{{node:code_node_PIguard.data.codesSql}}', '$[*]' COLUMNS (c VARCHAR(255) PATH '$.c')) t)\n ORDER BY i.id"
+    },
+    "response_json": [
+     {
+      "key": "1ko3bh6z",
+      "name": "j",
+      "title": "j",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_PIresolve",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// PO_LINE_IMPORT - Resolve: each row's item (its code, as the database compares codes) and UOM (one of the item's own,\n// by name; blank = the default purchase UOM, as Batch Add takes it), every problem listed; the lines as Batch Add starts\n// them (onConfirm_batchAddItem) and what GET_ITEM_UNIT_PRICE_BULK is asked for them\nconst parseJ = (t) => {\n  try {\n    return JSON.parse(String(t).replace(/\"(?:[^\"\\\\]|\\\\.)*\"|-?\\d{16,}(?![.\\deE])/g, (m) => (m[0] === '\"' ? m : '\"' + m + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst importResolve = function importResolve(guard, itemRows) {\n  const s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\n  const base = { route: \"STOP\", code: \"400\", message: \"\", errors: [], errorsShown: [], lines: [], itemData: [], altUomJson: \"{}\", count: 0 };\n  const key = (c) => s(c).toLowerCase();\n  // what the file should say instead: the item's base UOM, then its other units\n  const uomHint = (item, conv) => {\n    const baseRow = conv.find((c) => s(c.alt_uom_id) === s(item.based_uom));\n    const baseName = s(item.based_uom_name) || s(baseRow && baseRow.uom_name);\n    const others = [...new Set(conv.map((c) => s(c.uom_name)).filter((n) => n && key(n) !== key(baseName)))];\n    if (baseName) return \". Use its base UOM \" + baseName + (others.length ? \" (or \" + others.join(\", \") + \")\" : \"\");\n    return others.length ? \". Its units: \" + others.join(\", \") : \"\";\n  };\n  const byCode = {};\n  for (const r of Array.isArray(itemRows) ? itemRows : itemRows ? [itemRows] : []) {\n    const o = r && (typeof r.j === \"string\" ? parseJ(r.j) : r.j || r);\n    if (!o || !s(o.id)) continue;\n    (byCode[key(o.material_code)] = byCode[key(o.material_code)] || []).push(o);\n  }\n  const errors = [];\n  const lines = [];\n  // alt_uom once per item (the form puts it on each of the item's lines): the answer stays small when items repeat\n  const altUom = {};\n  for (const row of guard.rows || []) {\n    const err = (msg) => errors.push({ row: row.n, message: msg });\n    let found = byCode[key(row.code)] || [];\n    if (found.length > 1) found = found.filter((o) => s(o.material_code) === row.code).length === 1 ? found.filter((o) => s(o.material_code) === row.code) : found;\n    if (found.length === 0) {\n      err(\"Item Code \" + row.code + \" was not found\");\n      continue;\n    }\n    if (found.length > 1) {\n      err(\"Item Code \" + row.code + \" matches \" + found.length + \" items\");\n      continue;\n    }\n    const item = found[0];\n    if (String(item.is_active) === \"0\") {\n      err(\"Item \" + row.code + \" is inactive\");\n      continue;\n    }\n    const conv = Array.isArray(item.conv) ? item.conv : [];\n    let uom = null;\n    if (row.uom) {\n      const named = conv.filter((c) => key(c.uom_name) === key(row.uom));\n      if (named.length !== 1) {\n        err(named.length ? \"UOM \" + row.uom + \" matches \" + named.length + \" units of item \" + row.code : \"UOM \" + row.uom + \" is not a unit of item \" + row.code + uomHint(item, conv));\n        continue;\n      }\n      uom = named[0];\n    } else {\n      uom = conv.find((c) => String(c.purchase_default_uom) === \"1\") || conv.find((c) => s(c.alt_uom_id) === s(item.based_uom)) || null;\n      if (!uom) {\n        err(\"Item \" + row.code + \" has no purchase UOM: give the UOM\");\n        continue;\n      }\n    }\n    const binds = Array.isArray(item.binds) ? item.binds : [];\n    const bound = binds.find((b) => s(b.supplier_id) === s(guard.supplierId) && s(b.item_description));\n    if (altUom[s(item.id)] === undefined) altUom[s(item.id)] = JSON.stringify(conv.map((c) => {\n      const o = Object.assign({}, c);\n      delete o.uom_name;\n      return o;\n    }));\n    // onConfirm_batchAddItem's poItem, from the chosen UOM's row (blank UOM: the default purchase row it reads)\n    lines.push({\n      row: row,\n      line: {\n        item_id: s(item.id),\n        item_name: item.material_name === undefined ? null : item.material_name,\n        item_desc: s(bound && bound.item_description) || item.material_desc || \"\",\n        unit_price: uom.purchase_unit_price || 0,\n        item_category_id: item.item_category === undefined ? null : item.item_category,\n        tax_preference: s(uom.mat_purchase_tax_id) || null,\n        tax_percent: uom.purchase_tax_percent || null,\n        quantity_uom: s(uom.alt_uom_id) || null,\n        further_description: item.further_description === undefined ? null : item.further_description,\n        min_quantity: uom.min_purchase_qty || 0,\n        max_quantity: uom.max_purchase_qty || 0,\n      },\n      headerTax: s(item.mat_purchase_tax_id) ? 1 : 0,\n    });\n  }\n  if (errors.length) return Object.assign(base, { message: errors.length + \" line(s) cannot be imported - nothing was added.\", errors: errors, errorsShown: errors.slice(0, 30) });\n  // what Batch Add asks GET_ITEM_UNIT_PRICE_BULK, plus the quantity the file gives (price tags apply by quantity)\n  const itemData = lines.map((l, i) => ({ item_id: l.line.item_id, unit_price: l.line.unit_price, line_index: i, uom_id: l.line.quantity_uom, tax_rate: l.line.tax_preference || null,\n    tax_percent: l.line.tax_percent || null, quantity: l.row.qty }));\n  return Object.assign(base, { route: \"GO\", code: \"200\", lines: lines, itemData: itemData, altUomJson: JSON.stringify(altUom), count: lines.length });\n};\nconst res = importResolve([{{node:code_node_PIguard.data}}][0], [{{node:sql_node_PIitems.data}}][0]);\nres.errorsJson = JSON.stringify(res.errorsShown);\nres.errorCount = String(res.errors.length);\nconsole.log(\"import resolve\", JSON.stringify({ route: res.route, lines: res.count, errors: res.errors.length }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "fzmgfpak",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "ei3w5c6x",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "nax09br6",
+      "name": "message",
+      "title": "message",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "2dv8kvi9",
+      "name": "errors",
+      "title": "errors",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "7hpbxks1",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "nof6tvwh",
+      "name": "errorsShown",
+      "title": "errorsShown",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "qrhkehh2",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "9jw8066q",
+      "name": "errorsJson",
+      "title": "errorsJson",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6re4u2z5",
+      "name": "errorCount",
+      "title": "errorCount",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "it0u33ll",
+      "name": "lines",
+      "title": "lines",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "492zsuj7",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "9k4ohgxp",
+      "name": "itemData",
+      "title": "itemData",
+      "description": "",
+      "bsonType": "array",
+      "isExpand": true,
+      "children": [
+       {
+        "key": "zgdvvjxf",
+        "name": "items",
+        "title": "",
+        "description": "",
+        "bsonType": "any",
+        "isExpand": false,
+        "isArrayItem": true,
+        "children": []
+       }
+      ]
+     },
+     {
+      "key": "7iar4nfs",
+      "name": "altUomJson",
+      "title": "altUomJson",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "8269fkwi",
+      "name": "count",
+      "title": "count",
+      "description": "",
+      "bsonType": "any",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Resolve: each row's item and UOM, the lines as Batch Add starts them, the price request",
+    "isValidator": true,
+    "nodeName": "Resolve: each row's item and UOM, the lines as Batch Add starts them, the price request",
+    "name": "Resolve: each row's item and UOM, the lines as Batch Add starts them, the price request"
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_PIresolve",
+   "type": "if",
+   "data": {
+    "title": "IF a row has no item / UOM: 400 with every bad row, nothing added",
+    "isValidator": true,
+    "nodeName": "IF a row has no item / UOM: 400 with every bad row, nothing added",
+    "name": "IF a row has no item / UOM: 400 with every bad row, nothing added",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1799100000003,
+       "parentId": 1799100000004,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_PIresolve.data.route}}' == 'STOP'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TPIresolve",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "return_node_PIresolve",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return 400 (resolve)",
+        "isValidator": true,
+        "nodeName": "Return 400 (resolve)",
+        "name": "Return 400 (resolve)",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "propLabel": "code",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PIresolve.data.code}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "message",
+           "propLabel": "message",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PIresolve.data.message}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "errors",
+           "propLabel": "errors",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PIresolve.data.errorsJson}}",
+           "valueLabel": ""
+          },
+          {
+           "prop": "error_count",
+           "propLabel": "error_count",
+           "operator": "",
+           "operatorLabel": "",
+           "valueType": "field",
+           "valueTypeLabel": "",
+           "value": "{{node:code_node_PIresolve.data.errorCount}}",
+           "valueLabel": ""
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FPIresolve",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "workflow_node_PIprice",
+   "type": "workflow-node",
+   "data": {
+    "workflow_id": "",
+    "workflow_name": "",
+    "input_params": {},
+    "title": "GET_ITEM_UNIT_PRICE_BULK (as Batch Add asks it, with the file's quantities)",
+    "isValidator": true,
+    "nodeName": "GET_ITEM_UNIT_PRICE_BULK (as Batch Add asks it, with the file's quantities)",
+    "name": "GET_ITEM_UNIT_PRICE_BULK (as Batch Add asks it, with the file's quantities)",
+    "workflow": {
+     "source": "GET_ITEM_UNIT_PRICE_BULK:Workflow:2110564019682578434",
+     "rules": {
+      "collectionId": "2110564019682578434",
+      "list": [
+       {
+        "id": 1799100000005,
+        "parentId": 1799100000006,
+        "isTop": true,
+        "prop": "",
+        "operator": "",
+        "valueType": "",
+        "value": "",
+        "type": "leaf",
+        "level": 1
+       }
+      ]
+     }
+    },
+    "remote": true,
+    "remoteType": "innerdatasource",
+    "body_params": {
+     "list": [
+      {
+       "prop": "document_type",
+       "propLabel": "document_type",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "value",
+       "valueTypeLabel": "",
+       "value": "PO",
+       "valueLabel": ""
+      },
+      {
+       "prop": "supp_cust_id",
+       "propLabel": "supp_cust_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIguard.data.supplierId}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "plant_id",
+       "propLabel": "plant_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIguard.data.plantId}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "item_data",
+       "propLabel": "item_data",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIresolve.data.itemData}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "organization_id",
+       "propLabel": "organization_id",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIguard.data.organizationId}}",
+       "valueLabel": ""
+      }
+     ]
+    }
+   },
+   "blocks": []
+  },
+  {
+   "id": "code_node_PIrows",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "script": {
+     "type": "javascript",
+     "code": "// PO_LINE_IMPORT - Rows: each line as Batch Add leaves it after GET_ITEM_UNIT_PRICE_BULK answers (onConfirm_batchAddItem's\n// update), then what the file gives on top (its quantity always; price, discount, description, remarks, date when filled)\nconst importRows = function importRows(resolved, priceData) {\n  const lines = resolved.lines || [];\n  const priced = {};\n  for (const p of Array.isArray(priceData) ? priceData : priceData ? [priceData] : []) if (p && p.line_index !== undefined) priced[String(p.line_index)] = p;\n  const rows = [];\n  const taxOpen = [];\n  lines.forEach((l, i) => {\n    const row = Object.assign({}, l.line);\n    const p = priced[String(i)];\n    if (p) {\n      Object.assign(row, { unit_price: p.unit_price, quantity_uom: p.uom_id, tax_preference: p.tax_rate, tax_percent: p.tax_percent, from_historical: p.from_historical,\n        max_price: p.max_price, min_price: p.min_price, quantity: p.quantity, min_qty: p.min_qty, max_qty: p.max_qty, discount: p.discount, discount_uom: p.discount_uom });\n    }\n    const f = l.row;\n    row.quantity = f.qty;\n    if (f.price !== null && f.price !== undefined) row.unit_price = f.price;\n    if (f.discount !== null && f.discount !== undefined) row.discount = f.discount;\n    if (f.discountType) row.discount_uom = f.discountType;\n    if (f.desc) row.item_desc = f.desc;\n    if (f.remark1) row.line_remark_1 = f.remark1;\n    if (f.remark2) row.line_remark_2 = f.remark2;\n    if (f.date) row.po_expected_date = f.date;\n    for (const k of Object.keys(row)) if (row[k] === undefined) delete row[k];\n    // Batch Add keeps Tax Rate open on lines of items with a purchase tax of their own and no tax code\n    if (l.headerTax === 1 && !row.tax_preference) taxOpen.push(i);\n    rows.push(row);\n  });\n  return { route: \"GO\", code: \"200\", rowsJson: JSON.stringify(rows), taxOpenJson: JSON.stringify(taxOpen), count: String(rows.length) };\n};\nconst res = importRows([{{node:code_node_PIresolve.data}}][0], [{{node:workflow_node_PIprice.data.data}}][0]);\nconsole.log(\"import rows\", JSON.stringify({ count: res.count, taxOpen: JSON.parse(res.taxOpenJson).length }));\nreturn res;"
+    },
+    "response_json": [
+     {
+      "key": "h2yf8cpx",
+      "name": "route",
+      "title": "route",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6ina97ak",
+      "name": "code",
+      "title": "code",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "18k269dt",
+      "name": "rowsJson",
+      "title": "rowsJson",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "lngdnabr",
+      "name": "taxOpenJson",
+      "title": "taxOpenJson",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "6kgd7kvo",
+      "name": "count",
+      "title": "count",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ],
+    "title": "Rows: the price answer as Batch Add takes it, then the file's own values",
+    "isValidator": true,
+    "nodeName": "Rows: the price answer as Batch Add takes it, then the file's own values",
+    "name": "Rows: the price answer as Batch Add takes it, then the file's own values"
+   },
+   "blocks": []
+  },
+  {
+   "id": "return_node_PIok",
+   "type": "return-node",
+   "data": {
+    "return_data": {},
+    "status_code": 200,
+    "title": "Return 200 (the rows)",
+    "isValidator": true,
+    "nodeName": "Return 200 (the rows)",
+    "name": "Return 200 (the rows)",
+    "response_value": {
+     "list": [
+      {
+       "prop": "code",
+       "propLabel": "code",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIrows.data.code}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "message",
+       "propLabel": "message",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIguard.data.message}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "rows",
+       "propLabel": "rows",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIrows.data.rowsJson}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "alt_uom",
+       "propLabel": "alt_uom",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIresolve.data.altUomJson}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "tax_open",
+       "propLabel": "tax_open",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIrows.data.taxOpenJson}}",
+       "valueLabel": ""
+      },
+      {
+       "prop": "count",
+       "propLabel": "count",
+       "operator": "",
+       "operatorLabel": "",
+       "valueType": "field",
+       "valueTypeLabel": "",
+       "value": "{{node:code_node_PIrows.data.count}}",
+       "valueLabel": ""
+      }
+     ]
+    },
+    "return_raw_data": 0
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "title": "End Node",
+    "isValidator": true,
+    "nodeName": "End Node",
+    "name": "End Node"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": []
+}

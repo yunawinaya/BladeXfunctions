@@ -7,9 +7,10 @@ const commitI3Plan = function commitI3Plan(entry, engRRows, outRows, opRows) {
     result_message: "", job_status: "COMMITTING_IA" }, END_EMPTY);
   const review = (code, why, extra) => Object.assign(base, reviewEnd(entry, "I3_RECEIPT", code, why, extra));
   const eng = iaJoinChunks(engRRows, entry.partPrefix + "ENGINE_R|");
-  const r1 = eng && typeof eng === "object" && Array.isArray(eng.movements) && eng.movements.length === 1 ? eng.movements[0] : null;
-  if (!r1 || s(eng.operation_key) !== iaOpKey(entry.jobId, "R") || s(eng.organization_id) !== entry.organizationId || s(r1.movement_key) !== "R1" || s(r1.direction) !== "ADD"
-    || !((parseFloat(eng.receiptBaseQty) || 0) > 0)) {
+  // R1, or one receipt per output split row (plan 10-27): R1..Rn, each a batch parent's with its group's I1 batch id
+  const mvs = eng && typeof eng === "object" && Array.isArray(eng.movements) ? eng.movements : [];
+  const r1 = mvs.length && mvs.every((m, i) => s(m.movement_key) === "R" + (i + 1) && s(m.direction) === "ADD") ? mvs[0] : null;
+  if (!r1 || s(eng.operation_key) !== iaOpKey(entry.jobId, "R") || s(eng.organization_id) !== entry.organizationId || !((parseFloat(eng.receiptBaseQty) || 0) > 0)) {
     return review("IA_RECONCILIATION_MISMATCH", "the ENGINE_R part of the prepared payload is missing, is not this job's or has no receipt base quantity");
   }
   const out = list(outRows)[0] || {};
@@ -28,10 +29,19 @@ const commitI3Plan = function commitI3Plan(entry, engRRows, outRows, opRows) {
     }
   }
   if (entry.batchMode === "insert" && !digits(entry.batchId)) return review("IA_RECONCILIATION_MISMATCH", "no I1 batch_id for the receipt of a batch-managed assembled item");
+  const batchOf = eng.batchOf && typeof eng.batchOf === "object" ? eng.batchOf : null;
+  const ids = entry.batchIds && typeof entry.batchIds === "object" ? entry.batchIds : {};
+  const idOf = (m) => (batchOf ? s(ids[batchKey(batchOf[s(m.movement_key)])]) : s(entry.batchId));
+  if (entry.batchMode === "insert" && mvs.some((m) => !digits(idOf(m)))) {
+    return review("IA_RECONCILIATION_MISMATCH", "no I1 batch_id for an output split receipt's batch (" + mvs.filter((m) => !digits(idOf(m))).map((m) => s(m.movement_key)).join(", ") + ")");
+  }
   const price = receiptUnitPrice({ outTotals: [total], receiptBaseQty: eng.receiptBaseQty, assemblyCost: eng.assemblyCost });
-  const mv = Object.assign({}, r1, { unit_price: price });
-  if (entry.batchMode === "insert") mv.batch_id = entry.batchId;
-  return Object.assign(base, { needCall: "YES", operationKey: s(eng.operation_key), movements: [mv], price: price, outCount: n, outTotal: total,
+  const movements = mvs.map((m) => {
+    const mv = Object.assign({}, m, { unit_price: price });
+    if (entry.batchMode === "insert") mv.batch_id = idOf(m);
+    return mv;
+  });
+  return Object.assign(base, { needCall: "YES", operationKey: s(eng.operation_key), movements: movements, price: price, outCount: n, outTotal: total,
     result_message: "receipt at " + price + " = (" + total + " over " + n + " OUT row(s)) / " + s(eng.receiptBaseQty) + " + " + s(eng.assemblyCost) });
 };
 const res = commitI3Plan([{{node:code_node_IACentry.data}}][0], [{{node:sql_node_IACi3engr.data}}][0], [{{node:sql_node_IACi3out.data}}][0], [{{node:sql_node_IACop1.data}}][0]);

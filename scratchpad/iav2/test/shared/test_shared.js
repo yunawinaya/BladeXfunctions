@@ -114,6 +114,26 @@ changed("receipt bin", L, Object.assign({}, H, { location_id: "1" }));
 changed("category", L, Object.assign({}, H, { inventory_category: "Blocked" }));
 changed("plant", L, Object.assign({}, H, { issuing_operation_faci: "1" }));
 no("fp unsafe id marked", F.iaLineFingerprint([Object.assign({}, L[0], { id: 2111005120857767946 }), L[1]], H) === fp);
+// IA output split (plan 10-27): a split's rows are part of the header's fingerprint; no split (none, [], null) keeps every other IA's as it was
+const OSR = [{ os_qty: 0.6, os_location_id: "2107138650005770241", os_category: "Unrestricted", os_group: 1, os_batch_no: "B-1", os_mfg_date: "2026-10-27 00:00:00" },
+  { os_qty: 0.4, os_location_id: "2107138649959632897", os_category: "Blocked", os_group: 1, os_batch_no: "B-1", os_mfg_date: "2026-10-27 00:00:00" }];
+eq("fp: no split rows = the old fingerprint ([])", F.iaLineFingerprint(L, Object.assign({}, H, { output_split: [] })), fp);
+eq("fp: no split rows = the old fingerprint (null)", F.iaLineFingerprint(L, Object.assign({}, H, { output_split: null })), fp);
+eq("fp: no split rows = the old fingerprint (JSON text '[]')", F.iaLineFingerprint(L, Object.assign({}, H, { output_split: "[]" })), fp);
+const fpS = F.iaLineFingerprint(L, Object.assign({}, H, { output_split: OSR }));
+no("fp: a split changes it", fpS === fp);
+eq("fp: the split as JSON text (19-digit ids kept exact) = the same", F.iaLineFingerprint(L, [{ j: JSON.stringify(Object.assign({}, H, { output_split: "@@" })).replace('"@@"',
+  '[{"os_qty":0.6,"os_location_id":2107138650005770241,"os_category":"Unrestricted","os_group":1,"os_batch_no":"B-1","os_mfg_date":"2026-10-27 00:00:00"},' +
+  '{"os_qty":0.4,"os_location_id":2107138649959632897,"os_category":"Blocked","os_group":1,"os_batch_no":"B-1","os_mfg_date":"2026-10-27 00:00:00"}]') }]), fpS);
+const splitChanged = (label, rows) => no("fp: the split's " + label + " changes it", F.iaLineFingerprint(L, Object.assign({}, H, { output_split: rows })) === fpS);
+splitChanged("qty", [Object.assign({}, OSR[0], { os_qty: 0.5 }), Object.assign({}, OSR[1], { os_qty: 0.5 })]);
+splitChanged("bin", [Object.assign({}, OSR[0], { os_location_id: "2107138650005770242" }), OSR[1]]);
+splitChanged("category", [OSR[0], Object.assign({}, OSR[1], { os_category: "Unrestricted" })]);
+splitChanged("batch number", [OSR[0], Object.assign({}, OSR[1], { os_batch_no: "B-2" })]);
+splitChanged("group", [OSR[0], Object.assign({}, OSR[1], { os_group: 2 })]);
+splitChanged("expiry", [OSR[0], Object.assign({}, OSR[1], { os_exp_date: "2028-10-27 00:00:00" })]);
+splitChanged("row order", [OSR[1], OSR[0]]);
+splitChanged("a row removed", [OSR[0]]);
 eq("fp raw temp_qty_data", F.iaFpCanonRows([{ id: "1", temp_qty_data: "[{bad" }])[0][5], "RAW:[{bad");
 eq("fp no header = empties", F.iaFpCanonHeader(null), ["", "", "", "", "Unrestricted", "", ""]);
 eq("fp id-less lines first by index", F.iaFpCanonRows([{ id: "5", line_index: "1" }, { line_index: "2" }, { line_index: "10" }]).map((r) => r[1]), ["2", "10", "1"]);

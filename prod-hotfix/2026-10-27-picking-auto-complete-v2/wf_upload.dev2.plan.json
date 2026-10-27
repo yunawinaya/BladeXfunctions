@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "PICKING_ASYNC_SUBMIT",
+   "dataId": "2109531449614647297",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Picking/AsyncV2/PICKING_ASYNC_SUBMIT.json",
+   "base": "/Users/yunawinaya/Documents/ASC-dev/workflow-backups/dev/PICKING_ASYNC_SUBMIT/v12_20261027-132054.enabled.json"
+  }
+ ]
+}

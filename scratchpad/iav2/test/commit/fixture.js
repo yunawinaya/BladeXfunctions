@@ -11,7 +11,8 @@ const F = require(path.join(IAV2, "code", "shared", "fingerprint.js"));
 const P = require(path.join(IAV2, "code", "shared", "price.js"));
 const CORE = path.join(IAV2, "..", "gdc", "engine", "core.js");
 const REPO = path.join(IAV2, "..", "..");
-const OUT = path.join(REPO, "Item Assembly & BOM", "AsyncV2");
+// IAC_OUT: a folder holding another build of IA_V2_COMMIT.json (the output split mutants, test/commit/mutants_os.py)
+const OUT = process.env.IAC_OUT || path.join(REPO, "Item Assembly & BOM", "AsyncV2");
 
 const JOB = "2112100000000000001";
 const IAID = "2112073133161844738";
@@ -112,15 +113,34 @@ function makeCase(opts) {
     trx_no: IANO, parent_trx_no: "", inventory_category: o.category, location_id: BIN0, batch_id: null, unit_price: 0, doc_date: DOC_DATE, manufacturing_date: header.manufacturing_date,
     expired_date: header.expired_date, remark: "r1", remark2: "", remark3: "", isMovingInv: 0, handling_unit_id: null };
   labels.R1 = { line_index: "", line_id: "", item_code: "FG-0001", item_name: "Assembly", bin: "FG-01", bin_id: BIN0, category: o.category, side: "in" };
+  // IA output split (plan 10-27): o.split = [{ qty, bin, cat, number }] -> one receipt per row (R1..Rn), a Batch row per number (batch
+  // parents), the header's stored rows
+  let receipts = [r1];
+  const batchOf = {};
+  if (o.split) {
+    receipts = o.split.map((x, i) => Object.assign({}, r1, { movement_key: "R" + (i + 1), quantity: C.iaQ8(x.qty), location_id: x.bin, inventory_category: x.cat || o.category }));
+    delete labels.R1;
+    receipts.forEach((m, i) => {
+      labels[m.movement_key] = { line_index: "", line_id: "", item_code: "FG-0001", item_name: "Assembly", bin: "FG-" + (i + 1), bin_id: m.location_id, category: m.inventory_category, side: "in" };
+      if (o.batch) batchOf[m.movement_key] = o.split[i].number;
+    });
+    header.output_split = o.split.map((x) => ({ os_qty: x.qty, os_location_id: x.bin, os_category: x.cat || o.category, os_batch_no: x.number || "" }));
+  }
   const itemIds = [PARENT].concat(lines.map((l) => l.item_selection)).filter((x, i, a) => a.indexOf(x) === i);
   const parts = {
     ENGINE_I: { operation_key: "IAC|" + JOB + "|I", mode: "APPLY", organization_id: ORG, movements: movements },
-    ENGINE_R: { operation_key: "IAC|" + JOB + "|R", mode: "APPLY", organization_id: ORG, receiptBaseQty: receiptBaseQty, assemblyCost: C.iaQ8(o.assemblyCost), movements: [r1] },
+    ENGINE_R: Object.assign({ operation_key: "IAC|" + JOB + "|R", mode: "APPLY", organization_id: ORG, receiptBaseQty: receiptBaseQty, assemblyCost: C.iaQ8(o.assemblyCost),
+      movements: receipts }, o.split && o.batch ? { batchOf: batchOf } : {}),
     LABELS: labels,
     ITEMS: { itemDates: itemIds.map((id) => ({ id: id })) },
   };
   const batchMode = o.batchMode || (o.batch ? "insert" : "none");
-  if (o.batch) {
+  const numbers = o.split && o.batch ? o.split.map((x) => x.number).filter((x, i, a) => a.indexOf(x) === i) : [];
+  if (o.batch && numbers.length) {
+    parts.BATCH = { mode: "insert", rows: numbers.map((nm) => ({ batch_number: nm, material_id: PARENT, initial_quantity: C.iaQtyStr(o.split.filter((x) => x.number === nm)
+      .reduce((s, x) => s + P.iaUomOf(items[PARENT], x.qty, header.item_uom).baseQty, 0)), transaction_no: IANO, plant_id: PLANT, organization_id: ORG, remark: "r1", remark2: "", remark3: "",
+      manufacturing_date: header.manufacturing_date, expired_date: header.expired_date })) };
+  } else if (o.batch) {
     parts.BATCH = { mode: "insert", row: { batch_number: BATCH_NO, material_id: PARENT, initial_quantity: C.iaQtyStr(receiptBaseQty), transaction_no: IANO, plant_id: PLANT, organization_id: ORG,
       remark: "r1", remark2: "", remark3: "", manufacturing_date: header.manufacturing_date, expired_date: header.expired_date } };
   }
@@ -140,7 +160,7 @@ function makeCase(opts) {
     plantId: PLANT, lineCount: lines.length - nonStockLines, pickCount: movements.length, nonStockLines: nonStockLines, movementCount: movements.length + 1, uid: "1123598821738675201",
     source: "FORM", nonce: "ab12cd34", parts: {} };
   return { o, JOB, IAID, ORG, PLANT, NONCE, KEY, items, balances, layers, lines, header, movements, r1, receiptBaseQty, labels, parts, partStepRows: rows, manifest, request, fp, itemIds, lineOf,
-    batchMode };
+    batchMode, receipts, batchOf, numbers };
 }
 
 function nodeById(doc, id) {
