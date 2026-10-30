@@ -142,6 +142,20 @@ SELECT 'IBB' AS k, bb.id AS sid, {jobj('bb', 'item_batch_balance')} AS j FROM it
  WHERE bb.tenant_id = {ET} AND bb.is_deleted = 0 AND bb.organization_id = '{ORG}' AND bb.plant_id = {PLANT} AND bb.material_id IN ({CAND})
 ) x ORDER BY x.k, x.sid""", ["k", "j"]),
     # the LOT's latest document lock (result_ref = the owning job's idempotency_key)
+    # reserved requests (scratchpad/iatr/RESERVED_REQUEST_PLAN.md Task 5): an IA request's purpose, its IA (status) and the IA's Allocated
+    # hold rows; an ordinary LOT returns no row, so on_reserved_gd (only its PK on prod) is never scanned for it
+    "holds": (f"""SELECT JSON_OBJECT('purpose', q.transfer_purpose, 'ia_id', CAST(q.source_ia_id AS CHAR),
+       'ia_status', (SELECT h.item_assembly_status FROM sm_item_assembly h WHERE h.tenant_id = q.tenant_id AND h.id = CAST(q.source_ia_id AS UNSIGNED) AND h.is_deleted = 0),
+       'rows', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(r.id AS CHAR), 'status', r.status, 'doc_line_id', r.doc_line_id, 'material_id', CAST(r.material_id AS CHAR),
+                'bin_location', CAST(r.bin_location AS CHAR), 'batch_id', CAST(r.batch_id AS CHAR), 'from_category', r.from_category, 'open_qty', CAST(r.open_qty AS CHAR),
+                'reserved_qty', CAST(r.reserved_qty AS CHAR), 'item_uom', CAST(r.item_uom AS CHAR), 'job_line_key', r.job_line_key))
+                FROM on_reserved_gd r WHERE r.tenant_id = q.tenant_id AND r.organization_id = q.organization_id AND r.is_deleted = 0
+                 AND r.doc_type = 'Item Assembly' AND r.doc_id = q.source_ia_id AND r.status = 'Allocated')) AS j
+  FROM sm_location_transfer q
+ WHERE q.tenant_id = '{{{{node:code_node_LPentry.data.tenantId}}}}'
+   AND q.id = {{{{node:code_node_LPentry.data.lotId}}}}
+   AND q.is_deleted = 0
+   AND q.transfer_purpose = 'IA_SUPPLY'""", ["j"]),
     "lock": (f"""SELECT p.step_name, p.result_ref
   FROM gd_publish_step p
  WHERE p.tenant_id = {ET}

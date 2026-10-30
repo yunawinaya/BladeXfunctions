@@ -33,6 +33,8 @@ def shared(name):
 
 
 def build_prepare():
+    # reserved requests (scratchpad/iatr/RESERVED_REQUEST_PLAN.md Task 5): the shared rule file, inlined before plan.js
+    IATR_RESERVE = open(os.path.join(HERE, "..", "iatr", "code", "shared", "iatr_reserve.js"), encoding="utf-8").read()
     ids = K.Ids(1799100000000)
     N = V.N
     Gd, E, P, RD = "code_node_LPguard", "code_node_LPentry", "code_node_LPplan", "code_node_LPready"
@@ -43,7 +45,8 @@ def build_prepare():
     reads = [("parts", "SUBMIT's payload parts of the job (S|..|LINES)"), ("hdr", "The Location Transfer header"), ("lines", "Its stored lines (line_index order)"),
              ("transit", "Its In Transit rows (every status)"), ("items", "Items of its lines"), ("bins", "The plant's bins (LABELS)"),
              ("aitem", "Auto allocation: GLOBAL_ALLOCATION's Get Item for the lines asking for stock"),
-             ("abal", "Auto allocation: their item / batch balances at the plant (GLOBAL_ALLOCATION's searches)"), ("lock", "Its latest document lock")]
+             ("abal", "Auto allocation: their item / batch balances at the plant (GLOBAL_ALLOCATION's searches)"), ("lock", "Its latest document lock"),
+             ("holds", "An IA request: its IA's status and Allocated reservation rows (reserved requests)")]
     branches = [("cai_LP" + k, title, [K.sql("sql_node_LP" + k, title, PSQL.READS[k][0], PSQL.READS[k][1])]) for k, title in reads]
     plan_tail = "\n".join([
         "const entry = [%s][0];" % N(E, "data"),
@@ -62,7 +65,7 @@ def build_prepare():
         "  movementCount: res.movementCount, unlockOk: res.unlockOk };",
     ])
     plan_code = "\n".join([shared("lot_common.js"), shared("fingerprint.js"), src("lib/lift/runtime.js"), src("lift/lifted_prepare.js"), src("code/prepare/adapter.js"),
-                           src("code/prepare/alloc.js"), src("code/prepare/plan.js"), plan_tail])
+                           src("code/prepare/alloc.js"), IATR_RESERVE, src("code/prepare/plan.js"), plan_tail])
     plan_fields = ["route", "code", "message", "payload", "partRows", "lineCount", "movementCount", "unlockOk"]
     ready_fields = ["route", "needParts", "needReady", "readyRows", "needJobUpd", "jobRows", "needUnlock", "unlockRows", "result_code", "result_message", "job_status"]
     unlock = V.status_unlock(LOT_TABLE, "stock_movement_status", {"stock_movement_status": "Stock Movement Status"})

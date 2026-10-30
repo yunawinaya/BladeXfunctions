@@ -23,18 +23,23 @@ const DATA = {
   material_hold_status: ["input", ""], material_hold_at: ["input", ""],
   // IA output split (plan 10-27): the receipt rows (one json column, no child table) and the Split receipt switch
   output_split: ["table", ""], output_split_on: ["switch", ""],
+  // IA transfer request (ENH-20261027-001): the IA's link to its request (IA_TRANSFER_REQUEST writes it)
+  transfer_request_id: ["input", ""], transfer_request_no: ["input", ""],
 };
 const UI = {
   sc_section: ["grid", ""], sc_collapse: ["collapse", "sc_section"], sc_info: ["grid", "sc_collapse"], sc_actions: ["flex", "sc_collapse"], sc_btn_line: ["button", "sc_actions"], sc_btn_unlink: ["button", "sc_actions"],
   sc_btn_relink: ["button", "sc_actions"], sc_btn_suggest: ["button", "sc_actions"], sc_btn_bom: ["button", "sc_actions"], sc_btn_refresh: ["button", "sc_actions"],
   sc_line_dialog: ["dialog", ""], sc_line_table: ["table", "sc_line_dialog"], sc_expand_dialog: ["dialog", ""], sc_expand_note: ["text", "sc_expand_dialog"], sc_expand_all: ["button", "sc_expand_dialog"],
   sc_expand_table: ["table", "sc_expand_dialog"],
-  // IA output split: the split total line
-  output_split_sum: ["text", ""],
+  // IA output split: the split total line; No. of Split + Split (the user, 10-28, as GR's split dialog row)
+  output_split_sum: ["text", ""], output_split_pick: ["grid", ""], output_split_count: ["input", "output_split_pick"], output_split_btn: ["button", "output_split_pick"],
 };
-// IA output split (plan 10-27): the switch, the total and the rows, top level right after sc_section (ON: the Output Location section's
-// first, full-width column); the grid's columns: model -> [type, label]
-const OS = ["output_split_on", "output_split_sum", "output_split"];
+// IA output split (plan 10-27): No. of Split + Split (10-28), the switch (hidden: the state), the rows and the total under them (10-28), top
+// level right after sc_section (ON: the Output Location section's first, full-width column); the grid's columns: model -> [type, label]
+const OS = ["output_split_pick", "output_split_on", "output_split", "output_split_sum"];
+// the split's UI models at the end of IA V2's IA_NOT_RECORD (before the transfer request's)
+const OS_UI = ["output_split_sum", "output_split_pick", "output_split_count", "output_split_btn"];
+const OS_NOT_RECORD = ", " + OS_UI.map((m) => '"' + m + '"').join(", ") + "];";
 const OS_COLS = [["os_qty", "number", "Qty"], ["os_storage_location_id", "select", "Storage Location"], ["os_location_id", "select", "Bin Location"],
   ["os_category", "select", "Category"], ["os_group", "number", "Group"], ["os_batch_no", "input", "Batch No"], ["os_mfg_date", "date", "Manufacturing Date"],
   ["os_exp_date", "date", "Expired Date"]];
@@ -63,11 +68,21 @@ const NEW_EVENTS = ["sc_main"].concat(Object.values(BOUND).map((b) => b[1]), ["s
   "onClick_saveAsCreated", "onChange_requiredQty", "sc_onChange_expandLevel", "sc_onChange_expandTick"]);
 // IA output split (plan 10-27): os_main and its forwarders (the switch, a row added / removed, each column)
 const OS_EVENTS = ["os_main", "os_onChange_switch", "os_onRowAdd", "os_onRowRemove"].concat(["qty", "storage_location_id", "location_id", "category", "group", "batch_no", "mfg_date",
-  "exp_date"].map((c) => "os_onChange_" + c));
+  "exp_date"].map((c) => "os_onChange_" + c), ["os_onClick_split"]);
+// IA transfer request (ENH-20261027-001, scratchpad/iatr): tr_main and its forwarders; its section (before the components) and Request
+// Materials (the action bar); its one mount call (after Small Cycle's) and its UI models at the end of IA_NOT_RECORD
+// (a reserved IA's requests, RESERVED_REQUEST_PLAN.md Task 9: Request Replacement, Report Defect and the defect dialog, after the v7 ones)
+const TR_EVENTS = ["tr_main", "tr_onClick_new", "tr_onClick_create", "tr_onClick_view", "tr_onClick_refresh", "tr_onClick_cancel", "tr_onChange_storage", "tr_onClick_replace",
+  "tr_onClick_defect", "tr_onConfirm_defect", "tr_onCancel_defect"];
+const TR_UI = ["tr_section", "tr_collapse", "tr_info", "tr_pick", "tr_storage_location_id", "tr_location_id", "tr_required_date", "tr_actions", "tr_btn_create", "tr_btn_view", "tr_btn_refresh", "tr_btn_cancel", "tr_btn_new",
+  "tr_btn_replace", "tr_btn_defect", "tr_defect_dialog", "tr_defect_note", "tr_defect_table"];
+const TR_MOUNT_CALL = '    this.triggerEvent("tr_main", { trOp: "MOUNT", pageStatus: pageStatus, status: status });\n';
+const TR_NOT_RECORD = ", " + TR_UI.map((m) => '"' + m + '"').join(", ") + "];";
+const untrText = (t) => String(t).replace(TR_MOUNT_CALL, "").replace(TR_NOT_RECORD, "];");
 // the split's marked blocks in the patched handlers and the mount's widened item read; unosDoc = the form without the split's handlers
 const OS_BLOCK_RE = /[ ]*\/\/ IA output split \(scratchpad\/iasc os_main\):[^\n]*\n[ ]*this\.triggerEvent\("os_main", \{ osOp: "[A-Z]+"(?:, item: item \|\| null)? \}\);\n[ ]*\/\/ -- end output split --\n/g;
 const OS_FIELDS = ['.field("item_batch_management,batch_number_genaration,serial_number_management,stock_control")', '.field("item_batch_management,batch_number_genaration")'];
-const unos = (t) => String(t).replace(OS_BLOCK_RE, "").replace(OS_FIELDS[0], OS_FIELDS[1]).replace(', "output_split_sum"];', "];");
+const unos = (t) => String(t).replace(OS_BLOCK_RE, "").replace(OS_FIELDS[0], OS_FIELDS[1]).replace(OS_NOT_RECORD, ', "output_split_sum"];').replace(', "output_split_sum"];', "];");
 const unosDoc = (doc) => {
   const d = H.clone(doc);
   const keys = d.config.eventScript.filter((e) => OS_EVENTS.indexOf(e.name) >= 0).map((e) => e.key);
@@ -84,9 +99,33 @@ const unosDoc = (doc) => {
     }
   };
   walk(d.list);
-  // the grid's Add Row / Delete buttons (10-27, the browser pass): not in v59
+  // No. of Split + Split (10-28): not in v59; the total was above the rows there
+  remove(d, "output_split_pick");
+  const holder = (function find(n) {
+    if (Array.isArray(n)) {
+      if (n.some((x) => x && x.model === "output_split_sum") && n.some((x) => x && x.model === "output_split")) return n;
+      for (const x of n) {
+        const r = find(x);
+        if (r) return r;
+      }
+    } else if (n && typeof n === "object") {
+      for (const v of Object.values(n)) {
+        const r = find(v);
+        if (r) return r;
+      }
+    }
+    return null;
+  })(d.list);
+  if (holder) {
+    const ti = holder.findIndex((x) => x && x.model === "output_split_sum");
+    const gi = holder.findIndex((x) => x && x.model === "output_split");
+    if (ti > gi) holder.splice(gi, 0, holder.splice(ti, 1)[0]);
+  }
+  // the grid's Add Row / Delete buttons (10-27, the browser pass) and its normal table (10-28): not in v59
   const g = H.findModel(d.list, "output_split");
   if (g && g.options) {
+    g.options.virtualTable = true;
+    g.options.tableHeightMode = "fixed";
     if (g.options.customProps && Array.isArray(g.options.customProps.toolbar)) g.options.customProps.toolbar = g.options.customProps.toolbar.filter((x) => x.type !== "addBtn");
     if (Array.isArray(g.options.rowActions)) g.options.rowActions = g.options.rowActions.filter((x) => x.type !== "delBtn");
   }
@@ -145,7 +184,17 @@ const unlevel = (doc) => {
   const d = H.clone(doc);
   remove(d, "sc_expand_level");
   remove(d, "sc_expand_preview");
-  d.config.eventScript = d.config.eventScript.filter((e) => e.name !== "sc_onChange_expandLevel" && e.name !== "sc_onChange_expandTick");
+  // the IA transfer request (ENH-20261027-001): its link fields, section, button, events, mount call and IA_NOT_RECORD models - newer
+  // than v47 / v59 too
+  remove(d, "transfer_request_id");
+  remove(d, "transfer_request_no");
+  remove(d, "tr_section");
+  remove(d, "tr_btn_new");
+  remove(d, "tr_defect_dialog");
+  d.config.eventScript = d.config.eventScript.filter((e) => e.name !== "sc_onChange_expandLevel" && e.name !== "sc_onChange_expandTick" && TR_EVENTS.indexOf(e.name) < 0);
+  d.config.eventScript.forEach((e) => {
+    if (e.func) e.func = untrText(e.func);
+  });
   const note = H.findModel(d.list, "sc_expand_note");
   if (note && note.options.defaultValue === NEW_NOTE) note.options.defaultValue = OLD_NOTE;
   const et = H.findModel(d.list, "sc_expand_table");
@@ -212,7 +261,7 @@ const ONX = unregroup(ON);
 // defaults on the title and the header grid. The hidden strip (v36's data fields and Small Cycle's) sits below the action bar: under the
 // title it left a gap (v55)
 const STRIP = ["organization_id", "sia_uuid", "item_assembly_status", "posted_status", "page_status", "ia_v2_job_id", "ia_idem_key", "source_so_id",
-  "source_so_line_id", "source_so_context_json", "source_bom_id", "bom_snapshot_json", "material_hold_status", "material_hold_at"];
+  "source_so_line_id", "source_so_context_json", "source_bom_id", "bom_snapshot_json", "material_hold_status", "material_hold_at", "transfer_request_id", "transfer_request_no"];
 const TITLE_V55 = ["left", "right", "pad", "desensitization_pattern", "desensitization_replace", "select-card_n7ge7fmb"];
 const unsink = (doc) => {
   const moved = STRIP.map((m) => doc.list.find((w) => w.model === m)).filter(Boolean);
@@ -271,8 +320,39 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
   check(label + ": the two columns are named Reserved for this IA / Unreserved", same(shownCols.map((c) => c.name), ["Reserved for this IA", "Unreserved"]), shownCols.map((c) => c.name));
   const resRow = H.findModel(B.list, "res_summary");
   const resTop = B.list.map((w) => w.model);
-  check(label + ": res_summary = a hidden display text, no label, right before bom_tab", !!resRow && resRow.type === "text" && resRow.options.dataBind === false &&
-    resRow.options.hidden === true && resRow.options.hideLabel === true && resTop.indexOf("res_summary") === resTop.indexOf("bom_tab") - 1, resRow && resRow.options);
+  check(label + ": res_summary = a hidden display text, no label, right before bom_tab (the transfer request's section between)", !!resRow && resRow.type === "text" &&
+    resRow.options.dataBind === false && resRow.options.hidden === true && resRow.options.hideLabel === true && resTop.indexOf("res_summary") === resTop.indexOf("bom_tab") - 2 &&
+    resTop[resTop.indexOf("bom_tab") - 1] === "tr_section", resRow && resRow.options);
+  // the IA transfer request: its section hidden, its pickers UI only (no column), its buttons hidden; Request Materials last in the action bar
+  const trW = TR_UI.map((m) => H.findModel(B.list, m));
+  check(label + ": the transfer request's widgets once each, the section / pickers / buttons hidden, nothing bound in OFF, no data column", trW.every(Boolean) &&
+    ["tr_section", "tr_pick", "tr_btn_create", "tr_btn_view", "tr_btn_refresh", "tr_btn_cancel", "tr_btn_new"].every((m) => H.findModel(B.list, m).options.hidden === true) &&
+    ["tr_storage_location_id", "tr_location_id", "tr_required_date"].every((m) => H.findModel(B.list, m).options.dataBind === false) &&
+    (label !== "OFF" || trW.every((w) => Object.values(w.events || {}).every((v) => v === ""))), TR_UI.filter((m, i) => !trW[i]));
+  check(label + ": Request Materials last in the action bar, ia_create_transfer_request", H.findModel(B.list, "flex_t6y2yh5r").list.slice(-1)[0].model === "tr_btn_new" &&
+    H.findModel(B.list, "tr_btn_new").options.permission === "ia_create_transfer_request");
+  check(label + ": the staging bin filtered by the staging storage location", JSON.stringify(H.findModel(B.list, "tr_location_id").options.datasource).indexOf("{{value:tr_storage_location_id}}") > 0 &&
+    JSON.stringify(H.findModel(B.list, "tr_location_id").options.datasource).indexOf("{{value:storage_location_id}}") < 0);
+  // a reserved IA's requests (Task 9): Request Replacement (ia_create_transfer_request) and Report Defect (lot_ia_receive) hidden after Cancel;
+  // the defect dialog: its rows' item, batch and quantity at the staging bin read-only, the defective quantity and the reason the only inputs,
+  // the reason one of the user's organisation's Category Transfer Reasons (as the Category Transfer form), no Add Row / Delete
+  const trAct = H.findModel(B.list, "tr_actions").list.map((w) => [w.model, w.options.permission || "", w.options.hidden]);
+  check(label + ": Request Replacement and Report Defect hidden after Cancel, with their permissions", same(trAct.slice(-3), [["tr_btn_cancel", "ia_create_transfer_request", true],
+    ["tr_btn_replace", "ia_create_transfer_request", true], ["tr_btn_defect", "lot_ia_receive", true]]), trAct);
+  const dd = H.findModel(B.list, "tr_defect_dialog");
+  const dt = H.findModel(B.list, "tr_defect_table");
+  const dcol = (dt.tableColumns || []).map((c) => [c.model, c.type, c.options.disabled === true, c.options.hidden === true]);
+  check(label + ": the defect dialog: its note and its table, the table's columns (read-only but the defect and its reason)", dd.type === "dialog" && dd.options.title === "Report Defect" &&
+    dd.options.showOk === true && same(dd.list.map((w) => w.model), ["tr_defect_note", "tr_defect_table"]) && same(dcol, [["item", "input", true, false], ["batch", "input", true, false],
+      ["at_bin", "number", true, false], ["defect", "number", false, false], ["reason", "select", false, false], ["line_id", "input", true, true], ["batch_id", "input", true, true]]), dcol);
+  const rsn = (dt.tableColumns || []).find((c) => c.model === "reason") || { options: {} };
+  check(label + ": the defect's reason: Category Transfer Reason of the user's organisation, its text stored", rsn.options.remote === true && rsn.options.remoteType === "innerdatasource" &&
+    rsn.options.datasource.source === "Category Transfer Reason:Table:2113116113794039809" && rsn.options.datasource.rules.collectionId === "2113116113794039809" &&
+    same(rsn.options.datasource.rules.list.map((x) => [x.prop, x.operator, x.valueType, x.value]), [["organization_id", "equal", "field", "{{global:firstLvDeptId}}"]]) &&
+    rsn.options.props.value === "reason" && rsn.options.props.label === "reason", rsn.options);
+  check(label + ": the defect table: no Add Row or Delete, its own height, not virtual", dt.options.isAdd === false && dt.options.isDelete === false && same(dt.options.rowActions, []) &&
+    !dt.options.customProps.toolbar.some((x) => x.type === "addBtn") && dt.options.tableHeightMode === "auto" && dt.options.virtualTable === false && dt.options.generateSubTable === false,
+  dt.options);
   // BA rev 1.2 C2: how a completed IA's completion ended, a hidden warning text right before the reservation row
   const ccRow = H.findModel(B.list, "completion_check");
   check(label + ": completion_check = a hidden display text, no label, error-msg, empty, right before res_summary", !!ccRow && ccRow.type === "text" &&
@@ -318,8 +398,21 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
     rowWidgets.map((x) => [x.model, x.options.customClass]));
   // IA output split: the switch, the total and the rows grid (hidden, nothing bound), right after sc_section
   const osTop = B.list.map((w) => w.model);
-  check(label + ": output split: switch, total, rows right after sc_section", same(osTop.slice(osTop.indexOf("sc_section") + 1, osTop.indexOf("sc_section") + 4), OS),
-    osTop.slice(osTop.indexOf("sc_section"), osTop.indexOf("sc_section") + 4));
+  check(label + ": output split: No. of Split + Split, switch, rows, total right after sc_section", same(osTop.slice(osTop.indexOf("sc_section") + 1,
+    osTop.indexOf("sc_section") + 1 + OS.length), OS), osTop.slice(osTop.indexOf("sc_section"), osTop.indexOf("sc_section") + 1 + OS.length));
+  // No. of Split + Split (the user, 10-28): a hidden two-column grid - GR's plain split field (no number rule: "2,000" in the browser) and a button
+  const osPick = H.findModel(B.list, "output_split_pick");
+  const osCount = H.findModel(B.list, "output_split_count");
+  const osBtn = H.findModel(B.list, "output_split_btn");
+  check(label + ": output split: No. of Split + Split = a hidden grid, two half columns, the field then the button", !!osPick && osPick.options.hidden === true &&
+    same(osPick.columns.map((c) => [c.options.span, (c.list || []).map((x) => x.model)]), [[12, ["output_split_count"]], [12, ["output_split_btn"]]]), osPick && osPick.columns);
+  check(label + ": output split: No. of Split = GR's plain input (no number rule), unbound, not required, no rules, empty, no placeholder", !!osCount &&
+    osCount.type === "input" && osCount.name === "No. of Split" && same(osCount.options.customProps, {}) && osCount.options.dataBind === false &&
+    osCount.options.required === false && same(osCount.rules, []) && osCount.options.defaultValue === "" && osCount.options.placeholder === "" &&
+    osCount.options.hidden === false && Object.values(osCount.events || {}).every((v) => v === ""), osCount && osCount.options);
+  check(label + ": output split: Split = the form's button (primary, plain, no label), for every user (no permission)", !!osBtn && osBtn.type === "button" &&
+    osBtn.options.buttonName === "Split" && osBtn.options.buttonType === "primary" && osBtn.options.buttonPlain === true && osBtn.options.hideLabel === true &&
+    !osBtn.options.permission && osBtn.options.hidden === false, osBtn && osBtn.options);
   const osSwitch = H.findModel(B.list, "output_split_on");
   check(label + ": output split: the switch is 'Split receipt', a plain switch (no checkbox), 0 by default, dataBind, hidden", !!osSwitch && osSwitch.name === "Split receipt" &&
     osSwitch.options.checkboxMode === false && osSwitch.options.tableColumn === false && osSwitch.options.defaultValue === 0 && osSwitch.options.dataBind === true &&
@@ -329,7 +422,8 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
     osTotal.options.defaultValue === "" && osTotal.options.customClass === "");
   const osGrid = H.findModel(B.list, "output_split");
   const hu = H.findModel(B.list, "table_hu");
-  check(label + ": output split: the rows grid = a hidden json grid (generateSubTable false, as table_hu), Add / Delete row, no paging, empty by default", !!osGrid &&
+  check(label + ": output split: the rows grid = a hidden json grid (generateSubTable false, as table_hu), Add / Delete row, no paging, empty by default, " +
+    "its own height (tableHeightMode auto, not virtual: 10-28)", !!osGrid && osGrid.options.virtualTable === false && osGrid.options.tableHeightMode === "auto" &&
     osGrid.options.generateSubTable === false && osGrid.options.dataBind === true && osGrid.options.hidden === true && osGrid.options.isAdd === true &&
     osGrid.options.isDelete === true && osGrid.options.paging === false && same(osGrid.options.defaultValue, []) && same(Object.keys(osGrid.events), Object.keys(hu.events)),
     osGrid && osGrid.options);
@@ -354,17 +448,20 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
     same(ocm.os_category.options.datasource, hdr("inventory_category", "iainvcat").datasource));
   const osName = (key) => (H.byKey(B, key) || {}).name || "";
   if (label === "OFF") {
-    check(label + ": output split: no event bound on the grid or a column", !!osGrid && !!osSwitch && Object.values(osGrid.events).every((v) => v === "") &&
-      oc.every((c) => Object.values(c.events || {}).every((v) => v === "")) && Object.values(osSwitch.events).every((v) => v === ""));
+    check(label + ": output split: no event bound on the grid, a column, the switch or Split", !!osGrid && !!osSwitch && Object.values(osGrid.events).every((v) => v === "") &&
+      oc.every((c) => Object.values(c.events || {}).every((v) => v === "")) && Object.values(osSwitch.events).every((v) => v === "") &&
+      Object.values(osBtn.events).every((v) => v === ""));
   } else {
     check(label + ": output split: the switch, the rows (added / removed) and every column bound to their forwarders", !!osGrid && osName(osSwitch.events.onChange) === "os_onChange_switch" &&
       osName(osGrid.events.onRowAdd) === "os_onRowAdd" && osName(osGrid.events.onRowRemove) === "os_onRowRemove" && oc.every((c) => osName(c.events.onChange) === "os_onChange_" + c.model.slice(3)) &&
       Object.keys(osGrid.events).filter((k) => k !== "onRowAdd" && k !== "onRowRemove").every((k) => osGrid.events[k] === ""), [osGrid && osGrid.events, oc.map((c) => c.events)]);
+    check(label + ": output split: Split bound to os_onClick_split", osName(osBtn.events.onClick) === "os_onClick_split", osBtn.events);
   }
   const top = B.list.map((w) => w.model);
   check(label + ": the hidden data fields right after ia_idem_key", same(top.slice(top.indexOf("ia_idem_key") + 1, top.indexOf("ia_idem_key") + 8), ["source_so_id", "source_so_line_id",
     "source_so_context_json", "source_bom_id", "bom_snapshot_json", "material_hold_status", "material_hold_at"]));
-  check(label + ": the two dialogs at the end", same(top.slice(-2), ["sc_line_dialog", "sc_expand_dialog"]));
+  // (and the transfer request's defect dialog after them)
+  check(label + ": the two dialogs at the end", same(top.slice(-3), ["sc_line_dialog", "sc_expand_dialog", "tr_defect_dialog"]));
   // every key unique, the new ones 8-char and not in v36
   const keys = allKeys(B);
   const base = new Set(allKeys(F0));
@@ -383,7 +480,7 @@ for (const [label, B] of [["OFF", OFF], ["ON", ONX]]) {
   check(label + ": every new widget has its own remote ids", W.length > 0 && W.every((w) => w.options.remoteFunc === "func_" + w.key && w.options.remoteOption === "option_" + w.key));
   // undo the widgets -> v36 list exactly
   const u = H.clone(B);
-  const models = Object.keys(DATA).concat(Object.keys(UI).filter((m) => UI[m][1] === "" || UI[m][1] === "grid_x46134mc")).concat(["res_summary", "completion_check"]);
+  const models = Object.keys(DATA).concat(Object.keys(UI).filter((m) => UI[m][1] === "" || UI[m][1] === "grid_x46134mc")).concat(["res_summary", "completion_check", "tr_section", "tr_btn_new", "tr_defect_dialog"]);
   check(label + ": every new widget exists once", models.every((m) => remove(u, m)) && models.every((m) => !H.findModel(u.list, m)));
   check(label + ": the Created button and badge once each, the Created status option once", CREATED_WIDGETS.every((m) => remove(u, m)) && CREATED_WIDGETS.every((m) => !H.findModel(u.list, m)) &&
     uncreateOption(u));
@@ -431,7 +528,8 @@ check("OFF and ON have the same widgets apart from the new widgets' events", (()
 // ON: the events
 const evOn = ON.config.eventScript;
 const added = evOn.filter((e) => !F0.config.eventScript.some((x) => x.key === e.key));
-check("ON: the added events are sc_main and its forwarders (and the split's), at the end, all js", same(added.map((e) => e.name).sort(), NEW_EVENTS.concat(OS_EVENTS).sort()) && added.every((e) => e.type === "js") &&
+check("ON: the added events are sc_main and its forwarders (and the split's, the transfer request's), at the end, all js", same(added.map((e) => e.name).sort(),
+  NEW_EVENTS.concat(OS_EVENTS, TR_EVENTS).sort()) && added.every((e) => e.type === "js") &&
   same(evOn.slice(0, F0.config.eventScript.length).map((e) => e.key), F0.config.eventScript.map((e) => e.key)));
 for (const [m, [ev, name]] of Object.entries(BOUND)) {
   const w = H.findModel(ON.list, m);
@@ -448,8 +546,21 @@ for (const e of F0.config.eventScript) {
   check("ON: v36 event " + e.name + " byte-identical", JSON.stringify(H.byKey(ON, e.key)) === JSON.stringify(e));
 }
 // each forwarder only hands its op to sc_main
+// the transfer request's forwarders only hand their op to tr_main; its buttons and the staging storage location bound to them
+for (const e of added.filter((x) => TR_EVENTS.indexOf(x.name) > 0)) {
+  check("ON: forwarder " + e.name + " is one triggerEvent of tr_main", /^\/\/ [^\n]+\nthis\.triggerEvent\("tr_main", \{ trOp: "[A-Z_]+" \}\);\n?$/.test(e.func), e.func);
+}
+for (const [m, ev, name] of [["tr_btn_new", "onClick", "tr_onClick_new"], ["tr_btn_create", "onClick", "tr_onClick_create"], ["tr_btn_view", "onClick", "tr_onClick_view"],
+  ["tr_btn_refresh", "onClick", "tr_onClick_refresh"], ["tr_btn_cancel", "onClick", "tr_onClick_cancel"], ["tr_storage_location_id", "onChange", "tr_onChange_storage"],
+  ["tr_btn_replace", "onClick", "tr_onClick_replace"], ["tr_btn_defect", "onClick", "tr_onClick_defect"], ["tr_defect_dialog", "onConfirm", "tr_onConfirm_defect"],
+  ["tr_defect_dialog", "onCancel", "tr_onCancel_defect"]]) {
+  const w = H.findModel(ON.list, m);
+  check("ON: " + m + "." + ev + " -> " + name, !!w && H.byKey(ON, w.events[ev]) && H.byKey(ON, w.events[ev]).name === name);
+}
+check("ON: the mount tells tr_main once, right after Small Cycle's call", H.byKey(ON, "mounted").func.split("    scMount(pageStatus, status);\n" + TR_MOUNT_CALL).length === 2);
+for (const k of ["uhn48srb", "wia8s2r9"]) check("ON: " + k + " IA_NOT_RECORD strips the transfer request's UI models (at the end)", H.byKey(ON, k).func.split(TR_NOT_RECORD).length === 2);
 for (const e of added.filter((x) => x.name !== "sc_main" && x.name !== "onClick_saveAsCreated" && x.name !== "onClick_cancelIA" && x.name !== "onChange_requiredQty" &&
-  OS_EVENTS.indexOf(x.name) < 0)) {
+  OS_EVENTS.indexOf(x.name) < 0 && TR_EVENTS.indexOf(x.name) < 0)) {
   check("ON: forwarder " + e.name + " is one triggerEvent of sc_main", /^\/\/ [^\n]+\nthis\.triggerEvent\("sc_main", \{ scOp: "[A-Z_]+"[^\n]*\}\);\n?$/.test(e.func), e.func);
 }
 // the split's forwarders only hand their op to os_main (a removed row a moment later, once it is gone)
@@ -461,7 +572,7 @@ for (const e of added.filter((x) => OS_EVENTS.indexOf(x.name) > 0)) {
 const base = (key) => H.byKey(F0, key).func;
 // the classic save handlers' double-click guard (src/classic_double_patch.json, 10-22): undone here, checked on its own below
 const CLASSIC_DOUBLE = JSON.parse(fs.readFileSync(path.join(H.IASC, "client/src/classic_double_patch.json"), "utf8"));
-const raw = (key) => unos(H.byKey(ON, key).func);
+const raw = (key) => unos(untrText(H.byKey(ON, key).func));
 const built = (key) => {
   let t = CLASSIC_DOUBLE.handlers.indexOf(key) >= 0 ? CLASSIC_DOUBLE.patch.reduce((x, d) => x.replace(d.now, d.was), raw(key)) : raw(key);
   if (CREATED.v2Keys.indexOf(key) >= 0) t = CREATED.v2.reduce((x, d) => x.replace(d.now, d.was), t);
@@ -737,7 +848,7 @@ for (const e of evOn) {
 }
 const mirrorDir = path.join(H.IASC, "client/out/on");
 for (const e of added.concat(PATCHED.map((k) => H.byKey(ON, k)))) {
-  const f = path.join(mirrorDir, (e.name.indexOf("sc_") === 0 || e.name.indexOf("os_") === 0 ? "" : "iaForm_") + e.name + ".js");
+  const f = path.join(mirrorDir, (e.name.indexOf("sc_") === 0 || e.name.indexOf("os_") === 0 || e.name.indexOf("tr_") === 0 ? "" : "iaForm_") + e.name + ".js");
   // a rule event's mirror is its js action
   check("ON: mirror " + path.basename(f) + " = the embedded script", fs.existsSync(f) && read(f) === (e.type === "rule" ? ruleJs(ON, e.key) : e.func));
 }
@@ -762,9 +873,10 @@ for (const e of added.concat(PATCHED.map((k) => H.byKey(ON, k)))) {
   check("ON: the split grid has a Delete row action (the components table's delBtn)", delOf(ogo).length === 1 && same(delOf(ogo)[0], delOf(smo)[0]), ogo.rowActions);
   check("ON vs v59: the form config identical once the split's events and blocks are undone", JSON.stringify(canon(V.config)) === JSON.stringify(canon(LIVE.config)));
   const changed = ON.config.eventScript.filter((e) => H.byKey(LIVE, e.key) && JSON.stringify(H.byKey(LIVE, e.key)) !== JSON.stringify(e)).map((e) => e.name).sort();
-  check("ON vs v59: the split's 12 events at the end; changed only the handlers that tell os_main and IA V2's IA_NOT_RECORD",
-    same(ON.config.eventScript.slice(-OS_EVENTS.length).map((e) => e.name), OS_EVENTS) && same(changed, ["iaV2_onClick_completed", "iaV2_onClick_completed_post", "mounted",
-      "onChange_Plant", "onChange_assembledItem", "onChange_itemQty", "sc_main"]), changed);
+  check("ON vs v59: the split's " + OS_EVENTS.length + " events at the end; changed only the handlers that tell os_main and IA V2's IA_NOT_RECORD",
+    same(ON.config.eventScript.filter((e) => TR_EVENTS.indexOf(e.name) < 0).slice(-OS_EVENTS.length).map((e) => e.name), OS_EVENTS) && same(changed, ["iaV2_onClick_completed",
+      "iaV2_onClick_completed_post", "mounted", "onChange_Plant", "onChange_assembledItem", "onChange_itemQty", "sc_main"]), changed);
+  check("ON: the transfer request's " + TR_EVENTS.length + " events last", same(ON.config.eventScript.slice(-TR_EVENTS.length).map((e) => e.name), TR_EVENTS));
   // where the handlers tell os_main
   const fn = (name) => (H.byName(ON, name) || {}).func || "";
   check("ON: an item change tells os_main inside applyBatchFields (and sc_main's copy of it)", ["onChange_assembledItem", "sc_main"].every((n) =>
@@ -775,7 +887,7 @@ for (const e of added.concat(PATCHED.map((k) => H.byKey(ON, k)))) {
   check("ON: the output quantity tells os_main first (before the Small Cycle prologue), the plant last", fn("onChange_itemQty").indexOf("// IA output split (scratchpad/iasc os_main):") === 0 &&
     /this\.triggerEvent\("os_main", \{ osOp: "PLANT" \}\);\n\/\/ -- end output split --\n$/.test(fn("onChange_Plant")));
   const notRecord = (n) => fn(n).slice(fn(n).indexOf("const IA_NOT_RECORD"), fn(n).indexOf("];", fn(n).indexOf("const IA_NOT_RECORD")) + 2);
-  check("ON: IA V2's IA_NOT_RECORD strips the split's total, never the rows or the switch", ["iaV2_onClick_completed", "iaV2_onClick_completed_post"].every((n) =>
-    /"output_split_sum"\];$/.test(notRecord(n)) && notRecord(n).indexOf('"output_split"') < 0 && notRecord(n).indexOf('"output_split_on"') < 0));
+  check("ON: IA V2's IA_NOT_RECORD strips the split's total and No. of Split, never the rows or the switch", ["iaV2_onClick_completed", "iaV2_onClick_completed_post"].every((n) =>
+    untrText(notRecord(n)).endsWith(OS_NOT_RECORD) && notRecord(n).indexOf('"output_split"') < 0 && notRecord(n).indexOf('"output_split_on"') < 0));
 }
 H.done("test_sc_json");

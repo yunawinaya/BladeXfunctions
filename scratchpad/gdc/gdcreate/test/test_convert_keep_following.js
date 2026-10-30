@@ -13,7 +13,9 @@ async function convert({ jobs, done, keepMs, location, silentChecks }) {
   const code = SRC.replace("const FOLLOW_EVERY_MS = 3000;", "const FOLLOW_EVERY_MS = 1;").replace("const FOLLOW_MS = 120000;", "const FOLLOW_MS = 60;")
     .replace("const RECOVER_EVERY_MS = 5000;", "const RECOVER_EVERY_MS = 1;").replace("const RECOVER_MS = 300000;", "const RECOVER_MS = 2000;")
     .replace("const KEEP_MS = 1800000;", "const KEEP_MS = " + (keepMs || 3000) + ";").replace("const KEEP_EVERY_MS = 15000;", "const KEEP_EVERY_MS = 5;")
-    .replace("const READ_GIVE_UP_MS = 20000;", "const READ_GIVE_UP_MS = 200;");
+    .replace("const READ_GIVE_UP_MS = 20000;", "const READ_GIVE_UP_MS = 200;")
+    .replace("const DRAIN_NEXT_MS = 1000;", "const DRAIN_NEXT_MS = 1;").replace("const DRAIN_SLOW_MS = 5000;", "const DRAIN_SLOW_MS = 5;")
+    .replace("const DRAIN_FAILED_MS = 15000;", "const DRAIN_FAILED_MS = 5;").replace("const DRAIN_LOST_MS = 60000;", "const DRAIN_LOST_MS = 100;");
   let silent = silentChecks || 0;
   const log = { kicks: [], alerts: [], followEnded: false };
   const kicks = {};
@@ -107,11 +109,10 @@ const ok = (t) => { n++; console.log("ok", t); };
   assert.ok(bg.every((k) => k.job === "J12"), "every background kick is the oldest waiting job: " + bg.map((k) => k.job).join(","));
   ok("each background beat starts one run, for the oldest waiting job");
 
-  // 7. inside the 2-minute follow: every job once at the start (each run claims its own job), then one run per re-kick
+  // 7. inside the 2-minute follow too: one run at a time, for the oldest waiting job (10-29; it used to start every job at once)
   const inFollow = log.kicks.filter((k) => !k.afterFollow).map((k) => k.job);
-  assert.deepStrictEqual(inFollow.slice(0, 3).sort(), ["J12", "J13", "J14"], "the start kicks every queued job: " + inFollow.join(","));
-  assert.ok(inFollow.slice(3).every((j) => j === "J12"), "the follow's re-kicks start the oldest waiting job only: " + inFollow.join(","));
-  ok("the follow starts every job once, then re-kicks one run for the oldest waiting job");
+  assert.ok(inFollow.length >= 1 && inFollow.every((j) => j === "J12"), "the follow starts the oldest waiting job only: " + inFollow.join(","));
+  ok("the follow starts one run at a time, for the oldest waiting job");
 
   // 8. a background check that never answers is given up and the beats go on
   log = await convert({ jobs: ["J15", "J16"], done: (j, k) => (k >= 3 ? "COMPLETED" : "COMMITTING_GD"), silentChecks: 2 });

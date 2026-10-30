@@ -11,6 +11,9 @@ MUTANTS = [
     ("plan: a non-member reserves (FIX-03)", "hold/plan.js", "if (!(Number(member) > 0)) return stop(", "if (false) return stop("),
     ("plan: another organisation's IA", "hold/plan.js", "if (hdS(ia.organization_id) !== hdS(g.org)) return stop(", "if (false) return stop("),
     ("plan: Processing not refused", "hold/plan.js", 'if (status === "Processing") return stop(', "if (false) return stop("),
+    # reserved requests (scratchpad/iatr/RESERVED_REQUEST_PLAN.md Task 4)
+    ("plan: a dispatched request ignored", "hold/plan.js", "if (transit && hdS(transit.id)) {", "if (false) {"),
+    ("state: a Processing request not seen", "sql_hold.py", "AND q.stock_movement_status IN ('In Progress', 'Processing')", "AND q.stock_movement_status IN ('In Progress')"),
     ("plan: a completed IA reserved", "hold/plan.js", 'if (!closing && status !== "Draft" && status !== "Created" && !(g.op === "RELEASE_ALL" && status === "Cancelled")) return stop(', "if (false) return stop("),
     ("plan: a not-enrolled IA reserved", "hold/plan.js", 'if (g.op === "RECONCILE" && !hdS(ia.hold) && !rows.length) return stop(', "if (false) return stop("),
     ("plan: a live run ignored", "hold/plan.js", "if (live.length) return stop(", "if (false) return stop("),

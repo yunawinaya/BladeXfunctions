@@ -74,7 +74,13 @@ const bulkPlan = function bulkPlan(inp) {
     fromIntent = true;
   } else {
     if (precisionProblem) return { route: "FAIL", code: "400", result_code: "UNSUPPORTED_PRECISION", result_message: "The tenant's " + precisionProblem + " is not a rounding the platform documents" };
-    plan = planBulk({ operationKey: op, items, itemBalances: bal, batchBalances: batch, fifoLayers: fifo, waRows: wa, movements, nowText: s(inp.dbNow), precision: precision });
+    // costing rows of the other method are migrated where this run holds the pair's COST lock (a PLAN only plans them)
+    const costLocked = {};
+    for (const k of arr(inp.lockKeys)) {
+      const p = s(k).split("|");
+      if (p.length === 3 && p[0] === "COST") costLocked[p[1] + "|" + p[2]] = true;
+    }
+    plan = planBulk({ operationKey: op, items, itemBalances: bal, batchBalances: batch, fifoLayers: fifo, waRows: wa, movements, nowText: s(inp.dbNow), precision: precision, migrateCosting: route0 === "PLAN" ? "ALL" : costLocked });
     if (!plan.ok) {
       return { route: "FAIL", code: "400", result_code: plan.failure.code, result_message: plan.failure.message + " (movement " + plan.failure.movement_key + ")", failure: plan.failure, results: plan.results };
     }
@@ -92,15 +98,17 @@ const bulkPlan = function bulkPlan(inp) {
   };
   const conflicts = [];
   const pending = {};
+  // a costing row the migration retires (after.is_deleted 1) leaves the reads once written
+  const retired = (u) => !!u.after && Number(u.after.is_deleted) === 1;
   for (const t of ["item_balance", "item_batch_balance", "fifo", "wa"]) {
     pending[t] = [];
     for (const u of arr(plan.updates[t])) {
       const row = current[t][s(u.id)];
       if (!row) {
-        conflicts.push(t + " " + u.id + " is gone");
+        if (!retired(u)) conflicts.push(t + " " + u.id + " is gone");
         continue;
       }
-      if (sameCols(row, u.after)) continue;
+      if (!retired(u) && sameCols(row, u.after)) continue;
       if (sameCols(row, u.before)) pending[t].push(u);
       else conflicts.push(t + " " + u.id + " changed since the plan");
     }
@@ -130,8 +138,10 @@ const bulkPlan = function bulkPlan(inp) {
   const bbAll = pending.item_batch_balance.map((u) => Object.assign({ id: s(u.id) }, decCols(u.after)));
   const bb = bbAll.filter((r) => !("remark" in r));
   const bbr = bbAll.filter((r) => "remark" in r);
-  const ff = pending.fifo.map((u) => ({ id: s(u.id), fifo_available_quantity: dec(u.after.fifo_available_quantity) }));
-  const wr = pending.wa.map((u) => ({ id: s(u.id), wa_quantity: dec(u.after.wa_quantity), wa_cost_price: dec(u.after.wa_cost_price) }));
+  const ff = pending.fifo.filter((u) => !retired(u)).map((u) => ({ id: s(u.id), fifo_available_quantity: dec(u.after.fifo_available_quantity) }));
+  const wr = pending.wa.filter((u) => !retired(u)).map((u) => ({ id: s(u.id), wa_quantity: dec(u.after.wa_quantity), wa_cost_price: dec(u.after.wa_cost_price) }));
+  const ffDel = pending.fifo.filter(retired).map((u) => ({ id: s(u.id), is_deleted: 1 }));
+  const waDel = pending.wa.filter(retired).map((u) => ({ id: s(u.id), is_deleted: 1 }));
   const strip = (r) => {
     const o = Object.assign({}, r);
     delete o.id;
@@ -175,6 +185,10 @@ const bulkPlan = function bulkPlan(inp) {
     ffSlices: slices(ff.length),
     wa: wr,
     waSlices: slices(wr.length),
+    ffDel: ffDel,
+    ffDelSlices: slices(ffDel.length),
+    waDel: waDel,
+    waDelSlices: slices(waDel.length),
     ibNew: createsLeft.item_balance.map(strip),
     ibNewSlices: slices(createsLeft.item_balance.length),
     bbNew: createsLeft.item_batch_balance.map(strip),
@@ -277,6 +291,7 @@ return bulkPlan({
   organizationId: [{{node:code_node_IBguard.data.organizationId}}][0],
   movements: [{{workflowparams:movements}}][0],
   lockRoute: [{{node:code_node_IBlkv.data.route}}][0],
+  lockKeys: [{{node:code_node_IBlkplan.data.lockKeys}}][0],
   items: [{{node:sql_node_IBitems.data}}][0],
   itemBalances: [{{node:sql_node_IBbal.data}}][0],
   batchBalances: [{{node:sql_node_IBbatch.data}}][0],

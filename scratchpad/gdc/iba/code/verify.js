@@ -26,6 +26,11 @@ for (const t of Object.keys(reads)) {
   for (const r of reads[t]) byId[s(r.id)] = r;
   for (const pair of arr(expect[t])) {
     const row = byId[s(pair[0])];
+    // a costing row the migration retired reads back as gone (the read-backs take is_deleted = 0 rows)
+    if (pair[1] && Number(pair[1].is_deleted) === 1) {
+      if (row) bad.push(t + " " + pair[0] + " still active");
+      continue;
+    }
     if (!row) bad.push(t + " " + pair[0] + " missing");
     else if (!same(row, pair[1])) bad.push(t + " " + pair[0] + " does not hold the planned values");
   }

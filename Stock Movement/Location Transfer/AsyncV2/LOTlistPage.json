@@ -8,7 +8,11 @@
       "icon": "icon-tabs",
       "group": "Layout",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "tabs": [
         {
           "label": "Location Transfer Listing",
@@ -22,7 +26,11 @@
               "typeIcon": "业务表格",
               "group": "Business",
               "groupSort": 10,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "generate": "whole",
               "options": {
                 "defaultValue": {},
@@ -312,7 +320,7 @@
                       "configRating": {},
                       "configDate": {},
                       "configCustom": {
-                        "content": "<div v-if=\"scope.value==='Cancelled'\" style=\" padding: 0 10px; border: 2px solid #F90A0A; background-color: #FDC4C4; color: #A30505; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Issued'\" style=\" padding: 0 10px;border: 2px solid #1FAA7D;background-color: #A9FAEB;color: #OA7659;font-size: 14px;font-family: Arial, sans-serif;border-radius: 20px;cursor: default;transition: background-color 0.3s;width: max-content;display: flex;align-items: center;justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Draft'\" style=\" padding: 0 10px; border: 2px solid #8C95A4; background-color: #D0D5DD; color: #4D5A74; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Completed'\" style=\" padding: 0 10px; border: 2px solid #00AE00; background-color: #C5F5C5; color: #016701; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='In Progress'\" style=\" padding: 0 10px; border: 2px solid #FFBB00; background-color: #FFFCDD; color: #8F6A04; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Fully Posted'\" style=\" padding: 0 10px; border: 2px solid #00AE00; background-color: #C5F5C5; color: #016701; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Created'\" style=\" padding: 0 10px; border: 2px solid #036DF8; background-color: #C6DFFF; color: #4D5A74; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n\n<div\n  v-if=\"scope.value==='Processing'\"\n  style=\"\n    padding: 0 10px;\n    border: 2px solid #8b5cf6;\n    background-color: #ede9fe;\n    color: #5b21b6;\n    font-size: 14px;\n    font-family: Arial, sans-serif;\n    border-radius: 20px;\n    cursor: default;\n    transition: background-color 0.3s;\n    width: max-content;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n  \"\n>\n  {{scope.value}}\n</div>"
+                        "content": "<div v-if=\"scope.value==='Cancelled'\" style=\" padding: 0 10px; border: 2px solid #F90A0A; background-color: #FDC4C4; color: #A30505; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Issued'\" style=\" padding: 0 10px;border: 2px solid #1FAA7D;background-color: #A9FAEB;color: #OA7659;font-size: 14px;font-family: Arial, sans-serif;border-radius: 20px;cursor: default;transition: background-color 0.3s;width: max-content;display: flex;align-items: center;justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Draft'\" style=\" padding: 0 10px; border: 2px solid #8C95A4; background-color: #D0D5DD; color: #4D5A74; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Completed'\" style=\" padding: 0 10px; border: 2px solid #00AE00; background-color: #C5F5C5; color: #016701; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='In Progress'\" style=\" padding: 0 10px; border: 2px solid #FFBB00; background-color: #FFFCDD; color: #8F6A04; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Fully Posted'\" style=\" padding: 0 10px; border: 2px solid #00AE00; background-color: #C5F5C5; color: #016701; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n<div v-if=\"scope.value==='Created'\" style=\" padding: 0 10px; border: 2px solid #036DF8; background-color: #C6DFFF; color: #4D5A74; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>\n\n<div\n  v-if=\"scope.value==='Processing'\"\n  style=\"\n    padding: 0 10px;\n    border: 2px solid #8b5cf6;\n    background-color: #ede9fe;\n    color: #5b21b6;\n    font-size: 14px;\n    font-family: Arial, sans-serif;\n    border-radius: 20px;\n    cursor: default;\n    transition: background-color 0.3s;\n    width: max-content;\n    display: flex;\n    align-items: center;\n    justify-content: center;\n  \"\n>\n  {{scope.value}}\n</div>\n<div v-if=\"scope.value==='Requested'\" style=\" padding: 0 10px; border: 2px solid #0891B2; background-color: #CFFAFE; color: #155E75; font-size: 14px; font-family: Arial, sans-serif; border-radius: 20px; cursor: default; transition: background-color 0.3s; width: max-content; display: flex; align-items: center; justify-content: center;\">{{scope.value}}</div>"
                       },
                       "defaultHidden": false,
                       "hoverView": false,
@@ -636,6 +644,92 @@
                       "primaryKey": false,
                       "systemKey": false,
                       "title": "Remark 3"
+                    },
+                    {
+                      "bsonType": "string",
+                      "defaultValue": "",
+                      "description": "Source Item Assembly",
+                      "desensitization": false,
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": false,
+                      "key": "jzlp5kps",
+                      "maxLength": 255,
+                      "name": "source_ia_no",
+                      "pattern": "",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "systemKey": false,
+                      "title": "Source Item Assembly"
+                    },
+                    {
+                      "bsonType": "timestamp",
+                      "defaultValue": "",
+                      "description": "Required Date",
+                      "desensitization": false,
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "required": ""
+                      },
+                      "format": "YYYY-MM-DD",
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": false,
+                      "key": "r2qi9ypn",
+                      "maxLength": 255,
+                      "name": "required_date",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "showType": "Date",
+                      "title": "Required Date",
+                      "fixed": "none",
+                      "width": 200,
+                      "hidden": false,
+                      "isAllowEdit": [],
+                      "editMethod": "default",
+                      "updateMethods": "auto",
+                      "configString": {},
+                      "configNumberPercent": {},
+                      "configProgress": {},
+                      "configCurrency": {},
+                      "configPhoneNumber": {},
+                      "configBoolean": {},
+                      "configTag": {},
+                      "configIcon": {},
+                      "configLink": {},
+                      "configButton": {},
+                      "configRating": {},
+                      "configDate": {
+                        "format": "DD/MM/YYYY"
+                      },
+                      "configCustom": {}
+                    },
+                    {
+                      "bsonType": "string",
+                      "defaultValue": "",
+                      "description": "Requested By",
+                      "desensitization": false,
+                      "encryptedKey": false,
+                      "errorMessage": {
+                        "pattern": "",
+                        "required": ""
+                      },
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": false,
+                      "key": "tidbtl7w",
+                      "maxLength": 255,
+                      "name": "requested_by",
+                      "pattern": "",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "systemKey": false,
+                      "title": "Requested By"
                     }
                   ],
                   "filters": [
@@ -690,6 +784,167 @@
                       "hideLabel": 1,
                       "aggregate": 1,
                       "multiple": false
+                    },
+                    {
+                      "bsonType": "string",
+                      "component": {
+                        "name": "select",
+                        "rules": [
+                          {
+                            "id": 1747835469005,
+                            "parentId": 1747835469006,
+                            "isTop": true,
+                            "type": "branch",
+                            "operator": "all",
+                            "prop": "",
+                            "valueType": "",
+                            "value": "",
+                            "level": 1,
+                            "children": [
+                              {
+                                "id": 1723795236686,
+                                "parentId": 1747835469005,
+                                "isTop": false,
+                                "prop": "parent_id",
+                                "operator": "numberEqual",
+                                "valueType": "value",
+                                "value": "1914242988707749889",
+                                "type": "leaf",
+                                "level": 2,
+                                "propLabel": "父主键",
+                                "valueLabel": "",
+                                "operatorLabel": "等于",
+                                "valueTypeLabel": "值"
+                              },
+                              {
+                                "id": 1747835469008,
+                                "isTop": false,
+                                "parentId": 1747835469005,
+                                "type": "branch",
+                                "operator": "any",
+                                "level": 2,
+                                "children": [
+                                  {
+                                    "id": 1797900000100,
+                                    "parentId": 1747835469008,
+                                    "isTop": false,
+                                    "prop": "dict_key",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Draft",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "字典值",
+                                    "valueLabel": "",
+                                    "operatorLabel": "等于",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1797900000101,
+                                    "parentId": 1747835469008,
+                                    "isTop": false,
+                                    "prop": "dict_key",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Requested",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "字典值",
+                                    "valueLabel": "",
+                                    "operatorLabel": "等于",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1797900000102,
+                                    "parentId": 1747835469008,
+                                    "isTop": false,
+                                    "prop": "dict_key",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Processing",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "字典值",
+                                    "valueLabel": "",
+                                    "operatorLabel": "等于",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1797900000103,
+                                    "parentId": 1747835469008,
+                                    "isTop": false,
+                                    "prop": "dict_key",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "In Progress",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "字典值",
+                                    "valueLabel": "",
+                                    "operatorLabel": "等于",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1797900000104,
+                                    "parentId": 1747835469008,
+                                    "isTop": false,
+                                    "prop": "dict_key",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Completed",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "字典值",
+                                    "valueLabel": "",
+                                    "operatorLabel": "等于",
+                                    "valueTypeLabel": "值"
+                                  },
+                                  {
+                                    "id": 1797900000105,
+                                    "parentId": 1747835469008,
+                                    "isTop": false,
+                                    "prop": "dict_key",
+                                    "operator": "equal",
+                                    "valueType": "value",
+                                    "value": "Cancelled",
+                                    "type": "leaf",
+                                    "level": 3,
+                                    "propLabel": "字典值",
+                                    "valueLabel": "",
+                                    "operatorLabel": "等于",
+                                    "valueTypeLabel": "值"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      "defaultValue": "",
+                      "description": "Location Transfer Status",
+                      "encryptedKey": false,
+                      "enum": {
+                        "cascade": "",
+                        "collection": "blade_dict",
+                        "dataSourceName": "master",
+                        "field": "dict_key as value, dict_key as text"
+                      },
+                      "errorMessage": {
+                        "required": ""
+                      },
+                      "foreignKey": "blade_dict.dict_key",
+                      "historyKey": false,
+                      "immutableKey": false,
+                      "isRequired": false,
+                      "key": "4cjp73ay",
+                      "multiple": true,
+                      "name": "stock_movement_status",
+                      "persistField": true,
+                      "primaryKey": false,
+                      "title": "Status",
+                      "matchMode": "looseMatch",
+                      "hideLabel": 0,
+                      "aggregate": 0
                     }
                   ],
                   "filter_collapse": 1,
@@ -894,7 +1149,10 @@
                     "cellTextColor": "",
                     "headerBackgroundColor": "#f9f9f9",
                     "headerTextColor": "",
-                    "_sort": ["headerBackgroundColor", "colorPrimary"]
+                    "_sort": [
+                      "headerBackgroundColor",
+                      "colorPrimary"
+                    ]
                   },
                   "url_params": {
                     "list": [
@@ -969,8 +1227,18 @@
                 "tableColumn": false,
                 "subform": false,
                 "isGetTree": false,
-                "padding": ["", "", "", ""],
-                "radius": ["", "", "", ""],
+                "padding": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                "radius": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
                 "fills": [],
                 "borders": []
               },
@@ -1004,7 +1272,11 @@
               "typeIcon": "业务表格",
               "group": "Business",
               "groupSort": 10,
-              "enableScopes": ["Component", "Table", "Page"],
+              "enableScopes": [
+                "Component",
+                "Table",
+                "Page"
+              ],
               "generate": "whole",
               "options": {
                 "defaultValue": {},
@@ -3064,7 +3336,10 @@
                   "stripe": 0,
                   "rowColor": "#FFFFFF",
                   "styles": {
-                    "_sort": ["colorPrimary", "headerBackgroundColor"],
+                    "_sort": [
+                      "colorPrimary",
+                      "headerBackgroundColor"
+                    ],
                     "headerTextColor": "",
                     "colorPrimary": "#335b57",
                     "headerBackgroundColor": "#f9f9f9"
@@ -3137,8 +3412,18 @@
                 "tableColumn": false,
                 "subform": false,
                 "isGetTree": true,
-                "padding": ["", "", "", ""],
-                "radius": ["", "", "", ""],
+                "padding": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
+                "radius": [
+                  "",
+                  "",
+                  "",
+                  ""
+                ],
                 "fills": [],
                 "borders": []
               },
@@ -3187,7 +3472,11 @@
       "icon": "icon-select",
       "group": "Select",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "el": "fm-select",
       "options": {
         "defaultValue": "",
@@ -3288,7 +3577,11 @@
       "icon": "icon-Dialog",
       "group": "Container",
       "groupSort": 2,
-      "enableScopes": ["Component", "Table", "Page"],
+      "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+      ],
       "options": {
         "defaultValue": {},
         "visible": false,
@@ -3324,7 +3617,11 @@
           "icon": "icon-select",
           "group": "Select",
           "groupSort": 2,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-select",
           "options": {
             "defaultValue": "",
@@ -3425,7 +3722,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -3482,7 +3783,11 @@
           "icon": "icon-input",
           "group": "Text",
           "groupSort": 1,
-          "enableScopes": ["Component", "Table", "Page"],
+          "enableScopes": [
+            "Component",
+            "Table",
+            "Page"
+          ],
           "el": "fm-input",
           "options": {
             "width": "",
@@ -3597,13 +3902,13 @@
       {
         "key": "d1og3odt",
         "name": "bulkCancel_LOT",
-        "func": "// Bulk Cancel In Progress LOTs - Reverses PO quantity reservations\n// Stock Movement V2: with CANCEL switched on, each In Progress transfer goes to LOT_V2_SUBMIT (CANCEL, ids only). A\n// NOT_ELIGIBLE (incl. <= V2_MIN_LINES stored lines) / INVALID / no usable answer, or an error before SUBMIT, runs the classic cancel.\nconst LOT_WF = {\n  SUBMIT: \"2110992282596540417\", // LOT_V2_SUBMIT\n  WORKER: \"2110992316335521793\", // LOT_V2_WORKER\n};\n// Switches: ASYNC_LOT_ENABLED false or LOT_V2_CANCEL false = every cancel runs the classic workflow\nconst ASYNC_LOT_ENABLED = true;\nconst LOT_V2_CANCEL = true;\nconst V2_MIN_LINES = 50;\nconst LOT_RUNNING = [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_LOT\"];\nconst LOT_TERMINAL = [\"COMPLETED\", \"FAILED\", \"REQUIRES_REVIEW\", \"CANCELLED\"];\nconst LOT_ROUTES = [\"QUEUED\", \"SAVED\", \"STATUS\", \"NOT_ELIGIBLE\", \"BUSY\", \"STALE\", \"STOP\", \"INVALID\"];\n\nconst lotV2Queued = [];\nconst lv2s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst lv2run = (id, params) =>\n  new Promise((resolve, reject) => {\n    this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));\n  });\n\n// one key per click and transfer: a lost answer re-sent with the same key finds the same job\nconst lotV2ClickToken = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);\nconst lotV2KeyOf = (lot) => (\"LOT:\" + lv2s(lot.organization_id) + \":\" + lv2s(lot.id) + \":\" + lotV2ClickToken).replace(/[^A-Za-z0-9|:_.-]/g, \"-\").slice(0, 128);\n\n// { kind: \"CLASSIC\" } (the classic cancel runs), \"QUEUED\" (a background cancel), \"DONE\" (already cancelled) or \"FAILED\" + reason\nconst lotV2Cancel = async (lot) => {\n  let params = null;\n  try {\n    if (ASYNC_LOT_ENABLED !== true || LOT_V2_CANCEL !== true || LOT_WF.SUBMIT === \"0\" || LOT_WF.WORKER === \"0\" || !/^[0-9]{1,20}$/.test(lv2s(lot.id))) {\n      return { kind: \"CLASSIC\" };\n    }\n    params = {\n      operation: \"SUBMIT\",\n      saveAs: \"Cancelled\",\n      pageStatus: \"Edit\",\n      lot_id: lv2s(lot.id),\n      idempotency_key: lotV2KeyOf(lot),\n      source: \"LIST\",\n      min_lines: String(V2_MIN_LINES),\n      form: { id: lv2s(lot.id), stock_movement_status: lv2s(lot.stock_movement_status), stock_movement_no: lv2s(lot.stock_movement_no), organization_id: lv2s(lot.organization_id) },\n    };\n  } catch (error) {\n    console.error(\"Location Transfer V2: cancel not sent - classic cancel\", error);\n    return { kind: \"CLASSIC\" };\n  }\n  let res = null;\n  try {\n    res = await lv2run(LOT_WF.SUBMIT, params);\n  } catch (error) {\n    // the losing twin of the unique insert, a dropped connection: once more with the same key\n    try {\n      res = await lv2run(LOT_WF.SUBMIT, params);\n    } catch (again) {\n      // the classic refuses a transfer SUBMIT already made Processing\n      console.error(`No response from the background cancel for ${lot.stock_movement_no} - classic cancel`, again);\n      return { kind: \"CLASSIC\" };\n    }\n  }\n  const r = (res && res.data) || {};\n  const st = lv2s(r.job_status);\n  if (LOT_ROUTES.indexOf(lv2s(r.route)) < 0) {\n    console.error(`No usable answer from the background cancel for ${lot.stock_movement_no} - classic cancel`, res);\n    return { kind: \"CLASSIC\" };\n  }\n  if (r.route === \"NOT_ELIGIBLE\" || r.route === \"INVALID\") return { kind: \"CLASSIC\" };\n  if (r.route === \"QUEUED\" || (r.route === \"STATUS\" && LOT_RUNNING.indexOf(st) >= 0)) {\n    lotV2Queued.push({ jobId: lv2s(r.job_id), no: lv2s(lot.stock_movement_no) });\n    return { kind: \"QUEUED\" };\n  }\n  if (r.route === \"STATUS\" && st === \"COMPLETED\") return { kind: \"DONE\" };\n  const reason = lv2s(r.error_message) || lv2s(r.message) || lv2s(r.route) || \"no response\";\n  console.error(`Failed to cancel ${lot.stock_movement_no}: ${reason}`);\n  return { kind: \"FAILED\", reason: reason };\n};\n\n// the queued cancels, one after another: LOT_V2_WORKER per job until it ends (at most 10 calls each)\nconst lotV2Kick = async () => {\n  for (const q of lotV2Queued) {\n    for (let n = 1; n <= 10; n++) {\n      let w = null;\n      try {\n        const res = await lv2run(LOT_WF.WORKER, { job_id: q.jobId });\n        w = (res && res.data) || null;\n      } catch (error) {\n        console.error(\"Location Transfer V2: worker call failed - the list starts it again\", error);\n      }\n      const st = w && lv2s(w.job_id) === q.jobId ? lv2s(w.job_status) : \"\";\n      if (LOT_TERMINAL.indexOf(st) >= 0) {\n        this.refresh();\n        if (st !== \"COMPLETED\") this.$message.warning(`${q.no}: the background cancel did not finish - ${lv2s(w.result_message) || st}`);\n        break;\n      }\n      if (!(Number((w && w.processed) || 0) > 0)) await new Promise((resolve) => setTimeout(resolve, 3000));\n    }\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading();\n\n    const listID = \"location_transfer\";\n    let selectedRecords = this.getComponent(listID)?.$refs.crud.tableSelect;\n\n    if (!selectedRecords || selectedRecords.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please select at least one record.\");\n      return;\n    }\n\n    const inProgressLOTs = selectedRecords.filter(\n      (item) => item.stock_movement_status === \"In Progress\",\n    );\n\n    if (inProgressLOTs.length === 0) {\n      this.hideLoading();\n      this.$message.error(\n        \"Please select at least one In Progress location transfer.\",\n      );\n      return;\n    }\n\n    const lotNumbers = inProgressLOTs.map((item) => item.stock_movement_no);\n\n    // Declare counters\n    let successCount = 0;\n    let failCount = 0;\n    const failedLOTs = [];\n\n    await this.$confirm(\n      `You've selected ${lotNumbers.length} location transfer(s) to cancel.<br><br>` +\n        `<strong>Location Transfer Numbers:</strong><br>` +\n        `${lotNumbers.join(\", \")}<br><br>` +\n        `Do you want to proceed?`,\n      \"Cancel In Progress Location Transfer\",\n      {\n        confirmButtonText: \"Yes, Cancel LOTs\",\n        cancelButtonText: \"No, Go Back\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      this.hideLoading();\n      console.log(\"User clicked Cancel\");\n      throw new Error();\n    });\n\n    for (const lot of inProgressLOTs) {\n      try {\n        const v2 = await lotV2Cancel(lot);\n        if (v2.kind === \"QUEUED\" || v2.kind === \"DONE\") {\n          successCount++;\n          continue;\n        }\n        if (v2.kind === \"FAILED\") {\n          failCount++;\n          failedLOTs.push(`${lot.stock_movement_no} (${v2.reason})`);\n          continue;\n        }\n        let workflowResult;\n\n        await this.runWorkflow(\n          \"2013133675374927874\",\n          {\n            allData: lot,\n            saveAs: \"Cancelled\",\n            pageStatus: \"Edit\",\n          },\n          async (res) => {\n            console.log(\"Location Transfer saved successfully:\", res);\n            workflowResult = res;\n          },\n          (err) => {\n            console.error(\"Failed to cancel Location Transfer:\", err);\n            workflowResult = err;\n          },\n        );\n\n        if (!workflowResult || !workflowResult.data) {\n          failCount++;\n          failedLOTs.push(lot.stock_movement_no);\n          console.error(`No response from workflow for ${lot.stock_movement_no}`);\n          continue;\n        }\n\n        // Handle workflow errors\n        if (\n          workflowResult.data.code === \"400\" ||\n          workflowResult.data.code === 400 ||\n          workflowResult.data.success === false\n        ) {\n          failCount++;\n          failedLOTs.push(lot.stock_movement_no);\n          const errorMessage =\n            workflowResult.data.msg ||\n            workflowResult.data.message ||\n            \"Failed to cancel Location Transfer\";\n          console.error(`Failed to cancel ${lot.stock_movement_no}: ${errorMessage}`);\n          continue;\n        }\n\n        // Handle success\n        if (\n          workflowResult.data.code === \"200\" ||\n          workflowResult.data.code === 200 ||\n          workflowResult.data.success === true\n        ) {\n          successCount++;\n          console.log(`Successfully cancelled LOT ${lot.stock_movement_no}`);\n        } else {\n          failCount++;\n          failedLOTs.push(lot.stock_movement_no);\n          console.error(`Unknown workflow status for ${lot.stock_movement_no}`);\n        }\n      } catch (error) {\n        failCount++;\n        failedLOTs.push(lot.stock_movement_no);\n        console.error(`Failed to cancel ${lot.stock_movement_no}:`, error);\n      }\n    }\n\n    this.hideLoading();\n    this.refresh();\n    if (lotV2Queued.length > 0) {\n      this.$message.info(\n        `${lotV2Queued.length} location transfer(s) are being cancelled in the background: ${lotV2Queued.map((q) => q.no).join(\", \")}`,\n      );\n      lotV2Kick();\n    }\n\n    if (failCount > 0) {\n      this.$message.warning(\n        `Cancelled ${successCount} LOT(s). Failed: ${failCount} (${failedLOTs.join(\n          \", \",\n        )})`,\n      );\n    } else {\n      this.$message.success(\n        `Successfully cancelled ${successCount} location transfer(s).`,\n      );\n    }\n  } catch (error) {\n    this.hideLoading();\n    if (error.message) {\n      this.$message.error(error.message);\n    }\n    console.error(\"Error in bulk cancel process:\", error);\n  }\n})();\n",
+        "func": "// Bulk Cancel In Progress LOTs - Reverses PO quantity reservations\n// Stock Movement V2: with CANCEL switched on, each In Progress transfer goes to LOT_V2_SUBMIT (CANCEL, ids only). A\n// NOT_ELIGIBLE (incl. <= V2_MIN_LINES stored lines) / INVALID / no usable answer, or an error before SUBMIT, runs the classic cancel.\nconst LOT_WF = {\n  SUBMIT: \"2110992282596540417\", // LOT_V2_SUBMIT\n  WORKER: \"2110992316335521793\", // LOT_V2_WORKER\n};\n// Switches: ASYNC_LOT_ENABLED false or LOT_V2_CANCEL false = every cancel runs the classic workflow\nconst ASYNC_LOT_ENABLED = true;\nconst LOT_V2_CANCEL = true;\nconst V2_MIN_LINES = 50;\nconst LOT_RUNNING = [\"QUEUED\", \"VALIDATING\", \"READY_TO_COMMIT\", \"COMMITTING_LOT\"];\nconst LOT_TERMINAL = [\"COMPLETED\", \"FAILED\", \"REQUIRES_REVIEW\", \"CANCELLED\"];\nconst LOT_ROUTES = [\"QUEUED\", \"SAVED\", \"STATUS\", \"NOT_ELIGIBLE\", \"BUSY\", \"STALE\", \"STOP\", \"INVALID\"];\n// IA transfer request (scratchpad/iatr): a Requested request is cancelled by IA_TRANSFER_REQUEST (state only, no stock call)\nconst IATR_WF = \"1985966508400201729\"; // IA_TRANSFER_REQUEST\n\nconst lotV2Queued = [];\nconst lv2s = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst lv2run = (id, params) =>\n  new Promise((resolve, reject) => {\n    this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));\n  });\n\n// one key per click and transfer: a lost answer re-sent with the same key finds the same job\nconst lotV2ClickToken = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);\nconst lotV2KeyOf = (lot) => (\"LOT:\" + lv2s(lot.organization_id) + \":\" + lv2s(lot.id) + \":\" + lotV2ClickToken).replace(/[^A-Za-z0-9|:_.-]/g, \"-\").slice(0, 128);\n\n// { kind: \"CLASSIC\" } (the classic cancel runs), \"QUEUED\" (a background cancel), \"DONE\" (already cancelled) or \"FAILED\" + reason\nconst lotV2Cancel = async (lot) => {\n  let params = null;\n  try {\n    if (ASYNC_LOT_ENABLED !== true || LOT_V2_CANCEL !== true || LOT_WF.SUBMIT === \"0\" || LOT_WF.WORKER === \"0\" || !/^[0-9]{1,20}$/.test(lv2s(lot.id))) {\n      return { kind: \"CLASSIC\" };\n    }\n    params = {\n      operation: \"SUBMIT\",\n      saveAs: \"Cancelled\",\n      pageStatus: \"Edit\",\n      lot_id: lv2s(lot.id),\n      idempotency_key: lotV2KeyOf(lot),\n      source: \"LIST\",\n      min_lines: String(V2_MIN_LINES),\n      form: { id: lv2s(lot.id), stock_movement_status: lv2s(lot.stock_movement_status), stock_movement_no: lv2s(lot.stock_movement_no), organization_id: lv2s(lot.organization_id) },\n    };\n  } catch (error) {\n    console.error(\"Location Transfer V2: cancel not sent - classic cancel\", error);\n    return { kind: \"CLASSIC\" };\n  }\n  let res = null;\n  try {\n    res = await lv2run(LOT_WF.SUBMIT, params);\n  } catch (error) {\n    // the losing twin of the unique insert, a dropped connection: once more with the same key\n    try {\n      res = await lv2run(LOT_WF.SUBMIT, params);\n    } catch (again) {\n      // the classic refuses a transfer SUBMIT already made Processing\n      console.error(`No response from the background cancel for ${lot.stock_movement_no} - classic cancel`, again);\n      return { kind: \"CLASSIC\" };\n    }\n  }\n  const r = (res && res.data) || {};\n  const st = lv2s(r.job_status);\n  if (LOT_ROUTES.indexOf(lv2s(r.route)) < 0) {\n    console.error(`No usable answer from the background cancel for ${lot.stock_movement_no} - classic cancel`, res);\n    return { kind: \"CLASSIC\" };\n  }\n  if (r.route === \"NOT_ELIGIBLE\" || r.route === \"INVALID\") return { kind: \"CLASSIC\" };\n  if (r.route === \"QUEUED\" || (r.route === \"STATUS\" && LOT_RUNNING.indexOf(st) >= 0)) {\n    lotV2Queued.push({ jobId: lv2s(r.job_id), no: lv2s(lot.stock_movement_no) });\n    return { kind: \"QUEUED\" };\n  }\n  if (r.route === \"STATUS\" && st === \"COMPLETED\") return { kind: \"DONE\" };\n  const reason = lv2s(r.error_message) || lv2s(r.message) || lv2s(r.route) || \"no response\";\n  console.error(`Failed to cancel ${lot.stock_movement_no}: ${reason}`);\n  return { kind: \"FAILED\", reason: reason };\n};\n\n// the queued cancels, one after another: LOT_V2_WORKER per job until it ends (at most 10 calls each)\nconst lotV2Kick = async () => {\n  for (const q of lotV2Queued) {\n    for (let n = 1; n <= 10; n++) {\n      let w = null;\n      try {\n        const res = await lv2run(LOT_WF.WORKER, { job_id: q.jobId });\n        w = (res && res.data) || null;\n      } catch (error) {\n        console.error(\"Location Transfer V2: worker call failed - the list starts it again\", error);\n      }\n      const st = w && lv2s(w.job_id) === q.jobId ? lv2s(w.job_status) : \"\";\n      if (LOT_TERMINAL.indexOf(st) >= 0) {\n        this.refresh();\n        if (st !== \"COMPLETED\") this.$message.warning(`${q.no}: the background cancel did not finish - ${lv2s(w.result_message) || st}`);\n        break;\n      }\n      if (!(Number((w && w.processed) || 0) > 0)) await new Promise((resolve) => setTimeout(resolve, 3000));\n    }\n  }\n};\n\n(async () => {\n  try {\n    this.showLoading();\n\n    const listID = \"location_transfer\";\n    let selectedRecords = this.getComponent(listID)?.$refs.crud.tableSelect;\n\n    if (!selectedRecords || selectedRecords.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please select at least one record.\");\n      return;\n    }\n\n    const inProgressLOTs = selectedRecords.filter(\n      (item) => item.stock_movement_status === \"In Progress\",\n    );\n\n    const requestLOTs = selectedRecords.filter((item) => item.stock_movement_status === \"Requested\" && item.transfer_purpose === \"IA_SUPPLY\");\n\n    if (inProgressLOTs.length === 0 && requestLOTs.length === 0) {\n      this.hideLoading();\n      this.$message.error(\n        \"Please select at least one In Progress location transfer or Requested transfer request.\",\n      );\n      return;\n    }\n\n    const lotNumbers = inProgressLOTs.concat(requestLOTs).map((item) => item.stock_movement_no);\n\n    // Declare counters\n    let successCount = 0;\n    let failCount = 0;\n    const failedLOTs = [];\n\n    await this.$confirm(\n      `You've selected ${lotNumbers.length} location transfer(s) to cancel.<br><br>` +\n        `<strong>Location Transfer Numbers:</strong><br>` +\n        `${lotNumbers.join(\", \")}<br><br>` +\n        `Do you want to proceed?`,\n      \"Cancel In Progress Location Transfer\",\n      {\n        confirmButtonText: \"Yes, Cancel LOTs\",\n        cancelButtonText: \"No, Go Back\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      this.hideLoading();\n      console.log(\"User clicked Cancel\");\n      throw new Error();\n    });\n\n    for (const lot of requestLOTs) {\n      try {\n        const res = await lv2run(IATR_WF, { operation: \"CANCEL\", ia_id: lv2s(lot.source_ia_id), organization_id: lv2s(lot.organization_id), lot_id: lv2s(lot.id),\n          idempotency_key: (\"IATR:\" + lv2s(lot.id) + \":cancel:\" + lotV2ClickToken).slice(0, 128) });\n        const r = (res && res.data) || {};\n        if (lv2s(r.code) === \"200\") {\n          successCount++;\n        } else {\n          failCount++;\n          failedLOTs.push(`${lot.stock_movement_no} (${lv2s(r.message) || \"not cancelled\"})`);\n        }\n      } catch (error) {\n        failCount++;\n        failedLOTs.push(lot.stock_movement_no);\n        console.error(`Failed to cancel transfer request ${lot.stock_movement_no}:`, error);\n      }\n    }\n\n    for (const lot of inProgressLOTs) {\n      try {\n        const v2 = await lotV2Cancel(lot);\n        if (v2.kind === \"QUEUED\" || v2.kind === \"DONE\") {\n          successCount++;\n          continue;\n        }\n        if (v2.kind === \"FAILED\") {\n          failCount++;\n          failedLOTs.push(`${lot.stock_movement_no} (${v2.reason})`);\n          continue;\n        }\n        let workflowResult;\n\n        await this.runWorkflow(\n          \"2013133675374927874\",\n          {\n            allData: lot,\n            saveAs: \"Cancelled\",\n            pageStatus: \"Edit\",\n          },\n          async (res) => {\n            console.log(\"Location Transfer saved successfully:\", res);\n            workflowResult = res;\n          },\n          (err) => {\n            console.error(\"Failed to cancel Location Transfer:\", err);\n            workflowResult = err;\n          },\n        );\n\n        if (!workflowResult || !workflowResult.data) {\n          failCount++;\n          failedLOTs.push(lot.stock_movement_no);\n          console.error(`No response from workflow for ${lot.stock_movement_no}`);\n          continue;\n        }\n\n        // Handle workflow errors\n        if (\n          workflowResult.data.code === \"400\" ||\n          workflowResult.data.code === 400 ||\n          workflowResult.data.success === false\n        ) {\n          failCount++;\n          failedLOTs.push(lot.stock_movement_no);\n          const errorMessage =\n            workflowResult.data.msg ||\n            workflowResult.data.message ||\n            \"Failed to cancel Location Transfer\";\n          console.error(`Failed to cancel ${lot.stock_movement_no}: ${errorMessage}`);\n          continue;\n        }\n\n        // Handle success\n        if (\n          workflowResult.data.code === \"200\" ||\n          workflowResult.data.code === 200 ||\n          workflowResult.data.success === true\n        ) {\n          successCount++;\n          console.log(`Successfully cancelled LOT ${lot.stock_movement_no}`);\n        } else {\n          failCount++;\n          failedLOTs.push(lot.stock_movement_no);\n          console.error(`Unknown workflow status for ${lot.stock_movement_no}`);\n        }\n      } catch (error) {\n        failCount++;\n        failedLOTs.push(lot.stock_movement_no);\n        console.error(`Failed to cancel ${lot.stock_movement_no}:`, error);\n      }\n    }\n\n    this.hideLoading();\n    this.refresh();\n    if (lotV2Queued.length > 0) {\n      this.$message.info(\n        `${lotV2Queued.length} location transfer(s) are being cancelled in the background: ${lotV2Queued.map((q) => q.no).join(\", \")}`,\n      );\n      lotV2Kick();\n    }\n\n    if (failCount > 0) {\n      this.$message.warning(\n        `Cancelled ${successCount} LOT(s). Failed: ${failCount} (${failedLOTs.join(\n          \", \",\n        )})`,\n      );\n    } else {\n      this.$message.success(\n        `Successfully cancelled ${successCount} location transfer(s).`,\n      );\n    }\n  } catch (error) {\n    this.hideLoading();\n    if (error.message) {\n      this.$message.error(error.message);\n    }\n    console.error(\"Error in bulk cancel process:\", error);\n  }\n})();\n",
         "type": "js"
       },
       {
         "key": "7olx4a9f",
         "name": "bulkDelete_LOT",
-        "func": "// Bulk Delete Location Transfers - Deletes Draft or Cancelled LOTs\n(async () => {\n  try {\n    this.showLoading();\n\n    const listID = \"location_transfer\";\n    let selectedRecords = this.getComponent(listID)?.$refs.crud.tableSelect;\n\n    if (!selectedRecords || selectedRecords.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please select at least one record.\");\n      return;\n    }\n\n    const deleteLOTs = selectedRecords.filter(\n      (item) =>\n        item.stock_movement_status === \"Cancelled\" ||\n        item.stock_movement_status === \"Draft\",\n    );\n\n    if (deleteLOTs.length === 0) {\n      this.hideLoading();\n      this.$message.error(\n        \"Please select at least one Draft or Cancelled location transfer.\",\n      );\n      return;\n    }\n\n    const lotNumbers = deleteLOTs.map((item) => item.stock_movement_no);\n\n    // Declare counters\n    let successCount = 0;\n    let failCount = 0;\n    const failedLOTs = [];\n\n    await this.$confirm(\n      `You've selected ${lotNumbers.length} location transfer(s) to delete.<br><br>` +\n        `<strong>Location Transfer Numbers:</strong><br>` +\n        `${lotNumbers.join(\", \")}<br><br>` +\n        `Do you want to proceed?`,\n      \"Delete Location Transfer\",\n      {\n        confirmButtonText: \"Yes, Delete LOTs\",\n        cancelButtonText: \"No, Go Back\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      this.hideLoading();\n      console.log(\"User cancelled delete operation\");\n      throw new Error();\n    });\n\n    for (const lot of deleteLOTs) {\n      try {\n        await db.collection(\"sm_location_transfer\").doc(lot.id).update({\n          is_deleted: 1,\n        });\n        successCount++;\n      } catch (error) {\n        failCount++;\n        failedLOTs.push(lot.stock_movement_no);\n        console.error(`Failed to delete ${lot.stock_movement_no}:`, error);\n      }\n    }\n\n    this.hideLoading();\n    this.refresh();\n\n    if (failCount > 0) {\n      this.$message.warning(\n        `Deleted ${successCount} LOT(s). Failed: ${failCount} (${failedLOTs.join(\n          \", \",\n        )})`,\n      );\n    } else {\n      this.$message.success(\n        `Successfully deleted ${successCount} location transfer(s).`,\n      );\n    }\n  } catch (error) {\n    this.hideLoading();\n    if (error.message) {\n      this.$message.error(error.message);\n    }\n    console.error(\"Error in bulk cancel process:\", error);\n  }\n})();\n",
+        "func": "// Bulk Delete Location Transfers - Deletes Draft or Cancelled LOTs\n(async () => {\n  try {\n    this.showLoading();\n\n    const listID = \"location_transfer\";\n    let selectedRecords = this.getComponent(listID)?.$refs.crud.tableSelect;\n\n    if (!selectedRecords || selectedRecords.length === 0) {\n      this.hideLoading();\n      this.$message.error(\"Please select at least one record.\");\n      return;\n    }\n\n    // IA transfer request (scratchpad/iatr): a request (Requested or Cancelled) keeps its audit history - never deleted here\n    const deleteLOTs = selectedRecords.filter(\n      (item) =>\n        (item.stock_movement_status === \"Cancelled\" ||\n        item.stock_movement_status === \"Draft\") && item.transfer_purpose !== \"IA_SUPPLY\",\n    );\n\n    if (deleteLOTs.length === 0) {\n      this.hideLoading();\n      this.$message.error(\n        \"Please select at least one Draft or Cancelled location transfer.\",\n      );\n      return;\n    }\n\n    const lotNumbers = deleteLOTs.map((item) => item.stock_movement_no);\n\n    // Declare counters\n    let successCount = 0;\n    let failCount = 0;\n    const failedLOTs = [];\n\n    await this.$confirm(\n      `You've selected ${lotNumbers.length} location transfer(s) to delete.<br><br>` +\n        `<strong>Location Transfer Numbers:</strong><br>` +\n        `${lotNumbers.join(\", \")}<br><br>` +\n        `Do you want to proceed?`,\n      \"Delete Location Transfer\",\n      {\n        confirmButtonText: \"Yes, Delete LOTs\",\n        cancelButtonText: \"No, Go Back\",\n        type: \"warning\",\n        dangerouslyUseHTMLString: true,\n      },\n    ).catch(() => {\n      this.hideLoading();\n      console.log(\"User cancelled delete operation\");\n      throw new Error();\n    });\n\n    for (const lot of deleteLOTs) {\n      try {\n        await db.collection(\"sm_location_transfer\").doc(lot.id).update({\n          is_deleted: 1,\n        });\n        successCount++;\n      } catch (error) {\n        failCount++;\n        failedLOTs.push(lot.stock_movement_no);\n        console.error(`Failed to delete ${lot.stock_movement_no}:`, error);\n      }\n    }\n\n    this.hideLoading();\n    this.refresh();\n\n    if (failCount > 0) {\n      this.$message.warning(\n        `Deleted ${successCount} LOT(s). Failed: ${failCount} (${failedLOTs.join(\n          \", \",\n        )})`,\n      );\n    } else {\n      this.$message.success(\n        `Successfully deleted ${successCount} location transfer(s).`,\n      );\n    }\n  } catch (error) {\n    this.hideLoading();\n    if (error.message) {\n      this.$message.error(error.message);\n    }\n    console.error(\"Error in bulk cancel process:\", error);\n  }\n})();\n",
         "type": "js"
       },
       {

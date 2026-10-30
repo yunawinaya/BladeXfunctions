@@ -177,13 +177,15 @@ def build_page(c):
                 cols.append(w(link, m, label, linkName="Open"))
             else:
                 cols.append(w(col["handling_no"], m, label, hidden=(kind == "hid")))
-        t = w(T["table_hu"], model, name, isAdd=False, isDelete=False, paging=True, pageSize=10, hideLabel=False)
+        # as tall as its rows (the user, 10-29: fixed = a 400px box, so the buttons needed a scroll)
+        t = w(T["table_hu"], model, name, isAdd=False, isDelete=False, paging=True, pageSize=10, hideLabel=False, tableHeightMode="auto", virtualTable=False)
         t["tableColumns"] = cols
         return t
 
     rows = {m: w(text_tpl, m, label, gen=rkeys, hidden=True, defaultValue="", customClass=SUMMARY_CLASS.get(m, ""), hideLabel=m == "sli_summary_warn", color="")
             for m, label in SUMMARY_ROWS}
-    summary = w({k: v for k, v in T["grid_x46134mc"].items() if k != "columns"}, "sli_summary", "Sales Order Line", hidden=False)
+    # hidden since the figure tiles (10-29): its rows are still filled, so un-hiding it brings the labelled view back
+    summary = w({k: v for k, v in T["grid_x46134mc"].items() if k != "columns"}, "sli_summary", "Sales Order Line", hidden=True)
     col_tpl = {k: v for k, v in T["grid_x46134mc"]["columns"][0].items() if k != "list"}
     summary["columns"] = []
     for span, ms in SUMMARY_LAYOUT:
@@ -200,7 +202,8 @@ def build_page(c):
         b = w(T["button_draft"], model, label, hidden=(model == "sli_btn_create"), buttonName=label, buttonType=kind, buttonPlain=True, customClass="marginright")
         b["options"].pop("permission", None)
         buttons.append(b)
-    actions = w(T["flex_t6y2yh5r"], "sli_actions", "Actions", hidden=False, customClass="", justifyContent="flex-end", alignItems="center")
+    # the buttons' own gap (the user, 10-29: they touched - "marginright" spaces them only inside the IA form's fixbutton bar)
+    actions = w(T["flex_t6y2yh5r"], "sli_actions", "Actions", hidden=False, customClass="", justifyContent="flex-end", alignItems="center", hGap="8px")
     actions["list"] = buttons
     page = {"list": [summary, ias, orphans, actions], "config": copy.deepcopy(page_tpl["config"])}
     cfg = page["config"]
@@ -233,6 +236,29 @@ def build_page(c):
     for t, name in ((ias, "sli_onClick_open"), (orphans, "sli_onClick_openOrphan")):
         o = [x for x in t["tableColumns"] if x["model"] == "open"][0]
         o["events"]["onClick"] = keyed[name]
+    # Select Plant (the user, 10-28: an organisation-level Sales Order picks the plant first, as SO -> GD): the IA form's own dialog and
+    # plant widgets; keys from their own stream, drawn last, so every widget and event of the live page keeps its key
+    dkeys = Keys(json.dumps(page_tpl) + json.dumps(ia), SEED + 2)
+    note = w(text_tpl, "sli_plant_note", "Note", gen=dkeys, hidden=False, defaultValue="Please select a plant to create the item assembly.", customClass="",
+             hideLabel=True, color="")
+    plant = w(find(ia["list"], "issuing_operation_faci"), "sli_plant_id", "Plant", gen=dkeys, dataBind=False, required=False, hidden=False, disabled=False,
+              defaultValue="")
+    plant["rules"] = []
+    dialog = w(find(ia["list"], "sm_item_balance"), "sli_plant_dialog", "Select Plant", gen=dkeys, title="Select Plant", width="")
+    dialog["list"] = [note, plant]
+    page["list"].append(dialog)
+    for name, func in (("sli_onConfirm_plant", read(os.path.join(SRC, "sli_plant.js"))),
+                       ("sli_onCancel_plant", "// Select Plant cancelled\nthis.closeDialog(\"sli_plant_dialog\");\n")):
+        k = dkeys.new()
+        cfg["eventScript"].append({"key": k, "name": name, "func": func, "type": "js"})
+        keyed[name] = k
+        mirrors["page_" + name] = func
+    assert set(dialog["events"]) == {"onCancel", "onConfirm"}, dialog["events"]
+    dialog["events"].update({"onConfirm": keyed["sli_onConfirm_plant"], "onCancel": keyed["sli_onCancel_plant"]})
+    # the figure tiles (the user, 10-29): one html display on top, filled by sli_load; the IA form's html status widget, its own key stream
+    tkeys = Keys(json.dumps(page_tpl) + json.dumps(ia), SEED + 3)
+    tiles = w(find(ia["list"], "draft_status"), "sli_summary_html", "Summary", gen=tkeys, defaultValue="", hidden=False, hideLabel=True, dataBind=True)
+    page["list"].insert(0, tiles)
     return page, mirrors
 
 

@@ -26,7 +26,10 @@ STATE = """SELECT JSON_OBJECT(
        'held', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(p.id AS CHAR), 'n', CAST(SUBSTRING(p.step_name, 8) AS UNSIGNED),
                 'started_at', DATE_FORMAT(p.started_at, '%Y-%m-%d %H:%i:%s'), 'op', p.result_ref))
                 FROM gd_publish_step p WHERE p.tenant_id = '@T' AND p.job_id = 'IAH|@IAQ' AND p.step_name LIKE 'TICKET|%' AND p.step_status = 'HELD'
-                 AND p.is_deleted = 0)) AS j"""
+                 AND p.is_deleted = 0),
+       'transit', (SELECT JSON_OBJECT('id', CAST(q.id AS CHAR), 'no', q.stock_movement_no, 'status', q.stock_movement_status)
+                FROM sm_location_transfer q WHERE q.tenant_id = '@T' AND q.is_deleted = 0 AND q.transfer_purpose = 'IA_SUPPLY' AND q.source_ia_id = '@IAQ'
+                 AND q.stock_movement_status IN ('In Progress', 'Processing') ORDER BY q.id DESC LIMIT 1)) AS j"""
 
 # the IA header just before the finish (review I1): a save while this run worked marked it RESERVING again and moved its update_time
 HEAD = """SELECT JSON_OBJECT('hold', h.material_hold_status, 'ut', DATE_FORMAT(h.update_time, '%Y-%m-%d %H:%i:%s.%f')) AS j

@@ -37,6 +37,7 @@ const prepare = (o) => {
     if (id === "sql_node_XPjob") return [job];
     if (id === "sql_node_XPhdr") return hdrRows;
     if (id === "sql_node_XPlock") return o.lock === undefined ? [{ step_name: "LOCK|1", result_ref: "GDC|" + GD + "|1" }] : o.lock;
+    if (id === "sql_node_XPcnos" && o.cnos !== undefined) return o.cnos;
     if (id === "sql_node_XPback") return [{ id: job.id, job_status: "?" }];
     const k = id.replace("sql_node_XP", "");
     if (RD[k] !== undefined) return readRows(k);
@@ -63,6 +64,23 @@ t("PREPARE: a Processing GD under this job's lock -> payload parts + READY_TO_CO
   assert.strictEqual(r.calls.filter((c) => c[0] === "INVENTORY_BULK_APPLY").length, 1);
   assert.strictEqual(r.calls[0][1].mode, "PLAN");
   assert.strictEqual(upd(r.writes, "Goods Delivery").length, 0, "the GD stays Processing");
+});
+// PTS GD/2610/1010 (10-28): a cancelled number typed in again - its "-Cancelled" is taken, so X6 failed on the unique number
+t("PREPARE: the number's -Cancelled already taken -> the first free -Cancelled-<n> in the manifest, GD, engine movements and NUM", () => {
+  const r = prepare({ cnos: [{ delivery_no: NO + "-Cancelled" }, { delivery_no: NO.toLowerCase() + "-cancelled-2" }, { delivery_no: NO + "-Cancelled-1" }] });
+  const ready = upd(r.writes, "GD Async Job");
+  assert.strictEqual(ready[0].job_status, "READY_TO_COMMIT", JSON.stringify(ready[0]).slice(0, 300));
+  const m = JSON.parse(ready[0].prepared_payload);
+  const want = NO + "-Cancelled-3";
+  assert.strictEqual(m.new_no, want);
+  const part = (k) => JSON.parse(ins(r.writes, "GD Publish Step").filter((p) => p.step_name.split("|")[2] === k).map((p) => p.result_ref).join(""));
+  assert.strictEqual(part("GD").header.delivery_no, want);
+  assert.strictEqual(part("NUM").new_no, want);
+  const movements = r.calls.filter((c) => c[0] === "INVENTORY_BULK_APPLY")[0][1].movements;
+  assert.ok(movements.length && movements.every((mv) => mv.trx_no === want), "engine trx_no");
+});
+t("PREPARE: an empty taken-names read (no rows) -> the plain -Cancelled", () => {
+  for (const cnos of [[], null, {}]) assert.strictEqual(JSON.parse(upd(prepare({ cnos: cnos }).writes, "GD Async Job")[0].prepared_payload).new_no, NO + "-Cancelled");
 });
 t("PREPARE: the engine refuses the plan -> FAILED, the GD back to Created", () => {
   const r = prepare({ answers: { INVENTORY_BULK_APPLY: { code: "400", result_code: "INSUFFICIENT_STOCK", message: "no Reserved" } } });

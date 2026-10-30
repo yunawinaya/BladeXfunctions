@@ -20,7 +20,8 @@ background job per delivery, set-based (no per-line child runs):
 - **Packings:** every open Packing of the GD Cancelled, with its lines. The boxes it generated are unpacked (one
   REPACKING_PROCESS Unload per box, as the Packing form's Unpack). A Completed Packing is left as it is; its boxes keep the
   released stock and are named in the result.
-- **The number:** "-Cancelled" on the GD, and on every Picking, Packing and stock movement that copies the old number.
+- **The number:** "-Cancelled" on the GD, and on every Picking, Packing and stock movement that copies the old number. When
+  that name is taken (a cancelled number typed into a new GD), the first free "-Cancelled-2", "-Cancelled-3", ... (PREPARE v5).
 - **After:** Item last_transaction_date, REORDER_SET_REDIS GD_CANCELLED.
 
 Not handled (answered NOT_ELIGIBLE: the caller cancels the classic way): serial-numbered items, a GD made from a Picking

@@ -1,0 +1,42 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_TRANSFER_REQUEST v8 (B26: requests from a reserved IA)",
+   "dataId": "1985966508400201729",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/TransferRequest/IA_TRANSFER_REQUEST.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_IA_TRANSFER_REQUEST_v7.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "ia_id": "1",
+     "organization_id": "1"
+    }
+   }
+  },
+  {
+   "name": "IA_SAVE v16 (B26: the guard reads every request; staging check)",
+   "dataId": "2098335576774463489",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SAVE.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_IA_SAVE_v27.json"
+  },
+  {
+   "name": "IA_V2_SUBMIT v8 (B26: the guard reads every request; staging check)",
+   "dataId": "2112141238600376321",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_IA_V2_SUBMIT_v16.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "Edit",
+     "ia_id": "1",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": {}
+    }
+   }
+  }
+ ]
+}

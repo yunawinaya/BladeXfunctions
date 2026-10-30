@@ -207,7 +207,9 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
   const prev = s(entry.prevStatus);
   const saveAs = s(entry.saveAs);
   const want = LOT_ACTIONS[action];
-  if (!want || want[0] !== prev || want[1] !== saveAs) return fail("LOT_INVALID_REQUEST", "The save could not be prepared: the job's request names no valid action (" + action + ").");
+  // a request's dispatch (IA transfer request, scratchpad/iatr) is a STAGE from Requested: the lifted compute sees it as from Draft
+  const origin = action === "STAGE" && prev === "Requested" ? "Draft" : prev;
+  if (!want || want[0] !== origin || want[1] !== saveAs) return fail("LOT_INVALID_REQUEST", "The save could not be prepared: the job's request names no valid action (" + action + ").");
   if (LOT_BUILT.indexOf(action) < 0) return fail("LOT_ACTION_NOT_BUILT", "This kind of save (" + action + ") is not available in the background yet: please save it again.");
   const orgId = s(hdr.organization_id);
   if (!lotDigits(orgId) || !lotDigits(hdr.issuing_operation_faci)) return broken("the Location Transfer has no organization or plant.");
@@ -215,7 +217,7 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
   if (s(entry.organizationId) !== orgId) return broken("the job's organization is not the Location Transfer's.");
 
   const storedRows = lotRows(S.lines);
-  const doc = lotAdaptDoc(hdr, storedRows, prev);
+  const doc = lotAdaptDoc(hdr, storedRows, origin);
   const ledgerRaw = lotRows(S.transit);
   const ledger = lotAdaptLedger(ledgerRaw);
   const items = lotAdaptItems(lotRows(S.items));
@@ -298,6 +300,79 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
       movements.push(sub, add);
     }
   }
+  // reserved requests (scratchpad/iatr/RESERVED_REQUEST_PLAN.md Task 5): a request of a Created IA carries the IA's reservation. Its
+  // dispatch releases the reservation (Reserved -> Unrestricted at the held keys) BEFORE the classic STAGE pairs, in this one engine
+  // operation (its running balance), so the stock is never free; COMMIT cancels the released rows (part RR). A Draft IA's request
+  // (today's logic) and every ordinary LOT plan exactly as before.
+  const rq = lotRows(S.holds)[0] || null;
+  const reserved = !!rq && s(rq.purpose) === "IA_SUPPLY" && s(rq.ia_status) === "Created";
+  let rrPart = null;
+  const head = groups.length ? groups[0].c : {};
+  // one category-move pair (SUBTRACT fromCat + ADD toCat at one bin and batch, isMovingInv 1, priced from its own subtract) + labels
+  const rrPair = (mk, r, fromCat, toCat) => {
+    const loc = lotIdStr(r.location_id);
+    const common = { plant_id: s(hdr.issuing_operation_faci), organization_id: orgId, material_id: lotIdStr(r.material_id), quantity: lotQ8(r.quantity),
+      material_uom: lotIdStr(r.uom) || null, transaction_type: "LOT", trx_no: s(hdr.stock_movement_no) };
+    const tail = { batch_id: lotIdStr(r.batch_id) || null, manufacturing_date: null, expired_date: null, doc_date: head.doc_date === undefined ? null : head.doc_date,
+      isMovingInv: 1, handling_unit_id: null };
+    if (!lotDigits(common.material_id) || !lotDigits(loc) || !(common.quantity > 0)) return null;
+    const line = storedRows.filter((x) => s(x.id) === s(r.line_id))[0] || {};
+    const it = itemById[s(r.material_id)] || {};
+    const lab = (side, cat) => ({ line_index: s(line.line_index), line_id: s(line.id), item_code: s(it.material_code), item_name: s(line.item_name) || s(it.material_name),
+      bin: bins[loc] || loc, bin_id: loc, category: cat, side: side });
+    labels[mk] = lab("from", fromCat);
+    labels[mk + ".2"] = lab("to", toCat);
+    return [Object.assign({ movement_key: mk, direction: "SUBTRACT" }, common, { inventory_category: fromCat, location_id: loc }, tail),
+      Object.assign({ movement_key: mk + ".2", direction: "ADD" }, common, { inventory_category: toCat, location_id: loc }, tail, { unit_price_from: mk })];
+  };
+  const rrPairs = (list, prefix, fromCat, toCatOf) => {
+    const out = [];
+    for (let i = 0; i < list.length; i++) {
+      const pr = rrPair(prefix + (i + 1), list[i], fromCat, toCatOf(list[i]));
+      if (!pr) return null;
+      out.push(pr[0], pr[1]);
+    }
+    return out;
+  };
+  if (reserved && action === "STAGE" && prev === "Requested") {
+    const sw = rrSwapPlan(storedRows, lotList(rq.rows), jobId);
+    if (!sw.ok) return fail(sw.code, sw.message);
+    const pre = rrPairs(sw.release, "RR", "Reserved", () => "Unrestricted");
+    if (!pre) return broken("a reservation row of the Item Assembly has no valid item, bin or quantity.");
+    for (let i = pre.length - 1; i >= 0; i--) movements.unshift(pre[i]);
+    rrPart = { kind: "DISPATCH", iaId: s(rq.ia_id), cancelRows: sw.cancelRows, marker: sw.marker, countBins: sw.countBins };
+  }
+  // Receive (D5, D7, D10): the classic COMPLETE put the dispatched stock into Unrestricted at the staging bin; good -> Reserved and
+  // defect -> Blocked follow line by line in this operation (S|..|RECEIPTS from SUBMIT); COMMIT writes the rows, the IA's picks, the defects
+  if (reserved && action === "COMPLETE" && prev === "In Progress") {
+    const rnames = lotList(req.parts && req.parts.RECEIPTS).map(s);
+    const rrows = lotList(S.parts).filter((r) => rnames.indexOf(s(r.step_name)) >= 0).sort((a, b) => (s(a.step_name) < s(b.step_name) ? -1 : 1));
+    const rpart = rnames.length && rrows.length === rnames.length
+      ? lotParseJ(rrows.map((r) => (r.result_ref === undefined || r.result_ref === null ? "" : String(r.result_ref))).join("")) : null;
+    if (!rpart || typeof rpart !== "object" || s(rpart.lotId) !== lotId || !rpart.receipts || typeof rpart.receipts !== "object") {
+      return fail("IATR_RECEIPT_INVALID", "Enter the good and defect quantities of every line to receive this request.");
+    }
+    const rv = rrReceivePlan(storedRows, rpart.receipts, { iaId: s(rq.ia_id), lotId: lotId, location_id: s((storedRows[0] || {}).location_id) });
+    if (!rv.ok) return fail(rv.code, rv.message);
+    const ordered = [];
+    for (const l of storedRows) {
+      for (const m of rv.toReserved) if (s(m.line_id) === s(l.id)) ordered.push(m);
+      for (const m of rv.toBlocked) if (s(m.line_id) === s(l.id)) ordered.push(m);
+    }
+    const post = rrPairs(ordered, "RV", "Unrestricted", (m) => s(m.to_category));
+    if (!post || ordered.length !== rv.toReserved.length + rv.toBlocked.length) return broken("a received line has no valid item, bin or quantity.");
+    for (const m of post) movements.push(m);
+    rrPart = { kind: "RECEIVE", iaId: s(rq.ia_id), stagingBin: s((storedRows[0] || {}).location_id), newHoldRows: rv.newHoldRows, iaPicks: rv.iaPicks,
+      lineDefects: rv.lineDefects };
+  }
+  // cancel after dispatch (D3): the classic reversal returned the stock to the picked bins as Unrestricted; Reserved for the IA follows
+  if (reserved && action === "CANCEL" && prev === "In Progress") {
+    const cb = rrCancelBackPlan(storedRows, { iaId: s(rq.ia_id), lotId: lotId });
+    const post = rrPairs(cb.toReserved, "RC", "Unrestricted", () => "Reserved");
+    if (!post) return broken("a dispatched line has no valid item, bin or quantity.");
+    for (const m of post) movements.push(m);
+    rrPart = { kind: "CANCEL_BACK", iaId: s(rq.ia_id), stagingBin: s((storedRows[0] || {}).location_id), newHoldRows: cb.newHoldRows, iaPicks: cb.iaPicks };
+  }
   if (movements.length > LOT_MAX_MOVES) {
     return fail("LOT_SPLIT_REQUIRED", "This Location Transfer has " + rowCount + " stock rows (" + movements.length +
       " stock movements). At most 2,500 rows and 5,000 movements can be saved at once - please split the transfer.");
@@ -377,6 +452,7 @@ const lotPrepPlan = function lotPrepPlan(entry, S, own) {
     HDR: hdrPart,
     ITEMS: { itemDates: itemDates },
   };
+  if (rrPart) parts.RR = rrPart;
   // ALLOC (V2.1): the picks the auto allocation wrote on the lines (L2 stores them), and the fingerprint of the lines L2 leaves
   // (DIRECT / STAGE: the stored rows, COMPLETE / EDIT: the S|..|LINES tree; both with these picks)
   if (out.alloc && out.alloc.route === "DONE") {

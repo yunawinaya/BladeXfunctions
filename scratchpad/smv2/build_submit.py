@@ -32,10 +32,18 @@ def inc(path):
     return V.include_js(os.path.join(HERE, "code"), path)
 
 
+# the IA transfer request's rules (scratchpad/iatr/code/shared/iatr_rules.js): the entry's and keys' request decisions, the dispatch check
+IATR_RULES = os.path.join(HERE, "..", "iatr", "code")
+IATR_NODES = ("entry.js", "keys.js", "iatr.js")
+
+
 def scode(name):
     """a code node's script: the shared helpers it needs (fingerprint.js only where lines are fingerprinted), _common.js, the file"""
     shared = SHARED if name in ("link.js",) else SHARED[:1]
-    return "\n".join([inc(p) for p in shared] + [K.js("submit/_common.js"), K.js("submit/" + name)])
+    rules = [V.include_js(IATR_RULES, "shared/iatr_rules.js")] if name in IATR_NODES else []
+    # reserved requests (iatr_reserve.js): the request check only
+    rules += [V.include_js(IATR_RULES, "shared/iatr_reserve.js")] if name == "iatr.js" else []
+    return "\n".join([inc(p) for p in shared] + rules + [K.js("submit/_common.js"), K.js("submit/" + name)])
 
 
 def gate_code():
@@ -97,6 +105,7 @@ def build():
     items = Q.items(sub, T, N(KY, "data.itemIdsSql"), N(KY, "data.storedLotId"))
     cost = Q.cost(sub, T, N(KY, "data.itemIdsSql"), N(KY, "data.storedLotId"), N(KY, "data.plantId"), N(KY, "data.organizationId"))
     stored = Q.stored(sub, T, N(KY, "data.storedLotId"), N(KY, "data.needStored"))
+    iatr = Q.iatr(sub, T, N(G, "data.lotId"), N(KY, "data.iatrIaId"), N(KY, "data.needIatr"), N(KY, "data.iatrMode"), N(KY, "data.organizationId"))
     hdr = sub(Q.HDR_BY_JOB, T=T, JOB=N(RW, "data.jobId"), NEED=N(KY, "data.needAfter"))
     lines = Q.lines_by_job(sub, T, N(RW, "data.jobId"), N(KY, "data.needAfter"))
     dup = sub(Q.DRAFT_DUP, T=T, KEY=KEY)
@@ -116,16 +125,18 @@ def build():
 
     entry_fields = ["route", "code", "message", "reason", "errorCode", "action", "prevStatus", "tenantId", "lotId", "lotNo", "storedStatus", "organizationId", "plantId", "noType",
                     "movementType", "issueDate", "isProductionOrder", "lineCount", "dbNow", "lockN", "issuedReuse", "jobId", "jobStatus", "jobAction", "progressPercent",
-                    "progressMessage", "jobErrorCode", "errorMessage"]
+                    "progressMessage", "jobErrorCode", "errorMessage", "purpose", "sourceIaId", "sourceIaFp"]
     keys_fields = ["route", "code", "message", "reason", "errorCode", "ok", "why", "itemIdsSql", "storedLotId", "needStored", "needAfter", "plantId", "organizationId",
-                   "lineCount"]
+                   "lineCount", "needIatr", "iatrIaId", "iatrMode"]
     gate_fields = ["route", "code", "message", "reason", "errorCode", "allData", "lineCount", "rowCount", "movementCount", "numberIssued", "lineFingerprint",
                    "incomingFingerprint", "edited", "partNames", "partChunks"]
     post_fields = ["route", "code", "message", "errorCode", "request", "isAdd", "numberProps", "idemStore", "partCount", "lockRows", "needLock", "jobRows"]
     reads = [("cai_LSitems", "items", [K.sql("sql_node_LSitems", "Items of the lines (serial, costing method, stock control, code)", items, ["j"])]),
              ("cai_LScost", "cost", [K.sql("sql_node_LScost", "Costing rows of those items at the plant: WA / FIFO counts per (material, batch)", cost, ["j"])]),
              ("cai_LSstored", "stored", [K.sql("sql_node_LSstored", "The stored lines before the writes (COMPLETE / EDIT / CANCEL; FP_LINES' columns + HU / serial)", stored,
-                                               ["j"])])]
+                                               ["j"])]),
+             ("cai_LSiatr", "iatr", [K.sql("sql_node_LSiatr", "IA transfer request dispatch: its stored lines, its Item Assembly's status, lines and items", iatr,
+                                           ["j"])])]
     after = [("cai_LShdr", "header", [K.sql("sql_node_LShdr", "Read-back: the Location Transfer this job wrote (lot_v2_job_id; DIRECT / STAGE)", hdr, Q.HDR_COLS)]),
              ("cai_LSlines", "lines", [K.sql("sql_node_LSlines", "Read-back: its lines (FP_LINES; DIRECT / STAGE)", lines, ["j"])])]
 
@@ -168,6 +179,11 @@ def build():
                gate_fields, arrays=("partNames", "partChunks"), objects=("allData", "lineCount", "rowCount", "movementCount", "edited")),
         K.if_(ids, "if_LSgateEnd", "IF the gate answered (NOT_ELIGIBLE / STOP): answer, write nothing", "'%s' != 'GO'" % N(GT, "data.route"),
               sres("gate", "gate", gate_small)),
+        K.code("code_node_LSiatr", "IA transfer request: a dispatch only fully picked, unchanged and still asked for (a Created IA's: its reservation as requested); "
+               "a receipt only unedited (a Created IA's: its receipts -> the RECEIPTS part)", scode("iatr.js"),
+               ["route", "code", "message", "errorCode", "partNames", "partChunks"], arrays=("partNames", "partChunks")),
+        K.if_(ids, "if_LSiatrEnd", "IF the request check answered (STOP): answer, write nothing", "'%s' != 'GO'" % N("code_node_LSiatr", "data.route"),
+              sres("iatr", "transfer request", "[%s][0]" % N("code_node_LSiatr", "data"))),
         K.code(PO, "Post: DRAFT, or the queue rows (lock for Edit, the SAVE_LOT job QUEUED 2 minutes ahead, the request)", scode("post.js"), post_fields,
                arrays=("lockRows", "jobRows"), objects=("partCount",)),
         K.if_(ids, "if_LSpostEnd", "IF nothing to write: answer", "'%s' != 'QUEUE' && '%s' != 'DRAFT'" % (N(PO, "data.route"), N(PO, "data.route")),

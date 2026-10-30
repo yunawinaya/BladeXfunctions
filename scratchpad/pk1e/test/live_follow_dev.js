@@ -1,14 +1,17 @@
-// live_follow_dev.js <picking_id> <organization_id>: DEV only, writes. The Picking list's Auto Pick & Complete as Kenhin met it
+// live_follow_dev.js <picking_id> <organization_id> [--drop-start]: DEV only, writes. The Picking list's Auto Pick & Complete as Kenhin met it
 // on 10-27 - the worker started and its answer never awaited - then the list's own followGdCompletes (pkV2_listAutoPick.js) run
 // against the live dev workflows: STATUS polled every 3 s, GD_COMPLETE_WORKER started per queued completion. Calls go through
-// scratchpad/gdc/tools/runwf.mjs (the CLI user, tenant 000000).
+// scratchpad/gdc/tools/runwf.mjs (the CLI user, tenant 000000). Then the re-kick follow (10-28): GD_COMPLETE_SUBMIT STATUS per
+// started delivery every 15 s and GD_COMPLETE_WORKER {} while one runs. --drop-start withholds the per-job start, as if it lost
+// the stock lock, so only the re-kick can complete the delivery.
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
 const { spawn, spawnSync } = require("child_process");
 const REPO = path.join(__dirname, "..", "..", "..");
 const RUNWF = path.join(REPO, "scratchpad/gdc/tools/runwf.mjs");
-const [pickingId, orgId] = process.argv.slice(2);
+const [pickingId, orgId] = process.argv.slice(2).filter((a) => a.indexOf("--") !== 0);
+const DROP_START = process.argv.indexOf("--drop-start") > 0;
 if (!/^\d+$/.test(pickingId || "") || !/^\d+$/.test(orgId || "")) throw new Error("usage: live_follow_dev.js <picking_id> <organization_id>");
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "pk1e-follow-"));
 let n = 0;
@@ -40,8 +43,13 @@ const ctx = {
     if (params.operation === "STATUS") {
       const r = callSync(id, params);
       const d = r && r.data;
-      log.push(t + " STATUS " + (d ? d.job_status + " gd_complete=" + JSON.stringify((d.gd_complete || []).map((g) => g.gd_no + ":" + g.status)) : "no answer"));
+      log.push(t + (params.gd_id ? " GD STATUS " + params.gd_id + " " + (d ? d.job_status + " " + (d.progress_message || "") : "no answer")
+        : " STATUS " + (d ? d.job_status + " gd_complete=" + JSON.stringify((d.gd_complete || []).map((g) => g.gd_no + ":" + g.status)) : "no answer")));
       return d ? ok({ data: d }) : fail("no answer");
+    }
+    if (DROP_START && params.job_id && id === "2110182645714518018") {
+      log.push(t + " start DROPPED " + JSON.stringify(params));
+      return undefined;
     }
     log.push(t + " kick " + id + " " + JSON.stringify(params));
     callDetached(id, params, id + " " + (params.job_id || ""));

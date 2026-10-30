@@ -1,0 +1,25 @@
+{
+ "nodes": [
+  {
+   "id": "start",
+   "type": "start-node",
+   "data": {
+    "isValidator": true,
+    "title": "开始节点"
+   },
+   "blocks": []
+  },
+  {
+   "id": "end",
+   "type": "end-node",
+   "data": {
+    "isValidator": true,
+    "title": "结束节点"
+   },
+   "blocks": []
+  }
+ ],
+ "edges": [],
+ "request_json": [],
+ "response_json": []
+}

@@ -1,7 +1,7 @@
 // INVENTORY_BULK_APPLY lock claim: keys in lock order; a key another operation holds, or whose lock row the seed could not
 // create (another operation inserted it first) -> BUSY before any take; a key this operation already holds (a run that died) is kept
 const s = (v) => (v === undefined || v === null ? "" : String(v));
-const keys = [{{node:code_node_IBguard.data.lockKeys}}][0] || [];
+const keys = [{{node:code_node_IBlkplan.data.lockKeys}}][0] || [];
 const op = s([{{node:code_node_IBguard.data.operationKey}}][0]);
 // held by it, or left by its own release between clearing the owner and GIVE (a run that died there)
 const mine = (r) => s(r.owner_operation_id) === op || (s(r.owner_operation_id) === "" && s(r.last_owner_operation_id) === op);

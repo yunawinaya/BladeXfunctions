@@ -1,0 +1,12 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "LOT_V2_SUBMIT (B25: reserved requests' dispatch check and receipts)",
+   "dataId": "2110992282596540417",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_LOT_V2_SUBMIT_v6.json"
+  }
+ ]
+}

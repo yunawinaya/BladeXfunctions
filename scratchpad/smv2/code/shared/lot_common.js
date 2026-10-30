@@ -46,8 +46,10 @@ const lotDbAddSeconds = function lotDbAddSeconds(text, seconds) {
   const p = (n) => (n < 10 ? "0" : "") + n;
   return d.getUTCFullYear() + "-" + p(d.getUTCMonth() + 1) + "-" + p(d.getUTCDate()) + " " + p(d.getUTCHours()) + ":" + p(d.getUTCMinutes()) + ":" + p(d.getUTCSeconds());
 };
-// the bounded statuses a LOT job may restore (CONTRACT.md "prevStatus"): anything else = unknown = no unlock, REQUIRES_REVIEW
-const LOT_PREV_STATUSES = ["Draft", "In Progress"];
+// the bounded statuses a LOT job may restore (CONTRACT.md "prevStatus"): anything else = unknown = no unlock, REQUIRES_REVIEW.
+// Requested (IA transfer request, scratchpad/iatr): only a STAGE (the dispatch) starts from it - PREPARE's entry sends any other
+// pairing to review before the job can unlock
+const LOT_PREV_STATUSES = ["Draft", "In Progress", "Requested"];
 const lotPrevStatusOk = (v) => LOT_PREV_STATUSES.indexOf(lotS(v)) >= 0;
 // the payload part rows of one value: step_name <prefix><nnn>, 400,000 characters each (GR / Putaway V2's chunking)
 const LOT_CHUNK = 400000;

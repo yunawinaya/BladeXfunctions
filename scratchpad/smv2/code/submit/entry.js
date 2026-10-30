@@ -14,7 +14,8 @@ const submitEntry = function submitEntry(guard, factRows, formStatus, minLinesIn
   const base = { action: "", prevStatus: "", tenantId: guard.tenantId, lotId: guard.lotId, lotNo: s(f.stock_movement_no), storedStatus: stored, organizationId: s(f.organization_id),
     plantId: s(f.plant_id), noType: s(f.no_type), movementType: s(f.movement_type), issueDate: s(f.issue_date), isProductionOrder: num(f.is_production_order),
     lineCount: num(f.line_count), dbNow: s(f.db_now), lockN: 1, issuedReuse: num(f.issued_reuse) > 0 ? "YES" : "NO", reason: "", errorCode: "", jobId: "", jobStatus: "",
-    jobAction: "", progressPercent: 0, progressMessage: "", jobErrorCode: "", errorMessage: "" };
+    jobAction: "", progressPercent: 0, progressMessage: "", jobErrorCode: "", errorMessage: "",
+    purpose: s(f.transfer_purpose) === IATR_PURPOSE ? "YES" : "NO", sourceIaId: s(f.source_ia_id), sourceIaFp: s(f.source_ia_fp) };
   const job = (j) => {
     if (!j) return {};
     const m = s(j.correlation_id).match(/^LOT\|([0-9]{1,20})$/);
@@ -54,6 +55,12 @@ const submitEntry = function submitEntry(guard, factRows, formStatus, minLinesIn
   if (stored === "Completed" || stored === "Cancelled") return Object.assign(base, answer("STALE", "409", "This Location Transfer is already " + stored + ".", { errorCode: "LOT_ALREADY_FINAL" }));
   const m = s(f.last_lock).match(/^LOCK\|([0-9]+)$/);
   base.lockN = m ? Number(m[1]) + 1 : 1;
+  // IA transfer request (scratchpad/iatr): a request's stock moves run only here, its picks are saved by the classic, every other
+  // move of it is refused (the shared iatrTransition, as the classic's guard decides)
+  const rq = iatrTransition({ stored: stored, storedPurpose: s(f.transfer_purpose), saveAs: saveAs, hasStored: true, payloadPurpose: "", payloadStatus: "" });
+  if (rq.decision === "REFUSE") return Object.assign(base, answer("STOP", "400", rq.message, { errorCode: "LOT_REQUEST_MOVE" }));
+  if (rq.decision === "SAVE") return Object.assign(base, notEligible("a transfer request's picks are saved by the classic save", base.lineCount, saveAs));
+  if (rq.decision === "DISPATCH") return pick("STAGE", "Requested");
   if (stored === "Draft") {
     if (saveAs === "Cancelled") return Object.assign(base, answer("STOP", "400", "Only an In Progress Location Transfer can be cancelled.", { errorCode: "LOT_NOT_CANCELLABLE" }));
     return pick(saveAs === "Draft" ? "DRAFT" : saveAs === "In Progress" ? "STAGE" : "DIRECT", "Draft");
@@ -62,7 +69,7 @@ const submitEntry = function submitEntry(guard, factRows, formStatus, minLinesIn
     if (saveAs === "Draft") return Object.assign(base, answer("STOP", "400", "An In Progress transfer can't be saved back to Draft.", { errorCode: "LOT_IP_TO_DRAFT" }));
     // the caller's small cancels stay classic (within the classic's 500 lines), except a bundle LOT's: the classic cancel drops
     // its stored children (no parent_fm_key) and strands their In Transit stock
-    if (saveAs === "Cancelled" && minLines > 0 && base.lineCount <= minLines && base.lineCount <= MAX_OLD_PATH_LINES && num(f.bundle_children) === 0) {
+    if (saveAs === "Cancelled" && minLines > 0 && base.lineCount <= minLines && base.lineCount <= MAX_OLD_PATH_LINES && num(f.bundle_children) === 0 && base.purpose !== "YES") {
       return Object.assign(base, { action: "CANCEL", prevStatus: "In Progress" }, answer("NOT_ELIGIBLE", "300", "classic", { reason: "classic", errorCode: "LOT_NOT_ELIGIBLE" }));
     }
     return pick(saveAs === "In Progress" ? "EDIT" : saveAs === "Completed" ? "COMPLETE" : "CANCEL", "In Progress");

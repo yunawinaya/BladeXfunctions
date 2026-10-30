@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "LOT form (Link to Item Assembly + Item Assembly No on requests; Production Order never shown, B19)",
+   "kind": "form",
+   "dataId": "2013791389687349250",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOTform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_form_v117.json"
+  }
+ ]
+}

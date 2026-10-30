@@ -106,10 +106,71 @@ function planBulk(input) {
     if (conv) baseQty = q8(altQty * conv.base_qty);
     return { altQty, baseQty, altUOM, baseUOM: item.based_uom, method: item.material_costing_method };
   };
-  const fifoFor = (m, plant, org, batch) => fifoRows.filter((r) => costKey(r.material_id, r.plant_id, r.organization_id, r.batch_id) === costKey(m, plant, org, batch));
-  const waFor = (m, plant, org, batch) => waRows.filter((r) => costKey(r.material_id, r.plant_id, r.organization_id, r.batch_id) === costKey(m, plant, org, batch));
+  const live = (r) => Number(r.is_deleted || 0) !== 1;
+  const fifoFor = (m, plant, org, batch) => fifoRows.filter((r) => live(r) && costKey(r.material_id, r.plant_id, r.organization_id, r.batch_id) === costKey(m, plant, org, batch));
+  const waFor = (m, plant, org, batch) => waRows.filter((r) => live(r) && costKey(r.material_id, r.plant_id, r.organization_id, r.batch_id) === costKey(m, plant, org, batch));
   const newestWa = (rows) =>
     rows.slice().sort((a, b) => (a.created_at && b.created_at ? new Date(b.created_at) - new Date(a.created_at) : 0))[0];
+
+  // costing rows of the other method, migrated as SUBTRACT_INVENTORY_NEW does (opt-in): input.migrateCosting = "ALL" (a PLAN,
+  // nothing written) or { "<material>|<plant>": true } for the pairs whose COST lock this run holds; absent = refused as before
+  const mig = input.migrateCosting;
+  const canMigrate = (mat, plant) => mig === "ALL" || (!!mig && typeof mig === "object" && mig[mat + "|" + plant] === true);
+  const retire = (table, row, cols) => {
+    snap(table, row, cols.concat(["is_deleted"]));
+    row.is_deleted = 1;
+    touch(table, row);
+  };
+  // code_node_oz7GGSQA (one kind only) / code_node_YqMfJIMz (both kinds), stored as the platform stores them; a WA item
+  // merges into its newest WA row (the one WA pricing reads), a FIFO item gets the newest WA row as its next layer
+  const migrateCosting = (method, mat, plant, org, batch, fifo, wa) => {
+    if (method === WA) {
+      let qty = 0;
+      let cost = 0;
+      for (const r of fifo) {
+        const q = q8(r.fifo_available_quantity);
+        if (q > 0) {
+          qty = q8(qty + q);
+          cost = q8(cost + q * q8(r.fifo_cost_price));
+        }
+      }
+      const avg = qty > 0 ? q8(cost / qty) : 0;
+      if (wa.length) {
+        const doc = newestWa(wa);
+        const wq = q8(doc.wa_quantity);
+        const wc = q8(doc.wa_cost_price);
+        const nq = q8(wq + qty);
+        snap("wa", doc, ["wa_quantity", "wa_cost_price"]);
+        doc.wa_cost_price = rc("wa_costing_method", "wa_cost_price", nq > 0 ? q8((wc * wq + avg * qty) / nq) : wc);
+        doc.wa_quantity = rc("wa_costing_method", "wa_quantity", nq);
+        touch("wa", doc);
+      } else {
+        const row = { id: newId("wa"), wa_cost_price: rc("wa_costing_method", "wa_cost_price", avg), wa_quantity: rc("wa_costing_method", "wa_quantity", qty), material_id: mat, plant_id: plant, organization_id: org, created_at: nowText };
+        if (batch) row.batch_id = batch;
+        waRows.push(row);
+        created.wa.push(row);
+      }
+      for (const r of fifo) retire("fifo", r, ["fifo_available_quantity"]);
+      return wa.length ? "FIFO_INTO_WA" : "FIFO_TO_WA";
+    }
+    const doc = newestWa(wa);
+    const next = fifo.length ? Math.max(...fifo.map((l) => parseInt(l.fifo_sequence || 0, 10)), 0) + 1 : 1;
+    const layer = {
+      id: newId("fifo"),
+      fifo_cost_price: rc("fifo_costing_history", "fifo_cost_price", q8(doc.wa_cost_price)),
+      fifo_initial_quantity: rc("fifo_costing_history", "fifo_initial_quantity", q8(doc.wa_quantity)),
+      fifo_available_quantity: rc("fifo_costing_history", "fifo_available_quantity", q8(doc.wa_quantity)),
+      material_id: mat,
+      batch_id: batch,
+      fifo_sequence: String(next),
+      plant_id: plant,
+      organization_id: org,
+    };
+    fifoRows.push(layer);
+    created.fifo.push(layer);
+    for (const r of wa) retire("wa", r, ["wa_quantity", "wa_cost_price"]);
+    return fifo.length ? "WA_INTO_FIFO" : "WA_TO_FIFO";
+  };
 
   for (const m of movements) {
     const key = s(m.movement_key);
@@ -168,13 +229,19 @@ function planBulk(input) {
       }
       if (q8(existing[categoryField] || 0) < u.baseQty) return fail(m, "INSUFFICIENT", "Insufficient quantity");
 
-      const fifo = fifoFor(mat, plant, org, batch || null);
-      const wa = waFor(mat, plant, org, batch || null);
-      // SUBTRACT's "Migration Condition": the old branch rewrites costing rows from stale reads - refused here. A
-      // category move with its price given reads and writes no costing row, so it goes through
+      let fifo = fifoFor(mat, plant, org, batch || null);
+      let wa = waFor(mat, plant, org, batch || null);
+      // SUBTRACT's "Migration Condition". A category move with its price given reads and writes no costing row, so it goes
+      // through; otherwise the rows are migrated (opt-in, Fixed Cost leaves them as SUBTRACT does) or the movement is refused
       const priced = isMovingInv === 1 && q8(m.unit_price) > 0;
+      let migrated = "";
       if (!priced && ((wa.length > 0 && fifo.length > 0) || (u.method === FIFO && fifo.length === 0 && wa.length > 0) || (u.method === WA && wa.length === 0 && fifo.length > 0))) {
-        return fail(m, "UNSUPPORTED_COSTING", "Item " + mat + " has costing rows that need migration (FIFO " + fifo.length + ", WA " + wa.length + ")");
+        if (mig && u.method === FIXED) migrated = "NONE";
+        else if (mig && (u.method === WA || u.method === FIFO) && canMigrate(mat, plant)) {
+          migrated = migrateCosting(u.method, mat, plant, org, batch || null, fifo, wa);
+          fifo = fifoFor(mat, plant, org, batch || null);
+          wa = waFor(mat, plant, org, batch || null);
+        } else return fail(m, "UNSUPPORTED_COSTING", "Item " + mat + " has costing rows that need migration (FIFO " + fifo.length + ", WA " + wa.length + ")");
       }
 
       let price = 0;
@@ -253,6 +320,7 @@ function planBulk(input) {
         handling_unit_id: m.handling_unit_id === undefined ? null : m.handling_unit_id,
       });
       const r = { movement_key: key, direction: dir, code: "200", unit_price: price, total_price: totalPrice, manufacturing_date: mfg, expired_date: exp };
+      if (migrated && migrated !== "NONE") r.costing_migrated = migrated;
       results.push(r);
       byKey[key] = r;
       continue;

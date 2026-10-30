@@ -406,6 +406,7 @@ const scMount = (pageStatus, status) => {
 
     iaBackgroundView(pageStatus, status);
     scMount(pageStatus, status);
+    this.triggerEvent("tr_main", { trOp: "MOUNT", pageStatus: pageStatus, status: status });
   } catch (error) {
     console.error(error);
     this.$message.error(error.message || "An error occurred");

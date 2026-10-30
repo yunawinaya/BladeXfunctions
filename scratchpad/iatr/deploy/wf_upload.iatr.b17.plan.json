@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SO Linked IAs page (larger SO number, tables as tall as their rows, B17)",
+   "kind": "page",
+   "dataId": "2112449353901772801",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/SOLinkedIAsPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/page_so_linked_ias_v13.json"
+  }
+ ]
+}

@@ -1,0 +1,18 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "LOT_V2_PREPARE (B24: reserved requests' dispatch / receive / cancel back)",
+   "dataId": "2110992359150977026",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_PREPARE.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_LOT_V2_PREPARE_v8.json"
+  },
+  {
+   "name": "LOT_V2_COMMIT (B24: L3_RESERVATION)",
+   "dataId": "2110992400045441026",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_LOT_V2_COMMIT_v9.json"
+  }
+ ]
+}

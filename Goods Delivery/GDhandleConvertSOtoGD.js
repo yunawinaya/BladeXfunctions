@@ -328,16 +328,25 @@ const FOLLOW_MS = 120000;
 const FOLLOW_EVERY_MS = 3000;
 const CREATED_STATES = ["GD_COMMITTED", "CREATING_PICKING", "PICKING_RETRYING", "PICKING_READY", "COMPLETED"];
 
-const kickWorker = (jobId) => {
+// answered(ok): called once, true when the run answered, false when it failed or could not be started
+const kickWorker = (jobId, answered) => {
+  const done = (ok) => {
+    if (answered) answered(ok);
+    answered = null;
+  };
   try {
     this.runWorkflow(
       GD_ASYNC_WORKER_ID,
       { job_id: jobId },
-      () => {},
-      (err) => console.error("GD V2 worker for job " + jobId + ":", err),
+      () => done(true),
+      (err) => {
+        console.error("GD V2 worker for job " + jobId + ":", err);
+        done(false);
+      },
     );
   } catch (error) {
     console.error("GD V2 worker could not be started:", error);
+    done(false);
   }
 };
 
@@ -364,13 +373,14 @@ const attachRefusedLines = (jobs, data) => {
 
 // a check whose answer never comes back (a run the platform did not send) is given up after 20 s, so the follow goes on
 const READ_GIVE_UP_MS = 20000;
-const readJobs = (jobIds) =>
+// noLines: statuses only (the worker runs' own reads), without the refused lines the summary shows
+const readJobs = (jobIds, noLines) =>
   new Promise((resolve) => {
     setTimeout(() => resolve(null), READ_GIVE_UP_MS);
     try {
       this.runWorkflow(
         SO_CONVERT_CHECK_WORKFLOW_ID,
-        { job_ids: jobIds, job_lines: "1" },
+        noLines ? { job_ids: jobIds } : { job_ids: jobIds, job_lines: "1" },
         (res) => {
           let jobs = null;
           try {
@@ -392,12 +402,64 @@ const readJobs = (jobIds) =>
     }
   });
 
-// Starts the worker for each queued delivery, then moves each one to created / blocked as its job ends; returns the rest
+// One worker run at a time for the queued deliveries (10-29), for the oldest one still waiting (the run goes on to the other due
+// jobs): the next starts DRAIN_NEXT_MS after a run that moved one, DRAIN_SLOW_MS after one that moved nothing (another save holds
+// the stock) and DRAIN_FAILED_MS after a failed run or one with no answer within DRAIN_LOST_MS. One run per delivery at once
+// let a few through and the rest found the stock locked; the follow then started one run per ~15 s, so a batch that shares stock
+// waited ~15-20 s per delivery (Kenhin 10-29: 24 SOs, the last after 10 min). It goes on after the follow, in the background,
+// while the page stays on the list, until each job ends or KEEP_MS passes (a closed list leaves the rest to the lists' sweeps).
+const DRAIN_NEXT_MS = 1000;
+const DRAIN_SLOW_MS = 5000;
+const DRAIN_FAILED_MS = 15000;
+const DRAIN_LOST_MS = 60000;
+const KEEP_MS = 1800000;
+const ENDED_STATES = CREATED_STATES.concat(["FAILED", "CANCELLED", "REQUIRES_REVIEW", "AWAITING_CONFIRMATION"]);
+const drainQueued = (queued) => {
+  const here = () => {
+    try {
+      return window.location.pathname;
+    } catch (error) {
+      return null;
+    }
+  };
+  const home = here();
+  const until = Date.now() + KEEP_MS;
+  // without a page location it runs only while the follow does (followOver: set when the follow ends)
+  const drain = { followOver: false };
+  let left = queued.slice();
+  let seen = "";
+  const step = async () => {
+    if ((home ? here() !== home : drain.followOver) || left.length === 0 || Date.now() > until) return;
+    const answered = await new Promise((resolve) => {
+      const lost = setTimeout(() => resolve(false), DRAIN_LOST_MS);
+      kickWorker(left[0].job_id, (ok) => {
+        clearTimeout(lost);
+        resolve(ok);
+      });
+    });
+    const jobs = await readJobs(left.map((item) => item.job_id), true);
+    let moved = false;
+    if (jobs) {
+      const now = jobs.map((job) => job.job_id + ":" + job.job_status).join(",");
+      moved = now !== seen;
+      seen = now;
+      const ended = {};
+      jobs.forEach((job) => {
+        if (ENDED_STATES.indexOf(job.job_status) >= 0) ended[String(job.job_id)] = true;
+      });
+      left = left.filter((item) => !ended[String(item.job_id)]);
+    }
+    setTimeout(step, !answered ? DRAIN_FAILED_MS : moved ? DRAIN_NEXT_MS : DRAIN_SLOW_MS);
+  };
+  step();
+  return drain;
+};
+
+// Starts the worker runs for the queued deliveries, then moves each one to created / blocked as its job ends; returns the rest
 const followBackground = async (queued, created, blocked) => {
   let pending = queued.slice();
-  pending.forEach((item) => kickWorker(item.job_id));
+  const drain = drainQueued(queued);
   const started = Date.now();
-  let round = 0;
   while (pending.length > 0 && Date.now() - started < FOLLOW_MS) {
     this.hideLoading();
     this.showLoading(
@@ -438,46 +500,9 @@ const followBackground = async (queued, created, blocked) => {
       }
     }
     pending = still;
-    // a worker run that ended before its job did (stock locks held by another save) is started again: one run, for the oldest
-    // waiting job (the run goes on to the other due jobs) - one run per waiting job collided on the worker's claim (LSH 10-27:
-    // a red "CLAIM GATE ... Duplicate entry" toast each)
-    if (++round % 5 === 0 && pending.length > 0) kickWorker(pending[0].job_id);
   }
+  drain.followOver = true;
   return pending;
-};
-
-// What the follow leaves (a batch that shares stock goes one delivery at a time, ~30 s each: Kenhin 10-27, 12 of 13 sat in
-// Processing until a list was opened) is started again in the background while this page stays on the list - no loading
-// screen, no refresh - until each job ends or KEEP_MS passes. One run per beat, for the oldest waiting job, as in the follow
-const KEEP_MS = 1800000;
-const KEEP_EVERY_MS = 15000;
-const ENDED_STATES = CREATED_STATES.concat(["FAILED", "CANCELLED", "REQUIRES_REVIEW", "AWAITING_CONFIRMATION"]);
-const keepFollowing = (pending) => {
-  const here = () => {
-    try {
-      return window.location.pathname;
-    } catch (error) {
-      return null;
-    }
-  };
-  const home = here();
-  const until = Date.now() + KEEP_MS;
-  let left = pending.slice();
-  const beat = async () => {
-    if (!home || here() !== home || left.length === 0 || Date.now() > until) return;
-    kickWorker(left[0].job_id);
-    await new Promise((resolve) => setTimeout(resolve, KEEP_EVERY_MS));
-    const jobs = await readJobs(left.map((item) => item.job_id));
-    if (jobs) {
-      const ended = {};
-      jobs.forEach((job) => {
-        if (ENDED_STATES.indexOf(job.job_status) >= 0) ended[String(job.job_id)] = true;
-      });
-      left = left.filter((item) => !ended[String(item.job_id)]);
-    }
-    beat();
-  };
-  beat();
 };
 
 // A batch whose answer was lost (its call outlived the request: 90 s seen on prod) is looked up in the record of its
@@ -610,7 +635,6 @@ const handleConvertGDCreated = async (
 
     if (queued.length > 0) {
       pending = await followBackground(queued, created, blocked);
-      if (pending.length > 0) keepFollowing(pending);
     }
   } finally {
     this.hideLoading();

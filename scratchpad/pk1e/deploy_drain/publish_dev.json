@@ -1,0 +1,20 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "Picking form",
+   "kind": "form",
+   "dataId": "1935556443668959233",
+   "file": "scratchpad/pk1e/deploy_drain/PickingFullJSON.dev_drain.json",
+   "base": "scratchpad/pk1e/deploy_drain/PickingFullJSON.dev_v440.base.json"
+  },
+  {
+   "name": "Picking list",
+   "kind": "page",
+   "dataId": "1935635853539348481",
+   "file": "scratchpad/pk1e/deploy_drain/PickingListPageFullJSON.dev_drain.json",
+   "base": "scratchpad/pk1e/deploy_drain/PickingListPageFullJSON.dev_v226.base.json"
+  }
+ ]
+}

@@ -38,9 +38,11 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   // ---- Add: no item yet -> no switch; the item chosen -> the switch for its kind
   let f = form({ item_id: "" });
   let t = await f.op({ osOp: "MOUNT", item: null });
-  check("Add, no item: the switch and the rows hidden, nothing written", hidden(t).indexOf("output_split_on") >= 0 && hidden(t).indexOf("output_split") >= 0 && calls(t, "setData").length === 0, t);
+  check("Add, no item: No. of Split, the switch and the rows hidden, nothing written", ["output_split_pick", "output_split_on", "output_split"].every((m) => hidden(t).indexOf(m) >= 0) &&
+    calls(t, "setData").length === 0, t);
   t = await f.op({ osOp: "ITEM", item: SYS });
-  check("an item chosen (System batch): the switch shown, no rows", shown(t).indexOf("output_split_on") >= 0 && same(f.v.output_split, []) && f.self.models._data.ia_os.kind === "SYSTEM", t);
+  check("an item chosen (System batch): No. of Split + Split shown (the user, 10-28: no switch), no rows", shown(t).indexOf("output_split_pick") >= 0 &&
+    shown(t).indexOf("output_split_on") < 0 && hidden(t).indexOf("output_split_on") >= 0 && same(f.v.output_split, []) && f.self.models._data.ia_os.kind === "SYSTEM", t);
   // ---- the switch on: row 1 = the header's values, the whole output, group 1
   t = await f.op({ osOp: "SWITCH", value: 1 });
   check("switch on: row 1 = the header (qty, storage, bin, category, group 1, no number, the dates)", same(f.v.output_split, [{ os_qty: 836, os_storage_location_id: "71",
@@ -108,8 +110,8 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   // ---- the item or the plant changed: the split cleared
   g = form({ output_split: [{ os_qty: 1 }, { os_qty: 2 }], output_split_on: 1 });
   t = await g.op({ osOp: "ITEM", item: MAN });
-  check("the item changed: its split cleared, the switch shown for the new kind", g.v.output_split.length === 0 && g.v.output_split_on === 0 && shown(t).indexOf("batch_no") >= 0 &&
-    shown(t).indexOf("output_split_on") >= 0, [g.v.output_split, shown(t)]);
+  check("the item changed: its split cleared, No. of Split shown for the new kind", g.v.output_split.length === 0 && g.v.output_split_on === 0 && shown(t).indexOf("batch_no") >= 0 &&
+    shown(t).indexOf("output_split_pick") >= 0, [g.v.output_split, shown(t)]);
   g = form({ output_split: [{ os_qty: 1 }, { os_qty: 2 }], output_split_on: 1 });
   await g.op({ osOp: "PLANT" });
   check("the plant changed: the split cleared", g.v.output_split.length === 0 && g.v.output_split_on === 0, g.v.output_split);
@@ -137,7 +139,7 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   // ---- serial / non-stock items: no switch, refused if forced
   g = form({});
   t = await g.op({ osOp: "ITEM", item: SERIAL });
-  check("a serial item: the switch hidden", hidden(t).indexOf("output_split_on") >= 0 && shown(t).indexOf("output_split_on") < 0, t);
+  check("a serial item: No. of Split and the switch hidden", ["output_split_pick", "output_split_on"].every((m) => hidden(t).indexOf(m) >= 0 && shown(t).indexOf(m) < 0), t);
   t = await g.op({ osOp: "SWITCH", value: 1 });
   check("a serial item switched on anyway: refused, back off, no row", g.v.output_split_on === 0 && g.v.output_split.length === 0 && calls(t, "$message.error").length === 1, t);
   // ---- the caps
@@ -172,14 +174,16 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   g = form({ page_status: "Edit", item_assembly_status: "Completed", output_split: [{ os_qty: 500, os_group: 1, os_batch_no: "1056-022-0004", os_mfg_date: "D1" },
     { os_qty: 336, os_group: 1, os_batch_no: "1056-022-0004", os_mfg_date: "D1" }] });
   t = await g.op({ osOp: "VIEW" });
-  check("read-only view: the rows disabled, the switch hidden, group hidden, number and mfg date shown, expiry hidden (empty)", calls(t, "disabled").some((c) => same(c, [["output_split"], true])) &&
+  check("read-only view: the rows disabled, No. of Split and the switch hidden, group hidden, number and mfg date shown, expiry hidden (empty)",
+    calls(t, "disabled").some((c) => same(c, [["output_split"], true])) && hidden(t).indexOf("output_split_pick") >= 0 &&
     hidden(t).indexOf("output_split_on") >= 0 && hidden(t).indexOf("output_split.os_group") >= 0 && shown(t).indexOf("output_split.os_batch_no") >= 0 &&
     shown(t).indexOf("output_split.os_mfg_date") >= 0 && hidden(t).indexOf("output_split.os_exp_date") >= 0, t);
   t = await g.op({ osOp: "ADD", rowIndex: 1 });
   check("read-only view: Add Row undone, said", g.v.output_split.length === 1 && /can no longer be changed/.test((calls(t, "$message.error")[0] || [])[0] || ""), [g.v.output_split.length, t]);
   g = form({ page_status: "View", output_split: [] });
   t = await g.op({ osOp: "VIEW" });
-  check("read-only view of an IA without a split: only the switch hidden, nothing written", hidden(t).indexOf("output_split_on") >= 0 && calls(t, "setData").length === 0, t);
+  check("read-only view of an IA without a split: only No. of Split and the switch hidden, nothing written", ["output_split_pick", "output_split_on"].every((m) => hidden(t).indexOf(m) >= 0) &&
+    calls(t, "setData").length === 0, t);
   // ---- no write loop: a cell's setData re-enters its onChange (fireOnChange): bounded, then quiet (Manual: rows with one number = one batch)
   g = form({ batch_no: "LOT-A" });
   await g.op({ osOp: "ITEM", item: MAN });
@@ -285,6 +289,114 @@ const rowsOf = (v, f) => v.output_split.map((r) => f.map((k) => r[k]));
   await d.op({ osOp: "CELL", field: "os_batch_no", rowIndex: 1, value: "m-1" });
   check("Manual, the same number in other letter case (one batch, as the save reads it): the warning", /rows 1 and 2 put the same batch/.test(d.v.output_split_sum),
     d.v.output_split_sum);
+  // ---- No. of Split + Split (the user, 10-28, as GR's split): every row at once - the output spread (whole numbers when it is whole, the
+  // first rows one more), each row the Output Location's storage / bin / category and the dates typed before the split; System: each row
+  // its own batch, so a date typed after the split stays that row's; a split IA splits again from row 1 (asked); 1 or blank = one receipt
+  const COLS8 = ["os_qty", "os_storage_location_id", "os_location_id", "os_category", "os_group", "os_batch_no", "os_mfg_date", "os_exp_date"];
+  const D1 = "2026-10-27 00:00:00.000";
+  const E1 = "2028-10-27 00:00:00.000";
+  let s = form({});
+  await s.op({ osOp: "ITEM", item: SYS });
+  s.v.output_split_count = 3;
+  t = await s.op({ osOp: "SPLIT" });
+  check("Split 3 of 836 (System): 279 / 279 / 278, the header's storage / bin / category and dates on every row, one batch each", same(rowsOf(s.v, COLS8), [
+    [279, "71", "81", "Blocked", 1, "", D1, E1], [279, "71", "81", "Blocked", 2, "", D1, E1], [278, "71", "81", "Blocked", 3, "", D1, E1]]), s.v.output_split);
+  check("Split: the rows and total shown, the header's single fields hidden, the split on, the total complete, nothing asked", shown(t).indexOf("output_split") >= 0 &&
+    HEADER.every((h) => hidden(t).indexOf(h) >= 0) && s.v.output_split_on === 1 && s.v.output_split_sum === "Split total 836 of 836 ✓" && calls(t, "$confirm").length === 0,
+    [shown(t), hidden(t), s.v.output_split_sum]);
+  await s.op({ osOp: "CELL", field: "os_exp_date", rowIndex: 1, value: "2029-01-01 00:00:00.000" });
+  check("after the split: a date typed on row 2 stays row 2's", same(rowsOf(s.v, ["os_exp_date"]), [[E1], ["2029-01-01 00:00:00.000"], [E1]]), rowsOf(s.v, ["os_exp_date"]));
+  s.v.output_split.push({});
+  await s.op({ osOp: "ADD", rowIndex: 3 });
+  check("Add Row after a split: No. of Split follows the rows (4)", s.v.output_split_count === 4, s.v.output_split_count);
+  s.v.output_split.splice(3, 1);
+  await s.op({ osOp: "REMOVE" });
+  check("a row deleted: No. of Split follows the rows (3)", s.v.output_split_count === 3, s.v.output_split_count);
+  const three = () => [
+    { os_qty: 279, os_storage_location_id: "72", os_location_id: "85", os_category: "Unrestricted", os_group: 1, os_batch_no: "", os_mfg_date: "D2", os_exp_date: "E2" },
+    { os_qty: 279, os_storage_location_id: "71", os_location_id: "86", os_category: "Blocked", os_group: 2, os_batch_no: "", os_mfg_date: D1, os_exp_date: E1 },
+    { os_qty: 278, os_storage_location_id: "71", os_location_id: "87", os_category: "Blocked", os_group: 3, os_batch_no: "", os_mfg_date: D1, os_exp_date: E1 }];
+  const splitIa = (count, o) => {
+    const x = form({ page_status: "Edit", item_assembly_status: "Draft", output_split: three(), output_split_on: 1, output_split_count: count }, o);
+    x.self.models._data.ia_os = { kind: "SYSTEM" };
+    return x;
+  };
+  s = splitIa(2, { confirm: () => "cancel" });
+  t = await s.op({ osOp: "SPLIT" });
+  check("split again, cancelled: asked, the rows kept, No. of Split back to 3", calls(t, "$confirm").length === 1 && s.v.output_split.length === 3 && s.v.output_split_count === 3,
+    [s.v.output_split.length, s.v.output_split_count]);
+  s = splitIa(2);
+  t = await s.op({ osOp: "SPLIT" });
+  check("split again, confirmed: 2 rows rebuilt from row 1 (418 / 418, its storage, bin, category and dates)", calls(t, "$confirm").length === 1 &&
+    same(rowsOf(s.v, COLS8), [[418, "72", "85", "Unrestricted", 1, "", "D2", "E2"], [418, "72", "85", "Unrestricted", 2, "", "D2", "E2"]]), s.v.output_split);
+  for (const count of [1, null, ""]) {
+    s = splitIa(count);
+    t = await s.op({ osOp: "SPLIT" });
+    check("Split " + JSON.stringify(count) + " on a split IA: one receipt again (asked; row 1 in the header, the rows gone, No. of Split empty)", calls(t, "$confirm").length === 1 &&
+      s.v.output_split.length === 0 && s.v.output_split_on === 0 && [s.v.storage_location_id, s.v.location_id, s.v.inventory_category] + "" === ["72", "85", "Unrestricted"] + "" &&
+      [null, ""].indexOf(s.v.output_split_count) >= 0 && ["storage_location_id", "location_id", "inventory_category"].every((h) => shown(t).indexOf(h) >= 0), [s.v, shown(t)]);
+  }
+  s = splitIa(1, { confirm: () => "cancel" });
+  t = await s.op({ osOp: "SPLIT" });
+  check("Split 1, cancelled: the split kept, No. of Split back to 3", s.v.output_split.length === 3 && s.v.output_split_count === 3, [s.v.output_split.length, s.v.output_split_count]);
+  // the user, 10-29: rows deleted down to one -> one receipt again by itself (a one-row split can't be completed), nothing asked
+  s = splitIa(3);
+  s.v.output_split.splice(1, 2);
+  t = await s.op({ osOp: "REMOVE" });
+  check("rows deleted down to one: one receipt again, nothing asked (that row's storage, bin, category and dates in the header, the rows gone, No. of Split empty)",
+    calls(t, "$confirm").length === 0 && s.v.output_split.length === 0 && s.v.output_split_on === 0 &&
+    [s.v.storage_location_id, s.v.location_id, s.v.inventory_category, s.v.manufacturing_date] + "" === ["72", "85", "Unrestricted", "D2"] + "" &&
+    [null, ""].indexOf(s.v.output_split_count) >= 0 && ["storage_location_id", "location_id", "inventory_category"].every((h) => shown(t).indexOf(h) >= 0), [s.v, shown(t)]);
+  s = form({ output_split_count: null });
+  await s.op({ osOp: "ITEM", item: SYS });
+  t = await s.op({ osOp: "SPLIT" });
+  check("Split with nothing typed and no split: nothing happens", calls(t, "setData").length === 0 && calls(t, "$message.error").length === 0 && calls(t, "$confirm").length === 0, t);
+  s = splitIa(null);
+  await s.op({ osOp: "MOUNT", item: SYS });
+  check("Edit of a split IA: No. of Split shows its rows (3), shown", s.v.output_split_count === 3, s.v.output_split_count);
+  // the quantity rule
+  // (the item first: choosing an item clears No. of Split)
+  const ready = async (values, item, count) => {
+    const x = form(values);
+    await x.op({ osOp: "ITEM", item: item });
+    x.v.output_split_count = count;
+    return x;
+  };
+  s = await ready({ item_qty: 1.1 }, SYS, 3);
+  await s.op({ osOp: "SPLIT" });
+  check("Split 3 of 1.1 (not whole): equal parts to 8 decimals, the last row the rounding, the total exact", same(rowsOf(s.v, ["os_qty"]), [[0.36666666], [0.36666666], [0.36666668]]) &&
+    s.v.output_split_sum === "Split total 1.1 of 1.1 ✓", [rowsOf(s.v, ["os_qty"]), s.v.output_split_sum]);
+  s = await ready({ item_qty: 10 }, SYS, "4");
+  await s.op({ osOp: "SPLIT" });
+  check("Split \"4\" (typed: the field is a text input) of 10: 3 / 3 / 2 / 2", same(rowsOf(s.v, ["os_qty"]), [[3], [3], [2], [2]]), rowsOf(s.v, ["os_qty"]));
+  const refused = async (values, item, re, label) => {
+    const x = await ready(values, item, values.output_split_count);
+    const tt = await x.op({ osOp: "SPLIT" });
+    const msg = (calls(tt, "$message.error")[0] || [])[0] || "";
+    check(label + ": refused (" + msg + "), no rows", x.v.output_split.length === 0 && re.test(msg), tt);
+  };
+  await refused({ item_qty: 2, output_split_count: 3 }, SYS, /2 .*at most 2 rows/, "Split 3 of 2 whole units");
+  await refused({ output_split_count: 21 }, SYS, /2 to 20/, "Split 21");
+  await refused({ output_split_count: 2.5 }, SYS, /2 to 20/, "Split 2.5");
+  await refused({ output_split_count: "x" }, SYS, /2 to 20/, "Split x");
+  await refused({ item_qty: null, output_split_count: 2 }, SYS, /output quantity/, "Split without an output quantity");
+  await refused({ output_split_count: 2 }, SERIAL, /Serial-numbered/, "Split of a serial item");
+  // Manual: the header's batch number on every row (one batch: the total warns until a bin changes); non-batch: bins only
+  s = await ready({ batch_no: "LOT-A" }, MAN, 2);
+  await s.op({ osOp: "SPLIT" });
+  check("Split 2 (Manual): the header's batch and dates on both rows, no group; the total warns about the same bin", same(rowsOf(s.v, COLS8), [[418, "71", "81", "Blocked", null, "LOT-A", D1, E1],
+    [418, "71", "81", "Blocked", null, "LOT-A", D1, E1]]) && /rows 1 and 2 put the same batch into the same bin and category/.test(s.v.output_split_sum), [s.v.output_split, s.v.output_split_sum]);
+  await s.op({ osOp: "CELL", field: "os_location_id", rowIndex: 1, value: "86" });
+  check("Manual: row 2 in another bin -> the total complete", s.v.output_split_sum === "Split total 836 of 836 ✓", s.v.output_split_sum);
+  s = await ready({}, PLAIN, 2);
+  await s.op({ osOp: "SPLIT" });
+  check("Split 2 (non-batch): bins only (no group / number / dates)", same(rowsOf(s.v, COLS8), [[418, "71", "81", "Blocked", null, "", "", ""], [418, "71", "81", "Blocked", null, "", "", ""]]),
+    s.v.output_split);
+  // read-only: nothing
+  s = form({ page_status: "Edit", item_assembly_status: "Completed", output_split: three(), output_split_on: 1, output_split_count: 2 });
+  s.self.models._data.ia_os = { kind: "SYSTEM" };
+  t = await s.op({ osOp: "SPLIT" });
+  check("Split on a read-only IA: nothing changes", s.v.output_split.length === 3 && calls(t, "setData").length === 0, t);
   // ---- OS_ENABLED false: nothing at all
   const OFF = H.clone(ON);
   H.byName(OFF, "os_main").func = H.byName(OFF, "os_main").func.replace("const OS_ENABLED = true;", "const OS_ENABLED = false;");

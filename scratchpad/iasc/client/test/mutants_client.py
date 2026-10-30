@@ -7,7 +7,7 @@ import json, os, shutil, subprocess, sys, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLIENT = os.path.dirname(HERE)
-TESTS = ["test_os_form.js", "test_sc_legacy.js", "test_sc_link.js", "test_sc_prepare.js", "test_sc_qty.js", "test_sc_variance.js", "test_sc_panel.js", "test_v2_double.js", "test_v2_park.js", "test_res_draft.js", "test_res_own.js", "test_res_mount.js", "test_res_close.js", "test_classic_double.js", "test_created.js", "test_cancel.js", "test_res_dirty.js", "test_res_manual.js"]
+TESTS = ["test_sc_gap.js", "test_tr_reserve.js", "test_os_form.js", "test_sc_legacy.js", "test_sc_link.js", "test_sc_prepare.js", "test_sc_qty.js", "test_sc_variance.js", "test_sc_panel.js", "test_v2_double.js", "test_v2_park.js", "test_res_draft.js", "test_res_own.js", "test_res_mount.js", "test_res_close.js", "test_classic_double.js", "test_created.js", "test_cancel.js", "test_res_dirty.js", "test_res_manual.js"]
 # the double-click patch is JSON (src/v2_double_patch.json): its anchors are written as JSON string text
 J = lambda s: json.dumps(s)[1:-1]
 D = "v2_double_patch.json"
@@ -283,7 +283,8 @@ MUTANTS = [
     ("os: the last row never follows the quantity", "os_main.js", "  if (v > 0 && !osSame(rows[last].os_qty, v)) {", "  if (false) {"),
     ("os: an item change keeps the split", "os_main.js", "  osClear(kind);\n  osLayout(kind, [], osEditable());", "  osLayout(kind, osRows(), osEditable());"),
     ("os: a plant change keeps the split", "os_main.js", 'const osPlantOp = () => osClear(osState().kind || "");', "const osPlantOp = () => false;"),
-    ("os: switched off without asking", "os_main.js", '    await this.$confirm("Receive the whole output', '    void ("Receive the whole output'),
+    ("os: switched off without asking", "os_main.js", 'await this.$confirm("Receive the whole output into row 1\'s bin again? The other rows are removed.", "Split receipt off"',
+     'void ("Receive the whole output into row 1\'s bin again? The other rows are removed.", "Split receipt off"'),
     ("os: switched off, row 1 not back in the header", "os_main.js", "  osHeaderSync(rows, kind);\n  osClear(kind);\n};", "  osClear(kind);\n};"),
     ("os: read-only rows editable", "os_main.js", '  this.disabled(["output_split"], !editable);', '  this.disabled(["output_split"], false);'),
     ("os: a System number typed", "os_main.js", '  if (editable) this.disabled([osCol("os_batch_no")], kind !== "MANUAL");\n', ""),
@@ -338,6 +339,26 @@ MUTANTS = [
     ("os: a shared group kept on open", "os_main.js", "  if (osEditable() && osOwnGroups(rows, kind)) write = true;\n", ""),
     ("os: a read-only split renumbered on open", "os_main.js", "  if (osEditable() && osOwnGroups(rows, kind)) write = true;\n", "  if (osOwnGroups(rows, kind)) write = true;\n"),
     ("os: groups compared as text", "os_main.js", "    if (Number(r.os_group) !== k + 1) {", "    if (r.os_group !== k + 1) {"),
+    # No. of Split + Split (the user, 10-28, as GR's split)
+    ("os split: the remainder on the last row", "os_main.js", "base + (k < t - base * n ? 1 : 0)", "base + (k === n - 1 ? t - base * n : 0)"),
+    ("os split: whole numbers not kept", "os_main.js", "  if (Math.abs(total - Math.round(total)) <= OS_EPS) {\n    const t = Math.round(total);", "  if (false) {\n    const t = Math.round(total);"),
+    ("os split: more rows than whole units", "os_main.js", "    if (t < n) return null;\n", ""),
+    ("os split: decimals without the rounding on the last row", "os_main.js", "(k < n - 1 ? each : osQ8(total - each * (n - 1)))", "each"),
+    ("os split: the header's dates not copied", "os_main.js", 'os_mfg_date: kind === "PLAIN" ? "" : from.mfg || "",', 'os_mfg_date: "",'),
+    ("os split: the header's bin not copied", "os_main.js", 'os_location_id: from.bin || "",', 'os_location_id: "",'),
+    ("os split: a Manual batch not copied", "os_main.js", 'os_batch_no: kind === "MANUAL" ? osS(from.batch) : "",', 'os_batch_no: "",'),
+    ("os split: one batch for every System row", "os_main.js", 'os_group: kind === "SYSTEM" ? k + 1 : null,', 'os_group: kind === "SYSTEM" ? 1 : null,'),
+    ("os split: split again without asking", "os_main.js", 'await this.$confirm("Split the output again into', 'void ("Split the output again into'),
+    ("os split: one receipt again without asking", "os_main.js", 'await this.$confirm("Receive the whole output into row 1\'s bin again? The other rows are removed.", "One receipt"',
+     'void ("Receive the whole output into row 1\'s bin again? The other rows are removed.", "One receipt"'),
+    ("os split: made again from the header, not row 1", "os_main.js", "  const r1 = rows[0];\n", "  const r1 = null;\n"),
+    ("os split: No. of Split not following the rows", "os_main.js", '  if (!osSame(this.getValue("output_split_count"), n)) this.setData({ output_split_count: n });', ""),
+    ("os split: more than 20 rows taken", "os_main.js", "  if (!Number.isInteger(n) || n < 2 || n > OS_MAX_ROWS) {", "  if (!Number.isInteger(n) || n < 2) {"),
+    ("os split: a read-only IA split", "os_main.js", "  if (!osEditable()) return;\n  if (!osAllowed(kind)) {", "  if (!osAllowed(kind)) {"),
+    ("os split: the switch shown", "os_main.js", '  this.hide(["output_split_on"]);\n  if (editable && osAllowed(kind)) this.display(["output_split_pick"]);',
+     '  if (editable && osAllowed(kind)) this.display(["output_split_pick", "output_split_on"]);'),
+    ("os split: No. of Split kept after one receipt", "os_main.js", "  osCount([]);\n  this.hide([\"output_split\", \"output_split_sum\"]);\n  osHeaderShow(kind);\n  return true;",
+     "  this.hide([\"output_split\", \"output_split_sum\"]);\n  osHeaderShow(kind);\n  return true;"),
     # IA V2 one stock call per run (10-27): the wait kicks a parked job (75 %) once, then keeps its 15 s cadence
     ("park: never kicked", PK, J('    if (!parkKicked && js === "COMMITTING_IA"'), J('    if (false && js === "COMMITTING_IA"')),
     ("park: kicked at every status at 75 %", PK, J('    if (!parkKicked && js === "COMMITTING_IA"'), J('    if (js === "COMMITTING_IA"')),
@@ -347,6 +368,32 @@ MUTANTS = [
 ]
 
 # MUT_ONLY=<prefix>: only the mutants whose name starts with it
+# the SO-line entry from the SO Linked IAs page (the user, 10-28): no sc_entry parameter needed; the components unlocked
+MUTANTS += [
+    ("entry 10-28: the page's parameter required again", M, '(scS(this.getParamsVariables("sc_entry")) === "1" || (!scS(v.bom_snapshot_json) && !(Array.isArray(v.stock_movement) && v.stock_movement.length)));',
+     'scS(this.getParamsVariables("sc_entry")) === "1";'),
+    ("entry 10-28: an IA holding lines rebuilt", M, ' || (!scS(v.bom_snapshot_json) && !(Array.isArray(v.stock_movement) && v.stock_movement.length)));', " || true);"),
+    ("entry 10-28: the components left locked", M, '  if (scS(v.issuing_operation_faci)) this.disabled(["stock_movement"], false);\n', ""),
+]
+# the split: rows deleted down to one -> one receipt again (the user, 10-29)
+MUTANTS += [
+    ("os 10-29: a one-row split kept", "os_main.js", "  if (rows.length === 1) {\n    osHeaderSync(rows, kind);\n    osClear(kind);\n    return;\n  }\n", ""),
+]
+# a replacement's allocation (RESERVED_REQUEST_PLAN.md Task 9, D6: sc_main GAP; B21's staging pick retired)
+MUTANTS += [
+    ("gap: the staging bin's stock used", M, "    if (o.excludeBin && String(balance.location_id) === String(o.excludeBin)) return;\n", ""),
+    ("gap: the line's picks dropped", M, "    const kept = o.keep ? [].concat(", "    const kept = false ? [].concat("),
+    ("gap: the line's own picks not counted as taken", M, "    if (mine[idx] && !o.keep) return;", "    if (mine[idx]) return;"),
+    ("gap: its handling-unit picks cleared", M, "    if (!o.keep) updates[`stock_movement.${t.index}.temp_hu_data`] = \"\";", "    updates[`stock_movement.${t.index}.temp_hu_data`] = \"\";"),
+    ("gap: a Draft IA allocated", M, ' || scS(v.item_assembly_status) !== "Created") return;\n  const lines = Array.isArray(v.stock_movement)', ') return;\n  const lines = Array.isArray(v.stock_movement)'),
+    ("gap: a viewed IA allocated", M, 'if (!bin || scS(v.page_status) !== "Edit" || ', "if (!bin || "),
+    ("gap: allocated without the staging bin", M, 'if (!bin || scS(v.page_status) !== "Edit"', 'if (scS(v.page_status) !== "Edit"'),
+    ("gap: nothing missing allocated", M, " && scNum(g.missing) > 0)", ")"),
+    ("gap: a line not on the IA taken", M, "g && at[scS(g.iaLineId)] !== undefined && ", "g && "),
+    ("gap: the next step not said", M, '  if (!short.length) this.$message.success("The missing materials are allocated outside', '  if (false) this.$message.success("The missing materials are allocated outside'),
+    ("gap: the shortfall without the staging bin", M, "    if (o.excludeBin) this.$message.warning(`Not enough loose stock outside the staging bin", "    if (false) this.$message.warning(`Not enough loose stock outside the staging bin"),
+    ("gap: the op not there", M, "MOUNT: scOpMount, GAP: scOpGap };", "MOUNT: scOpMount };"),
+]
 MUTANTS = [m for m in MUTANTS if m[0].startswith(os.environ.get("MUT_ONLY", ""))]
 survived = 0
 for m in MUTANTS:

@@ -48,7 +48,8 @@ const compare = async (what, name, values, args, o, docs) => {
     const OS_FIELDS = "item_batch_management,batch_number_genaration,serial_number_management,stock_control";
     const t0 = b.trace.map((t) => (t[0] === "hide" && JSON.stringify(t[1]) === '["button_draft","button_created"]' ? ["hide", ["button_draft"]] :
       t[0] === "db.get" && t[1] && t[1].collection === "item" && t[1].field === OS_FIELDS ? ["db.get", Object.assign({}, t[1], { field: "item_batch_management,batch_number_genaration" })] : t));
-    const tb = exact ? t0.filter((t) => !(t[0] === "triggerEvent" && t[1] === "os_main")) : H.legacyTrace(t0);
+    // (and the IA transfer request's mount notification, tr_main: a saved IA without a request link makes no call there)
+    const tb = exact ? t0.filter((t) => !(t[0] === "triggerEvent" && (t[1] === "os_main" || t[1] === "tr_main")) && !/^tr:/.test(t[0])) : H.legacyTrace(t0);
     const firstDiff = tb.findIndex((t, i) => JSON.stringify(t) !== JSON.stringify(a.trace[i]));
     check(what + " [" + label + "]: v36 call for call" + (exact ? " (nothing removed)" : ""), same(tb, a.trace), { at: firstDiff, v36: a.trace[firstDiff], built: tb[firstDiff], lengths: [a.trace.length, tb.length] });
     const bv = H.clone(b.values);

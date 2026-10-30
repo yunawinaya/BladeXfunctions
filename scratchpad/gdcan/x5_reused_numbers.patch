@@ -1,0 +1,150 @@
+diff --git a/scratchpad/gdcan/code/commit/x5.js b/scratchpad/gdcan/code/commit/x5.js
+index 90c07dae..7e228de9 100644
+--- a/scratchpad/gdcan/code/commit/x5.js
++++ b/scratchpad/gdcan/code/commit/x5.js
+@@ -20,14 +20,25 @@ const x5HeaderDone = (text, oldNo, newNo) => x5Tokens(text).indexOf(newNo) >= 0
+ // the step waits (a counted retry) rather than move the update_time that job pinned (agreed with GD Edit & Picking V2, 10-25)
+ const pickHeld = (h) => Number(h && h.is_processing) === 1 && !(Number(h.lock_age_sec) > 900);
+ // Each cancel writes the whole text, so a write carrying only its own rename can drop a sibling's (BA 10-25, race_x5.js). The
+-// X rows name the sibling GDs of a header that will end Cancelled - a cancel past its point of no return (X2 / X3 done), or one
+-// already Cancelled whose rename was lost - and every write renames them too, so whichever write lands last keeps them all.
++// X rows are the header's other GDs, and every write also renames each one that ends Cancelled - already Cancelled (its number
++// without the "-Cancelled[-n]" suffix -> its number: a rename lost before) or past its point of no return (X2 / X3 done: -> its
++// plan's new number) - so whichever write lands last keeps them all. A token that is a live GD's number on the header is that
++// GD's (a number typed in again after a cancel, 10-28) and is never renamed.
+ const x5Siblings = function x5Siblings(nowRows) {
+-  const out = {};
++  const by = {};
+   for (const r of list(nowRows)) {
+     const o = s(r.k) === "X" ? parseJ(r.j) : null;
+-    // a token already carrying the suffix is never renamed again
+-    if (o && s(o.id) && s(o.tok) && !/-Cancelled$/.test(s(o.tok))) (out[s(o.id)] = out[s(o.id)] || []).push(s(o.tok));
++    if (o && s(o.id)) (by[s(o.id)] = by[s(o.id)] || []).push(o);
++  }
++  const ends = (o) => s(o.st) === "Cancelled" || (s(o.st) === "Processing" && s(o.new) !== "");
++  const out = {};
++  for (const [id, gds] of Object.entries(by)) {
++    const live = new Set(gds.filter((o) => !ends(o)).map((o) => s(o.no)));
++    for (const o of gds.filter(ends)) {
++      const from = s(o.st) === "Cancelled" ? s(o.no).replace(/-Cancelled(-\d+)?$/, "") : s(o.no);
++      const to = s(o.st) === "Cancelled" ? s(o.no) : s(o.new);
++      if (from && to && from !== to && !live.has(from)) (out[id] = out[id] || []).push({ from: from, to: to });
++    }
+   }
+   return out;
+ };
+@@ -48,7 +59,7 @@ const guardHeaderTokens = function guardHeaderTokens(planned, now, col, oldNo, n
+       conflicts.push(s(r.id));
+       continue;
+     }
+-    for (const tok of (sibs || {})[s(r.id)] || []) t = x5Rename(t, tok, tok + "-Cancelled") || t;
++    for (const sib of (sibs || {})[s(r.id)] || []) t = x5Rename(t, sib.from, sib.to) || t;
+     if (t === text) continue;
+     // only this GD's own rename waits for a held Picking; a sibling's alone is left to the sibling
+     if (pickHeld(cur)) {
+diff --git a/scratchpad/gdcan/test/race_x5.js b/scratchpad/gdcan/test/race_x5.js
+index fa443e71..f8506441 100644
+--- a/scratchpad/gdcan/test/race_x5.js
++++ b/scratchpad/gdcan/test/race_x5.js
+@@ -19,9 +19,9 @@ const job = (gdId, oldNo) => {
+     picking_headers: [{ id: "3446", before: T0, after: T0.replace(oldNo, oldNo + "-Cancelled") }], picking_rows: [], packing_headers: [], packing_items: [], packing_sources: [] }) }];
+   return { entry, num };
+ };
+-// the header as X5 reads it, with the X rows its read returns: the siblings that will end Cancelled
++// the header as X5 reads it, with the X rows its read returns: the other GD, Processing past its point of no return
+ const H = (text, sibs) => [{ k: "H", j: JSON.stringify({ id: "3446", delivery_no: text, is_deleted: 0 }) }]
+-  .concat((sibs || []).map((tok) => ({ k: "X", j: JSON.stringify({ id: "3446", tok: tok }) })));
++  .concat((sibs || []).map((tok) => ({ k: "X", j: JSON.stringify({ id: "3446", no: tok, st: "Processing", new: tok + "-Cancelled" }) })));
+ const ok = (c) => !(c.jobRows && c.jobRows[0] && /RETRY|REVIEW/.test(String(c.jobRows[0].job_status) + String(c.result_code)));
+ // A and B both read T0, A writes and passes its check, then B writes the text from its own read and checks
+ const race = (aSibs, bSibs) => {
+diff --git a/scratchpad/gdcan/test/test_shared_picking.js b/scratchpad/gdcan/test/test_shared_picking.js
+index 1acaa3c6..3220ae37 100644
+--- a/scratchpad/gdcan/test/test_shared_picking.js
++++ b/scratchpad/gdcan/test/test_shared_picking.js
+@@ -104,8 +104,10 @@ const pickNone = part("PICK", { rows: [], headers: [] });
+ r = quiet(() => X4P.cancelX4PPlan(entry, pickNone, rows("P", [{ id: "7001", to_status: "Completed", to_id: "PI-2610-9001" }]).concat(rows("A", [{ id: "601", picking_id: "7001", gd_id: "1305", line_status: "Completed" }]))));
+ t("X4P: a Picking already Completed before the cancel (no rows of this GD to write) stays as it is (user rule)", r.route === "GO" && r.headerRows.length === 0, r);
+ 
+-// BA 10-25: a write carries the siblings that will end Cancelled (X rows), so a later write cannot drop their renames
+-const xrow = (tok) => ({ k: "X", j: JSON.stringify({ id: "3446", tok: tok }) });
++// BA 10-25: a write carries the siblings that will end Cancelled (X rows), so a later write cannot drop their renames. An X row is
++// one other GD of the header: its number, status and, Processing past its point of no return, its cancel's new number
++const xgd = (no, st, nw) => ({ k: "X", j: JSON.stringify({ id: "3446", no: no, st: st, new: nw === undefined ? null : nw }) });
++const xrow = (tok) => (/-Cancelled(-\d+)?$/.test(tok) ? xgd(tok, "Cancelled") : xgd(tok, "Processing", tok + "-Cancelled"));
+ r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311", OLD).concat([xrow("GD-2610-1311")]), []));
+ t("X5 siblings: a sibling past its point of no return is renamed in the same write as this GD",
+   r.route === "GO" && r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311-Cancelled", r);
+@@ -123,5 +125,28 @@ t("X5 siblings: its own token or a token not in the text change nothing extra",
+ r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311-Cancelled", OLD).concat([xrow("GD-2610-1311-Cancelled")]), []));
+ t("X5 siblings: a token already carrying the suffix is never renamed again", r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311-Cancelled", r);
+ 
++// 10-28 (PTS GD/2610/1010): a number typed in again after a cancel - the cancel's name is "-Cancelled-<n>", and the old twin's
++// number is not this header's to rename
++r = quiet(() => X5.cancelX5Plan(entry, num, x5now(NEW + ", GD-2610-1311", NEW).concat([xgd("GD-2610-1311-Cancelled-2", "Cancelled")]), []));
++t("X5 siblings: a sibling Cancelled as -Cancelled-2 whose rename was lost -> written back under its own name",
++  r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311-Cancelled-2", r);
++r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311", OLD).concat([xgd("GD-2610-1311", "Processing", "GD-2610-1311-Cancelled-3")]), []));
++t("X5 siblings: a sibling past its point of no return -> renamed to its plan's new number", r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311-Cancelled-3", r);
++r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311", OLD).concat([xgd("GD-2610-1311", "Processing")]), []));
++t("X5 siblings: a sibling Processing before its point of no return (no new number) -> left alone", r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311", r);
++r = quiet(() => X5.cancelX5Plan(entry, num, x5now(OLD + ", GD-2610-1311", OLD).concat([xgd("GD-2610-1311-Cancelled", "Cancelled"), xgd("GD-2610-1311", "Created")]), []));
++t("X5 siblings: a token that is a live GD's number (re-used after a cancel) is not renamed to the cancelled twin's",
++  r.headerRows.length === 1 && r.headerRows[0].delivery_no === NEW + ", GD-2610-1311", r);
++const OWN2 = OLD + "-Cancelled-2";
++const num2 = part("NUM", { old_no: OLD, new_no: OWN2, picking_headers: [{ id: "3446", before: OLD + ", GD-2610-1311", after: OWN2 + ", GD-2610-1311" }],
++  picking_rows: [{ id: "501", before: OLD, after: OWN2 }], packing_headers: [], packing_items: [], packing_sources: [] });
++r = quiet(() => X5.cancelX5Plan(entry, num2, x5now(OLD + ", GD-2610-1311", OLD).concat([xgd(NEW, "Cancelled")]), []));
++t("X5: this GD's own -Cancelled-2 -> its token and row renamed to it; its earlier twin's Cancelled row renames nothing",
++  r.route === "GO" && r.headerRows.length === 1 && r.headerRows[0].delivery_no === OWN2 + ", GD-2610-1311" && r.rowCount === 1, r);
++r = quiet(() => X5.cancelX5Check(entry, num2, x5now(OWN2 + ", GD-2610-1311", OWN2), []));
++t("X5 check: -Cancelled-2 read back -> DONE", r.route === "OK" && r.needStep === "YES", r);
++r = quiet(() => X5.cancelX5Check(entry, num2, x5now(NEW + ", GD-2610-1311", OWN2), []));
++t("X5 check: the header carrying -Cancelled instead of -Cancelled-2 is not done", r.route !== "OK", r);
++
+ console.log(fails ? fails + " FAILED" : "ALL PASSED");
+ process.exit(fails ? 1 : 0);
+diff --git a/scratchpad/gdcan/build_gdcan.py b/scratchpad/gdcan/build_gdcan.py
+index e43d17e3..daba89b5 100644
+--- a/scratchpad/gdcan/build_gdcan.py
++++ b/scratchpad/gdcan/build_gdcan.py
+@@ -424,25 +425,21 @@ def build_commit():
+               "SELECT 'P' AS k, JSON_OBJECT('id', CAST(p.id AS CHAR), 'gd_no', p.gd_no, 'is_deleted', p.is_deleted) AS j FROM packing p WHERE p.tenant_id = %(T)s AND p.id IN %(P)s\nUNION ALL\n"
+               "SELECT 'I' AS k, JSON_OBJECT('id', CAST(l.id AS CHAR), 'gd_no', l.gd_no, 'is_deleted', l.is_deleted) AS j FROM packing_jz8m9w3h_sub l WHERE l.tenant_id = %(T)s AND l.id IN %(I)s\nUNION ALL\n"
+               "SELECT 'S' AS k, JSON_OBJECT('id', CAST(sr.id AS CHAR), 'gd_no', sr.gd_no, 'is_deleted', sr.is_deleted) AS j FROM packing_mudjw4xk_sub sr WHERE sr.tenant_id = %(T)s AND sr.id IN %(S)s\nUNION ALL\n"
+-              # the sibling GDs of each header that will end Cancelled (x5.js x5Siblings): already Cancelled under this token + "-Cancelled"
+-              # (a rename lost before), or still Processing under this token with a cancel past its point of no return (X2 / X3 done)
+-              # STRAIGHT_JOIN: ids -> header -> its tokens -> goods_delivery by (organization_id, delivery_no); otherwise MySQL reads the org's
+-              # GDs first (5.9 s on LSH prod instead of 0.4 s)
+-              "SELECT STRAIGHT_JOIN 'X' AS k, JSON_OBJECT('id', CAST(t.id AS CHAR), 'tok', TRIM(x.tok)) AS j\n"
+-              "  FROM %(HID)s JOIN transfer_order t ON t.id = hid.i AND t.tenant_id = %(T)s JOIN %(TOK)s\n"
+-              "  JOIN goods_delivery g ON g.tenant_id = t.tenant_id AND g.organization_id = '%(ORG)s' AND g.is_deleted = 0 AND g.gd_status = 'Cancelled'\n"
+-              "   AND g.delivery_no = CONCAT(TRIM(x.tok), '-Cancelled') COLLATE utf8mb4_general_ci\nUNION ALL\n"
+-              "SELECT STRAIGHT_JOIN 'X' AS k, JSON_OBJECT('id', CAST(t.id AS CHAR), 'tok', TRIM(x.tok)) AS j\n"
+-              "  FROM %(HID)s JOIN transfer_order t ON t.id = hid.i AND t.tenant_id = %(T)s JOIN %(TOK)s\n"
+-              "  JOIN goods_delivery g ON g.tenant_id = t.tenant_id AND g.organization_id = '%(ORG)s' AND g.is_deleted = 0 AND g.gd_status = 'Processing'\n"
+-              "   AND g.delivery_no = TRIM(x.tok) COLLATE utf8mb4_general_ci\n"
+-              " WHERE (SELECT COUNT(*) FROM gd_async_job j JOIN gd_publish_step p ON p.job_id = CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci AND p.is_deleted = 0 AND p.step_status = 'DONE'\n"
+-              "         AND p.step_name IN ('X2_INVENTORY', 'X3_RESERVATIONS')\n"
+-              "         WHERE j.tenant_id = t.tenant_id AND j.command = 'CANCEL_GD' AND j.correlation_id = CONCAT('GD|', g.id) COLLATE utf8mb4_general_ci AND j.is_deleted = 0\n"
+-              "           AND j.job_status NOT IN ('FAILED', 'CANCELLED')) > 0") % {
++              # the other GDs of each header (its rows' gd_id; x5.js x5Siblings): number, status and, for one Processing under a cancel
++              # past its point of no return (X2 / X3 done), that cancel's new number (its manifest's new_no; IF skips the read otherwise)
++              "SELECT 'X' AS k, JSON_OBJECT('id', CAST(sib.tid AS CHAR), 'no', g.delivery_no, 'st', g.gd_status, 'new', IF(g.gd_status = 'Processing',\n"
++              "       (SELECT JSON_UNQUOTE(JSON_EXTRACT(j.prepared_payload, '$.new_no')) FROM gd_async_job j\n"
++              "         WHERE j.tenant_id = g.tenant_id AND j.organization_id = g.organization_id AND j.command = 'CANCEL_GD'\n"
++              "           AND j.correlation_id = CONCAT('GD|', g.id) COLLATE utf8mb4_general_ci AND j.is_deleted = 0 AND j.job_status NOT IN ('FAILED', 'CANCELLED')\n"
++              "           AND (SELECT COUNT(*) FROM gd_publish_step p WHERE p.job_id = CAST(j.id AS CHAR) COLLATE utf8mb4_general_ci AND p.is_deleted = 0\n"
++              "                  AND p.step_status = 'DONE' AND p.step_name IN ('X2_INVENTORY', 'X3_RESERVATIONS')) > 0\n"
++              "         ORDER BY j.id DESC LIMIT 1), NULL)) AS j\n"
++              "  FROM (SELECT DISTINCT r.transfer_order_id AS tid, r.gd_id AS gid\n"
++              "          FROM %(HID)s JOIN transfer_order_jz8m9w3h_sub r ON r.transfer_order_id = hid.i AND r.tenant_id = %(T)s AND r.is_deleted = 0\n"
++              "         WHERE r.gd_id <> %(GD)s) sib\n"
++              "  JOIN goods_delivery g ON g.id = sib.gid AND g.tenant_id = %(T)s AND g.is_deleted = 0") % {
+         "T": T, "MYT": myt, "H": jt(N(X5, "data.HIdsJson")), "L": jt(N(X5, "data.LIdsJson")), "P": jt(N(X5, "data.PIdsJson")), "I": jt(N(X5, "data.IIdsJson")), "S": jt(N(X5, "data.SIdsJson")),
+-        "ORG": N(X5, "data.orgSql"), "HID": "JSON_TABLE('%s', '$[*]' COLUMNS (i BIGINT PATH '$')) hid" % N(X5, "data.HIdsJson"),
+-        "TOK": "JSON_TABLE(CONCAT('[\"', REPLACE(REPLACE(REPLACE(IFNULL(t.delivery_no, ''), '\"', ''), ', ', ','), ',', '\",\"'), '\"]'), '$[*]' COLUMNS (tok VARCHAR(128) PATH '$')) x"}
++        "GD": GDID, "HID": "JSON_TABLE('%s', '$[*]' COLUMNS (i BIGINT PATH '$')) hid" % N(X5, "data.HIdsJson")}
+     x5moves = ("SELECT CAST(m.id AS CHAR) AS id\n  FROM inventory_movement m\n WHERE m.id >= %s AND m.tenant_id = %s AND m.organization_id = '%s' AND m.trx_no = '%s' AND m.is_deleted = 0\n ORDER BY m.id") % (
+         N(X5, "data.idFloor"), T, N(X5, "data.orgSql"), N(X5, "data.oldNoSql"))
+     gdraw = ("SELECT 'H' AS k, JSON_OBJECT('id', CAST(g.id AS CHAR), 'gd_status', g.gd_status, 'gd_total', CAST(g.gd_total AS CHAR), 'picking_status', g.picking_status, "

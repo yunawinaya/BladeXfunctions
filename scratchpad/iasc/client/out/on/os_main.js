@@ -1,5 +1,6 @@
-// os_main - Item Assembly form, the output split (plan 10-27, scratchpad/iasc): the Output Location "Split receipt" switch, its rows
-// (output_split, one receipt each) and their total. Every op comes from a forwarder (the switch, a row added / removed, a cell) or a
+// os_main - Item Assembly form, the output split (plan 10-27, scratchpad/iasc): the Output Location's No. of Split + Split (10-28; the
+// hidden "Split receipt" switch only keeps the state), its rows (output_split, one receipt each) and their total. Every op comes from a
+// forwarder (Split, the switch, a row added / removed, a cell) or a
 // patched handler (mounted, the item, the plant, the output quantity). Row 1 stays in the header's single fields (single-value readers
 // and the required checks); IA_SAVE v14 checks every rule again at completion. A setData of a cell re-enters its onChange: only cells
 // whose value changes are written
@@ -99,12 +100,20 @@ const osTotal = (rows) => {
   const text = rows.length ? osTotalText(rows) : "";
   if (!osSame(this.getValue("output_split_sum"), text)) this.setData({ output_split_sum: text });
 };
-// the switch, the rows and their columns for this item (kind) and page; read-only pages show only the columns that hold a value
+// No. of Split shows the rows there are (empty without a split)
+const osCount = (rows) => {
+  const n = rows.length ? rows.length : null;
+  if (!osSame(this.getValue("output_split_count"), n)) this.setData({ output_split_count: n });
+};
+// No. of Split + Split (the switch only keeps the state), the rows and their columns for this item (kind) and page; read-only pages show
+// only the columns that hold a value
 const osLayout = (kind, rows, editable) => {
-  if (editable && osAllowed(kind)) this.display(["output_split_on"]);
-  else this.hide(["output_split_on"]);
+  this.hide(["output_split_on"]);
+  if (editable && osAllowed(kind)) this.display(["output_split_pick"]);
+  else this.hide(["output_split_pick"]);
   const on = rows.length > 0;
   if (osIsOn() !== on) this.setData({ output_split_on: on ? 1 : 0 });
+  if (editable) osCount(rows);
   if (!on) {
     this.hide(["output_split", "output_split_sum"]);
     return;
@@ -156,6 +165,7 @@ const osClear = (kind) => {
   if (!osRows().length) return false;
   osWrite([]);
   if (osIsOn()) this.setData({ output_split_on: 0 });
+  osCount([]);
   this.hide(["output_split", "output_split_sum"]);
   osHeaderShow(kind);
   return true;
@@ -179,7 +189,7 @@ const osMountOp = (item) => {
 const osViewOp = () => {
   const rows = osRows();
   if (rows.length) osLayout(osState().kind || "", rows, false);
-  else this.hide(["output_split_on"]);
+  else this.hide(["output_split_on", "output_split_pick"]);
 };
 const osItemOp = (item) => {
   const kind = item ? osKind(item) : "";
@@ -235,6 +245,7 @@ const osAddOp = (index) => {
   osOwnGroups(rows, kind);
   osWrite(rows);
   osTotal(rows);
+  osCount(rows);
   return osFillBin(i, rows[i].os_storage_location_id);
 };
 const osRemoveOp = () => {
@@ -242,13 +253,21 @@ const osRemoveOp = () => {
   const rows = osRows();
   if (!rows.length) {
     if (osIsOn()) this.setData({ output_split_on: 0 });
+    osCount([]);
     this.hide(["output_split", "output_split_sum"]);
     osHeaderShow(kind);
+    return;
+  }
+  // one row left (the user, 10-29): a split needs 2, so it is one receipt again by itself - that row into the Output Location fields
+  if (rows.length === 1) {
+    osHeaderSync(rows, kind);
+    osClear(kind);
     return;
   }
   if (osOwnGroups(rows, kind)) osWrite(rows);
   osHeaderSync(rows, kind);
   osTotal(rows);
+  osCount(rows);
 };
 const osCellOp = (field, index, value) => {
   const kind = osState().kind || "";
@@ -281,6 +300,80 @@ const osCellOp = (field, index, value) => {
   // another storage location: its default bin (the cleared bin above)
   if (field === "os_storage_location_id" && value !== undefined) return osFillBin(i, value);
 };
+// No. of Split + Split (the user, 10-28, as GR's split): every row at once - the output spread over them (whole numbers when it is whole,
+// the first rows one more; else 8 decimals, the last row the rounding), each row the Output Location's storage location, bin, category
+// and the dates typed before the split (Manual: its batch number too; System: each row its own batch). A split IA splits again from
+// row 1 (asked first); 1 or nothing = one receipt again (asked)
+const osParts = (total, n) => {
+  if (Math.abs(total - Math.round(total)) <= OS_EPS) {
+    const t = Math.round(total);
+    if (t < n) return null;
+    const base = Math.floor(t / n);
+    return Array.from({ length: n }, (_, k) => base + (k < t - base * n ? 1 : 0));
+  }
+  const each = osQ8(Math.floor((total / n) * 1e8) / 1e8);
+  if (!(each > 0)) return null;
+  return Array.from({ length: n }, (_, k) => (k < n - 1 ? each : osQ8(total - each * (n - 1))));
+};
+const osSplitOp = async () => {
+  const kind = osState().kind || "";
+  const rows = osRows();
+  if (!osEditable()) return;
+  if (!osAllowed(kind)) {
+    this.$message.error(kind === "SERIAL" ? "Serial-numbered items cannot be split across bins." : kind === "NONSTOCK" ?
+      "This item is not stock-controlled: there is no receipt to split." : "Choose the item to assemble first.");
+    return;
+  }
+  const raw = this.getValue("output_split_count");
+  const n = Number(raw);
+  if (osS(raw) === "" || n === 1) {
+    if (!rows.length) return;
+    try {
+      await this.$confirm("Receive the whole output into row 1's bin again? The other rows are removed.", "One receipt", { confirmButtonText: "Remove the rows",
+        cancelButtonText: "Keep the split", type: "warning" });
+    } catch (e) {
+      osCount(rows);
+      return;
+    }
+    osHeaderSync(rows, kind);
+    osClear(kind);
+    return;
+  }
+  if (!Number.isInteger(n) || n < 2 || n > OS_MAX_ROWS) {
+    this.$message.error("Enter a number of rows from 2 to " + OS_MAX_ROWS + ".");
+    return;
+  }
+  const total = osQ8(this.getValue("item_qty"));
+  if (!(total > 0)) {
+    this.$message.error("Enter the output quantity first, then split it.");
+    return;
+  }
+  const parts = osParts(total, n);
+  if (!parts) {
+    this.$message.error(Math.abs(total - Math.round(total)) <= OS_EPS ? total + " can't be split into " + n + " rows of whole units: split it into at most " +
+      Math.round(total) + " rows." : total + " is too small to split into " + n + " rows.");
+    return;
+  }
+  if (rows.length) {
+    try {
+      await this.$confirm("Split the output again into " + n + " rows? Every row is made again from row 1's storage location, bin, category and dates.", "Split again",
+        { confirmButtonText: "Split again", cancelButtonText: "Keep the rows", type: "warning" });
+    } catch (e) {
+      osCount(rows);
+      return;
+    }
+  }
+  const r1 = rows[0];
+  const from = r1 ? { sl: r1.os_storage_location_id, bin: r1.os_location_id, cat: r1.os_category, batch: r1.os_batch_no, mfg: r1.os_mfg_date, exp: r1.os_exp_date } :
+    { sl: this.getValue("storage_location_id"), bin: this.getValue("location_id"), cat: this.getValue("inventory_category"), batch: this.getValue("batch_no"),
+      mfg: this.getValue("manufacturing_date"), exp: this.getValue("expired_date") };
+  const made = parts.map((q, k) => ({ os_qty: q, os_storage_location_id: from.sl || "", os_location_id: from.bin || "", os_category: from.cat || "Unrestricted",
+    os_group: kind === "SYSTEM" ? k + 1 : null, os_batch_no: kind === "MANUAL" ? osS(from.batch) : "", os_mfg_date: kind === "PLAIN" ? "" : from.mfg || "",
+    os_exp_date: kind === "PLAIN" ? "" : from.exp || "" }));
+  osWrite(made);
+  osLayout(kind, made, true);
+  osHeaderSync(made, kind);
+};
 // the output quantity changed: one row follows it; several = the last row takes the difference while it stays above 0
 const osQtyOp = () => {
   const rows = osRows();
@@ -309,6 +402,7 @@ const osPlantOp = () => osClear(osState().kind || "");
     else if (op === "ADD") await osAddOp(osArgs.rowIndex);
     else if (op === "REMOVE") osRemoveOp();
     else if (op === "CELL") await osCellOp(osS(osArgs.field), osArgs.rowIndex, osArgs.value);
+    else if (op === "SPLIT") await osSplitOp();
   } catch (error) {
     console.error(error);
     this.$message.error("Split receipt: " + (error && error.message ? error.message : "an error occurred"));

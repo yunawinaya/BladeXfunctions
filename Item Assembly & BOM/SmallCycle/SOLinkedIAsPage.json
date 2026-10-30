@@ -1,6 +1,44 @@
 {
   "list": [
     {
+      "name": "Summary",
+      "type": "html",
+      "icon": "icon-html",
+      "mainIcon": "HTML",
+      "typeIcon": "HTML",
+      "group": "View",
+      "groupSort": 1,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "defaultValue": "",
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "required": false,
+        "width": "",
+        "tip": "",
+        "remoteFunc": "func_letbm7d9",
+        "remoteOption": "option_letbm7d9",
+        "tableColumn": false,
+        "subform": false,
+        "hideLabel": true,
+        "customClass": "",
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": ""
+      },
+      "events": {
+        "onChange": ""
+      },
+      "key": "letbm7d9",
+      "model": "sli_summary_html",
+      "rules": []
+    },
+    {
       "name": "Sales Order Line",
       "type": "grid",
       "mainIcon": "栅格布局",
@@ -14,7 +52,7 @@
         "justify": "start",
         "align": "top",
         "customClass": "",
-        "hidden": false,
+        "hidden": true,
         "flex": true,
         "responsive": true,
         "remoteFunc": "func_zzaobddh",
@@ -652,7 +690,7 @@
         "isDelete": false,
         "generateSubTable": false,
         "showControl": true,
-        "virtualTable": true,
+        "virtualTable": false,
         "sortable": true,
         "tip": "",
         "remoteFunc": "func_phg09uyv",
@@ -677,7 +715,7 @@
         "batchOperate": [],
         "resizable": 0,
         "emptyTip": "",
-        "tableHeightMode": "fixed",
+        "tableHeightMode": "auto",
         "tableFixedHeight": null,
         "tableMaxHeight": null,
         "rowHeightType": "auto",
@@ -1333,7 +1371,7 @@
         "isDelete": false,
         "generateSubTable": false,
         "showControl": true,
-        "virtualTable": true,
+        "virtualTable": false,
         "sortable": true,
         "tip": "",
         "remoteFunc": "func_q5jqbpja",
@@ -1358,7 +1396,7 @@
         "batchOperate": [],
         "resizable": 0,
         "emptyTip": "",
-        "tableHeightMode": "fixed",
+        "tableHeightMode": "auto",
         "tableFixedHeight": null,
         "tableMaxHeight": null,
         "rowHeightType": "auto",
@@ -2008,7 +2046,7 @@
         "flexWrap": "nowrap",
         "alignItems": "center",
         "justifyContent": "flex-end",
-        "hGap": "",
+        "hGap": "8px",
         "vGap": "",
         "grid": {
           "row": {
@@ -2274,6 +2312,341 @@
       "key": "e1kbylyh",
       "model": "sli_actions",
       "rules": []
+    },
+    {
+      "name": "Select Plant",
+      "type": "dialog",
+      "mainIcon": "对话框",
+      "typeIcon": "对话框",
+      "icon": "icon-Dialog",
+      "group": "Container",
+      "groupSort": 2,
+      "enableScopes": ["Component", "Table", "Page"],
+      "options": {
+        "defaultValue": {},
+        "visible": false,
+        "drawerMode": false,
+        "customClass": "",
+        "title": "Select Plant",
+        "width": "",
+        "top": "15vh",
+        "center": false,
+        "cancelText": "Cancel",
+        "showClose": true,
+        "okText": "Confirm",
+        "showCancel": true,
+        "showOk": true,
+        "confirmLoading": false,
+        "dataBind": true,
+        "remoteFunc": "func_sdso0qxv",
+        "remoteOption": "option_sdso0qxv",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": ""
+      },
+      "list": [
+        {
+          "name": "Note",
+          "type": "text",
+          "mainIcon": "文字",
+          "typeIcon": "文字",
+          "icon": "icon-wenzishezhi-",
+          "group": "View",
+          "groupSort": 1,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": "Please select a plant to create the item assembly.",
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": false,
+            "required": false,
+            "width": "",
+            "tip": "",
+            "color": "",
+            "fontSize": "",
+            "lineHeight": "",
+            "fontWeight": "",
+            "textAlign": "",
+            "textDecoration": "",
+            "fontStyle": "",
+            "margin": "",
+            "border": "",
+            "padding": "",
+            "lines": 0,
+            "remoteFunc": "func_qqm8wpxb",
+            "remoteOption": "option_qqm8wpxb",
+            "tableColumn": false,
+            "subform": false,
+            "hideLabel": true,
+            "dynamicValueFx": "",
+            "dynamicValueType": "fx",
+            "isDynamicValue": false,
+            "select-card_n7ge7fmb": ["dataBind"],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": "",
+            "dataIdentifier": false
+          },
+          "events": {
+            "onChange": ""
+          },
+          "key": "qqm8wpxb",
+          "model": "sli_plant_note",
+          "rules": []
+        },
+        {
+          "name": "Plant",
+          "type": "treeselect",
+          "mainIcon": "下拉树状单选",
+          "typeIcon": "下拉树状单选",
+          "icon": "icon-shuxuanzeqi",
+          "group": "Select",
+          "groupSort": 4,
+          "enableScopes": ["Component", "Table", "Page"],
+          "options": {
+            "defaultValue": "",
+            "width": "",
+            "placeholder": "",
+            "disabled": false,
+            "clearable": true,
+            "options": [
+              {
+                "value": "Option 1",
+                "label": "Option 1",
+                "children": [
+                  {
+                    "value": "Option 1 - children",
+                    "label": "Option 1 - children"
+                  }
+                ]
+              },
+              {
+                "value": "Option 2",
+                "label": "Option 2",
+                "children": [
+                  {
+                    "value": "Option 2 - children",
+                    "label": "Option 2 - children"
+                  }
+                ]
+              },
+              {
+                "value": "Option 3",
+                "label": "Option 3"
+              }
+            ],
+            "remote": true,
+            "remoteType": "innerdatasource",
+            "remoteOption": "option_wczbj3yj",
+            "remoteOptions": [],
+            "props": {
+              "value": "id",
+              "label": "dept_name",
+              "children": "children",
+              "cascade": "",
+              "image": "",
+              "icon": "",
+              "explain": ""
+            },
+            "remoteFunc": "func_wczbj3yj",
+            "customClass": "",
+            "labelWidth": 100,
+            "isLabelWidth": false,
+            "hidden": false,
+            "dataBind": false,
+            "required": false,
+            "validatorCheck": false,
+            "validator": "",
+            "multiple": false,
+            "filterable": true,
+            "checkStrictly": false,
+            "customProps": {},
+            "tip": "",
+            "tableColumn": false,
+            "subform": false,
+            "paging_enabled": 0,
+            "paging_way": "Pagination",
+            "page_size": 10,
+            "more_fields": [],
+            "datasource": {
+              "source": "组织机构(勿删勿改):Table:1789995126399348747",
+              "rules": {
+                "collectionId": "1789995126399348747",
+                "list": [
+                  {
+                    "id": 1746500776233,
+                    "parentId": 1746500776234,
+                    "isTop": true,
+                    "type": "branch",
+                    "operator": "any",
+                    "prop": "",
+                    "valueType": "",
+                    "value": "",
+                    "level": 1,
+                    "children": [
+                      {
+                        "id": 1747366649111,
+                        "isTop": false,
+                        "parentId": 1746500776233,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 2,
+                        "children": [
+                          {
+                            "id": 1723795236686,
+                            "parentId": 1747366649111,
+                            "isTop": false,
+                            "prop": "parent_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{global:deptParentId}}",
+                            "type": "leaf",
+                            "level": 3,
+                            "propLabel": "父主键",
+                            "valueLabel": "",
+                            "operatorLabel": "等于",
+                            "valueTypeLabel": "字段"
+                          },
+                          {
+                            "id": 1747366649112,
+                            "parentId": 1747366649111,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{system:deptIds}}",
+                            "type": "leaf",
+                            "level": 3,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "等于",
+                            "valueTypeLabel": "字段"
+                          }
+                        ]
+                      },
+                      {
+                        "id": 1747366649113,
+                        "isTop": false,
+                        "parentId": 1746500776233,
+                        "type": "branch",
+                        "operator": "all",
+                        "level": 2,
+                        "children": [
+                          {
+                            "id": 1746500776235,
+                            "parentId": 1747366649113,
+                            "isTop": false,
+                            "prop": "id",
+                            "operator": "in",
+                            "valueType": "formula",
+                            "value": "{{global:deptIdList}}.split(',')",
+                            "type": "leaf",
+                            "level": 3,
+                            "propLabel": "主键ID",
+                            "valueLabel": "",
+                            "operatorLabel": "等于任意一个",
+                            "valueTypeLabel": "公式"
+                          },
+                          {
+                            "id": 1747366649114,
+                            "parentId": 1747366649113,
+                            "isTop": false,
+                            "prop": "parent_id",
+                            "operator": "numberEqual",
+                            "valueType": "field",
+                            "value": "{{system:deptIds}}",
+                            "type": "leaf",
+                            "level": 3,
+                            "propLabel": "父主键",
+                            "valueLabel": "",
+                            "operatorLabel": "等于",
+                            "valueTypeLabel": "字段"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "url_params": {
+              "list": [
+                {
+                  "prop": "",
+                  "propLabel": "",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "value",
+                  "valueTypeLabel": "",
+                  "valueLabel": ""
+                }
+              ]
+            },
+            "body_params": {
+              "list": [
+                {
+                  "prop": "",
+                  "propLabel": "",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "value",
+                  "valueTypeLabel": "",
+                  "valueLabel": ""
+                }
+              ]
+            },
+            "request_params": {
+              "list": [
+                {
+                  "prop": "",
+                  "propLabel": "",
+                  "operator": "",
+                  "operatorLabel": "",
+                  "valueType": "value",
+                  "valueTypeLabel": "",
+                  "valueLabel": ""
+                }
+              ]
+            },
+            "columns": [],
+            "sorts": [],
+            "auto_refresh": 1,
+            "auto_refresh_debounce": 100,
+            "select-card_n7ge7fmb": [],
+            "left": 3,
+            "right": 4,
+            "pad": "*",
+            "desensitization_pattern": "",
+            "desensitization_replace": "",
+            "limit_count": ""
+          },
+          "events": {
+            "onChange": "",
+            "onFocus": "",
+            "onBlur": ""
+          },
+          "novalid": {},
+          "key": "wczbj3yj",
+          "model": "sli_plant_id",
+          "rules": []
+        }
+      ],
+      "events": {
+        "onCancel": "u7rtwbrj",
+        "onConfirm": "cbrqj76p"
+      },
+      "key": "sdso0qxv",
+      "model": "sli_plant_dialog",
+      "rules": []
     }
   ],
   "config": {
@@ -2354,7 +2727,7 @@
       {
         "key": "lq6tcnm7",
         "name": "sli_load",
-        "func": "// sli_load - SO Linked IAs page (Small Cycle, scratchpad/iasc/CONTRACT.md section 10): one Sales Order line's figures, one per row\n// (the line, its customer, item, ordered and delivered; planned, produced and in progress in its linked IAs; the suggested\n// quantity with its sum), its warnings, its IAs and the SO's IAs whose line was removed. A failed read shows \"unavailable\", never a zero. Run by mounted (with the row action's sc_action), refresh and Refresh; Create IA opens the IA form only on\n// an eligible line.\nconst SC_WF_PROJECTION = \"2112448183267332097\"; // SO_IA_PROJECTION\nconst SC_IA_FORM = \"2098256587713404929\";\nconst scArgs = arguments[0] || {};\nconst scS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst scQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst scParseJ = (v) => {\n  if (v && typeof v === \"object\") return v;\n  const t = scS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst scP = (k) => scS(this.getParamsVariables(k));\nconst scRun = (id, params) =>\n  new Promise((resolve, reject) => {\n    const p = this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));\n    if (p && typeof p.then === \"function\") p.then((res) => resolve(res), (err) => reject(err));\n  });\nconst scNames = async (collection, ids, field) => {\n  const want = ids.filter((id, i, all) => scS(id) && all.indexOf(id) === i);\n  const out = {};\n  if (!want.length) return out;\n  try {\n    const res = await db.collection(collection).field(field)\n      .filter([{ type: \"branch\", operator: \"all\", children: [{ prop: \"id\", operator: \"in\", value: want }, { prop: \"is_deleted\", operator: \"equal\", value: 0 }] }])\n      .limit(want.length).get();\n    ((res && res.data) || []).forEach((x) => (out[scS(x.id)] = scS(x[field])));\n  } catch (e) {\n    console.error(\"SO Linked IAs: names could not be read\", e);\n  }\n  return out;\n};\nconst ROLE = { produced: \"Produced\", open: \"Open\", excluded: \"Excluded\", none: \"Not counted\" };\nconst MODE = { STANDARD: \"Standard\", FLAT: \"Flat\" };\n// a Created IA (RES-01, BA 10-22) is open production like a Draft (review 3)\nconst OPEN_ST = { Draft: 1, Created: 1, Processing: 1 };\nconst DONE_ST = { Completed: 1, \"Fully Posted\": 1 };\n// the summary: one fact per row (the line left, the production right, the warnings below); a row without a fact is hidden\nconst SUMMARY = [\"sli_summary_so\", \"sli_summary_customer\", \"sli_summary_item\", \"sli_summary_ordered\", \"sli_summary_delivered\", \"sli_summary_planned\", \"sli_summary_produced\",\n  \"sli_summary_open\", \"sli_summary_suggest\", \"sli_summary_warn\"];\nconst scRows = (row) => SUMMARY.reduce((data, m) => Object.assign(data, { [m]: row[m] || \"\" }), {});\nconst scShowRows = (row) => {\n  const on = SUMMARY.filter((m) => row[m]);\n  const off = SUMMARY.filter((m) => !row[m]);\n  if (on.length) this.display(on);\n  if (off.length) this.hide(off);\n};\n\n(async () => {\n  try {\n    const params = { operation: \"SUMMARY\", so_id: scP(\"so_id\"), so_line_id: scP(\"so_line_id\"), item_id: scP(\"item_id\"), exclude_ia_id: \"\", organization_id: scP(\"organization_id\"),\n      proposal_qty: \"\", proposal_uom_id: \"\", baseline: \"\" };\n    let r = null;\n    // a refusal (400, e.g. the user is not assigned to the organisation: FIX-03) is shown with its reason\n    let refused = \"\";\n    try {\n      const res = await scRun(SC_WF_PROJECTION, params);\n      const d = (res && res.data) || {};\n      r = scS(d.code) === \"200\" ? scParseJ(d.result_json) : null;\n      if (scS(d.code) === \"400\") refused = scS(d.message);\n    } catch (e) {\n      console.error(\"SO Linked IAs: SUMMARY failed\", e);\n    }\n    if (!r || !r.totals) {\n      const down = { sli_summary_so: refused || \"figures unavailable right now: press Refresh to try again\" };\n      await this.setData(Object.assign(scRows(down), { sli_ias: [], sli_orphans: [] }));\n      scShowRows(down);\n      this.hide([\"sli_btn_create\", \"sli_orphans\"]);\n      return;\n    }\n    const h = r.header || {};\n    const l = r.line || {};\n    const orphans = Array.isArray(r.orphans) ? r.orphans : [];\n    const uoms = await scNames(\"unit_of_measurement\", [r.uomId].concat((r.ias || []).map((x) => x.uomId), orphans.map((x) => x.item_uom)), \"uom_name\");\n    const item = (await scNames(\"item\", [scP(\"item_id\")], \"material_name\"))[scP(\"item_id\")] || scP(\"item_id\");\n    const u = (id) => uoms[scS(id)] || scS(id);\n    const swap = (text) => Object.keys(uoms).reduce((t, id) => (uoms[id] ? t.split(id).join(uoms[id]) : t), scS(text));\n    const t = r.totals;\n    const lineQty = (n) => scQ8(n) + (uoms[scS(r.uomId)] ? \" \" + uoms[scS(r.uomId)] : \"\");\n    const active = !!r.header && !!r.line && Number(h.is_deleted) !== 1 && Number(l.is_deleted) !== 1 && (scS(h.so_status) === \"Issued\" || scS(h.so_status) === \"Processing\") &&\n      scS(l.line_status) !== \"Completed\" && scS(l.line_status) !== \"Cancelled\";\n    // the suggestion takes off the larger of delivered and produced\n    const done = scQ8(t.delivered) > scQ8(t.produced) ? scQ8(t.delivered) + \" delivered\" : scQ8(t.produced) + \" produced\";\n    const row = {\n      sli_summary_so: (scS(h.so_no) || \"Sales Order\") + (scS(l.line_index) ? \" · line \" + scS(l.line_index) : \"\"),\n      sli_summary_customer: scS(h.customer_name),\n      sli_summary_item: item,\n      sli_summary_ordered: lineQty(t.ordered),\n      sli_summary_delivered: lineQty(t.delivered),\n      sli_summary_planned: lineQty(t.planned) + \" in this line's IAs\",\n      sli_summary_produced: lineQty(t.produced),\n      sli_summary_open: lineQty(t.open) + \" in open IAs\",\n      // a delivery may have come from the linked production: nothing records which, so no figure (FIX-01)\n      sli_summary_suggest: t.unavailable === \"OVERLAP\" ? \"Unavailable: nothing records whether the \" + lineQty(t.delivered) + \" delivered came from the \" + lineQty(t.produced) + \" produced\"\n        : t.suggestion === null || t.complete === false ? \"Unavailable: a unit conversion is missing\"\n        : !active ? lineQty(0) + \": the line has no remaining demand\"\n        : lineQty(t.suggestion) + \" = \" + scQ8(t.ordered) + \" ordered \\u2212 \" + done + \" \\u2212 \" + scQ8(t.open) + \" in progress\",\n    };\n    const warnings = r.warnings || [];\n    if (warnings.length) row.sli_summary_warn = warnings.map((w) => \"\\u26a0 \" + swap(w.text)).join(\"   \");\n    // UI-01: an open IA's quantity is still to be received, a completed one's received; an IA the figures do not count shows neither\n    const rows = (r.ias || []).map((x) => ({ ia_no: scS(x.no), status: scS(x.status), mode: MODE[scS(x.mode)] || \"\", planned: scQ8(x.planned),\n      to_receive: scS(x.role) === \"open\" ? scQ8(x.itemQty) : null, actual: scS(x.role) === \"produced\" ? scQ8(x.itemQty) : null, uom: u(x.uomId),\n      counted: ROLE[scS(x.role)] || \"Not counted\", ia_id: scS(x.id) }));\n    const lost = orphans.map((x) => ({ ia_no: scS(x.no), status: scS(x.status), mode: MODE[scS(x.mode)] || \"\", planned: scQ8(scS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty),\n      to_receive: OPEN_ST[scS(x.status)] ? scQ8(x.item_qty) : null, actual: DONE_ST[scS(x.status)] ? scQ8(x.item_qty) : null, uom: u(x.item_uom), counted: \"Line removed\",\n      ia_id: scS(x.id) }));\n    await this.setData(Object.assign(scRows(row), { sli_ias: rows, sli_orphans: lost }));\n    scShowRows(row);\n    if (lost.length) this.display([\"sli_orphans\"]);\n    else this.hide([\"sli_orphans\"]);\n    if (r.eligibleNew) this.display([\"sli_btn_create\"]);\n    else this.hide([\"sli_btn_create\"]);\n    if (scS(scArgs.action) !== \"create\") return;\n    if (!r.eligibleNew) {\n      this.$message.warning(scS(r.reason) || \"No Item Assembly can be created for this line.\");\n      return;\n    }\n    this.toView({ target: SC_IA_FORM, type: \"add\", mode: \"dialog\", title: \"Add Item Assembly\", width: \"80%\",\n      data: { item_id: scP(\"item_id\"), source_so_id: scS(h.id) || scP(\"so_id\"), source_so_line_id: scS(l.id) || scP(\"so_line_id\"), bom_consumption_mode: \"STANDARD\" },\n      params: { sc_entry: \"1\" } });\n  } catch (error) {\n    console.error(\"SO Linked IAs error:\", error);\n    this.$message.error((error && error.message) || \"The Item Assemblies could not be shown\");\n  }\n})();\n",
+        "func": "// sli_load - SO Linked IAs page (Small Cycle, scratchpad/iasc/CONTRACT.md section 10): one Sales Order line's figures, one per row\n// (the line, its customer, item, ordered and delivered; planned, produced and in progress in its linked IAs; the suggested\n// quantity with its sum), its warnings, its IAs and the SO's IAs whose line was removed. A failed read shows \"unavailable\", never a zero. Run by mounted (with the row action's sc_action), refresh and Refresh; Create IA opens the IA form only on\n// an eligible line.\nconst SC_WF_PROJECTION = \"2112448183267332097\"; // SO_IA_PROJECTION\nconst SC_IA_FORM = \"2098256587713404929\";\nconst scArgs = arguments[0] || {};\nconst scS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst scQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\nconst scParseJ = (v) => {\n  if (v && typeof v === \"object\") return v;\n  const t = scS(v);\n  if (!t) return null;\n  try {\n    return JSON.parse(t.replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n  } catch (e) {\n    return null;\n  }\n};\nconst scP = (k) => scS(this.getParamsVariables(k));\nconst scRun = (id, params) =>\n  new Promise((resolve, reject) => {\n    const p = this.runWorkflow(id, params, (res) => resolve(res), (err) => reject(err));\n    if (p && typeof p.then === \"function\") p.then((res) => resolve(res), (err) => reject(err));\n  });\nconst scNames = async (collection, ids, field) => {\n  const want = ids.filter((id, i, all) => scS(id) && all.indexOf(id) === i);\n  const out = {};\n  if (!want.length) return out;\n  try {\n    const res = await db.collection(collection).field(field)\n      .filter([{ type: \"branch\", operator: \"all\", children: [{ prop: \"id\", operator: \"in\", value: want }, { prop: \"is_deleted\", operator: \"equal\", value: 0 }] }])\n      .limit(want.length).get();\n    ((res && res.data) || []).forEach((x) => (out[scS(x.id)] = scS(x[field])));\n  } catch (e) {\n    console.error(\"SO Linked IAs: names could not be read\", e);\n  }\n  return out;\n};\n// an active BOM of the item in the organisation (the IA form's own rule: BOMs are per organisation): true / false; null = the read failed\nconst scHasBom = async (itemId, org) => {\n  try {\n    const res = await db.collection(\"bill_of_materials\").field(\"id\")\n      .filter([{ type: \"branch\", operator: \"all\", children: [{ prop: \"parent_material_code\", operator: \"equal\", value: itemId },\n        { prop: \"organization_id\", operator: \"equal\", value: org }, { prop: \"is_active\", operator: \"equal\", value: 1 }, { prop: \"is_deleted\", operator: \"equal\", value: 0 }] }])\n      .limit(1).get();\n    return ((res && res.data) || []).length > 0;\n  } catch (e) {\n    console.error(\"SO Linked IAs: the item's BOMs could not be read\", e);\n    return null;\n  }\n};\n// the Sales Order's own plant; \"\" = an organisation-level SO (its plant is the organisation, or none); null = the read failed\nconst scSoPlant = async (soId, org) => {\n  try {\n    const res = await db.collection(\"sales_order\").field(\"plant_name\").where({ id: soId }).get();\n    const row = ((res && res.data) || [])[0] || {};\n    const p = scS(row.plant_name);\n    return /^[0-9]{1,20}$/.test(p) && p !== scS(org) ? p : \"\";\n  } catch (e) {\n    console.error(\"SO Linked IAs: the Sales Order's plant could not be read\", e);\n    return null;\n  }\n};\n// a plant-level login's own plant, \"\" for an organisation-level login (the IA form's and Convert to GD's rule)\nconst scLoginPlant = () => {\n  const parent = scS(this.getVarGlobal(\"deptParentId\"));\n  const p = scS(this.getVarSystem(\"deptIds\")).split(\",\")[0].trim();\n  return parent && parent !== \"0\" && /^[0-9]{1,20}$/.test(p) ? p : \"\";\n};\n// the figure tiles (the user, 10-29): one html card on top - the line, its customer and item, the six figures, the sum under them, the\n// warnings in a strip; inline styles only, every text escaped\nconst scEsc = (v) => scS(v).replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\");\nconst scCard = (body) => '<div style=\"font-size:13px;color:#1F2937;line-height:1.45;margin-bottom:12px\">' + body + \"</div>\";\nconst scMessage = (text) => scCard('<div style=\"padding:10px 12px;border:1px solid #E5E7EB;border-radius:6px;background:#F9FAFB;color:#6B7280\">' + scEsc(text) + \"</div>\");\nconst scTile = (label, value, key) => '<div style=\"flex:1 1 110px;min-width:110px;padding:8px 12px;border-radius:6px;border:1px solid ' + (key ? \"#335B57\" : \"#E5E7EB\") +\n  \";background:\" + (key ? \"#EEF4F3\" : \"#FAFAFA\") + '\"><div style=\"font-size:12px;color:#6B7280\">' + label + '</div><div style=\"font-size:18px;font-weight:600;color:' +\n  (key ? \"#335B57\" : \"#111827\") + '\">' + scEsc(value) + \"</div></div>\";\nconst scTiles = (x) => {\n  const t = x.t;\n  const plan = t.unavailable === \"OVERLAP\" ? [\"—\", \"Unavailable: nothing records whether the \" + x.lineQty(t.delivered) + \" delivered came from the \" + x.lineQty(t.produced) + \" produced\"]\n    : t.suggestion === null || t.complete === false ? [\"—\", \"Unavailable: a unit conversion is missing\"]\n    : !x.active ? [x.lineQty(0), \"the line has no remaining demand\"]\n    : [x.lineQty(t.suggestion), \"To Plan = \" + scQ8(t.ordered) + \" ordered − \" + x.done + \" − \" + scQ8(t.open) + \" in progress\"];\n  const sub = [scS(x.h.customer_name), scS(x.item)].filter((s) => s).join(\" · \");\n  const tiles = [[\"Ordered\", x.lineQty(t.ordered)], [\"Delivered\", x.lineQty(t.delivered)], [\"Planned\", x.lineQty(t.planned)], [\"Produced\", x.lineQty(t.produced)],\n    [\"In Progress\", x.lineQty(t.open)]].map((p) => scTile(p[0], p[1], false)).join(\"\") + scTile(\"To Plan\", plan[0], true);\n  const warn = x.warnings.length ? '<div style=\"margin-top:10px;padding:8px 12px;border:1px solid #FFD591;border-radius:6px;background:#FFF7E6;color:#AD6800\">' +\n    x.warnings.map((w) => \"<div>⚠ \" + scEsc(w) + \"</div>\").join(\"\") + \"</div>\" : \"\";\n  return scCard('<div style=\"font-size:20px;font-weight:600;color:#111827\">' + scEsc((scS(x.h.so_no) || \"Sales Order\") + (scS(x.l.line_index) ? \" · line \" + scS(x.l.line_index) : \"\")) +\n    \"</div>\" + (sub ? '<div style=\"color:#4B5563;margin-top:2px\">' + scEsc(sub) + \"</div>\" : \"\") + '<div style=\"display:flex;flex-wrap:wrap;gap:8px;margin-top:10px\">' + tiles +\n    '</div><div style=\"font-size:12px;color:#6B7280;margin-top:6px\">' + scEsc(plan[1]) + \"</div>\" + warn);\n};\nconst ROLE = { produced: \"Produced\", open: \"Open\", excluded: \"Excluded\", none: \"Not counted\" };\nconst MODE = { STANDARD: \"Standard\", FLAT: \"Flat\" };\n// a Created IA (RES-01, BA 10-22) is open production like a Draft (review 3)\nconst OPEN_ST = { Draft: 1, Created: 1, Processing: 1 };\nconst DONE_ST = { Completed: 1, \"Fully Posted\": 1 };\n// the summary: one fact per row (the line left, the production right, the warnings below); a row without a fact is hidden\nconst SUMMARY = [\"sli_summary_so\", \"sli_summary_customer\", \"sli_summary_item\", \"sli_summary_ordered\", \"sli_summary_delivered\", \"sli_summary_planned\", \"sli_summary_produced\",\n  \"sli_summary_open\", \"sli_summary_suggest\", \"sli_summary_warn\"];\nconst scRows = (row) => SUMMARY.reduce((data, m) => Object.assign(data, { [m]: row[m] || \"\" }), {});\nconst scShowRows = (row) => {\n  const on = SUMMARY.filter((m) => row[m]);\n  const off = SUMMARY.filter((m) => !row[m]);\n  if (on.length) this.display(on);\n  if (off.length) this.hide(off);\n};\n\n(async () => {\n  try {\n    const params = { operation: \"SUMMARY\", so_id: scP(\"so_id\"), so_line_id: scP(\"so_line_id\"), item_id: scP(\"item_id\"), exclude_ia_id: \"\", organization_id: scP(\"organization_id\"),\n      proposal_qty: \"\", proposal_uom_id: \"\", baseline: \"\" };\n    let r = null;\n    // a refusal (400, e.g. the user is not assigned to the organisation: FIX-03) is shown with its reason\n    let refused = \"\";\n    try {\n      const res = await scRun(SC_WF_PROJECTION, params);\n      const d = (res && res.data) || {};\n      r = scS(d.code) === \"200\" ? scParseJ(d.result_json) : null;\n      if (scS(d.code) === \"400\") refused = scS(d.message);\n    } catch (e) {\n      console.error(\"SO Linked IAs: SUMMARY failed\", e);\n    }\n    if (!r || !r.totals) {\n      const down = { sli_summary_so: refused || \"figures unavailable right now: press Refresh to try again\" };\n      await this.setData(Object.assign(scRows(down), { sli_ias: [], sli_orphans: [] }));\n      await this.setData({ sli_summary_html: scMessage(down.sli_summary_so) }); // the tiles (10-29)\n      scShowRows(down);\n      this.hide([\"sli_btn_create\", \"sli_orphans\"]);\n      return;\n    }\n    const h = r.header || {};\n    const l = r.line || {};\n    const orphans = Array.isArray(r.orphans) ? r.orphans : [];\n    const uoms = await scNames(\"unit_of_measurement\", [r.uomId].concat((r.ias || []).map((x) => x.uomId), orphans.map((x) => x.item_uom)), \"uom_name\");\n    const item = (await scNames(\"item\", [scP(\"item_id\")], \"material_name\"))[scP(\"item_id\")] || scP(\"item_id\");\n    const u = (id) => uoms[scS(id)] || scS(id);\n    const swap = (text) => Object.keys(uoms).reduce((t, id) => (uoms[id] ? t.split(id).join(uoms[id]) : t), scS(text));\n    const t = r.totals;\n    const lineQty = (n) => scQ8(n) + (uoms[scS(r.uomId)] ? \" \" + uoms[scS(r.uomId)] : \"\");\n    const active = !!r.header && !!r.line && Number(h.is_deleted) !== 1 && Number(l.is_deleted) !== 1 && (scS(h.so_status) === \"Issued\" || scS(h.so_status) === \"Processing\") &&\n      scS(l.line_status) !== \"Completed\" && scS(l.line_status) !== \"Cancelled\";\n    // the suggestion takes off the larger of delivered and produced\n    const done = scQ8(t.delivered) > scQ8(t.produced) ? scQ8(t.delivered) + \" delivered\" : scQ8(t.produced) + \" produced\";\n    const row = {\n      sli_summary_so: (scS(h.so_no) || \"Sales Order\") + (scS(l.line_index) ? \" · line \" + scS(l.line_index) : \"\"),\n      sli_summary_customer: scS(h.customer_name),\n      sli_summary_item: item,\n      sli_summary_ordered: lineQty(t.ordered),\n      sli_summary_delivered: lineQty(t.delivered),\n      sli_summary_planned: lineQty(t.planned) + \" in this line's IAs\",\n      sli_summary_produced: lineQty(t.produced),\n      sli_summary_open: lineQty(t.open) + \" in open IAs\",\n      // a delivery may have come from the linked production: nothing records which, so no figure (FIX-01)\n      sli_summary_suggest: t.unavailable === \"OVERLAP\" ? \"Unavailable: nothing records whether the \" + lineQty(t.delivered) + \" delivered came from the \" + lineQty(t.produced) + \" produced\"\n        : t.suggestion === null || t.complete === false ? \"Unavailable: a unit conversion is missing\"\n        : !active ? lineQty(0) + \": the line has no remaining demand\"\n        : lineQty(t.suggestion) + \" = \" + scQ8(t.ordered) + \" ordered \\u2212 \" + done + \" \\u2212 \" + scQ8(t.open) + \" in progress\",\n    };\n    const warnings = r.warnings || [];\n    if (warnings.length) row.sli_summary_warn = warnings.map((w) => \"\\u26a0 \" + swap(w.text)).join(\"   \");\n    // UI-01: an open IA's quantity is still to be received, a completed one's received; an IA the figures do not count shows neither\n    const rows = (r.ias || []).map((x) => ({ ia_no: scS(x.no), status: scS(x.status), mode: MODE[scS(x.mode)] || \"\", planned: scQ8(x.planned),\n      to_receive: scS(x.role) === \"open\" ? scQ8(x.itemQty) : null, actual: scS(x.role) === \"produced\" ? scQ8(x.itemQty) : null, uom: u(x.uomId),\n      counted: ROLE[scS(x.role)] || \"Not counted\", ia_id: scS(x.id) }));\n    const lost = orphans.map((x) => ({ ia_no: scS(x.no), status: scS(x.status), mode: MODE[scS(x.mode)] || \"\", planned: scQ8(scS(x.planned_output_qty) ? x.planned_output_qty : x.item_qty),\n      to_receive: OPEN_ST[scS(x.status)] ? scQ8(x.item_qty) : null, actual: DONE_ST[scS(x.status)] ? scQ8(x.item_qty) : null, uom: u(x.item_uom), counted: \"Line removed\",\n      ia_id: scS(x.id) }));\n    await this.setData(Object.assign(scRows(row), { sli_ias: rows, sli_orphans: lost }));\n    await this.setData({ sli_summary_html: scTiles({ h: h, l: l, t: t, item: item, lineQty: lineQty, active: active, done: done, warnings: warnings.map((w) => swap(w.text)) }) }); // the tiles (10-29)\n    scShowRows(row);\n    if (lost.length) this.display([\"sli_orphans\"]);\n    else this.hide([\"sli_orphans\"]);\n    // only an item with an active BOM in the Sales Order's organisation can be assembled (the user, 10-28)\n    const org = scS(h.organization_id) || scP(\"organization_id\");\n    const bom = r.eligibleNew ? await scHasBom(scP(\"item_id\"), org) : null;\n    if (r.eligibleNew && bom === true) this.display([\"sli_btn_create\"]);\n    else this.hide([\"sli_btn_create\"]);\n    if (scS(scArgs.action) !== \"create\") return;\n    if (!r.eligibleNew) {\n      this.$message.warning(scS(r.reason) || \"No Item Assembly can be created for this line.\");\n      return;\n    }\n    if (bom === null) {\n      this.$message.error(\"The item's BOMs could not be read: press Refresh and try again.\");\n      return;\n    }\n    if (!bom) {\n      this.$message.warning(item + \" has no active BOM, so an Item Assembly can't be made for it.\");\n      return;\n    }\n    // the plant (the user, 10-28: as SO -> GD): a plant-level login's own, else the one chosen in Select Plant, else the Sales Order's\n    // own; an organisation-level SO asks\n    let plant = scLoginPlant() || scS(scArgs.plant);\n    if (!plant) {\n      const own = await scSoPlant(scS(h.id) || scP(\"so_id\"), org);\n      if (own === null) {\n        this.$message.error(\"The Sales Order's plant could not be read: press Refresh and try again.\");\n        return;\n      }\n      if (!own) {\n        await this.setData({ \"sli_plant_dialog.sli_plant_id\": \"\" });\n        this.openDialog(\"sli_plant_dialog\");\n        return;\n      }\n      plant = own;\n    }\n    // on the right, as every form opens (the user, 10-28)\n    this.toView({ target: SC_IA_FORM, type: \"add\", mode: \"dialog\", position: \"rtl\", title: \"Add Item Assembly\", width: \"80%\",\n      data: { item_id: scP(\"item_id\"), source_so_id: scS(h.id) || scP(\"so_id\"), source_so_line_id: scS(l.id) || scP(\"so_line_id\"), bom_consumption_mode: \"STANDARD\",\n        issuing_operation_faci: plant },\n      params: { sc_entry: \"1\" } });\n  } catch (error) {\n    console.error(\"SO Linked IAs error:\", error);\n    this.$message.error((error && error.message) || \"The Item Assemblies could not be shown\");\n  }\n})();\n",
         "type": "js"
       },
       {
@@ -2378,13 +2751,25 @@
       {
         "key": "rznmi2xb",
         "name": "sli_onClick_open",
-        "func": "// sli_onClick_open - SO Linked IAs page, the Open link of the line's IAs: the Item Assembly in its own form (a Draft or a Created IA to\n// edit, any other status to view; the form applies its own rules for the status).\nconst SC_IA_FORM = \"2098256587713404929\";\nconst scRow = (arguments[0] && arguments[0].row) || {};\nconst scId = String(scRow.ia_id === undefined || scRow.ia_id === null ? \"\" : scRow.ia_id).trim();\nif (/^[0-9]{1,20}$/.test(scId)) {\n  const edit = [\"Draft\", \"Created\"].indexOf(String(scRow.status || \"\")) >= 0;\n  const view = { target: SC_IA_FORM, type: edit ? \"edit\" : \"view\", mode: \"dialog\", title: edit ? \"Edit\" : \"View\", width: \"80%\", data: { id: scId } };\n  if (!edit) view.viewMode = \"disabled\";\n  this.toView(view);\n}\n",
+        "func": "// sli_onClick_open - SO Linked IAs page, the Open link of the line's IAs: the Item Assembly in its own form (a Draft or a Created IA to\n// edit, any other status to view; the form applies its own rules for the status).\nconst SC_IA_FORM = \"2098256587713404929\";\nconst scRow = (arguments[0] && arguments[0].row) || {};\nconst scId = String(scRow.ia_id === undefined || scRow.ia_id === null ? \"\" : scRow.ia_id).trim();\nif (/^[0-9]{1,20}$/.test(scId)) {\n  const edit = [\"Draft\", \"Created\"].indexOf(String(scRow.status || \"\")) >= 0;\n  // on the right, as every form opens (the user, 10-28)\n  const view = { target: SC_IA_FORM, type: edit ? \"edit\" : \"view\", mode: \"dialog\", position: \"rtl\", title: edit ? \"Edit\" : \"View\", width: \"80%\", data: { id: scId } };\n  if (!edit) view.viewMode = \"disabled\";\n  this.toView(view);\n}\n",
         "type": "js"
       },
       {
         "key": "w24ewlbr",
         "name": "sli_onClick_openOrphan",
-        "func": "// sli_onClick_openOrphan - SO Linked IAs page, the Open link of the IAs whose line was removed: the Item Assembly in its own form (a Draft or a Created IA to\n// edit, any other status to view; the form applies its own rules for the status).\nconst SC_IA_FORM = \"2098256587713404929\";\nconst scRow = (arguments[0] && arguments[0].row) || {};\nconst scId = String(scRow.ia_id === undefined || scRow.ia_id === null ? \"\" : scRow.ia_id).trim();\nif (/^[0-9]{1,20}$/.test(scId)) {\n  const edit = [\"Draft\", \"Created\"].indexOf(String(scRow.status || \"\")) >= 0;\n  const view = { target: SC_IA_FORM, type: edit ? \"edit\" : \"view\", mode: \"dialog\", title: edit ? \"Edit\" : \"View\", width: \"80%\", data: { id: scId } };\n  if (!edit) view.viewMode = \"disabled\";\n  this.toView(view);\n}\n",
+        "func": "// sli_onClick_openOrphan - SO Linked IAs page, the Open link of the IAs whose line was removed: the Item Assembly in its own form (a Draft or a Created IA to\n// edit, any other status to view; the form applies its own rules for the status).\nconst SC_IA_FORM = \"2098256587713404929\";\nconst scRow = (arguments[0] && arguments[0].row) || {};\nconst scId = String(scRow.ia_id === undefined || scRow.ia_id === null ? \"\" : scRow.ia_id).trim();\nif (/^[0-9]{1,20}$/.test(scId)) {\n  const edit = [\"Draft\", \"Created\"].indexOf(String(scRow.status || \"\")) >= 0;\n  // on the right, as every form opens (the user, 10-28)\n  const view = { target: SC_IA_FORM, type: edit ? \"edit\" : \"view\", mode: \"dialog\", position: \"rtl\", title: edit ? \"Edit\" : \"View\", width: \"80%\", data: { id: scId } };\n  if (!edit) view.viewMode = \"disabled\";\n  this.toView(view);\n}\n",
+        "type": "js"
+      },
+      {
+        "key": "cbrqj76p",
+        "name": "sli_onConfirm_plant",
+        "func": "// sli_onConfirm_plant - SO Linked IAs page, Select Plant (an organisation-level Sales Order; the user, 10-28: as SO -> GD does): a plant\n// is required (a plant, never the organisation itself); the figures read again and the Item Assembly form opened for that plant\nconst scS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst scPlant = scS(this.getValue(\"sli_plant_dialog.sli_plant_id\"));\nif (!/^[0-9]{1,20}$/.test(scPlant) || scPlant === scS(this.getParamsVariables(\"organization_id\"))) {\n  this.$alert(\"Please select a plant to proceed.\", \"Error\", { confirmButtonText: \"OK\", type: \"error\" });\n} else {\n  this.closeDialog(\"sli_plant_dialog\");\n  this.triggerEvent(\"sli_load\", { action: \"create\", plant: scPlant });\n}\n",
+        "type": "js"
+      },
+      {
+        "key": "u7rtwbrj",
+        "name": "sli_onCancel_plant",
+        "func": "// Select Plant cancelled\nthis.closeDialog(\"sli_plant_dialog\");\n",
         "type": "js"
       }
     ],

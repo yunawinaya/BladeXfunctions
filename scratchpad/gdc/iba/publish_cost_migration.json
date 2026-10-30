@@ -1,0 +1,16 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "INVENTORY_BULK_APPLY",
+   "dataId": "2109916822821744641",
+   "file": "Balance Table/INVENTORY_BULK_APPLY.json",
+   "base": "scratchpad/gdc/iba/base/INVENTORY_BULK_APPLY.live_v12.json",
+   "smoke": {
+    "request": {"operation_key": "IBATEST|SMOKE", "mode": "PLAN", "organization_id": "1123598813738675201", "movements": []},
+    "expect": {"key": "result_code", "equals": "REQUEST_INVALID"}
+   }
+  }
+ ]
+}

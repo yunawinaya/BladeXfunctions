@@ -306,4 +306,184 @@ t("store raw value (dp null) keeps 8 dp for that rule", () => {
   assert.strictEqual(upd(p, "item_balance", "B1").after.reserved_qty, 0.9996);
 });
 
+// ---------------------------------------------------------------- costing migration (opt-in: input.migrateCosting)
+const fifoL = (id, mat, seq, avail, cost, extra) => Object.assign({ id, material_id: mat, plant_id: PLANT, organization_id: ORG, batch_id: null, fifo_sequence: String(seq), fifo_available_quantity: avail, fifo_initial_quantity: avail, fifo_cost_price: cost }, extra || {});
+const waR = (id, mat, qty, cost, extra) => Object.assign({ id, material_id: mat, plant_id: PLANT, organization_id: ORG, batch_id: null, wa_quantity: qty, wa_cost_price: cost, created_at: "" }, extra || {});
+const P4 = { price: { dp: 4, mode: 1 }, qty: { dp: 3, mode: 1 } };
+
+t("migration: a WA item with FIFO rows only gets one WA row (weighted, at the tenant rule), FIFO retired, then priced + deducted from it", () => {
+  const p = planBulk({
+    migrateCosting: { ["M1|" + PLANT]: true },
+    precision: P4,
+    nowText: "2026-10-30 12:00:00",
+    items: { M1: item("M1", "Weighted Average") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 12, unrestricted_qty: 1000999958, balance_quantity: 1000999970 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 999971, 0), fifoL("F2", "M1", 2, 999999999, 52)],
+    movements: [sub("a", "M1", "L1", 12)],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.strictEqual(p.creates.wa.length, 1);
+  const w = p.creates.wa[0];
+  assert.strictEqual(w.wa_cost_price, 51.9481); // V97: 51.94805345 at 4 dp, as the platform stores it
+  assert.strictEqual(w.wa_quantity, 1000999958); // 1,000,999,970 merged, 12 deducted
+  assert.strictEqual(w.created_at, "2026-10-30 12:00:00");
+  assert.ok(!("batch_id" in w));
+  for (const id of ["F1", "F2"]) {
+    const f = upd(p, "fifo", id);
+    assert.deepStrictEqual(f.after, { fifo_available_quantity: f.before.fifo_available_quantity, is_deleted: 1 });
+    assert.strictEqual(f.before.is_deleted, null);
+  }
+  assert.strictEqual(p.results[0].unit_price, 51.9481);
+  assert.strictEqual(p.results[0].costing_migrated, "FIFO_TO_WA");
+  assert.strictEqual(p.movements[0].unit_price, 51.9481);
+});
+
+t("migration: a WA item with both kinds merges FIFO into its newest WA row (wc*wq + avg*Q)/(wq+Q), FIFO retired, older WA row kept", () => {
+  const p = planBulk({
+    migrateCosting: "ALL",
+    items: { M1: item("M1", "Weighted Average") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 5, balance_quantity: 5 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 10, 4), fifoL("F2", "M1", 2, 0, 99)],
+    waRows: [waR("W1", "M1", 1, 1, { created_at: "2026-01-01 00:00:00" }), waR("W2", "M1", 30, 2, { created_at: "2026-10-01 00:00:00" })],
+    movements: [sub("a", "M1", "L1", 5)],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  const w2 = upd(p, "wa", "W2");
+  // (2*30 + 4*10) / 40 = 2.5; then 5 out
+  assert.deepStrictEqual(w2.after, { wa_quantity: 35, wa_cost_price: 2.5 });
+  assert.strictEqual(upd(p, "wa", "W1"), undefined);
+  assert.strictEqual(upd(p, "fifo", "F1").after.is_deleted, 1);
+  assert.strictEqual(upd(p, "fifo", "F2").after.is_deleted, 1); // retired even at 0 available, as classic
+  assert.strictEqual(p.results[0].unit_price, 2.5);
+  assert.strictEqual(p.results[0].costing_migrated, "FIFO_INTO_WA");
+  assert.strictEqual(p.creates.wa.length, 0);
+});
+
+t("migration: a FIFO item with WA rows only gets the newest WA row as layer 1, WA retired, then priced + deducted (classic priced 0)", () => {
+  const p = planBulk({
+    migrateCosting: "ALL",
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 4, unrestricted_qty: 6, balance_quantity: 10 })],
+    waRows: [waR("W1", "M1", 10, 3.5), waR("W0", "M1", 7, 9, { created_at: "" })],
+    movements: [sub("a", "M1", "L1", 4)],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.strictEqual(p.creates.fifo.length, 1);
+  const l = p.creates.fifo[0];
+  assert.strictEqual(l.fifo_sequence, "1");
+  assert.strictEqual(l.fifo_cost_price, 3.5);
+  assert.strictEqual(l.fifo_initial_quantity, 10);
+  assert.strictEqual(l.fifo_available_quantity, 6); // deducted in the same movement
+  assert.strictEqual(upd(p, "wa", "W1").after.is_deleted, 1);
+  assert.strictEqual(upd(p, "wa", "W0").after.is_deleted, 1);
+  assert.strictEqual(p.results[0].unit_price, 3.5);
+  assert.strictEqual(p.results[0].costing_migrated, "WA_TO_FIFO");
+});
+
+t("migration: a FIFO item with both kinds gets the newest WA row as the next layer (max + 1), priced in FIFO order", () => {
+  const p = planBulk({
+    migrateCosting: "ALL",
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 6, balance_quantity: 6 })],
+    fifoLayers: [fifoL("F1", "M1", 3, 2, 1)],
+    waRows: [waR("W1", "M1", 5, 4)],
+    movements: [sub("a", "M1", "L1", 6)],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  const l = p.creates.fifo[0];
+  assert.strictEqual(l.fifo_sequence, "4");
+  assert.strictEqual(l.fifo_available_quantity, 1); // 2 from layer 3, then 4 of 5 from the new layer
+  assert.strictEqual(upd(p, "fifo", "F1").after.fifo_available_quantity, 0);
+  assert.strictEqual(p.results[0].unit_price, 3); // (2*1 + 4*4) / 6
+  assert.strictEqual(p.results[0].costing_migrated, "WA_INTO_FIFO");
+});
+
+t("migration: a batch key migrates only its own batch's rows, the new row carries the batch", () => {
+  const p = planBulk({
+    migrateCosting: "ALL",
+    items: { M1: item("M1", "Weighted Average", { item_batch_management: 1 }) },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 2, balance_quantity: 2 })],
+    batchBalances: [Object.assign(bal("BB1", "M1", "L1", { reserved_qty: 2, balance_quantity: 2 }), { batch_id: "T1" })],
+    fifoLayers: [fifoL("F1", "M1", 1, 2, 5, { batch_id: "T1" }), fifoL("F9", "M1", 1, 9, 9, { batch_id: "T9" })],
+    movements: [sub("a", "M1", "L1", 2, { batch_id: "T1" })],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.strictEqual(p.creates.wa[0].batch_id, "T1");
+  assert.strictEqual(upd(p, "fifo", "F1").after.is_deleted, 1);
+  assert.strictEqual(upd(p, "fifo", "F9"), undefined);
+});
+
+t("migration: a later movement of the same key sees the migrated rows (no second migration)", () => {
+  const p = planBulk({
+    migrateCosting: "ALL",
+    items: { M1: item("M1", "Weighted Average") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 3, balance_quantity: 3 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 3, 2)],
+    movements: [sub("a", "M1", "L1", 1), sub("b", "M1", "L1", 2)],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.strictEqual(p.creates.wa.length, 1);
+  assert.strictEqual(p.creates.wa[0].wa_quantity, 0);
+  assert.strictEqual(p.results[0].costing_migrated, "FIFO_TO_WA");
+  assert.strictEqual(p.results[1].costing_migrated, undefined);
+  assert.strictEqual(p.results[1].unit_price, 2);
+});
+
+t("migration: Fixed Cost with both kinds goes through untouched (classic leaves them); without the flag it is still refused", () => {
+  const input = () => ({
+    items: { M1: item("M1", "Fixed Cost") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 1, balance_quantity: 1 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 1, 1)],
+    waRows: [waR("W1", "M1", 1, 1)],
+    movements: [sub("a", "M1", "L1", 1)],
+  });
+  const p = planBulk(Object.assign(input(), { migrateCosting: "ALL" }));
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.strictEqual(p.results[0].unit_price, 7);
+  assert.strictEqual(p.updates.fifo.length + p.updates.wa.length + p.creates.fifo.length + p.creates.wa.length, 0);
+  assert.strictEqual(p.results[0].costing_migrated, undefined);
+  assert.strictEqual(planBulk(input()).failure.code, "UNSUPPORTED_COSTING");
+});
+
+t("migration: a pair whose COST lock this run does not hold is refused as before (the category-move race)", () => {
+  const p = planBulk({
+    migrateCosting: { ["M2|" + PLANT]: true },
+    items: { M1: item("M1", "Weighted Average") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 1, balance_quantity: 1 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 1, 1)],
+    movements: [sub("a", "M1", "L1", 1, { isMovingInv: 1, inventory_category: "Reserved" })],
+  });
+  assert.strictEqual(p.ok, false);
+  assert.strictEqual(p.failure.code, "UNSUPPORTED_COSTING");
+  assert.ok(/FIFO 1, WA 0/.test(p.failure.message));
+});
+
+t("migration: a category move (isMovingInv 1) migrates under the lock but writes no movement-side costing beyond the migration", () => {
+  const p = planBulk({
+    migrateCosting: { ["M1|" + PLANT]: true },
+    items: { M1: item("M1", "Weighted Average") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 4, balance_quantity: 4 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 4, 3)],
+    movements: [sub("a", "M1", "L1", 4, { isMovingInv: 1 }), add("b", "M1", "L2", 4, { unit_price_from: "a" })],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.strictEqual(p.creates.wa[0].wa_quantity, 4); // a category move takes nothing out of the costing rows
+  assert.strictEqual(p.results[0].unit_price, 3);
+  assert.strictEqual(p.results[1].unit_price, 3);
+});
+
+t("migration: rows retired in an earlier movement are invisible to later ones (live filter)", () => {
+  const p = planBulk({
+    migrateCosting: "ALL",
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 2, balance_quantity: 2 })],
+    waRows: [waR("W1", "M1", 2, 5)],
+    movements: [sub("a", "M1", "L1", 1), sub("b", "M1", "L1", 1)],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.strictEqual(p.creates.fifo.length, 1);
+  assert.strictEqual(p.creates.fifo[0].fifo_available_quantity, 0);
+  assert.strictEqual(p.results[1].costing_migrated, undefined);
+});
+
 console.log(n + " passed");

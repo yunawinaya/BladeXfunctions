@@ -188,7 +188,7 @@
         "name": "Stored status + line count",
         "script": {
          "type": "sql",
-         "code": "SELECT g.stock_movement_status,\n       (SELECT COUNT(*) FROM sm_location_transfer_d2c7o1jd_sub l\n         WHERE l.tenant_id = '{{node:code_node_LOTguard.data.tenantId}}'\n           AND l.sm_location_transfer_id = g.id\n           AND l.is_deleted = 0\n           AND NOT (COALESCE(l.item_bundle_id, '') <> '' AND l.parent_id IS NULL)) AS line_count\n  FROM sm_location_transfer g\n WHERE g.tenant_id = '{{node:code_node_LOTguard.data.tenantId}}'\n   AND g.id = {{node:code_node_LOTguard.data.lotId}}\n   AND g.is_deleted = 0"
+         "code": "SELECT g.stock_movement_status,\n       g.transfer_purpose,\n       CASE WHEN g.transfer_purpose = 'IA_SUPPLY' THEN (SELECT JSON_ARRAYAGG(CAST(r.id AS CHAR)) FROM sm_location_transfer_d2c7o1jd_sub r\n         WHERE r.tenant_id = '{{node:code_node_LOTguard.data.tenantId}}' AND r.sm_location_transfer_id = g.id AND r.is_deleted = 0) END AS line_ids,\n       (SELECT COUNT(*) FROM sm_location_transfer_d2c7o1jd_sub l\n         WHERE l.tenant_id = '{{node:code_node_LOTguard.data.tenantId}}'\n           AND l.sm_location_transfer_id = g.id\n           AND l.is_deleted = 0\n           AND NOT (COALESCE(l.item_bundle_id, '') <> '' AND l.parent_id IS NULL)) AS line_count\n  FROM sm_location_transfer g\n WHERE g.tenant_id = '{{node:code_node_LOTguard.data.tenantId}}'\n   AND g.id = {{node:code_node_LOTguard.data.lotId}}\n   AND g.is_deleted = 0"
         },
         "response_json": [
          {
@@ -204,6 +204,24 @@
           "key": "yei06hlt",
           "name": "line_count",
           "title": "line_count",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "9cnc58jq",
+          "name": "transfer_purpose",
+          "title": "transfer_purpose",
+          "description": "",
+          "bsonType": "string",
+          "isExpand": false,
+          "children": []
+         },
+         {
+          "key": "a3oncan3",
+          "name": "line_ids",
+          "title": "line_ids",
           "description": "",
           "bsonType": "string",
           "isExpand": false,
@@ -614,6 +632,127 @@
     },
     {
      "id": "ifBlock_FLOTguardBigNew",
+     "type": "ifBlock",
+     "data": {
+      "title": "false"
+     },
+     "blocks": []
+    }
+   ]
+  },
+  {
+   "id": "code_node_LOTrq",
+   "type": "code-node",
+   "data": {
+    "language": "javascript",
+    "code": "",
+    "timeout": 30000,
+    "title": "IA transfer request: the allowed moves of a request transfer",
+    "isValidator": true,
+    "nodeName": "IA transfer request: the allowed moves of a request transfer",
+    "name": "IA transfer request: the allowed moves of a request transfer",
+    "script": {
+     "type": "javascript",
+     "code": "// IA transfer request (ENH-20261027-001, scratchpad/iatr): the allowed moves of a request LOT, decided by the STORED row.\n// NONE = an ordinary Location Transfer (today's behaviour, untouched); SAVE = Save Picks (the Draft path keeps the status Requested);\n// a request's dispatch, receipt and cancel run only through the background save (LOT V2), so the classic refuses them\n// IA -> Location Transfer Request (ENH-20261027-001): the shared rules. Pure; used by IA_TRANSFER_REQUEST, the LOT V2 SUBMIT gate\n// and (iatrTransition only) the classic LOT guard. A request LOT has transfer_purpose IATR_PURPOSE and starts as status Requested.\nconst IATR_PURPOSE = \"IA_SUPPLY\";\nconst iatrS = (v) => (v === undefined || v === null ? \"\" : String(v)).trim();\nconst iatrQ8 = (v) => Number((parseFloat(v) || 0).toFixed(8));\n// JSON text whose 16+ digit numbers are kept as text (a 19-digit id read as a number loses digits)\nconst iatrParse = function iatrParse(t) {\n  if (Array.isArray(t)) return t;\n  if (t && typeof t === \"object\") return [t];\n  try {\n    const v = JSON.parse(String(t || \"\").replace(/\"(?:[^\"\\\\]|\\\\.)*\"|(^\\s*|[:\\[,]\\s*)(-?\\d{16,})(?=\\s*(?:[,\\]}]|$))/g, (m, pre, num) => (num === undefined ? m : pre + '\"' + num + '\"')));\n    return Array.isArray(v) ? v : [];\n  } catch (e) {\n    return [];\n  }\n};\n// an id as text; a number past 2^53 is marked, never silently equal\nconst iatrId = (v) => {\n  if (typeof v === \"number\") return Number.isSafeInteger(v) && v >= 0 ? String(v) : \"?\" + String(v);\n  return iatrS(v);\n};\nconst iatrHash = function iatrHash(text) {\n  let h1 = 2166136261;\n  let h2 = 5381;\n  for (let i = 0; i < text.length; i++) {\n    const c = text.charCodeAt(i);\n    h1 = Math.imul(h1 ^ c, 16777619) >>> 0;\n    h2 = (Math.imul(h2, 33) + c) >>> 0;\n  }\n  const hex = (x) => (\"00000000\" + x.toString(16)).slice(-8);\n  return hex(h1) + hex(h2);\n};\nconst iatrBlank = (v) => v === undefined || v === null || iatrS(v) === \"\";\n\n// the demand of a saved IA (spec IA-LT-07): per stock line, the explicit Required quantity when set (an explicit 0 = not asked\n// for), else the BOM reference (requested_qty) when above 0; a line with neither stops, named. Non-stock lines are skipped,\n// repeated items stay separate lines, the picked quantity is never used. items: id -> Item row\nconst iatrDemand = function iatrDemand(lines, items) {\n  const out = [];\n  const list = Array.isArray(lines) ? lines : [];\n  const name = (it, id) => iatrS(it && (it.material_name || it.material_code)) || iatrS(id);\n  for (const l of list) {\n    if (!l || typeof l !== \"object\") continue;\n    const itemId = iatrId(l.item_selection);\n    if (!itemId) continue;\n    const it = items && items[itemId];\n    const label = \"line \" + (iatrS(l.line_index) || iatrS(l.id)) + \" (\" + name(it, itemId) + \")\";\n    if (!it) return { ok: false, message: \"The item of \" + label + \" could not be read. Nothing was created; please try again.\", lines: [] };\n    if (Number(it.stock_control) === 0) continue;\n    if (Number(it.serial_number_management) === 1) {\n      return { ok: false, message: label + \" is serial-numbered: serial components can't be requested by a transfer request yet. Nothing was created.\", lines: [] };\n    }\n    let qty;\n    if (!iatrBlank(l.required_qty)) qty = iatrQ8(l.required_qty);\n    else if (iatrQ8(l.requested_qty) > 0) qty = iatrQ8(l.requested_qty);\n    else return { ok: false, message: label + \" has no required quantity: enter its Required quantity, save the Item Assembly, then create the request.\", lines: [] };\n    if (qty < 0) return { ok: false, message: label + \" has a negative required quantity. Nothing was created.\", lines: [] };\n    if (qty === 0) continue;\n    out.push({ source_ia_line_id: iatrId(l.id), item_selection: itemId, quantity_uom: iatrId(l.quantity_uom), requested_qty: qty, source_ref_key: iatrS(l.sc_ref_key),\n      item_name: name(it, itemId) });\n  }\n  if (!out.length) return { ok: false, message: \"This Item Assembly has nothing to request: no stock line with a required quantity.\", lines: [] };\n  return { ok: true, message: \"\", lines: out };\n};\n\n// IR2 (spec IA-LT-11): the demand a request was made from (line ids, items, units, quantities) + its basis: plant, destination\n// storage / bin, the finished item, its output and planned quantities, the BOM mode and BOM (the saved lines carry the BOM\n// choices); line order does not matter. basis: { plant, storage, bin, itemId, itemQty, plannedQty, mode, bomId }\nconst iatrFingerprint = function iatrFingerprint(demandLines, basis) {\n  const b = basis || {};\n  const qty = (v) => (iatrBlank(v) ? \"\" : iatrQ8(v).toFixed(8));\n  const rows = (Array.isArray(demandLines) ? demandLines : []).map((l) => [iatrId(l.source_ia_line_id), iatrId(l.item_selection), iatrId(l.quantity_uom),\n    iatrQ8(l.requested_qty).toFixed(8)]);\n  rows.sort((a, b2) => (a[0] < b2[0] ? -1 : a[0] > b2[0] ? 1 : 0));\n  const head = [iatrId(b.plant), iatrId(b.storage), iatrId(b.bin), iatrId(b.itemId), qty(b.itemQty), qty(b.plannedQty), iatrS(b.mode), iatrId(b.bomId)];\n  return \"IR2:\" + rows.length + \":\" + iatrHash(JSON.stringify([head, rows]));\n};\n\n// the dispatch check (spec sections 7 and 10): the stored demand lines unchanged (item, unit, quantity, source line, destination),\n// every line picked in full in its own unit (the picks themselves, not total_quantity), Unrestricted loose stock of the line's\n// item, never at the destination bin; the IA still Draft and its demand unchanged since the request. Stock availability is the\n// engine's. ctx: { iaStatus, iaFp (the IA's demand now), lotFp (the request's), demand (the IA's demand lines now: the stored lines\n// must be exactly these; not an array = not compared) }\nconst iatrDispatchCheck = function iatrDispatchCheck(stored, incoming, ctx) {\n  const stop = (code, message) => ({ ok: false, code: code, message: message });\n  const c = ctx || {};\n  if (iatrS(c.iaStatus) !== \"Draft\") {\n    return stop(\"IATR_IA_STATUS\", \"The Item Assembly of this request is \" + (iatrS(c.iaStatus) || \"no longer there\") + \", so the request can't be dispatched.\");\n  }\n  if (iatrS(c.iaFp) !== iatrS(c.lotFp)) {\n    return stop(\"IATR_STALE\", \"The Item Assembly's materials changed after this request was made: refresh the request from the Item Assembly, then pick again.\");\n  }\n  const st = (Array.isArray(stored) ? stored : []).filter((l) => l && typeof l === \"object\");\n  const inc = (Array.isArray(incoming) ? incoming : []).filter((l) => l && typeof l === \"object\");\n  // the stored lines are the IA's demand now, at one destination (a stale tab's save can write older lines under a newer fingerprint)\n  if (Array.isArray(c.demand)) {\n    const lines = stop(\"IATR_LINES_STALE\", \"This request's lines no longer match its Item Assembly: refresh the request from the Item Assembly, then pick again.\");\n    if (c.demand.length !== st.length) return lines;\n    const want = {};\n    for (const d of c.demand) want[iatrId(d.source_ia_line_id)] = d;\n    const dest = st.length ? [iatrId(st[0].storage_location_id), iatrId(st[0].location_id)] : [];\n    for (const l of st) {\n      const d = want[iatrId(l.source_ia_line_id)];\n      delete want[iatrId(l.source_ia_line_id)];\n      if (!d || iatrId(d.item_selection) !== iatrId(l.item_selection) || iatrId(d.quantity_uom) !== iatrId(l.quantity_uom) || iatrQ8(d.requested_qty) !== iatrQ8(l.requested_qty)\n        || iatrId(l.storage_location_id) !== dest[0] || iatrId(l.location_id) !== dest[1]) return lines;\n    }\n  }\n  const changed = stop(\"IATR_DEMAND_CHANGED\", \"The requested lines of this transfer were changed. Only the picks can be edited: reopen the transfer and pick again.\");\n  if (st.length !== inc.length) return changed;\n  const byId = {};\n  for (const l of st) byId[iatrId(l.id)] = l;\n  for (const l of inc) {\n    const s = byId[iatrId(l.id)];\n    if (!s) return changed;\n    const keys = [\"item_selection\", \"quantity_uom\", \"source_ia_line_id\", \"storage_location_id\", \"location_id\"];\n    if (keys.some((k) => iatrId(l[k]) !== iatrId(s[k])) || iatrQ8(l.requested_qty) !== iatrQ8(s.requested_qty)) return changed;\n  }\n  for (const l of inc) {\n    const want = iatrQ8(l.requested_qty);\n    const label = \"Line \" + (iatrS(l.line_index) || iatrS(l.id)) + (iatrS(l.item_name) ? \" (\" + iatrS(l.item_name) + \")\" : \"\");\n    let sum = 0;\n    for (const e of iatrParse(l.temp_qty_data)) {\n      if (!e || typeof e !== \"object\") continue;\n      const q = iatrQ8(e.sm_quantity);\n      if (q <= 0) continue;\n      if (iatrId(e.material_id || l.item_selection) !== iatrId(l.item_selection)) return stop(\"IATR_PICK_ITEM\", label + \": a pick is of another item.\");\n      if (!iatrBlank(e.material_uom) && iatrId(e.material_uom) !== iatrId(l.quantity_uom)) {\n        return stop(\"IATR_PICK_UOM\", label + \": pick it in the line's unit; a pick in another unit can't be dispatched.\");\n      }\n      if (iatrS(e.handling_unit_id) && iatrS(e.handling_unit_id) !== \"0\") return stop(\"IATR_PICK_HU\", label + \": a pick from a handling unit can't be dispatched; pick loose stock.\");\n      if ((iatrS(e.category) || \"Unrestricted\") !== \"Unrestricted\") {\n        return stop(\"IATR_PICK_CATEGORY\", label + \": pick Unrestricted stock; \" + iatrS(e.category) + \" stock can't supply production.\");\n      }\n      if (iatrId(e.location_id) === iatrId(l.location_id)) return stop(\"IATR_PICK_AT_DESTINATION\", label + \": a pick is from the destination bin itself.\");\n      sum = iatrQ8(sum + q);\n    }\n    if (Math.abs(sum - want) > 1e-9) {\n      return stop(\"IATR_NOT_FULL\", label + \": picked \" + sum + \" of \" + want + \". Every line must be picked in full before the dispatch.\");\n    }\n  }\n  return { ok: true, code: \"\", message: \"\" };\n};\n\n// the allowed moves of a save (the plan's table). Decided by the STORED row; the payload's purpose / status only refuse a\n// claim it does not back. NONE = an ordinary LOT, exactly today's behaviour; SAVE = Save Picks (the classic Draft path, status\n// stays Requested); DISPATCH / RECEIVE / CANCEL = LOT V2 only; REFUSE = 400 with message\nconst iatrTransition = function iatrTransition(a) {\n  const x = a || {};\n  const stored = iatrS(x.stored);\n  const saveAs = iatrS(x.saveAs);\n  const purpose = iatrS(x.storedPurpose) === IATR_PURPOSE;\n  const refuse = (message) => ({ decision: \"REFUSE\", message: message });\n  const claims = iatrS(x.payloadPurpose) === IATR_PURPOSE || iatrS(x.payloadStatus) === \"Requested\";\n  if (!x.hasStored || !purpose) {\n    if (stored === \"Requested\") return refuse(\"This transfer is Requested but not an Item Assembly request; it can't be saved. Please contact support.\");\n    if (claims) return refuse(\"A transfer request can only be created from an Item Assembly (Create Transfer Request).\");\n    return { decision: \"NONE\", message: \"\" };\n  }\n  if (stored === \"Requested\") {\n    if (saveAs === \"Draft\") return { decision: \"SAVE\", message: \"\" };\n    if (saveAs === \"In Progress\") return { decision: \"DISPATCH\", message: \"\" };\n    if (saveAs === \"Cancelled\") return refuse(\"A Requested transfer is cancelled with Cancel Request (no stock has moved).\");\n    return refuse(\"A Requested transfer is dispatched first (In Progress), then received.\");\n  }\n  if (stored === \"In Progress\") {\n    if (saveAs === \"Completed\") return { decision: \"RECEIVE\", message: \"\" };\n    if (saveAs === \"Cancelled\") return { decision: \"CANCEL\", message: \"\" };\n    return refuse(\"This dispatched request can't be edited: receive it as it was dispatched, or cancel it.\");\n  }\n  if (stored === \"Processing\") return { decision: \"NONE\", message: \"\" };\n  return refuse(\"This transfer request is \" + (stored || \"without a status\") + \" and can't be saved again.\");\n};\nconst a = [{{workflowparams:allData}}][0] || {};\nconst saveAs = String([{{workflowparams:saveAs}}][0] || \"\");\nconst g = [{{node:code_node_LOTguard.data}}][0] || {};\nconst rows = [{{node:sql_node_LOTguard.data}}][0];\nconst row = (Array.isArray(rows) ? rows[0] : rows) || null;\nconst hasStored = String(g.check || \"\") === \"YES\" && !!row && typeof row === \"object\";\nconst t = iatrTransition({ stored: hasStored ? row.stock_movement_status : \"\", storedPurpose: hasStored ? row.transfer_purpose : \"\", saveAs: saveAs,\n  hasStored: hasStored, payloadPurpose: a && a.transfer_purpose, payloadStatus: a && a.stock_movement_status });\n// Save Picks only on the lines as stored: a refresh from the Item Assembly replaces them, so a tab opened before it is refused\nconst ids = (rows) => rows.map((x) => iatrId(x && x.id)).sort();\nconst sent = [];\nfor (const r of Array.isArray(a.stock_movement) ? a.stock_movement : []) {\n  if (!r || typeof r !== \"object\") continue;\n  sent.push(r);\n  for (const c of Array.isArray(r.children) ? r.children : []) if (c && typeof c === \"object\") sent.push(c);\n}\nconst stale = t.decision === \"SAVE\" && JSON.stringify(ids(sent)) !== JSON.stringify(iatrParse(row.line_ids).map(iatrId).sort());\nconst rq = stale ? \"REFUSE\" : t.decision === \"NONE\" || t.decision === \"SAVE\" ? t.decision : \"REFUSE\";\nconst rqMessage = stale ? \"This transfer request was refreshed from its Item Assembly after you opened it: close it, open it again and pick again.\"\n  : t.decision === \"REFUSE\" ? t.message : rq === \"REFUSE\" ? \"A transfer request is dispatched, received and cancelled from the web form (Location Transfer).\" : \"\";\nreturn { rq: rq, rqMessage: rqMessage };"
+    },
+    "response_json": [
+     {
+      "key": "0wnn3fnc",
+      "name": "rq",
+      "title": "rq",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "fm5d8wjj",
+      "name": "rqMessage",
+      "title": "rqMessage",
+      "description": "",
+      "bsonType": "string",
+      "isExpand": false,
+      "children": []
+     }
+    ]
+   },
+   "blocks": []
+  },
+  {
+   "id": "if_LOTrqRefuse",
+   "type": "if",
+   "data": {
+    "title": "IF a request transfer's move is refused here",
+    "isValidator": true,
+    "nodeName": "IF a request transfer's move is refused here",
+    "name": "IF a request transfer's move is refused here",
+    "condition_type": "Expression",
+    "filter": {
+     "list": [
+      {
+       "id": 1797700000001,
+       "parentId": 1797700000002,
+       "isTop": true,
+       "prop": "",
+       "operator": "",
+       "valueType": "",
+       "value": "",
+       "type": "leaf",
+       "level": 1
+      }
+     ]
+    },
+    "expression": {
+     "type": "javascript",
+     "code": "'{{node:code_node_LOTrq.data.rq}}' == 'REFUSE'"
+    }
+   },
+   "blocks": [
+    {
+     "id": "ifBlock_TLOTrqRefuse",
+     "type": "ifBlock",
+     "data": {
+      "title": "true"
+     },
+     "blocks": [
+      {
+       "id": "return_node_LOTrqRefuse",
+       "type": "return-node",
+       "data": {
+        "return_data": {},
+        "status_code": 200,
+        "title": "Return Request Move Refused",
+        "isValidator": true,
+        "nodeName": "Return Request Move Refused",
+        "name": "Return Request Move Refused",
+        "response_value": {
+         "list": [
+          {
+           "prop": "code",
+           "operator": "",
+           "valueType": "value",
+           "value": "400",
+           "valueLabel": "",
+           "propLabel": "code"
+          },
+          {
+           "prop": "message",
+           "operator": "",
+           "valueType": "field",
+           "value": "{{node:code_node_LOTrq.data.rqMessage}}",
+           "valueLabel": "",
+           "propLabel": "message"
+          }
+         ]
+        },
+        "return_raw_data": 0
+       },
+       "blocks": []
+      }
+     ]
+    },
+    {
+     "id": "ifBlock_FLOTrqRefuse",
      "type": "ifBlock",
      "data": {
       "title": "false"
@@ -1734,7 +1873,7 @@
     "name": "fillbackHeaderFields",
     "script": {
      "type": "javascript",
-     "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n\nif (saveAs === \"Cancelled\") {\n  const rawData = {{node:get_node_czmdH3Jw.data.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData\n}\n\n// Auto-allocated lines come back from the allocation loop keyed by fm_key. The\n// token resolves to null when that branch did not run (Draft, Cancelled, or\n// nothing to allocate), which merges to a no-op.\nconst rawAllocated = {{node:get_cache_node_LOTallocOut.data}};\nlet allocatedLines = [];\n\nif (rawAllocated) {\n  if (typeof rawAllocated === \"string\") {\n    try { allocatedLines = JSON.parse(rawAllocated); } catch (e) { allocatedLines = []; }\n  } else if (Array.isArray(rawAllocated)) {\n    allocatedLines = rawAllocated;\n  }\n}\n\nconst allocatedByKey = {};\nfor (const line of allocatedLines) {\n  if (line && line.fm_key !== undefined && line.fm_key !== null) {\n    allocatedByKey[String(line.fm_key)] = line;\n  }\n}\n\nconst applyAllocation = (row) => {\n  const match = allocatedByKey[String(row.fm_key)];\n  if (!match) return;\n  // Only ever fills a line the user left empty; a hand-picked line is untouched.\n  if (row.temp_qty_data && String(row.temp_qty_data).trim() !== \"\" &&\n      String(row.temp_qty_data).trim() !== \"[]\") return;\n  row.temp_qty_data = match.temp_qty_data;\n  row.total_quantity = match.total_quantity;\n};\n\nconst normalizeCategory = (cat) => {\n  if (cat === \"UNR\") return \"Unrestricted\"\n  if (cat === \"BLK\") return \"Blocked\"\n  return cat\n}\n\n// stock_movement is a tree once an item bundle is added: one parent row per\n// bundle, with the bundle's items under `children`. The tree is left intact on\n// allData so it is persisted the way the form built it. flatLines is the view\n// every computation node walks instead, because a bundle CHILD moves stock while\n// the item-less bundle PARENT does not.\n// A stored child (the Cancel re-reads the stored doc) has a parent_id but no parent_fm_key.\nconst isBundleParent = (row) =>\n  Boolean(row.item_bundle_id && !row.parent_fm_key && !/^[1-9][0-9]*$/.test(String(row.parent_id == null ? \"\" : row.parent_id)))\n\n// Parent then its children, so line_index follows the order the user sees.\nconst walkedLines = []\nfor (const row of allData.stock_movement || []) {\n  walkedLines.push(row)\n  for (const child of (Array.isArray(row.children) ? row.children : [])) {\n    walkedLines.push(child)\n  }\n}\n\nconst flatLines = []\n\n// The rows here are references into the tree, so stamping them updates what is\n// persisted as well as what flatLines hands downstream.\nwalkedLines.forEach((smLineItem, index) => {\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  // Numbered across the whole walk, so a child never collides with a parent.\n  smLineItem.line_index = index + 1;\n\n  applyAllocation(smLineItem)\n\n  smLineItem.category = normalizeCategory(smLineItem.category)\n\n  if (smLineItem.temp_qty_data) {\n    try {\n      const parsed = JSON.parse(smLineItem.temp_qty_data)\n      if (Array.isArray(parsed)) {\n        for (const row of parsed) {\n          row.category = normalizeCategory(row.category)\n        }\n        smLineItem.temp_qty_data = JSON.stringify(parsed)\n      }\n    } catch (e) {\n      // leave as-is if not valid JSON\n    }\n  }\n\n  updatedSM.push(smLineItem)\n\n  if (!isBundleParent(smLineItem)) flatLines.push(smLineItem)\n})\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\n// On cancel, flag the still-issued document number with a -Cancelled suffix\n// (matches the GD/PP/SO cancel convention) so the number is visually flagged\n// and freed for reuse. Idempotent. Runs before the cancel compute reads\n// stock_movement_no for the reversal movements' trx_no, so those carry it too.\nif (\n  saveAs === \"Cancelled\" &&\n  typeof allData.stock_movement_no === \"string\" &&\n  allData.stock_movement_no &&\n  !allData.stock_movement_no.endsWith(\"-Cancelled\")\n) {\n  allData.stock_movement_no = allData.stock_movement_no + \"-Cancelled\";\n}\n\nreturn {\n  allData: allData,\n  // Bundle parents excluded; every real movement line, tree or not.\n  flatLines: flatLines,\n  stock_movement_status: allData.stock_movement_status,\n  is_production_order: allData.is_production_order\n}\n"
+     "code": "let allData = {{workflowparams:allData}}\nconst updatedSM = []\nconst saveAs = {{workflowparams:saveAs}}\n// IA transfer request (scratchpad/iatr): Save Picks keeps a request Requested; every ordinary LOT writes saveAs as before\nconst writeStatus = String([{{node:code_node_LOTrq.data.rq}}][0] || \"\") === \"SAVE\" ? \"Requested\" : saveAs;\n\nif (saveAs === \"Cancelled\") {\n  const rawData = {{node:get_node_czmdH3Jw.data.data}}\n  allData = Array.isArray(rawData) ? rawData[0] : rawData\n}\n\n// Auto-allocated lines come back from the allocation loop keyed by fm_key. The\n// token resolves to null when that branch did not run (Draft, Cancelled, or\n// nothing to allocate), which merges to a no-op.\nconst rawAllocated = {{node:get_cache_node_LOTallocOut.data}};\nlet allocatedLines = [];\n\nif (rawAllocated) {\n  if (typeof rawAllocated === \"string\") {\n    try { allocatedLines = JSON.parse(rawAllocated); } catch (e) { allocatedLines = []; }\n  } else if (Array.isArray(rawAllocated)) {\n    allocatedLines = rawAllocated;\n  }\n}\n\nconst allocatedByKey = {};\nfor (const line of allocatedLines) {\n  if (line && line.fm_key !== undefined && line.fm_key !== null) {\n    allocatedByKey[String(line.fm_key)] = line;\n  }\n}\n\nconst applyAllocation = (row) => {\n  const match = allocatedByKey[String(row.fm_key)];\n  if (!match) return;\n  // Only ever fills a line the user left empty; a hand-picked line is untouched.\n  if (row.temp_qty_data && String(row.temp_qty_data).trim() !== \"\" &&\n      String(row.temp_qty_data).trim() !== \"[]\") return;\n  row.temp_qty_data = match.temp_qty_data;\n  row.total_quantity = match.total_quantity;\n};\n\nconst normalizeCategory = (cat) => {\n  if (cat === \"UNR\") return \"Unrestricted\"\n  if (cat === \"BLK\") return \"Blocked\"\n  return cat\n}\n\n// stock_movement is a tree once an item bundle is added: one parent row per\n// bundle, with the bundle's items under `children`. The tree is left intact on\n// allData so it is persisted the way the form built it. flatLines is the view\n// every computation node walks instead, because a bundle CHILD moves stock while\n// the item-less bundle PARENT does not.\n// A stored child (the Cancel re-reads the stored doc) has a parent_id but no parent_fm_key.\nconst isBundleParent = (row) =>\n  Boolean(row.item_bundle_id && !row.parent_fm_key && !/^[1-9][0-9]*$/.test(String(row.parent_id == null ? \"\" : row.parent_id)))\n\n// Parent then its children, so line_index follows the order the user sees.\nconst walkedLines = []\nfor (const row of allData.stock_movement || []) {\n  walkedLines.push(row)\n  for (const child of (Array.isArray(row.children) ? row.children : [])) {\n    walkedLines.push(child)\n  }\n}\n\nconst flatLines = []\n\n// The rows here are references into the tree, so stamping them updates what is\n// persisted as well as what flatLines hands downstream.\nwalkedLines.forEach((smLineItem, index) => {\n  smLineItem.organization_id = allData.organization_id;\n  smLineItem.issuing_plant = allData.issuing_operation_faci || null;\n  smLineItem.receiving_plant = allData.receiving_operation_faci || null;\n  // Numbered across the whole walk, so a child never collides with a parent.\n  smLineItem.line_index = index + 1;\n\n  applyAllocation(smLineItem)\n\n  smLineItem.category = normalizeCategory(smLineItem.category)\n\n  if (smLineItem.temp_qty_data) {\n    try {\n      const parsed = JSON.parse(smLineItem.temp_qty_data)\n      if (Array.isArray(parsed)) {\n        for (const row of parsed) {\n          row.category = normalizeCategory(row.category)\n        }\n        smLineItem.temp_qty_data = JSON.stringify(parsed)\n      }\n    } catch (e) {\n      // leave as-is if not valid JSON\n    }\n  }\n\n  updatedSM.push(smLineItem)\n\n  if (!isBundleParent(smLineItem)) flatLines.push(smLineItem)\n})\n\nif ({{workflowparams:pageStatus}} === \"Add\") {\n  allData.stock_movement_status = \"Draft\"\n}\n\nif (saveAs === \"Draft\") {\n  if(allData.stock_movement_no_type !== -9999 && (\n  !allData.stock_movement_no || allData.stock_movement_no === null || allData.stock_movement_no === ''\n)) {\n  allData.stock_movement_no = 'draft'\n  }\n} else {\n  if (\n  allData.stock_movement_no_type !== -9999 &&\n  (!allData.stock_movement_no ||\n    allData.stock_movement_no === null ||\n    allData.stock_movement_no === \"\" ||\n    allData.stock_movement_status !== \"In Progress\")\n) {\n  allData.stock_movement_no = 'issued'\n  }\n}\n\n// On cancel, flag the still-issued document number with a -Cancelled suffix\n// (matches the GD/PP/SO cancel convention) so the number is visually flagged\n// and freed for reuse. Idempotent. Runs before the cancel compute reads\n// stock_movement_no for the reversal movements' trx_no, so those carry it too.\nif (\n  saveAs === \"Cancelled\" &&\n  typeof allData.stock_movement_no === \"string\" &&\n  allData.stock_movement_no &&\n  !allData.stock_movement_no.endsWith(\"-Cancelled\")\n) {\n  allData.stock_movement_no = allData.stock_movement_no + \"-Cancelled\";\n}\n\nreturn {\n  allData: allData,\n  // Bundle parents excluded; every real movement line, tree or not.\n  flatLines: flatLines,\n  stock_movement_status: allData.stock_movement_status,\n  writeStatus: writeStatus,\n  is_production_order: allData.is_production_order\n}\n"
     },
     "response_json": [
      {
@@ -1780,6 +1919,15 @@
       "title": "is_production_order",
       "description": "",
       "bsonType": "int",
+      "isExpand": false,
+      "children": []
+     },
+     {
+      "key": "jzlp5kps",
+      "name": "writeStatus",
+      "title": "writeStatus",
+      "description": "",
+      "bsonType": "string",
       "isExpand": false,
       "children": []
      }
@@ -9425,7 +9573,7 @@
               {
                "prop": "stock_movement_status",
                "valueType": "field",
-               "value": "{{workflowparams:saveAs}}",
+               "value": "{{node:code_node_yPlLXIZW.data.writeStatus}}",
                "operator": "",
                "valueLabel": "",
                "propLabel": "Stock Movement Status"

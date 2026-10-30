@@ -66,6 +66,23 @@ const resOn = /^[1-9][0-9]{0,19}$/.test(RES_HOLD);
       this.refresh();
       return;
     }
+    // IA transfer request (scratchpad/iatr): an IA whose transfer request is live keeps it - the request is cancelled first
+    const reqRes = await db
+      .collection("sm_location_transfer")
+      .where({ source_ia_id: String(row.id), transfer_purpose: "IA_SUPPLY", is_deleted: 0 })
+      .field("stock_movement_no,stock_movement_status")
+      .get();
+    const liveReq = ((reqRes && reqRes.data) || []).filter((r) => ["Requested", "In Progress", "Processing"].includes(r.stock_movement_status))[0];
+    if (liveReq) {
+      this.$message.error(`Item Assembly ${label} has transfer request ${liveReq.stock_movement_no} (${liveReq.stock_movement_status}): cancel the request first.`);
+      return;
+    }
+    // received (the user, 10-29): its materials wait in the staging bin for this IA
+    const gotReq = ((reqRes && reqRes.data) || []).filter((r) => r.stock_movement_status === "Completed")[0];
+    if (gotReq) {
+      this.$message.error(`Item Assembly ${label} has received transfer request ${gotReq.stock_movement_no}: its materials wait in the staging bin for it, so it can't be deleted.`);
+      return;
+    }
 
     await db
       .collection("sm_item_assembly")

@@ -1,6 +1,6 @@
 // INVENTORY_BULK_APPLY lock seed: a lock row per key, inserted once (free_token 1), as INVENTORY_APPLY_OPERATION seeds them
 const s = (v) => (v === undefined || v === null ? "" : String(v));
-const keys = [{{node:code_node_IBguard.data.lockKeys}}][0] || [];
+const keys = [{{node:code_node_IBlkplan.data.lockKeys}}][0] || [];
 const org = s([{{node:code_node_IBguard.data.organizationId}}][0]);
 const rows = [{{node:sql_node_IBlk1.data}}][0];
 const list = Array.isArray(rows) ? rows : rows ? [rows] : [];

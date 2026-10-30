@@ -7,8 +7,21 @@ const lotFormReasons = function lotFormReasons(form, flat) {
   return lotLineReasons(flat);
 };
 const submitKeys = function submitKeys(guard, entry, form) {
-  const base = { ok: "NO", why: "", errorCode: "", itemIdsSql: "0", storedLotId: "0", needStored: "NO", needAfter: "NO", plantId: "0", organizationId: "0", lineCount: 0 };
+  const base = { ok: "NO", why: "", errorCode: "", itemIdsSql: "0", storedLotId: "0", needStored: "NO", needAfter: "NO", plantId: "0", organizationId: "0", lineCount: 0,
+    needIatr: "NO", iatrIaId: "0", iatrMode: "" };
   if (!form || typeof form !== "object" || Array.isArray(form)) return Object.assign(base, answer("INVALID", "400", "form: the Location Transfer's record", { errorCode: "LOT_INVALID_REQUEST" }));
+  // IA transfer request (scratchpad/iatr): an Add / Clone, or an ordinary transfer, may not claim the purpose or the status Requested
+  const isEdit = guard.pageStatus === "Edit";
+  const claim = iatrTransition({ stored: isEdit ? entry.storedStatus : "", storedPurpose: isEdit && entry.purpose === "YES" ? IATR_PURPOSE : "", saveAs: guard.saveAs,
+    hasStored: isEdit, payloadPurpose: form.transfer_purpose, payloadStatus: form.stock_movement_status });
+  if (claim.decision === "REFUSE") return Object.assign(base, answer("STOP", "400", claim.message, { errorCode: "LOT_REQUEST_MOVE" }));
+  // a request's dispatch reads its stored lines, its Item Assembly (a Draft IA's demand now; a Created IA's reservation); its receipt
+  // reads its stored lines (the dispatched picks) and its Item Assembly's status (the checks of code_node_LSiatr)
+  if (entry.purpose === "YES" && ((entry.action === "STAGE" && entry.prevStatus === "Requested") || (entry.action === "COMPLETE" && entry.prevStatus === "In Progress"))) {
+    base.needIatr = "YES";
+    base.iatrMode = entry.action === "STAGE" ? "DISPATCH" : "RECEIVE";
+    base.iatrIaId = digits(entry.sourceIaId) ? s(entry.sourceIaId) : "0";
+  }
   const act = entry.action;
   const flat = act === "CANCEL" ? [] : flatOf(form.stock_movement);
   const editing = act === "COMPLETE" || act === "EDIT";

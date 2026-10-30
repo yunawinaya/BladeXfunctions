@@ -1,0 +1,62 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "LOT_V2_PREPARE",
+   "dataId": "2110992359150977026",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_PREPARE.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_wf/LOT_V2_PREPARE.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    }
+   }
+  },
+  {
+   "name": "LOT_V2_COMMIT",
+   "dataId": "2110992400045441026",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_COMMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_wf/LOT_V2_COMMIT.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    }
+   }
+  },
+  {
+   "name": "LOT_V2_WORKER",
+   "dataId": "2110992316335521793",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_WORKER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_wf/LOT_V2_WORKER.json",
+   "smoke": {
+    "request": {
+     "job_id": "1"
+    }
+   }
+  },
+  {
+   "name": "LOT_V2_SUBMIT",
+   "dataId": "2110992282596540417",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOT_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_wf/LOT_V2_SUBMIT.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "Edit",
+     "lot_id": "1",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": {}
+    }
+   }
+  },
+  {
+   "name": "SM_LOCATION_TRANSFER",
+   "dataId": "2013133675374927874",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/SM_LOCATION_TRANSFER.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_wf/SM_LOCATION_TRANSFER.json"
+  }
+ ]
+}

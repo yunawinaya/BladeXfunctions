@@ -7,6 +7,7 @@ SO = os.path.dirname(HERE)
 P = "so_open_page.js"
 L = "sli_load.js"
 O = "sli_open.js"
+PL = "sli_plant.js"
 A = "so_actions.json"
 MUTANTS = [
     ("row action: an unsaved line opens the page", P, '} else if (!/^[0-9]{1,20}$/.test(scText(scRow.id)) || !scText(scRow.item_name)) {', "} else if (false) {"),
@@ -18,7 +19,34 @@ MUTANTS = [
     ("hidden: Linked IAs on an unsaved line", A, '"{{!(arguments[0] && arguments[0].row && arguments[0].row.id && arguments[0].row.item_name)}}"', '"{{!(arguments[0] && arguments[0].row && arguments[0].row.item_name)}}"'),
     ("page: this IA excluded", L, 'exclude_ia_id: "", organization_id: scP("organization_id"),', 'exclude_ia_id: scP("so_line_id"), organization_id: scP("organization_id"),'),
     ("page: a failed read shown as zeros", L, "    if (!r || !r.totals) {", "    if (!r) r = { totals: {}, ias: [], warnings: [] };\n    if (false) {"),
-    ("page: Create shown on an ineligible line", L, "    if (r.eligibleNew) this.display([\"sli_btn_create\"]);", "    if (true) this.display([\"sli_btn_create\"]);"),
+    ("page: Create shown on an ineligible line", L, "    if (r.eligibleNew && bom === true) this.display([\"sli_btn_create\"]);", "    if (true) this.display([\"sli_btn_create\"]);"),
+    # the user's 10-28 notes: only an item with an active BOM; the plant first (an organisation-level SO); the IA form on the right
+    ("page: Create shown for an item without a BOM", L, "    if (r.eligibleNew && bom === true) this.display", "    if (r.eligibleNew) this.display"),
+    ("page: an item without a BOM opens the IA", L, "    if (!bom) {\n      this.$message.warning(", "    if (false) {\n      this.$message.warning("),
+    ("page: a failed BOM read taken as no BOM", L, "    if (bom === null) {\n      this.$message.error(", "    if (false) {\n      this.$message.error("),
+    ("page: an inactive BOM counts", L, '{ prop: "is_active", operator: "equal", value: 1 }, ', ""),
+    ("page: another organisation's BOM counts", L, '{ prop: "organization_id", operator: "equal", value: org }, ', ""),
+    ("page: an organisation-level SO opens without a plant", L, "      if (!own) {\n        await this.setData", "      if (false) {\n        await this.setData"),
+    ("page: the organisation taken as the plant", L, '    return /^[0-9]{1,20}$/.test(p) && p !== scS(org) ? p : "";', '    return /^[0-9]{1,20}$/.test(p) ? p : "";'),
+    # a plant-level login (the user, 10-28): its own plant, never asked
+    ("page: a plant-level login asked for the plant", L, "    let plant = scLoginPlant() || scS(scArgs.plant);", "    let plant = scS(scArgs.plant);"),
+    ("page: an organisation-level login taken as plant-level", L, 'return parent && parent !== "0" && /^[0-9]{1,20}$/.test(p) ? p : "";', 'return parent && /^[0-9]{1,20}$/.test(p) ? p : "";'),
+    ("page: the login's last plant taken", L, 'scS(this.getVarSystem("deptIds")).split(",")[0].trim();', 'scS(this.getVarSystem("deptIds")).split(",").pop().trim();'),
+    ("page: the IA form not on the right", L, 'mode: "dialog", position: "rtl", title: "Add Item Assembly"', 'mode: "dialog", title: "Add Item Assembly"'),
+    ("page: the IA form without the plant", L, ",\n        issuing_operation_faci: plant },", " },"),
+    ("page: Open not on the right", O, 'mode: "dialog", position: "rtl", title: edit', 'mode: "dialog", title: edit'),
+    ("plant: the organisation accepted as the plant", PL, ' || scPlant === scS(this.getParamsVariables("organization_id"))', ""),
+    ("plant: no plant accepted", PL, "if (!/^[0-9]{1,20}$/.test(scPlant) ||", "if ("),
+    ("plant: the chosen plant not passed", PL, 'this.triggerEvent("sli_load", { action: "create", plant: scPlant });', 'this.triggerEvent("sli_load", { action: "create" });'),
+    ("plant: the dialog left open", PL, '  this.closeDialog("sli_plant_dialog");\n', ""),
+    # the figure tiles (the user, 10-29)
+    ("tiles: the SO number small again", L, "'<div style=\"font-size:20px;font-weight:600", "'<div style=\"font-size:15px;font-weight:600"),
+    ("tiles: never written", L, "    await this.setData({ sli_summary_html: scTiles(", "    if (false) await this.setData({ sli_summary_html: scTiles("),
+    ("tiles: the unavailable message never written", L, "      await this.setData({ sli_summary_html: scMessage(", "      if (false) await this.setData({ sli_summary_html: scMessage("),
+    ("tiles: names as markup", L, 'const scEsc = (v) => scS(v).replace(/&/g, "&amp;")', 'const scEsc = (v) => scS(v).replace(/&#/g, "&amp;")'),
+    ("tiles: To Plan shows the ordered", L, ": [x.lineQty(t.suggestion), ", ": [x.lineQty(t.ordered), "),
+    ("tiles: warnings dropped", L, "  const warn = x.warnings.length ?", "  const warn = false ?"),
+    ("tiles: a dead line still plans", L, "    : !x.active ? [x.lineQty(0), ", "    : false ? [x.lineQty(0), "),
     ("page: Create opens on an ineligible line", L, "    if (!r.eligibleNew) {\n      this.$message.warning(", "    if (false) {\n      this.$message.warning("),
     ("page: orphans not listed", L, "    const orphans = Array.isArray(r.orphans) ? r.orphans : [];", "    const orphans = [];"),
     ("page: every IA 'Not counted'", L, '      counted: ROLE[scS(x.role)] || "Not counted", ia_id: scS(x.id) }));', '      counted: "Not counted", ia_id: scS(x.id) }));'),
@@ -32,7 +60,7 @@ MUTANTS = [
     ("page: a refusal's reason dropped", L, 'if (scS(d.code) === "400") refused = scS(d.message);', ""),
     ("page: the create action ignored", L, '    if (scS(scArgs.action) !== "create") return;', "    return;"),
     ("page: no sc_entry", L, '      params: { sc_entry: "1" } });', "      params: {} });"),
-    ("page: no Small Cycle mode", L, ', bom_consumption_mode: "STANDARD" },', " },"),
+    ("page: no Small Cycle mode", L, ', bom_consumption_mode: "STANDARD",\n', ",\n"),
     ("page: the warnings not shown", L, "    if (warnings.length) row.sli_summary_warn = ", "    if (false) row.sli_summary_warn = "),
     ("page: warnings not marked", L, r'"\u26a0 " + swap(w.text)', "swap(w.text)"),
     ("page: the suggestion always takes off the produced", L, 'const done = scQ8(t.delivered) > scQ8(t.produced) ? scQ8(t.delivered) + " delivered" : scQ8(t.produced) + " produced";',

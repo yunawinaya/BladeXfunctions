@@ -1585,7 +1585,10 @@ const scStamp = async (v) => {
 
 // --- today's auto-allocation for some lines only (QTY): their own old picks are released and every OTHER line's staged
 // loose picks of the same material are deducted first (the rule onChange_componentQty applies to one line) ---
-const scAllocate = async (targets, lines, plantId, organizationId) => {
+// opts (a replacement, RESERVED_REQUEST_PLAN.md Task 9): excludeBin = never that bin's stock (the staging bin); keep = the line's own picks
+// stay (and count as staged) and the new ones follow them
+const scAllocate = async (targets, lines, plantId, organizationId, opts) => {
+  const o = opts || {};
   const ids = iaUniq(targets.map((t) => lines[t.index].item_selection));
   const [itemsRes, looseRes, batchRes, huSubRes, reservationRes] = await Promise.all([
     fetchByIds("item", ids, "material_name,serial_number_management,item_batch_management,table_default_bin,stock_control"),
@@ -1621,7 +1624,7 @@ const scAllocate = async (targets, lines, plantId, organizationId) => {
   targets.forEach((t) => (mine[t.index] = 1));
   const staged = new Map();
   lines.forEach((line, idx) => {
-    if (mine[idx]) return;
+    if (mine[idx] && !o.keep) return;
     let picks = [];
     try {
       picks = JSON.parse(line.temp_qty_data || "[]");
@@ -1638,6 +1641,7 @@ const scAllocate = async (targets, lines, plantId, organizationId) => {
     if (batched !== !!balance.batch_id && !(batched && balance.batch_id)) {
       if (batched || balance.batch_id) return;
     }
+    if (o.excludeBin && String(balance.location_id) === String(o.excludeBin)) return;
     const key = `${balance.material_id}|${balance.location_id}|${balance.batch_id || "no_batch"}`;
     const available = Math.max(0, (parseFloat(balance.unrestricted_qty) || 0) - (held.get(key) || 0) - (staged.get(key) || 0));
     if (available <= 0) return;
@@ -1662,7 +1666,8 @@ const scAllocate = async (targets, lines, plantId, organizationId) => {
     const item = itemMap.get(String(row.item_selection));
     if (!item || item.serial_number_management === 1 || iaIsNonStock(item)) return;
     let remaining = scQ8(t.qty);
-    const picks = [];
+    const kept = o.keep ? [].concat(scParseJ(row.temp_qty_data) || []).filter((p) => p && typeof p === "object" && (parseFloat(p.sm_quantity) || 0) > 0) : [];
+    const picks = kept.slice();
     for (const c of byMaterial.get(String(row.item_selection)) || []) {
       if (remaining <= 0) break;
       if (c.available <= 0) continue;
@@ -1675,10 +1680,10 @@ const scAllocate = async (targets, lines, plantId, organizationId) => {
         sm_quantity: take, category: "Unrestricted", plant_id: plantId, organization_id: organizationId, is_deleted: 0, expired_date: b.expired_date || null,
         manufacturing_date: b.manufacturing_date || null, unrestricted_qty: parseFloat(b.unrestricted_qty) || 0, balance_quantity: parseFloat(b.balance_quantity) || 0 });
     }
-    const total = scQ8(picks.reduce((sum, p) => sum + p.sm_quantity, 0));
+    const total = scQ8(picks.reduce((sum, p) => sum + (parseFloat(p.sm_quantity) || 0), 0));
     updates[`stock_movement.${t.index}.total_quantity`] = total;
     updates[`stock_movement.${t.index}.temp_qty_data`] = picks.length ? JSON.stringify(picks) : "";
-    updates[`stock_movement.${t.index}.temp_hu_data`] = "";
+    if (!o.keep) updates[`stock_movement.${t.index}.temp_hu_data`] = "";
     picked.push({ index: t.index, picks: picks, total: total, row: row });
     if (remaining > 0) shortfalls.push(`${row.item_name || row.item_selection} (${remaining})`);
   });
@@ -1706,8 +1711,27 @@ const scAllocate = async (targets, lines, plantId, organizationId) => {
   });
   if (Object.keys(updates).length) await this.setData(updates);
   if (shortfalls.length) {
-    this.$message.warning(`Not enough loose stock for: ${shortfalls.join(", ")}. Open Transfer Stock on those lines to pick from handling units.`);
+    if (o.excludeBin) this.$message.warning(`Not enough loose stock outside the staging bin for: ${shortfalls.join(", ")}. Request what there is, or pick the rest by hand.`);
+    else this.$message.warning(`Not enough loose stock for: ${shortfalls.join(", ")}. Open Transfer Stock on those lines to pick from handling units.`);
   }
+  return shortfalls;
+};
+// a replacement (D6, RESERVED_REQUEST_PLAN.md Task 9; tr_main runs it): each line the IA still lacks (the request's gap) gets its missing
+// quantity allocated as today (the default bin first, then the oldest stock), never from the staging bin; its picks there stay; nothing
+// is saved - the save as Created then reserves it (RES-01) and Request Replacement sends it. Replaces B21's staging pick (scOpStaging):
+// a Receive now moves the IA's picks to the staging bin itself
+const scOpGap = async () => {
+  const bin = scS(scArgs.bin);
+  const v = this.getValues();
+  if (!bin || scS(v.page_status) !== "Edit" || scS(v.item_assembly_status) !== "Created") return;
+  const lines = Array.isArray(v.stock_movement) ? v.stock_movement : [];
+  const at = {};
+  lines.forEach((l, i) => (at[scS(l.id)] = i));
+  const targets = (Array.isArray(scArgs.gap) ? scArgs.gap : []).filter((g) => g && at[scS(g.iaLineId)] !== undefined && scNum(g.missing) > 0)
+    .map((g) => ({ index: at[scS(g.iaLineId)], qty: scQ8(g.missing) }));
+  if (!targets.length) return;
+  const short = await scAllocate(targets, lines, scS(v.issuing_operation_faci), scOrg(v), { excludeBin: bin, keep: true });
+  if (!short.length) this.$message.success("The missing materials are allocated outside the staging bin: save the Item Assembly as Created to reserve them, then press Request Replacement.");
 };
 
 // --- the ops ---
@@ -2129,6 +2153,8 @@ const scClone = async (v) => {
 };
 // the Sales Order line entry (SO Linked IAs page): the line is checked, the item fields set, the quantity = the suggestion
 const scEntry = async (v) => {
+  // the plant came with the IA, so the legacy mounted's lock (no plant picked yet, an organisation-level login) is lifted as picking one does
+  if (scS(v.issuing_operation_faci)) this.disabled(["stock_movement"], false);
   const sum = await scSummary(v);
   if (sum && !sum.eligibleNew) {
     scStore({ sc_mode: "" });
@@ -2411,7 +2437,10 @@ const scOpMount = async () => {
     this.display(["sc_actual"]);
     this.hide(["item_qty"]);
   }
-  const entry = page === "Add" && scS(this.getParamsVariables("sc_entry")) === "1" && scLinked(v) && scS(v.item_id) !== "";
+  // the Sales Order line entry: a new IA that arrives linked to a line, with its item and nothing prepared (only Create IA on the SO Linked
+  // IAs page opens one so); its sc_entry parameter never reached the form opened from that page (the user, 10-28), so it is not required
+  const entry = page === "Add" && scLinked(v) && scS(v.item_id) !== "" &&
+    (scS(this.getParamsVariables("sc_entry")) === "1" || (!scS(v.bom_snapshot_json) && !(Array.isArray(v.stock_movement) && v.stock_movement.length)));
   scDisplay(v, page, status);
   if (entry) return scEntry(v);
   if (scLinked(v)) {
@@ -2425,7 +2454,7 @@ const scOpMount = async () => {
   if (!scOn()) return;
   const ops = { QTY: scOpQty, ITEM: scOpItem, MODE: scOpMode, PLANT: scOpPlant, PLANNED: scOpPlanned, SUGGEST: scOpSuggest, SELECT_LINE: scOpSelectLine,
     PICK_LINE: scOpPickLine, LINE_CLOSE: scCloseLines, RELINK: scOpRelink, UNLINK: scOpUnlink, BOM: scOpBom, EXPAND_ALL: scOpExpandAll, EXPAND_LEVEL: scOpExpandLevel, EXPAND_TICK: scOpExpandTick, EXPAND_OK: scOpExpandOk,
-    EXPAND_CLOSE: scOpExpandClose, REFRESH: async () => scRefresh(this.getValues()), MOUNT: scOpMount };
+    EXPAND_CLOSE: scOpExpandClose, REFRESH: async () => scRefresh(this.getValues()), MOUNT: scOpMount, GAP: scOpGap };
   const op = ops[scS(scArgs.scOp)];
   if (!op) return console.error("Small Cycle: unknown op", scArgs.scOp);
   try {

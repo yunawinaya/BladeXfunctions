@@ -97,7 +97,7 @@ const OP = "GDR|1001";
 const KEYS = ["COST|11|90", "ITEM|11|21"];
 const lk = (key, id) => ({ id: String(id), lock_key: key, free_token: 0, owner_operation_id: OP, last_owner_operation_id: "", lock_version: 2, db_now: NOW });
 t("lock verify also hands back the clock; its route is v11's", () => {
-  const ctx = { "code_node_IBguard.data.lockKeys": KEYS, "code_node_IBguard.data.operationKey": OP, "sql_node_IBlk3.data": [lk(KEYS[0], 10), lk(KEYS[1], 11)] };
+  const ctx = { "code_node_IBguard.data.lockKeys": KEYS, "code_node_IBlkplan.data.lockKeys": KEYS, "code_node_IBguard.data.operationKey": OP, "sql_node_IBlk3.data": [lk(KEYS[0], 10), lk(KEYS[1], 11)] };
   const a = run(OLD, "code_node_IBlkv", ctx), b = run(NEW, "code_node_IBlkv", ctx);
   assert.deepStrictEqual([b.route, b.lost, b.lostCount, b.dbNow], [a.route, a.lost, a.lostCount, NOW]);
 });

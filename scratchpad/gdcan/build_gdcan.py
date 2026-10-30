@@ -209,6 +209,7 @@ def build_prepare():
         ("pick", "The Pickings that name it (header gd_no or a row's gd_id) and their rows", ["k", "j"]),
         ("pack", "Its Packings with their item, source and box rows, the mobile lease", ["k", "j"]),
         ("box", "The handling units of those boxes and their stored items", ["k", "j"]),
+        ("cnos", "The names its cancel cannot take: the organization's numbers <its number>-Cancelled...", ["delivery_no"]),
     ]
     sql_nodes = [("cai_XP" + k, k, [K.sql("sql_node_XP" + k, title, prepare_sql(k), cols)]) for k, title, cols in reads]
     plan_fields = ["route", "code", "message", "operationKey", "organizationId", "movements", "payload", "partRows", "lineCount", "movementCount", "gdId", "unlockOk"]

@@ -31,6 +31,8 @@ const bulkGuard = function bulkGuard(inp) {
   const batchTuples = {};
   const costPairs = {};
   const lockKeys = {};
+  // (material, plant) of the unpriced category moves: no COST lock unless sql_node_IBprobe finds rows to migrate
+  const probePairs = {};
   const effectKeys = [];
   for (let i = 0; i < list.length; i++) {
     const m = list[i] || {};
@@ -59,13 +61,19 @@ const bulkGuard = function bulkGuard(inp) {
     // plant-level FIFO / WA rows: written by every movement that is not a category move (core.js isMovingInv 0)
     const moving = m.isMovingInv === undefined || m.isMovingInv === null ? 0 : Number(m.isMovingInv);
     if (moving !== 1) lockKeys["COST|" + mat + "|" + plant] = true;
+    else if (dir === "SUBTRACT" && !(parseFloat(m.unit_price) > 0)) probePairs["[" + mat + "," + plant + "]"] = "COST|" + mat + "|" + plant;
     if (batch) {
       batchTuples["[" + mat + "," + loc + "," + batch + "," + plant + "]"] = true;
       lockKeys["BATCH|" + mat + "|" + loc + "|" + batch] = true;
     }
     effectKeys.push(op + "|" + key);
   }
-  const keys = Object.keys(lockKeys).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const order = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+  const keys = Object.keys(lockKeys).sort(order);
+  // a release gives back every key a run of this operation could have taken: the probed pairs' COST keys too
+  const release = Object.assign({}, lockKeys);
+  for (const p of Object.keys(probePairs)) release[probePairs[p]] = true;
+  const releaseKeys = Object.keys(release).sort(order);
   // lists reach the SQL as ONE bound JSON string, unpacked by JSON_TABLE (ids stay exact: digits become JSON integers)
   const jsonList = (o) => "[" + Object.keys(o).join(",") + "]";
   return {
@@ -85,6 +93,9 @@ const bulkGuard = function bulkGuard(inp) {
     effectKeysJson: JSON.stringify(effectKeys),
     lockKeys: keys,
     lockKeysJson: JSON.stringify(keys),
+    probePairsJson: jsonList(probePairs),
+    needProbe: mode === "APPLY" && Object.keys(probePairs).length ? "YES" : "NO",
+    releaseKeysJson: JSON.stringify(releaseKeys),
   };
 };
 

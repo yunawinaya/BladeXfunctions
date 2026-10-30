@@ -11,13 +11,17 @@ const submitPost = function submitPost(guard, entry, keys, gate) {
   if (act === "DRAFT") return answer("DRAFT", "200", "", Object.assign(empty, { isAdd: add ? "YES" : "NO", idemStore: guard.key + "#" + guard.nonce }));
   if (!digits(keys.organizationId)) return answer("STOP", "400", "the Location Transfer has no organization", Object.assign(empty, { errorCode: "LOT_INVALID_DATA" }));
   const editing = act === "COMPLETE" || act === "EDIT";
-  const names = editing ? list(gate.partNames).map(s) : [];
+  // a Created IA's request received: its RECEIPTS part (code_node_LSiatr) after the LINES part
+  const lineNames = editing ? list(gate.partNames).map(s) : [];
+  const receiptNames = editing ? list(gate.receiptNames).map(s) : [];
+  const names = lineNames.concat(receiptNames);
   const request = { v: 1, action: act, prevStatus: entry.prevStatus, saveAs: guard.saveAs, pageStatus: add ? "Add" : "Edit", lotId: add ? "" : guard.lotId,
     lotNo: add ? "" : entry.lotNo, issuedNo: "", lineFingerprint: s(gate.lineFingerprint), incomingFingerprint: editing ? s(gate.incomingFingerprint) : "",
     edited: editing ? num(gate.edited) : 0, organizationId: keys.organizationId, plantId: keys.plantId, lineCount: num(gate.lineCount), rowCount: num(gate.rowCount),
-    movementCount: num(gate.movementCount), uid: guard.uid, source: guard.source, nonce: guard.nonce, parts: editing ? { LINES: names } : {} };
+    movementCount: num(gate.movementCount), uid: guard.uid, source: guard.source, nonce: guard.nonce,
+    parts: editing ? (receiptNames.length ? { LINES: lineNames, RECEIPTS: receiptNames } : { LINES: lineNames }) : {} };
   if (!lotPrevStatusOk(request.prevStatus)) return answer("STOP", "400", "the status to restore is unknown", Object.assign(empty, { errorCode: "LOT_INVALID_DATA" }));
-  if (editing && !names.length) return answer("STOP", "400", "the lines to write were not prepared", Object.assign(empty, { errorCode: "LOT_INVALID_DATA" }));
+  if (editing && !lineNames.length) return answer("STOP", "400", "the lines to write were not prepared", Object.assign(empty, { errorCode: "LOT_INVALID_DATA" }));
   return answer("QUEUE", "200", "queued", {
     request: JSON.stringify(request),
     isAdd: add ? "YES" : "NO",
@@ -38,6 +42,6 @@ const res = submitPost([{{node:code_node_LSguard.data}}][0], [{{node:code_node_L
     errorCode: [{{node:code_node_LSgate.data.errorCode}}][0], lineCount: [{{node:code_node_LSgate.data.lineCount}}][0], rowCount: [{{node:code_node_LSgate.data.rowCount}}][0],
     movementCount: [{{node:code_node_LSgate.data.movementCount}}][0], lineFingerprint: [{{node:code_node_LSgate.data.lineFingerprint}}][0],
     incomingFingerprint: [{{node:code_node_LSgate.data.incomingFingerprint}}][0], edited: [{{node:code_node_LSgate.data.edited}}][0],
-    partNames: [{{node:code_node_LSgate.data.partNames}}][0] });
+    partNames: [{{node:code_node_LSgate.data.partNames}}][0], receiptNames: [{{node:code_node_LSiatr.data.partNames}}][0] });
 console.log("submit post", JSON.stringify({ route: res.route, code: res.code, message: res.message, add: res.isAdd, number: res.numberProps, parts: res.partCount }));
 return res;

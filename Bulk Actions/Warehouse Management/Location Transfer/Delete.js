@@ -12,10 +12,11 @@
       return;
     }
 
+    // IA transfer request (scratchpad/iatr): a request (Requested or Cancelled) keeps its audit history - never deleted here
     const deleteLOTs = selectedRecords.filter(
       (item) =>
-        item.stock_movement_status === "Cancelled" ||
-        item.stock_movement_status === "Draft",
+        (item.stock_movement_status === "Cancelled" ||
+        item.stock_movement_status === "Draft") && item.transfer_purpose !== "IA_SUPPLY",
     );
 
     if (deleteLOTs.length === 0) {

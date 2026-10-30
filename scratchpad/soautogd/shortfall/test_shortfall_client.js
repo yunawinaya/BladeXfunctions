@@ -21,7 +21,9 @@ const makeDocument = () => {
 
 // jobs: { J4: { job_status, error_message, error_count, lines: [...] } }; newServer false -> no job_lines_json at all
 async function convert(opts) {
-  const code = SRC.replace("const FOLLOW_EVERY_MS = 3000;", "const FOLLOW_EVERY_MS = 1;").replace("const FOLLOW_MS = 120000;", "const FOLLOW_MS = 2000;");
+  const code = SRC.replace("const FOLLOW_EVERY_MS = 3000;", "const FOLLOW_EVERY_MS = 1;").replace("const FOLLOW_MS = 120000;", "const FOLLOW_MS = 2000;")
+    .replace("const DRAIN_NEXT_MS = 1000;", "const DRAIN_NEXT_MS = 1;").replace("const DRAIN_SLOW_MS = 5000;", "const DRAIN_SLOW_MS = 2;")
+    .replace("const DRAIN_FAILED_MS = 15000;", "const DRAIN_FAILED_MS = 3;").replace("const KEEP_MS = 1800000;", "const KEEP_MS = 3000;");
   const log = { checks: [], alerts: [] };
   const ctx = {
     showLoading: () => {}, hideLoading: () => {}, refresh: async () => {}, getVarGlobal: () => "admin",
@@ -102,7 +104,8 @@ const ok = (t) => { n++; console.log("ok", t); };
   assert.deepStrictEqual(rowsOf(a.msg), [["FG-1001", "Chilli Sauce 340g", "CTN", "50", "40", "40", "25", "15"]]);
   assert.ok(/Created 1 goods delivery/.test(a.msg) && /GD\/1/.test(a.msg), "the created part is unchanged: " + a.msg);
   assert.ok(/Convert one of these on its own to open the form, where you can deliver the available quantity\./.test(a.msg), a.msg);
-  assert.deepStrictEqual(log.checks.map((p) => p.job_lines), ["1"], "the follow asks the check for the refused lines");
+  // the worker runs' own reads (10-29) ask for statuses only
+  assert.deepStrictEqual(log.checks.filter((p) => p.job_lines).map((p) => p.job_lines), ["1"], "the follow asks the check for the refused lines");
   ok("a short line: headed by the sales order's customer; GD-form columns, quantities in the line's unit, shortfall = remaining demand - available");
 
   // 2. the line is in CTN (12 PCS each): the save reports PCS, the table shows CTN

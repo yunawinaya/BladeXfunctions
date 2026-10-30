@@ -22,7 +22,8 @@ JOBOBJ = ("JSON_OBJECT('id', CAST(@A.id AS CHAR), 'job_status', @A.job_status, '
 # header fields CHECK_REQUIRED_FIELD reads on a Cancel; its flat line count and bundle child rows (one pass over its lines),
 # latest lock, open / latest SAVE_LOT jobs, the job its
 # lot_v2_job_id names (STATUS when no job carries its correlation); whether its number is the one an earlier SAVE_LOT job of
-# this LOT made the platform issue (then no second number is burned)
+# this LOT made the platform issue, or a request's (IA transfer request: issued at creation) - then no second number is burned;
+# the request's purpose, source Item Assembly and the demand fingerprint it was made from
 FACTS = """SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
        (SELECT CAST(@KJ AS CHAR) FROM gd_async_job k
          WHERE k.tenant_id = '@T' AND k.idempotency_key = '@KEY' AND k.is_deleted = 0 ORDER BY k.id DESC LIMIT 1) AS key_job,
@@ -45,7 +46,9 @@ FACTS = """SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
        (SELECT COUNT(*) FROM gd_async_job r
          WHERE @LOT > 0 AND r.tenant_id = '@T' AND r.is_deleted = 0 AND r.command = 'SAVE_LOT' AND r.correlation_id = 'LOT|@LOT' AND JSON_VALID(r.request_payload)
            AND COALESCE(g.stock_movement_no, '') <> ''
-           AND (JSON_UNQUOTE(JSON_EXTRACT(r.request_payload, '$.issuedNo')) COLLATE utf8mb4_general_ci) = g.stock_movement_no) AS issued_reuse
+           AND (JSON_UNQUOTE(JSON_EXTRACT(r.request_payload, '$.issuedNo')) COLLATE utf8mb4_general_ci) = g.stock_movement_no)
+         + COALESCE(g.stock_movement_status = 'Requested' AND COALESCE(g.stock_movement_no, '') <> '', 0) AS issued_reuse,
+       g.transfer_purpose, CAST(g.source_ia_id AS CHAR) AS source_ia_id, g.source_ia_fp
   FROM (SELECT NOW(3) AS t) n
   LEFT JOIN sm_location_transfer g
     ON g.tenant_id = '@T'
@@ -58,7 +61,7 @@ FACTS = """SELECT DATE_FORMAT(n.t, '%Y-%m-%d %H:%i:%s') AS db_now,
     ON 1 = 1"""
 FACTS_COLS = ["db_now", "key_job", "key_lot", "lot_id", "stock_movement_no", "stock_movement_status", "organization_id", "plant_id", "no_type", "movement_type",
               "issue_date", "is_production_order", "line_count", "bundle_children", "last_lock", "open_jobs", "last_job", "lot_v2_job_id", "link_job",
-              "issued_reuse"]
+              "issued_reuse", "transfer_purpose", "source_ia_id", "source_ia_fp"]
 
 # the stored lines' items (COMPLETE / EDIT / CANCEL: @SLOT = the LOT; else 0) besides the form's
 STORED_ITEMS = ("SELECT CAST(s.item_selection AS UNSIGNED) FROM sm_location_transfer_d2c7o1jd_sub s WHERE @SLOT > 0 AND s.tenant_id = '@T' AND "
@@ -160,3 +163,40 @@ def stored(sub, T, LOT, NEED):
 
 def lines_by_job(sub, T, JOB, NEED):
     return sub(fp_lines(), T=T, LOT=sub(LOT_BY_JOB, T=T, JOB=JOB), NEED=NEED)
+
+
+# IA transfer request (scratchpad/iatr): a request's dispatch (STAGE from Requested) or receipt (COMPLETE) reads, in one row, its
+# stored lines (+ their picks), its Item Assembly (status + the fingerprint's basis: plant, item, output, planned output, BOM mode /
+# BOM), that assembly's lines and their items (@NEEDIATR 'YES' only then; the IA's varchar item_selection is cast to the item id, as
+# STORED_ITEMS does), and on a dispatch the IA's live reservation rows (a Created IA's request: rrDispatchCheck)
+IATR_READ = """SELECT JSON_OBJECT(
+  'lines', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(l.id AS CHAR), 'item_selection', l.item_selection, 'quantity_uom', CAST(l.quantity_uom AS CHAR),
+                   'requested_qty', l.requested_qty, 'source_ia_line_id', l.source_ia_line_id, 'storage_location_id', CAST(l.storage_location_id AS CHAR),
+                   'location_id', CAST(l.location_id AS CHAR), 'line_index', l.line_index, 'temp_qty_data', l.temp_qty_data))
+              FROM sm_location_transfer_d2c7o1jd_sub l
+             WHERE '@NEEDIATR' = 'YES' AND l.tenant_id = '@T' AND l.sm_location_transfer_id = @LOT AND l.is_deleted = 0),
+  'ia', (SELECT JSON_OBJECT('status', h.item_assembly_status, 'plant', CAST(h.issuing_operation_faci AS CHAR), 'item_id', CAST(h.item_id AS CHAR),
+                            'item_qty', h.item_qty, 'planned_output_qty', h.planned_output_qty, 'bom_consumption_mode', h.bom_consumption_mode,
+                            'source_bom_id', CAST(h.source_bom_id AS CHAR))
+           FROM sm_item_assembly h
+          WHERE '@NEEDIATR' = 'YES' AND h.tenant_id = '@T' AND h.id = @IAID AND h.is_deleted = 0),
+  'ia_lines', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(a.id AS CHAR), 'item_selection', a.item_selection, 'quantity_uom', CAST(a.quantity_uom AS CHAR),
+                      'requested_qty', a.requested_qty, 'required_qty', a.required_qty, 'sc_ref_key', a.sc_ref_key, 'line_index', a.line_index))
+                 FROM sm_item_assembly_tlm8ve69_sub a
+                WHERE '@NEEDIATR' = 'YES' AND a.tenant_id = '@T' AND a.sm_item_assembly_id = @IAID AND a.is_deleted = 0),
+  'items', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(i.id AS CHAR), 'stock_control', i.stock_control, 'serial_number_management', i.serial_number_management,
+                   'material_name', i.material_name, 'material_code', i.material_code))
+              FROM item i
+             WHERE '@NEEDIATR' = 'YES' AND i.tenant_id = '@T' AND i.is_deleted = 0
+               AND i.id IN (SELECT CAST(a2.item_selection AS UNSIGNED) FROM sm_item_assembly_tlm8ve69_sub a2
+                             WHERE a2.tenant_id = '@T' AND a2.sm_item_assembly_id = @IAID AND a2.is_deleted = 0)),
+  'holds', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(r.id AS CHAR), 'status', r.status, 'doc_line_id', r.doc_line_id, 'material_id', CAST(r.material_id AS CHAR),
+                   'bin_location', CAST(r.bin_location AS CHAR), 'batch_id', CAST(r.batch_id AS CHAR), 'from_category', r.from_category,
+                   'open_qty', CAST(r.open_qty AS CHAR), 'item_uom', CAST(r.item_uom AS CHAR)))
+              FROM on_reserved_gd r
+             WHERE '@IATRMODE' = 'DISPATCH' AND r.tenant_id = '@T' AND r.organization_id = '@ORG' AND r.is_deleted = 0 AND r.doc_type = 'Item Assembly'
+               AND r.doc_id = '@IAID' AND r.status = 'Allocated')) AS j"""
+
+
+def iatr(sub, T, LOT, IAID, NEEDIATR, IATRMODE, ORG):
+    return sub(IATR_READ, T=T, LOT=LOT, IAID=IAID, NEEDIATR=NEEDIATR, IATRMODE=IATRMODE, ORG=ORG)

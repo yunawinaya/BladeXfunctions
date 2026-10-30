@@ -5,7 +5,8 @@ const scRow = (arguments[0] && arguments[0].row) || {};
 const scId = String(scRow.ia_id === undefined || scRow.ia_id === null ? "" : scRow.ia_id).trim();
 if (/^[0-9]{1,20}$/.test(scId)) {
   const edit = ["Draft", "Created"].indexOf(String(scRow.status || "")) >= 0;
-  const view = { target: SC_IA_FORM, type: edit ? "edit" : "view", mode: "dialog", title: edit ? "Edit" : "View", width: "80%", data: { id: scId } };
+  // on the right, as every form opens (the user, 10-28)
+  const view = { target: SC_IA_FORM, type: edit ? "edit" : "view", mode: "dialog", position: "rtl", title: edit ? "Edit" : "View", width: "80%", data: { id: scId } };
   if (!edit) view.viewMode = "disabled";
   this.toView(view);
 }

@@ -1,0 +1,34 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "LOT form (IA transfer request B4: Requested badge, request info, Save Picks / Dispatch / Cancel Request / Receive, V2 routing)",
+   "kind": "form",
+   "dataId": "2013791389687349250",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/lot_client/out/full/LOTform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/lot_client/out/fields/LOTform.json"
+  },
+  {
+   "name": "LOT list (IA transfer request B4: Requested badge, Status filter, 3 columns last, Cancel Request, no delete of a request)",
+   "kind": "page",
+   "dataId": "2013863255693197313",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/lot_client/out/list/LOTlist.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_list_v49.json"
+  },
+  {
+   "name": "IA form (IA transfer request B4: Request Materials + Transfer Request section)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/client/out/on/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json"
+  },
+  {
+   "name": "IA list (IA transfer request B4: Transfer Request column last, no delete while a request is live)",
+   "kind": "page",
+   "dataId": "2098312073316716546",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/ia_client/out/list/IAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/ia_list_v31.json"
+  }
+ ]
+}

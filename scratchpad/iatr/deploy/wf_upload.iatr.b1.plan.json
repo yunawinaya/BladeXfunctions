@@ -1,0 +1,20 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "LOT form (IA transfer request B1: 12 hidden data fields + Requested in the status filter; no behaviour)",
+   "kind": "form",
+   "dataId": "2013791389687349250",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/lot_client/out/fields/LOTform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_form_v113.json"
+  },
+  {
+   "name": "IA form (IA transfer request B1: transfer_request_id / _no hidden; no behaviour)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/client/out/on/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v69.json"
+  }
+ ]
+}

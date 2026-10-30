@@ -33,8 +33,8 @@ const pkV2Call = (workflowId, params) =>
   });
 
 // Auto Complete GD (stage 1e): COMMIT hands each delivery this confirm left fully picked to GD Complete V2. The screen follows the
-// job through STATUS - not the worker's answer, which a long run can lose in the browser (Kenhin 10-27) - and starts each queued
-// completion once (GD_COMPLETE_WORKER, one call per job). P7 adds its entries just after the job is COMPLETED, so the follow stays
+// job through STATUS - not the worker's answer, which a long run can lose in the browser (Kenhin 10-27) - and hands each queued
+// completion to the browser's GD Complete drain below. P7 adds its entries just after the job is COMPLETED, so the follow stays
 // until the list stops growing. The GD and Picking lists' sweeps are the safety net
 const PK_V2_GD_COMPLETE_WORKER = "2110182645714518018";
 const PK_V2_POLL_MS = 3000;
@@ -50,8 +50,80 @@ const gdCompleteList = (raw) => {
   }
   return Array.isArray(list) ? list : [];
 };
+// One GD_COMPLETE_WORKER {} run at a time per browser (10-29) while a delivery handed over here is still completing. A run takes the
+// tenant's earliest due job (one stock call per run), so the next starts PK_V2_DRAIN_NEXT_MS after a run that moved one,
+// PK_V2_DRAIN_SLOW_MS after one that moved nothing (a job that lost the stock lock is due again 15 s, 30 s... later) and
+// PK_V2_DRAIN_FAILED_MS after a failed run or one with no answer within PK_V2_DRAIN_LOST_MS. Starting every completion at once and
+// then one run per 15 s left ~10 s of each 15 idle (Kenhin 10-29: 24 completions in 306 s). It stops once every delivery handed
+// over has ended or after PK_V2_DRAIN_QUIET_MS without progress; each run stamps pkv2_gdc_kick_at, so the Picking list's sweep
+// holds back meanwhile
+const PK_V2_GDC_SUBMIT = "2110182609618337794";
+const PK_V2_DRAIN_NEXT_MS = 1000;
+const PK_V2_DRAIN_SLOW_MS = 5000;
+const PK_V2_DRAIN_FAILED_MS = 15000;
+const PK_V2_DRAIN_LOST_MS = 60000;
+const PK_V2_DRAIN_QUIET_MS = 180000;
+const PK_V2_GDC_OPEN = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_GD"];
+// a run moved a job when one of its jobs left the state it was read in
+const pkV2GdcMoved = (d) => {
+  if (String(d.worker_route || "") !== "WORKED") return false;
+  try {
+    const jobs = JSON.parse(d.jobs || "[]");
+    return Array.isArray(jobs) && jobs.some((j) => j && String(j.before || "") !== String(j.job_status || ""));
+  } catch (e) {
+    return Number(d.processed || 0) > 0;
+  }
+};
+const pkV2GdcDrain = (gdIds) => {
+  const w = typeof window !== "undefined" ? window : {};
+  const d = (w.pkV2GdcDrain = w.pkV2GdcDrain || { open: {}, active: false });
+  gdIds.forEach((gdId) => {
+    d.open[String(gdId)] = 1;
+  });
+  d.run = this.runWorkflow.bind(this);
+  if (d.active) return;
+  d.active = true;
+  let progressAt = Date.now();
+  const step = async () => {
+    const open = Object.keys(d.open);
+    if (!open.length || Date.now() - progressAt > PK_V2_DRAIN_QUIET_MS) {
+      d.open = {};
+      d.active = false;
+      return;
+    }
+    try {
+      localStorage.setItem("pkv2_gdc_kick_at", String(Date.now()));
+    } catch (e) {}
+    const answer = await new Promise((resolve) => {
+      const lost = setTimeout(() => resolve(null), PK_V2_DRAIN_LOST_MS);
+      const settle = (v) => {
+        clearTimeout(lost);
+        resolve(v);
+      };
+      try {
+        d.run(PK_V2_GD_COMPLETE_WORKER, {}, (res) => settle((res && res.data) || {}), (e) => {
+          console.error("GD Complete V2: run failed - the lists' sweep picks it up", e);
+          settle(null);
+        });
+      } catch (e) {
+        console.error("GD Complete V2: could not be started", e);
+        settle(null);
+      }
+    });
+    const moved = answer ? pkV2GdcMoved(answer) : false;
+    if (moved) progressAt = Date.now();
+    else {
+      // nothing moved: which deliveries handed over are still completing (an unanswered read keeps one followed)
+      const st = await Promise.all(open.map((gdId) => pkV2Call(PK_V2_GDC_SUBMIT, { operation: "STATUS", gd_id: gdId, source: "PICKING" })));
+      open.forEach((gdId, k) => {
+        if (st[k].ok && PK_V2_GDC_OPEN.indexOf(String(st[k].data.job_status || "")) < 0) delete d.open[gdId];
+      });
+    }
+    setTimeout(step, answer === null ? PK_V2_DRAIN_FAILED_MS : moved ? PK_V2_DRAIN_NEXT_MS : PK_V2_DRAIN_SLOW_MS);
+  };
+  step();
+};
 const followGdCompletes = async (pickingId, organizationId) => {
-  const run = this.runWorkflow.bind(this);
   const msg = this.$message;
   const started = {};
   const named = {};
@@ -66,15 +138,11 @@ const followGdCompletes = async (pickingId, organizationId) => {
     if (js !== "COMPLETED") continue;
     const list = gdCompleteList(st.data.gd_complete);
     const fresh = list.filter((g) => g && g.status === "QUEUED" && g.job_id && !started[g.job_id]);
-    for (const g of fresh) {
-      started[g.job_id] = 1;
-      try {
-        run(PK_V2_GD_COMPLETE_WORKER, { job_id: String(g.job_id) }, () => {}, (e) => console.error("GD Complete V2: start failed - the lists' sweep picks it up", e));
-      } catch (e) {
-        console.error("GD Complete V2: could not be started", e);
-      }
+    for (const g of fresh) started[g.job_id] = 1;
+    if (fresh.length) {
+      pkV2GdcDrain(fresh.map((g) => String(g.gd_id)));
+      msg.success("Completing " + fresh.map((g) => g.gd_no || g.gd_id).join(", ") + " in the background.");
     }
-    if (fresh.length) msg.success("Completing " + fresh.map((g) => g.gd_no || g.gd_id).join(", ") + " in the background.");
     const waiting = list.filter((g) => g && g.status === "NOT_QUEUED" && !named[g.gd_id]);
     for (const g of waiting) named[g.gd_id] = 1;
     if (waiting.length) msg.warning("Not completed automatically: " + waiting.map((g) => (g.gd_no || g.gd_id) + " - " + (g.message || g.code)).join("; "));

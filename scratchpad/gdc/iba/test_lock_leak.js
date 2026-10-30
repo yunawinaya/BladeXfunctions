@@ -31,7 +31,8 @@ const run = (doc, id, ctx) => {
 const OP = "GDR|1001";
 const KEYS = ["COST|11|90", "ITEM|11|21", "ITEM|12|21"];
 const row = (key, token, owner, last, id) => ({ id: String(id), lock_key: key, free_token: token, owner_operation_id: owner, last_owner_operation_id: last, lock_version: 3, db_now: "2026-10-21 15:00:00" });
-const guard = { "code_node_IBguard.data.operationKey": OP, "code_node_IBguard.data.lockKeys": KEYS };
+// v13+: the lock steps read the lock plan's keys (the guard's when no costing migration adds a COST key)
+const guard = { "code_node_IBguard.data.operationKey": OP, "code_node_IBguard.data.lockKeys": KEYS, "code_node_IBlkplan.data.lockKeys": KEYS };
 let n = 0;
 const t = (name, f) => { f(); n++; console.log("ok", name); };
 

@@ -1,0 +1,27 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA form (B27: requests from a reserved IA - Request Replacement, Report Defect)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_sm_item_assembly_v80.json"
+  },
+  {
+   "name": "LOT form (B27: the Receive dialog, the pick add-back, replacement / bins to count)",
+   "kind": "form",
+   "dataId": "2013791389687349250",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/lot_client/out/full/LOTform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/lot_client/out/rrfields/LOTform.json"
+  },
+  {
+   "name": "IA list (B27: Cancel leaves an IA whose request is open)",
+   "kind": "page",
+   "dataId": "2098312073316716546",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/ia_client/out/list/IAlistPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_IA_LIST_v36.json"
+  }
+ ]
+}

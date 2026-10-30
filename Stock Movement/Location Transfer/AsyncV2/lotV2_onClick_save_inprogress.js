@@ -24,11 +24,11 @@ const RUNNING = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_LOT"];
 const TERMINAL = ["COMPLETED", "FAILED", "REQUIRES_REVIEW", "CANCELLED"];
 // this handler's button and the classic handler it ran before
 const button = { saveAs: "In Progress", classic: "onClick_inProgress" };
-const SAVE_BUTTONS = ["button_save_as_draft", "button_inprogress", "button_completed"];
+const SAVE_BUTTONS = ["button_save_as_draft", "button_inprogress", "button_completed", "button_save_picks", "button_dispatch", "button_cancel_request", "button_receive"];
 // not record fields: the job's own fields, helper models, dialogs, layout / badge widgets
 const NOT_RECORD = ["lot_v2_job_id", "lot_idem_key", "_data", "$_v", "_vts", "isTrusted", "error_message", "previous_material_uom", "sm_item_balance",
   "dialog_apply_location", "dialog_serial_number", "draft_status", "processing_status", "lot_processing_status", "created_status", "completed_status",
-  "cancel_status", "flex_2det1nd2", "flex_t6y2yh5r"].concat(SAVE_BUTTONS);
+  "cancel_status", "flex_2det1nd2", "flex_t6y2yh5r", "requested_status", "iatr_info", "button_view_ia", "iatr_link", "iatr_ia_no"].concat(SAVE_BUTTONS);
 
 // SM V2 / Location Transfer - lotLineFingerprint: ONE canonical fingerprint of a Location Transfer's lines. SUBMIT (B) stamps
 // it on the job (request.lineFingerprint over the STORED lines; request.incomingFingerprint over the lines a COMPLETE / EDIT
@@ -113,16 +113,27 @@ const release = () => {
   this.hideLoading();
 };
 
+// the opener after a save: the Location Transfer list is refreshed; an Item Assembly form (View Transfer Request) is not - a refresh
+// re-initialises a form without its mounted (badge, buttons, sections gone) - it redraws its transfer request section instead
+const refreshParent = () => {
+  const p = this.parentGenerateForm;
+  if (!p) return;
+  const m = p.models;
+  if (m && typeof m === "object" && Object.prototype.hasOwnProperty.call(m, "item_assembly_status") && typeof p.triggerEvent === "function") {
+    p.triggerEvent("tr_main", { trOp: "RELOAD" });
+    return;
+  }
+  p.refresh();
+};
+
 const closeDialog = () => {
   if (this.parentGenerateForm) {
     this.parentGenerateForm.$refs.SuPageDialogRef.hide();
-    this.parentGenerateForm.refresh();
+    refreshParent();
   }
 };
 
-const refreshList = () => {
-  if (this.parentGenerateForm) this.parentGenerateForm.refresh();
-};
+const refreshList = () => refreshParent();
 
 const run = (id, params) =>
   new Promise((resolve, reject) => {
@@ -189,6 +200,13 @@ const routeOf = (v, saveAs) => {
   if (!isNew && page !== "Edit") return { why: "page " + page };
   if (!isNew && !digits(v.id)) return { why: "no document id" };
   const stored = isNew ? "Draft" : s(v.stock_movement_status);
+  // IA transfer request (scratchpad/iatr): a request's picks are saved by the classic; every other save of it goes to SUBMIT whatever
+  // its size (dispatch = STAGE, receipt = COMPLETE; anything else SUBMIT refuses, with the reason)
+  if (!isNew && s(v.transfer_purpose) === "IA_SUPPLY") {
+    if (stored === "Requested" && saveAs === "Draft") return { why: "a request's picks are saved by the classic save" };
+    const a = stored === "Requested" && saveAs === "In Progress" ? "STAGE" : stored === "In Progress" && saveAs === "Completed" ? "COMPLETE" : "EDIT";
+    return { action: a, isNew: false, page: page, purpose: true };
+  }
   let action = "";
   if (stored === "Draft") action = { Draft: "DRAFT", "In Progress": "STAGE", Completed: "DIRECT" }[saveAs] || "";
   else if (stored === "In Progress") action = { "In Progress": "EDIT", Completed: "COMPLETE" }[saveAs] || "";
@@ -334,7 +352,13 @@ const follow = async (ctx, q) => {
       await alertBox(s(st.error_message) || s(st.error_code) || "The save could not be completed.", name + " was not saved", "error");
       return;
     }
-    if (js === "COMPLETED") return finish(name + " saved.");
+    // already done: one toast, the form closed - kickLoop would ask the worker about a finished job and say "saved." again
+    if (js === "COMPLETED") {
+      release();
+      this.$message.success(name + " saved.");
+      closeDialog();
+      return;
+    }
     if (js === "REQUIRES_REVIEW") {
       release();
       markSeen(job.jobId);
@@ -432,7 +456,15 @@ const submit = async (ctx) => {
     return;
   }
   pin(ctx, false);
-  if (r.route === "NOT_ELIGIBLE" || r.route === "INVALID") return classic(r.route + ": " + (s(r.reason) || message));
+  if (r.route === "NOT_ELIGIBLE" || r.route === "INVALID") {
+    // a request's stock moves only in the background (the classic refuses them): say why instead
+    if (ctx.purpose) {
+      release();
+      this.$message.error("This transfer request can't be saved: " + (s(r.reason) || message || r.route) + ".");
+      return;
+    }
+    return classic(r.route + ": " + (s(r.reason) || message));
+  }
   if (r.route === "SAVED") {
     release();
     store({ lot_page_token: null, lot_gen: 1 });
@@ -486,7 +518,8 @@ const submit = async (ctx) => {
     if (!route.action) return classic(route.why);
     const record = { ...values };
     NOT_RECORD.forEach((k) => delete record[k]);
-    const ctx = { action: route.action, isNew: route.isNew, page: route.page, saveAs: button.saveAs, record: record, gen: Number(data_().lot_gen) || 1 };
+    const ctx = { action: route.action, isNew: route.isNew, page: route.page, saveAs: button.saveAs, record: record, gen: Number(data_().lot_gen) || 1,
+      purpose: route.purpose === true };
     ctx.key = idemKey(ctx);
     store({ lot_submitting: 1 });
     submitting = true;

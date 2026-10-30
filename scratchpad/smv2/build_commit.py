@@ -36,7 +36,13 @@ LOT_LABELS = {"stock_movement_status": "Stock Movement Status"}
 RES = V.RES_FIELDS
 CG, CE = "code_node_LCguard", "code_node_LCentry"
 # the steps this build has (the entry refuses a job needing another one before any write: LOT_STEP_NOT_BUILT)
-BUILT = ["L0", "L1", "L2", "L3", "L4"]
+BUILT = ["L0", "L1", "L2", "L3", "L3R", "L4"]
+# L3_RESERVATION (reserved Item Assembly requests): the tables it writes; its add columns are l3r.js's L3R_ADD_COLS (IA_HOLD's)
+ONRES = "On Reserved Goods Delivery:Table:1935880014687440897"
+IA_LINES = "Stock movement(Item Assembly):Table:2098269596661833730"
+# (and the Item Assembly header: its link to the request, display only - a cancelled replacement gives it back to the received request)
+IA_HDR = "Item Assembly:Table:2098256587713404929"
+LOT_LINES = "Stock Movement Table(Location Transfer):Table:2013831779991814146"
 # update_node_TxDhhT03's props minus stock_movement_status (CONTRACT section 5, S|..|LINES)
 L2_HEADER = ["issuing_operation_faci", "issue_date", "movement_type", "movement_type_id", "movement_reason", "issued_by", "reference_documents", "organization_id",
              "project_id", "is_production_order", "production_order_id", "remarks", "remark", "remark2", "remark3"]
@@ -198,6 +204,49 @@ def commit_sql():
  ORDER BY t.id""", LOTID=LOTID, ORG=ORG, **TOK)
     S["hdr"] = sub("SELECT g.stock_movement_status, g.stock_movement_no FROM sm_location_transfer g WHERE g.tenant_id = '@T' AND g.id = @LOTID AND g.is_deleted = 0",
                    LOTID=LOTID, **TOK)
+    # L3_RESERVATION: the transfer's Item Assembly (source_ia_id, an uncorrelated scalar: read once), its lines, its reservation rows
+    # (any status: the keys and the cancelled ones), the transfer lines' defects, the items' text and the lines' units; one row
+    iax = sub("(SELECT CAST(q.source_ia_id AS UNSIGNED) FROM sm_location_transfer q WHERE q.tenant_id = '@T' AND q.id = @LOTID AND q.is_deleted = 0 "
+              "AND q.transfer_purpose = 'IA_SUPPLY' AND q.source_ia_id REGEXP '^[0-9]{1,20}$')", LOTID=LOTID, **TOK)
+    iaq = iax.replace("CAST(q.source_ia_id AS UNSIGNED)", "q.source_ia_id")
+    S["l3rctx"] = sub("""SELECT JSON_OBJECT(
+       'now', DATE_FORMAT(CONVERT_TZ(UTC_TIMESTAMP(), '+00:00', '+08:00'), '%Y-%m-%d %H:%i:%s'),
+       'log', (SELECT q.request_log FROM sm_location_transfer q WHERE q.tenant_id = '@T' AND q.id = @LOTID AND q.is_deleted = 0),
+       'ia', (SELECT JSON_OBJECT('id', CAST(h.id AS CHAR), 'no', h.stock_movement_no, 'status', h.item_assembly_status, 'plant', CAST(h.issuing_operation_faci AS CHAR),
+                'org', h.organization_id, 'link', h.transfer_request_id)
+                FROM sm_item_assembly h WHERE h.tenant_id = '@T' AND h.id = @IAX AND h.is_deleted = 0),
+       'recv', (SELECT JSON_OBJECT('id', CAST(r.id AS CHAR), 'no', r.stock_movement_no) FROM sm_location_transfer r WHERE r.tenant_id = '@T' AND r.source_ia_id = @IAQ
+                AND r.transfer_purpose = 'IA_SUPPLY' AND r.stock_movement_status = 'Completed' AND r.is_deleted = 0 AND r.id <> @LOTID ORDER BY r.id DESC LIMIT 1),
+       'lines', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(l.id AS CHAR), 'item_selection', l.item_selection, 'quantity_uom', CAST(l.quantity_uom AS CHAR),
+                'temp_qty_data', l.temp_qty_data, 'stock_summary', l.stock_summary))
+                FROM sm_item_assembly_tlm8ve69_sub l WHERE l.tenant_id = '@T' AND l.sm_item_assembly_id = @IAX AND l.is_deleted = 0),
+       'holds', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(r.id AS CHAR), 'status', r.status, 'job_line_key', r.job_line_key))
+                FROM on_reserved_gd r WHERE r.tenant_id = '@T' AND r.organization_id = '@ORG' AND r.is_deleted = 0 AND r.doc_type = 'Item Assembly' AND r.doc_id = @IAQ),
+       'lot', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(t.id AS CHAR), 'defect_qty', CAST(t.defect_qty AS CHAR), 'defect_reason', t.defect_reason,
+                'defect_detail', t.defect_detail))
+                FROM sm_location_transfer_d2c7o1jd_sub t WHERE t.tenant_id = '@T' AND t.sm_location_transfer_id = @LOTID AND t.is_deleted = 0),
+       'items', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(i.id AS CHAR), 'material_code', i.material_code, 'material_name', i.material_name,
+                'material_desc', i.material_desc))
+                FROM item i WHERE i.tenant_id = '@T' AND i.is_deleted = 0 AND i.id IN (SELECT CAST(m.item_selection AS UNSIGNED) FROM sm_item_assembly_tlm8ve69_sub m
+                 WHERE m.tenant_id = '@T' AND m.sm_item_assembly_id = @IAX AND m.is_deleted = 0 AND m.item_selection REGEXP '^[0-9]{1,20}$')),
+       'uoms', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(u.id AS CHAR), 'uom_name', u.uom_name))
+                FROM unit_of_measurement u WHERE u.id IN (SELECT n.quantity_uom FROM sm_item_assembly_tlm8ve69_sub n
+                 WHERE n.tenant_id = '@T' AND n.sm_item_assembly_id = @IAX AND n.is_deleted = 0))) AS j""", IAX=iax, IAQ=iaq, LOTID=LOTID, ORG=ORG, **TOK)
+    # L3_RESERVATION lookups (ids from code_node_LCl3rkeys only): today's balances of the new picks' items at the final picks' bins (+ batches),
+    # the bins' and batches' names for the stock summary; one row
+    KY = lambda f: N("code_node_LCl3rkeys", "data." + f)
+    S["l3rlook"] = sub("""SELECT JSON_OBJECT(
+       'bal', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(b.id AS CHAR), 'material_id', CAST(b.material_id AS CHAR), 'location_id', CAST(b.location_id AS CHAR), 'batch_id', '',
+                'unrestricted_qty', CAST(b.unrestricted_qty AS CHAR), 'balance_quantity', CAST(b.balance_quantity AS CHAR)))
+                FROM item_balance b WHERE b.tenant_id = '@T' AND b.is_deleted = 0 AND b.plant_id = @PLANT AND b.organization_id = '@ORG' AND b.material_id IN (@MATS)
+                 AND b.location_id IN (@LOCS)),
+       'bbal', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(y.id AS CHAR), 'material_id', CAST(y.material_id AS CHAR), 'location_id', CAST(y.location_id AS CHAR),
+                'batch_id', CAST(y.batch_id AS CHAR), 'unrestricted_qty', CAST(y.unrestricted_qty AS CHAR), 'balance_quantity', CAST(y.balance_quantity AS CHAR)))
+                FROM item_batch_balance y WHERE y.tenant_id = '@T' AND y.is_deleted = 0 AND y.plant_id = @PLANT AND y.organization_id = '@ORG' AND y.material_id IN (@MATS)
+                 AND y.location_id IN (@LOCS) AND y.batch_id IN (@BATCHES)),
+       'bins', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(n.id AS CHAR), 'name', n.bin_location_combine)) FROM bin_location n WHERE n.tenant_id = '@T' AND n.id IN (@LOCS)),
+       'batches', (SELECT JSON_ARRAYAGG(JSON_OBJECT('id', CAST(c.id AS CHAR), 'batch_number', c.batch_number)) FROM batch c WHERE c.tenant_id = '@T' AND c.id IN (@BATCHES))) AS j""",
+                       PLANT=KY("plant"), MATS=KY("mats"), LOCS=KY("locs"), BATCHES=KY("batches"), ORG=ORG, **TOK)
     return S
 
 
@@ -210,7 +259,7 @@ def build():
     pick = lambda node, keys: "{ " + ", ".join("%s: [%s][0]" % (k, N(node, "data." + k)) for k in keys) + " }"
     entry_fields = ["route", "phase", "dbNow", "jobId", "tenantId", "organizationId", "lotId", "lotNo", "action", "prevStatus", "saveAs", "lineFingerprint", "incomingFingerprint",
                     "lineCount", "idempotencyKey", "jobStatus", "rowVersion", "attempts", "leaseUntil", "unlockOk", "partPrefix", "sPartPrefix", "jobRows", "needJobUpd",
-                    "unlockRows", "needUnlock", "needL0", "needL1", "needL2", "needL2Full", "hasAlloc", "needL3", "needL4", "result_code", "result_message", "job_status"]
+                    "unlockRows", "needUnlock", "needL0", "needL1", "needL2", "needL2Full", "hasAlloc", "needL3", "needL3R", "needL4", "result_code", "result_message", "job_status"]
     chk = ["route", "stepRows", "needStep", "jobRows", "needJobUpd", "unlockRows", "needUnlock", "result_code", "result_message", "job_status"]
     chk_arr = ("stepRows", "jobRows", "unlockRows")
     rej_body = RESULT_JS + V.raw(HERE, "code/commit/result.js") + "\nreturn commitResult([%s][0], {}, { job_status: \"\", result_code: [%s][0], result_message: [%s][0] }, \"REJECTED_INPUT\");" % (
@@ -218,6 +267,12 @@ def build():
     E = "[%s][0]" % N(CE, "data")
     L0, L1I, L1A, L1 = "code_node_LCl0", "code_node_LCl1in", "code_node_LCl1ans", "code_node_LCl1"
     L2P, L2C, L3P, L3C, L4P, L4C, FIN = "code_node_LCl2plan", "code_node_LCl2check", "code_node_LCl3plan", "code_node_LCl3check", "code_node_LCl4plan", "code_node_LCl4check", "code_node_LCfinish"
+    L3RK, L3RP, L3RC = "code_node_LCl3rkeys", "code_node_LCl3rplan", "code_node_LCl3rcheck"
+    # L3_RESERVATION's filter ids from their own range: every other node keeps v9's ids
+    rids = K.Ids(1799290000000)
+    l3r = lambda call: ccode("l3r.js", ("fp",), {"__CALL__": call})
+    l3r_cols = json.loads(re.search(r"const L3R_ADD_COLS = (\[[^\]]*\]);", V.raw(HERE, "code/commit/l3r.js")).group(1))
+    slice_js = V.raw(HERE, "code/commit/slice.js")
     l3_sets = [K.loop(ids, "loop_LCl3%s" % tag, "L3 WRITE: In Transit rows %s, <= 250 per call" % title, N(L3P, "data." + field), [
         K.code("code_node_LCl3%sslice" % tag, "This slice (the loop item: <= 250 rows)", V.raw(HERE, "code/commit/slice.js").replace("__LOOP__", "loop_LCl3%s" % tag), ["n", "rows"],
                arrays=("rows",), objects=("n",)),
@@ -325,6 +380,37 @@ def build():
                 "__ADDCOLS__": json.dumps(IT_ADD_COLS), "__CALL__": "commitL3Check(%s, %s, [%s][0])" % (E, pick(L3P, ["expect"]), N("sql_node_LCl3back", "data"))}), chk, arrays=chk_arr),
             end_b(ids, "l3", L3C, "IF L3 did not complete"),
             V.step_done(ids, "LC", "l3", L3C, "L3_LEDGER"),
+        ]),
+        # ---------------------------------------------------------------- L3_RESERVATION (a reserved Item Assembly request: part RR)
+        K.if_(rids, "if_LCl3r", "IF L3 RESERVATION is due (a Created Item Assembly's request: its reservation follows the transfer)", is_(CE, "needL3R", "YES"), [
+            br("l3rread", [("RR part", part("sql_node_LCl3rpart", "L3R: the RR part", "RR")),
+                           ("Item Assembly", sq("sql_node_LCl3rctx", "L3R: the transfer's Item Assembly, its lines, its reservation rows, the transfer lines' defects", "l3rctx"))]),
+            K.code(L3RK, "L3R keys: the new picks' items, every final pick's bin and batch, the IA's plant (rids only)", l3r("commitL3RKeys(%s, [%s][0], [%s][0])" % (
+                E, N("sql_node_LCl3rpart", "data"), N("sql_node_LCl3rctx", "data"))), ["need", "mats", "locs", "batches", "plant"]),
+            gate(rids, "cor_LCl3rlook", "Balances, bins and batches to look up?", L3RK, "need", [
+                sq("sql_node_LCl3rlook", "L3R: today's balances at the new picks' bins, the bins' and batches' names", "l3rlook")]),
+            K.code(L3RP, "L3R plan: DISPATCH -> the released rows Cancelled; RECEIVE / CANCEL_BACK -> new rows once per key, the IA lines' picks + summary, the defects; "
+                   "at target = done; else review", l3r("commitL3RPlan(%s, [%s][0], [%s][0], [%s][0])" % (
+                       E, N("sql_node_LCl3rpart", "data"), N("sql_node_LCl3rctx", "data"), N("sql_node_LCl3rlook", "data"))),
+                   ["route", "cancelSlices", "addSlices", "iaSlices", "lotSlices", "logSlices", "linkSlices", "counts", "expect", "jobRows", "needJobUpd", "result_code",
+                    "result_message", "job_status"],
+                   arrays=("cancelSlices", "addSlices", "iaSlices", "lotSlices", "logSlices", "linkSlices", "jobRows"), objects=("counts", "expect")),
+            end_b(rids, "l3rpl", L3RP, "IF the reservation cannot be written"),
+            V.slice_loop(rids, "LC", "l3rc", L3RP, "cancelSlices", "L3R WRITE: the IA's released reservation rows Cancelled under the dispatch marker", ONRES,
+                         ["status", "job_line_key"], slice_js),
+            V.slice_loop(rids, "LC", "l3ra", L3RP, "addSlices", "L3R WRITE: the IA's new reservation rows (IA_HOLD's add_node_HDrows columns)", ONRES, l3r_cols, slice_js, add=True),
+            V.slice_loop(rids, "LC", "l3ri", L3RP, "iaSlices", "L3R WRITE: the IA lines' picks, total and stock summary by id", IA_LINES,
+                         ["temp_qty_data", "total_quantity", "stock_summary"], slice_js),
+            V.slice_loop(rids, "LC", "l3rl", L3RP, "lotSlices", "L3R WRITE: the transfer lines' defects by id", LOT_LINES, ["defect_qty", "defect_reason", "defect_detail"], slice_js),
+            V.slice_loop(rids, "LC", "l3rg", L3RP, "logSlices", "L3R WRITE: the request's log - a dispatch away from the reservation names the bins to count", LOT,
+                         ["request_log"], slice_js),
+            V.slice_loop(rids, "LC", "l3rk", L3RP, "linkSlices", "L3R WRITE: the Item Assembly's link back to its received request (a cancelled replacement)", IA_HDR,
+                         ["transfer_request_id", "transfer_request_no"], slice_js),
+            sq("sql_node_LCl3rback", "L3R read-back: the Item Assembly's lines and reservation rows, the transfer lines' defects", "l3rctx"),
+            K.code(L3RC, "L3R check: every row / line at its target -> DONE", l3r("commitL3RCheck(%s, [%s][0], [%s][0])" % (
+                E, N("sql_node_LCl3rback", "data"), N(L3RP, "data.expect"))), chk, arrays=chk_arr),
+            end_b(rids, "l3r", L3RC, "IF L3 RESERVATION did not complete"),
+            V.step_done(rids, "LC", "l3r", L3RC, "L3_RESERVATION"),
         ]),
         # ---------------------------------------------------------------- L4
         K.if_(ids, "if_LCl4", "IF L4 FINISH is due", is_(CE, "needL4", "YES"), [

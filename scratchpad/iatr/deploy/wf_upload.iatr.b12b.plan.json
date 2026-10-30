@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SO list (By Item line actions read the order's organisation, B12b)",
+   "kind": "page",
+   "dataId": "1901872125787099137",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/so_list/out/so_list_items_dev.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/so_list/base/so_list_dev_v542.json"
+  }
+ ]
+}

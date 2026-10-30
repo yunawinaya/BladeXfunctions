@@ -50,8 +50,13 @@ const gxPlan = function gxPlan(entry, S) {
   }
   const H = (key) => __withContext(out.ctx.head, () => __v(key));
   const oldNo = s(stored.delivery_no);
-  const newNo = s(out.write.header.delivery_no);
-  if (!oldNo || !newNo || newNo === oldNo) return fail("GDX_INVALID_DATA", "the cancelled document number could not be made from '" + oldNo + "'");
+  const chainNo = s(out.write.header.delivery_no);
+  if (!oldNo || !chainNo || chainNo === oldNo) return fail("GDX_INVALID_DATA", "the cancelled document number could not be made from '" + oldNo + "'");
+  // classic's "<number>-Cancelled" is taken when the number was typed in again after a cancel (PTS GD/2610/1010, 10-28: X6 then
+  // failed on the unique number after the stock was released): the first free "-Cancelled-<n>", n from 2
+  const taken = new Set((Array.isArray(S.cnos) ? S.cnos : S.cnos ? [S.cnos] : []).map((r) => s(r && r.delivery_no).toUpperCase()));
+  let newNo = chainNo;
+  for (let n = 2; taken.has(newNo.toUpperCase()); n++) newNo = chainNo + "-" + n;
   const P = { plant: s(stored.plant_id), org: s(stored.organization_id), no: newNo, date: s(stored.delivery_date) };
 
   // ENGINE: GD_UNUSED_FN_NEW's movements (condition_or_node_zvMyWcqT's switch), merged per balance, unit and order (the same

@@ -63,6 +63,14 @@ SQL["pack"] = (
     f"  FROM packing_hr4nq20g_sub u\n WHERE u.tenant_id = {T} AND u.is_deleted = 0 AND u.packing_id IN ({PACK_IDS})\n"
     ") x ORDER BY x.k, x.sid"
 )
+# the names its cancel cannot take: every goods_delivery row of its organization (live or soft-deleted: the unique index keeps a
+# deleted row's key) numbered "<its number>-Cancelled...", as when a cancelled number is typed in again (PTS GD/2610/1010, 10-28).
+# A range on (organization_id, delivery_no): in utf8mb4_general_ci "-Cancellee" sorts after every "-Cancelled..."
+SQL["cnos"] = (
+    "SELECT c.delivery_no\n  FROM goods_delivery g\n  JOIN goods_delivery c ON c.organization_id = g.organization_id\n"
+    "   AND c.delivery_no >= CONCAT(g.delivery_no, '-Cancelled') AND c.delivery_no < CONCAT(g.delivery_no, '-Cancellee')\n"
+    f" WHERE g.tenant_id = {T} AND g.id = {G}"
+)
 SQL["box"] = (
     "SELECT x.k, x.j FROM (\n"
     "SELECT 'HU' AS k, h.id AS sid, JSON_OBJECT('id', CAST(h.id AS CHAR), 'handling_no', h.handling_no, 'hu_status', h.hu_status, 'packing_id', h.packing_id,\n"

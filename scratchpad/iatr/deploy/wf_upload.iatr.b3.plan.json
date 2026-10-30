@@ -1,0 +1,42 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_TRANSFER_REQUEST (Workflow 5)",
+   "dataId": "1985966508400201729",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/TransferRequest/IA_TRANSFER_REQUEST.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/workflow5_v2.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "ia_id": "1",
+     "organization_id": "1"
+    }
+   }
+  },
+  {
+   "name": "IA_SAVE",
+   "dataId": "2098335576774463489",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_SAVE.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/IA_SAVE_head.json"
+  },
+  {
+   "name": "IA_V2_SUBMIT",
+   "dataId": "2112141238600376321",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IA_V2_SUBMIT.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/IA_V2_SUBMIT_head.json",
+   "smoke": {
+    "request": {
+     "operation": "STATUS",
+     "saveAs": "",
+     "pageStatus": "Edit",
+     "ia_id": "1",
+     "idempotency_key": "",
+     "source": "FORM",
+     "form": {}
+    }
+   }
+  }
+ ]
+}

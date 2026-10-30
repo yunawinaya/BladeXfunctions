@@ -1,0 +1,32 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "Item Assembly Setup table form (B22: its columns)",
+   "kind": "form",
+   "dataId": "2115734409032679425",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/Setup/ItemAssemblySetupTable.json"
+  },
+  {
+   "name": "Item Assembly Setup page (B22)",
+   "kind": "page",
+   "dataId": "2115734457942458370",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/Setup/ItemAssemblySetup.json"
+  },
+  {
+   "name": "Setting page: the Item Assembly Setup tile (B22)",
+   "kind": "page",
+   "dataId": "1909260299874861057",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/Setup/SettingPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_SETTING_v87.json"
+  },
+  {
+   "name": "LOT form: the reserved requests' fields (B22, v118 + 4 fields)",
+   "kind": "form",
+   "dataId": "2013791389687349250",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/lot_client/out/rrfields/LOTform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/rr_sm_location_transfer_v119_designing.json"
+  }
+ ]
+}

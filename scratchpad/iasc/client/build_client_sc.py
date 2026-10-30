@@ -34,6 +34,7 @@ RADIO_TPL = os.path.join(HERE, "tpl", "radio_msi_type.json")
 TEXT_TPL = os.path.join(HERE, "tpl", "text_so_delivery_method.json")  # the SO form's delivery_method_text (v1240): a display-only text set by setData
 COLLAPSE_TPL = os.path.join(HERE, "tpl", "collapse_so_basic_info.json")  # the SO form's "Basic Info" section (v1240)
 SWITCH_TPL = os.path.join(HERE, "tpl", "switch_so_is_accurate.json")  # the SO form's is_accurate (v1240): a plain on / off switch, 0 / 1
+INPUT_TPL = os.path.join(HERE, "tpl", "input_gr_no_of_split.json")  # the GR form's split dialog "Number of Split" (v1477): a plain input, unbound
 SRC = os.environ.get("SC_SRC") or os.path.join(HERE, "src")
 CODE = os.environ.get("SC_CODE") or os.path.join(IASC, "code")
 IDS_FILE = os.environ.get("SC_IDS") or os.path.join(IASC, "ids.json")
@@ -151,13 +152,43 @@ UI_TOP = (["sc_section", "sc_collapse", "sc_info"] + [m for m, _ in ROWS] + ["sc
 CREATED = json.load(open(os.path.join(SRC, "created_patch.json"), encoding="utf-8"))
 # IA output split (plan 10-27, code/shared/os_split.js): the Split receipt switch, the split total and the rows grid; a grid with
 # generateSubTable false = one json column sm_item_assembly.output_split, no child table. OFF = hidden, nothing bound
-OS_WIDGETS = ["output_split_on", "output_split_sum", "output_split"]
+OS_WIDGETS = ["output_split_pick", "output_split_on", "output_split", "output_split_sum"]
 OS_COLS = ["os_qty", "os_storage_location_id", "os_location_id", "os_category", "os_group", "os_batch_no", "os_mfg_date", "os_exp_date"]
 # the Misc Receipt split table's bin filter (table_split): the row's own storage location
 OS_BIN_FORMULA = "{{value:output_split}}.map(item => item.os_storage_location_id)[arguments[0].rowIndex]"
-# ON: the split's own handler (src/os_main.js) and switch; its display-only total stripped from IA V2 payloads (IA_NOT_RECORD; the switch is a column)
+# ON: the split's own handler (src/os_main.js), No. of Split + Split (the user, 10-28, as GR's split) and the switch (hidden: the state);
+# its display-only total and No. of Split stripped from IA V2 payloads (IA_NOT_RECORD; the switch is a column)
 OS_ENABLED = True
-OS_UI = ["output_split_sum"]
+OS_UI = ["output_split_sum", "output_split_pick", "output_split_count", "output_split_btn"]
+# IA transfer request (ENH-20261027-001, scratchpad/iatr): the Transfer Request section before the components (src/tr_main.js + the shared
+# rules of scratchpad/iatr/code/shared); OFF = hidden, nothing bound. Its UI models stripped from IA V2 payloads (IA_NOT_RECORD)
+TR_ENABLED = True
+# SC_NO_TR=1: a build without the transfer request (its widgets, events, mount call, NOT_RECORD models) - the prod paste of the split alone
+NO_TR = os.environ.get("SC_NO_TR") == "1"
+IATR_WF = "1985966508400201729"  # IA_TRANSFER_REQUEST (the spare "Workflow 5": same id on dev and prod)
+IATR_SHARED = os.path.join(ROOT, "scratchpad", "iatr", "code", "shared")
+IATR_REASON_TABLE = "2113116113794039809"  # Category Transfer Reason (category_transfer_reason)
+TR_UI = ["tr_section", "tr_collapse", "tr_info", "tr_pick", "tr_storage_location_id", "tr_location_id", "tr_required_date", "tr_actions", "tr_btn_create",
+         "tr_btn_view", "tr_btn_refresh", "tr_btn_cancel", "tr_btn_new", "tr_btn_replace", "tr_btn_defect", "tr_defect_dialog", "tr_defect_note", "tr_defect_table"]
+# a reserved IA's requests (RESERVED_REQUEST_PLAN.md Task 9): Request Replacement, Report Defect and the defect dialog, after the v7 ones
+TR_FORWARDERS = [("tr_onClick_new", "Request Materials", 'this.triggerEvent("tr_main", { trOp: "NEW" });'),
+                 ("tr_onClick_create", "Create Transfer Request", 'this.triggerEvent("tr_main", { trOp: "CREATE" });'),
+                 ("tr_onClick_view", "View Transfer Request", 'this.triggerEvent("tr_main", { trOp: "VIEW" });'),
+                 ("tr_onClick_refresh", "Refresh Transfer Request", 'this.triggerEvent("tr_main", { trOp: "REFRESH" });'),
+                 ("tr_onClick_cancel", "Cancel Transfer Request", 'this.triggerEvent("tr_main", { trOp: "CANCEL" });'),
+                 ("tr_onChange_storage", "the staging storage location changed", 'this.triggerEvent("tr_main", { trOp: "STORAGE" });'),
+                 ("tr_onClick_replace", "Request Replacement", 'this.triggerEvent("tr_main", { trOp: "REPLACE" });'),
+                 ("tr_onClick_defect", "Report Defect", 'this.triggerEvent("tr_main", { trOp: "DEFECT_OPEN" });'),
+                 ("tr_onConfirm_defect", "Report Defect confirmed", 'this.triggerEvent("tr_main", { trOp: "DEFECT" });'),
+                 ("tr_onCancel_defect", "Report Defect closed", 'this.triggerEvent("tr_main", { trOp: "DEFECT_CLOSE" });')]
+TR_BIND = {"tr_btn_new": ("onClick", "tr_onClick_new"), "tr_btn_create": ("onClick", "tr_onClick_create"), "tr_btn_view": ("onClick", "tr_onClick_view"), "tr_btn_refresh": ("onClick", "tr_onClick_refresh"),
+           "tr_btn_cancel": ("onClick", "tr_onClick_cancel"), "tr_storage_location_id": ("onChange", "tr_onChange_storage"),
+           "tr_btn_replace": ("onClick", "tr_onClick_replace"), "tr_btn_defect": ("onClick", "tr_onClick_defect")}
+TR_DIALOG_BIND = {"tr_defect_dialog": {"onConfirm": "tr_onConfirm_defect", "onCancel": "tr_onCancel_defect"}}
+TR_DEFECT_NOTE = ("The defective quantity moves to Blocked at the staging bin and stays out of this Item Assembly. Choose one reason per line; "
+                  "then request a replacement for what is missing.")
+# the mount tells tr_main right after Small Cycle's own call
+TR_MOUNT_CALL = '    this.triggerEvent("tr_main", { trOp: "MOUNT", pageStatus: pageStatus, status: status });\n'
 OS_START = "// IA output split (scratchpad/iasc os_main):"
 OS_END = "// -- end output split --\n"
 OS_LABELS = {"os_qty": "Qty", "os_storage_location_id": "Storage Location", "os_location_id": "Bin Location", "os_category": "Category", "os_group": "Group",
@@ -168,7 +199,8 @@ OS_FORWARDERS = ([("os_onChange_switch", "Split receipt switched", 'this.trigger
                   ("os_onRowRemove", "a split row removed", 'setTimeout(() => this.triggerEvent("os_main", { osOp: "REMOVE" }), 50);')] +
                  [("os_onChange_" + c[3:], "a split row's " + OS_LABELS[c] + " changed",
                    'this.triggerEvent("os_main", { osOp: "CELL", field: "%s", rowIndex: arguments[0] && arguments[0].rowIndex, value: arguments[0] && arguments[0].value });' % c)
-                  for c in OS_COLS])
+                  for c in OS_COLS] +
+                 [("os_onClick_split", "Split pressed (No. of Split)", 'this.triggerEvent("os_main", { osOp: "SPLIT" });')])
 # where the patched handlers tell os_main (blocks marked OS_START ... OS_END; the field list is the mount read's, widened)
 OS_ITEM_AT = "const applyBatchFields = (item) => {\n"
 OS_MOUNT_FIELDS = ('.field("item_batch_management,batch_number_genaration")\n    .get();\n  const item = res.data?.[0];\n',
@@ -246,6 +278,13 @@ def shared(name, only=None):
     missing = [n for n in only if n not in units]
     assert not missing, (name, "missing", missing)
     return "\n".join("\n".join(units[n]) for n in order if n in only)
+
+
+def iatr_shared(name):
+    """a shared file of the IA transfer request (scratchpad/iatr/code/shared): its text without the node-test export line"""
+    text = "\n".join(l for l in read(os.path.join(IATR_SHARED, name)).split("\n") if not l.startswith("if (typeof module")).rstrip("\n")
+    assert "{{" not in text, name
+    return text
 
 
 def fill(text, c, markers=None):
@@ -477,6 +516,101 @@ def build_res_widgets(form, rkeys):
     return ["material_hold_status", "material_hold_at", "required_qty", "res_reserved", "res_short", "res_summary", "required_manual", "completion_check"]
 
 
+def build_tr_widgets(form, tkeys):
+    """IA transfer request (ENH-20261027-001, scratchpad/iatr): the IA's link to its request - written only by IA_TRANSFER_REQUEST
+    (display; the request's source_ia_id is authoritative), hidden, after the hold fields. Keys from their own stream, made last, so
+    every earlier key stays"""
+    top = form["list"]
+    tpl = find(top, "page_status")[0]
+    at = [w.get("model") for w in top].index("material_hold_at")
+    top[at + 1:at + 1] = [widget(tpl, tkeys, "transfer_request_id", "Transfer Request ID"), widget(tpl, tkeys, "transfer_request_no", "Transfer Request")]
+    # the section (hidden; tr_main shows it): its line, the staging pickers (UI only: the header's own storage / bin / date fields cloned,
+    # the bin filtered by the staging storage location), the buttons (create / refresh / cancel need ia_create_transfer_request)
+    text_tpl = json.load(open(TEXT_TPL, encoding="utf-8"))
+    grid = find(top, "grid_x46134mc")[0]
+    keyed = {}
+
+    def walk(n):
+        if isinstance(n, dict):
+            if isinstance(n.get("key"), str) and n.get("type"):
+                keyed[n["key"]] = n
+            for v in n.values():
+                walk(v)
+        elif isinstance(n, list):
+            for v in n:
+                walk(v)
+    walk(top)
+    sl_tpl, bin_tpl = keyed["37cazpwp"], keyed["06a87twh"]
+    assert (sl_tpl["model"], bin_tpl["model"]) == ("storage_location_id", "location_id")
+    info = widget(text_tpl, tkeys, "tr_info", "Transfer Request", hidden=False, defaultValue="", customClass="", hideLabel=True, color="")
+    sl = widget(sl_tpl, tkeys, "tr_storage_location_id", "Staging Storage Location", dataBind=False, required=False, hidden=False, defaultValue="")
+    bin_ = widget(bin_tpl, tkeys, "tr_location_id", "Staging Bin", dataBind=False, required=False, hidden=False, defaultValue="")
+    ds = json.dumps(bin_["options"]["datasource"], ensure_ascii=False)
+    assert ds.count("{{value:storage_location_id}}") == 1
+    bin_["options"]["datasource"] = json.loads(ds.replace("{{value:storage_location_id}}", "{{value:tr_storage_location_id}}"))
+    date = widget(find(top, "item_assembly_date")[0], tkeys, "tr_required_date", "Required Date", dataBind=False, required=False, hidden=False, defaultValue="")
+    for w in (sl, bin_, date):
+        w["rules"] = []
+    pick = make_grid(grid, tkeys, tkeys, "tr_pick", "Staging", [(8, [sl]), (8, [bin_]), (8, [date])], hidden=True)
+    buttons = []
+    for model, label, perm in (("tr_btn_create", "Create Transfer Request", "ia_create_transfer_request"), ("tr_btn_view", "View Transfer Request", None),
+                               ("tr_btn_refresh", "Refresh Transfer Request", "ia_create_transfer_request"),
+                               ("tr_btn_cancel", "Cancel Transfer Request", "ia_create_transfer_request")):
+        b = widget(find(top, "button_draft")[0], tkeys, model, label, hidden=True, buttonName=label, buttonType="primary", buttonPlain=True, customClass="marginright")
+        if perm:
+            b["options"]["permission"] = perm
+        else:
+            b["options"].pop("permission", None)
+        buttons.append(b)
+    actions = widget(find(top, "flex_t6y2yh5r")[0], tkeys, "tr_actions", "Transfer Request Actions", hidden=False, customClass="", justifyContent="flex-start",
+                     alignItems="center", flexWrap="wrap")
+    actions["list"] = buttons
+    box = collapse(tkeys, "tr_collapse", "Transfer Request", "tr_request", [info, pick, actions], False)
+    section = make_grid(grid, tkeys, tkeys, "tr_section", "Transfer Request Section", [(24, [box])], hidden=True, gutter=0)
+    top.insert([w.get("model") for w in top].index("bom_tab"), section)
+    # Request Materials: the one thing an IA without a request shows, in the action bar, for ia_create_transfer_request only
+    bar = find(top, "flex_t6y2yh5r")[0]
+    new_btn = widget(find(top, "button_draft")[0], tkeys, "tr_btn_new", "Request Materials", hidden=True, buttonName="Request Materials", buttonType="primary",
+                     buttonPlain=True, customClass="marginright")
+    new_btn["options"]["permission"] = "ia_create_transfer_request"
+    bar["list"].append(new_btn)
+    # a reserved IA's requests (RESERVED_REQUEST_PLAN.md Task 9), drawn after every earlier key of this stream: Request Replacement
+    # (ia_create_transfer_request) and Report Defect (lot_ia_receive) in the section's actions; the defect dialog (a copy of
+    # sm_item_balance) with its table (a copy of table_hu, as sc_line_table: a json column no save writes), one row per pick at the
+    # staging bin; the reason a select of Category Transfer Reason filtered as the Category Transfer form's (the user's organisation)
+    for model, label, perm in (("tr_btn_replace", "Request Replacement", "ia_create_transfer_request"), ("tr_btn_defect", "Report Defect", "lot_ia_receive")):
+        b = widget(find(top, "button_draft")[0], tkeys, model, label, hidden=True, buttonName=label, buttonType="primary", buttonPlain=True, customClass="marginright")
+        b["options"]["permission"] = perm
+        actions["list"].append(b)
+    th = find(top, "table_hu")[0]
+    col = {c["model"]: c for c in th["tableColumns"]}
+    assert (th["options"]["generateSubTable"], th["options"]["customProps"]["toolbar"][0]["type"], th["options"]["rowActions"]) == (False, "fullscreenBtn", [])
+    assert [(col[m]["type"], col[m]["options"]["tableColumn"]) for m in ("handling_no", "item_quantity", "storage_location_id")] == [("input", True), ("number", True), ("select", True)]
+
+    def column(tpl, model, name, **opts):
+        return widget(tpl, tkeys, model, name, required=False, **opts)
+
+    reasons = {"rules": {"collectionId": IATR_REASON_TABLE, "list": [
+        {"id": 1749795510765, "parentId": 1749795510764, "isTop": True, "prop": "organization_id", "operator": "equal", "valueType": "field",
+         "value": "{{global:firstLvDeptId}}", "type": "leaf", "level": 1, "propLabel": "Organization", "valueLabel": "", "operatorLabel": "Equal", "valueTypeLabel": "公式"}]},
+        "source": "Category Transfer Reason:Table:" + IATR_REASON_TABLE}
+    props = dict(copy.deepcopy(col["storage_location_id"]["options"]["props"]), value="reason", label="reason")
+    cols = [column(col["handling_no"], "item", "Item", disabled=True, hidden=False), column(col["handling_no"], "batch", "Batch", disabled=True, hidden=False),
+            column(col["item_quantity"], "at_bin", "At Staging Bin", disabled=True, hidden=False),
+            column(col["item_quantity"], "defect", "Defective Qty", disabled=False, hidden=False, defaultValue=0),
+            column(col["storage_location_id"], "reason", "Reason", disabled=False, hidden=False, defaultValue="", datasource=reasons, props=props),
+            column(col["handling_no"], "line_id", "Line ID", hidden=True), column(col["handling_no"], "batch_id", "Batch ID", hidden=True)]
+    table = widget(th, tkeys, "tr_defect_table", "Defects", isAdd=False, isDelete=False, paging=True, pageSize=10, defaultValue=[], virtualTable=False,
+                   tableHeightMode="auto")
+    table["tableColumns"] = cols
+    note = widget(text_tpl, tkeys, "tr_defect_note", "Note", hidden=False, defaultValue=TR_DEFECT_NOTE, customClass="", hideLabel=True, color="")
+    dialog = widget(find(top, "sm_item_balance")[0], tkeys, "tr_defect_dialog", "对话框", title="Report Defect", width="70%", showOk=True, okText="Report Defect",
+                    cancelText="Cancel")
+    dialog["list"] = [note, table]
+    top.append(dialog)
+    return ["transfer_request_id", "transfer_request_no"] + TR_UI
+
+
 def build_created_widgets(form, ckeys):
     """RES-01 Created (BA, 10-22): the Created button after the Draft one, the Created badge after the Draft one, the Created option"""
     def place(model):
@@ -546,7 +680,10 @@ def build_os_widgets(form, okeys):
     assert (H["inventory_category"]["options"]["remote"], [o["value"] for o in H["inventory_category"]["options"]["options"]]) == (False, ["Unrestricted", "Blocked"])
     switch = widget(switch_tpl, okeys, "output_split_on", "Split receipt", hidden=True, defaultValue=0)
     total = widget(text_tpl, okeys, "output_split_sum", "Split total", hidden=True, defaultValue="", customClass="", hideLabel=True, color="")
-    grid = widget(th, okeys, "output_split", "Output Split", hidden=True, isAdd=True, isDelete=True, paging=False, defaultValue=[])
+    # its own height (the browser check 10-28: table_hu's tableHeightMode "fixed" keeps a fixed box - a gap under 2 rows; the platform's table
+    # doc: 'auto' (its default) = the rows' height, table-max-height unset); not virtual (the doc's default); at most 20 rows
+    grid = widget(th, okeys, "output_split", "Output Split", hidden=True, isAdd=True, isDelete=True, paging=False, defaultValue=[], virtualTable=False,
+                  tableHeightMode="auto")
     # the rows' Add Row and per-row Delete (the browser pass, 10-27): table_hu, the grid's template, has neither; the components
     # table's own toolbar addBtn and delBtn row action
     sm = find(top, "stock_movement")[0]["options"]
@@ -581,14 +718,26 @@ def build_os_widgets(form, okeys):
         column(bal["dialog_manufacturing_date"], "os_mfg_date", "Manufacturing Date", defaultValue=""),
         column(bal["dialog_expired_date"], "os_exp_date", "Expired Date", defaultValue="")]
     assert [c["model"] for c in grid["tableColumns"]] == OS_COLS
+    # No. of Split + Split (the user, 10-28): GR's split field (a plain input: no number rule) and the form's own button beside it, the field
+    # as wide as the Output Location fields under it (the browser check: the quantity's number rule showed 2 as "2,000"); drawn after every
+    # earlier key of this stream
+    count = widget(json.load(open(INPUT_TPL, encoding="utf-8")), okeys, "output_split_count", "No. of Split", dataBind=False, required=False, hidden=False,
+                   disabled=False, placeholder="", defaultValue="")
+    count["rules"] = []
+    btn = widget(find(top, "button_draft")[0], okeys, "output_split_btn", "Split", hidden=False, buttonName="Split", buttonType="primary", buttonPlain=True,
+                 customClass="marginright")
+    btn["options"].pop("permission", None)
+    assert (count["type"], count["options"]["customProps"], btn["type"], btn["options"]["hideLabel"]) == ("input", {}, "button", True)
+    pick = make_grid(find(top, "grid_x46134mc")[0], okeys, okeys, "output_split_pick", "Split", [(12, [count]), (12, [btn])], hidden=True)
     at = [w.get("model") for w in top].index("sc_section")
-    top[at + 1:at + 1] = [switch, total, grid]
+    # the total under the rows (the user, 10-28)
+    top[at + 1:at + 1] = [pick, switch, grid, total]
     return OS_WIDGETS
 
 
 def os_place(form):
     """ON: the split widgets into the Output Location section, a full-width first column (the switch on top, the total, the rows);
-    its key from a fresh stream drawn after every other key"""
+    its key from a fresh stream drawn after every other key (No. of Split + Split on top, the hidden switch, the rows, the total under them)"""
     top = form["list"]
     moved = []
     for m in OS_WIDGETS:
@@ -759,7 +908,7 @@ def patch_handlers(form, c, keys):
         t = t.replace(v36, v36.replace(VARIANCE_HEAD, VARIANCE_RENAMED) + "\n\n" + var_block)
         if key in NOT_RECORD:
             assert t.count(NOT_RECORD_TAIL) == 1
-            t = t.replace(NOT_RECORD_TAIL, '"item_assembly_tittle", ' + ", ".join('"%s"' % m_ for m_ in UI_TOP + OS_UI) + "];")
+            t = t.replace(NOT_RECORD_TAIL, '"item_assembly_tittle", ' + ", ".join('"%s"' % m_ for m_ in UI_TOP + OS_UI + ([] if NO_TR else TR_UI)) + "];")
             for was, now in DOUBLE:
                 assert t.count(was) == 1, (key, was[:60])
                 t = t.replace(was, now)
@@ -851,10 +1000,36 @@ def patch_handlers(form, c, keys):
         mirrors[name] = func
     sw = find(form["list"], "output_split_on")[0]
     tb = find(form["list"], "output_split")[0]
+    bt = find(form["list"], "output_split_btn")[0]
     for widget_, ev, name in [(sw, "onChange", "os_onChange_switch"), (tb, "onRowAdd", "os_onRowAdd"), (tb, "onRowRemove", "os_onRowRemove")] + \
-            [(c, "onChange", "os_onChange_" + c["model"][3:]) for c in tb["tableColumns"]]:
+            [(c, "onChange", "os_onChange_" + c["model"][3:]) for c in tb["tableColumns"]] + [(bt, "onClick", "os_onClick_split")]:
         assert widget_["events"].get(ev) == "", (widget_["model"], ev)
         widget_["events"][ev] = os_keys[name]
+    if not NO_TR:
+        # IA transfer request: tr_main (the shared rules inlined) + its forwarders, bound; the mount tells it after Small Cycle
+        tkeys = Keys(json.dumps(form), SEED + 16)
+        trm = fill(js("tr_main.js"), {"TR_ENABLED": "true" if TR_ENABLED else "false", "IA_TRANSFER_REQUEST": IATR_WF},
+                   {"/*@@IATR_RULES@@*/": iatr_shared("iatr_rules.js"), "/*@@IATR_IA@@*/": iatr_shared("iatr_ia.js")})
+        assert trm.count("{{") == 0
+        tr_keys = {}
+        for name, what, body in [("tr_main", None, trm)] + TR_FORWARDERS:
+            assert name not in names, name
+            func = body if what is None else "// %s: IA transfer request (scratchpad/iatr), handled by tr_main\n%s\n" % (what, body)
+            tr_keys[name] = tkeys.new()
+            es.append({"key": tr_keys[name], "name": name, "func": func, "type": "js"})
+            mirrors[name] = func
+        for model, (ev, name) in TR_BIND.items():
+            w = find(form["list"], model)[0]
+            assert w["events"].get(ev) == "", (model, w["events"])
+            w["events"][ev] = tr_keys[name]
+        for model, evs in TR_DIALOG_BIND.items():
+            d = find(form["list"], model)[0]
+            for ev, name in evs.items():
+                assert d["events"].get(ev) == "", (model, ev)
+                d["events"][ev] = tr_keys[name]
+        m = k["mounted"]["func"]
+        assert m.count(MOUNT_CALL) == 1
+        k["mounted"]["func"] = m.replace(MOUNT_CALL, MOUNT_CALL + TR_MOUNT_CALL)
     # a js event's func goes through the platform's replaceVariables ({{type:x}} tokens): none may be in our code
     base = by_key(json.loads(read(BASE)))
     for key in PINS:
@@ -902,6 +1077,8 @@ def build(on):
     added += build_created_widgets(form, Keys(json.dumps(form), SEED + 3))
     added += build_os_widgets(form, Keys(json.dumps(form), SEED + 7))
     added += build_level_widget(form, Keys(json.dumps(form), SEED + 10))
+    if not NO_TR:
+        added += build_tr_widgets(form, Keys(json.dumps(form), SEED + 15))
     mirrors = {}
     if on:
         wf = ids()

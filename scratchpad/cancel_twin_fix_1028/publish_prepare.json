@@ -1,0 +1,13 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "GD_CANCEL_PREPARE",
+   "dataId": "2112455739305988098",
+   "file": "Goods Delivery/CancelV2/GD_CANCEL_PREPARE.json",
+   "base": "scratchpad/cancel_twin_fix_1028/base/GD_CANCEL_PREPARE.dev_v4.base.json",
+   "smoke": { "request": { "job_id": "1" }, "expect": { "key": "result_code", "equals": "GDX_INVALID_DATA" } }
+  }
+ ]
+}

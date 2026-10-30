@@ -97,8 +97,16 @@ const runSo = async (name, row, header) => {
   const ROW_CLASS = { sli_summary_so: "font-bold", sli_summary_suggest: "font-bold", sli_summary_warn: "error-msg" };
   const box = H.findModel(PG.list, "sli_summary");
   const rowsOf = (g) => (g && g.columns ? g.columns.map((c) => (c.list || []).map((x) => [x.model, x.name])) : []);
-  check("page: sli_summary = a grid first on the page: the line left, the production right (half width each), the warnings full width", !!box && box.type === "grid" &&
-    box.options.hidden === false && PG.list[0] === box && same(box.columns.map((c) => [c.options.span, c.options.xs]), [[12, 24], [12, 24], [24, 24]]) && same(rowsOf(box), LAYOUT), rowsOf(box));
+  // the user, 10-29: the figure tiles first (an html display, filled by sli_load), the labelled grid after it, hidden (un-hiding it = the old view)
+  const tilesW = PG.list[0];
+  check("page: the figure tiles first: an html display, data-bound, shown, no label, empty until sli_load fills it", tilesW.model === "sli_summary_html" && tilesW.type === "html" &&
+    tilesW.options.dataBind === true && tilesW.options.hidden === false && tilesW.options.hideLabel === true && tilesW.options.defaultValue === "", tilesW.options);
+  check("page: sli_summary = the labelled grid right after, hidden: the line left, the production right (half width each), the warnings full width", !!box && box.type === "grid" &&
+    box.options.hidden === true && PG.list[1] === box && same(box.columns.map((c) => [c.options.span, c.options.xs]), [[12, 24], [12, 24], [24, 24]]) && same(rowsOf(box), LAYOUT), rowsOf(box));
+  check("page: the buttons 8px apart (their row's own gap)", H.findModel(PG.list, "sli_actions").options.hGap === "8px");
+  // the user, 10-29: no scrolling to the buttons - each table only as tall as its rows (fixed = a 400px box)
+  check("page: both IA tables as tall as their rows (auto height, not virtual)", ["sli_ias", "sli_orphans"].every((m) => H.findModel(PG.list, m).options.tableHeightMode === "auto" &&
+    H.findModel(PG.list, m).options.virtualTable === false), ["sli_ias", "sli_orphans"].map((m) => [H.findModel(PG.list, m).options.tableHeightMode, H.findModel(PG.list, m).options.virtualTable]));
   const rowWidgets = box && box.columns ? box.columns.flatMap((c) => c.list || []) : [];
   check("page: every row = a text, display only, hidden until it has a fact; labelled except the warnings; the key rows bold, the warnings in the error style",
     rowWidgets.length === 10 && rowWidgets.every((x) => x.type === "text" && x.options.hideLabel === (x.model === "sli_summary_warn") && x.options.dataBind === false &&
@@ -165,14 +173,20 @@ const runSo = async (name, row, header) => {
     const val = (m) => (p.v()[m] === undefined || p.v()[m] === null ? "" : String(p.v()[m]));
     return rows.filter((r) => on[r[0]]).map((r) => (r[1] ? r[1] + ": " : "") + val(r[0])).join("\n");
   };
+  // the Sales Order's own row (its plant: a plant, or the organisation = an organisation-level SO), read when an IA is created
+  const soRow = (plant) => ({ id: "9001", so_no: "SO-A", plant_name: plant === undefined ? F.PLANT : plant, organization_id: F.ORG, is_deleted: 0 });
+  // the harness logs in at plant level (deptParentId = the organisation, deptIds = 2002,2003); an organisation-level login:
+  const ORG_LOGIN = { globals: { deptParentId: "0", nickname: "tester", firstLvDeptId: F.ORG }, system: { deptIds: F.ORG, uid: "77" } };
   const page = async (params, o) => {
     o = o || {};
-    const w = H.world({ db: H.tableDb(F.tables()) });
+    const db = H.tableDb(F.tables({ extra: Object.assign({ sales_order: [soRow(o.soPlant)] }, o.extra || {}) }));
+    const w = H.world({ db: db, dbThrows: o.failBoms ? (name) => name === "bill_of_materials" : undefined });
     w.so = F.so(Object.assign({ ias: ias }, o.so || {}));
     if (o.down) w.projectionDown = true;
     if (o.refuse) w.projectionRefuse = o.refuse;
     const answer = F.answer(w, H.SC_TEST_IDS);
     const self = H.makeThis(w, PG, { values: {}, stateful: true, params: Object.assign({ so_id: "9001", so_line_id: "8001", item_id: "P1", organization_id: F.ORG, sc_action: "" }, params),
+      globals: o.login && o.login.globals, system: o.login && o.login.system,
       answer: (id, p) => {
         const a = answer(id, p);
         if (id === PROJ && p.operation === "SUMMARY" && o.orphans && a.data) {
@@ -207,11 +221,12 @@ const runSo = async (name, row, header) => {
     const m = p.trace().length;
     await p.fire("sli_onClick_open", { rowIndex: 1, row: (v.sli_ias || [])[1] });
     const o1 = p.trace().slice(m).find((t) => /toView$/.test(t[0]));
-    check("page: Open on a Draft IA -> the IA form, edit", !!o1 && o1[1].target === IA_FORM && o1[1].type === "edit" && o1[1].mode === "dialog" && same(o1[1].data, { id: "4101" }), o1 && o1[1]);
+    check("page: Open on a Draft IA -> the IA form, edit, on the right (rtl, as every form)", !!o1 && o1[1].target === IA_FORM && o1[1].type === "edit" && o1[1].mode === "dialog" &&
+      o1[1].position === "rtl" && same(o1[1].data, { id: "4101" }), o1 && o1[1]);
     const m2 = p.trace().length;
     await p.fire("sli_onClick_open", { rowIndex: 0, row: (v.sli_ias || [])[0] });
     const o2 = p.trace().slice(m2).find((t) => /toView$/.test(t[0]));
-    check("page: Open on a Completed IA -> view", !!o2 && o2[1].type === "view" && same(o2[1].data, { id: "4100" }));
+    check("page: Open on a Completed IA -> view, on the right", !!o2 && o2[1].type === "view" && o2[1].position === "rtl" && same(o2[1].data, { id: "4100" }));
     // RES-01 Created (BA, 10-22): a Created IA is edited like a Draft
     const mc = p.trace().length;
     await p.fire("sli_onClick_open", { rowIndex: 1, row: Object.assign({}, (v.sli_ias || [])[1], { status: "Created", ia_id: "4102" }) });
@@ -220,8 +235,10 @@ const runSo = async (name, row, header) => {
     const m3 = p.trace().length;
     await p.fire("sli_onClick_create");
     const c = p.trace().slice(m3).find((t) => /toView$/.test(t[0]));
-    check("page: Create -> the IA form, Add, prefilled (item, SO, line, STANDARD), sc_entry", !!c && c[1].target === IA_FORM && c[1].type === "add" && c[1].mode === "dialog" &&
-      same(c[1].data, { item_id: "P1", source_so_id: "9001", source_so_line_id: "8001", bom_consumption_mode: "STANDARD" }) && same(c[1].params, { sc_entry: "1" }), c && c[1]);
+    check("page: Create (an SO at a plant) -> the IA form, Add, on the right, prefilled (item, SO, line, STANDARD, the SO's plant), sc_entry, no plant dialog",
+      !!c && c[1].target === IA_FORM && c[1].type === "add" && c[1].mode === "dialog" && c[1].position === "rtl" &&
+      same(c[1].data, { item_id: "P1", source_so_id: "9001", source_so_line_id: "8001", bom_consumption_mode: "STANDARD", issuing_operation_faci: F.PLANT }) &&
+      same(c[1].params, { sc_entry: "1" }) && !p.trace().slice(m3).some((t) => /openDialog$/.test(t[0])), c && c[1]);
     const m4 = p.trace().length;
     await p.fire("sli_onClick_refresh");
     check("page: Refresh reads SUMMARY again", p.trace().slice(m4).filter((t) => /runWorkflow$/.test(t[0]) && t[1] === PROJ).length === 1);
@@ -238,6 +255,73 @@ const runSo = async (name, row, header) => {
     check("page: opened from Create IA on an eligible line -> the IA form once", views.length === 1 && views[0][1].type === "add" && same(views[0][1].params, { sc_entry: "1" }));
     await p.fire("refresh");
     check("page: a later refresh does not open it again", p.trace().filter((t) => /toView$/.test(t[0])).length === 1);
+  }
+  // a plant-level login (the user, 10-28): the IA for the login's own plant, never asked, the Sales Order's plant not read
+  {
+    const p = await page({ sc_action: "create" }, { soPlant: F.ORG });
+    const v = p.trace().find((t) => /toView$/.test(t[0]));
+    check("page: a plant-level login, an organisation-level SO -> the IA form for the login's plant (the first of deptIds), no Select Plant, the SO not read",
+      !!v && v[1].data.issuing_operation_faci === "2002" && v[1].position === "rtl" && !p.trace().some((t) => /openDialog$/.test(t[0])) &&
+      !p.w.reads.some((q) => q.collection === "sales_order"), v && v[1]);
+  }
+  {
+    const p = await page({ sc_action: "create" }, { soPlant: "2003" });
+    const v = p.trace().find((t) => /toView$/.test(t[0]));
+    check("page: a plant-level login, an SO at another plant -> the login's plant (the IA form fixes it to the login's anyway)", !!v && v[1].data.issuing_operation_faci === "2002", v && v[1]);
+  }
+  // an organisation-level login: the Sales Order's own plant, else Select Plant
+  {
+    const p = await page({ sc_action: "create" }, { login: ORG_LOGIN, soPlant: "2003" });
+    const v = p.trace().find((t) => /toView$/.test(t[0]));
+    check("page: an organisation-level login, an SO at a plant -> the SO's plant, no Select Plant", !!v && v[1].data.issuing_operation_faci === "2003" &&
+      !p.trace().some((t) => /openDialog$/.test(t[0])), v && v[1]);
+  }
+  // an organisation-level Sales Order (the user, 10-28: as SO -> GD): the plant chosen first, then the IA form for that plant
+  {
+    const p = await page({ sc_action: "create" }, { login: ORG_LOGIN, soPlant: F.ORG });
+    check("page: Create IA on an organisation-level SO -> the Select Plant dialog, no IA form yet", p.trace().some((t) => /openDialog$/.test(t[0]) && t[1] === "sli_plant_dialog") &&
+      !p.trace().some((t) => /toView$/.test(t[0])), p.trace().filter((t) => /Dialog$|toView$/.test(t[0])));
+    const m = p.trace().length;
+    await p.fire("sli_onConfirm_plant");
+    check("page: Select Plant confirmed with no plant -> refused, no IA form", p.trace().slice(m).some((t) => /\$alert$/.test(t[0]) && /select a plant/.test(String(t[1]))) &&
+      !p.trace().some((t) => /toView$/.test(t[0])), p.trace().slice(m));
+    p.self.values.sli_plant_dialog = { sli_plant_id: F.ORG };
+    const m1 = p.trace().length;
+    await p.fire("sli_onConfirm_plant");
+    check("page: Select Plant confirmed with the organisation itself -> refused", p.trace().slice(m1).some((t) => /\$alert$/.test(t[0])) && !p.trace().some((t) => /toView$/.test(t[0])));
+    p.self.values.sli_plant_dialog = { sli_plant_id: F.PLANT };
+    const m2 = p.trace().length;
+    await p.fire("sli_onConfirm_plant");
+    const v = p.trace().slice(m2).find((t) => /toView$/.test(t[0]));
+    check("page: Select Plant confirmed -> the dialog closed, the IA form for that plant (rtl, prefilled)", !!v && v[1].position === "rtl" && v[1].data.issuing_operation_faci === F.PLANT &&
+      v[1].data.source_so_line_id === "8001" && p.trace().slice(m2).some((t) => /closeDialog$/.test(t[0]) && t[1] === "sli_plant_dialog"), v && v[1]);
+    const m3 = p.trace().length;
+    await p.fire("sli_onCancel_plant");
+    check("page: Select Plant cancelled -> the dialog closed, nothing opened", p.trace().slice(m3).some((t) => /closeDialog$/.test(t[0])) &&
+      !p.trace().slice(m3).some((t) => /toView$/.test(t[0])));
+  }
+  {
+    const p = await page({ sc_action: "create" }, { login: ORG_LOGIN, soPlant: "" });
+    check("page: an SO without a plant is organisation-level too -> Select Plant", p.trace().some((t) => /openDialog$/.test(t[0]) && t[1] === "sli_plant_dialog") &&
+      !p.trace().some((t) => /toView$/.test(t[0])));
+  }
+  // an item without an active BOM in the organisation (the user, 10-28): Create hidden and refused with the reason
+  {
+    const p = await page({ sc_action: "create" }, { extra: { bill_of_materials: [F.bom("B1", "P1", 10, [F.row("C1", 1)], { is_active: 0 })] } });
+    check("page: an item without an active BOM -> Create hidden, no IA form, the reason", !p.trace().some((t) => /toView$|openDialog$/.test(t[0])) &&
+      p.trace().some((t) => /hide$/.test(t[0]) && JSON.stringify(t[1]).indexOf("sli_btn_create") >= 0) &&
+      p.trace().some((t) => /\$message\.warning$/.test(t[0]) && /SC-BOX has no active BOM/.test(String(t[1]))), p.trace().filter((t) => /message/.test(t[0])));
+    await p.fire("sli_onClick_create");
+    check("page: Create pressed anyway on an item without an active BOM -> refused again", !p.trace().some((t) => /toView$|openDialog$/.test(t[0])));
+  }
+  {
+    const p = await page({ sc_action: "create" }, { extra: { bill_of_materials: [F.bom("B9", "P1", 10, [F.row("C1", 1)], { organization_id: "OTHER-ORG" })] } });
+    check("page: a BOM of another organisation only -> refused (the IA form's own rule: the SO's organisation)", !p.trace().some((t) => /toView$|openDialog$/.test(t[0])));
+  }
+  {
+    const p = await page({ sc_action: "create" }, { failBoms: true });
+    check("page: the BOM read failed -> no IA form, an error (never a guess)", !p.trace().some((t) => /toView$|openDialog$/.test(t[0])) &&
+      p.trace().some((t) => /\$message\.error$/.test(t[0])), p.trace().filter((t) => /message/.test(t[0])));
   }
   {
     const p = await page({ sc_action: "create" }, { so: { header: Object.assign({}, F.so().header, { so_status: "Cancelled" }) } });
@@ -289,24 +373,77 @@ const runSo = async (name, row, header) => {
     const p = await page({}, { so: { header: Object.assign({}, F.so().header, { so_status: "Cancelled" }), lines: [Object.assign({}, F.so().lines[0], { line_status: "Completed" })] } });
     check("page: two warnings, each marked", /^\u26a0 SO-A is cancelled: it has no remaining demand\.   \u26a0 SO-A line 1 is completed\.$/m.test(panelOf(p)), panelOf(p));
   }
-  // the page vs the live dev v7 (base/page_so_linked_ias_v7.json, FIX-03 published 2026-10-21 11:29): the same page
+  // the figure tiles (the user, 10-29): one html card on top - the line, its customer and item, six figures, the sum under them, the
+  // warnings in a strip; the labelled text rows stay filled but their grid is hidden
+  const tileOf = (h, label) => {
+    const m = new RegExp(">" + label + "</div><div[^>]*>([^<]*)</div>").exec(h);
+    return m ? m[1] : null;
+  };
+  const TILES = ["Ordered", "Delivered", "Planned", "Produced", "In Progress", "To Plan"];
   {
-    const V6 = H.readJSON(path.join(H.IASC, "base/page_so_linked_ias_v7.json"));
+    const p = await page({});
+    const h = String(p.v().sli_summary_html || "");
+    check("tiles: the line on top, its customer and item under it", /SO-A · line 1/.test(h) && /ACME · SC-BOX/.test(h), h);
+    check("tiles: the SO number large (20px, bold)", /<div style="font-size:20px;font-weight:600[^"]*">SO-A · line 1<\/div>/.test(h), h);
+    check("tiles: the six figures", same(TILES.map((x) => tileOf(h, x)), ["100 EA", "0 EA", "100 EA", "30 EA", "60 EA", "10 EA"]), TILES.map((x) => tileOf(h, x)));
+    check("tiles: the sum under them", h.indexOf("To Plan = 100 ordered − 30 produced − 60 in progress") >= 0, h);
+    check("tiles: no warning strip without a warning", h.indexOf("⚠") < 0, h);
+    check("tiles: inline styles only, no script", !/<script|on[a-z]+=|<style/i.test(h), h);
+  }
+  {
+    const p = await page({}, { so: { header: Object.assign({}, F.so().header, { so_status: "Cancelled" }), lines: [Object.assign({}, F.so().lines[0], { line_status: "Completed" })] } });
+    const h = String(p.v().sli_summary_html || "");
+    check("tiles: each warning on its own line in the strip", (h.match(/<div[^>]*>⚠ [^<]*<\/div>/g) || []).length === 2 && h.indexOf("⚠ SO-A is cancelled: it has no remaining demand.") >= 0, h);
+    check("tiles: a line with no demand -> To Plan 0, the reason under it", tileOf(h, "To Plan") === "0 EA" && h.indexOf("the line has no remaining demand") >= 0, h);
+  }
+  {
+    const p = await page({}, { so: { header: Object.assign({}, F.so().header, { customer_name: "A<b>&C" }) } });
+    const h = String(p.v().sli_summary_html || "");
+    check("tiles: names are shown as text, never as markup", h.indexOf("A&lt;b&gt;&amp;C") >= 0 && h.indexOf("A<b>") < 0, h);
+  }
+  {
+    const p = await page({}, { down: true });
+    const h = String(p.v().sli_summary_html || "");
+    check("tiles: figures unavailable -> the message, no tiles", h.indexOf("figures unavailable right now: press Refresh to try again") >= 0 && tileOf(h, "Ordered") === null, h);
+  }
+  // the page vs the live dev v8 (base/page_so_linked_ias_v8.json, pulled 10-28): the same page but the user's 10-28 notes - Select Plant
+  // (an appended dialog and its two events), the IA form opened on the right (rtl) for a plant and only for an item with an active BOM
+  {
+    const V8 = H.readJSON(path.join(H.IASC, "base/page_so_linked_ias_v8.json"));
     const RAW = H.readJSON(path.join(OUT, "SOLinkedIAsPage.json"));
-    check("page vs v7: the widgets identical", JSON.stringify(RAW.list) === JSON.stringify(V6.list));
-    const changed = RAW.config.eventScript.filter((e) => JSON.stringify(H.byKey(V6, e.key)) !== JSON.stringify(e)).map((e) => e.name);
-    // RES-01 Created (BA, 10-22): only the two Open handlers changed (a Created IA opens to edit, like a Draft), and only at that line
-    const openChange = (e) => {
-      const was = (H.byKey(V6, e.key) || {}).func || "";
-      return was.replace("(a Draft to edit, any other\n// status to view;", "(a Draft or a Created IA to\n// edit, any other status to view;")
-        .replace('const draft = String(scRow.status || "") === "Draft";', 'const edit = ["Draft", "Created"].indexOf(String(scRow.status || "")) >= 0;')
-        .replace('type: draft ? "edit" : "view", mode: "dialog", title: draft ? "Edit" : "View"', 'type: edit ? "edit" : "view", mode: "dialog", title: edit ? "Edit" : "View"')
-        .replace("if (!draft) view.viewMode", "if (!edit) view.viewMode") === e.func;
-    };
-    check("page vs v7: the same events and config; only the two Open handlers changed, by the Created rule", same(RAW.config.eventScript.map((e) => e.key), V6.config.eventScript.map((e) => e.key)) &&
-      same(changed, ["sli_load", "sli_onClick_open", "sli_onClick_openOrphan"]) && RAW.config.eventScript.filter((e) => e.name !== "sli_load" && changed.indexOf(e.name) >= 0).every(openChange) &&
-      (H.byKey(V6, H.byName(RAW, "sli_load").key) || {}).func.replace("const OPEN_ST = { Draft: 1, Processing: 1 };", "// a Created IA (RES-01, BA 10-22) is open production like a Draft (review 3)\nconst OPEN_ST = { Draft: 1, Created: 1, Processing: 1 };") === H.byName(RAW, "sli_load").func &&
-      JSON.stringify(Object.assign({}, RAW.config, { eventScript: [] })) === JSON.stringify(Object.assign({}, V6.config, { eventScript: [] })), changed);
+    const dlg = RAW.list[RAW.list.length - 1];
+    // v8's widgets: the 10-29 tiles taken off the top, the grid shown, the buttons without their gap
+    const was8 = JSON.parse(JSON.stringify(RAW.list.slice(1, -1)));
+    was8[0].options.hidden = false;
+    H.findModel(was8, "sli_actions").options.hGap = "";
+    ["sli_ias", "sli_orphans"].forEach((m) => Object.assign(H.findModel(was8, m).options, { tableHeightMode: "fixed", virtualTable: true }));
+    check("page vs v8: the widgets identical but the tiles (first), the grid hidden, the buttons' gap and the Select Plant dialog (last: a note and the Plant)",
+      RAW.list[0].model === "sli_summary_html" && JSON.stringify(was8) === JSON.stringify(V8.list) &&
+      dlg.model === "sli_plant_dialog" && same(dlg.list.map((x) => x.model), ["sli_plant_note", "sli_plant_id"]), dlg && dlg.model);
+    check("page vs v8: Select Plant = 'Select Plant', the Plant unbound and not required (checked on Confirm), the IA form's plant list", dlg.options.title === "Select Plant" &&
+      dlg.list[1].options.dataBind === false && dlg.list[1].options.required === false && same(dlg.list[1].rules, []) &&
+      H.byKey(RAW, dlg.events.onConfirm).name === "sli_onConfirm_plant" && H.byKey(RAW, dlg.events.onCancel).name === "sli_onCancel_plant");
+    const NEW = ["sli_onConfirm_plant", "sli_onCancel_plant"];
+    check("page vs v8: the same events, the two Select Plant events appended", same(RAW.config.eventScript.map((e) => e.key).slice(0, -2), V8.config.eventScript.map((e) => e.key)) &&
+      same(RAW.config.eventScript.slice(-2).map((e) => e.name), NEW));
+    const changed = RAW.config.eventScript.filter((e) => NEW.indexOf(e.name) < 0 && JSON.stringify(H.byKey(V8, e.key)) !== JSON.stringify(e)).map((e) => e.name);
+    const openOk = (e) => (H.byKey(V8, e.key) || {}).func.replace("  const view = {", "  // on the right, as every form opens (the user, 10-28)\n  const view = {")
+      .replace('mode: "dialog", title: edit', 'mode: "dialog", position: "rtl", title: edit') === e.func;
+    check("page vs v8: changed only sli_load and the two Open handlers (rtl, one line each)", same(changed, ["sli_load", "sli_onClick_open", "sli_onClick_openOrphan"]) &&
+      ["sli_onClick_open", "sli_onClick_openOrphan"].every((n) => openOk(H.byName(RAW, n))), changed);
+    const was = (H.byKey(V8, H.byName(RAW, "sli_load").key) || {}).func || "";
+    // the two tile lines (10-29) are tagged; the tile helpers sit with the BOM / plant helpers
+    const now = H.byName(RAW, "sli_load").func.split("\n").filter((x) => !/\/\/ the tiles \(10-29\)$/.test(x)).join("\n");
+    const a = now.indexOf("// an active BOM of the item");
+    const b = now.indexOf("const ROLE = ");
+    const c1 = now.indexOf("    // only an item with an active BOM");
+    const c2 = now.indexOf("  } catch (error) {", c1);
+    const w1 = was.indexOf("    if (r.eligibleNew) this.display");
+    const w2 = was.indexOf("  } catch (error) {", w1);
+    check("page vs v8: sli_load = v8 + the BOM / plant helpers + the new create path, nothing else", a > 0 && b > a && c1 > b && c2 > c1 && w1 > 0 && w2 > w1 &&
+      now.slice(0, a) + now.slice(b, c1) + was.slice(w1, w2) + now.slice(c2) === was);
+    check("page vs v8: the config identical apart from the events", JSON.stringify(Object.assign({}, RAW.config, { eventScript: [] })) ===
+      JSON.stringify(Object.assign({}, V8.config, { eventScript: [] })));
   }
   H.done("test_so");
 })();

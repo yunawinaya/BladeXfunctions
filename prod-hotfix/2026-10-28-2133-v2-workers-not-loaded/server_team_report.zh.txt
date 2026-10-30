@@ -1,0 +1,64 @@
+生产环境 su-code-service：重启后工作流卡在 "script for node[...] is not loaded"
+
+概要
+从 10-27 开始，生产环境的部分工作流会进入一种状态：每次运行都在第一个脚本（代码）节点失败，报错
+"script for node[<节点 id>] is not loaded"。工作流内容没有改动，同样的版本之前一直正常运行。这种状态会一直持续，
+直到后端重启，或者我们把该节点改一个新 id 再重新发布。从 10-27 21:36 至今，生产环境至少发生了六次。期间受影响的
+后台工作流对所有租户都停止工作。10-29 有一个客户的 10 张发货单因此等待了 63-97 分钟。
+
+错误信息
+  script for node[code_node_XWguard3] is not loaded
+  （开发环境日志，10-21：com.yomahub.liteflow.script.exception.ScriptLoadException）
+
+怎样才能恢复
+- 后端重启可以恢复（10-28 10:01:23、10-29 07:54:24）。
+- 给卡住的节点换一个新 id 并重新发布可以恢复（生产 10-28 04:02-04:05；开发环境 10-21、10-22）。
+- 用相同的节点 id 重新发布无效：生产环境 GD_ASYNC_WORKER v18（10-28 04:01:02 发布，内容与 v17 完全相同）
+  在 04:02:09 仍然失败。
+
+什么时候发生
+- 刚启动的后端上，几个不同的工作流在同一秒内开始各自的首次运行。10-29 07:51 之前，我们的 GD（发货单）列表页
+  每 2 分钟同时启动 6 个后台工作流，卡住的正是这几个。现在列表页改为逐个依次启动，但其他页面和其他用户仍可能
+  在同一秒内启动工作流。
+- 重启后让每个工作流单独进行首次运行，从未卡住（开发环境 10-21，两次）。这个问题是偶发的：并不是每次并发的
+  首次运行都会卡住。
+- 也出现过没有重启的情况：两次表单发布（10-27 21:35）之后 1-2 分钟；以及一次后端卡死期间（10-28 约 09:54）。
+
+生产环境时间线（UTC+8）
+- 10-27 21:36:58  没有重启（21:35:08、21:35:59 各有一次表单发布）
+                  卡住：GD_CANCEL_WORKER、GD_REVERT_WORKER
+- 10-28 01:56:58  01:55:41 JVM 启动之后
+                  卡住：GD_ASYNC_WORKER、GD_PICKING_OUTBOX_CONSUMER、GD_EDIT_WORKER
+- 10-28 09:57:51  约 09:54 起后端卡死期间（运行一直停留在 InExecute）
+                  卡住：6 个 GD worker 和 SO_SAVE_SUBMIT，涉及 5 个租户；10:01:23 重启后恢复
+- 10-28 21:33:34  21:31:41 JVM 启动之后（前两轮运行正常）
+                  卡住：GD_ASYNC_WORKER、GD_PICKING_OUTBOX_CONSUMER、GD_COMPLETE_WORKER、GD_CANCEL_WORKER、GD_REVERT_WORKER
+- 10-28 约 23:24  看不到重启
+                  卡住的工作流变为：GD_CANCEL_WORKER、GD_EDIT_WORKER
+- 10-29 约 02:19  看不到重启
+                  卡住的工作流变为：GD_ASYNC_WORKER、GD_PICKING_OUTBOX_CONSUMER、GD_REVERT_WORKER
+- 10-29 07:54:24  JVM 启动；07:55 起全部正常
+
+是否有多个实例？
+在以上任何时间点，su_code_workflow_inst 的运行记录都没有中断，即使在 07:54:24 JVM 启动时也没有（07:54:03 和
+07:54:55 都有运行），而且 server_ip 字段是空的。我们推测生产环境运行着不止一个实例，每个实例各自保留自己卡住的
+那几个工作流。23:24 和 02:19 卡住的工作流发生变化，也符合这个推测。
+
+工作流和卡住的节点 id（方便查日志）
+- GD_ASYNC_WORKER             2104840667119411201  code_node_1OvNTk9G3
+- GD_PICKING_OUTBOX_CONSUMER  2105134245397041153  code_node_3wpgxjXW4
+- GD_COMPLETE_WORKER          2110182645714518018  code_node_GWguard3
+- GD_CANCEL_WORKER            2112455700319932418  code_node_XWguard3
+- GD_REVERT_WORKER            2112758130420088833  code_node_RWguard4
+- GD_EDIT_WORKER              2110618789356687361  code_node_GEWguard2
+失败运行示例：su_code_workflow_inst 2115436816856387586（GD_COMPLETE_WORKER，10-28 21:33:34.687，租户 128671）。
+
+需要你们帮忙的
+1. 脚本节点加载失败时，不要一直保留这个失败状态：下一次运行时重新加载，或者重建 chain。并且保证多个工作流同时
+   启动时，脚本的首次加载是并发安全的。
+2. 即使节点 id 没变，重新发布工作流时也应该重新加载它的脚本。
+3. 请提供 10-28 21:33:34、23:24 和 10-29 02:19（UTC+8）前后 ScriptLoadException 的堆栈和最初的异常原因（Caused by）。
+4. 生产环境 su-code-service 在 10-28 01:55:41、10:01:23、21:31:41 和 10-29 07:54:24 为什么会重启（部署、崩溃或
+   OOM、扩缩容？）；生产环境运行几个实例；负载均衡是否开启了会话保持（粘性会话）。
+
+在修复之前，我们的临时办法是给卡住的节点改 id 再重新发布，或者请你们重启后端。

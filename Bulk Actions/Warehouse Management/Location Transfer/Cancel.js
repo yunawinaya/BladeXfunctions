@@ -12,6 +12,8 @@ const V2_MIN_LINES = 50;
 const LOT_RUNNING = ["QUEUED", "VALIDATING", "READY_TO_COMMIT", "COMMITTING_LOT"];
 const LOT_TERMINAL = ["COMPLETED", "FAILED", "REQUIRES_REVIEW", "CANCELLED"];
 const LOT_ROUTES = ["QUEUED", "SAVED", "STATUS", "NOT_ELIGIBLE", "BUSY", "STALE", "STOP", "INVALID"];
+// IA transfer request (scratchpad/iatr): a Requested request is cancelled by IA_TRANSFER_REQUEST (state only, no stock call)
+const IATR_WF = "1985966508400201729"; // IA_TRANSFER_REQUEST
 
 const lotV2Queued = [];
 const lv2s = (v) => (v === undefined || v === null ? "" : String(v)).trim();
@@ -114,15 +116,17 @@ const lotV2Kick = async () => {
       (item) => item.stock_movement_status === "In Progress",
     );
 
-    if (inProgressLOTs.length === 0) {
+    const requestLOTs = selectedRecords.filter((item) => item.stock_movement_status === "Requested" && item.transfer_purpose === "IA_SUPPLY");
+
+    if (inProgressLOTs.length === 0 && requestLOTs.length === 0) {
       this.hideLoading();
       this.$message.error(
-        "Please select at least one In Progress location transfer.",
+        "Please select at least one In Progress location transfer or Requested transfer request.",
       );
       return;
     }
 
-    const lotNumbers = inProgressLOTs.map((item) => item.stock_movement_no);
+    const lotNumbers = inProgressLOTs.concat(requestLOTs).map((item) => item.stock_movement_no);
 
     // Declare counters
     let successCount = 0;
@@ -146,6 +150,24 @@ const lotV2Kick = async () => {
       console.log("User clicked Cancel");
       throw new Error();
     });
+
+    for (const lot of requestLOTs) {
+      try {
+        const res = await lv2run(IATR_WF, { operation: "CANCEL", ia_id: lv2s(lot.source_ia_id), organization_id: lv2s(lot.organization_id), lot_id: lv2s(lot.id),
+          idempotency_key: ("IATR:" + lv2s(lot.id) + ":cancel:" + lotV2ClickToken).slice(0, 128) });
+        const r = (res && res.data) || {};
+        if (lv2s(r.code) === "200") {
+          successCount++;
+        } else {
+          failCount++;
+          failedLOTs.push(`${lot.stock_movement_no} (${lv2s(r.message) || "not cancelled"})`);
+        }
+      } catch (error) {
+        failCount++;
+        failedLOTs.push(lot.stock_movement_no);
+        console.error(`Failed to cancel transfer request ${lot.stock_movement_no}:`, error);
+      }
+    }
 
     for (const lot of inProgressLOTs) {
       try {

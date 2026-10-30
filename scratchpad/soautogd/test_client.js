@@ -7,15 +7,19 @@ const IDS = { AUTO: "2076557490389835777", CHECK: "2112084100104495105", WORKER:
 
 async function convert(opts) {
   let code = SRC.replace("const FOLLOW_EVERY_MS = 3000;", "const FOLLOW_EVERY_MS = 1;").replace("const FOLLOW_MS = 120000;", "const FOLLOW_MS = " + (opts.followMs || 2000) + ";")
-    .replace("const RECOVER_EVERY_MS = 5000;", "const RECOVER_EVERY_MS = 1;").replace("const RECOVER_MS = 300000;", "const RECOVER_MS = " + (opts.recoverMs || 2000) + ";");
+    .replace("const RECOVER_EVERY_MS = 5000;", "const RECOVER_EVERY_MS = 1;").replace("const RECOVER_MS = 300000;", "const RECOVER_MS = " + (opts.recoverMs || 2000) + ";")
+    .replace("const DRAIN_NEXT_MS = 1000;", "const DRAIN_NEXT_MS = 1;").replace("const DRAIN_SLOW_MS = 5000;", "const DRAIN_SLOW_MS = 2;")
+    .replace("const DRAIN_FAILED_MS = 15000;", "const DRAIN_FAILED_MS = 3;").replace("const DRAIN_LOST_MS = 60000;", "const DRAIN_LOST_MS = 50;")
+    .replace("const KEEP_MS = 1800000;", "const KEEP_MS = 3000;");
   if (opts.off) code = code.replace("const CONVERT_CREATED_V2 = true;", "const CONVERT_CREATED_V2 = false;");
-  const log = { autoCalls: [], kicks: [], checks: 0, runChecks: [], alerts: [], loading: [] };
+  const log = { autoCalls: [], kicks: [], checks: 0, runChecks: [], alerts: [], loading: [], inFlight: 0, maxInFlight: 0 };
   const statusOf = opts.jobs || (() => "QUEUED");
   const ctx = {
     showLoading: (t) => log.loading.push(t), hideLoading: () => {}, refresh: async () => {}, getVarGlobal: () => "admin",
     $alert: async (msg, title, o) => { log.alerts.push({ msg: String(msg), title, type: o && o.type }); },
     $confirm: async (msg, title, o) => { if (o && o.beforeClose) await o.beforeClose("cancel", {}, () => {}); },
     runWorkflow: (id, params, cb, err) => {
+      if (id === IDS.WORKER) { log.kicks.push(params.job_id); log.inFlight++; log.maxInFlight = Math.max(log.maxInFlight, log.inFlight); }
       setTimeout(() => {
         if (id === IDS.AUTO) {
           log.autoCalls.push(params);
@@ -26,7 +30,7 @@ async function convert(opts) {
           if (opts.lost) return err("timeout of 60000ms exceeded");
           return cb({ data: Object.assign({}, all, { created: mine(all.created), blocked: mine(all.blocked), queued: mine(all.queued) }) });
         }
-        if (id === IDS.WORKER) { log.kicks.push(params.job_id); return cb({ data: {} }); }
+        if (id === IDS.WORKER) { log.inFlight--; return cb({ data: {} }); }
         if (id === IDS.CHECK && params.run_so_ids) {
           log.runChecks.push(params);
           const r = opts.run(params, log.runChecks.length);
@@ -62,7 +66,8 @@ const ok = (t) => { n++; console.log("ok", t); };
       J5: { job_status: "REQUIRES_REVIEW", error_message: "Stock outcome under review" }, J6: { job_status: "AWAITING_CONFIRMATION" } }[j],
   });
   assert.deepStrictEqual(log.autoCalls.map((p) => p.v2), ["1", "1"], "v2 sent on every batch (5 + 1 SOs)");
-  assert.deepStrictEqual(log.kicks.slice(0, 4), ["J3", "J4", "J5", "J6"]);
+  // one worker run at a time, the oldest waiting delivery first (10-29; it used to be one run per delivery at once)
+  assert.deepStrictEqual([log.kicks[0], log.maxInFlight], ["J3", 1]);
   const a = log.alerts[0];
   assert.strictEqual(a.title, "Converted with Exceptions");
   assert.ok(/Created 2 goods deliveries/.test(a.msg) && /GD\/1/.test(a.msg) && /GD\/3/.test(a.msg), a.msg);

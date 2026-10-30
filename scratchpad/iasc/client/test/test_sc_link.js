@@ -230,6 +230,30 @@ const linkNew = async (values, o) => {
       s.wf(PROJ).filter((x) => x[2].operation === "SUMMARY").length);
     check("L7" + (fire ? " (onChange echoes)" : "") + ": the context's history is the server's to write", same(ctx.history, []), ctx.history);
   }
+  // the user, 10-28: opened from the SO Linked IAs page, the form never saw the page's sc_entry parameter (the item code only, no name,
+  // UOM, quantity or lines): a new IA that arrives linked to a line with its item is the entry, parameter or not
+  // an organisation-level login (the user's admin): the plant comes with the IA, the legacy mounted leaves the lines alone
+  const ORG_LOGIN = { globals: { deptParentId: "0", nickname: "tester", firstLvDeptId: F.ORG }, system: { deptIds: F.ORG, uid: "77" } };
+  for (const [who, login] of [["a plant-level login", {}], ["an organisation-level login", ORG_LOGIN]]) {
+    const s = session(entryValues, { this: Object.assign({ isAdd: true }, login), params: {} });
+    await s.fire("mounted");
+    const v = s.v();
+    check("L7b, " + who + ": no sc_entry parameter -> still the entry: the item fields, planned = item_qty = 100, 3 lines prepared", v.item_name === "SC-BOX" && v.item_uom === F.EA &&
+      v.planned_output_qty === 100 && v.item_qty === 100 && (v.stock_movement || []).length === 3, [v.item_name, v.item_uom, v.planned_output_qty, v.item_qty, (v.stock_movement || []).length]);
+  }
+  {
+    // the legacy mounted locks the components until a plant is picked (an organisation-level login); the plant came with this IA
+    const s = session(entryValues, { this: Object.assign({ isAdd: true }, ORG_LOGIN), params: {} });
+    await s.fire("mounted");
+    const locks = s.since(0).filter((t) => /disabled$/.test(t[0]) && JSON.stringify(t[1]) === '["stock_movement"]').map((t) => t[2]);
+    check("L7b, an organisation-level login: the plant came with the IA -> the components unlocked (as picking a plant does)", locks.length > 0 && locks[locks.length - 1] === false, locks);
+  }
+  {
+    const held = Object.assign({}, entryValues, { stock_movement: [{ material_id: "C1", requested_qty: 5, total_quantity: 0, temp_qty_data: "[]" }] });
+    const s = session(held, { this: Object.assign({ isAdd: true }, ORG_LOGIN), params: {} });
+    await s.fire("mounted");
+    check("L7b: a new IA already holding lines is never rebuilt on open", !s.since(0).some((t) => t[0] === "sc:setData" && "stock_movement" in t[1]));
+  }
   {
     const s = session(entryValues, { this: { isAdd: true }, params: { sc_entry: "1" }, so: { header: Object.assign({}, F.so().header, { so_status: "Cancelled" }) } });
     await s.fire("mounted");

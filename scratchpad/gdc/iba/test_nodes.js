@@ -70,12 +70,15 @@ const reads0 = () => ({
   wa: [{ id: "4001", material_id: "502", plant_id: PLANT, organization_id: ORG, batch_id: "701", wa_quantity: "5", wa_cost_price: "1.5", created_at: "2026-01-01 00:00:00" }],
 });
 
-function chain(params, steps, reads, lockRows, mvRows, seedLost) {
+function chain(params, steps, reads, lockRows, mvRows, seedLost, probeRows) {
   const ctx = { params, system: { tenantId: "711077", uuid: "a1b2c3d4-e5f6-0000-0000-000000000000" }, nodes: {} };
   ctx.nodes.code_node_IBguard = run("guard.js", ctx);
   if (ctx.nodes.code_node_IBguard.route === "REJECT") return { ctx, end: "REJECT" };
   ctx.nodes.sql_node_IBops = steps.length ? steps : [{ db_now: "2026-10-13 10:00:00" }];
   ctx.nodes.code_node_IBstate = run("state.js", ctx);
+  // the costing probe runs only on APPLY with unpriced category moves (cor_IBprobe); the lock plan always
+  if (ctx.nodes.code_node_IBguard.needProbe === "YES") ctx.nodes.sql_node_IBprobe = probeRows || [];
+  ctx.nodes.code_node_IBlkplan = run("lock_plan.js", ctx);
   if (ctx.nodes.code_node_IBstate.route !== "PLAN") {
     ctx.nodes.sql_node_IBlk1 = lockRows;
     ctx.nodes.code_node_IBseed = run("lock_seed.js", ctx);
@@ -102,9 +105,10 @@ function chain(params, steps, reads, lockRows, mvRows, seedLost) {
 function applyWrites(ctx, reads, onlySlices) {
   const plan = ctx.nodes.code_node_IBplan;
   const out = JSON.parse(JSON.stringify(reads));
-  const tables = { ib: "bal", bb: "batch", bbr: "batch", ff: "fifo", wa: "wa" };
+  const tables = { ib: "bal", bb: "batch", bbr: "batch", ff: "fifo", wa: "wa", ffDel: "fifo", waDel: "wa", ffNew: "fifo", waNew: "wa" };
   const written = { mv: [] };
-  for (const key of ["ib", "bb", "bbr", "ff", "wa", "mv"]) {
+  let seq = 0;
+  for (const key of ["ib", "bb", "bbr", "ff", "wa", "ffDel", "waDel", "ffNew", "waNew", "mv"]) {
     const slices = plan[key + "Slices"] || [];
     let idx = "0";
     for (let i = 0; i < slices.length; i++) {
@@ -113,6 +117,7 @@ function applyWrites(ctx, reads, onlySlices) {
       const sl = run("slice.tpl.js", ctx, { __LIST__: key, __SRC__: "code_node_IBplan", __IDX__: "get_cache_x" });
       for (const r of sl.rows) {
         if (key === "mv") written.mv.push(r);
+        else if (key === "ffNew" || key === "waNew") out[tables[key]].push(Object.assign({ id: String(9000 + ++seq), is_deleted: 0 }, r));
         else {
           const row = out[tables[key]].find((x) => x.id === r.id);
           Object.assign(row, r);
@@ -121,6 +126,8 @@ function applyWrites(ctx, reads, onlySlices) {
       idx = sl.nextIndex;
     }
   }
+  // the reads and read-backs take is_deleted = 0 rows only
+  for (const t of ["fifo", "wa"]) out[t] = out[t].filter((r) => Number(r.is_deleted || 0) !== 1);
   return { tables: out, movements: written.mv };
 }
 
@@ -266,6 +273,70 @@ t("FAIL under APPLY: nothing written, locks given back", () => {
   ctx.nodes.code_node_IBend = run("end.js", ctx);
   assert.strictEqual(ctx.nodes.code_node_IBend.code, "400");
   assert.strictEqual(ctx.nodes.code_node_IBend.release, "YES");
+});
+
+// a WA item whose only costing rows are FIFO, moved Reserved -> Unrestricted (an unpriced category pair, as GD Cancel V2 sends)
+const WA_ITEM = { id: "504", stock_control: "1", based_uom: "11", material_costing_method: "Weighted Average", purchase_unit_price: "0", item_batch_management: "0", uom_conversion_json: "[]" };
+const migMoves = [mv("C1", "504", "904", 3, { isMovingInv: 1 }), Object.assign(mv("C2", "504", "904", 3, { isMovingInv: 1, direction: "ADD", inventory_category: "Unrestricted" }), { unit_price_from: "C1" })];
+const migReads = () => {
+  const r = reads0();
+  r.bal.push(balRow("1004", "504", "904", 3));
+  r.fifo.push({ id: "3101", material_id: "504", plant_id: PLANT, organization_id: ORG, batch_id: "0", fifo_sequence: "1", fifo_cost_price: "1", fifo_initial_quantity: "2", fifo_available_quantity: "2" },
+    { id: "3102", material_id: "504", plant_id: PLANT, organization_id: ORG, batch_id: "0", fifo_sequence: "2", fifo_cost_price: "4", fifo_initial_quantity: "1", fifo_available_quantity: "1" });
+  return r;
+};
+const backAndVerify = (ctx, w) => {
+  ctx.nodes.sql_node_IBbalB = w.tables.bal;
+  ctx.nodes.sql_node_IBbatchB = w.tables.batch;
+  ctx.nodes.sql_node_IBfifoB = w.tables.fifo;
+  ctx.nodes.sql_node_IBwaB = w.tables.wa;
+  ctx.nodes.sql_node_IBmvB = w.movements.map((m) => ({ operation_effect_key: m.operation_effect_key }));
+  ctx.nodes.code_node_IBverify = run("verify.js", ctx);
+  return ctx.nodes.code_node_IBverify;
+};
+let migFresh;
+t("migration APPLY: the probe adds the pair's COST key, the plan retires the FIFO rows and adds one WA row, read-back DONE", () => {
+  items.push(WA_ITEM);
+  const op = "GDX|9200";
+  const reads = migReads();
+  const { ctx } = chain({ operation_key: op, mode: "APPLY", organization_id: ORG, movements: migMoves }, [], reads, [], null, null, [{ m: "504", p: PLANT }]);
+  assert.strictEqual(ctx.nodes.code_node_IBguard.needProbe, "YES");
+  assert.strictEqual(ctx.nodes.code_node_IBguard.lockKeys.join(","), "ITEM|504|904");
+  assert.strictEqual(ctx.nodes.code_node_IBlkplan.lockKeys.join(","), "COST|504|" + PLANT + ",ITEM|504|904");
+  assert.strictEqual(JSON.parse(ctx.nodes.code_node_IBguard.releaseKeysJson).join(","), "COST|504|" + PLANT + ",ITEM|504|904");
+  assert.strictEqual(ctx.nodes.code_node_IBclaim.route, "TAKE");
+  const p = ctx.nodes.code_node_IBplan;
+  assert.strictEqual(p.route, "WRITE", p.result_message);
+  assert.deepStrictEqual(p.ffDel.map((r) => r.id).sort(), ["3101", "3102"]);
+  assert.strictEqual(p.ff.length, 0);
+  assert.strictEqual(p.waNew.length, 1);
+  assert.strictEqual(p.waNew[0].wa_quantity, "3"); // a category move takes nothing out of the costing rows
+  assert.strictEqual(p.waNew[0].wa_cost_price, "2"); // (2*1 + 1*4) / 3
+  assert.strictEqual(p.results[0].costing_migrated, "FIFO_TO_WA");
+  assert.strictEqual(p.mv[0].unit_price, "2");
+  const w = applyWrites(ctx, reads);
+  assert.strictEqual(w.tables.fifo.filter((r) => r.material_id === "504").length, 0);
+  assert.strictEqual(backAndVerify(ctx, w).route, "DONE", ctx.nodes.code_node_IBverify.problems);
+  migFresh = { ctx, reads, op };
+});
+
+t("migration RESUME after the retire was written: the retired rows count as done, the WA row and movements are added, DONE", () => {
+  const { ctx: c0, reads, op } = migFresh;
+  const intent = c0.nodes.code_node_IBplan.intentRows.map((r) => Object.assign({ db_now: "2026-10-13 10:05:00" }, r));
+  const half = applyWrites(c0, reads, { waNew: 0, mv: 0 });
+  const lockRows = ["COST|504|" + PLANT, "ITEM|504|904"].map((k, i) => ({ id: String(6200 + i), lock_key: k, free_token: 0, owner_operation_id: op, is_deleted: 0, lock_version: 1, db_now: "x" }));
+  const { ctx } = chain({ operation_key: op, mode: "APPLY", organization_id: ORG, movements: migMoves }, intent, half.tables, lockRows, [], null, []);
+  assert.strictEqual(ctx.nodes.code_node_IBstate.route, "RESUME");
+  // the rows are migrated now, so the probe finds nothing; the claim still holds the stored COST key (it is the operation's)
+  assert.strictEqual(ctx.nodes.code_node_IBlkplan.lockKeys.join(","), "ITEM|504|904");
+  const p = ctx.nodes.code_node_IBplan;
+  assert.strictEqual(p.route, "WRITE", p.result_message);
+  assert.strictEqual(p.ffDel.length, 0);
+  assert.strictEqual(p.waNew.length, 1);
+  assert.strictEqual(p.mv.length, 2);
+  const w = applyWrites(ctx, half.tables);
+  assert.strictEqual(backAndVerify(ctx, w).route, "DONE", ctx.nodes.code_node_IBverify.problems);
+  assert.strictEqual(w.tables.wa.filter((r) => r.material_id === "504").length, 1);
 });
 
 t("release plan clears only this operation's rows", () => {

@@ -37,6 +37,60 @@ const scNames = async (collection, ids, field) => {
   }
   return out;
 };
+// an active BOM of the item in the organisation (the IA form's own rule: BOMs are per organisation): true / false; null = the read failed
+const scHasBom = async (itemId, org) => {
+  try {
+    const res = await db.collection("bill_of_materials").field("id")
+      .filter([{ type: "branch", operator: "all", children: [{ prop: "parent_material_code", operator: "equal", value: itemId },
+        { prop: "organization_id", operator: "equal", value: org }, { prop: "is_active", operator: "equal", value: 1 }, { prop: "is_deleted", operator: "equal", value: 0 }] }])
+      .limit(1).get();
+    return ((res && res.data) || []).length > 0;
+  } catch (e) {
+    console.error("SO Linked IAs: the item's BOMs could not be read", e);
+    return null;
+  }
+};
+// the Sales Order's own plant; "" = an organisation-level SO (its plant is the organisation, or none); null = the read failed
+const scSoPlant = async (soId, org) => {
+  try {
+    const res = await db.collection("sales_order").field("plant_name").where({ id: soId }).get();
+    const row = ((res && res.data) || [])[0] || {};
+    const p = scS(row.plant_name);
+    return /^[0-9]{1,20}$/.test(p) && p !== scS(org) ? p : "";
+  } catch (e) {
+    console.error("SO Linked IAs: the Sales Order's plant could not be read", e);
+    return null;
+  }
+};
+// a plant-level login's own plant, "" for an organisation-level login (the IA form's and Convert to GD's rule)
+const scLoginPlant = () => {
+  const parent = scS(this.getVarGlobal("deptParentId"));
+  const p = scS(this.getVarSystem("deptIds")).split(",")[0].trim();
+  return parent && parent !== "0" && /^[0-9]{1,20}$/.test(p) ? p : "";
+};
+// the figure tiles (the user, 10-29): one html card on top - the line, its customer and item, the six figures, the sum under them, the
+// warnings in a strip; inline styles only, every text escaped
+const scEsc = (v) => scS(v).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const scCard = (body) => '<div style="font-size:13px;color:#1F2937;line-height:1.45;margin-bottom:12px">' + body + "</div>";
+const scMessage = (text) => scCard('<div style="padding:10px 12px;border:1px solid #E5E7EB;border-radius:6px;background:#F9FAFB;color:#6B7280">' + scEsc(text) + "</div>");
+const scTile = (label, value, key) => '<div style="flex:1 1 110px;min-width:110px;padding:8px 12px;border-radius:6px;border:1px solid ' + (key ? "#335B57" : "#E5E7EB") +
+  ";background:" + (key ? "#EEF4F3" : "#FAFAFA") + '"><div style="font-size:12px;color:#6B7280">' + label + '</div><div style="font-size:18px;font-weight:600;color:' +
+  (key ? "#335B57" : "#111827") + '">' + scEsc(value) + "</div></div>";
+const scTiles = (x) => {
+  const t = x.t;
+  const plan = t.unavailable === "OVERLAP" ? ["—", "Unavailable: nothing records whether the " + x.lineQty(t.delivered) + " delivered came from the " + x.lineQty(t.produced) + " produced"]
+    : t.suggestion === null || t.complete === false ? ["—", "Unavailable: a unit conversion is missing"]
+    : !x.active ? [x.lineQty(0), "the line has no remaining demand"]
+    : [x.lineQty(t.suggestion), "To Plan = " + scQ8(t.ordered) + " ordered − " + x.done + " − " + scQ8(t.open) + " in progress"];
+  const sub = [scS(x.h.customer_name), scS(x.item)].filter((s) => s).join(" · ");
+  const tiles = [["Ordered", x.lineQty(t.ordered)], ["Delivered", x.lineQty(t.delivered)], ["Planned", x.lineQty(t.planned)], ["Produced", x.lineQty(t.produced)],
+    ["In Progress", x.lineQty(t.open)]].map((p) => scTile(p[0], p[1], false)).join("") + scTile("To Plan", plan[0], true);
+  const warn = x.warnings.length ? '<div style="margin-top:10px;padding:8px 12px;border:1px solid #FFD591;border-radius:6px;background:#FFF7E6;color:#AD6800">' +
+    x.warnings.map((w) => "<div>⚠ " + scEsc(w) + "</div>").join("") + "</div>" : "";
+  return scCard('<div style="font-size:20px;font-weight:600;color:#111827">' + scEsc((scS(x.h.so_no) || "Sales Order") + (scS(x.l.line_index) ? " · line " + scS(x.l.line_index) : "")) +
+    "</div>" + (sub ? '<div style="color:#4B5563;margin-top:2px">' + scEsc(sub) + "</div>" : "") + '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">' + tiles +
+    '</div><div style="font-size:12px;color:#6B7280;margin-top:6px">' + scEsc(plan[1]) + "</div>" + warn);
+};
 const ROLE = { produced: "Produced", open: "Open", excluded: "Excluded", none: "Not counted" };
 const MODE = { STANDARD: "Standard", FLAT: "Flat" };
 // a Created IA (RES-01, BA 10-22) is open production like a Draft (review 3)
@@ -71,6 +125,7 @@ const scShowRows = (row) => {
     if (!r || !r.totals) {
       const down = { sli_summary_so: refused || "figures unavailable right now: press Refresh to try again" };
       await this.setData(Object.assign(scRows(down), { sli_ias: [], sli_orphans: [] }));
+      await this.setData({ sli_summary_html: scMessage(down.sli_summary_so) }); // the tiles (10-29)
       scShowRows(down);
       this.hide(["sli_btn_create", "sli_orphans"]);
       return;
@@ -113,18 +168,48 @@ const scShowRows = (row) => {
       to_receive: OPEN_ST[scS(x.status)] ? scQ8(x.item_qty) : null, actual: DONE_ST[scS(x.status)] ? scQ8(x.item_qty) : null, uom: u(x.item_uom), counted: "Line removed",
       ia_id: scS(x.id) }));
     await this.setData(Object.assign(scRows(row), { sli_ias: rows, sli_orphans: lost }));
+    await this.setData({ sli_summary_html: scTiles({ h: h, l: l, t: t, item: item, lineQty: lineQty, active: active, done: done, warnings: warnings.map((w) => swap(w.text)) }) }); // the tiles (10-29)
     scShowRows(row);
     if (lost.length) this.display(["sli_orphans"]);
     else this.hide(["sli_orphans"]);
-    if (r.eligibleNew) this.display(["sli_btn_create"]);
+    // only an item with an active BOM in the Sales Order's organisation can be assembled (the user, 10-28)
+    const org = scS(h.organization_id) || scP("organization_id");
+    const bom = r.eligibleNew ? await scHasBom(scP("item_id"), org) : null;
+    if (r.eligibleNew && bom === true) this.display(["sli_btn_create"]);
     else this.hide(["sli_btn_create"]);
     if (scS(scArgs.action) !== "create") return;
     if (!r.eligibleNew) {
       this.$message.warning(scS(r.reason) || "No Item Assembly can be created for this line.");
       return;
     }
-    this.toView({ target: SC_IA_FORM, type: "add", mode: "dialog", title: "Add Item Assembly", width: "80%",
-      data: { item_id: scP("item_id"), source_so_id: scS(h.id) || scP("so_id"), source_so_line_id: scS(l.id) || scP("so_line_id"), bom_consumption_mode: "STANDARD" },
+    if (bom === null) {
+      this.$message.error("The item's BOMs could not be read: press Refresh and try again.");
+      return;
+    }
+    if (!bom) {
+      this.$message.warning(item + " has no active BOM, so an Item Assembly can't be made for it.");
+      return;
+    }
+    // the plant (the user, 10-28: as SO -> GD): a plant-level login's own, else the one chosen in Select Plant, else the Sales Order's
+    // own; an organisation-level SO asks
+    let plant = scLoginPlant() || scS(scArgs.plant);
+    if (!plant) {
+      const own = await scSoPlant(scS(h.id) || scP("so_id"), org);
+      if (own === null) {
+        this.$message.error("The Sales Order's plant could not be read: press Refresh and try again.");
+        return;
+      }
+      if (!own) {
+        await this.setData({ "sli_plant_dialog.sli_plant_id": "" });
+        this.openDialog("sli_plant_dialog");
+        return;
+      }
+      plant = own;
+    }
+    // on the right, as every form opens (the user, 10-28)
+    this.toView({ target: SC_IA_FORM, type: "add", mode: "dialog", position: "rtl", title: "Add Item Assembly", width: "80%",
+      data: { item_id: scP("item_id"), source_so_id: scS(h.id) || scP("so_id"), source_so_line_id: scS(l.id) || scP("so_line_id"), bom_consumption_mode: "STANDARD",
+        issuing_operation_faci: plant },
       params: { sc_entry: "1" } });
   } catch (error) {
     console.error("SO Linked IAs error:", error);

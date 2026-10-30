@@ -1,0 +1,34 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SO Linked IAs page (Select Plant, no-BOM block, IA form on the right, B11)",
+   "kind": "page",
+   "dataId": "2112449353901772801",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/SOLinkedIAsPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/page_so_linked_ias_v8.json"
+  },
+  {
+   "name": "IA form (View Transfer Request on the right, B11)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/client/out/on/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v75.json"
+  },
+  {
+   "name": "LOT form (View IA on the right, B11)",
+   "kind": "form",
+   "dataId": "2013791389687349250",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Stock Movement/Location Transfer/AsyncV2/LOTform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/lot_form_v115.json"
+  },
+  {
+   "name": "SO list (Convert to GD: another-plant check, B11)",
+   "kind": "page",
+   "dataId": "1901872125787099137",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/so_list/out/so_list_dev.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/so_list/base/so_list_dev_v540.json"
+  }
+ ]
+}

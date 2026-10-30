@@ -58,6 +58,8 @@ class World {
     this.dup = o.dup || {};
     this.cost = o.cost || {};
     this.engine = o.engine || null;
+    // reserved requests (scratchpad/iatr/RESERVED_REQUEST_PLAN.md Task 4): the IA's dispatched request, if any ({ id, no, status })
+    this.transit = o.transit || null;
     this.afterBal = o.afterBal || null;
     // inventory_movement rows of this IA: { id, trx_no, transaction_type, movement, inventory_category, item_id, bin, batch, base_qty, org }
     this.moves = o.moves || [];
@@ -117,9 +119,13 @@ class Sim extends Engine {
         const rowOrg = (/r\.organization_id = '([0-9]+)'/.exec(q.replace(/\s+/g, " ")) || [])[1];
         if (!rowOrg) throw new Error("state SQL reads the rows without an organisation");
         has(w, "state", q, "p.job_id = 'IAH|" + w.ia.id + "'");
+        // the IA's dispatched request: by its quoted id (source_ia_id is a varchar), In Progress or Processing
+        has(w, "state", q, "q.transfer_purpose = 'IA_SUPPLY' AND q.source_ia_id = '" + w.ia.id + "'");
+        has(w, "state", q, "q.stock_movement_status IN ('In Progress', 'Processing')");
         const tickets = w.tickets.filter((t) => t.job_id === "IAH|" + w.ia.id && /^TICKET\|/.test(t.step_name));
         return [J({ now: w.now, ia: w.ia, lines: w.lines, rows: rowOrg === ORG ? w.live() : [], ticket_max: tickets.reduce((m, t) => Math.max(m, Number(t.step_name.slice(7))), 0),
-          held: tickets.filter((t) => t.step_status === "HELD").map((t) => ({ id: t.id, n: Number(t.step_name.slice(7)), started_at: t.started_at, op: t.result_ref })) })];
+          held: tickets.filter((t) => t.step_status === "HELD").map((t) => ({ id: t.id, n: Number(t.step_name.slice(7)), started_at: t.started_at, op: t.result_ref })),
+          transit: w.transit })];
       },
       // MIN-05 (BA 10-22): the deleted IAs still marked as holding (an interrupted list delete), at most 20, tenant-wide
       // BA rev 1.2 C2: the IA's completion claims and its status (w.claims: [{ n, status, ref, at }])
@@ -748,6 +754,26 @@ eq("the kept row points at the first released one", w.live().filter((x) => x.sta
   r = close(wn);
   eq("a dead CLOSE that moved nothing: its rows back, then released once (5 + 3), no second delivery", [wn.calls.length, wn.calls[0] && wn.calls[0].movements.filter((m) => m.direction === "SUBTRACT")
     .map((m) => m.quantity), rowsOf(wn).map((x) => [x[1], x[4]]), wn.ia.hold], [1, [5, 3], [["Delivered", 6], ["Cancelled", 0], ["Delivered", 1], ["Cancelled", 0]], "CLOSED"]);
+}
+// ---- reserved requests (scratchpad/iatr/RESERVED_REQUEST_PLAN.md Task 4): while the IA's request is dispatched, its reservation
+// travels with the transfer, so nothing here re-reserves the old bins; rows the transfer side writes are the IA's own holds
+{
+  for (const status of ["In Progress", "Processing"]) {
+    const wt = new World({ ia: { status: "Created", hold: "FULL" }, transit: { id: "2112900000000000700", no: "LOT-0700", status: status } });
+    const rt = hold(wt);
+    eq("reconcile while transit (" + status + ") → IN_TRANSIT, no moves", [rt.code, /In transit \(LOT-0700\)/.test(rt.message), wt.calls.length, wt.rows.length], ["409", true, 0, 0]);
+  }
+  const wc = new World({ ia: { status: "Created", hold: "FULL" }, transit: { id: "2112900000000000700", no: "LOT-0700", status: "In Progress" } });
+  const rc = hold(wc, { operation: "CANCEL", source: "LIST" });
+  eq("cancel while transit → refused, nothing moved, the IA stays Created", [rc.code, wc.calls.length, wc.ia.status], ["409", 0, "Created"]);
+  const kS = "2105488759446736918|" + B2 + "|";
+  const ws = new World({ ia: { status: "Created", hold: "FULL" }, lines: [line("3001", "2105488759446736918", [pick(B2, 6)])],
+    rows: [{ id: "2112900000000000801", status: "Allocated", doc_no: "IA-0001", doc_line_id: "3001", material_id: "2105488759446736918", bin_location: B2,
+      open_qty: "6", reserved_qty: "6", delivered_qty: "0", job_line_key: "IATR|2112900000000000700|1" }],
+    bal: { [kS]: { Unrestricted: 0, Reserved: 6, Blocked: 0 } } });
+  hold(ws);
+  eq("rows written with IATR| job_line_key are own holds: received at the staging bin, nothing moved again", [ws.calls.length, ws.rows.map((x) => [x.status, x.open_qty])],
+    [0, [["Allocated", "6"]]]);
 }
 console.log((fails ? "FAILED " + fails : "ok") + " - " + n + " checks");
 process.exit(fails ? 1 : 0);

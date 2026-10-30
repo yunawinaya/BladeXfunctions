@@ -1,0 +1,20 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "SO Linked IAs page (a plant-level login's own plant, no Select Plant, B12)",
+   "kind": "page",
+   "dataId": "2112449353901772801",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/SOLinkedIAsPage.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/page_so_linked_ias_v9.json"
+  },
+  {
+   "name": "SO list (By Item: Linked IAs + Create IA line actions, B12)",
+   "kind": "page",
+   "dataId": "1901872125787099137",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/so_list/out/so_list_items_dev.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/so_list/base/so_list_dev_v541.json"
+  }
+ ]
+}

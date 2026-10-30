@@ -1,0 +1,20 @@
+{
+ "profile": "dev-main-write",
+ "tableId": "1856231112670498818",
+ "items": [
+  {
+   "name": "IA_TRANSFER_REQUEST (STATUS names the staging bin, B21)",
+   "dataId": "1985966508400201729",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/TransferRequest/IA_TRANSFER_REQUEST.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iatr/base/ia_transfer_request_v6.json",
+   "smoke": { "request": { "operation": "STATUS", "ia_id": "1", "organization_id": "1" } }
+  },
+  {
+   "name": "IA form (received request: picks from the staging bin by itself, B21)",
+   "kind": "form",
+   "dataId": "2098256587713404929",
+   "file": "/Users/yunawinaya/Developer/BladeXfunctions/Item Assembly & BOM/SmallCycle/IAform.json",
+   "base": "/Users/yunawinaya/Developer/BladeXfunctions/scratchpad/iasc/base/ia_form_v79.json"
+  }
+ ]
+}

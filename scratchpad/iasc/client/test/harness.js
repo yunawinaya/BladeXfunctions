@@ -276,7 +276,9 @@ function makeThis(w, doc, opts) {
       const e = byName(doc, name);
       if (!e) return undefined;
       // the Small Cycle handler's calls recorded "sc:", the output split's (os_main) "os:" (the base comparisons drop both)
-      const target = name === "sc_main" ? tagged : name === "os_main" ? osTagged : tagOf(this) === "os:" ? osTagged : tagOf(this) ? tagged : self;
+      // the IA transfer request's (tr_main) "tr:"
+      const target = name === "sc_main" ? tagged : name === "os_main" ? osTagged : name === "tr_main" ? trTagged : tagOf(this) === "os:" ? osTagged
+        : tagOf(this) === "tr:" ? trTagged : tagOf(this) ? tagged : self;
       return compile(w, sourceOf(e), e.type === "rule").call(target, args);
     },
     get $message() {
@@ -297,6 +299,8 @@ function makeThis(w, doc, opts) {
   tagged._tag = "sc:";
   const osTagged = Object.create(self);
   osTagged._tag = "os:";
+  const trTagged = Object.create(self);
+  trTagged._tag = "tr:";
   self.values = values;
   return self;
 }
@@ -353,8 +357,8 @@ const done = (name) => {
 };
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const SC_KEYS = ["source_so_id", "source_so_line_id", "source_so_context_json", "bom_consumption_mode", "source_bom_id", "bom_snapshot_json", "planned_output_qty"];
-const legacyTrace = (trace) => trace.filter((t) => !/^(sc|os):/.test(t[0]) && !(t[0] === "getValue" && SC_KEYS.indexOf(t[1]) >= 0) && !(t[0] === "triggerEvent" &&
-  (t[1] === "sc_main" || t[1] === "os_main")));
+const legacyTrace = (trace) => trace.filter((t) => !/^(sc|os|tr):/.test(t[0]) && !(t[0] === "getValue" && SC_KEYS.indexOf(t[1]) >= 0) && !(t[0] === "triggerEvent" &&
+  (t[1] === "sc_main" || t[1] === "os_main" || t[1] === "tr_main")));
 
 // a built Small Cycle script with its switch and workflow ids set: on = true / false, wf = { SO_IA_PROJECTION, IA_SC_RELINK }
 const SC_SWITCH_RE = /const SC_ENABLED = (true|false);/g;

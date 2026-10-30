@@ -29,6 +29,12 @@ const hdPlan = function hdPlan(g, st, member) {
   if (!(Number(member) > 0)) return stop("400", "Your user is not assigned to this organisation, so this Item Assembly's materials cannot be reserved.");
   const status = hdS(ia.status);
   if (status === "Processing") return stop("409", "This Item Assembly is being completed in the background: its materials are not changed now.");
+  // reserved requests (Item Assembly & BOM/TransferRequest/RESERVED_REQUEST_DESIGN.md): a dispatched request carries this IA's
+  // reservation; nothing is changed here until it is received (else the old bins would be reserved again)
+  const transit = st.transit && typeof st.transit === "object" ? st.transit : null;
+  if (transit && hdS(transit.id)) {
+    return stop("409", "In transit (" + (hdS(transit.no) || hdS(transit.id)) + "): the reservation travels with the transfer request; nothing is changed until it is received.");
+  }
   const rows = Array.isArray(st.rows) ? st.rows : [];
   const closing = g.op === "CLOSE";
   // CANCEL (user 10-22, like Goods Delivery): a Created IA only; everything it holds is released, then it is Cancelled (finish)

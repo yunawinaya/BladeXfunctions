@@ -1,0 +1,350 @@
+{
+ "list": [
+  {
+   "type": "grid",
+   "mainIcon": "栅格布局",
+   "typeIcon": "栅格布局",
+   "icon": "icon-RectangleCopy",
+   "group": "Layout",
+   "groupSort": 0,
+   "enableScopes": [
+    "Component",
+    "Table",
+    "Page"
+   ],
+   "columns": [
+    {
+     "type": "col",
+     "options": {
+      "span": 12,
+      "offset": 0,
+      "push": 0,
+      "pull": 0,
+      "xs": 24,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12,
+      "customClass": ""
+     },
+     "list": [
+      {
+       "type": "treeselect",
+       "mainIcon": "树形选择",
+       "typeIcon": "树形选择",
+       "icon": "icon-shuxuanzeqi",
+       "group": "Select",
+       "groupSort": 4,
+       "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+       ],
+       "options": {
+        "defaultValue": "",
+        "width": "",
+        "placeholder": "",
+        "disabled": false,
+        "clearable": false,
+        "options": [
+         {
+          "value": "Option 1",
+          "label": "Option 1",
+          "children": [
+           {
+            "value": "Option 1 - children",
+            "label": "Option 1 - children"
+           }
+          ]
+         },
+         {
+          "value": "Option 2",
+          "label": "Option 2",
+          "children": [
+           {
+            "value": "Option 2 - children",
+            "label": "Option 2 - children"
+           }
+          ]
+         },
+         {
+          "value": "Option 3",
+          "label": "Option 3"
+         }
+        ],
+        "remote": true,
+        "remoteType": "innerdatasource",
+        "remoteOption": "option_tzsmbfkj",
+        "remoteOptions": [],
+        "props": {
+         "value": "id",
+         "label": "dept_name",
+         "children": "children",
+         "cascade": "",
+         "image": "",
+         "icon": "",
+         "explain": ""
+        },
+        "remoteFunc": "func_a597eb12",
+        "customClass": "",
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "required": false,
+        "validatorCheck": false,
+        "validator": "",
+        "multiple": false,
+        "filterable": false,
+        "checkStrictly": false,
+        "customProps": {},
+        "tip": "",
+        "tableColumn": false,
+        "subform": false,
+        "datasource": {
+         "source": "组织机构(勿删勿改):Table:1789995126399348747",
+         "rules": {
+          "collectionId": "1789995126399348747",
+          "list": [
+           {
+            "id": 1723795236686,
+            "parentId": 1723795236685,
+            "isTop": true,
+            "prop": "",
+            "operator": "",
+            "valueType": "",
+            "value": "",
+            "type": "leaf",
+            "level": 1
+           }
+          ]
+         }
+        },
+        "more_fields": [],
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "auto_refresh": 1,
+        "auto_refresh_debounce": 100
+       },
+       "events": {
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+       },
+       "name": "Plant ID",
+       "novalid": {},
+       "key": "a597eb12",
+       "model": "plant_id",
+       "rules": []
+      },
+      {
+       "type": "switch",
+       "mainIcon": "开关",
+       "typeIcon": "开关",
+       "icon": "icon-switch",
+       "group": "Select",
+       "groupSort": 8,
+       "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+       ],
+       "options": {
+        "defaultValue": 0,
+        "required": false,
+        "requiredMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "disabled": false,
+        "customClass": "",
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "width": "",
+        "customProps": {},
+        "tip": "",
+        "booleanValueMode": false,
+        "alignright": false,
+        "checkboxMode": false,
+        "remoteFunc": "func_65aa83ec",
+        "remoteOption": "option_hlf04ldp",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": ""
+       },
+       "events": {
+        "onChange": ""
+       },
+       "name": "Transfer Request",
+       "key": "65aa83ec",
+       "model": "transfer_request_enabled",
+       "rules": [],
+       "novalid": {}
+      },
+      {
+       "type": "input",
+       "mainIcon": "单行文本",
+       "typeIcon": "单行文本",
+       "icon": "icon-input",
+       "group": "Text",
+       "groupSort": 1,
+       "enableScopes": [
+        "Component",
+        "Table",
+        "Page"
+       ],
+       "el": "fm-input",
+       "options": {
+        "width": "",
+        "defaultValue": "",
+        "required": false,
+        "requiredMessage": "",
+        "dataType": "",
+        "dataTypeCheck": false,
+        "dataTypeMessage": "",
+        "pattern": "",
+        "patternCheck": false,
+        "patternMessage": "",
+        "validatorCheck": false,
+        "validator": "",
+        "placeholder": "",
+        "customClass": "",
+        "disabled": false,
+        "labelWidth": 100,
+        "isLabelWidth": false,
+        "hidden": false,
+        "dataBind": true,
+        "showPassword": false,
+        "clearable": false,
+        "maxlength": "",
+        "showWordLimit": false,
+        "customProps": {},
+        "tip": "",
+        "remoteFunc": "func_e00a5aa8",
+        "remoteOption": "option_ihgbmc24",
+        "tableColumn": false,
+        "subform": false,
+        "select-card_n7ge7fmb": [],
+        "left": 3,
+        "right": 4,
+        "pad": "*",
+        "desensitization_pattern": "",
+        "desensitization_replace": "",
+        "select-card_4c8m22dh": []
+       },
+       "events": {
+        "onChange": "",
+        "onFocus": "",
+        "onBlur": ""
+       },
+       "name": "Organization ID",
+       "novalid": {},
+       "key": "e00a5aa8",
+       "model": "organization_id",
+       "rules": []
+      }
+     ],
+     "key": "476887c4"
+    },
+    {
+     "type": "col",
+     "options": {
+      "span": 12,
+      "offset": 0,
+      "push": 0,
+      "pull": 0,
+      "xs": 24,
+      "sm": 12,
+      "md": 12,
+      "lg": 12,
+      "xl": 12,
+      "customClass": ""
+     },
+     "list": [],
+     "key": "6dde1fc0"
+    }
+   ],
+   "options": {
+    "gutter": 0,
+    "justify": "start",
+    "align": "top",
+    "customClass": "",
+    "hidden": false,
+    "flex": true,
+    "responsive": true,
+    "remoteFunc": "func_27adfafe",
+    "remoteOption": "option_7cwplpv4",
+    "tableColumn": false,
+    "subform": false
+   },
+   "name": "栅格布局",
+   "key": "27adfafe",
+   "model": "grid_27adfafe",
+   "rules": []
+  }
+ ],
+ "config": {
+  "labelWidth": 180,
+  "labelPosition": "left",
+  "size": "default",
+  "customClass": "",
+  "ui": "element",
+  "layout": "horizontal",
+  "width": "100%",
+  "hideLabel": false,
+  "hideErrorMessage": false,
+  "eventScript": [
+   {
+    "key": "onFormChange",
+    "name": "onFormChange",
+    "type": "rule"
+   },
+   {
+    "key": "mounted",
+    "name": "mounted",
+    "func": ""
+   },
+   {
+    "key": "refresh",
+    "name": "refresh",
+    "func": ""
+   },
+   {
+    "key": "onBeforeAdd",
+    "name": "onBeforeAdd",
+    "func": ""
+   },
+   {
+    "key": "onAfterAdd",
+    "name": "onAfterAdd",
+    "func": ""
+   },
+   {
+    "key": "onBeforeUpdate",
+    "name": "onBeforeUpdate",
+    "func": ""
+   },
+   {
+    "key": "onAfterUpdate",
+    "name": "onAfterUpdate",
+    "func": ""
+   }
+  ],
+  "uniqueGroup": [],
+  "params": [],
+  "deps": {},
+  "paramsDeps": {},
+  "labelSuffix": true,
+  "indexs": []
+ }
+}

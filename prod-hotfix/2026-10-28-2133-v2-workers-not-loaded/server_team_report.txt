@@ -1,0 +1,65 @@
+prod su-code-service: workflows stuck on "script for node[...] is not loaded" after restarts
+
+Summary
+Since 10-27, some prod workflows go into a state where every run fails at their first script (code) node with
+"script for node[<node id>] is not loaded". The workflow content is unchanged, and the same versions ran fine before.
+The state lasts until the backend restarts, or until we rename that node id and republish. It has happened at least six
+times on prod since 10-27 21:36. While it lasts, the affected background workflows stop for every tenant. On 10-29 a
+customer's 10 delivery orders waited 63-97 minutes.
+
+Error
+  script for node[code_node_XWguard3] is not loaded
+  (dev logs, 10-21: com.yomahub.liteflow.script.exception.ScriptLoadException)
+
+What clears it
+- A backend restart clears it (10-28 10:01:23, 10-29 07:54:24).
+- Giving the stuck node a new id and republishing clears it (prod 10-28 04:02-04:05; dev 10-21 and 10-22).
+- Republishing with the same node id does NOT clear it: prod GD_ASYNC_WORKER v18 (10-28 04:01:02, identical to v17)
+  still failed at 04:02:09.
+
+When it happens
+- Several different workflows start their first run in the same second on a freshly started backend. Until 10-29 07:51
+  our GD list page started six background workflows at once every 2 minutes, and those are the ones that stuck. It now
+  starts them one at a time, but other pages and other users can still start workflows in the same second.
+- Starting each workflow's first run alone after a restart never stuck (dev 10-21, twice). It is intermittent: not every
+  concurrent first run sticks.
+- Also seen with no restart, 1-2 minutes after two form publishes (10-27 21:35), and during a backend hang (10-28 ~09:54).
+
+Prod timeline (UTC+8)
+- 10-27 21:36:58  no restart (form publishes 21:35:08, 21:35:59)
+                  stuck: GD_CANCEL_WORKER, GD_REVERT_WORKER
+- 10-28 01:56:58  after the 01:55:41 JVM start
+                  stuck: GD_ASYNC_WORKER, GD_PICKING_OUTBOX_CONSUMER, GD_EDIT_WORKER
+- 10-28 09:57:51  during a backend hang from ~09:54 (runs stayed InExecute)
+                  stuck: six GD workers + SO_SAVE_SUBMIT at 5 tenants; cleared by the 10:01:23 restart
+- 10-28 21:33:34  after the 21:31:41 JVM start (the first two rounds of runs were clean)
+                  stuck: GD_ASYNC_WORKER, GD_PICKING_OUTBOX_CONSUMER, GD_COMPLETE_WORKER, GD_CANCEL_WORKER, GD_REVERT_WORKER
+- 10-28 ~23:24    no visible restart
+                  stuck set changed to: GD_CANCEL_WORKER, GD_EDIT_WORKER
+- 10-29 ~02:19    no visible restart
+                  stuck set changed to: GD_ASYNC_WORKER, GD_PICKING_OUTBOX_CONSUMER, GD_REVERT_WORKER
+- 10-29 07:54:24  JVM start; everything ran clean from 07:55
+
+More than one instance?
+su_code_workflow_inst has no gap at any of these times, not even at the 07:54:24 JVM start (runs at 07:54:03 and
+07:54:55), and its server_ip column is empty. We think prod runs more than one instance and each keeps its own stuck
+set. The stuck set changing at 23:24 and 02:19 fits that.
+
+Workflows and stuck node ids (for the log search)
+- GD_ASYNC_WORKER             2104840667119411201  code_node_1OvNTk9G3
+- GD_PICKING_OUTBOX_CONSUMER  2105134245397041153  code_node_3wpgxjXW4
+- GD_COMPLETE_WORKER          2110182645714518018  code_node_GWguard3
+- GD_CANCEL_WORKER            2112455700319932418  code_node_XWguard3
+- GD_REVERT_WORKER            2112758130420088833  code_node_RWguard4
+- GD_EDIT_WORKER              2110618789356687361  code_node_GEWguard2
+Example failed run: su_code_workflow_inst 2115436816856387586 (GD_COMPLETE_WORKER, 10-28 21:33:34.687, tenant 128671).
+
+What we need
+1. When a script node fails to load, don't keep the failure: retry the load on the next run, or rebuild the chain.
+   Make first-time script loading safe when several workflows start at the same moment.
+2. A republish should reload a workflow's scripts even when its node ids are unchanged.
+3. The stack trace and first cause of the ScriptLoadException around 10-28 21:33:34, 23:24 and 10-29 02:19 (UTC+8).
+4. Why prod su-code-service restarted at 10-28 01:55:41, 10:01:23, 21:31:41 and 10-29 07:54:24 (deploy, crash or OOM,
+   scaling?), how many instances prod runs, and whether the load balancer is sticky.
+
+Until then we rename the stuck node and republish, or ask for a restart.

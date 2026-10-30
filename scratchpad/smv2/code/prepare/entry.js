@@ -13,7 +13,8 @@ const prepareEntry = function prepareEntry(guard, rows, uuid) {
   const common = { jobId: lotS(job.id), organizationId: lotDigits(job.organization_id) ? lotS(job.organization_id) : "0", idempotencyKey: lotS(job.idempotency_key),
     rowVersion: Number(job.row_version) || 0, attempts: Number(job.attempt_count) || 0, dbNow: lotS(job.db_now), jsAt: String(Date.now()), nonce: (lotS(uuid).replace(/[^0-9A-Za-z]/g, "") + "00000000").slice(0, 8) };
   const prev = req && typeof req === "object" ? lotS(req.prevStatus) : "";
-  if (!lotPrevStatusOk(prev)) {
+  // a request's dispatch is the only job that restores Requested (IA transfer request, scratchpad/iatr)
+  if (!lotPrevStatusOk(prev) || (prev === "Requested" && lotS(req && req.action) !== "STAGE")) {
     return Object.assign(base, common, { route: "REVIEW", result_code: "LOT_PREV_STATUS_UNKNOWN", result_message: "Under review: the status to restore is unknown. Please contact support." });
   }
   const m = lotS(job.correlation_id).match(/^LOT\|([0-9]{1,20})$/);
@@ -22,8 +23,9 @@ const prepareEntry = function prepareEntry(guard, rows, uuid) {
     return Object.assign(base, common, { route: "FAIL", prevStatus: prev, unlockRows: stray, result_code: "LOT_INVALID_REQUEST",
       result_message: "The save stopped before the Location Transfer was linked to its job: please save it again." });
   }
-  // which stored lines the auto allocation's reads cover (prepare/sql.py CAND): DIRECT / STAGE the unpicked ones, COMPLETE / EDIT any
-  const scope = { DIRECT: "EMPTY", STAGE: "EMPTY", COMPLETE: "REQ", EDIT: "REQ" }[lotS(req.action)] || "NONE";
+  // which stored lines the auto allocation's reads cover (prepare/sql.py CAND): DIRECT / STAGE the unpicked ones, COMPLETE / EDIT any;
+  // a request's dispatch none (spec IA-LT-12: only the warehouse's own picks; SUBMIT refuses a line not picked in full)
+  const scope = prev === "Requested" ? "NONE" : { DIRECT: "EMPTY", STAGE: "EMPTY", COMPLETE: "REQ", EDIT: "REQ" }[lotS(req.action)] || "NONE";
   return Object.assign(base, common, { route: "GO", lotId: m[1], request: req, action: lotS(req.action), prevStatus: prev, saveAs: lotS(req.saveAs), allocScope: scope,
     result_message: lotS(req.action) + " Location Transfer " + (lotS(req.lotNo) || m[1]) });
 };
