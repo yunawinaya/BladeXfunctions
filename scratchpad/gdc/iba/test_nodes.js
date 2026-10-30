@@ -339,6 +339,36 @@ t("migration RESUME after the retire was written: the retired rows count as done
   assert.strictEqual(w.tables.wa.filter((r) => r.material_id === "504").length, 1);
 });
 
+t("layers report: APPLY answers the layers drawn; RESUME (from the intent), the DONE row and REPLAY answer the same", () => {
+  const op = "CSG|9300";
+  const moves = movements.map((m) => (m.movement_key === "L2" ? Object.assign({}, m, { report_layers: true }) : m));
+  const want = [{ id: "3001", sequence: 1, quantity: 1, cost: 2 }, { id: "3002", sequence: 2, quantity: 3, cost: 3 }];
+  const layersOf = (results) => (results || []).find((r) => r.movement_key === "L2").fifo_layers;
+  const reads = reads0();
+  const { ctx } = chain({ operation_key: op, mode: "APPLY", organization_id: ORG, movements: moves }, [], reads, []);
+  const p = ctx.nodes.code_node_IBplan;
+  assert.strictEqual(p.route, "WRITE", p.result_message);
+  assert.deepStrictEqual(layersOf(p.results), want);
+  assert.ok(!("fifo_layers" in p.results.find((r) => r.movement_key === "L1")));
+
+  const intent = p.intentRows.map((r) => Object.assign({ db_now: "2026-10-13 10:05:00" }, r));
+  const half = applyWrites(ctx, reads, { bb: 0, bbr: 0, ff: 0, wa: 0, mv: 0 });
+  const lockRows = ["BATCH|502|902|701", "COST|501|" + PLANT, "COST|502|" + PLANT, "ITEM|501|901", "ITEM|502|902", "ITEM|503|903"].map((k, i) => ({ id: String(6300 + i), lock_key: k, free_token: 0, owner_operation_id: op, is_deleted: 0, lock_version: 1, db_now: "2026-10-13 10:05:00" }));
+  const resumed = chain({ operation_key: op, mode: "APPLY", organization_id: ORG, movements: moves }, intent, half.tables, lockRows, []).ctx;
+  assert.strictEqual(resumed.nodes.code_node_IBstate.route, "RESUME");
+  assert.deepStrictEqual(layersOf(resumed.nodes.code_node_IBplan.results), want);
+
+  const w = applyWrites(ctx, reads);
+  assert.strictEqual(backAndVerify(ctx, w).route, "DONE", ctx.nodes.code_node_IBverify.problems);
+  ctx.nodes.code_node_IBdone = run("done_row.js", ctx);
+  ctx.nodes.code_node_IBend = run("end.js", ctx);
+  assert.deepStrictEqual(layersOf(ctx.nodes.code_node_IBend.results), want);
+  const done = ctx.nodes.code_node_IBdone.rows[0];
+  const replay = chain({ operation_key: op, mode: "APPLY", organization_id: ORG, movements: moves }, [Object.assign({ db_now: "x" }, done)], reads0(), []).ctx;
+  assert.strictEqual(replay.nodes.code_node_IBstate.route, "REPLAY");
+  assert.deepStrictEqual(layersOf(replay.nodes.code_node_IBstate.storedResults), want);
+});
+
 t("release plan clears only this operation's rows", () => {
   const ctx = { params: {}, system: {}, nodes: { code_node_IBguard: { operationKey: OP } } };
   ctx.nodes.sql_node_IBrel = [

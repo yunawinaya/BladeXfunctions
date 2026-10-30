@@ -107,6 +107,7 @@ function planBulk(input) {
     return { altQty, baseQty, altUOM, baseUOM: item.based_uom, method: item.material_costing_method };
   };
   const live = (r) => Number(r.is_deleted || 0) !== 1;
+  const asked = (v) => v === true || v === 1 || v === "1" || v === "true";
   const fifoFor = (m, plant, org, batch) => fifoRows.filter((r) => live(r) && costKey(r.material_id, r.plant_id, r.organization_id, r.batch_id) === costKey(m, plant, org, batch));
   const waFor = (m, plant, org, batch) => waRows.filter((r) => live(r) && costKey(r.material_id, r.plant_id, r.organization_id, r.batch_id) === costKey(m, plant, org, batch));
   const newestWa = (rows) =>
@@ -269,10 +270,13 @@ function planBulk(input) {
         touch("item_batch_balance", batchRow);
       }
 
+      // report_layers (opt-in): the layers this issue draws; stock no layer covers comes last, at the price fifoUnitPrice gave it
+      const drawn = isMovingInv === 0 && u.method === FIFO && asked(m.report_layers) ? [] : null;
       if (isMovingInv === 0) {
         if (u.method === FIFO) {
           let remaining = q8(u.baseQty);
-          for (const layer of fifo.slice().sort((a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0))) {
+          const ordered = fifo.slice().sort((a, b) => (a.fifo_sequence || 0) - (b.fifo_sequence || 0));
+          for (const layer of ordered) {
             if (remaining <= 0) break;
             const avail = q8(layer.fifo_available_quantity || 0);
             if (avail <= 0) continue;
@@ -281,7 +285,9 @@ function planBulk(input) {
             layer.fifo_available_quantity = rc("fifo_costing_history", "fifo_available_quantity", avail - take);
             touch("fifo", layer);
             remaining = q8(remaining - take);
+            if (drawn) drawn.push({ id: layer.id.indexOf("new:") === 0 ? null : layer.id, sequence: parseInt(layer.fifo_sequence || 0, 10), quantity: q8(take), cost: q8(layer.fifo_cost_price || 0) });
           }
+          if (drawn && remaining > 0) drawn.push({ id: null, sequence: null, quantity: remaining, cost: ordered.length ? q8(ordered[ordered.length - 1].fifo_cost_price || 0) : 0, uncovered: true });
         } else if (u.method === WA) {
           const doc = newestWa(wa);
           if (!doc) {
@@ -321,6 +327,7 @@ function planBulk(input) {
       });
       const r = { movement_key: key, direction: dir, code: "200", unit_price: price, total_price: totalPrice, manufacturing_date: mfg, expired_date: exp };
       if (migrated && migrated !== "NONE") r.costing_migrated = migrated;
+      if (drawn) r.fifo_layers = drawn;
       results.push(r);
       byKey[key] = r;
       continue;

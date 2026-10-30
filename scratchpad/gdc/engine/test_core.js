@@ -486,4 +486,111 @@ t("migration: rows retired in an earlier movement are invisible to later ones (l
   assert.strictEqual(p.results[1].costing_migrated, undefined);
 });
 
+t("layers report: a FIFO issue with report_layers lists the layers it drew, oldest first (id, sequence, quantity, cost)", () => {
+  const p = planBulk({
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { unrestricted_qty: 50, balance_quantity: 50 })],
+    fifoLayers: [fifoL("F2", "M1", 2, 20, 12), fifoL("F1", "M1", 1, 30, 10)],
+    movements: [sub("a", "M1", "L1", 40, { inventory_category: "Unrestricted", report_layers: true })],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.strictEqual(p.results[0].unit_price, 10.5);
+  assert.strictEqual(p.results[0].total_price, 420);
+  assert.deepStrictEqual(p.results[0].fifo_layers, [
+    { id: "F1", sequence: 1, quantity: 30, cost: 10 },
+    { id: "F2", sequence: 2, quantity: 10, cost: 12 },
+  ]);
+});
+
+t("layers report: off unless asked; 1, \"1\" and \"true\" ask as true does, and the rest of the plan is the same", () => {
+  const plan = (flag) =>
+    planBulk({
+      items: { M1: item("M1", "First In First Out") },
+      itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 10, balance_quantity: 10 })],
+      fifoLayers: [fifoL("F1", "M1", 1, 4, 2), fifoL("F2", "M1", 2, 9, 3)],
+      movements: [sub("a", "M1", "L1", 5, flag === undefined ? {} : { report_layers: flag })],
+    });
+  const off = plan(undefined);
+  assert.ok(off.ok);
+  assert.ok(!("fifo_layers" in off.results[0]));
+  for (const f of [false, 0, "0", ""]) assert.ok(!("fifo_layers" in plan(f).results[0]), "flag " + JSON.stringify(f));
+  for (const f of [true, 1, "1", "true"]) {
+    const on = plan(f);
+    assert.deepStrictEqual(on.results[0].fifo_layers, [{ id: "F1", sequence: 1, quantity: 4, cost: 2 }, { id: "F2", sequence: 2, quantity: 1, cost: 3 }], "flag " + JSON.stringify(f));
+    const { fifo_layers, ...rest } = on.results[0];
+    assert.deepStrictEqual(rest, off.results[0]);
+    assert.deepStrictEqual(on.updates, off.updates);
+    assert.deepStrictEqual(on.movements, off.movements);
+  }
+});
+
+t("layers report: two issues of one item in one operation each report their own draw", () => {
+  const p = planBulk({
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 10, balance_quantity: 10 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 4, 2), fifoL("F2", "M1", 2, 5, 3)],
+    movements: [sub("a", "M1", "L1", 3, { report_layers: true }), sub("b", "M1", "L1", 4, { report_layers: true })],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.deepStrictEqual(p.results[0].fifo_layers, [{ id: "F1", sequence: 1, quantity: 3, cost: 2 }]);
+  assert.deepStrictEqual(p.results[1].fifo_layers, [{ id: "F1", sequence: 1, quantity: 1, cost: 2 }, { id: "F2", sequence: 2, quantity: 3, cost: 3 }]);
+});
+
+t("layers report: stock the layers do not cover is one last 'uncovered' entry, at the price the issue used for it", () => {
+  const p = planBulk({
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 10, balance_quantity: 10 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 2, 4), fifoL("F2", "M1", 2, 0, 10)],
+    movements: [sub("a", "M1", "L1", 4, { report_layers: true })],
+  });
+  assert.ok(p.ok);
+  assert.strictEqual(p.results[0].total_price, 28);
+  assert.deepStrictEqual(p.results[0].fifo_layers, [{ id: "F1", sequence: 1, quantity: 2, cost: 4 }, { id: null, sequence: null, quantity: 2, cost: 10, uncovered: true }]);
+  const none = planBulk({
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 10, balance_quantity: 10 })],
+    movements: [sub("a", "M1", "L1", 4, { report_layers: true })],
+  });
+  assert.ok(none.ok, JSON.stringify(none.failure));
+  assert.deepStrictEqual(none.results[0].fifo_layers, [{ id: null, sequence: null, quantity: 4, cost: 0, uncovered: true }]);
+});
+
+t("layers report: a layer made in the same operation (a receipt, or a WA -> FIFO migration) shows with id null and its sequence", () => {
+  const p = planBulk({
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { unrestricted_qty: 1, balance_quantity: 1 })],
+    fifoLayers: [fifoL("F1", "M1", 1, 1, 2)],
+    movements: [add("r", "M1", "L1", 3, { isMovingInv: 0, unit_price: 5 }), sub("a", "M1", "L1", 2, { inventory_category: "Unrestricted", report_layers: true })],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  assert.deepStrictEqual(p.results[1].fifo_layers, [{ id: "F1", sequence: 1, quantity: 1, cost: 2 }, { id: null, sequence: 2, quantity: 1, cost: 5 }]);
+  const m = planBulk({
+    migrateCosting: "ALL",
+    items: { M1: item("M1", "First In First Out") },
+    itemBalances: [bal("B1", "M1", "L1", { reserved_qty: 5, balance_quantity: 5 })],
+    waRows: [waR("W1", "M1", 5, 11)],
+    movements: [sub("a", "M1", "L1", 2, { report_layers: true })],
+  });
+  assert.ok(m.ok, JSON.stringify(m.failure));
+  assert.strictEqual(m.results[0].costing_migrated, "WA_TO_FIFO");
+  assert.deepStrictEqual(m.results[0].fifo_layers, [{ id: null, sequence: 1, quantity: 2, cost: 11 }]);
+});
+
+t("layers report: only where FIFO layers are drawn: a WA or Fixed Cost issue, a FIFO category move and an ADD carry none", () => {
+  const p = planBulk({
+    items: { W: item("W", "Weighted Average"), X: item("X", "Fixed Cost"), F: item("F", "First In First Out") },
+    itemBalances: [bal("BW", "W", "L1", { reserved_qty: 5, balance_quantity: 5 }), bal("BX", "X", "L1", { reserved_qty: 5, balance_quantity: 5 }), bal("BF", "F", "L1", { reserved_qty: 5, balance_quantity: 5 })],
+    fifoLayers: [fifoL("F1", "F", 1, 5, 2)],
+    waRows: [waR("W1", "W", 5, 3)],
+    movements: [
+      sub("w", "W", "L1", 1, { report_layers: true }),
+      sub("x", "X", "L1", 1, { report_layers: true }),
+      sub("f", "F", "L1", 1, { isMovingInv: 1, report_layers: true }),
+      add("g", "F", "L2", 1, { unit_price_from: "f", report_layers: true }),
+    ],
+  });
+  assert.ok(p.ok, JSON.stringify(p.failure));
+  for (const r of p.results) assert.ok(!("fifo_layers" in r), r.movement_key);
+});
+
 console.log(n + " passed");
